@@ -1263,6 +1263,16 @@ class CorrelationExplorer {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             }
         });
+        // Hotspot gene selector (Y axis mutation gene)
+        document.getElementById('geHotspotGeneSelect')?.addEventListener('change', () => {
+            if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene && this.mutationResults) {
+                const newHotspot = document.getElementById('geHotspotGeneSelect').value;
+                if (newHotspot && this.mutations.geneData[newHotspot]) {
+                    this.mutationResults.hotspotGene = newHotspot;
+                    this.showGeneEffectDistribution(this.currentGeneEffectGene);
+                }
+            }
+        });
         // Inline compare buttons
         document.getElementById('geCompareByTissueBtn')?.addEventListener('click', () => this.showInlineCompareByTissue());
         document.getElementById('geCompareByHotspotBtn')?.addEventListener('click', () => this.showInlineCompareByHotspot());
@@ -3019,18 +3029,12 @@ class CorrelationExplorer {
         document.getElementById('geneEffectModal').style.display = 'flex';
         document.getElementById('geneEffectTitle').textContent = `${gene} Gene Effect by ${hotspotGene} Mutation`;
 
-        // Populate tissue filter dropdown with available lineages (respecting excluded tissues)
+        // Populate tissue filter dropdown with ALL lineages (inspect can override analysis filters)
         const tissueFilterEl = document.getElementById('geTissueFilter');
         if (tissueFilterEl) {
             const allLineages = [...new Set(cellLines.map(cl => this.cellLineMetadata?.lineage?.[cl]).filter(Boolean))].sort();
-            const visibleLineages = mr.excludedTissues && mr.excludedTissues.size > 0
-                ? allLineages.filter(l => !mr.excludedTissues.has(l))
-                : allLineages;
-            const defaultLabel = mr.excludedTissues && mr.excludedTissues.size > 0
-                ? `Filtered tissues (${visibleLineages.length})`
-                : 'All tissues';
-            tissueFilterEl.innerHTML = `<option value="">${defaultLabel}</option>`;
-            visibleLineages.forEach(l => {
+            tissueFilterEl.innerHTML = '<option value="">All tissues</option>';
+            allLineages.forEach(l => {
                 const opt = document.createElement('option');
                 opt.value = l;
                 opt.textContent = l;
@@ -3052,6 +3056,20 @@ class CorrelationExplorer {
             });
         }
 
+        // Populate and show hotspot gene selector (Y axis mutation)
+        const hotspotGeneSelectEl = document.getElementById('geHotspotGeneSelect');
+        if (hotspotGeneSelectEl && this.mutations?.genes) {
+            hotspotGeneSelectEl.innerHTML = '';
+            this.mutations.genes.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g;
+                opt.textContent = g;
+                if (g === hotspotGene) opt.selected = true;
+                hotspotGeneSelectEl.appendChild(opt);
+            });
+        }
+        document.getElementById('geHotspotGeneGroup').style.display = '';
+
         // Show gene search bar so user can change the gene (#12)
         document.getElementById('geSearchBar').style.display = '';
         document.getElementById('geneEffectSearch').value = gene.toUpperCase();
@@ -3066,10 +3084,15 @@ class CorrelationExplorer {
         // Mark this as mutation analysis view
         this.geneEffectViewMode = 'mutation';
 
-        // Show mutation inspect controls
+        // Show mutation inspect controls, hide non-mutation view buttons
         document.getElementById('geHotspotFilter').style.display = '';
         document.getElementById('geCompareButtons').style.display = '';
         document.getElementById('geResetFiltersBtn').style.display = '';
+        document.getElementById('geViewTissue').style.display = 'none';
+        document.getElementById('geViewHotspot').style.display = 'none';
+        // Hide the "View:" label too (previous sibling span)
+        const viewLabel = document.getElementById('geViewTissue').previousElementSibling;
+        if (viewLabel && viewLabel.textContent.trim() === 'View:') viewLabel.style.display = 'none';
         if (!this._keepInlineCompare) {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         }
@@ -7903,6 +7926,13 @@ Results:
         document.getElementById('geCompareButtons').style.display = 'none';
         document.getElementById('geResetFiltersBtn').style.display = 'none';
         document.getElementById('geInlineCompareTable').style.display = 'none';
+        document.getElementById('geHotspotGeneGroup').style.display = 'none';
+
+        // Restore view buttons (may have been hidden by mutation inspect)
+        document.getElementById('geViewTissue').style.display = '';
+        document.getElementById('geViewHotspot').style.display = '';
+        const viewLabel = document.getElementById('geViewTissue').previousElementSibling;
+        if (viewLabel && viewLabel.textContent.trim() === 'View:') viewLabel.style.display = '';
 
         // Hide expression correlates button and panel (only for mutation inspect mode)
         document.getElementById('toggleExprCorrelatesBtn').style.display = 'none';
