@@ -10182,9 +10182,18 @@ Results:
                     html += '<td style="padding:3px 6px; border-bottom:1px solid #e5e7eb; text-align:center; color:#ccc;">-</td>';
                 } else {
                     const intensity = Math.min(Math.abs(v) / maxAbs, 1);
-                    const red = v < 0 ? Math.round(220 + 35 * intensity) : Math.round(255 - 100 * intensity);
-                    const green = v < 0 ? Math.round(255 - 100 * intensity) : Math.round(220 + 35 * intensity);
-                    const blue = v < 0 ? Math.round(255 - 100 * intensity) : Math.round(255 - 100 * intensity);
+                    let red, green, blue;
+                    if (v < 0) {
+                        // Negative (more essential) → white to red
+                        red = 255;
+                        green = Math.round(255 - 140 * intensity);
+                        blue = Math.round(255 - 140 * intensity);
+                    } else {
+                        // Positive (less essential) → white to green
+                        red = Math.round(255 - 140 * intensity);
+                        green = Math.round(255 - 50 * intensity);
+                        blue = Math.round(255 - 140 * intensity);
+                    }
                     const bgColor = `rgb(${red},${green},${blue})`;
                     const clickArg = d.mode === 'tissue' ? `'${r.gene}', '${(col.tissue || '').replace(/'/g, "\\'")}', '', 'tissue'` : `'${r.gene}', '', '${(col.hotspot || '').replace(/'/g, "\\'")}', 'hotspot'`;
                     html += `<td onclick="app.openCompareInspect(${clickArg})" style="padding:3px 6px; border-bottom:1px solid #e5e7eb; text-align:center; background:${bgColor}; cursor:pointer; font-size:10px;" title="${v.toFixed(3)}">${v.toFixed(2)}</td>`;
