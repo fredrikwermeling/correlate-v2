@@ -1,6 +1,8 @@
-# Correlate - CRISPR Screen Correlation Analysis Tool
+# Correlate - CRISPR Screen Correlation Analysis Tool v2.0
 
 A web-based application for analyzing gene correlations from DepMap CRISPR screen data. Part of the [Green Listed](https://greenlisted.cmm.se) tool family.
+
+V2.0 has all features of the original Correlate app, but includes the expression data sets, and allow for "expression correlates" in the Mutation Analysis Inspect window. 
 
 **Live App:** [https://fredrikwermeling.github.io/correlate-v2](https://fredrikwermeling.github.io/correlate-v2)
 
