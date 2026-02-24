@@ -1272,6 +1272,14 @@ class CorrelationExplorer {
         document.getElementById('geResetFiltersBtn')?.addEventListener('click', () => {
             document.getElementById('geTissueFilter').value = '';
             document.getElementById('geHotspotFilter').value = '';
+            // Clear analysis-level filters so inspect truly shows ALL cell lines
+            if (this.mutationResults) {
+                this.mutationResults.lineageFilter = '';
+                this.mutationResults.subLineageFilter = '';
+                this.mutationResults.excludedTissues = new Set();
+                this.mutationResults.additionalHotspot = '';
+                this.mutationResults.additionalHotspotLevel = 'all';
+            }
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             }
@@ -2007,6 +2015,16 @@ class CorrelationExplorer {
         document.getElementById('exprCorrelateScatterContainer').style.display = 'none';
         this.expressionCorrelateResults = null;
         this._exprCorrelateContext = null;
+
+        // Reset inspect-level filters and close modals
+        const geTissueEl = document.getElementById('geTissueFilter');
+        if (geTissueEl) geTissueEl.value = '';
+        const geHotspotEl = document.getElementById('geHotspotFilter');
+        if (geHotspotEl) geHotspotEl.value = '';
+        document.getElementById('geneEffectModal').style.display = 'none';
+        document.getElementById('geInlineCompareTable').style.display = 'none';
+        this.currentGeneEffectGene = null;
+        this.geneEffectViewMode = null;
 
         const hotspotGene = document.getElementById('mutationHotspotSelect').value;
         const minN = parseInt(document.getElementById('minCellLines').value);
