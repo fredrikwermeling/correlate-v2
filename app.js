@@ -9300,9 +9300,12 @@ Results:
         allRows.forEach(row => {
             const delta = row.delta;
             const intensity = Math.min(Math.abs(delta) / maxAbs, 1);
-            const r = delta < 0 ? Math.round(220 + 35 * intensity) : Math.round(255 - 100 * intensity);
-            const g = delta < 0 ? Math.round(255 - 100 * intensity) : Math.round(220 + 35 * intensity);
-            const b = delta < 0 ? Math.round(255 - 100 * intensity) : Math.round(255 - 100 * intensity);
+            let r, g, b;
+            if (delta < 0) {
+                r = 255; g = Math.round(255 - 140 * intensity); b = Math.round(255 - 140 * intensity);
+            } else {
+                r = Math.round(255 - 140 * intensity); g = Math.round(255 - 50 * intensity); b = Math.round(255 - 140 * intensity);
+            }
             const bgColor = `rgb(${r},${g},${b})`;
             const bold = row.isAll || row.isRef ? 'font-weight:600;' : '';
             const clickVal = mode === 'tissue' ? row.tissue : row.hotspot;
