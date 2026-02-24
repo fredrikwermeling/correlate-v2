@@ -1001,6 +1001,17 @@ class CorrelationExplorer {
         document.getElementById('downloadExprScatterSVG').addEventListener('click', () => this.downloadExprCorrelateScatter('svg'));
         document.getElementById('exprCorrelatesSearch').addEventListener('input', () => this.filterExprCorrelatesTable());
 
+        // Expression scatter gene inputs + expand checkboxes
+        document.getElementById('exprScatterUpdateBtn').addEventListener('click', () => this.updateExprScatterGenes());
+        document.getElementById('exprScatterGEGene').addEventListener('keydown', (e) => { if (e.key === 'Enter') this.updateExprScatterGenes(); });
+        document.getElementById('exprScatterExprGene').addEventListener('keydown', (e) => { if (e.key === 'Enter') this.updateExprScatterGenes(); });
+        document.getElementById('exprScatterAllGenotypes').addEventListener('change', () => {
+            if (this._currentExprScatterGene) this.showExpressionCorrelateScatter(this._currentExprScatterGene);
+        });
+        document.getElementById('exprScatterAllTissues').addEventListener('change', () => {
+            if (this._currentExprScatterGene) this.showExpressionCorrelateScatter(this._currentExprScatterGene);
+        });
+
         // Network controls with slider bubble updates
         document.getElementById('netFontSize').addEventListener('input', (e) => {
             document.getElementById('fontSizeBubble').textContent = e.target.value;
@@ -2967,7 +2978,7 @@ class CorrelationExplorer {
 
         const layout = {
             title: {
-                text: `${gene} Gene Effect by ${hotspotGene} Mutation Status<br><sub style="font-size:11px;color:#666">${subtitle}</sub>`,
+                text: `${gene} Gene Effect by ${hotspotGene} Mutation Status<br><sub style="font-size:10px;color:#666">${subtitle}</sub>`,
                 font: { size: 16 }
             },
             xaxis: {
@@ -2983,7 +2994,7 @@ class CorrelationExplorer {
                 automargin: true
             },
             showlegend: false,
-            margin: { t: 100, r: 30, b: 50, l: 30 }
+            margin: { t: 130, r: 30, b: 50, l: 30 }
         };
 
         // Show modal
@@ -9646,12 +9657,20 @@ Results:
         const nExprCellLines = this.expressionMetadata.nCellLines;
         const mutationData = ctx.mutationData;
 
-        // Collect data points
+        // Read expand checkbox states
+        const expandGenotypes = document.getElementById('exprScatterAllGenotypes')?.checked || false;
+        const expandTissues = document.getElementById('exprScatterAllTissues')?.checked || false;
+
+        // Build a set of core cell line indices for fast lookup
+        const coreIndexSet = new Set(ctx.subgroupIndices);
+
+        // Collect core data points (from subgroup)
         const points = { wt: [], mut1: [], mut2: [] };
 
         for (let i = 0; i < ctx.subgroupIndices.length; i++) {
             const geCellIdx = ctx.subgroupIndices[i];
             const exprCellIdx = this.expressionCellLineMap[geCellIdx];
+            if (exprCellIdx === undefined || exprCellIdx === -1) continue;
 
             const exprVal = this.expressionData[exprGeneIdx * nExprCellLines + exprCellIdx];
             const geVal = this.geneEffects[ctx.targetGeneIdx * this.nCellLines + geCellIdx];
@@ -9663,20 +9682,108 @@ Results:
             const lineage = this.getCellLineLineage(cellLine);
             const mutLevel = mutationData.mutations[cellLine] || 0;
 
-            const point = { x: exprVal, y: geVal, cellName, lineage, mutLevel };
+            const point = { x: geVal, y: exprVal, cellName, lineage, mutLevel };
 
             if (mutLevel === 0) points.wt.push(point);
             else if (mutLevel === 1) points.mut1.push(point);
             else points.mut2.push(point);
         }
 
-        const allPoints = [...points.wt, ...points.mut1, ...points.mut2];
+        // Collect extra (background) points when expand checkboxes are active
+        const extraPoints = { wt: [], mut1: [], mut2: [] };
+        if (expandGenotypes || expandTissues) {
+            const mr = this.mutationResults;
+            const cellLines = this.metadata.cellLines;
 
-        // Compute correlation for display
-        const corrStats = this.pearsonWithSlope(allPoints.map(p => p.x), allPoints.map(p => p.y));
+            for (let geCellIdx = 0; geCellIdx < cellLines.length; geCellIdx++) {
+                if (coreIndexSet.has(geCellIdx)) continue; // skip core points
 
-        // Build traces colored by mutation status
+                const exprCellIdx = this.expressionCellLineMap[geCellIdx];
+                if (exprCellIdx === undefined || exprCellIdx === -1) continue;
+
+                const cellLine = cellLines[geCellIdx];
+                const mutLevel = mutationData.mutations[cellLine] || 0;
+                const lineage = this.cellLineMetadata?.lineage?.[cellLine] || '';
+
+                // Determine if this cell line should be included
+                // If NOT expanding genotypes, must match subgroup genotype filter
+                if (!expandGenotypes) {
+                    const subgroup = ctx.subgroup;
+                    if (subgroup === '0' && mutLevel !== 0) continue;
+                    if (subgroup === '1' && mutLevel !== 1) continue;
+                    if (subgroup === '1+2' && mutLevel === 0) continue;
+                    if (subgroup === '2' && mutLevel < 2) continue;
+                }
+
+                // If NOT expanding tissues, must pass original tissue filters
+                if (!expandTissues) {
+                    const inspectTissueFilter = ctx.inspectTissueFilter || '';
+                    if (inspectTissueFilter) {
+                        if (lineage !== inspectTissueFilter) continue;
+                    } else {
+                        if (mr.lineageFilter && lineage !== mr.lineageFilter) continue;
+                        if (mr.excludedTissues && mr.excludedTissues.size > 0 && mr.excludedTissues.has(lineage)) continue;
+                    }
+                    if (!inspectTissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) continue;
+                }
+
+                // Still apply additional hotspot filter
+                if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
+                    const addMutData = this.mutations.geneData[mr.additionalHotspot];
+                    if (addMutData) {
+                        const addMutLevel = addMutData.mutations[cellLine] || 0;
+                        if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) continue;
+                        if (mr.additionalHotspotLevel === '1' && addMutLevel !== 1) continue;
+                        if (mr.additionalHotspotLevel === '2' && addMutLevel < 2) continue;
+                        if (mr.additionalHotspotLevel === '1+2' && addMutLevel === 0) continue;
+                    }
+                }
+
+                const exprVal = this.expressionData[exprGeneIdx * nExprCellLines + exprCellIdx];
+                const geVal = this.geneEffects[ctx.targetGeneIdx * this.nCellLines + geCellIdx];
+                if (isNaN(exprVal) || isNaN(geVal)) continue;
+
+                const cellName = this.getCellLineName(cellLine);
+                const point = { x: geVal, y: exprVal, cellName, lineage, mutLevel };
+
+                if (mutLevel === 0) extraPoints.wt.push(point);
+                else if (mutLevel === 1) extraPoints.mut1.push(point);
+                else extraPoints.mut2.push(point);
+            }
+        }
+
+        const allCorePoints = [...points.wt, ...points.mut1, ...points.mut2];
+        const allExtraPoints = [...extraPoints.wt, ...extraPoints.mut1, ...extraPoints.mut2];
+
+        // Compute correlation on core points only
+        const corrStats = this.pearsonWithSlope(allCorePoints.map(p => p.x), allCorePoints.map(p => p.y));
+
+        // Build traces — extra (background) points first, then core on top
         const traces = [];
+
+        // Extra points as background traces
+        if (allExtraPoints.length > 0) {
+            const extraGroups = [
+                { data: extraPoints.wt, name: 'WT (bg)', color: '#cccccc' },
+                { data: extraPoints.mut1, name: '1 mut (bg)', color: '#93c5fd' },
+                { data: extraPoints.mut2, name: '2 mut (bg)', color: '#fca5a5' }
+            ];
+            extraGroups.forEach(g => {
+                if (g.data.length === 0) return;
+                traces.push({
+                    x: g.data.map(p => p.x),
+                    y: g.data.map(p => p.y),
+                    mode: 'markers',
+                    type: 'scatter',
+                    name: `${g.name} (n=${g.data.length})`,
+                    marker: { color: g.color, size: 5, opacity: 0.4, symbol: 'diamond' },
+                    text: g.data.map(p => `${p.cellName}<br>${p.lineage}<br>GE: ${p.x.toFixed(2)}<br>Expr: ${p.y.toFixed(2)}`),
+                    hoverinfo: 'text'
+                });
+            });
+        }
+
+        // Core points on top
         const groups = [
             { data: points.wt, name: 'WT (0)', color: '#888888' },
             { data: points.mut1, name: '1 mutation', color: '#3b82f6' },
@@ -9692,18 +9799,18 @@ Results:
                 type: 'scatter',
                 name: `${g.name} (n=${g.data.length})`,
                 marker: { color: g.color, size: 8, opacity: 0.7 },
-                text: g.data.map(p => `${p.cellName}<br>${p.lineage}<br>Expr: ${p.x.toFixed(2)}<br>GE: ${p.y.toFixed(2)}`),
+                text: g.data.map(p => `${p.cellName}<br>${p.lineage}<br>GE: ${p.x.toFixed(2)}<br>Expr: ${p.y.toFixed(2)}`),
                 hoverinfo: 'text'
             });
         });
 
-        // Add regression line
-        if (allPoints.length >= 3 && !isNaN(corrStats.slope)) {
-            const xVals = allPoints.map(p => p.x);
+        // Add regression line (core points only)
+        if (allCorePoints.length >= 3 && !isNaN(corrStats.slope)) {
+            const xVals = allCorePoints.map(p => p.x);
             const xMin = Math.min(...xVals);
             const xMax = Math.max(...xVals);
             const meanX = xVals.reduce((a, b) => a + b, 0) / xVals.length;
-            const meanY = allPoints.map(p => p.y).reduce((a, b) => a + b, 0) / allPoints.length;
+            const meanY = allCorePoints.map(p => p.y).reduce((a, b) => a + b, 0) / allCorePoints.length;
             const yAtXmin = meanY + corrStats.slope * (xMin - meanX);
             const yAtXmax = meanY + corrStats.slope * (xMax - meanX);
 
@@ -9712,21 +9819,22 @@ Results:
                 y: [yAtXmin, yAtXmax],
                 mode: 'lines',
                 type: 'scatter',
-                line: { color: '#7c3aed', width: 2, dash: 'dash' },
+                line: { color: '#c4956a', width: 2, dash: 'dash' },
                 showlegend: false,
                 hoverinfo: 'skip'
             });
         }
 
         const subgroupLabels = { '0': 'WT', '1': 'Mutated (1)', '1+2': 'Mutated', '2': 'High (2)', 'all': 'All' };
+        const additionalText = allExtraPoints.length > 0 ? ` + ${allExtraPoints.length} additional` : '';
 
         const layout = {
             title: {
-                text: `${expressionGene} Expression vs ${ctx.targetGene} Gene Effect<br><sub style="font-size:11px;color:#666">r=${this.formatNum(corrStats.correlation)}, slope=${this.formatNum(corrStats.slope)}, n=${corrStats.n} | ${ctx.hotspotGene} ${subgroupLabels[ctx.subgroup]}</sub>`,
+                text: `${ctx.targetGene} GE vs ${expressionGene} Expression<br><sub style="font-size:11px;color:#666">r=${this.formatNum(corrStats.correlation)}, slope=${this.formatNum(corrStats.slope)}, n=${corrStats.n}${additionalText} | ${ctx.hotspotGene} ${subgroupLabels[ctx.subgroup]}</sub>`,
                 font: { size: 15 }
             },
-            xaxis: { title: `${expressionGene} Expression (log TPM+1)` },
-            yaxis: { title: `${ctx.targetGene} Gene Effect` },
+            xaxis: { title: `${ctx.targetGene} Gene Effect` },
+            yaxis: { title: `${expressionGene} Expression (log TPM+1)` },
             showlegend: true,
             legend: { x: 0, y: 1, bgcolor: 'rgba(255,255,255,0.8)' },
             margin: { t: 80, r: 30, b: 60, l: 70 }
@@ -9738,12 +9846,53 @@ Results:
 
         this._currentExprScatterGene = expressionGene;
 
+        // Populate gene inputs
+        document.getElementById('exprScatterGEGene').value = ctx.targetGene;
+        document.getElementById('exprScatterExprGene').value = expressionGene;
+
         Plotly.newPlot('exprCorrelateScatterPlot', traces, layout, { responsive: true });
+    }
+
+    updateExprScatterGenes() {
+        if (!this._exprCorrelateContext || !this.expressionLoaded) return;
+
+        const ctx = this._exprCorrelateContext;
+        const newGEGene = document.getElementById('exprScatterGEGene').value.trim().toUpperCase();
+        const newExprGene = document.getElementById('exprScatterExprGene').value.trim().toUpperCase();
+
+        if (!newGEGene || !newExprGene) {
+            alert('Please enter both gene names.');
+            return;
+        }
+
+        // Validate expression gene exists
+        if (this.expressionGeneIndex.get(newExprGene) === undefined) {
+            alert(`Expression gene "${newExprGene}" not found in expression data.`);
+            return;
+        }
+
+        // If GE gene changed, update the context
+        if (newGEGene !== ctx.targetGene.toUpperCase()) {
+            const newGEIdx = this.geneIndex.get(newGEGene);
+            if (newGEIdx === undefined) {
+                alert(`GE gene "${newGEGene}" not found in gene effect data.`);
+                return;
+            }
+            ctx.targetGene = newGEGene;
+            ctx.targetGeneIdx = newGEIdx;
+        }
+
+        this.showExpressionCorrelateScatter(newExprGene);
     }
 
     backToExprCorrelatesResults() {
         document.getElementById('exprCorrelateScatterContainer').style.display = 'none';
         document.getElementById('exprCorrelatesResults').style.display = 'block';
+        // Reset expand checkboxes
+        const allGenoEl = document.getElementById('exprScatterAllGenotypes');
+        const allTissueEl = document.getElementById('exprScatterAllTissues');
+        if (allGenoEl) allGenoEl.checked = false;
+        if (allTissueEl) allTissueEl.checked = false;
     }
 
     downloadExprCorrelateScatter(format) {
@@ -9793,12 +9942,6 @@ Results:
         // Build tissue → { cellLine indices by mutation status } map
         const tissueMap = {};
         cellLines.forEach((cellLine, idx) => {
-            if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
-            if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
-            if (mr.excludedTissues && mr.excludedTissues.size > 0) {
-                const lineage = this.cellLineMetadata?.lineage?.[cellLine];
-                if (lineage && mr.excludedTissues.has(lineage)) return;
-            }
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations.geneData[mr.additionalHotspot];
                 if (addMutData) {
@@ -9966,7 +10109,7 @@ Results:
         document.getElementById('mutCompareModalInfo').innerHTML = `${geneRows.length} genes × ${filteredCols.length} columns | Min N: ${minN} | Click a cell to inspect, hover gene for info, hover column for details`;
 
         // Build table HTML
-        let html = '<table style="border-collapse:collapse; font-size:11px; width:100%;">';
+        let html = '<table style="border-collapse:collapse; font-size:11px; width:auto; max-width:100%; margin:0 auto;">';
         html += '<thead style="position:sticky; top:0; z-index:1;"><tr><th style="padding:4px 8px; background:#f0fdf4; border-bottom:2px solid #5a9f4a; position:sticky; left:0; z-index:2; text-align:left;">Gene</th>';
         filteredCols.forEach((col, ci) => {
             let arrow = '';

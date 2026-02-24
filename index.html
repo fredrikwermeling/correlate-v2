@@ -1618,10 +1618,10 @@
 
                 <!-- Mutation Analysis Tab -->
                 <div class="tab-content" id="tab-mutation">
-                    <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; color: #92400e;">
+                    <div style="margin-bottom: 10px; font-size: 11px; color: #6b7280;">
                         <strong>Note:</strong> Differential gene effects may reflect selection bias (e.g., mutations enriched in certain cancer types) rather than direct functional consequences of the mutation. Consider filtering by lineage to control for tissue-specific effects.
                     </div>
-                    <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 4px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; color: #0c4a6e;">
+                    <div style="margin-bottom: 10px; font-size: 11px; color: #6b7280;">
                         <strong>Statistics:</strong> p-values are calculated using Welch's t-test comparing gene effect scores between wild-type (WT, 0 mutations) and mutated cells (1+2 or 2 mutations). Δ GE = Mean(mutated) − Mean(WT).
                     </div>
                     <div id="mutationResultsCount" style="margin-bottom: 10px;">0 genes with p < 0.001</div>
@@ -1925,7 +1925,7 @@
                             <div style="font-weight: 600; color: #374151; font-size: 13px;">Statistics (click row to focus)</div>
                             <input type="text" id="geTableSearch" class="form-control" placeholder="Search..." style="width: 120px; font-size: 11px; padding: 4px 8px;">
                         </div>
-                        <div id="geStatsExplanation" style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 4px; padding: 6px 10px; margin-bottom: 8px; font-size: 10px; color: #0c4a6e;">
+                        <div id="geStatsExplanation" style="margin-bottom: 8px; font-size: 10px; color: #6b7280;">
                             <span id="geStatsExplanationText">p-values: Welch's t-test comparing each cancer type vs all other cell lines.</span>
                         </div>
                         <div class="table-container" style="max-height: 450px; overflow-y: auto;">
@@ -1963,17 +1963,17 @@
                     <button class="btn btn-outline btn-sm" id="downloadGETableCSV">By Group</button>
                     <button class="btn btn-outline btn-sm" id="downloadGECellLineCSV">By Cell Line</button>
                     <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
-                    <button class="btn btn-sm" id="toggleExprCorrelatesBtn" style="background: #7c3aed; color: white; display: none;">Expression Correlates</button>
+                    <button class="btn btn-sm" id="toggleExprCorrelatesBtn" style="background: #5a9f4a; color: white; display: none;">Expression Correlates</button>
                 </div>
 
                 <!-- Expression Correlates Panel -->
-                <div id="exprCorrelatesPanel" style="display: none; margin-top: 15px; border: 2px solid #7c3aed; border-radius: 8px; overflow: hidden;">
-                    <div style="background: #7c3aed; color: white; padding: 10px 15px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="exprCorrelatesPanel" style="display: none; margin-top: 15px; border: 2px solid #5a9f4a; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #5a9f4a; color: white; padding: 10px 15px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
                         <span>Expression Correlates</span>
                         <button id="closeExprCorrelatesPanel" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
                     </div>
                     <div style="padding: 15px;">
-                        <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; color: #5b21b6;">
+                        <div style="background: #f0f9ef; border: 1px solid #a8d89a; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; color: #2d5a27;">
                             Find gene expression patterns that correlate with the gene effect of <strong id="exprCorrelatesTargetGene">-</strong> within a mutation subgroup.
                         </div>
 
@@ -1981,20 +1981,20 @@
                         <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
                             <div>
                                 <label style="font-size: 12px; font-weight: 600; color: #374151; margin-right: 6px;">Subgroup:</label>
-                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="0" style="accent-color: #7c3aed;"> WT (0)</label>
-                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="1" style="accent-color: #7c3aed;"> Mut (1)</label>
-                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="1+2" checked style="accent-color: #7c3aed;"> Mutated (1+2)</label>
-                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="2" style="accent-color: #7c3aed;"> High (2)</label>
-                                <label style="font-size: 12px;"><input type="radio" name="exprSubgroup" value="all" style="accent-color: #7c3aed;"> All</label>
+                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="0" style="accent-color: #5a9f4a;"> WT (0)</label>
+                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="1" style="accent-color: #5a9f4a;"> Mut (1)</label>
+                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="1+2" checked style="accent-color: #5a9f4a;"> Mutated (1+2)</label>
+                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="2" style="accent-color: #5a9f4a;"> High (2)</label>
+                                <label style="font-size: 12px;"><input type="radio" name="exprSubgroup" value="all" style="accent-color: #5a9f4a;"> All</label>
                             </div>
-                            <button class="btn btn-sm" id="runExprCorrelatesBtn" style="background: #7c3aed; color: white;">Run</button>
+                            <button class="btn btn-sm" id="runExprCorrelatesBtn" style="background: #5a9f4a; color: white;">Run</button>
                             <span id="exprCorrelatesStatus" style="font-size: 12px; color: #6b7280;"></span>
-                            <button class="btn btn-outline btn-sm" id="downloadExprCorrelatesCSV" style="display: none; margin-left: auto; border-color: #7c3aed; color: #7c3aed;">Export CSV</button>
+                            <button class="btn btn-outline btn-sm" id="downloadExprCorrelatesCSV" style="display: none; margin-left: auto; border-color: #5a9f4a; color: #5a9f4a;">Export CSV</button>
                         </div>
 
                         <!-- Loading indicator -->
                         <div id="exprDataLoadingIndicator" style="display: none; text-align: center; padding: 20px;">
-                            <div style="width: 30px; height: 30px; border: 3px solid #ddd6fe; border-top-color: #7c3aed; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                            <div style="width: 30px; height: 30px; border: 3px solid #c5e8bc; border-top-color: #5a9f4a; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
                             <div style="margin-top: 10px; font-size: 13px; color: #6b7280;" id="exprDataLoadingText">Loading expression data...</div>
                         </div>
 
@@ -2025,11 +2025,32 @@
                         <!-- Expression scatter plot (shown when clicking a result row) -->
                         <div id="exprCorrelateScatterContainer" style="display: none; margin-top: 15px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <button class="btn btn-sm btn-outline" id="backToExprResults" style="border-color: #7c3aed; color: #7c3aed;">← Back to results</button>
+                                <button class="btn btn-sm btn-outline" id="backToExprResults" style="border-color: #5a9f4a; color: #5a9f4a;">← Back to results</button>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-outline btn-sm" id="downloadExprScatterPNG" style="border-color: #7c3aed; color: #7c3aed;">PNG</button>
-                                    <button class="btn btn-outline btn-sm" id="downloadExprScatterSVG" style="border-color: #7c3aed; color: #7c3aed;">SVG</button>
+                                    <button class="btn btn-outline btn-sm" id="downloadExprScatterPNG" style="border-color: #5a9f4a; color: #5a9f4a;">PNG</button>
+                                    <button class="btn btn-outline btn-sm" id="downloadExprScatterSVG" style="border-color: #5a9f4a; color: #5a9f4a;">SVG</button>
                                 </div>
+                            </div>
+                            <div id="exprScatterGeneInputs" style="display:flex; gap:12px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+                                <div style="display:flex; align-items:center; gap:4px;">
+                                    <label style="font-size:12px; font-weight:600; color:#374151;">GE Gene:</label>
+                                    <input type="text" id="exprScatterGEGene" class="form-control" style="width:120px; font-size:12px; padding:4px 8px;">
+                                </div>
+                                <div style="display:flex; align-items:center; gap:4px;">
+                                    <label style="font-size:12px; font-weight:600; color:#374151;">Expr Gene:</label>
+                                    <input type="text" id="exprScatterExprGene" class="form-control" style="width:120px; font-size:12px; padding:4px 8px;">
+                                </div>
+                                <button class="btn btn-sm" id="exprScatterUpdateBtn" style="background:#5a9f4a; color:white;">Update</button>
+                            </div>
+                            <div id="exprScatterExpandOptions" style="display:flex; gap:15px; align-items:center; margin-bottom:8px; font-size:12px;">
+                                <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+                                    <input type="checkbox" id="exprScatterAllGenotypes" style="accent-color:#5a9f4a;">
+                                    <span style="color:#374151;">All genotypes</span>
+                                </label>
+                                <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+                                    <input type="checkbox" id="exprScatterAllTissues" style="accent-color:#5a9f4a;">
+                                    <span style="color:#374151;">All tissues</span>
+                                </label>
                             </div>
                             <div id="exprCorrelateScatterPlot" style="width: 100%; height: 450px;"></div>
                         </div>
@@ -2061,7 +2082,7 @@
           <label style="font-size:12px;">Min N: <input type="number" id="mutCompareMinN" value="5" min="1" max="50" style="width:50px; font-size:12px;"></label>
           <button class="btn btn-sm" id="mutCompareModalClose" style="background:#ef4444; color:white;">Close</button>
         </div>
-        <div id="mutCompareModalInfo" style="padding:8px 20px; font-size:11px; color:#0c4a6e; background:#f0f9ff; border-bottom:1px solid #bae6fd;"></div>
+        <div id="mutCompareModalInfo" style="padding:8px 20px; font-size:11px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;"></div>
         <div id="mutCompareModalBody" style="flex:1; overflow:auto; padding:0;"></div>
       </div>
     </div>
