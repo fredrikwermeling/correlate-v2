@@ -10105,8 +10105,8 @@ Results:
         const d = this._compareModalData;
         const minN = parseInt(document.getElementById('mutCompareMinN')?.value) || 5;
 
-        // Filter columns by minN
-        const filteredCols = d.cols.filter(c => c.wtIdx.length >= minN && c.mutIdx.length >= minN);
+        // Filter columns by minN (only requires min N mutated cells)
+        const filteredCols = d.cols.filter(c => c.mutIdx.length >= minN);
         this._compareModalCols = filteredCols;
 
         // Compute delta matrix: genes × cols
@@ -10118,7 +10118,7 @@ Results:
             filteredCols.forEach(col => {
                 const wtVals = col.wtIdx.map(i => this.geneEffects[geneIdx * this.nCellLines + i]).filter(v => !isNaN(v));
                 const mutVals = col.mutIdx.map(i => this.geneEffects[geneIdx * this.nCellLines + i]).filter(v => !isNaN(v));
-                if (wtVals.length >= minN && mutVals.length >= minN) {
+                if (wtVals.length >= 3 && mutVals.length >= minN) {
                     const meanWT = wtVals.reduce((a, b) => a + b, 0) / wtVals.length;
                     const meanMut = mutVals.reduce((a, b) => a + b, 0) / mutVals.length;
                     row[col.label] = meanMut - meanWT;
@@ -10155,7 +10155,12 @@ Results:
 
         // Title and info
         document.getElementById('mutCompareModalTitle').textContent = d.title;
-        document.getElementById('mutCompareModalInfo').innerHTML = `${geneRows.length} genes × ${filteredCols.length} columns | Min N: ${minN} | Click a cell to inspect, hover gene for info, hover column for details`;
+        const modeLabel = d.mode === 'tissue' ? 'tissue/cancer type' : 'hotspot mutation';
+        document.getElementById('mutCompareModalInfo').innerHTML =
+            `<b>Δ GE = Mean GE(mutated) − Mean GE(WT)</b> for ${d.hotspotGene} mutation, stratified by ${modeLabel}. ` +
+            `<span style="color:#dc2626;">Red = more essential when mutated</span>, <span style="color:#16a34a;">Green = less essential</span>. ` +
+            `${geneRows.length} genes × ${filteredCols.length} ${d.mode === 'tissue' ? 'tissues' : 'hotspots'} | Min mutated cells: ${minN} | ` +
+            `Click cell to inspect, hover column header for N(WT)/N(Mut)`;
 
         // Build table HTML
         let html = '<table style="border-collapse:collapse; font-size:11px; width:auto; max-width:100%; margin:0 auto;">';
@@ -10164,7 +10169,7 @@ Results:
             let arrow = '';
             if (this._compareSortCol === col.label) arrow = this._compareSortAsc ? ' ▲' : ' ▼';
             const isRef = col.isRef ? 'font-weight:700;' : '';
-            html += `<th onclick="app.sortCompareModal('${col.label.replace(/'/g, "\\'")}')" onmouseenter="app.showColumnTooltip(event, ${ci})" onmouseleave="app.hideColumnTooltip()" style="padding:4px 6px; background:#f0fdf4; border-bottom:2px solid #5a9f4a; cursor:pointer; white-space:nowrap; font-size:10px; ${isRef}">${col.label}${arrow}</th>`;
+            html += `<th onclick="app.sortCompareModal('${col.label.replace(/'/g, "\\'")}')" onmouseenter="app.showColumnTooltip(event, ${ci})" onmouseleave="app.hideColumnTooltip()" style="padding:4px 6px; background:#f0fdf4; border-bottom:2px solid #5a9f4a; cursor:pointer; white-space:nowrap; font-size:10px; ${isRef}">${col.label}${arrow}<br><span style="font-weight:400; font-size:9px; color:#6b7280;">${col.nWT}/${col.nMut}</span></th>`;
         });
         html += '</tr></thead><tbody>';
 
@@ -10207,7 +10212,7 @@ Results:
             filteredCols.forEach(col => {
                 const wtVals = col.wtIdx.map(i => this.geneEffects[geneIdx * this.nCellLines + i]).filter(v => !isNaN(v));
                 const mutVals = col.mutIdx.map(i => this.geneEffects[geneIdx * this.nCellLines + i]).filter(v => !isNaN(v));
-                if (wtVals.length >= minN && mutVals.length >= minN) {
+                if (wtVals.length >= 3 && mutVals.length >= minN) {
                     const meanWT = wtVals.reduce((a, b) => a + b, 0) / wtVals.length;
                     const meanMut = mutVals.reduce((a, b) => a + b, 0) / mutVals.length;
                     row[col.label] = (meanMut - meanWT).toFixed(4);
