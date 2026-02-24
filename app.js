@@ -474,7 +474,7 @@ class CorrelationExplorer {
         // Set default min cell lines based on mode
         const minCellLinesInput = document.getElementById('minCellLines');
         if (isMutationMode) {
-            minCellLinesInput.value = '20';
+            minCellLinesInput.value = '10';
             this.populateMutationHotspotSelector();
         } else {
             minCellLinesInput.value = '50';
