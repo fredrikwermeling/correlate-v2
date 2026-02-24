@@ -2,7 +2,7 @@
 
 A web-based application for analyzing gene correlations from DepMap CRISPR screen data. Part of the [Green Listed](https://greenlisted.cmm.se) tool family.
 
-**Live App:** [https://fredrikwermeling.github.io/correlation-web-app-/](https://fredrikwermeling.github.io/correlation-web-app-/)
+**Live App:** [https://fredrikwermeling.github.io/correlate-v2](https://fredrikwermeling.github.io/correlate-v2)
 
 ## Features
 
