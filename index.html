@@ -1630,12 +1630,7 @@
                         <button class="btn btn-outline btn-sm" id="filterMutationToggle" title="Toggle column filters">Filters</button>
                         <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadMutationResults">Export CSV</button>
-                        <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
-                        <button class="btn btn-secondary btn-sm" id="mutCompareByTissueBtn" title="Show how the mutation effect on top genes varies across cancer types">Compare by Tissue</button>
-                        <button class="btn btn-secondary btn-sm" id="mutCompareByHotspotBtn" title="Check if other mutations also affect these top genes">Compare by Hotspot</button>
-                        <button class="btn btn-sm" id="mutCompareCloseBtn" style="display: none; background: #5a9f4a; color: white;" title="Close comparison table">✕ Close</button>
                     </div>
-                    <div id="mutationCompareTable" style="display: none; max-height: 500px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #c7d2fe; border-radius: 8px; padding: 16px; background: #f8f9ff;"></div>
                     <div class="table-container" style="max-height: 600px; overflow-y: auto;">
                         <table class="data-table" id="mutationTable">
                             <thead>
@@ -1875,6 +1870,14 @@
                         <select id="geTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
                             <option value="">All tissues</option>
                         </select>
+                        <select id="geHotspotFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Additional hotspot filter — only show cell lines mutated in this gene">
+                            <option value="">No hotspot filter</option>
+                        </select>
+                        <span id="geCompareButtons" style="display: none;">
+                            <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByTissueBtn" title="Show Δ GE per tissue for this gene">Δ Tissue</button>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByHotspotBtn" title="Show Δ GE per additional hotspot for this gene">Δ Hotspot</button>
+                        </span>
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot">By Hotspot</button>
@@ -1936,6 +1939,15 @@
                             </table>
                         </div>
                     </div>
+                </div>
+
+                <!-- Inline compare table (shown in mutation inspect mode) -->
+                <div id="geInlineCompareTable" style="display: none; max-height: 300px; overflow: auto; margin-top: 15px; border: 1px solid #c7d2fe; border-radius: 8px; padding: 12px 16px; background: #f8f9ff;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span id="geInlineCompareTitle" style="font-weight: 600; font-size: 13px;"></span>
+                        <button class="btn btn-sm" id="geInlineCompareClose" style="background: #ef4444; color: white; padding: 2px 8px; font-size: 11px;">Close</button>
+                    </div>
+                    <div id="geInlineCompareBody"></div>
                 </div>
 
                 <!-- Download buttons -->
@@ -2036,20 +2048,7 @@
         </div>
     </div>
 
-    <!-- Compare Modal Overlay -->
-    <div id="mutCompareModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.5);">
-      <div style="position:absolute; inset:20px; background:white; border-radius:12px; display:flex; flex-direction:column; overflow:hidden;">
-        <div id="mutCompareModalHeader" style="padding:16px 20px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-          <h3 id="mutCompareModalTitle" style="margin:0; flex:1;"></h3>
-          <label style="font-size:12px;">Min N: <input type="number" id="mutCompareMinN" value="5" min="1" max="50" style="width:50px; font-size:12px;"></label>
-          <button class="btn btn-outline btn-sm" id="mutCompareExtremeBtn">Extreme Values</button>
-          <button class="btn btn-sm" id="mutCompareModalClose" style="background:#ef4444; color:white;">✕ Close</button>
-        </div>
-        <div id="mutCompareModalInfo" style="padding:8px 20px; font-size:11px; color:#0c4a6e; background:#f0f9ff; border-bottom:1px solid #bae6fd;"></div>
-        <div id="mutCompareModalBody" style="flex:1; overflow:auto; padding:0;"></div>
-      </div>
-    </div>
 
-    <script src="app.js?v=20260223v2"></script>
+    <script src="app.js?v=20260224v1"></script>
 </body>
 </html>
