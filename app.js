@@ -1305,6 +1305,7 @@ class CorrelationExplorer {
                 this.renderCompareModal();
             }
         });
+        document.getElementById('mutCompareExportCSV')?.addEventListener('click', () => this.downloadCompareCSV());
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && document.getElementById('mutCompareModal')?.style.display !== 'none') {
                 document.getElementById('mutCompareModal').style.display = 'none';
@@ -10189,6 +10190,47 @@ Results:
 
         html += '</tbody></table>';
         document.getElementById('mutCompareModalBody').innerHTML = html;
+    }
+
+    downloadCompareCSV() {
+        if (!this._compareModalData || !this._compareModalCols) return;
+        const d = this._compareModalData;
+        const filteredCols = this._compareModalCols;
+        const minN = parseInt(document.getElementById('mutCompareMinN')?.value) || 5;
+
+        // Recompute delta matrix (same logic as renderCompareModal)
+        const geneRows = [];
+        d.genes.forEach(gene => {
+            const geneIdx = this.geneIndex.get(gene.toUpperCase());
+            if (geneIdx === undefined) return;
+            const row = { gene };
+            filteredCols.forEach(col => {
+                const wtVals = col.wtIdx.map(i => this.geneEffects[geneIdx * this.nCellLines + i]).filter(v => !isNaN(v));
+                const mutVals = col.mutIdx.map(i => this.geneEffects[geneIdx * this.nCellLines + i]).filter(v => !isNaN(v));
+                if (wtVals.length >= minN && mutVals.length >= minN) {
+                    const meanWT = wtVals.reduce((a, b) => a + b, 0) / wtVals.length;
+                    const meanMut = mutVals.reduce((a, b) => a + b, 0) / mutVals.length;
+                    row[col.label] = (meanMut - meanWT).toFixed(4);
+                } else {
+                    row[col.label] = '';
+                }
+            });
+            geneRows.push(row);
+        });
+
+        // Build CSV
+        const colLabels = filteredCols.map(c => c.label);
+        let csv = `# Compare by ${d.mode === 'tissue' ? 'Tissue' : 'Hotspot'} — ${d.hotspotGene} Mutation\n`;
+        csv += `# Min N: ${minN}\n`;
+        csv += `# Date: ${new Date().toISOString().slice(0, 10)}\n`;
+        csv += '#\n';
+        csv += 'Gene,' + colLabels.map(l => `"${l}"`).join(',') + '\n';
+        geneRows.forEach(r => {
+            csv += r.gene + ',' + colLabels.map(l => r[l]).join(',') + '\n';
+        });
+
+        const filename = `compare_${d.mode}_${d.hotspotGene}_${new Date().toISOString().slice(0, 10)}.csv`;
+        this.downloadFile(csv, filename, 'text/csv');
     }
 
     sortCompareModal(colLabel) {
