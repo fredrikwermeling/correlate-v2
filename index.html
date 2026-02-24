@@ -1863,16 +1863,24 @@
             </div>
             <div class="modal-body" style="padding: 15px;">
                 <!-- Gene search bar -->
-                <div id="geSearchBar" style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; flex-wrap: wrap; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
-                    <label style="font-weight: 500;">Gene Effect:</label>
-                    <input type="text" id="geneEffectSearch" class="form-control" placeholder="Enter gene symbol" style="width: 150px; font-size: 13px;">
-                    <button class="btn btn-success btn-sm" id="geneEffectSearchBtn">Analyze</button>
-                    <span id="geneEffectCurrentGene" style="font-weight: 600; color: #5a9f4a; margin-left: 10px;"></span>
-                    <span id="geHotspotGeneGroup" style="display: none; margin-left: 10px;">
-                        <label style="font-weight: 500; font-size: 13px;">Mutation:</label>
-                        <select id="geHotspotGeneSelect" class="form-control" style="width: 130px; font-size: 12px; padding: 3px 6px; display: inline-block;"></select>
-                    </span>
-                    <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
+                <div id="geSearchBar" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
+                    <!-- Row 1: Gene Effect + Mutation + Analyze -->
+                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Gene Effect:</label>
+                            <input type="text" id="geneEffectSearch" class="form-control" placeholder="Gene symbol" style="width: 130px; font-size: 13px; padding: 6px 10px;">
+                        </div>
+                        <span id="geHotspotGeneGroup" style="display: none;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Mutation:</label>
+                                <select id="geHotspotGeneSelect" class="form-control" style="width: 130px; font-size: 13px; padding: 6px 10px;"></select>
+                            </div>
+                        </span>
+                        <button class="btn btn-success btn-sm" id="geneEffectSearchBtn" style="padding: 6px 16px;">Analyze</button>
+                        <span id="geneEffectCurrentGene" style="font-weight: 600; color: #5a9f4a;"></span>
+                    </div>
+                    <!-- Row 2: Filters + Compare + View -->
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <button class="btn btn-sm btn-outline" id="geShowAllBtn" style="display: none;">← Show All</button>
                         <button class="btn btn-sm btn-secondary" id="geResetFiltersBtn" style="display: none; font-size: 11px; padding: 3px 8px;" title="Reset tissue and hotspot filters">Reset Filters</button>
                         <select id="geTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
