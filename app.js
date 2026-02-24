@@ -1258,6 +1258,29 @@ class CorrelationExplorer {
         document.getElementById('geInlineCompareClose')?.addEventListener('click', () => {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         });
+        document.getElementById('geResetFiltersBtn')?.addEventListener('click', () => {
+            document.getElementById('geTissueFilter').value = '';
+            document.getElementById('geHotspotFilter').value = '';
+            if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
+                this.showGeneEffectDistribution(this.currentGeneEffectGene);
+            }
+        });
+        // Full-screen compare modal buttons
+        document.getElementById('mutCompareByTissueBtn')?.addEventListener('click', () => this.showMutationCompareByTissue());
+        document.getElementById('mutCompareByHotspotBtn')?.addEventListener('click', () => this.showMutationCompareByHotspot());
+        document.getElementById('mutCompareModalClose')?.addEventListener('click', () => {
+            document.getElementById('mutCompareModal').style.display = 'none';
+        });
+        document.getElementById('mutCompareMinN')?.addEventListener('change', () => {
+            if (this._compareModalMode && document.getElementById('mutCompareModal').style.display !== 'none') {
+                this.renderCompareModal();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('mutCompareModal')?.style.display !== 'none') {
+                document.getElementById('mutCompareModal').style.display = 'none';
+            }
+        });
         document.getElementById('geShowAllBtn')?.addEventListener('click', () => {
             this.showAllGeneEffect();
         });
@@ -2001,6 +2024,11 @@ class CorrelationExplorer {
 
                 // Sort by p-value (1+2 vs 0)
                 significantResults.sort((a, b) => a.p_mut - b.p_mut);
+
+                // Close compare modal on new analysis
+                if (document.getElementById('mutCompareModal')) {
+                    document.getElementById('mutCompareModal').style.display = 'none';
+                }
 
                 this.mutationResults = {
                     hotspotGene,
@@ -3012,6 +3040,7 @@ class CorrelationExplorer {
         // Show mutation inspect controls
         document.getElementById('geHotspotFilter').style.display = '';
         document.getElementById('geCompareButtons').style.display = '';
+        document.getElementById('geResetFiltersBtn').style.display = '';
         if (!this._keepInlineCompare) {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         }
@@ -7843,6 +7872,7 @@ Results:
         // Hide mutation inspect controls
         document.getElementById('geHotspotFilter').style.display = 'none';
         document.getElementById('geCompareButtons').style.display = 'none';
+        document.getElementById('geResetFiltersBtn').style.display = 'none';
         document.getElementById('geInlineCompareTable').style.display = 'none';
 
         // Hide expression correlates button and panel (only for mutation inspect mode)
@@ -9016,6 +9046,8 @@ Results:
 
     showInlineCompareByTissue() {
         if (!this.mutationResults || !this.currentGeneEffectGene) return;
+        this._inlineSortCol = null;
+        this._inlineSortAsc = true;
         const mr = this.mutationResults;
         const gene = this.currentGeneEffectGene;
         const hotspotGene = mr.hotspotGene;
@@ -9032,15 +9064,12 @@ Results:
         const lineageMap = {};
         const allWT = [], allMut = [];
         cellLines.forEach((cellLine, idx) => {
-            // Apply lineage filter
             if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
             if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
-            // Apply excluded tissues
             if (mr.excludedTissues && mr.excludedTissues.size > 0) {
                 const lineage = this.cellLineMetadata?.lineage?.[cellLine];
                 if (lineage && mr.excludedTissues.has(lineage)) return;
             }
-            // Apply additional hotspot filter from analysis params
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations.geneData[mr.additionalHotspot];
                 if (addMutData) {
@@ -9051,7 +9080,6 @@ Results:
                     if (mr.additionalHotspotLevel === '1+2' && addMutLevel === 0) return;
                 }
             }
-            // Apply inspect-level hotspot filter
             if (inspectHotspot) {
                 const inspHotData = this.mutations.geneData[inspectHotspot];
                 if (inspHotData) {
@@ -9072,7 +9100,6 @@ Results:
 
         // Build rows
         const rows = [];
-        // "All" reference row
         if (allWT.length > 0 && allMut.length > 0) {
             const meanWT = allWT.reduce((a, b) => a + b, 0) / allWT.length;
             const meanMut = allMut.reduce((a, b) => a + b, 0) / allMut.length;
@@ -9086,20 +9113,17 @@ Results:
             }
         });
 
-        // Sort non-All rows by |delta| descending
         const allRow = rows.filter(r => r.isAll);
         const otherRows = rows.filter(r => !r.isAll).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-        this._renderInlineCompareTable(
-            `${gene} — Δ GE by Tissue (${hotspotGene} WT vs Mut)`,
-            ['Tissue', 'N(WT)', 'N(Mut)', 'Δ GE'],
-            [...allRow, ...otherRows],
-            'tissue'
-        );
+        this._inlineCompareData = { title: `${gene} — Δ GE by Tissue (${hotspotGene} WT vs Mut)`, headers: ['Tissue', 'N(WT)', 'N(Mut)', 'Δ GE'], refRows: allRow, sortableRows: otherRows, mode: 'tissue' };
+        this._renderInlineCompareTable();
     }
 
     showInlineCompareByHotspot() {
         if (!this.mutationResults || !this.currentGeneEffectGene) return;
+        this._inlineSortCol = null;
+        this._inlineSortAsc = true;
         const mr = this.mutationResults;
         const gene = this.currentGeneEffectGene;
         const mainHotspot = mr.hotspotGene;
@@ -9112,7 +9136,6 @@ Results:
         const cellLines = this.metadata.cellLines;
         const tissueFilter = document.getElementById('geTissueFilter')?.value || '';
 
-        // Gather base filtered cell lines (before hotspot filter)
         const baseCells = [];
         cellLines.forEach((cellLine, idx) => {
             if (tissueFilter) {
@@ -9141,7 +9164,6 @@ Results:
             baseCells.push({ cellLine, idx, ge, mainMut: mainMutData.mutations[cellLine] || 0 });
         });
 
-        // "None" reference row — no additional hotspot filter
         const rows = [];
         const noneWT = baseCells.filter(c => c.mainMut === 0).map(c => c.ge);
         const noneMut = baseCells.filter(c => c.mainMut >= 1).map(c => c.ge);
@@ -9151,13 +9173,10 @@ Results:
             rows.push({ label: 'None', nWT: noneWT.length, nMut: noneMut.length, delta: meanMut - meanWT, isRef: true, hotspot: '' });
         }
 
-        // For each other hotspot gene
         this.mutations.genes.forEach(hGene => {
             if (hGene === mainHotspot) return;
             const hMutData = this.mutations.geneData[hGene];
             if (!hMutData) return;
-
-            // Filter to cells mutated in this hotspot
             const filtered = baseCells.filter(c => (hMutData.mutations[c.cellLine] || 0) >= 1);
             const wtGE = filtered.filter(c => c.mainMut === 0).map(c => c.ge);
             const mutGE = filtered.filter(c => c.mainMut >= 1).map(c => c.ge);
@@ -9168,36 +9187,57 @@ Results:
             }
         });
 
-        // Sort non-ref rows by |delta| descending
         const refRow = rows.filter(r => r.isRef);
         const otherRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-        this._renderInlineCompareTable(
-            `${gene} — Δ GE by Additional Hotspot (${mainHotspot} WT vs Mut)`,
-            ['Hotspot Filter', 'N(WT)', 'N(Mut)', 'Δ GE'],
-            [...refRow, ...otherRows],
-            'hotspot'
-        );
+        this._inlineCompareData = { title: `${gene} — Δ GE by Additional Hotspot (${mainHotspot} WT vs Mut)`, headers: ['Hotspot Filter', 'N(WT)', 'N(Mut)', 'Δ GE'], refRows: refRow, sortableRows: otherRows, mode: 'hotspot' };
+        this._renderInlineCompareTable();
     }
 
-    _renderInlineCompareTable(title, headers, rows, mode) {
+    sortInlineCompare(colIndex) {
+        if (!this._inlineCompareData) return;
+        if (this._inlineSortCol === colIndex) {
+            this._inlineSortAsc = !this._inlineSortAsc;
+        } else {
+            this._inlineSortCol = colIndex;
+            this._inlineSortAsc = true;
+        }
+        const d = this._inlineCompareData;
+        const key = colIndex === 0 ? 'label' : colIndex === 1 ? 'nWT' : colIndex === 2 ? 'nMut' : 'delta';
+        const asc = this._inlineSortAsc;
+        d.sortableRows.sort((a, b) => {
+            const va = key === 'label' ? a[key].toLowerCase() : a[key];
+            const vb = key === 'label' ? b[key].toLowerCase() : b[key];
+            return asc ? (va < vb ? -1 : va > vb ? 1 : 0) : (va > vb ? -1 : va < vb ? 1 : 0);
+        });
+        this._renderInlineCompareTable();
+    }
+
+    _renderInlineCompareTable() {
+        if (!this._inlineCompareData) return;
+        const { title, headers, refRows, sortableRows, mode } = this._inlineCompareData;
+        const allRows = [...refRows, ...sortableRows];
+
         const container = document.getElementById('geInlineCompareTable');
         const titleEl = document.getElementById('geInlineCompareTitle');
         const bodyEl = document.getElementById('geInlineCompareBody');
 
         titleEl.textContent = title;
 
-        // Find max |delta| for color scaling
         let maxAbs = 0;
-        rows.forEach(r => { const abs = Math.abs(r.delta); if (abs > maxAbs) maxAbs = abs; });
+        allRows.forEach(r => { const abs = Math.abs(r.delta); if (abs > maxAbs) maxAbs = abs; });
         if (maxAbs === 0) maxAbs = 1;
 
-        let html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">';
+        let html = '<table style="border-collapse:collapse; font-size:11px;">';
         html += '<thead><tr>';
-        headers.forEach(h => { html += `<th style="text-align:left; padding:4px 8px; border-bottom:2px solid #6366f1; font-size:11px;">${h}</th>`; });
+        headers.forEach((h, i) => {
+            let arrow = '';
+            if (this._inlineSortCol === i) arrow = this._inlineSortAsc ? ' ▲' : ' ▼';
+            html += `<th onclick="app.sortInlineCompare(${i})" style="text-align:left; padding:2px 6px; border-bottom:2px solid #6366f1; font-size:10px; cursor:pointer; white-space:nowrap;">${h}${arrow}</th>`;
+        });
         html += '</tr></thead><tbody>';
 
-        rows.forEach(row => {
+        allRows.forEach(row => {
             const delta = row.delta;
             const intensity = Math.min(Math.abs(delta) / maxAbs, 1);
             const r = delta < 0 ? Math.round(220 + 35 * intensity) : Math.round(255 - 100 * intensity);
@@ -9209,13 +9249,12 @@ Results:
             const clickFn = mode === 'tissue'
                 ? `app.onInlineCompareTissueClick('${(clickVal || '').replace(/'/g, "\\'")}')`
                 : `app.onInlineCompareHotspotClick('${(clickVal || '').replace(/'/g, "\\'")}')`;
-            const cursor = 'cursor:pointer;';
 
-            html += `<tr onclick="${clickFn}" style="${cursor} ${bold}">`;
-            html += `<td style="padding:4px 8px; border-bottom:1px solid #e5e7eb;">${row.label}</td>`;
-            html += `<td style="padding:4px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${row.nWT}</td>`;
-            html += `<td style="padding:4px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${row.nMut}</td>`;
-            html += `<td style="padding:4px 8px; border-bottom:1px solid #e5e7eb; text-align:right; background:${bgColor};">${delta.toFixed(2)}</td>`;
+            html += `<tr onclick="${clickFn}" style="cursor:pointer; ${bold}">`;
+            html += `<td style="padding:2px 6px; border-bottom:1px solid #e5e7eb;">${row.label}</td>`;
+            html += `<td style="padding:2px 6px; border-bottom:1px solid #e5e7eb; text-align:right;">${row.nWT}</td>`;
+            html += `<td style="padding:2px 6px; border-bottom:1px solid #e5e7eb; text-align:right;">${row.nMut}</td>`;
+            html += `<td style="padding:2px 6px; border-bottom:1px solid #e5e7eb; text-align:right; background:${bgColor};">${delta.toFixed(2)}</td>`;
             html += '</tr>';
         });
 
@@ -9739,6 +9778,269 @@ Results:
 
         const filename = `expression_correlates_${ctx?.targetGene || 'gene'}_${ctx?.hotspotGene || 'hotspot'}.csv`;
         this.downloadFile(csv, filename, 'text/csv');
+    }
+    // ===== Full-Screen Compare Modal =====
+
+    showMutationCompareByTissue() {
+        if (!this.mutationResults) return;
+        const mr = this.mutationResults;
+        const hotspotGene = mr.hotspotGene;
+        const mutationData = this.mutations.geneData[hotspotGene];
+        if (!mutationData) return;
+
+        const cellLines = this.metadata.cellLines;
+
+        // Build tissue → { cellLine indices by mutation status } map
+        const tissueMap = {};
+        cellLines.forEach((cellLine, idx) => {
+            if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
+            if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (mr.excludedTissues && mr.excludedTissues.size > 0) {
+                const lineage = this.cellLineMetadata?.lineage?.[cellLine];
+                if (lineage && mr.excludedTissues.has(lineage)) return;
+            }
+            if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
+                const addMutData = this.mutations.geneData[mr.additionalHotspot];
+                if (addMutData) {
+                    const addMutLevel = addMutData.mutations[cellLine] || 0;
+                    if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
+                    if (mr.additionalHotspotLevel === '1' && addMutLevel !== 1) return;
+                    if (mr.additionalHotspotLevel === '2' && addMutLevel < 2) return;
+                    if (mr.additionalHotspotLevel === '1+2' && addMutLevel === 0) return;
+                }
+            }
+            const lineage = this.cellLineMetadata?.lineage?.[cellLine] || 'Unknown';
+            const mutLevel = mutationData.mutations[cellLine] || 0;
+            if (!tissueMap[lineage]) tissueMap[lineage] = { wt: [], mut: [], total: 0 };
+            tissueMap[lineage].total++;
+            if (mutLevel === 0) tissueMap[lineage].wt.push(idx);
+            else tissueMap[lineage].mut.push(idx);
+        });
+
+        // Also build "All" column
+        const allWT = [], allMut = [];
+        Object.values(tissueMap).forEach(t => { allWT.push(...t.wt); allMut.push(...t.mut); });
+
+        // Build columns: "All" + each tissue
+        const cols = [{ label: 'All', wtIdx: allWT, mutIdx: allMut, totalCells: allWT.length + allMut.length, nWT: allWT.length, nMut: allMut.length, isRef: true }];
+        Object.entries(tissueMap).forEach(([tissue, data]) => {
+            cols.push({ label: tissue, wtIdx: data.wt, mutIdx: data.mut, totalCells: data.total, nWT: data.wt.length, nMut: data.mut.length, tissue });
+        });
+
+        // Store data for rendering
+        this._compareModalData = {
+            cols,
+            genes: mr.significantResults.map(r => r.gene),
+            hotspotGene,
+            mode: 'tissue',
+            title: `Compare by Tissue — ${hotspotGene} Mutation`
+        };
+        this._compareModalMode = 'tissue';
+        this._compareSortCol = null;
+        this._compareSortAsc = true;
+
+        this.renderCompareModal();
+        document.getElementById('mutCompareModal').style.display = '';
+    }
+
+    showMutationCompareByHotspot() {
+        if (!this.mutationResults) return;
+        const mr = this.mutationResults;
+        const mainHotspot = mr.hotspotGene;
+        const mainMutData = this.mutations.geneData[mainHotspot];
+        if (!mainMutData) return;
+
+        const cellLines = this.metadata.cellLines;
+
+        // Build base filtered cell indices
+        const baseCells = [];
+        cellLines.forEach((cellLine, idx) => {
+            if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
+            if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (mr.excludedTissues && mr.excludedTissues.size > 0) {
+                const lineage = this.cellLineMetadata?.lineage?.[cellLine];
+                if (lineage && mr.excludedTissues.has(lineage)) return;
+            }
+            if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
+                const addMutData = this.mutations.geneData[mr.additionalHotspot];
+                if (addMutData) {
+                    const addMutLevel = addMutData.mutations[cellLine] || 0;
+                    if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
+                    if (mr.additionalHotspotLevel === '1' && addMutLevel !== 1) return;
+                    if (mr.additionalHotspotLevel === '2' && addMutLevel < 2) return;
+                    if (mr.additionalHotspotLevel === '1+2' && addMutLevel === 0) return;
+                }
+            }
+            const mainMut = mainMutData.mutations[cellLine] || 0;
+            baseCells.push({ cellLine, idx, mainMut });
+        });
+
+        // "All" column — no hotspot filter
+        const allWT = baseCells.filter(c => c.mainMut === 0).map(c => c.idx);
+        const allMut = baseCells.filter(c => c.mainMut >= 1).map(c => c.idx);
+        const cols = [{ label: 'All', wtIdx: allWT, mutIdx: allMut, totalCells: baseCells.length, nWT: allWT.length, nMut: allMut.length, isRef: true }];
+
+        // For each other hotspot gene
+        this.mutations.genes.forEach(hGene => {
+            if (hGene === mainHotspot) return;
+            const hMutData = this.mutations.geneData[hGene];
+            if (!hMutData) return;
+            const filtered = baseCells.filter(c => (hMutData.mutations[c.cellLine] || 0) >= 1);
+            const wt = filtered.filter(c => c.mainMut === 0).map(c => c.idx);
+            const mut = filtered.filter(c => c.mainMut >= 1).map(c => c.idx);
+            if (wt.length > 0 || mut.length > 0) {
+                cols.push({ label: hGene, wtIdx: wt, mutIdx: mut, totalCells: filtered.length, nWT: wt.length, nMut: mut.length, hotspot: hGene });
+            }
+        });
+
+        this._compareModalData = {
+            cols,
+            genes: mr.significantResults.map(r => r.gene),
+            hotspotGene: mainHotspot,
+            mode: 'hotspot',
+            title: `Compare by Hotspot — ${mainHotspot} Mutation`
+        };
+        this._compareModalMode = 'hotspot';
+        this._compareSortCol = null;
+        this._compareSortAsc = true;
+
+        this.renderCompareModal();
+        document.getElementById('mutCompareModal').style.display = '';
+    }
+
+    renderCompareModal() {
+        if (!this._compareModalData) return;
+        const d = this._compareModalData;
+        const minN = parseInt(document.getElementById('mutCompareMinN')?.value) || 5;
+
+        // Filter columns by minN
+        const filteredCols = d.cols.filter(c => c.wtIdx.length >= minN && c.mutIdx.length >= minN);
+        this._compareModalCols = filteredCols;
+
+        // Compute delta matrix: genes × cols
+        const deltaMatrix = [];
+        d.genes.forEach(gene => {
+            const geneIdx = this.geneIndex.get(gene.toUpperCase());
+            if (geneIdx === undefined) { deltaMatrix.push(null); return; }
+            const row = {};
+            filteredCols.forEach(col => {
+                const wtVals = col.wtIdx.map(i => this.geneEffects[geneIdx * this.nCellLines + i]).filter(v => !isNaN(v));
+                const mutVals = col.mutIdx.map(i => this.geneEffects[geneIdx * this.nCellLines + i]).filter(v => !isNaN(v));
+                if (wtVals.length >= minN && mutVals.length >= minN) {
+                    const meanWT = wtVals.reduce((a, b) => a + b, 0) / wtVals.length;
+                    const meanMut = mutVals.reduce((a, b) => a + b, 0) / mutVals.length;
+                    row[col.label] = meanMut - meanWT;
+                } else {
+                    row[col.label] = null;
+                }
+            });
+            deltaMatrix.push(row);
+        });
+
+        // Build gene list with indices
+        let geneRows = d.genes.map((gene, i) => ({ gene, deltas: deltaMatrix[i], idx: i })).filter(r => r.deltas !== null);
+
+        // Sort if active
+        if (this._compareSortCol !== null) {
+            const colLabel = this._compareSortCol;
+            const asc = this._compareSortAsc;
+            geneRows.sort((a, b) => {
+                const va = a.deltas[colLabel];
+                const vb = b.deltas[colLabel];
+                if (va === null && vb === null) return 0;
+                if (va === null) return 1;
+                if (vb === null) return -1;
+                return asc ? va - vb : vb - va;
+            });
+        }
+
+        // Find global max |delta| for color scaling
+        let maxAbs = 0;
+        geneRows.forEach(r => {
+            Object.values(r.deltas).forEach(v => { if (v !== null && Math.abs(v) > maxAbs) maxAbs = Math.abs(v); });
+        });
+        if (maxAbs === 0) maxAbs = 1;
+
+        // Title and info
+        document.getElementById('mutCompareModalTitle').textContent = d.title;
+        document.getElementById('mutCompareModalInfo').innerHTML = `${geneRows.length} genes × ${filteredCols.length} columns | Min N: ${minN} | Click a cell to inspect, hover gene for info, hover column for details`;
+
+        // Build table HTML
+        let html = '<table style="border-collapse:collapse; font-size:11px; width:100%;">';
+        html += '<thead style="position:sticky; top:0; z-index:1;"><tr><th style="padding:4px 8px; background:#f0fdf4; border-bottom:2px solid #5a9f4a; position:sticky; left:0; z-index:2; text-align:left;">Gene</th>';
+        filteredCols.forEach((col, ci) => {
+            let arrow = '';
+            if (this._compareSortCol === col.label) arrow = this._compareSortAsc ? ' ▲' : ' ▼';
+            const isRef = col.isRef ? 'font-weight:700;' : '';
+            html += `<th onclick="app.sortCompareModal('${col.label.replace(/'/g, "\\'")}')" onmouseenter="app.showColumnTooltip(event, ${ci})" onmouseleave="app.hideColumnTooltip()" style="padding:4px 6px; background:#f0fdf4; border-bottom:2px solid #5a9f4a; cursor:pointer; white-space:nowrap; font-size:10px; ${isRef}">${col.label}${arrow}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        geneRows.forEach(r => {
+            html += '<tr>';
+            html += `<td onmouseenter="app.showGeneTooltip(event, '${r.gene}')" onmouseleave="app.hideGeneTooltip()" style="padding:3px 8px; border-bottom:1px solid #e5e7eb; position:sticky; left:0; background:white; font-weight:500; cursor:pointer; white-space:nowrap; color:#5a9f4a;" onclick="app.openCompareInspect('${r.gene}', '', '', '${d.mode}')">${r.gene}</td>`;
+            filteredCols.forEach(col => {
+                const v = r.deltas[col.label];
+                if (v === null) {
+                    html += '<td style="padding:3px 6px; border-bottom:1px solid #e5e7eb; text-align:center; color:#ccc;">-</td>';
+                } else {
+                    const intensity = Math.min(Math.abs(v) / maxAbs, 1);
+                    const red = v < 0 ? Math.round(220 + 35 * intensity) : Math.round(255 - 100 * intensity);
+                    const green = v < 0 ? Math.round(255 - 100 * intensity) : Math.round(220 + 35 * intensity);
+                    const blue = v < 0 ? Math.round(255 - 100 * intensity) : Math.round(255 - 100 * intensity);
+                    const bgColor = `rgb(${red},${green},${blue})`;
+                    const clickArg = d.mode === 'tissue' ? `'${r.gene}', '${(col.tissue || '').replace(/'/g, "\\'")}', '', 'tissue'` : `'${r.gene}', '', '${(col.hotspot || '').replace(/'/g, "\\'")}', 'hotspot'`;
+                    html += `<td onclick="app.openCompareInspect(${clickArg})" style="padding:3px 6px; border-bottom:1px solid #e5e7eb; text-align:center; background:${bgColor}; cursor:pointer; font-size:10px;" title="${v.toFixed(3)}">${v.toFixed(2)}</td>`;
+                }
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        document.getElementById('mutCompareModalBody').innerHTML = html;
+    }
+
+    sortCompareModal(colLabel) {
+        if (this._compareSortCol === colLabel) {
+            this._compareSortAsc = !this._compareSortAsc;
+        } else {
+            this._compareSortCol = colLabel;
+            this._compareSortAsc = true;
+        }
+        this.renderCompareModal();
+    }
+
+    showColumnTooltip(event, colIdx) {
+        this.hideColumnTooltip();
+        if (!this._compareModalCols || !this._compareModalCols[colIdx]) return;
+        const col = this._compareModalCols[colIdx];
+        const tooltip = document.createElement('div');
+        tooltip.id = 'columnTooltip';
+        tooltip.style.cssText = 'position:fixed; z-index:10001; background:white; border:1px solid #d1d5db; border-radius:8px; padding:8px 12px; max-width:250px; box-shadow:0 4px 12px rgba(0,0,0,0.15); font-size:11px; line-height:1.5;';
+        tooltip.innerHTML = `<b>${col.label}</b><br>Total cell lines: ${col.totalCells}<br>N(WT): ${col.nWT}<br>N(Mut): ${col.nMut}`;
+        const x = Math.min(event.clientX + 10, window.innerWidth - 270);
+        const y = Math.min(event.clientY + 10, window.innerHeight - 100);
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+        document.body.appendChild(tooltip);
+    }
+
+    hideColumnTooltip() {
+        const existing = document.getElementById('columnTooltip');
+        if (existing) existing.remove();
+    }
+
+    openCompareInspect(gene, tissue, hotspot, mode) {
+        // Close compare modal
+        document.getElementById('mutCompareModal').style.display = 'none';
+        // Open inspect with appropriate filters
+        if (mode === 'tissue' && tissue) {
+            this.showGeneEffectDistribution(gene, tissue, '');
+        } else if (mode === 'hotspot' && hotspot) {
+            this.showGeneEffectDistribution(gene, '', hotspot);
+        } else {
+            this.showGeneEffectDistribution(gene);
+        }
     }
 }
 

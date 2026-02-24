@@ -1630,6 +1630,9 @@
                         <button class="btn btn-outline btn-sm" id="filterMutationToggle" title="Toggle column filters">Filters</button>
                         <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadMutationResults">Export CSV</button>
+                        <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
+                        <button class="btn btn-secondary btn-sm" id="mutCompareByTissueBtn" title="Compare mutation effect across cancer types">Compare by Tissue</button>
+                        <button class="btn btn-secondary btn-sm" id="mutCompareByHotspotBtn" title="Compare with other hotspot mutations">Compare by Hotspot</button>
                     </div>
                     <div class="table-container" style="max-height: 600px; overflow-y: auto;">
                         <table class="data-table" id="mutationTable">
@@ -1867,6 +1870,7 @@
                     <span id="geneEffectCurrentGene" style="font-weight: 600; color: #5a9f4a; margin-left: 10px;"></span>
                     <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
                         <button class="btn btn-sm btn-outline" id="geShowAllBtn" style="display: none;">← Show All</button>
+                        <button class="btn btn-sm btn-secondary" id="geResetFiltersBtn" style="display: none; font-size: 11px; padding: 3px 8px;" title="Reset tissue and hotspot filters">Reset Filters</button>
                         <select id="geTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
                             <option value="">All tissues</option>
                         </select>
@@ -2048,6 +2052,19 @@
         </div>
     </div>
 
+
+    <!-- Full-screen Compare Modal -->
+    <div id="mutCompareModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.5);">
+      <div style="position:absolute; inset:20px; background:white; border-radius:12px; display:flex; flex-direction:column; overflow:hidden;">
+        <div style="padding:16px 20px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <h3 id="mutCompareModalTitle" style="margin:0; flex:1;"></h3>
+          <label style="font-size:12px;">Min N: <input type="number" id="mutCompareMinN" value="5" min="1" max="50" style="width:50px; font-size:12px;"></label>
+          <button class="btn btn-sm" id="mutCompareModalClose" style="background:#ef4444; color:white;">Close</button>
+        </div>
+        <div id="mutCompareModalInfo" style="padding:8px 20px; font-size:11px; color:#0c4a6e; background:#f0f9ff; border-bottom:1px solid #bae6fd;"></div>
+        <div id="mutCompareModalBody" style="flex:1; overflow:auto; padding:0;"></div>
+      </div>
+    </div>
 
     <script src="app.js?v=20260224v1"></script>
 </body>
