@@ -10025,7 +10025,7 @@ Results:
             genes: mr.significantResults.map(r => r.gene),
             hotspotGene,
             mode: 'tissue',
-            title: `Compare by Tissue — ${hotspotGene} Mutation`
+            title: `Compare by Tissue — ${hotspotGene} Hotspot Mutational Analysis`
         };
         this._compareModalMode = 'tissue';
         this._compareSortCol = null;
@@ -10090,7 +10090,7 @@ Results:
             genes: mr.significantResults.map(r => r.gene),
             hotspotGene: mainHotspot,
             mode: 'hotspot',
-            title: `Compare by Hotspot — ${mainHotspot} Mutation`
+            title: `Compare by Hotspot — ${mainHotspot} Hotspot Mutational Analysis`
         };
         this._compareModalMode = 'hotspot';
         this._compareSortCol = null;
