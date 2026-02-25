@@ -1,0 +1,15 @@
+- make a reset button that does the same as refreshing the page. perhaos in the reference data box 
+- summary tab should include data on filters eg for hotspot mutaitons and for excluded cell lines.
+- in anslysis/design mode, also inlcude a "tissues" button in set parameterrs like in mutation analysis.
+- related to esclude tissues, also include a reset button
+- in muational analysis table, by default sort by delta GE from low to high for (1+2 mutation).
+- in mutational analysis inspect, the delta hotspot function, add warning about selecting for mutations and that it might introduce bias. have this infomation everywhere there is a option to select hotspot mutations
+- in mutational analysis inspect, the delta hotspot/tissue function: also show the average GE in wt and in mut in the table
+Regarding the analysis mode, network tab:
+- SVG export of network does not look like on the screen, the changes to node size, edge width, etc., are not followed.
+- the color by GE should have the possibility (and by default) show the color intensity based on the genes shown on the screen(network) 
+- move the show all input genes in the network above the show gene effect in the label.
+- the app says CRISPR effect in some places (eg correlations) and gene effect in others. use gene effect everywhere.
+- when going to summary/correlation/clusters tab and then back to the network, the network jumps out from the view of the screen, and one has to press fit-
+- the layout button doesnt work well. the changes on the screen are not always usefull, and its difficutl to go back to the deafult setting.  
+- if press color by GE and then "show all input genes in network". the color by GE is still clicked, but not in play. I want it to strill be activ and show GE also for the genes that are not in corerlations directly. (now this can be achived by clicking off and then on the "color by GE")
