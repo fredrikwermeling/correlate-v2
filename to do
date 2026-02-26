@@ -7,6 +7,7 @@
 - in mutational analysis inspect, the delta hotspot/tissue function: also show the average GE in wt and in mut in the table
 - correlate tab, also add by hotspot
 - in clusters tab, also add button to add GE effect. I want the corelationa nd clusters tabs to hormonize which buttons they have and how they look.
+- the circle for selecting design is larger than other modes on some computers (?). perhaps its because the design has less text and the selection circle adapts?
 Regarding the analysis mode, network tab:
 - SVG export of network does not look like on the screen, the changes to node size, edge width, etc., are not followed.
 - the color by GE should have the possibility (and by default) show the color intensity based on the genes shown on the screen(network) 
