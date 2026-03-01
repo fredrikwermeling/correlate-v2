@@ -1686,6 +1686,10 @@
                                     <th onclick="app.sortMutationTable(this, event)" data-col="mean_2" title="Click to sort. Ctrl/Cmd+click to copy column.">Mean GE (2)</th>
                                     <th onclick="app.sortMutationTable(this, event)" data-col="diff_2" title="Click to sort. Ctrl/Cmd+click to copy column.">Δ GE (2v0)</th>
                                     <th onclick="app.sortMutationTable(this, event)" data-col="p_2" title="Click to sort. Ctrl/Cmd+click to copy column.">p-value (2v0)</th>
+                                    <th onclick="app.sortMutationTable(this, event)" data-col="n_fused" class="fusion-col" style="border-left: 2px solid #8b5cf6; display: none;" title="Click to sort. Ctrl/Cmd+click to copy column.">N (Fused)</th>
+                                    <th onclick="app.sortMutationTable(this, event)" data-col="mean_fused" class="fusion-col" style="display: none;" title="Click to sort. Ctrl/Cmd+click to copy column.">Mean GE (F)</th>
+                                    <th onclick="app.sortMutationTable(this, event)" data-col="diff_fused" class="fusion-col" style="display: none;" title="Click to sort. Ctrl/Cmd+click to copy column.">Δ GE (F)</th>
+                                    <th onclick="app.sortMutationTable(this, event)" data-col="p_fused" class="fusion-col" style="display: none;" title="Click to sort. Ctrl/Cmd+click to copy column.">p (F)</th>
                                 </tr>
                             </thead>
                             <tbody id="mutationTableBody">
@@ -1835,10 +1839,10 @@
 
                         <!-- Compare All Buttons -->
                         <div class="control-box-compact">
-                            <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="width: 100%;">Compare All Cancer Types</button>
-                            <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="width: 100%; margin-top: 4px;">Compare All Mutations</button>
-                            <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="width: 100%; margin-top: 4px; display: none;">Compare All Translocations</button>
-                            <p style="font-size: 10px; color: #666; margin: 4px 0 0 0;">Stratify correlation by cancer type, mutation, or translocation</p>
+                            <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="width: 100%;">Compare by Tissue</button>
+                            <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="width: 100%; margin-top: 4px;">Compare by Hotspot</button>
+                            <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="width: 100%; margin-top: 4px; display: none;">Compare by Fusion</button>
+                            <p style="font-size: 10px; color: #666; margin: 4px 0 0 0;">Stratify correlation by tissue, hotspot, or fusion</p>
                         </div>
 
                         <!-- Reset Filters -->
@@ -1955,7 +1959,7 @@
                             <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
                             <button class="btn btn-secondary btn-sm" id="geCompareByTissueBtn" title="Show Δ GE per tissue for this gene">Δ Tissue</button>
                             <button class="btn btn-secondary btn-sm" id="geCompareByHotspotBtn" title="Show Δ GE per additional hotspot for this gene">Δ Hotspot</button>
-                            <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE per translocation/fusion gene" style="display: none;">Δ Translocation</button>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE per fusion gene" style="display: none;">Δ Fusion</button>
                         </span>
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;">By Tissue</button>

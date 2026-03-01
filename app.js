@@ -2340,7 +2340,7 @@ class CorrelationExplorer {
             return;
         }
 
-        this.showStatus('info', isTranslocation ? 'Running translocation analysis...' : 'Running mutation analysis...');
+        this.showStatus('info', isTranslocation ? 'Running fusion analysis...' : 'Running mutation analysis...');
 
         // Use setTimeout to allow UI to update
         setTimeout(() => {
@@ -2350,7 +2350,7 @@ class CorrelationExplorer {
                     : this.calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel);
 
                 // Filter by p-value threshold
-                const significantResults = analysisResult.results.filter(r => r.p_mut < pThreshold || r.p_2 < pThreshold);
+                const significantResults = analysisResult.results.filter(r => r.p_mut < pThreshold || r.p_2 < pThreshold || (r.p_fused !== undefined && r.p_fused < pThreshold));
 
                 // Sort by p-value (1+2 vs 0)
                 significantResults.sort((a, b) => a.p_mut - b.p_mut);
@@ -2375,6 +2375,9 @@ class CorrelationExplorer {
                     nWT: analysisResult.nWT,
                     nMut: analysisResult.nMut,
                     n2: analysisResult.n2,
+                    hasFusionData: analysisResult.hasFusionData,
+                    nFused: analysisResult.nFused,
+                    nWTFusion: analysisResult.nWTFusion,
                     allResults: analysisResult.results,
                     significantResults
                 };
@@ -2387,7 +2390,7 @@ class CorrelationExplorer {
                 document.querySelector('[data-tab="mutation"]').classList.add('active');
                 document.getElementById('tab-mutation').classList.add('active');
 
-                const analysisLabel = isTranslocation ? 'Translocation' : 'Mutation';
+                const analysisLabel = isTranslocation ? 'Fusion' : 'Mutation';
                 this.showStatus('success',
                     `&#10003; ${analysisLabel} analysis complete: ${significantResults.length} genes with p < ${pThreshold}`);
             } catch (error) {
@@ -2679,6 +2682,27 @@ class CorrelationExplorer {
             throw new Error(`Not enough cell lines: WT=${wtCellIndices.length}, Mutated=${mutAllCellIndices.length}`);
         }
 
+        // Also categorize by fusion status for the same hotspot gene (if translocation data exists)
+        const hotspotTransData = this.translocations?.geneData?.[hotspotGene]?.translocations;
+        let fusedCellIndices = null;
+        let wtFusionCellIndices = null;
+        if (hotspotTransData) {
+            fusedCellIndices = [];
+            wtFusionCellIndices = [];
+            // Use the same filtered cell set (union of wt + mut indices)
+            const allFilteredIndices = [...wtCellIndices, ...mutAllCellIndices];
+            allFilteredIndices.forEach(idx => {
+                const cellLine = cellLines[idx];
+                const tLevel = hotspotTransData[cellLine] || 0;
+                if (tLevel >= 1) {
+                    fusedCellIndices.push(idx);
+                } else {
+                    wtFusionCellIndices.push(idx);
+                }
+            });
+        }
+        const hasFusionData = fusedCellIndices && fusedCellIndices.length >= 3 && wtFusionCellIndices.length >= 3;
+
         // Analyze each gene
         for (let geneIdx = 0; geneIdx < this.nGenes; geneIdx++) {
             const gene = this.geneNames[geneIdx];
@@ -2710,6 +2734,22 @@ class CorrelationExplorer {
                 p_2 = tTest_2.p;
             }
 
+            // Calculate fusion statistics (if hotspot gene has translocation data)
+            let n_fused = 0, mean_fused = NaN, diff_fused = NaN, p_fused = 1, n_wt_fusion = 0;
+            if (hasFusionData) {
+                const fusedEffects = this.getGeneEffectsForCells(geneIdx, fusedCellIndices);
+                const wtFusionEffects = this.getGeneEffectsForCells(geneIdx, wtFusionCellIndices);
+                n_fused = fusedEffects.length;
+                n_wt_fusion = wtFusionEffects.length;
+                if (fusedEffects.length >= 3 && wtFusionEffects.length >= 3) {
+                    mean_fused = this.mean(fusedEffects);
+                    const wtFusionMean = this.mean(wtFusionEffects);
+                    diff_fused = mean_fused - wtFusionMean;
+                    const tTest_fused = this.welchTTest(wtFusionEffects, fusedEffects);
+                    p_fused = tTest_fused.p;
+                }
+            }
+
             results.push({
                 gene,
                 n_wt: wtEffects.length,
@@ -2721,7 +2761,11 @@ class CorrelationExplorer {
                 n_2,
                 mean_2,
                 diff_2,
-                p_2
+                p_2,
+                n_fused,
+                mean_fused,
+                diff_fused,
+                p_fused
             });
         }
 
@@ -2729,7 +2773,10 @@ class CorrelationExplorer {
             results,
             nWT: wtCellIndices.length,
             nMut: mutAllCellIndices.length,
-            n2: mut2CellIndices.length
+            n2: mut2CellIndices.length,
+            hasFusionData,
+            nFused: fusedCellIndices?.length || 0,
+            nWTFusion: wtFusionCellIndices?.length || 0
         };
     }
 
@@ -2835,7 +2882,8 @@ class CorrelationExplorer {
             results,
             nWT: wtCellIndices.length,
             nMut: mutAllCellIndices.length,
-            n2: mut2CellIndices.length
+            n2: mut2CellIndices.length,
+            hasFusionData: false
         };
     }
 
@@ -3016,12 +3064,18 @@ class CorrelationExplorer {
 
         const mr = this.mutationResults;
         const results = mr.significantResults;
+        const hasFusion = mr.hasFusionData;
         const tbody = document.getElementById('mutationTableBody');
         tbody.innerHTML = '';
 
+        // Show/hide fusion columns in header
+        document.querySelectorAll('#mutationTable .fusion-col').forEach(el => {
+            el.style.display = hasFusion ? '' : 'none';
+        });
+
         results.forEach(r => {
             const row = document.createElement('tr');
-            row.innerHTML = `
+            let html = `
                 <td><a href="#" class="inspect-link" onclick="app.showGeneEffectDistribution('${r.gene}'); return false;">Inspect</a></td>
                 <td class="gene-hover" data-gene="${r.gene}"><a href="#" style="color: var(--green-700); text-decoration: none; cursor: pointer;" onclick="app.openGeneEffectModal('${r.gene}', 'tissue'); return false;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${r.gene}</a></td>
                 <td style="border-left: 2px solid #2563eb;">${r.n_wt}</td>
@@ -3035,6 +3089,15 @@ class CorrelationExplorer {
                 <td class="${r.diff_2 < 0 ? 'negative' : 'positive'}">${isNaN(r.diff_2) ? '-' : r.diff_2.toFixed(2)}</td>
                 <td>${this.formatPValue(r.p_2)}</td>
             `;
+            if (hasFusion) {
+                html += `
+                    <td class="fusion-col" style="border-left: 2px solid #8b5cf6;">${r.n_fused || 0}</td>
+                    <td class="fusion-col">${isNaN(r.mean_fused) ? '-' : r.mean_fused.toFixed(2)}</td>
+                    <td class="fusion-col ${r.diff_fused < 0 ? 'negative' : 'positive'}">${isNaN(r.diff_fused) ? '-' : r.diff_fused.toFixed(2)}</td>
+                    <td class="fusion-col">${isNaN(r.diff_fused) ? '-' : this.formatPValue(r.p_fused)}</td>
+                `;
+            }
+            row.innerHTML = html;
             tbody.appendChild(row);
         });
 
@@ -3042,7 +3105,11 @@ class CorrelationExplorer {
         const typeLabel = mr.isTranslocation ? 'Fusion Gene' : 'Hotspot';
         const mutLabel = mr.isTranslocation ? 'Fused' : 'Mutated';
         let settingsText = `${typeLabel}: ${mr.hotspotGene} | `;
-        settingsText += `WT: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells | `;
+        settingsText += `WT: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells`;
+        if (mr.hasFusionData) {
+            settingsText += ` | Fused: ${mr.nFused} cells`;
+        }
+        settingsText += ` | `;
         settingsText += `Min cells: ${mr.minN} | p < ${mr.pThreshold}`;
         if (mr.lineageFilter) {
             let lineageText = mr.lineageFilter;
@@ -3165,12 +3232,15 @@ class CorrelationExplorer {
         csv += `# Date: ${new Date().toISOString().slice(0, 10)}\n`;
         csv += '#\n';
 
-        const headers = ['Gene', 'N_WT', 'Mean_GE_WT', 'N_1+2', 'Mean_GE_1+2', 'Delta_GE', 'pValue_1+2_vs_0',
+        let headers = ['Gene', 'N_WT', 'Mean_GE_WT', 'N_1+2', 'Mean_GE_1+2', 'Delta_GE', 'pValue_1+2_vs_0',
                         'N_2', 'Mean_GE_2', 'Delta_GE_2vs0', 'pValue_2_vs_0'];
+        if (mr.hasFusionData) {
+            headers.push('N_Fused', 'Mean_GE_Fused', 'Delta_GE_Fused', 'pValue_Fused');
+        }
 
         csv += headers.join(',') + '\n';
         results.forEach(r => {
-            csv += [
+            const row = [
                 r.gene,
                 r.n_wt,
                 r.mean_wt.toFixed(2),
@@ -3182,7 +3252,16 @@ class CorrelationExplorer {
                 isNaN(r.mean_2) ? '' : r.mean_2.toFixed(2),
                 isNaN(r.diff_2) ? '' : r.diff_2.toFixed(2),
                 this.formatPValue(r.p_2)
-            ].join(',') + '\n';
+            ];
+            if (mr.hasFusionData) {
+                row.push(
+                    r.n_fused || 0,
+                    isNaN(r.mean_fused) ? '' : r.mean_fused.toFixed(2),
+                    isNaN(r.diff_fused) ? '' : r.diff_fused.toFixed(2),
+                    isNaN(r.diff_fused) ? '' : this.formatPValue(r.p_fused)
+                );
+            }
+            csv += row.join(',') + '\n';
         });
 
         const filename = `mutation_analysis_${mr.hotspotGene}_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -7883,7 +7962,7 @@ Results:
 
     renderTranslocationComparisonTable(filteredData, gene1, gene2, filterDesc = '') {
         if (!this.translocations || !this.translocations.geneData) {
-            document.getElementById('compareTable').innerHTML = '<p>No translocation data available.</p>';
+            document.getElementById('compareTable').innerHTML = '<p>No fusion data available.</p>';
             return;
         }
 
@@ -7941,7 +8020,7 @@ Results:
         const filterInfo = filterDesc ? `<p style="font-size: 11px; color: #333; margin-bottom: 8px; background: #f0f9ff; padding: 4px 8px; border-radius: 4px;"><b>Filter:</b> ${filterDesc}</p>` : '';
         let html = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h4 style="margin: 0;">Translocations affecting ${gene1} vs ${gene2}</h4>
+                <h4 style="margin: 0;">Fusions affecting ${gene1} vs ${gene2}</h4>
                 <div>
                     <button class="btn btn-primary btn-sm" id="backToGraphBtnTrans" style="margin-right: 8px;">← Back to Graph</button>
                     <button class="btn btn-success btn-sm" id="downloadTransCompareCSV">Download CSV</button>
@@ -7954,7 +8033,7 @@ Results:
             <p style="font-size: 10px; color: #0c4a6e; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; margin-bottom: 8px;">
                 <b>Statistics:</b> p(Δr) uses Fisher z-transformation to test if correlations differ significantly between WT and fused cells.
             </p>
-            <p style="font-size: 11px; color: #059669; margin-bottom: 8px;">Click any row to color scatter plot by that translocation</p>
+            <p style="font-size: 11px; color: #059669; margin-bottom: 8px;">Click any row to color scatter plot by that fusion</p>
             <div class="table-container" style="max-height: 380px; overflow-y: auto;">
             <table id="compareTranslocationsTable" class="data-table" style="width: 100%; font-size: 11px;">
                 <thead>
@@ -7993,7 +8072,7 @@ Results:
             </table>
             </div>
             <p style="font-size: 11px; color: #666; margin-top: 8px;">
-                Yellow = p < 0.05. This analysis may be biased as translocations select for cancer types.
+                Yellow = p < 0.05. This analysis may be biased as fusions select for cancer types.
             </p>
         `;
 
@@ -8009,7 +8088,7 @@ Results:
             tableData.forEach(row => {
                 csv += `${row.tGene},${row.nWT},${row.rWT.toFixed(4)},${row.slopeWT.toFixed(4)},${row.nFused},${row.rFused.toFixed(4)},${row.slopeFused.toFixed(4)},${row.deltaR.toFixed(4)},${row.pR.toExponential(2)},${row.deltaSlope.toFixed(4)}\n`;
             });
-            this.downloadFile(csv, `${gene1}_vs_${gene2}_all_translocations_comparison.csv`, 'text/csv');
+            this.downloadFile(csv, `${gene1}_vs_${gene2}_fusion_comparison.csv`, 'text/csv');
         });
 
         document.querySelectorAll('#compareTranslocationsTable .clickable-trans-row').forEach(row => {
@@ -10232,7 +10311,7 @@ Results:
         const refRow = rows.filter(r => r.isRef);
         const otherRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-        this._inlineCompareData = { title: `${gene} — Δ GE by Translocation (${mainHotspot} WT vs ${mutLabel})`, headers: ['Fusion Gene', 'N(WT)', `N(${mutLabel})`, 'Δ GE'], refRows: refRow, sortableRows: otherRows, mode: 'hotspot' };
+        this._inlineCompareData = { title: `${gene} — Δ GE by Fusion (${mainHotspot} WT vs ${mutLabel})`, headers: ['Fusion Gene', 'N(WT)', `N(${mutLabel})`, 'Δ GE'], refRows: refRow, sortableRows: otherRows, mode: 'hotspot' };
         this._renderInlineCompareTable();
     }
 
