@@ -37,6 +37,7 @@ class CorrelationExplorer {
         this.clickedCells = new Set();
         this._userLegendPosition = null;
         this._userTitlePosition = null;
+        this._userLabelPositions = new Map();
 
         // Gene statistics (LFC, FDR)
         this.geneStats = null;
@@ -326,6 +327,40 @@ class CorrelationExplorer {
         } else {
             subSelect.style.display = 'none';
             subSelect.innerHTML = '<option value="">All subtypes</option>';
+        }
+    }
+
+    updateHighlightSubtypeFilter() {
+        const lineage = document.getElementById('highlightTissue').value;
+        const subSelect = document.getElementById('highlightSubtype');
+
+        if (!lineage || !this.currentInspect?.data) {
+            subSelect.style.display = 'none';
+            subSelect.innerHTML = '<option value="">Highlight subtype...</option>';
+            return;
+        }
+
+        const subtypeCounts = {};
+        this.currentInspect.data.forEach(d => {
+            if (d.lineage === lineage) {
+                const subtype = this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || '';
+                if (subtype) {
+                    subtypeCounts[subtype] = (subtypeCounts[subtype] || 0) + 1;
+                }
+            }
+        });
+
+        const subtypes = Object.keys(subtypeCounts).sort();
+        if (subtypes.length > 1) {
+            const lineageCount = this.currentInspect.data.filter(d => d.lineage === lineage).length;
+            subSelect.innerHTML = `<option value="">All subtypes (n=${lineageCount})</option>`;
+            subtypes.forEach(sub => {
+                subSelect.innerHTML += `<option value="${sub}">${sub} (n=${subtypeCounts[sub]})</option>`;
+            });
+            subSelect.style.display = 'block';
+        } else {
+            subSelect.style.display = 'none';
+            subSelect.innerHTML = '<option value="">Highlight subtype...</option>';
         }
     }
 
@@ -1541,6 +1576,10 @@ class CorrelationExplorer {
         document.getElementById('clearHighlights').addEventListener('click', () => {
             document.getElementById('scatterCellSearch').value = '';
             this.clickedCells.clear();
+            this._userLabelPositions.clear();
+            document.getElementById('highlightTissue').value = '';
+            document.getElementById('highlightSubtype').value = '';
+            document.getElementById('highlightSubtype').style.display = 'none';
             this.updateInspectPlot();
         });
 
@@ -1553,6 +1592,11 @@ class CorrelationExplorer {
         });
 
         document.getElementById('scatterCellSearch').addEventListener('input', () => this.updateInspectPlot());
+        document.getElementById('highlightTissue').addEventListener('change', () => {
+            this.updateHighlightSubtypeFilter();
+            this.updateInspectPlot();
+        });
+        document.getElementById('highlightSubtype').addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('scatterCancerFilter').addEventListener('change', () => {
             this.updateScatterSubtypeFilter();
             this.updateInspectPlot();
@@ -7195,6 +7239,7 @@ Results:
         // c is now the correlation object directly
         this._userLegendPosition = null;
         this._userTitlePosition = null;
+        this._userLabelPositions = new Map();
         this.currentInspect = {
             gene1: c.gene1,
             gene2: c.gene2,
@@ -7283,6 +7328,16 @@ Results:
             cancerBox.style.display = 'none';
             document.getElementById('scatterSubtypeFilter').style.display = 'none';
         }
+
+        // Populate highlight tissue dropdown
+        const highlightTissue = document.getElementById('highlightTissue');
+        highlightTissue.innerHTML = '<option value="">Highlight tissue...</option>';
+        highlightTissue.value = '';
+        lineages.forEach(l => {
+            highlightTissue.innerHTML += `<option value="${l}">${l} (n=${lineageCounts[l]})</option>`;
+        });
+        document.getElementById('highlightSubtype').innerHTML = '<option value="">Highlight subtype...</option>';
+        document.getElementById('highlightSubtype').style.display = 'none';
 
         // Populate hotspot genes
         // Count mutations based on cell lines with valid data (plotData)
@@ -7412,6 +7467,11 @@ Results:
         document.getElementById('translocationGene').value = '';
         document.getElementById('translocationMode').value = 'color';
 
+        // Reset highlight tissue/subtype
+        document.getElementById('highlightTissue').value = '';
+        document.getElementById('highlightSubtype').value = '';
+        document.getElementById('highlightSubtype').style.display = 'none';
+
         // Update the plot
         this.updateInspectPlot();
     }
@@ -7437,6 +7497,8 @@ Results:
         const transOverlayMode = document.getElementById('translocationMode').value;
         const transFilterGene = document.getElementById('translocationFilterGene').value;
         const transFilterLevel = document.getElementById('translocationFilterLevel').value;
+        const highlightTissue = document.getElementById('highlightTissue').value;
+        const highlightSubtype = document.getElementById('highlightSubtype').value;
 
         // Show/hide mutation caution message
         const cautionEl = document.getElementById('mutationCautionScatter');
@@ -7555,19 +7617,19 @@ Results:
 
         // Handle 3-panel mode
         if (hotspotMode === 'three_panel' && hotspotGene) {
-            this.renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc);
+            this.renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc, false, highlightTissue, highlightSubtype);
             return;
         }
         if (transOverlayMode === 'three_panel' && transOverlayGene) {
-            this.renderThreePanelPlot(filteredData, gene1, gene2, transOverlayGene, searchTerms, fontSize, filterDesc, true);
+            this.renderThreePanelPlot(filteredData, gene1, gene2, transOverlayGene, searchTerms, fontSize, filterDesc, true, highlightTissue, highlightSubtype);
             return;
         }
 
         // Single panel color mode
-        this.renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc, transOverlayGene, transOverlayMode);
+        this.renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc, transOverlayGene, transOverlayMode, highlightTissue, highlightSubtype);
     }
 
-    renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc = '', transOverlayGene = '', transOverlayMode = 'none') {
+    renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc = '', transOverlayGene = '', transOverlayMode = 'none', highlightTissue = '', highlightSubtype = '') {
         // Calculate stats for each mutation group
         const wt = filteredData.filter(d => d.mutationLevel === 0);
         const mut1 = filteredData.filter(d => d.mutationLevel === 1);
@@ -7667,6 +7729,41 @@ Results:
                 marker: { color: '#dc2626', size: 11, opacity: 0.8 },
                 name: `2+ partners (n=${t2.length}, ${t2Pct}%)`
             });
+        } else if (highlightTissue) {
+            // Tissue highlight mode - dim non-matching, highlight matching
+            let tissueData = filteredData.filter(d => d.lineage === highlightTissue);
+            if (highlightSubtype && this.cellLineMetadata?.primaryDisease) {
+                tissueData = tissueData.filter(d =>
+                    this.cellLineMetadata.primaryDisease[d.cellLineId] === highlightSubtype
+                );
+            }
+            const tissueIds = new Set(tissueData.map(d => d.cellLineId));
+            const otherData = filteredData.filter(d => !tissueIds.has(d.cellLineId));
+
+            // Dimmed non-matching cells
+            traces.push({
+                x: otherData.map(d => d.x),
+                y: otherData.map(d => d.y),
+                mode: 'markers',
+                type: 'scatter',
+                text: otherData.map(d => `${d.cellLineName}<br>${d.lineage}`),
+                hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
+                marker: { color: '#d1d5db', size: 7, opacity: 0.4 },
+                name: 'Other',
+                showlegend: false
+            });
+            // Highlighted tissue cells
+            const tissueLabel = highlightSubtype || highlightTissue;
+            traces.push({
+                x: tissueData.map(d => d.x),
+                y: tissueData.map(d => d.y),
+                mode: 'markers',
+                type: 'scatter',
+                text: tissueData.map(d => `${d.cellLineName}<br>${d.lineage}`),
+                hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
+                marker: { color: '#f59e0b', size: 10, opacity: 0.8 },
+                name: `${tissueLabel} (n=${tissueData.length})`
+            });
         } else {
             // Default mode - all same color
             traces.push({
@@ -7694,12 +7791,9 @@ Results:
             traces.push({
                 x: highlightData.map(d => d.x),
                 y: highlightData.map(d => d.y),
-                mode: 'markers+text',
+                mode: 'markers',
                 type: 'scatter',
-                text: highlightData.map(d => `${d.cellLineName} (${d.lineage || 'Unknown'})`),
-                textposition: 'top center',
-                textfont: { size: fontSize * 3, color: '#000' },
-                hovertemplate: '%{text}<extra></extra>',
+                hovertemplate: highlightData.map(d => `${d.cellLineName} (${d.lineage || 'Unknown'})<extra></extra>`),
                 marker: {
                     color: '#f59e0b',
                     size: 12,
@@ -7710,6 +7804,25 @@ Results:
                 showlegend: false
             });
         }
+
+        // Build annotations for highlighted cell labels (draggable)
+        const highlightAnnotations = [];
+        highlightData.forEach(d => {
+            const saved = this._userLabelPositions.get(d.cellLineName);
+            highlightAnnotations.push({
+                x: d.x, y: d.y,
+                xref: 'x', yref: 'y',
+                text: `${d.cellLineName} (${d.lineage || 'Unknown'})`,
+                showarrow: true,
+                arrowhead: 0,
+                arrowcolor: '#999',
+                ax: saved ? saved.ax : 0,
+                ay: saved ? saved.ay : -25,
+                font: { size: fontSize * 3, color: '#000' },
+                bgcolor: 'rgba(255,255,255,0.7)',
+                borderpad: 2
+            });
+        });
 
         // Add regression line
         if (!isNaN(allStats.slope)) {
@@ -7769,7 +7882,7 @@ Results:
             showarrow: false,
             font: { size: 14 }
         };
-        const annotations = [titleAnnotation];
+        const annotations = [titleAnnotation, ...highlightAnnotations];
 
         // Calculate margin based on title lines
         const topMargin = 80 + (titleLines.length * 18);
@@ -7792,8 +7905,8 @@ Results:
                 constrain: 'domain'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: 30, b: 60, l: 60 },
-            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene),
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || highlightTissue) ? 140 : 30, b: 60, l: 60 },
+            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!highlightTissue,
             legend: {
                 x: 0.98,
                 y: 0.98,
@@ -7802,7 +7915,7 @@ Results:
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
+                title: { text: highlightTissue ? 'Tissue' : (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
                 font: { size: 11 }
             },
             annotations: annotations,
@@ -7837,20 +7950,33 @@ Results:
                         y: relayoutData['annotations[0].y']
                     };
                 }
+                // Capture dragged cell label positions (annotations[1+])
+                for (let i = 0; i < highlightData.length; i++) {
+                    const idx = i + 1; // offset by 1 for title annotation
+                    const axKey = `annotations[${idx}].ax`;
+                    const ayKey = `annotations[${idx}].ay`;
+                    if (relayoutData[axKey] !== undefined || relayoutData[ayKey] !== undefined) {
+                        const current = this._userLabelPositions.get(highlightData[i].cellLineName) || { ax: 0, ay: -25 };
+                        this._userLabelPositions.set(highlightData[i].cellLineName, {
+                            ax: relayoutData[axKey] !== undefined ? relayoutData[axKey] : current.ax,
+                            ay: relayoutData[ayKey] !== undefined ? relayoutData[ayKey] : current.ay
+                        });
+                    }
+                }
             });
 
-            // Auto-reposition legend inside the actual plot domain (scaleanchor shrinks it)
+            // Auto-reposition legend outside the actual plot domain
             if (!this._userLegendPosition && layout.showlegend) {
                 const fl = plotEl._fullLayout;
                 if (fl && fl.xaxis && fl.yaxis) {
                     const xDomain = fl.xaxis.domain;
                     const yDomain = fl.yaxis.domain;
-                    // Place legend at top-right of actual plot area
+                    // Place legend just outside the plot to the right
                     isProgrammaticRelayout = true;
                     Plotly.relayout('scatterPlot', {
-                        'legend.x': xDomain[1] - 0.02,
+                        'legend.x': xDomain[1] + 0.02,
                         'legend.y': yDomain[1],
-                        'legend.xanchor': 'right',
+                        'legend.xanchor': 'left',
                         'legend.yanchor': 'top'
                     }).then(() => { isProgrammaticRelayout = false; });
                 }
@@ -7861,7 +7987,7 @@ Results:
         });
     }
 
-    renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc = '', isFusion = false) {
+    renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc = '', isFusion = false, highlightTissue = '', highlightSubtype = '') {
         const levelField = isFusion ? 'translocationLevel' : 'mutationLevel';
         const wt = filteredData.filter(d => d[levelField] === 0);
         const mut1 = filteredData.filter(d => d[levelField] === 1);
@@ -7894,49 +8020,64 @@ Results:
             ? ['No fusion', '1 partner', '2+ partners']
             : ['WT', '1 mut', '2 mut'];
 
-        // Panel 1: WT / No fusion
-        traces.push({
-            x: wt.map(d => d.x),
-            y: wt.map(d => d.y),
-            xaxis: 'x',
-            yaxis: 'y',
-            mode: 'markers',
-            type: 'scatter',
-            text: wt.map(d => `${d.cellLineName}<br>${d.lineage}`),
-            hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-            marker: { color: '#9ca3af', size: 7, opacity: 0.6 },
-            name: panelLabels[0],
-            showlegend: false
-        });
+        // Helper to filter tissue data
+        const getTissueMatch = (data) => {
+            if (!highlightTissue) return { match: data, other: [] };
+            let match = data.filter(d => d.lineage === highlightTissue);
+            if (highlightSubtype && this.cellLineMetadata?.primaryDisease) {
+                match = match.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === highlightSubtype);
+            }
+            const matchIds = new Set(match.map(d => d.cellLineId));
+            const other = data.filter(d => !matchIds.has(d.cellLineId));
+            return { match, other };
+        };
 
-        // Panel 2: 1 mutation / 1 partner
-        traces.push({
-            x: mut1.map(d => d.x),
-            y: mut1.map(d => d.y),
-            xaxis: 'x2',
-            yaxis: 'y2',
-            mode: 'markers',
-            type: 'scatter',
-            text: mut1.map(d => `${d.cellLineName}<br>${d.lineage}`),
-            hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-            marker: { color: '#3b82f6', size: 8, opacity: 0.7 },
-            name: panelLabels[1],
-            showlegend: false
-        });
+        // Build panel traces with optional tissue highlighting
+        const panelConfigs = [
+            { data: wt, xaxis: 'x', yaxis: 'y', color: '#9ca3af', size: 7, opacity: 0.6 },
+            { data: mut1, xaxis: 'x2', yaxis: 'y2', color: '#3b82f6', size: 8, opacity: 0.7 },
+            { data: mut2, xaxis: 'x3', yaxis: 'y3', color: '#dc2626', size: 8, opacity: 0.7 }
+        ];
 
-        // Panel 3: 2 mutations / 2+ partners
-        traces.push({
-            x: mut2.map(d => d.x),
-            y: mut2.map(d => d.y),
-            xaxis: 'x3',
-            yaxis: 'y3',
-            mode: 'markers',
-            type: 'scatter',
-            text: mut2.map(d => `${d.cellLineName}<br>${d.lineage}`),
-            hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-            marker: { color: '#dc2626', size: 8, opacity: 0.7 },
-            name: panelLabels[2],
-            showlegend: false
+        panelConfigs.forEach((cfg, i) => {
+            if (highlightTissue) {
+                const { match, other } = getTissueMatch(cfg.data);
+                // Dimmed non-matching
+                if (other.length > 0) {
+                    traces.push({
+                        x: other.map(d => d.x), y: other.map(d => d.y),
+                        xaxis: cfg.xaxis, yaxis: cfg.yaxis,
+                        mode: 'markers', type: 'scatter',
+                        text: other.map(d => `${d.cellLineName}<br>${d.lineage}`),
+                        hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
+                        marker: { color: '#d1d5db', size: cfg.size, opacity: 0.3 },
+                        name: panelLabels[i], showlegend: false
+                    });
+                }
+                // Highlighted matching
+                if (match.length > 0) {
+                    traces.push({
+                        x: match.map(d => d.x), y: match.map(d => d.y),
+                        xaxis: cfg.xaxis, yaxis: cfg.yaxis,
+                        mode: 'markers', type: 'scatter',
+                        text: match.map(d => `${d.cellLineName}<br>${d.lineage}`),
+                        hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
+                        marker: { color: '#f59e0b', size: cfg.size + 2, opacity: 0.8 },
+                        name: i === 0 ? `${highlightSubtype || highlightTissue} (n=${match.length})` : panelLabels[i],
+                        showlegend: false
+                    });
+                }
+            } else {
+                traces.push({
+                    x: cfg.data.map(d => d.x), y: cfg.data.map(d => d.y),
+                    xaxis: cfg.xaxis, yaxis: cfg.yaxis,
+                    mode: 'markers', type: 'scatter',
+                    text: cfg.data.map(d => `${d.cellLineName}<br>${d.lineage}`),
+                    hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
+                    marker: { color: cfg.color, size: cfg.size, opacity: cfg.opacity },
+                    name: panelLabels[i], showlegend: false
+                });
+            }
         });
 
         // Add regression lines for each panel
@@ -7963,7 +8104,10 @@ Results:
         addRegressionLine(mut2, mut2Stats, 'x3', 'y3', '#5a9f4a');
 
         // Add highlighted cells for each panel
+        const threePanelHighlightAnnotations = [];
         const addHighlights = (data, xaxis, yaxis) => {
+            const xrefAxis = xaxis === 'x' ? 'x' : xaxis;
+            const yrefAxis = yaxis === 'y' ? 'y' : yaxis;
             const highlightData = data.filter(d =>
                 searchTerms.some(term =>
                     d.cellLineName.toUpperCase().includes(term) ||
@@ -7977,12 +8121,9 @@ Results:
                     y: highlightData.map(d => d.y),
                     xaxis: xaxis,
                     yaxis: yaxis,
-                    mode: 'markers+text',
+                    mode: 'markers',
                     type: 'scatter',
-                    text: highlightData.map(d => `${d.cellLineName} (${d.lineage || 'Unknown'})`),
-                    textposition: 'top center',
-                    textfont: { size: fontSize * 3, color: '#000' },
-                    hovertemplate: '%{text}<extra></extra>',
+                    hovertemplate: highlightData.map(d => `${d.cellLineName} (${d.lineage || 'Unknown'})<extra></extra>`),
                     marker: {
                         color: '#f59e0b',
                         size: 10,
@@ -7990,6 +8131,22 @@ Results:
                         line: { color: '#000', width: 2 }
                     },
                     showlegend: false
+                });
+                highlightData.forEach(d => {
+                    const saved = this._userLabelPositions.get(d.cellLineName);
+                    threePanelHighlightAnnotations.push({
+                        x: d.x, y: d.y,
+                        xref: xrefAxis, yref: yrefAxis,
+                        text: `${d.cellLineName} (${d.lineage || 'Unknown'})`,
+                        showarrow: true,
+                        arrowhead: 0,
+                        arrowcolor: '#999',
+                        ax: saved ? saved.ax : 0,
+                        ay: saved ? saved.ay : -25,
+                        font: { size: fontSize * 3, color: '#000' },
+                        bgcolor: 'rgba(255,255,255,0.7)',
+                        borderpad: 2
+                    });
                 });
             }
         };
@@ -8055,11 +8212,22 @@ Results:
                   showarrow: false, font: { size: 9 } },
                 { x: 0.86, y: 1.02, xref: 'paper', yref: 'paper',
                   text: `${annotLabels[2]} n=${mut2.length}<br>r=${mut2Stats.correlation.toFixed(3)}, slope=${mut2Stats.slope.toFixed(3)}<br>mean: x=${mut2Extra.meanX.toFixed(2)}, y=${mut2Extra.meanY.toFixed(2)}<br>median: x=${mut2Extra.medianX.toFixed(2)}, y=${mut2Extra.medianY.toFixed(2)}`,
-                  showarrow: false, font: { size: 9 } }
+                  showarrow: false, font: { size: 9 } },
+                ...threePanelHighlightAnnotations
             ],
             margin: { t: filterDesc ? 160 : 140, r: 30, b: 60, l: 60 },
             plot_bgcolor: '#fafafa'
         };
+
+        // Collect all highlight data across panels for relayout tracking
+        const allThreePanelHighlightData = [wt, mut1, mut2].flatMap(data =>
+            data.filter(d =>
+                searchTerms.some(term =>
+                    d.cellLineName.toUpperCase().includes(term) ||
+                    d.cellLineId.toUpperCase().includes(term)
+                ) || this.clickedCells.has(d.cellLineName)
+            )
+        );
 
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: true,
@@ -8071,6 +8239,20 @@ Results:
                         x: relayoutData['annotations[0].x'],
                         y: relayoutData['annotations[0].y']
                     };
+                }
+                // Capture dragged cell label positions (annotations[4+] in three-panel: title + 3 panel stats)
+                const labelOffset = 4;
+                for (let i = 0; i < allThreePanelHighlightData.length; i++) {
+                    const idx = i + labelOffset;
+                    const axKey = `annotations[${idx}].ax`;
+                    const ayKey = `annotations[${idx}].ay`;
+                    if (relayoutData[axKey] !== undefined || relayoutData[ayKey] !== undefined) {
+                        const current = this._userLabelPositions.get(allThreePanelHighlightData[i].cellLineName) || { ax: 0, ay: -25 };
+                        this._userLabelPositions.set(allThreePanelHighlightData[i].cellLineName, {
+                            ax: relayoutData[axKey] !== undefined ? relayoutData[axKey] : current.ax,
+                            ay: relayoutData[ayKey] !== undefined ? relayoutData[ayKey] : current.ay
+                        });
+                    }
                 }
             });
             this.setupScatterClickHandler(filteredData);
