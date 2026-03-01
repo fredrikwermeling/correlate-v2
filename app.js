@@ -1630,12 +1630,6 @@ class CorrelationExplorer {
         document.getElementById('compareAllCancerTypesBtn')?.addEventListener('click', () => this.showCompareAllCancerTypes());
         document.getElementById('updateInspectGenes')?.addEventListener('click', () => this.updateInspectGenes());
 
-        // Aspect ratio control
-        document.getElementById('aspectRatio')?.addEventListener('input', (e) => {
-            document.getElementById('aspectRatioValue').textContent = parseFloat(e.target.value).toFixed(1);
-            this.updateInspectPlot();
-        });
-
         // Plot size controls
         ['plotWidth', 'plotHeight'].forEach(id => {
             const el = document.getElementById(id);
@@ -7905,22 +7899,31 @@ Results:
                 title: `${gene1} Gene Effect`,
                 range: xRange,
                 zeroline: true,
-                zerolinecolor: '#ddd',
-                constrain: 'domain'
+                zerolinecolor: '#ddd'
             },
             yaxis: {
                 title: `${gene2} Gene Effect`,
                 range: yRange,
                 zeroline: true,
-                zerolinecolor: '#ddd',
-                scaleanchor: 'x',
-                scaleratio: parseFloat(document.getElementById('aspectRatio')?.value || 1),
-                constrain: 'domain'
+                zerolinecolor: '#ddd'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || colorByCategory) ? 140 : 30, b: 60, l: 60 },
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 140 : 30, b: colorByCategory ? 100 : 60, l: 60 },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
-            legend: {
+            legend: colorByCategory ? {
+                orientation: 'h',
+                x: 0.5,
+                y: -0.15,
+                xanchor: 'center',
+                yanchor: 'top',
+                bgcolor: 'rgba(255,255,255,0.85)',
+                bordercolor: '#ddd',
+                borderwidth: 1,
+                font: { size: 10 },
+                tracegroupgap: 0,
+                entrywidth: 120,
+                entrywidthmode: 'pixels'
+            } : {
                 x: 0.98,
                 y: 0.98,
                 xanchor: 'right',
@@ -7928,7 +7931,7 @@ Results:
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                title: { text: colorByCategory ? (colorByCategory === 'subtype' ? 'Subtype' : 'Tissue') : (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
+                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
                 font: { size: 11 }
             },
             annotations: annotations,
@@ -7943,23 +7946,25 @@ Results:
             layout.legend.yanchor = 'auto';
         }
 
-        // Apply user-specified plot dimensions
+        // Apply plot dimensions (square by default)
+        const plotContainer = document.getElementById('scatterPlot');
         const userWidth = parseInt(document.getElementById('plotWidth')?.value);
         const userHeight = parseInt(document.getElementById('plotHeight')?.value);
-        const hasFixedSize = !isNaN(userWidth) || !isNaN(userHeight);
-        if (!isNaN(userWidth)) layout.width = userWidth;
-        if (!isNaN(userHeight)) layout.height = userHeight;
-        const plotContainer = document.getElementById('scatterPlot');
-        if (hasFixedSize) {
-            plotContainer.style.width = (!isNaN(userWidth) ? userWidth + 'px' : '');
-            plotContainer.style.height = (!isNaN(userHeight) ? userHeight + 'px' : '');
+        const hasUserSize = !isNaN(userWidth) || !isNaN(userHeight);
+        if (hasUserSize) {
+            if (!isNaN(userWidth)) { layout.width = userWidth; plotContainer.style.width = userWidth + 'px'; }
+            if (!isNaN(userHeight)) { layout.height = userHeight; plotContainer.style.height = userHeight + 'px'; }
         } else {
-            plotContainer.style.width = '';
-            plotContainer.style.height = '';
+            // Square by default: use available viewport height
+            const size = Math.max(450, Math.min(700, window.innerHeight - 200));
+            layout.width = size;
+            layout.height = size;
+            plotContainer.style.width = size + 'px';
+            plotContainer.style.height = size + 'px';
         }
 
         Plotly.newPlot('scatterPlot', traces, layout, {
-            responsive: !hasFixedSize,
+            responsive: false,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
         }).then(plotEl => {
             // Listen for legend and title drag events
@@ -7993,8 +7998,8 @@ Results:
                 }
             });
 
-            // Auto-reposition legend outside the actual plot domain
-            if (!this._userLegendPosition && layout.showlegend) {
+            // Auto-reposition vertical legend outside the actual plot domain
+            if (!this._userLegendPosition && layout.showlegend && layout.legend?.orientation !== 'h') {
                 const fl = plotEl._fullLayout;
                 if (fl && fl.xaxis && fl.yaxis) {
                     const xDomain = fl.xaxis.domain;
@@ -8218,27 +8223,12 @@ Results:
 
         const layout = {
             grid: { rows: 1, columns: 3, pattern: 'independent' },
-            xaxis: { title: `${gene1} Effect`, range: xRange, domain: [0, 0.28], constrain: 'domain' },
-            yaxis: {
-                title: `${gene2} Effect`, range: yRange,
-                scaleanchor: 'x',
-                scaleratio: parseFloat(document.getElementById('aspectRatio')?.value || 1),
-                constrain: 'domain'
-            },
-            xaxis2: { title: `${gene1} Effect`, range: xRange, domain: [0.36, 0.64], constrain: 'domain' },
-            yaxis2: {
-                range: yRange, anchor: 'x2',
-                scaleanchor: 'x2',
-                scaleratio: parseFloat(document.getElementById('aspectRatio')?.value || 1),
-                constrain: 'domain'
-            },
-            xaxis3: { title: `${gene1} Effect`, range: xRange, domain: [0.72, 1], constrain: 'domain' },
-            yaxis3: {
-                range: yRange, anchor: 'x3',
-                scaleanchor: 'x3',
-                scaleratio: parseFloat(document.getElementById('aspectRatio')?.value || 1),
-                constrain: 'domain'
-            },
+            xaxis: { title: `${gene1} Effect`, range: xRange, domain: [0, 0.28] },
+            yaxis: { title: `${gene2} Effect`, range: yRange },
+            xaxis2: { title: `${gene1} Effect`, range: xRange, domain: [0.36, 0.64] },
+            yaxis2: { range: yRange, anchor: 'x2' },
+            xaxis3: { title: `${gene1} Effect`, range: xRange, domain: [0.72, 1] },
+            yaxis3: { range: yRange, anchor: 'x3' },
             annotations: [
                 titleAnnotation,
                 { x: 0.14, y: 1.02, xref: 'paper', yref: 'paper',
@@ -8252,18 +8242,21 @@ Results:
                   showarrow: false, font: { size: 9 } },
                 ...threePanelHighlightAnnotations
             ],
-            margin: { t: filterDesc ? 160 : 140, r: categoryOrder ? 140 : 30, b: 60, l: 60 },
+            margin: { t: filterDesc ? 160 : 140, r: 30, b: categoryOrder ? 100 : 60, l: 60 },
             showlegend: !!categoryOrder,
             legend: {
-                x: 0.98,
-                y: 0.98,
-                xanchor: 'right',
+                orientation: 'h',
+                x: 0.5,
+                y: -0.15,
+                xanchor: 'center',
                 yanchor: 'top',
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                title: { text: colorByCategory === 'subtype' ? 'Subtype' : 'Tissue', font: { size: 11 } },
-                font: { size: 11 }
+                font: { size: 10 },
+                tracegroupgap: 0,
+                entrywidth: 120,
+                entrywidthmode: 'pixels'
             },
             plot_bgcolor: '#fafafa'
         };
@@ -8286,23 +8279,21 @@ Results:
             )
         );
 
-        // Apply user-specified plot dimensions
+        // Apply plot dimensions (wide default for three-panel)
+        const plotContainer3 = document.getElementById('scatterPlot');
         const userWidth3 = parseInt(document.getElementById('plotWidth')?.value);
         const userHeight3 = parseInt(document.getElementById('plotHeight')?.value);
-        const hasFixedSize3 = !isNaN(userWidth3) || !isNaN(userHeight3);
-        if (!isNaN(userWidth3)) layout.width = userWidth3;
-        if (!isNaN(userHeight3)) layout.height = userHeight3;
-        const plotContainer3 = document.getElementById('scatterPlot');
-        if (hasFixedSize3) {
-            plotContainer3.style.width = (!isNaN(userWidth3) ? userWidth3 + 'px' : '');
-            plotContainer3.style.height = (!isNaN(userHeight3) ? userHeight3 + 'px' : '');
+        if (!isNaN(userWidth3) || !isNaN(userHeight3)) {
+            if (!isNaN(userWidth3)) { layout.width = userWidth3; plotContainer3.style.width = userWidth3 + 'px'; }
+            if (!isNaN(userHeight3)) { layout.height = userHeight3; plotContainer3.style.height = userHeight3 + 'px'; }
         } else {
             plotContainer3.style.width = '';
             plotContainer3.style.height = '';
         }
 
+        const hasUserSize3 = !isNaN(userWidth3) || !isNaN(userHeight3);
         Plotly.newPlot('scatterPlot', traces, layout, {
-            responsive: !hasFixedSize3,
+            responsive: !hasUserSize3,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
         }).then(plotEl => {
             plotEl.on('plotly_relayout', (relayoutData) => {
@@ -9257,18 +9248,21 @@ Results:
         const data = JSON.parse(JSON.stringify(plotEl.data));
         const layout = JSON.parse(JSON.stringify(plotEl.layout));
 
-        // Reposition legend outside the plot area for cleaner export
+        // Adjust legend positioning for export
         if (layout.showlegend) {
-            layout.legend = Object.assign({}, layout.legend, {
-                x: 1.02, y: 1, xanchor: 'left', yanchor: 'top'
-            });
-        }
-
-        // Increase right margin to prevent legend clipping in export
-        const hasLegend = layout.showlegend !== false &&
-            data.some(t => t.showlegend !== false && t.name);
-        if (hasLegend) {
-            layout.margin = Object.assign({}, layout.margin, { r: 200 });
+            if (layout.legend?.orientation === 'h') {
+                // Horizontal legend (color-by): position below plot with extra bottom margin
+                layout.legend = Object.assign({}, layout.legend, {
+                    x: 0.5, y: -0.12, xanchor: 'center', yanchor: 'top'
+                });
+                layout.margin = Object.assign({}, layout.margin, { b: 140 });
+            } else {
+                // Vertical legend (hotspot/fusion): position to the right
+                layout.legend = Object.assign({}, layout.legend, {
+                    x: 1.02, y: 1, xanchor: 'left', yanchor: 'top'
+                });
+                layout.margin = Object.assign({}, layout.margin, { r: 200 });
+            }
         }
         layout.width = exportWidth;
         layout.height = exportHeight;
