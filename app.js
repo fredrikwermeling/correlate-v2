@@ -7956,7 +7956,7 @@ Results:
         let plotAreaH = parseInt(heightEl?.value);
         if (isNaN(plotAreaW) || isNaN(plotAreaH)) {
             // Default: square, fit within viewport
-            const defaultSize = Math.max(350, Math.min(550, window.innerHeight - 300));
+            const defaultSize = 450;
             if (isNaN(plotAreaW)) plotAreaW = defaultSize;
             if (isNaN(plotAreaH)) plotAreaH = defaultSize;
         }
