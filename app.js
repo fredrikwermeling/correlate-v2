@@ -10253,31 +10253,6 @@ Results:
             }
         });
 
-        // Also iterate over translocation genes — pre-filter to genes with fusions in baseCells
-        if (this.translocations?.genes) {
-            const baseCellIds = new Set(baseCells.map(c => c.cellLine));
-            const mutGeneSet = new Set(this.mutations?.genes || []);
-            for (const tGene of this.translocations.genes) {
-                if (tGene === mainHotspot && isTranslocation) continue;
-                if (mutGeneSet.has(tGene) && !isTranslocation) continue;
-                const tData = this.translocations.geneData[tGene];
-                if (!tData) continue;
-                let hasFused = false;
-                for (const cl of baseCellIds) {
-                    if (tData.translocations[cl] && tData.translocations[cl] > 0) { hasFused = true; break; }
-                }
-                if (!hasFused) continue;
-                const filtered = baseCells.filter(c => (tData.translocations[c.cellLine] || 0) >= 1);
-                const wtGE = filtered.filter(c => c.mainMut === 0).map(c => c.ge);
-                const mutGE = filtered.filter(c => c.mainMut >= 1).map(c => c.ge);
-                if (wtGE.length > 0 && mutGE.length > 0) {
-                    const meanWT = wtGE.reduce((a, b) => a + b, 0) / wtGE.length;
-                    const meanMut = mutGE.reduce((a, b) => a + b, 0) / mutGE.length;
-                    rows.push({ label: `${tGene} (fusion)`, nWT: wtGE.length, nMut: mutGE.length, delta: meanMut - meanWT, hotspot: tGene, clickMode: 'fusion', fusion: tGene });
-                }
-            }
-        }
-
         const refRow = rows.filter(r => r.isRef);
         const otherRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
