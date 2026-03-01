@@ -8026,6 +8026,10 @@ Results:
         plotContainer.style.width = layout.width + 'px';
         plotContainer.style.height = layout.height + 'px';
 
+        // Save clean copies for export (Plotly mutates these after rendering)
+        this._exportData = JSON.parse(JSON.stringify(traces));
+        this._exportLayout = JSON.parse(JSON.stringify(layout));
+
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: false,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
@@ -8353,6 +8357,10 @@ Results:
         layout.height = plotAreaH3 + m3.t + m3.b;
         plotContainer3.style.width = layout.width + 'px';
         plotContainer3.style.height = layout.height + 'px';
+
+        // Save clean copies for export (Plotly mutates these after rendering)
+        this._exportData = JSON.parse(JSON.stringify(traces));
+        this._exportLayout = JSON.parse(JSON.stringify(layout));
 
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: false,
@@ -9308,9 +9316,24 @@ Results:
         else if (transGene && transMode !== 'none') suffix = `_${transGene}`;
         const filename = `scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`;
 
-        // Deep-copy data and layout from live chart
-        const data = JSON.parse(JSON.stringify(plotEl.data));
-        const layout = JSON.parse(JSON.stringify(plotEl.layout));
+        // Use saved pre-render copies (Plotly mutates layout after rendering,
+        // which can strip annotations and axis titles from the serializable state)
+        const data = JSON.parse(JSON.stringify(this._exportData || plotEl.data));
+        const layout = JSON.parse(JSON.stringify(this._exportLayout || plotEl.layout));
+
+        // Apply any user-dragged title/legend positions
+        if (this._userTitlePosition && layout.annotations?.[0]) {
+            layout.annotations[0].x = this._userTitlePosition.x;
+            layout.annotations[0].y = this._userTitlePosition.y;
+            layout.annotations[0].xanchor = 'auto';
+            layout.annotations[0].yanchor = 'auto';
+        }
+        if (this._userLegendPosition && layout.legend) {
+            layout.legend.x = this._userLegendPosition.x;
+            layout.legend.y = this._userLegendPosition.y;
+            layout.legend.xanchor = 'auto';
+            layout.legend.yanchor = 'auto';
+        }
 
         // Adjust legend positioning for export
         if (layout.showlegend) {
