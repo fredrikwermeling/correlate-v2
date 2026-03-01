@@ -966,8 +966,12 @@
         }
 
         .inspect-controls {
-            width: 260px;
+            width: 380px;
             flex-shrink: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            align-content: start;
         }
 
         .inspect-plot {
@@ -977,25 +981,25 @@
 
         .control-box {
             background: #f9fafb;
-            padding: 10px 12px;
-            border-radius: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
             border: 1px solid #e5e7eb;
-            margin-bottom: 12px;
+            margin-bottom: 0;
         }
 
         .control-box-compact {
             background: #f9fafb;
-            padding: 8px 10px;
+            padding: 6px 8px;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
-            margin-bottom: 8px;
+            margin-bottom: 0;
         }
 
         .control-label {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             color: #374151;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             display: block;
         }
 
@@ -1135,6 +1139,7 @@
             }
             .inspect-controls {
                 width: 100%;
+                grid-template-columns: 1fr 1fr;
             }
         }
     </style>
@@ -1757,18 +1762,18 @@
                     <div class="inspect-controls">
                         <!-- Gene Selection -->
                         <div class="control-box-compact">
-                            <span class="control-label">Genes (X / Y axis)</span>
-                            <div style="display: flex; gap: 6px;">
-                                <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; font-size: 12px;" placeholder="X gene">
-                                <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; font-size: 12px;" placeholder="Y gene">
+                            <span class="control-label">Genes (X / Y)</span>
+                            <div style="display: flex; gap: 4px;">
+                                <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; font-size: 11px; padding: 3px 6px;" placeholder="X gene">
+                                <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; font-size: 11px; padding: 3px 6px;" placeholder="Y gene">
                             </div>
-                            <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="width: 100%; margin-top: 6px;">Update Genes</button>
+                            <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="width: 100%; margin-top: 4px; font-size: 10px; padding: 2px 6px;">Update</button>
                         </div>
 
                         <!-- Axis Ranges -->
                         <div class="control-box-compact">
                             <span class="control-label">Axis Ranges</span>
-                            <div class="axis-inputs">
+                            <div class="axis-inputs" style="gap: 4px;">
                                 <div>
                                     <label>X min</label>
                                     <input type="text" inputmode="decimal" id="scatterXmin" step="0.1">
@@ -1786,109 +1791,108 @@
                                     <input type="text" inputmode="decimal" id="scatterYmax" step="0.1">
                                 </div>
                             </div>
-                            <button class="btn btn-outline btn-sm" id="resetAxes" style="width: 100%; margin-top: 8px;">Reset</button>
+                            <button class="btn btn-outline btn-sm" id="resetAxes" style="width: 100%; margin-top: 4px; font-size: 10px; padding: 2px 6px;">Reset</button>
                         </div>
 
                         <!-- Aspect Ratio -->
                         <div class="control-box-compact">
                             <span class="control-label">Y/X Ratio</span>
-                            <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
                                 <input type="range" id="aspectRatio" min="0.3" max="3" step="0.1" value="1" style="flex: 1;">
-                                <span id="aspectRatioValue" style="font-size: 12px; min-width: 40px;">1.0</span>
+                                <span id="aspectRatioValue" style="font-size: 11px; min-width: 30px;">1.0</span>
                             </div>
                         </div>
 
                         <!-- Filter by Cancer Type -->
                         <div class="control-box-compact" id="cancerFilterBox" style="display: none;">
-                            <span class="control-label">Filter by Cancer Type</span>
-                            <select id="scatterCancerFilter" class="form-control">
+                            <span class="control-label">Cancer Type</span>
+                            <select id="scatterCancerFilter" class="form-control" style="font-size: 11px; padding: 2px 4px;">
                                 <option value="">All cancer types</option>
                             </select>
-                            <select id="scatterSubtypeFilter" class="form-control" style="margin-top: 4px; display: none;">
+                            <select id="scatterSubtypeFilter" class="form-control" style="margin-top: 3px; display: none; font-size: 11px; padding: 2px 4px;">
                                 <option value="">All subtypes</option>
                             </select>
                         </div>
 
                         <!-- Filter by Hotspot Mutation -->
                         <div class="control-box-compact" id="mutationFilterBox" style="display: none;">
-                            <span class="control-label">Filter by Hotspot Mutation</span>
-                            <select id="mutationFilterGene" class="form-control">
+                            <span class="control-label">Hotspot Filter</span>
+                            <select id="mutationFilterGene" class="form-control" style="font-size: 11px; padding: 2px 4px;">
                                 <option value="">No filter</option>
                             </select>
-                            <select id="mutationFilterLevel" class="form-control" style="margin-top: 4px;">
+                            <select id="mutationFilterLevel" class="form-control" style="margin-top: 3px; font-size: 11px; padding: 2px 4px;">
                                 <option value="all">All cells</option>
-                                <option value="0">Only WT (0 mutations)</option>
-                                <option value="1">Only 1 mutation</option>
-                                <option value="2">Only 2 mutations</option>
-                                <option value="1+2">Only mutated (1+2)</option>
+                                <option value="0">Only WT (0)</option>
+                                <option value="1">Only 1 mut</option>
+                                <option value="2">Only 2 mut</option>
+                                <option value="1+2">Mutated (1+2)</option>
                             </select>
                         </div>
 
                         <!-- Filter by Translocation/Fusion -->
                         <div class="control-box-compact" id="translocationFilterBox" style="display: none;">
-                            <span class="control-label">Filter by Translocation/Fusion</span>
-                            <input type="text" id="translocationFilterGene" list="translocationFilterGeneList" class="form-control" placeholder="Search fusion gene..." autocomplete="off">
+                            <span class="control-label">Fusion Filter</span>
+                            <input type="text" id="translocationFilterGene" list="translocationFilterGeneList" class="form-control" placeholder="Search..." autocomplete="off" style="font-size: 11px; padding: 2px 4px;">
                             <datalist id="translocationFilterGeneList"></datalist>
-                            <select id="translocationFilterLevel" class="form-control" style="margin-top: 4px;">
+                            <select id="translocationFilterLevel" class="form-control" style="margin-top: 3px; font-size: 11px; padding: 2px 4px;">
                                 <option value="all">All cells</option>
-                                <option value="0">Only WT (no fusion)</option>
-                                <option value="1">Only 1 fusion partner</option>
-                                <option value="2">Only 2+ fusion partners</option>
-                                <option value="1+2">Only fused (1+2)</option>
+                                <option value="0">Only WT</option>
+                                <option value="1">Only 1 partner</option>
+                                <option value="2">Only 2+</option>
+                                <option value="1+2">Fused (1+2)</option>
                             </select>
                         </div>
 
-                        <!-- Compare All Buttons -->
-                        <div class="control-box-compact">
-                            <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="width: 100%;">Compare by Tissue</button>
-                            <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="width: 100%; margin-top: 4px;">Compare by Hotspot</button>
-                            <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="width: 100%; margin-top: 4px; display: none;">Compare by Fusion</button>
-                            <p style="font-size: 10px; color: #666; margin: 4px 0 0 0;">Stratify correlation by tissue, hotspot, or fusion</p>
-                        </div>
-
-                        <!-- Reset Filters -->
-                        <div class="control-box-compact">
-                            <button class="btn btn-outline btn-sm" id="resetAllFilters" style="width: 100%;">Reset Filters</button>
+                        <!-- Compare + Reset row -->
+                        <div class="control-box-compact" style="grid-column: span 2;">
+                            <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+                                <span class="control-label" style="margin-bottom: 0; margin-right: 4px;">Compare:</span>
+                                <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size: 10px; padding: 2px 8px;">By Tissue</button>
+                                <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size: 10px; padding: 2px 8px;">By Hotspot</button>
+                                <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size: 10px; padding: 2px 8px; display: none;">By Fusion</button>
+                                <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
+                                <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size: 10px; padding: 2px 8px;">Reset Filters</button>
+                            </div>
                         </div>
 
                         <!-- Highlight Cell Lines -->
-                        <div class="control-box-compact">
+                        <div class="control-box-compact" style="grid-column: span 2;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span class="control-label" style="margin-bottom: 0;">Highlight Cell Lines</span>
                                 <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="font-size: 11px; color: #666;">Font</span>
-                                    <input type="number" id="scatterFontSize" value="3" min="1" max="10" style="width: 45px; padding: 2px 4px; font-size: 11px; text-align: center;">
+                                    <span style="font-size: 10px; color: #666;">Font</span>
+                                    <input type="number" id="scatterFontSize" value="3" min="1" max="10" style="width: 40px; padding: 1px 3px; font-size: 10px; text-align: center;">
+                                    <button class="btn btn-secondary btn-sm" id="clearHighlights" style="font-size: 10px; padding: 1px 6px;">Clear</button>
                                 </div>
                             </div>
-                            <textarea id="scatterCellSearch" class="form-control" style="min-height: 40px; font-size: 12px; margin-top: 6px;" placeholder="Type names or click plot..."></textarea>
-                            <button class="btn btn-secondary btn-sm" id="clearHighlights" style="margin-top: 4px;">Clear All</button>
+                            <textarea id="scatterCellSearch" class="form-control" style="min-height: 32px; font-size: 11px; margin-top: 4px;" placeholder="Type names or click plot..."></textarea>
                         </div>
 
                         <!-- Mutation Overlay -->
                         <div class="control-box" id="mutationBox">
-                            <span class="control-label">Hotspot Mutation Overlay</span>
-                            <select id="hotspotGene" class="form-control">
+                            <span class="control-label">Hotspot Overlay</span>
+                            <select id="hotspotGene" class="form-control" style="font-size: 11px; padding: 2px 4px;">
                                 <option value="">Select gene...</option>
                             </select>
-                            <select id="hotspotMode" class="form-control" style="margin-top: 6px;">
+                            <select id="hotspotMode" class="form-control" style="margin-top: 4px; font-size: 11px; padding: 2px 4px;">
                                 <option value="none">None</option>
-                                <option value="color" selected>Color by mutation (0/1/2)</option>
-                                <option value="three_panel">3-panel (0 / 1 / 2 mutations)</option>
-                                <option value="compare_table">Compare 0 vs 2 by cancer (table)</option>
+                                <option value="color" selected>Color (0/1/2)</option>
+                                <option value="three_panel">3-panel</option>
+                                <option value="compare_table">Compare table</option>
                             </select>
-                            <div id="mutationCautionScatter" style="display: none; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 6px 8px; margin-top: 8px; font-size: 10px; color: #92400e;">
-                                <strong>⚠️</strong> Mutations may be enriched in specific cancer types - correlations could reflect tissue rather than mutation effects.
+                            <div id="mutationCautionScatter" style="display: none; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 6px; font-size: 9px; color: #92400e;">
+                                <strong>⚠️</strong> Mutations may be enriched in specific cancer types.
                             </div>
                         </div>
 
                         <!-- Translocation/Fusion Overlay -->
                         <div class="control-box" id="translocationBox" style="display: none;">
-                            <span class="control-label">Translocation/Fusion Overlay</span>
-                            <input type="text" id="translocationGene" list="translocationGeneList" class="form-control" placeholder="Search fusion gene..." autocomplete="off">
+                            <span class="control-label">Fusion Overlay</span>
+                            <input type="text" id="translocationGene" list="translocationGeneList" class="form-control" placeholder="Search..." autocomplete="off" style="font-size: 11px; padding: 2px 4px;">
                             <datalist id="translocationGeneList"></datalist>
-                            <select id="translocationMode" class="form-control" style="margin-top: 6px;">
+                            <select id="translocationMode" class="form-control" style="margin-top: 4px; font-size: 11px; padding: 2px 4px;">
                                 <option value="none">None</option>
-                                <option value="color" selected>Color by fusion (0/1/2+)</option>
+                                <option value="color" selected>Color (0/1/2+)</option>
                             </select>
                         </div>
                     </div>

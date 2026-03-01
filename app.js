@@ -3652,11 +3652,21 @@ class CorrelationExplorer {
         const tick1Label = isTranslocation ? '1 partner' : '1';
         const tick2Label = isTranslocation ? '2+ partners' : '2';
 
+        const titleText = `${gene} Gene Effect by ${hotspotGene} ${statusLabel}`;
+        const subtitleText = subtitle;
+
         const layout = {
-            title: {
-                text: `${gene} Gene Effect by ${hotspotGene} ${statusLabel}<br><sub style="font-size:10px;color:#666">${subtitle}</sub>`,
-                font: { size: 16 }
-            },
+            annotations: [{
+                text: `<b>${titleText}</b><br><span style="font-size:10px;color:#666">${subtitleText}</span>`,
+                xref: 'paper',
+                yref: 'paper',
+                x: 0.5,
+                y: 1.22,
+                xanchor: 'center',
+                yanchor: 'top',
+                showarrow: false,
+                font: { size: 14 }
+            }],
             xaxis: {
                 title: `${gene} Gene Effect`,
                 range: [xMin, xMax]
@@ -3669,8 +3679,16 @@ class CorrelationExplorer {
                 range: [-0.5, 2.5],
                 automargin: true
             },
-            showlegend: false,
-            margin: { t: 130, r: 30, b: 50, l: 30 }
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                x: 0.5,
+                xanchor: 'center',
+                y: -0.15,
+                yanchor: 'top',
+                font: { size: 11 }
+            },
+            margin: { t: 130, r: 30, b: 80, l: 30 }
         };
 
         // Show modal
@@ -3778,7 +3796,10 @@ class CorrelationExplorer {
         // Update target gene label in the expression correlates panel
         document.getElementById('exprCorrelatesTargetGene').textContent = gene.toUpperCase();
 
-        Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true });
+        Plotly.newPlot('geneEffectPlot', traces, layout, {
+            responsive: true,
+            edits: { annotationPosition: true, legendPosition: true }
+        });
     }
 
     _exportMutationInspectChart(format) {
@@ -10412,7 +10433,7 @@ Results:
             rows.push({ label: 'None', nWT: noneWT.length, nMut: noneMut.length, delta: meanMut - meanWT, isRef: true, hotspot: '' });
         }
 
-        // Iterate over both mutation genes AND translocation genes
+        // Iterate over hotspot mutation genes only (fusions handled by showInlineCompareByTranslocation)
         this.mutations?.genes?.forEach(hGene => {
             if (hGene === mainHotspot && !isTranslocation) return;
             const hMutData = this.mutations.geneData[hGene];
