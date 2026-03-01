@@ -9298,19 +9298,6 @@ Results:
         const isThreePanel = (hotspotMode === 'three_panel' && hotspotGene) ||
                              (transMode === 'three_panel' && transGene);
 
-        let exportWidth, exportHeight;
-        if (isThreePanel) {
-            exportWidth = 1800;
-            exportHeight = 800;
-        } else {
-            // Use the plot's layout dimensions to preserve aspect ratio
-            const lw = plotEl.layout?.width || 500;
-            const lh = plotEl.layout?.height || 500;
-            const scale = 1200 / lw;
-            exportWidth = 1200;
-            exportHeight = Math.round(lh * scale);
-        }
-
         let suffix = '';
         if (hotspotGene && hotspotMode !== 'none') suffix = `_${hotspotGene}`;
         else if (transGene && transMode !== 'none') suffix = `_${transGene}`;
@@ -9318,15 +9305,8 @@ Results:
 
         // Use saved pre-render copies (Plotly mutates layout after rendering,
         // which can strip annotations and axis titles from the serializable state)
-        console.log('Export: _exportLayout exists?', !!this._exportLayout);
-        console.log('Export: _exportLayout annotations?', this._exportLayout?.annotations?.length);
-        console.log('Export: _exportLayout xaxis.title?', this._exportLayout?.xaxis?.title);
-        console.log('Export: plotEl.layout annotations?', plotEl.layout?.annotations?.length);
-        console.log('Export: plotEl.layout xaxis.title?', plotEl.layout?.xaxis?.title);
         const data = JSON.parse(JSON.stringify(this._exportData || plotEl.data));
         const layout = JSON.parse(JSON.stringify(this._exportLayout || plotEl.layout));
-        console.log('Export: final layout annotations?', layout.annotations?.length);
-        console.log('Export: final layout xaxis.title?', layout.xaxis?.title);
 
         // Apply any user-dragged title/legend positions
         if (this._userTitlePosition && layout.annotations?.[0]) {
@@ -9345,21 +9325,21 @@ Results:
         // Adjust legend positioning for export
         if (layout.showlegend) {
             if (layout.legend?.orientation === 'h') {
-                // Horizontal legend (color-by): position below plot with extra bottom margin
                 layout.legend = Object.assign({}, layout.legend, {
                     x: 0.5, y: -0.12, xanchor: 'center', yanchor: 'top'
                 });
                 layout.margin = Object.assign({}, layout.margin, { b: 140 });
             } else {
-                // Vertical legend (hotspot/fusion): position to the right
                 layout.legend = Object.assign({}, layout.legend, {
                     x: 1.02, y: 1, xanchor: 'left', yanchor: 'top'
                 });
                 layout.margin = Object.assign({}, layout.margin, { r: 200 });
             }
         }
-        layout.width = exportWidth;
-        layout.height = exportHeight;
+
+        // Export at on-screen dimensions (matches what user sees, ~8cm for publication)
+        const exportWidth = layout.width || 500;
+        const exportHeight = layout.height || 500;
 
         // Render into a temporary off-screen div for a clean export
         const tempDiv = document.createElement('div');
@@ -9404,19 +9384,21 @@ Results:
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             } else {
-                // PNG: render SVG to canvas then export
+                // PNG: render SVG to canvas at 2× for print quality
+                const pngScale = 2;
                 const canvas = document.createElement('canvas');
-                canvas.width = exportWidth;
-                canvas.height = exportHeight;
+                canvas.width = exportWidth * pngScale;
+                canvas.height = exportHeight * pngScale;
                 const ctx = canvas.getContext('2d');
+                ctx.scale(pngScale, pngScale);
                 const img = new Image();
                 const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
                 const url = URL.createObjectURL(svgBlob);
                 return new Promise((resolve, reject) => {
                     img.onload = () => {
                         ctx.fillStyle = '#fff';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(img, 0, 0);
+                        ctx.fillRect(0, 0, exportWidth, exportHeight);
+                        ctx.drawImage(img, 0, 0, exportWidth, exportHeight);
                         URL.revokeObjectURL(url);
                         canvas.toBlob(blob => {
                             const pngUrl = URL.createObjectURL(blob);
