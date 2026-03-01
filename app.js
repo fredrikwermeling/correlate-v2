@@ -1636,6 +1636,13 @@ class CorrelationExplorer {
             this.updateInspectPlot();
         });
 
+        // Plot size controls
+        ['plotWidth', 'plotHeight'].forEach(id => {
+            const el = document.getElementById(id);
+            el.addEventListener('change', () => this.updateInspectPlot());
+            el.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.updateInspectPlot(); });
+        });
+
         // Table header sorting (Ctrl/Cmd+click to copy column)
         document.querySelectorAll('.data-table th[data-sort]').forEach(th => {
             th.addEventListener('click', (e) => {
@@ -7776,7 +7783,7 @@ Results:
                     marker: { color: color, size: 8, opacity: 0.8 },
                     name: `${cat} (${catData.length})`,
                     legendgroup: cat,
-                    showlegend: false
+                    showlegend: true
                 });
             });
         } else {
@@ -7916,8 +7923,8 @@ Results:
                 constrain: 'domain'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 140 : 30, b: 60, l: 60 },
-            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene),
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || colorByCategory) ? 140 : 30, b: 60, l: 60 },
+            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: {
                 x: 0.98,
                 y: 0.98,
@@ -7926,7 +7933,7 @@ Results:
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
+                title: { text: colorByCategory ? (colorByCategory === 'subtype' ? 'Subtype' : 'Tissue') : (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
                 font: { size: 11 }
             },
             annotations: annotations,
@@ -7941,8 +7948,23 @@ Results:
             layout.legend.yanchor = 'auto';
         }
 
+        // Apply user-specified plot dimensions
+        const userWidth = parseInt(document.getElementById('plotWidth')?.value);
+        const userHeight = parseInt(document.getElementById('plotHeight')?.value);
+        const hasFixedSize = !isNaN(userWidth) || !isNaN(userHeight);
+        if (!isNaN(userWidth)) layout.width = userWidth;
+        if (!isNaN(userHeight)) layout.height = userHeight;
+        const plotContainer = document.getElementById('scatterPlot');
+        if (hasFixedSize) {
+            plotContainer.style.width = (!isNaN(userWidth) ? userWidth + 'px' : '');
+            plotContainer.style.height = (!isNaN(userHeight) ? userHeight + 'px' : '');
+        } else {
+            plotContainer.style.width = '';
+            plotContainer.style.height = '';
+        }
+
         Plotly.newPlot('scatterPlot', traces, layout, {
-            responsive: true,
+            responsive: !hasFixedSize,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
         }).then(plotEl => {
             // Listen for legend and title drag events
@@ -8083,7 +8105,7 @@ Results:
                         hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                         marker: { color: ci < colors.length ? colors[ci] : '#999', size: cfg.size, opacity: 0.8 },
                         name: `${cat} (${catData.length})`,
-                        showlegend: false,
+                        showlegend: i === 0,
                         legendgroup: cat
                     });
                 });
@@ -8235,9 +8257,29 @@ Results:
                   showarrow: false, font: { size: 9 } },
                 ...threePanelHighlightAnnotations
             ],
-            margin: { t: filterDesc ? 160 : 140, r: 30, b: 60, l: 60 },
+            margin: { t: filterDesc ? 160 : 140, r: categoryOrder ? 140 : 30, b: 60, l: 60 },
+            showlegend: !!categoryOrder,
+            legend: {
+                x: 0.98,
+                y: 0.98,
+                xanchor: 'right',
+                yanchor: 'top',
+                bgcolor: 'rgba(255,255,255,0.85)',
+                bordercolor: '#ddd',
+                borderwidth: 1,
+                title: { text: colorByCategory === 'subtype' ? 'Subtype' : 'Tissue', font: { size: 11 } },
+                font: { size: 11 }
+            },
             plot_bgcolor: '#fafafa'
         };
+
+        // Apply user-dragged legend position if available
+        if (this._userLegendPosition && layout.showlegend) {
+            layout.legend.x = this._userLegendPosition.x;
+            layout.legend.y = this._userLegendPosition.y;
+            layout.legend.xanchor = 'auto';
+            layout.legend.yanchor = 'auto';
+        }
 
         // Collect all highlight data across panels for relayout tracking
         const allThreePanelHighlightData = [wt, mut1, mut2].flatMap(data =>
@@ -8249,11 +8291,32 @@ Results:
             )
         );
 
+        // Apply user-specified plot dimensions
+        const userWidth3 = parseInt(document.getElementById('plotWidth')?.value);
+        const userHeight3 = parseInt(document.getElementById('plotHeight')?.value);
+        const hasFixedSize3 = !isNaN(userWidth3) || !isNaN(userHeight3);
+        if (!isNaN(userWidth3)) layout.width = userWidth3;
+        if (!isNaN(userHeight3)) layout.height = userHeight3;
+        const plotContainer3 = document.getElementById('scatterPlot');
+        if (hasFixedSize3) {
+            plotContainer3.style.width = (!isNaN(userWidth3) ? userWidth3 + 'px' : '');
+            plotContainer3.style.height = (!isNaN(userHeight3) ? userHeight3 + 'px' : '');
+        } else {
+            plotContainer3.style.width = '';
+            plotContainer3.style.height = '';
+        }
+
         Plotly.newPlot('scatterPlot', traces, layout, {
-            responsive: true,
+            responsive: !hasFixedSize3,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
         }).then(plotEl => {
             plotEl.on('plotly_relayout', (relayoutData) => {
+                if (relayoutData['legend.x'] !== undefined && relayoutData['legend.y'] !== undefined) {
+                    this._userLegendPosition = {
+                        x: relayoutData['legend.x'],
+                        y: relayoutData['legend.y']
+                    };
+                }
                 if (relayoutData['annotations[0].x'] !== undefined && relayoutData['annotations[0].y'] !== undefined) {
                     this._userTitlePosition = {
                         x: relayoutData['annotations[0].x'],
@@ -9199,23 +9262,11 @@ Results:
         const data = JSON.parse(JSON.stringify(plotEl.data));
         const layout = JSON.parse(JSON.stringify(plotEl.layout));
 
-        // Enable legend for color-by traces in export (hidden interactively)
-        const colorByCategory = document.getElementById('colorByCategory').value;
-        if (colorByCategory) {
-            const seen = new Set();
-            data.forEach(t => {
-                if (t.legendgroup && !seen.has(t.legendgroup)) {
-                    t.showlegend = true;
-                    seen.add(t.legendgroup);
-                }
+        // Reposition legend outside the plot area for cleaner export
+        if (layout.showlegend) {
+            layout.legend = Object.assign({}, layout.legend, {
+                x: 1.02, y: 1, xanchor: 'left', yanchor: 'top'
             });
-            layout.showlegend = true;
-            layout.legend = {
-                x: 1.02, y: 1, xanchor: 'left', yanchor: 'top',
-                bgcolor: 'rgba(255,255,255,0.85)', bordercolor: '#ddd', borderwidth: 1,
-                title: { text: colorByCategory === 'subtype' ? 'Subtype' : 'Tissue', font: { size: 11 } },
-                font: { size: 10 }
-            };
         }
 
         // Increase right margin to prevent legend clipping in export
