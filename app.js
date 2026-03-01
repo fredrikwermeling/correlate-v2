@@ -1661,15 +1661,6 @@ class CorrelationExplorer {
         document.getElementById('copyClustersGenes')?.addEventListener('click', () => this.copyGeneColumn('clustersTable'));
         document.getElementById('copyMutationGenes')?.addEventListener('click', () => this.copyGeneColumn('mutationTable'));
 
-        // Gene Effect buttons in correlations/clusters controls
-        document.getElementById('correlationsGeneEffectBtn')?.addEventListener('click', () => {
-            const searchVal = document.getElementById('correlationsSearch')?.value?.trim();
-            if (searchVal) this.openGeneEffectModal(searchVal, 'tissue');
-        });
-        document.getElementById('clustersGeneEffectBtn')?.addEventListener('click', () => {
-            const searchVal = document.getElementById('clustersSearch')?.value?.trim();
-            if (searchVal) this.openGeneEffectModal(searchVal, 'tissue');
-        });
 
         // Table filter toggles
         document.getElementById('filterCorrelationsToggle')?.addEventListener('click', () => this.toggleTableFilters('correlationsTable'));
@@ -5126,7 +5117,8 @@ class CorrelationExplorer {
                 // Add analyze buttons
                 rowHtml += `
                     <td style="text-align: center; white-space: nowrap;">
-                        <button class="btn btn-sm tissue-btn" style="padding: 2px 6px; font-size: 10px; background: #5a9f4a; color: white;" data-gene="${c.gene}">By Tissue</button>
+                        <button class="btn btn-sm gene-effect-btn" style="padding: 2px 6px; font-size: 10px; background: #5a9f4a; color: white;" data-gene="${c.gene}">Gene Effect</button>
+                        <button class="btn btn-sm tissue-btn" style="padding: 2px 6px; font-size: 10px; margin-left: 4px; background: #6b7280; color: white;" data-gene="${c.gene}">By Tissue</button>
                         <button class="btn btn-sm hotspot-btn" style="padding: 2px 6px; font-size: 10px; margin-left: 4px; background: #6b7280; color: white;" data-gene="${c.gene}">By Hotspot</button>
                     </td>
                 `;
@@ -5136,6 +5128,9 @@ class CorrelationExplorer {
             });
 
         // Add event listeners to buttons
+        tbody.querySelectorAll('.gene-effect-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.openGeneEffectModal(btn.dataset.gene, 'tissue'));
+        });
         tbody.querySelectorAll('.tissue-btn').forEach(btn => {
             btn.addEventListener('click', () => this.openGeneEffectModal(btn.dataset.gene, 'tissue'));
         });
