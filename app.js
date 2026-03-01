@@ -4597,14 +4597,9 @@ class CorrelationExplorer {
 
         const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
 
-        // Adjust physics based on network size
+        // Adjust stabilization iterations based on network size
         const nodeCount = nodes.length;
         const stabilizationIterations = nodeCount > 50 ? 300 : 150;
-
-        // Scale repulsion and spring length based on node count
-        // Small networks need stronger repulsion to spread out well
-        const gravConstant = nodeCount <= 10 ? -200 : nodeCount <= 30 ? -100 : -50;
-        const springLen = nodeCount <= 10 ? 250 : nodeCount <= 30 ? 180 : 100;
 
         const options = {
             autoResize: false,  // Prevent auto-fit when container resizes
@@ -4626,9 +4621,9 @@ class CorrelationExplorer {
                 enabled: true,
                 solver: 'forceAtlas2Based',
                 forceAtlas2Based: {
-                    gravitationalConstant: gravConstant,
+                    gravitationalConstant: -50,
                     centralGravity: 0.01,
-                    springLength: springLen,
+                    springLength: 100,
                     springConstant: 0.08,
                     damping: 0.4
                 },
