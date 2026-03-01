@@ -2696,7 +2696,7 @@ class CorrelationExplorer {
                 const significantResults = analysisResult.results.filter(r => r.p_mut < pThreshold || r.p_2 < pThreshold || (r.p_fused !== undefined && r.p_fused < pThreshold));
 
                 // Sort by Δ GE (1+2 vs 0) ascending — most negative first
-                significantResults.sort((a, b) => (a.diff || 0) - (b.diff || 0));
+                significantResults.sort((a, b) => (a.diff_mut || 0) - (b.diff_mut || 0));
 
                 // Close compare modal on new analysis
                 if (document.getElementById('mutCompareModal')) {
