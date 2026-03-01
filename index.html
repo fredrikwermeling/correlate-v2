@@ -1265,10 +1265,12 @@
                             </div>
                         </div>
                         <div id="translocationAnalysisControls" style="display: none;">
-                            <label class="form-label" style="color: #7c3aed; font-weight: 600;">Translocation/Fusion Gene (required):</label>
-                            <select id="translocationHotspotSelect" class="form-control">
-                                <option value="">Select fusion gene...</option>
-                            </select>
+                            <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Translocation/Fusion Gene (required):</label>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <input type="text" id="translocationHotspotSelect" list="translocationHotspotList" class="form-control" placeholder="Search fusion gene..." style="flex: 1;" autocomplete="off">
+                                <datalist id="translocationHotspotList"></datalist>
+                                <button id="translocationTissueBreakdownBtn" type="button" style="display: none; padding: 4px 10px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this fusion">Tissues</button>
+                            </div>
                         </div>
                     </div>
 
@@ -1317,9 +1319,8 @@
 
                     <div class="form-group" id="paramTranslocationFilterGroup" style="display: none;">
                         <label class="form-label">Translocation/Fusion Filter:</label>
-                        <select id="paramTranslocationGene" class="form-control" style="margin-bottom: 4px;">
-                            <option value="">No filter</option>
-                        </select>
+                        <input type="text" id="paramTranslocationGene" list="paramTranslocationGeneList" class="form-control" placeholder="Search fusion gene..." style="margin-bottom: 4px;" autocomplete="off">
+                        <datalist id="paramTranslocationGeneList"></datalist>
                         <select id="paramTranslocationLevel" class="form-control">
                             <option value="all">All cells</option>
                             <option value="0">Only WT (no fusion)</option>
@@ -1821,9 +1822,8 @@
                         <!-- Filter by Translocation/Fusion -->
                         <div class="control-box-compact" id="translocationFilterBox" style="display: none;">
                             <span class="control-label">Filter by Translocation/Fusion</span>
-                            <select id="translocationFilterGene" class="form-control">
-                                <option value="">No filter</option>
-                            </select>
+                            <input type="text" id="translocationFilterGene" list="translocationFilterGeneList" class="form-control" placeholder="Search fusion gene..." autocomplete="off">
+                            <datalist id="translocationFilterGeneList"></datalist>
                             <select id="translocationFilterLevel" class="form-control" style="margin-top: 4px;">
                                 <option value="all">All cells</option>
                                 <option value="0">Only WT (no fusion)</option>
@@ -1878,9 +1878,8 @@
                         <!-- Translocation/Fusion Overlay -->
                         <div class="control-box" id="translocationBox" style="display: none;">
                             <span class="control-label">Translocation/Fusion Overlay</span>
-                            <select id="translocationGene" class="form-control">
-                                <option value="">Select gene...</option>
-                            </select>
+                            <input type="text" id="translocationGene" list="translocationGeneList" class="form-control" placeholder="Search fusion gene..." autocomplete="off">
+                            <datalist id="translocationGeneList"></datalist>
                             <select id="translocationMode" class="form-control" style="margin-top: 6px;">
                                 <option value="none">None</option>
                                 <option value="color" selected>Color by fusion (0/1/2+)</option>
