@@ -7947,26 +7947,26 @@ Results:
         }
 
         // Apply plot dimensions (square by default)
-        // User-specified values refer to the plot area only; margins are added on top
+        // Values refer to the plot area; margins are added on top
         const plotContainer = document.getElementById('scatterPlot');
-        const userPlotW = parseInt(document.getElementById('plotWidth')?.value);
-        const userPlotH = parseInt(document.getElementById('plotHeight')?.value);
+        const widthEl = document.getElementById('plotWidth');
+        const heightEl = document.getElementById('plotHeight');
         const m = layout.margin;
-        const hasUserSize = !isNaN(userPlotW) || !isNaN(userPlotH);
-        if (hasUserSize) {
-            const totalW = !isNaN(userPlotW) ? userPlotW + m.l + m.r : undefined;
-            const totalH = !isNaN(userPlotH) ? userPlotH + m.t + m.b : undefined;
-            if (totalW) { layout.width = totalW; plotContainer.style.width = totalW + 'px'; }
-            if (totalH) { layout.height = totalH; plotContainer.style.height = totalH + 'px'; }
-        } else {
-            // Square plot area by default: fit within viewport
-            // Account for modal header (~50), footer (~60), padding (~40), margins
-            const plotArea = Math.max(350, Math.min(550, window.innerHeight - 300));
-            layout.width = plotArea + m.l + m.r;
-            layout.height = plotArea + m.t + m.b;
-            plotContainer.style.width = layout.width + 'px';
-            plotContainer.style.height = layout.height + 'px';
+        let plotAreaW = parseInt(widthEl?.value);
+        let plotAreaH = parseInt(heightEl?.value);
+        if (isNaN(plotAreaW) || isNaN(plotAreaH)) {
+            // Default: square, fit within viewport
+            const defaultSize = Math.max(350, Math.min(550, window.innerHeight - 300));
+            if (isNaN(plotAreaW)) plotAreaW = defaultSize;
+            if (isNaN(plotAreaH)) plotAreaH = defaultSize;
         }
+        // Show current values in the inputs
+        if (widthEl) widthEl.value = plotAreaW;
+        if (heightEl) heightEl.value = plotAreaH;
+        layout.width = plotAreaW + m.l + m.r;
+        layout.height = plotAreaH + m.t + m.b;
+        plotContainer.style.width = layout.width + 'px';
+        plotContainer.style.height = layout.height + 'px';
 
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: false,
@@ -8286,22 +8286,18 @@ Results:
 
         // Apply plot dimensions (wide default for three-panel)
         const plotContainer3 = document.getElementById('scatterPlot');
-        const userPlotW3 = parseInt(document.getElementById('plotWidth')?.value);
-        const userPlotH3 = parseInt(document.getElementById('plotHeight')?.value);
         const m3 = layout.margin;
-        const hasUserSize3 = !isNaN(userPlotW3) || !isNaN(userPlotH3);
-        if (hasUserSize3) {
-            const totalW3 = !isNaN(userPlotW3) ? userPlotW3 + m3.l + m3.r : undefined;
-            const totalH3 = !isNaN(userPlotH3) ? userPlotH3 + m3.t + m3.b : undefined;
-            if (totalW3) { layout.width = totalW3; plotContainer3.style.width = totalW3 + 'px'; }
-            if (totalH3) { layout.height = totalH3; plotContainer3.style.height = totalH3 + 'px'; }
-        } else {
-            plotContainer3.style.width = '';
-            plotContainer3.style.height = '';
-        }
+        let plotAreaW3 = parseInt(document.getElementById('plotWidth')?.value);
+        let plotAreaH3 = parseInt(document.getElementById('plotHeight')?.value);
+        if (isNaN(plotAreaW3)) plotAreaW3 = Math.max(600, Math.min(1000, window.innerWidth - 500));
+        if (isNaN(plotAreaH3)) plotAreaH3 = Math.max(300, Math.min(500, window.innerHeight - 300));
+        layout.width = plotAreaW3 + m3.l + m3.r;
+        layout.height = plotAreaH3 + m3.t + m3.b;
+        plotContainer3.style.width = layout.width + 'px';
+        plotContainer3.style.height = layout.height + 'px';
 
         Plotly.newPlot('scatterPlot', traces, layout, {
-            responsive: !hasUserSize3,
+            responsive: false,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
         }).then(plotEl => {
             plotEl.on('plotly_relayout', (relayoutData) => {

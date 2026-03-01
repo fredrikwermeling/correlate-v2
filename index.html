@@ -1779,27 +1779,24 @@
             <div class="modal-body">
                 <div class="inspect-layout">
                     <div class="inspect-controls">
-                        <!-- Gene Selection + Plot Size -->
-                        <div class="control-box-compact" style="grid-column: span 2; padding: 4px 8px;">
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                <div style="flex: 1;">
-                                    <span class="control-label" style="margin-bottom: 2px;">Genes (X/Y)</span>
-                                    <div style="display: flex; gap: 4px; align-items: center;">
-                                        <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="X gene">
-                                        <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="Y gene">
-                                        <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px; white-space: nowrap;">Update</button>
-                                    </div>
-                                </div>
-                                <div style="display: flex; gap: 4px; align-items: flex-end;">
-                                    <div style="text-align: center;">
-                                        <label style="font-size: 9px; color: #666; display: block;">Width</label>
-                                        <input type="text" inputmode="numeric" id="plotWidth" placeholder="auto" class="form-control" style="width: 52px; font-size: 11px; padding: 2px 4px; text-align: center;">
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <label style="font-size: 9px; color: #666; display: block;">Height</label>
-                                        <input type="text" inputmode="numeric" id="plotHeight" placeholder="auto" class="form-control" style="width: 52px; font-size: 11px; padding: 2px 4px; text-align: center;">
-                                    </div>
-                                </div>
+                        <!-- Gene Selection -->
+                        <div class="control-box-compact" style="padding: 4px 8px;">
+                            <span class="control-label" style="margin-bottom: 2px;">Genes (X/Y)</span>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="X gene">
+                                <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="Y gene">
+                                <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px; white-space: nowrap;">Update</button>
+                            </div>
+                        </div>
+
+                        <!-- Plot Size -->
+                        <div class="control-box-compact" style="padding: 4px 8px;">
+                            <span class="control-label" style="margin-bottom: 2px;">Plot Size</span>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <input type="number" id="plotWidth" min="200" max="1200" step="50" class="form-control" style="width: 60px; font-size: 11px; padding: 2px 4px; text-align: center;">
+                                <span style="font-size: 10px; color: #999;">&times;</span>
+                                <input type="number" id="plotHeight" min="200" max="1200" step="50" class="form-control" style="width: 60px; font-size: 11px; padding: 2px 4px; text-align: center;">
+                                <span style="font-size: 9px; color: #999;">px</span>
                             </div>
                         </div>
 
