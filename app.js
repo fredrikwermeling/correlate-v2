@@ -9341,6 +9341,40 @@ Results:
         const legendClipPaths = clonedSvg.querySelectorAll('clipPath[id^="legend"]');
         legendClipPaths.forEach(cp => cp.remove());
 
+        // Fix legend box size: temporarily insert into DOM to measure text widths
+        const legendGroup = clonedSvg.querySelector('.legend');
+        if (legendGroup) {
+            const measureContainer = document.createElement('div');
+            measureContainer.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
+            document.body.appendChild(measureContainer);
+            measureContainer.appendChild(clonedSvg);
+            const legendBg = legendGroup.querySelector('rect.bg');
+            const legendTexts = legendGroup.querySelectorAll('.legendtext, .legendtitletext');
+            let maxRight = 0;
+            legendTexts.forEach(t => {
+                try { const b = t.getBBox(); if (b.x + b.width > maxRight) maxRight = b.x + b.width; } catch(e) {}
+            });
+            if (legendBg && maxRight > 0) {
+                const newWidth = maxRight + 10;
+                legendBg.setAttribute('width', String(newWidth));
+                // Expand SVG width if legend extends beyond it
+                const transformMatch = legendGroup.getAttribute('transform')?.match(/translate\(([\d.]+)/);
+                if (transformMatch) {
+                    const legendX = parseFloat(transformMatch[1]);
+                    const needed = legendX + newWidth + 5;
+                    const svgW = parseFloat(clonedSvg.getAttribute('width'));
+                    if (needed > svgW) {
+                        clonedSvg.setAttribute('width', String(Math.ceil(needed)));
+                        // Also expand the paper background rect
+                        const paperRect = clonedSvg.querySelector('rect');
+                        if (paperRect) paperRect.setAttribute('width', String(Math.ceil(needed)));
+                    }
+                }
+            }
+            measureContainer.removeChild(clonedSvg);
+            document.body.removeChild(measureContainer);
+        }
+
         // Apply background settings to the clone
         const rects = clonedSvg.querySelectorAll('rect');
         if (rects.length > 0) {
