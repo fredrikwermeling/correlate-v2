@@ -7979,7 +7979,7 @@ Results:
                 zerolinecolor: '#ddd'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 190 : 30, b: colorByCategory ? 100 : 60, l: 60, autoexpand: false },
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 240 : 30, b: colorByCategory ? 100 : 60, l: 60, autoexpand: false },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: colorByCategory ? {
                 orientation: 'h',
@@ -8003,7 +8003,9 @@ Results:
                 bordercolor: '#ddd',
                 borderwidth: 1,
                 title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
-                font: { size: 11 }
+                font: { size: 11 },
+                entrywidth: 170,
+                entrywidthmode: 'pixels'
             },
             annotations: annotations,
             plot_bgcolor: '#fafafa'
