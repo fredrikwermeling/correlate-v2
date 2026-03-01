@@ -12,6 +12,7 @@ class CorrelationExplorer {
         this.metadata = null;
         this.cellLineMetadata = null;
         this.mutations = null;
+        this.translocations = null;
         this.orthologs = null;
         this.geneEffects = null; // Float32Array [nGenes x nCellLines]
         this.nGenes = 0;
@@ -96,17 +97,21 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
-            fetch('web_data/orthologs.json')
+            fetch('web_data/orthologs.json'),
+            fetch('web_data/translocations.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
         this.cellLineMetadata = await cellLineRes.json();
         this.mutations = await mutationsRes.json();
         this.orthologs = await orthologsRes.json();
+        if (translocationsRes && translocationsRes.ok) {
+            this.translocations = await translocationsRes.json();
+        }
         // synonymLookup loaded lazily when "Find Synonyms" is clicked
 
         this.nGenes = this.metadata.nGenes;
@@ -208,6 +213,9 @@ class CorrelationExplorer {
 
         // Also populate parameter hotspot filter
         this.populateParamHotspotFilter();
+
+        // Populate parameter translocation filter
+        this.populateParamTranslocationFilter();
     }
 
     updateSubLineageFilter() {
@@ -302,7 +310,11 @@ class CorrelationExplorer {
             const isMutationMode = document.querySelector('input[name="analysisMode"]:checked')?.value === 'mutation';
             if (isMutationMode) {
                 this.populateMutationHotspotSelector();
+                this.populateTranslocationHotspotSelector();
             }
+        }
+        if (this.translocations?.geneData) {
+            this.updateParamTranslocationGeneCounts();
         }
     }
 
@@ -409,6 +421,90 @@ class CorrelationExplorer {
         `;
     }
 
+    populateParamTranslocationFilter() {
+        if (this.translocations && this.translocations.geneData) {
+            const select = document.getElementById('paramTranslocationGene');
+            document.getElementById('paramTranslocationFilterGroup').style.display = 'block';
+
+            select.addEventListener('change', () => this.updateParamTranslocationLevelCounts());
+
+            this.updateParamTranslocationGeneCounts();
+        }
+    }
+
+    updateParamTranslocationGeneCounts() {
+        if (!this.translocations?.geneData) return;
+        const genes = Object.keys(this.translocations.geneData).sort();
+        const select = document.getElementById('paramTranslocationGene');
+        const cellLines = this.metadata.cellLines;
+        const lineageFilter = document.getElementById('lineageFilter').value;
+        const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+        const currentValue = select.value;
+
+        select.innerHTML = '<option value="">No filter</option>';
+        genes.forEach(gene => {
+            const translocations = this.translocations.geneData[gene].translocations;
+            let nFused = 0;
+            cellLines.forEach(cl => {
+                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return;
+                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return;
+                if (translocations[cl] && translocations[cl] > 0) nFused++;
+            });
+
+            const option = document.createElement('option');
+            option.value = gene;
+            option.textContent = `${gene} (n=${nFused} fused)`;
+            select.appendChild(option);
+        });
+
+        if (currentValue) select.value = currentValue;
+
+        this.updateParamTranslocationLevelCounts();
+    }
+
+    updateParamTranslocationLevelCounts() {
+        const gene = document.getElementById('paramTranslocationGene').value;
+        const levelSelect = document.getElementById('paramTranslocationLevel');
+        const lineageFilter = document.getElementById('lineageFilter').value;
+        const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+
+        if (!gene || !this.translocations?.geneData?.[gene]) {
+            levelSelect.innerHTML = `
+                <option value="all">All cells</option>
+                <option value="0">Only WT (no fusion)</option>
+                <option value="1">Only 1 fusion partner</option>
+                <option value="2">Only 2+ fusion partners</option>
+                <option value="1+2">Only fused (1+2)</option>
+            `;
+            return;
+        }
+
+        const translocations = this.translocations.geneData[gene].translocations;
+        const cellLines = this.metadata.cellLines;
+        let n0 = 0, n1 = 0, n2 = 0;
+
+        cellLines.forEach(cellLine => {
+            if (lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== lineageFilter) return;
+            if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== subLineageFilter) return;
+
+            const level = translocations[cellLine] || 0;
+            if (level === 0) n0++;
+            else if (level === 1) n1++;
+            else n2++;
+        });
+
+        const nFused = n1 + n2;
+        const total = n0 + n1 + n2;
+
+        levelSelect.innerHTML = `
+            <option value="all">All cells (n=${total})</option>
+            <option value="0">Only WT (n=${n0})</option>
+            <option value="1">Only 1 partner (n=${n1})</option>
+            <option value="2">Only 2+ partners (n=${n2})</option>
+            <option value="1+2">Only fused 1+2 (n=${nFused})</option>
+        `;
+    }
+
     updateAnalysisModeUI() {
         const mode = document.querySelector('input[name="analysisMode"]:checked').value;
         const isMutationMode = mode === 'mutation';
@@ -426,6 +522,7 @@ class CorrelationExplorer {
             document.getElementById('lineageFilterGroup').style.display = 'none';
             document.getElementById('subLineageFilterGroup').style.display = 'none';
             document.getElementById('paramHotspotFilterGroup').style.display = 'none';
+            document.getElementById('paramTranslocationFilterGroup').style.display = 'none';
         } else {
             // Restore filters if data is loaded
             if (this.cellLineMetadata && this.cellLineMetadata.lineage) {
@@ -435,6 +532,9 @@ class CorrelationExplorer {
             }
             if (this.mutations && this.mutations.geneData) {
                 document.getElementById('paramHotspotFilterGroup').style.display = 'block';
+            }
+            if (this.translocations && this.translocations.geneData) {
+                document.getElementById('paramTranslocationFilterGroup').style.display = 'block';
             }
         }
 
@@ -476,8 +576,21 @@ class CorrelationExplorer {
         if (isMutationMode) {
             minCellLinesInput.value = '10';
             this.populateMutationHotspotSelector();
+            this.populateTranslocationHotspotSelector();
+            this.updateMutAnalysisTypeUI();
         } else {
             minCellLinesInput.value = '50';
+        }
+    }
+
+    updateMutAnalysisTypeUI() {
+        const subType = document.querySelector('input[name="mutAnalysisType"]:checked')?.value || 'hotspot';
+        const isTranslocation = subType === 'translocation';
+        document.getElementById('hotspotAnalysisControls').style.display = isTranslocation ? 'none' : '';
+        document.getElementById('translocationAnalysisControls').style.display = isTranslocation ? '' : 'none';
+        // Hide translocation radio if no data
+        if (!this.translocations?.geneData) {
+            document.getElementById('mutAnalysisTypeSelector').style.display = 'none';
         }
     }
 
@@ -519,6 +632,37 @@ class CorrelationExplorer {
         if (currentValue) {
             select.value = currentValue;
         }
+    }
+
+    populateTranslocationHotspotSelector() {
+        const select = document.getElementById('translocationHotspotSelect');
+        if (!select) return;
+        if (!this.translocations || !this.translocations.geneData) return;
+
+        const lineageFilter = document.getElementById('lineageFilter').value;
+        const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+        const currentValue = select.value;
+
+        const genes = Object.keys(this.translocations.geneData).sort();
+        const cellLines = this.metadata.cellLines;
+
+        select.innerHTML = '<option value="">Select fusion gene...</option>';
+        genes.forEach(gene => {
+            const translocations = this.translocations.geneData[gene].translocations;
+            let nFused = 0;
+            cellLines.forEach(cl => {
+                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return;
+                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return;
+                if (translocations[cl] && translocations[cl] > 0) nFused++;
+            });
+
+            const option = document.createElement('option');
+            option.value = gene;
+            option.textContent = `${gene} (${nFused} fused cells)`;
+            select.appendChild(option);
+        });
+
+        if (currentValue) select.value = currentValue;
     }
 
     getTissueBreakdownForHotspot(gene) {
@@ -959,6 +1103,19 @@ class CorrelationExplorer {
             btn.style.display = document.getElementById('mutationHotspotSelect').value ? 'inline-block' : 'none';
         });
 
+        // Mutation analysis sub-type selector
+        document.querySelectorAll('input[name="mutAnalysisType"]').forEach(radio => {
+            radio.addEventListener('change', () => this.updateMutAnalysisTypeUI());
+        });
+
+        // Parameter translocation filter
+        document.getElementById('paramTranslocationGene')?.addEventListener('change', () => {
+            this.updateParamTranslocationLevelCounts();
+        });
+        document.getElementById('paramTranslocationLevel')?.addEventListener('change', () => {
+            // Counts stay the same; filter applies on Run
+        });
+
         // Mutation results search
         document.getElementById('mutationSearch').addEventListener('input', (e) => {
             this.filterMutationTable(e.target.value);
@@ -1156,6 +1313,10 @@ class CorrelationExplorer {
         document.getElementById('mutationFilterLevel').addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('hotspotGene').addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('hotspotMode').addEventListener('change', () => this.updateInspectPlot());
+        document.getElementById('translocationGene')?.addEventListener('change', () => this.updateInspectPlot());
+        document.getElementById('translocationMode')?.addEventListener('change', () => this.updateInspectPlot());
+        document.getElementById('translocationFilterGene')?.addEventListener('change', () => this.updateInspectPlot());
+        document.getElementById('translocationFilterLevel')?.addEventListener('change', () => this.updateInspectPlot());
 
         document.getElementById('downloadScatterPNG').addEventListener('click', () => this.downloadScatterPNG());
         document.getElementById('downloadScatterSVG').addEventListener('click', () => this.downloadScatterSVG());
@@ -1267,7 +1428,11 @@ class CorrelationExplorer {
         document.getElementById('geHotspotGeneSelect')?.addEventListener('change', () => {
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene && this.mutationResults) {
                 const newHotspot = document.getElementById('geHotspotGeneSelect').value;
-                if (newHotspot && this.mutations.geneData[newHotspot]) {
+                const isTransloc = this.mutationResults.isTranslocation;
+                const hasData = isTransloc
+                    ? this.translocations?.geneData?.[newHotspot]
+                    : this.mutations?.geneData?.[newHotspot];
+                if (newHotspot && hasData) {
                     this.mutationResults.hotspotGene = newHotspot;
                     this.showGeneEffectDistribution(this.currentGeneEffectGene);
                 }
@@ -1893,11 +2058,19 @@ class CorrelationExplorer {
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
         const hotspotGene = document.getElementById('paramHotspotGene').value;
         const hotspotLevel = document.getElementById('paramHotspotLevel').value;
+        const transGene = document.getElementById('paramTranslocationGene').value;
+        const transLevel = document.getElementById('paramTranslocationLevel').value;
 
         // Get mutation data for hotspot filter
         let mutationData = null;
         if (hotspotGene && this.mutations?.geneData?.[hotspotGene]) {
             mutationData = this.mutations.geneData[hotspotGene].mutations;
+        }
+
+        // Get translocation data for fusion filter
+        let transData = null;
+        if (transGene && this.translocations?.geneData?.[transGene]) {
+            transData = this.translocations.geneData[transGene].translocations;
         }
 
         const indices = [];
@@ -1935,11 +2108,22 @@ class CorrelationExplorer {
                 if (hotspotLevel === '1+2' && mutLevel < 1) return;
             }
 
+            // Check translocation filter
+            if (transData && transLevel !== 'all') {
+                const tLevel = transData[cellLine] || 0;
+                if (transLevel === '0' && tLevel !== 0) return;
+                if (transLevel === '1' && tLevel !== 1) return;
+                if (transLevel === '2' && tLevel < 2) return;
+                if (transLevel === '1+2' && tLevel < 1) return;
+            }
+
             indices.push(idx);
         });
 
         // Return all indices if no filters applied
-        if (indices.length === 0 && !lineageFilter && !subLineageFilter && (!hotspotGene || hotspotLevel === 'all')) {
+        if (indices.length === 0 && !lineageFilter && !subLineageFilter &&
+            (!hotspotGene || hotspotLevel === 'all') &&
+            (!transGene || transLevel === 'all')) {
             return Array.from({ length: this.nCellLines }, (_, i) => i);
         }
 
@@ -2037,7 +2221,13 @@ class CorrelationExplorer {
         this.currentGeneEffectGene = null;
         this.geneEffectViewMode = null;
 
-        const hotspotGene = document.getElementById('mutationHotspotSelect').value;
+        // Check mutation analysis sub-type
+        const mutAnalysisType = document.querySelector('input[name="mutAnalysisType"]:checked')?.value || 'hotspot';
+        const isTranslocation = mutAnalysisType === 'translocation';
+
+        const hotspotGene = isTranslocation
+            ? document.getElementById('translocationHotspotSelect').value
+            : document.getElementById('mutationHotspotSelect').value;
         const minN = parseInt(document.getElementById('minCellLines').value);
         const pThreshold = this.getInputNum('pValueThreshold');
         const lineageFilter = document.getElementById('lineageFilter').value;
@@ -2047,17 +2237,23 @@ class CorrelationExplorer {
         const additionalHotspot = document.getElementById('paramHotspotGene').value;
         const additionalHotspotLevel = document.getElementById('paramHotspotLevel').value;
 
+        // Get additional translocation filter (from parameter section)
+        const additionalTransGene = document.getElementById('paramTranslocationGene').value;
+        const additionalTransLevel = document.getElementById('paramTranslocationLevel').value;
+
         if (!hotspotGene) {
-            this.showStatus('error', 'Please select a hotspot mutation');
+            this.showStatus('error', isTranslocation ? 'Please select a translocation/fusion gene' : 'Please select a hotspot mutation');
             return;
         }
 
-        this.showStatus('info', 'Running mutation analysis...');
+        this.showStatus('info', isTranslocation ? 'Running translocation analysis...' : 'Running mutation analysis...');
 
         // Use setTimeout to allow UI to update
         setTimeout(() => {
             try {
-                const analysisResult = this.calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel);
+                const analysisResult = isTranslocation
+                    ? this.calculateTranslocationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel)
+                    : this.calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel);
 
                 // Filter by p-value threshold
                 const significantResults = analysisResult.results.filter(r => r.p_mut < pThreshold || r.p_2 < pThreshold);
@@ -2078,6 +2274,9 @@ class CorrelationExplorer {
                     subLineageFilter,
                     additionalHotspot,
                     additionalHotspotLevel,
+                    additionalTransGene,
+                    additionalTransLevel,
+                    isTranslocation,
                     excludedTissues: new Set(this.excludedTissues),
                     nWT: analysisResult.nWT,
                     nMut: analysisResult.nMut,
@@ -2094,8 +2293,9 @@ class CorrelationExplorer {
                 document.querySelector('[data-tab="mutation"]').classList.add('active');
                 document.getElementById('tab-mutation').classList.add('active');
 
+                const analysisLabel = isTranslocation ? 'Translocation' : 'Mutation';
                 this.showStatus('success',
-                    `&#10003; Mutation analysis complete: ${significantResults.length} genes with p < ${pThreshold}`);
+                    `&#10003; ${analysisLabel} analysis complete: ${significantResults.length} genes with p < ${pThreshold}`);
             } catch (error) {
                 console.error('Mutation analysis error:', error);
                 this.showStatus('error', 'Mutation analysis failed: ' + error.message);
@@ -2310,7 +2510,7 @@ class CorrelationExplorer {
         this.downloadFile(csv, 'synonym_ortholog_lookup.csv', 'text/csv');
     }
 
-    calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel) {
+    calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel) {
         const mutationData = this.mutations.geneData[hotspotGene];
         if (!mutationData) {
             throw new Error(`No mutation data for ${hotspotGene}`);
@@ -2318,6 +2518,10 @@ class CorrelationExplorer {
 
         // Get additional hotspot mutation data if specified
         const additionalMutData = additionalHotspot ? this.mutations.geneData[additionalHotspot] : null;
+
+        // Get additional translocation filter data if specified
+        const additionalTransData = (additionalTransGene && this.translocations?.geneData?.[additionalTransGene])
+            ? this.translocations.geneData[additionalTransGene].translocations : null;
 
         const cellLines = this.metadata.cellLines;
         const results = [];
@@ -2353,6 +2557,15 @@ class CorrelationExplorer {
                 if (additionalHotspotLevel === '1' && addMutLevel !== 1) return;
                 if (additionalHotspotLevel === '2' && addMutLevel < 2) return;
                 if (additionalHotspotLevel === '1+2' && addMutLevel === 0) return;
+            }
+
+            // Check additional translocation filter
+            if (additionalTransData && additionalTransLevel !== 'all') {
+                const tLevel = additionalTransData[cellLine] || 0;
+                if (additionalTransLevel === '0' && tLevel !== 0) return;
+                if (additionalTransLevel === '1' && tLevel !== 1) return;
+                if (additionalTransLevel === '2' && tLevel < 2) return;
+                if (additionalTransLevel === '1+2' && tLevel < 1) return;
             }
 
             const mutLevel = mutationData.mutations[cellLine] || 0;
@@ -2391,6 +2604,112 @@ class CorrelationExplorer {
             const tTest_mut = this.welchTTest(wtEffects, mutAllEffects);
 
             // Calculate statistics for WT vs 2 (if enough cells)
+            let n_2 = mut2Effects.length;
+            let mean_2 = NaN;
+            let diff_2 = NaN;
+            let p_2 = 1;
+
+            if (mut2Effects.length >= 3) {
+                mean_2 = this.mean(mut2Effects);
+                diff_2 = mean_2 - wtMean;
+                const tTest_2 = this.welchTTest(wtEffects, mut2Effects);
+                p_2 = tTest_2.p;
+            }
+
+            results.push({
+                gene,
+                n_wt: wtEffects.length,
+                mean_wt: wtMean,
+                n_mut: mutAllEffects.length,
+                mean_mut: mutMean,
+                diff_mut,
+                p_mut: tTest_mut.p,
+                n_2,
+                mean_2,
+                diff_2,
+                p_2
+            });
+        }
+
+        return {
+            results,
+            nWT: wtCellIndices.length,
+            nMut: mutAllCellIndices.length,
+            n2: mut2CellIndices.length
+        };
+    }
+
+    calculateTranslocationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel) {
+        const transData = this.translocations.geneData[hotspotGene];
+        if (!transData) {
+            throw new Error(`No translocation data for ${hotspotGene}`);
+        }
+
+        const additionalMutData = additionalHotspot ? this.mutations?.geneData?.[additionalHotspot] : null;
+        const additionalTransFilterData = (additionalTransGene && additionalTransGene !== hotspotGene && this.translocations?.geneData?.[additionalTransGene])
+            ? this.translocations.geneData[additionalTransGene].translocations : null;
+
+        const cellLines = this.metadata.cellLines;
+        const results = [];
+
+        const wtCellIndices = [];
+        const mut1CellIndices = [];
+        const mut2CellIndices = [];
+
+        cellLines.forEach((cellLine, idx) => {
+            if (this.excludedTissues && this.excludedTissues.size > 0) {
+                const lineage = this.cellLineMetadata?.lineage?.[cellLine];
+                if (lineage && this.excludedTissues.has(lineage)) return;
+            }
+            if (lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== lineageFilter) return;
+            if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== subLineageFilter) return;
+
+            if (additionalMutData && additionalHotspotLevel !== 'all') {
+                const addMutLevel = additionalMutData.mutations[cellLine] || 0;
+                if (additionalHotspotLevel === '0' && addMutLevel !== 0) return;
+                if (additionalHotspotLevel === '1' && addMutLevel !== 1) return;
+                if (additionalHotspotLevel === '2' && addMutLevel < 2) return;
+                if (additionalHotspotLevel === '1+2' && addMutLevel === 0) return;
+            }
+
+            if (additionalTransFilterData && additionalTransLevel !== 'all') {
+                const tLevel = additionalTransFilterData[cellLine] || 0;
+                if (additionalTransLevel === '0' && tLevel !== 0) return;
+                if (additionalTransLevel === '1' && tLevel !== 1) return;
+                if (additionalTransLevel === '2' && tLevel < 2) return;
+                if (additionalTransLevel === '1+2' && tLevel < 1) return;
+            }
+
+            const transLevel = transData.translocations[cellLine] || 0;
+            if (transLevel === 0) {
+                wtCellIndices.push(idx);
+            } else if (transLevel === 1) {
+                mut1CellIndices.push(idx);
+            } else {
+                mut2CellIndices.push(idx);
+            }
+        });
+
+        const mutAllCellIndices = [...mut1CellIndices, ...mut2CellIndices];
+
+        if (wtCellIndices.length < 3 || mutAllCellIndices.length < 3) {
+            throw new Error(`Not enough cell lines: WT=${wtCellIndices.length}, Fused=${mutAllCellIndices.length}`);
+        }
+
+        for (let geneIdx = 0; geneIdx < this.nGenes; geneIdx++) {
+            const gene = this.geneNames[geneIdx];
+
+            const wtEffects = this.getGeneEffectsForCells(geneIdx, wtCellIndices);
+            const mutAllEffects = this.getGeneEffectsForCells(geneIdx, mutAllCellIndices);
+            const mut2Effects = this.getGeneEffectsForCells(geneIdx, mut2CellIndices);
+
+            if (wtEffects.length < minN || mutAllEffects.length < 3) continue;
+
+            const wtMean = this.mean(wtEffects);
+            const mutMean = this.mean(mutAllEffects);
+            const diff_mut = mutMean - wtMean;
+            const tTest_mut = this.welchTTest(wtEffects, mutAllEffects);
+
             let n_2 = mut2Effects.length;
             let mean_2 = NaN;
             let diff_2 = NaN;
@@ -2626,8 +2945,10 @@ class CorrelationExplorer {
         });
 
         // Build settings summary
-        let settingsText = `Hotspot: ${mr.hotspotGene} | `;
-        settingsText += `WT: ${mr.nWT} cells | Mutated: ${mr.nMut} cells | `;
+        const typeLabel = mr.isTranslocation ? 'Fusion Gene' : 'Hotspot';
+        const mutLabel = mr.isTranslocation ? 'Fused' : 'Mutated';
+        let settingsText = `${typeLabel}: ${mr.hotspotGene} | `;
+        settingsText += `WT: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells | `;
         settingsText += `Min cells: ${mr.minN} | p < ${mr.pThreshold}`;
         if (mr.lineageFilter) {
             let lineageText = mr.lineageFilter;
@@ -2637,7 +2958,10 @@ class CorrelationExplorer {
             settingsText += ` | Lineage: ${lineageText}`;
         }
         if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-            settingsText += ` | Filter: ${mr.additionalHotspot} ${mr.additionalHotspotLevel}`;
+            settingsText += ` | Mut Filter: ${mr.additionalHotspot} ${mr.additionalHotspotLevel}`;
+        }
+        if (mr.additionalTransGene && mr.additionalTransLevel !== 'all') {
+            settingsText += ` | Fusion Filter: ${mr.additionalTransGene} ${mr.additionalTransLevel}`;
         }
         if (mr.excludedTissues && mr.excludedTissues.size > 0) {
             // Show included tissues (inverse of excluded) for clarity
@@ -2776,7 +3100,10 @@ class CorrelationExplorer {
 
         const mr = this.mutationResults;
         const hotspotGene = mr.hotspotGene;
-        const mutationData = this.mutations.geneData[hotspotGene];
+        const isTranslocation = mr.isTranslocation;
+        const mutationData = isTranslocation
+            ? this.translocations.geneData[hotspotGene]
+            : this.mutations.geneData[hotspotGene];
         const geneIdx = this.geneIndex.get(gene.toUpperCase());
 
         if (geneIdx === undefined) {
@@ -2821,7 +3148,7 @@ class CorrelationExplorer {
 
             // Check additional hotspot filter
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-                const addMutData = this.mutations.geneData[mr.additionalHotspot];
+                const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
                     if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
@@ -2831,19 +3158,33 @@ class CorrelationExplorer {
                 }
             }
 
+            // Check additional translocation filter
+            if (mr.additionalTransGene && mr.additionalTransLevel !== 'all') {
+                const addTransData = this.translocations?.geneData?.[mr.additionalTransGene]?.translocations;
+                if (addTransData) {
+                    const tLevel = addTransData[cellLine] || 0;
+                    if (mr.additionalTransLevel === '0' && tLevel !== 0) return;
+                    if (mr.additionalTransLevel === '1' && tLevel !== 1) return;
+                    if (mr.additionalTransLevel === '2' && tLevel < 2) return;
+                    if (mr.additionalTransLevel === '1+2' && tLevel < 1) return;
+                }
+            }
+
             // Check inspect-level additional hotspot filter
             if (inspectHotspot) {
-                const inspHotData = this.mutations.geneData[inspectHotspot];
+                const inspHotData = this.mutations?.geneData?.[inspectHotspot];
                 if (inspHotData) {
                     const inspMutLevel = inspHotData.mutations[cellLine] || 0;
-                    if (inspMutLevel === 0) return; // Only show cells mutated (>=1) in the selected hotspot
+                    if (inspMutLevel === 0) return;
                 }
             }
 
             const ge = this.geneEffects[geneIdx * this.nCellLines + idx];
             if (isNaN(ge)) return;
 
-            const mutLevel = mutationData.mutations[cellLine] || 0;
+            const mutLevel = isTranslocation
+                ? (mutationData.translocations[cellLine] || 0)
+                : (mutationData.mutations[cellLine] || 0);
             const cellName = this.getCellLineName(cellLine);
             const lineage = this.getCellLineLineage(cellLine);
 
@@ -2866,6 +3207,24 @@ class CorrelationExplorer {
         // Create jitter for y-axis
         const jitter = (base, spread = 0.15) => base + (Math.random() - 0.5) * spread;
 
+        // Labels and colors depend on translocation mode
+        const mut1Label = isTranslocation ? '1 fusion partner' : '1 mutation';
+        const mut2Label = isTranslocation ? '2+ fusion partners' : '2 mutations';
+        const color1 = isTranslocation ? '#7c3aed' : '#3b82f6';
+        const color2 = isTranslocation ? '#5b21b6' : '#dc2626';
+
+        // Build hover text with fusion partner info for translocation mode
+        const makeHoverText = (d) => {
+            let text = `${d.cellName}<br>${d.lineage}<br>GE: ${d.ge.toFixed(2)}`;
+            if (isTranslocation && mutationData.partners) {
+                const partners = mutationData.partners[d.cellLine];
+                if (partners && partners.length > 0) {
+                    text += `<br>Partners: ${partners.join(', ')}`;
+                }
+            }
+            return text;
+        };
+
         // Build Plotly traces
         const traces = [
             {
@@ -2875,7 +3234,7 @@ class CorrelationExplorer {
                 type: 'scatter',
                 name: `WT (n=${data.wt.length})`,
                 marker: { color: '#888888', size: 8, opacity: 0.7 },
-                text: data.wt.map(d => `${d.cellName}<br>${d.lineage}<br>GE: ${d.ge.toFixed(2)}`),
+                text: data.wt.map(d => makeHoverText(d)),
                 hoverinfo: 'text'
             },
             {
@@ -2883,9 +3242,9 @@ class CorrelationExplorer {
                 y: data.mut1.map(() => jitter(1)),
                 mode: 'markers',
                 type: 'scatter',
-                name: `1 mutation (n=${data.mut1.length})`,
-                marker: { color: '#3b82f6', size: 8, opacity: 0.7 },
-                text: data.mut1.map(d => `${d.cellName}<br>${d.lineage}<br>GE: ${d.ge.toFixed(2)}`),
+                name: `${mut1Label} (n=${data.mut1.length})`,
+                marker: { color: color1, size: 8, opacity: 0.7 },
+                text: data.mut1.map(d => makeHoverText(d)),
                 hoverinfo: 'text'
             },
             {
@@ -2893,9 +3252,9 @@ class CorrelationExplorer {
                 y: data.mut2.map(() => jitter(2)),
                 mode: 'markers',
                 type: 'scatter',
-                name: `2 mutations (n=${data.mut2.length})`,
-                marker: { color: '#dc2626', size: 8, opacity: 0.7 },
-                text: data.mut2.map(d => `${d.cellName}<br>${d.lineage}<br>GE: ${d.ge.toFixed(2)}`),
+                name: `${mut2Label} (n=${data.mut2.length})`,
+                marker: { color: color2, size: 8, opacity: 0.7 },
+                text: data.mut2.map(d => makeHoverText(d)),
                 hoverinfo: 'text'
             }
         ];
@@ -2950,7 +3309,7 @@ class CorrelationExplorer {
                 x: [meanMut1, meanMut1],
                 y: [0.7, 1.3],
                 mode: 'lines',
-                line: { color: '#3b82f6', width: 3 },
+                line: { color: color1, width: 3 },
                 showlegend: false,
                 hoverinfo: 'skip'
             });
@@ -2960,7 +3319,7 @@ class CorrelationExplorer {
                 x: [meanMut2, meanMut2],
                 y: [1.7, 2.3],
                 mode: 'lines',
-                line: { color: '#dc2626', width: 3 },
+                line: { color: color2, width: 3 },
                 showlegend: false,
                 hoverinfo: 'skip'
             });
@@ -2988,6 +3347,9 @@ class CorrelationExplorer {
         if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
             filterInfo.push(`${mr.additionalHotspot}: ${mr.additionalHotspotLevel}`);
         }
+        if (mr.additionalTransGene && mr.additionalTransLevel !== 'all') {
+            filterInfo.push(`Fusion ${mr.additionalTransGene}: ${mr.additionalTransLevel}`);
+        }
         if (inspectHotspot) {
             filterInfo.push(`Also ${inspectHotspot}-mutated`);
         }
@@ -2995,19 +3357,26 @@ class CorrelationExplorer {
 
         // Build stats text for subtitle
         const formatP = (p) => isNaN(p) ? '-' : (p < 0.001 ? p.toExponential(1) : p.toFixed(3));
+        const fusedLabel = isTranslocation ? 'Fused' : 'Mut';
         let statsLine1 = `WT: n=${wtStats.n}, mean=${wtStats.mean.toFixed(2)}, med=${wtStats.median.toFixed(2)}`;
-        statsLine1 += `  ·  Mut: n=${mutAllStats.n}, mean=${mutAllStats.mean.toFixed(2)}, med=${mutAllStats.median.toFixed(2)}`;
-        let statsLine2 = `p(WT vs Mut): ${formatP(pWTvsMut)}`;
+        statsLine1 += `  ·  ${fusedLabel}: n=${mutAllStats.n}, mean=${mutAllStats.mean.toFixed(2)}, med=${mutAllStats.median.toFixed(2)}`;
+        let statsLine2 = `p(WT vs ${fusedLabel}): ${formatP(pWTvsMut)}`;
         if (mut2Stats.n >= 3) {
-            statsLine2 += `  ·  p(WT vs 2): ${formatP(pWTvs2)}`;
+            statsLine2 += `  ·  p(WT vs 2${isTranslocation ? '+' : ''}): ${formatP(pWTvs2)}`;
         }
 
         // Combine lineage info and stats in subtitle
         const subtitle = `${lineageText}<br>${statsLine1}<br>${statsLine2}`;
 
+        const statusLabel = isTranslocation ? 'Fusion Status' : 'Mutation Status';
+        const yAxisTitle = isTranslocation ? `${hotspotGene} Fusions` : `${hotspotGene} Mutations`;
+        const tick0Label = isTranslocation ? '0 No fusion' : '0 WT';
+        const tick1Label = isTranslocation ? '1 partner' : '1';
+        const tick2Label = isTranslocation ? '2+ partners' : '2';
+
         const layout = {
             title: {
-                text: `${gene} Gene Effect by ${hotspotGene} Mutation Status<br><sub style="font-size:10px;color:#666">${subtitle}</sub>`,
+                text: `${gene} Gene Effect by ${hotspotGene} ${statusLabel}<br><sub style="font-size:10px;color:#666">${subtitle}</sub>`,
                 font: { size: 16 }
             },
             xaxis: {
@@ -3015,10 +3384,10 @@ class CorrelationExplorer {
                 range: [xMin, xMax]
             },
             yaxis: {
-                title: `${hotspotGene} Mutations`,
+                title: yAxisTitle,
                 tickmode: 'array',
                 tickvals: [0, 1, 2],
-                ticktext: [`0 WT (n=${data.wt.length})`, `1 (n=${data.mut1.length})`, `2 (n=${data.mut2.length})`],
+                ticktext: [`${tick0Label} (n=${data.wt.length})`, `${tick1Label} (n=${data.mut1.length})`, `${tick2Label} (n=${data.mut2.length})`],
                 range: [-0.5, 2.5],
                 automargin: true
             },
@@ -3028,7 +3397,7 @@ class CorrelationExplorer {
 
         // Show modal
         document.getElementById('geneEffectModal').style.display = 'flex';
-        document.getElementById('geneEffectTitle').textContent = `${gene} Gene Effect by ${hotspotGene} Mutation`;
+        document.getElementById('geneEffectTitle').textContent = `${gene} Gene Effect by ${hotspotGene} ${isTranslocation ? 'Fusion' : 'Mutation'}`;
 
         // Populate tissue filter dropdown with ALL lineages (inspect can override analysis filters)
         const tissueFilterEl = document.getElementById('geTissueFilter');
@@ -3057,11 +3426,14 @@ class CorrelationExplorer {
             });
         }
 
-        // Populate and show hotspot gene selector (Y axis mutation)
+        // Populate and show hotspot gene selector (Y axis mutation/fusion)
         const hotspotGeneSelectEl = document.getElementById('geHotspotGeneSelect');
-        if (hotspotGeneSelectEl && this.mutations?.genes) {
+        if (hotspotGeneSelectEl) {
             hotspotGeneSelectEl.innerHTML = '';
-            this.mutations.genes.forEach(g => {
+            const geneList = isTranslocation
+                ? (this.translocations?.genes || [])
+                : (this.mutations?.genes || []);
+            geneList.forEach(g => {
                 const opt = document.createElement('option');
                 opt.value = g;
                 opt.textContent = g;
@@ -6319,6 +6691,29 @@ Results:
             document.getElementById('mutationFilterBox').style.display = 'none';
         }
 
+        // Populate translocation/fusion selectors
+        const transGeneSelect = document.getElementById('translocationGene');
+        const transFilterGeneSelect = document.getElementById('translocationFilterGene');
+
+        if (this.translocations?.genes?.length > 0) {
+            transGeneSelect.innerHTML = '<option value="">Select gene...</option>';
+            transFilterGeneSelect.innerHTML = '<option value="">No filter</option>';
+            this.translocations.genes.forEach(g => {
+                const transData = this.translocations.geneData?.[g]?.translocations || {};
+                let count = 0;
+                cellLinesInPlot.forEach(cl => {
+                    if (transData[cl] && transData[cl] > 0) count++;
+                });
+                transGeneSelect.innerHTML += `<option value="${g}">${g} (${count} fused)</option>`;
+                transFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} fused)</option>`;
+            });
+            document.getElementById('translocationBox').style.display = 'block';
+            document.getElementById('translocationFilterBox').style.display = 'block';
+        } else {
+            document.getElementById('translocationBox').style.display = 'none';
+            document.getElementById('translocationFilterBox').style.display = 'none';
+        }
+
         // Calculate stats for ALL cells (unfiltered) for the title
         const allCellsStats = this.pearsonWithSlope(plotData.map(d => d.x), plotData.map(d => d.y));
         document.getElementById('inspectTitle').textContent =
@@ -6370,6 +6765,12 @@ Results:
         document.getElementById('hotspotMode').value = 'color';
         document.getElementById('mutationCautionScatter').style.display = 'none';
 
+        // Reset translocation filters
+        document.getElementById('translocationFilterGene').value = '';
+        document.getElementById('translocationFilterLevel').value = 'all';
+        document.getElementById('translocationGene').value = '';
+        document.getElementById('translocationMode').value = 'color';
+
         // Update the plot
         this.updateInspectPlot();
     }
@@ -6391,6 +6792,10 @@ Results:
         const fontSize = parseInt(document.getElementById('scatterFontSize')?.value) || 3;
         const hotspotGene = document.getElementById('hotspotGene').value;
         const hotspotMode = document.getElementById('hotspotMode').value;
+        const transOverlayGene = document.getElementById('translocationGene').value;
+        const transOverlayMode = document.getElementById('translocationMode').value;
+        const transFilterGene = document.getElementById('translocationFilterGene').value;
+        const transFilterLevel = document.getElementById('translocationFilterLevel').value;
 
         // Show/hide mutation caution message
         const cautionEl = document.getElementById('mutationCautionScatter');
@@ -6422,6 +6827,19 @@ Results:
             });
         }
 
+        // Apply translocation filter
+        if (transFilterGene && this.translocations?.geneData?.[transFilterGene] && transFilterLevel !== 'all') {
+            const filterTrans = this.translocations.geneData[transFilterGene].translocations;
+            filteredData = filteredData.filter(d => {
+                const tLevel = filterTrans[d.cellLineId] || 0;
+                if (transFilterLevel === '0') return tLevel === 0;
+                if (transFilterLevel === '1') return tLevel === 1;
+                if (transFilterLevel === '2') return tLevel >= 2;
+                if (transFilterLevel === '1+2') return tLevel >= 1;
+                return true;
+            });
+        }
+
         // Get mutation info for overlay (separate gene)
         let mutationMap = new Map();
         if (hotspotGene && this.mutations?.geneData?.[hotspotGene]) {
@@ -6431,10 +6849,27 @@ Results:
             });
         }
 
+        // Get translocation info for overlay
+        let translocationMap = new Map();
+        let translocationPartnersMap = new Map();
+        if (transOverlayGene && this.translocations?.geneData?.[transOverlayGene]) {
+            const tData = this.translocations.geneData[transOverlayGene];
+            Object.entries(tData.translocations).forEach(([cellLine, level]) => {
+                translocationMap.set(cellLine, level);
+            });
+            if (tData.partners) {
+                Object.entries(tData.partners).forEach(([cellLine, partners]) => {
+                    translocationPartnersMap.set(cellLine, partners);
+                });
+            }
+        }
+
         // Add mutation level to filtered data (for overlay coloring)
         filteredData = filteredData.map(d => ({
             ...d,
-            mutationLevel: mutationMap.get(d.cellLineId) || 0
+            mutationLevel: mutationMap.get(d.cellLineId) || 0,
+            translocationLevel: translocationMap.get(d.cellLineId) || 0,
+            translocationPartners: translocationPartnersMap.get(d.cellLineId) || []
         }));
 
         // Build filter description for title
@@ -6449,6 +6884,12 @@ Results:
                               mutFilterLevel === '1' ? '1 mut' :
                               mutFilterLevel === '2' ? '2 mut' : '1+2 mut';
             filterParts.push(`${mutFilterGene}: ${levelText}`);
+        }
+        if (transFilterGene && transFilterLevel !== 'all') {
+            const levelText = transFilterLevel === '0' ? 'No fusion' :
+                              transFilterLevel === '1' ? '1 partner' :
+                              transFilterLevel === '2' ? '2+ partners' : '1+2 fused';
+            filterParts.push(`${transFilterGene}: ${levelText}`);
         }
         const filterDesc = filterParts.length > 0 ? filterParts.join(' | ') : '';
 
@@ -6473,10 +6914,10 @@ Results:
         }
 
         // Single panel color mode
-        this.renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc);
+        this.renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc, transOverlayGene, transOverlayMode);
     }
 
-    renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc = '') {
+    renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc = '', transOverlayGene = '', transOverlayMode = 'none') {
         // Calculate stats for each mutation group
         const wt = filteredData.filter(d => d.mutationLevel === 0);
         const mut1 = filteredData.filter(d => d.mutationLevel === 1);
@@ -6534,6 +6975,47 @@ Results:
                 hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                 marker: { color: '#dc2626', size: 11, opacity: 0.8 },
                 name: `2 mut (n=${mut2.length}, ${mut2Pct}%)`
+            });
+        } else if (transOverlayMode === 'color' && transOverlayGene) {
+            // Color by translocation/fusion level (purple tones)
+            const tWT = filteredData.filter(d => d.translocationLevel === 0);
+            const t1 = filteredData.filter(d => d.translocationLevel === 1);
+            const t2 = filteredData.filter(d => d.translocationLevel >= 2);
+            const tWTPct = (tWT.length / filteredData.length * 100).toFixed(1);
+            const t1Pct = (t1.length / filteredData.length * 100).toFixed(1);
+            const t2Pct = (t2.length / filteredData.length * 100).toFixed(1);
+
+            const makeTransHover = (d, label) => {
+                let text = `${d.cellLineName}<br>${d.lineage}<br>${label}`;
+                if (d.translocationPartners && d.translocationPartners.length > 0) {
+                    text += `<br>Partners: ${d.translocationPartners.join(', ')}`;
+                }
+                return text;
+            };
+
+            traces.push({
+                x: tWT.map(d => d.x), y: tWT.map(d => d.y),
+                mode: 'markers', type: 'scatter',
+                text: tWT.map(d => makeTransHover(d, 'No fusion')),
+                hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
+                marker: { color: '#9ca3af', size: 8, opacity: 0.6 },
+                name: `No fusion (n=${tWT.length}, ${tWTPct}%)`
+            });
+            traces.push({
+                x: t1.map(d => d.x), y: t1.map(d => d.y),
+                mode: 'markers', type: 'scatter',
+                text: t1.map(d => makeTransHover(d, '1 fusion partner')),
+                hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
+                marker: { color: '#7c3aed', size: 10, opacity: 0.7 },
+                name: `1 partner (n=${t1.length}, ${t1Pct}%)`
+            });
+            traces.push({
+                x: t2.map(d => d.x), y: t2.map(d => d.y),
+                mode: 'markers', type: 'scatter',
+                text: t2.map(d => makeTransHover(d, '2+ fusion partners')),
+                hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
+                marker: { color: '#5b21b6', size: 11, opacity: 0.8 },
+                name: `2+ partners (n=${t2.length}, ${t2Pct}%)`
             });
         } else {
             // Default mode - all same color
@@ -7710,6 +8192,29 @@ Results:
         } else {
             document.getElementById('mutationBox').style.display = 'none';
             document.getElementById('mutationFilterBox').style.display = 'none';
+        }
+
+        // Populate translocation/fusion selectors (same as openInspect)
+        const transGeneSelect2 = document.getElementById('translocationGene');
+        const transFilterGeneSelect2 = document.getElementById('translocationFilterGene');
+
+        if (this.translocations?.genes?.length > 0) {
+            transGeneSelect2.innerHTML = '<option value="">Select gene...</option>';
+            transFilterGeneSelect2.innerHTML = '<option value="">No filter</option>';
+            this.translocations.genes.forEach(g => {
+                const transData = this.translocations.geneData?.[g]?.translocations || {};
+                let count = 0;
+                cellLinesInPlot.forEach(cl => {
+                    if (transData[cl] && transData[cl] > 0) count++;
+                });
+                transGeneSelect2.innerHTML += `<option value="${g}">${g} (${count} fused)</option>`;
+                transFilterGeneSelect2.innerHTML += `<option value="${g}">${g} (${count} fused)</option>`;
+            });
+            document.getElementById('translocationBox').style.display = 'block';
+            document.getElementById('translocationFilterBox').style.display = 'block';
+        } else {
+            document.getElementById('translocationBox').style.display = 'none';
+            document.getElementById('translocationFilterBox').style.display = 'none';
         }
 
         // Reset hotspot mode to default
@@ -9111,7 +9616,10 @@ Results:
         const mr = this.mutationResults;
         const gene = this.currentGeneEffectGene;
         const hotspotGene = mr.hotspotGene;
-        const mutationData = this.mutations.geneData[hotspotGene];
+        const isTranslocation = mr.isTranslocation;
+        const mutationData = isTranslocation
+            ? this.translocations?.geneData?.[hotspotGene]
+            : this.mutations?.geneData?.[hotspotGene];
         if (!mutationData) return;
 
         const geneIdx = this.geneIndex.get(gene.toUpperCase());
@@ -9152,7 +9660,9 @@ Results:
             if (isNaN(ge)) return;
 
             const lineage = this.cellLineMetadata?.lineage?.[cellLine] || 'Unknown';
-            const mutLevel = mutationData.mutations[cellLine] || 0;
+            const mutLevel = isTranslocation
+                ? (mutationData.translocations[cellLine] || 0)
+                : (mutationData.mutations[cellLine] || 0);
             if (!lineageMap[lineage]) lineageMap[lineage] = { wt: [], mut: [] };
             if (mutLevel === 0) { lineageMap[lineage].wt.push(ge); allWT.push(ge); }
             else { lineageMap[lineage].mut.push(ge); allMut.push(ge); }
@@ -9160,6 +9670,7 @@ Results:
 
         // Build rows
         const rows = [];
+        const mutLabel = isTranslocation ? 'Fused' : 'Mut';
         if (allWT.length > 0 && allMut.length > 0) {
             const meanWT = allWT.reduce((a, b) => a + b, 0) / allWT.length;
             const meanMut = allMut.reduce((a, b) => a + b, 0) / allMut.length;
@@ -9176,7 +9687,7 @@ Results:
         const allRow = rows.filter(r => r.isAll);
         const otherRows = rows.filter(r => !r.isAll).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-        this._inlineCompareData = { title: `${gene} — Δ GE by Tissue (${hotspotGene} WT vs Mut)`, headers: ['Tissue', 'N(WT)', 'N(Mut)', 'Δ GE'], refRows: allRow, sortableRows: otherRows, mode: 'tissue' };
+        this._inlineCompareData = { title: `${gene} — Δ GE by Tissue (${hotspotGene} WT vs ${mutLabel})`, headers: ['Tissue', 'N(WT)', `N(${mutLabel})`, 'Δ GE'], refRows: allRow, sortableRows: otherRows, mode: 'tissue' };
         this._renderInlineCompareTable();
     }
 
@@ -9187,7 +9698,10 @@ Results:
         const mr = this.mutationResults;
         const gene = this.currentGeneEffectGene;
         const mainHotspot = mr.hotspotGene;
-        const mainMutData = this.mutations.geneData[mainHotspot];
+        const isTranslocation = mr.isTranslocation;
+        const mainMutData = isTranslocation
+            ? this.translocations?.geneData?.[mainHotspot]
+            : this.mutations?.geneData?.[mainHotspot];
         if (!mainMutData) return;
 
         const geneIdx = this.geneIndex.get(gene.toUpperCase());
@@ -9210,7 +9724,7 @@ Results:
             }
             if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-                const addMutData = this.mutations.geneData[mr.additionalHotspot];
+                const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
                     if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
@@ -9221,10 +9735,14 @@ Results:
             }
             const ge = this.geneEffects[geneIdx * this.nCellLines + idx];
             if (isNaN(ge)) return;
-            baseCells.push({ cellLine, idx, ge, mainMut: mainMutData.mutations[cellLine] || 0 });
+            const mainLevel = isTranslocation
+                ? (mainMutData.translocations[cellLine] || 0)
+                : (mainMutData.mutations[cellLine] || 0);
+            baseCells.push({ cellLine, idx, ge, mainMut: mainLevel });
         });
 
         const rows = [];
+        const mutLabel = isTranslocation ? 'Fused' : 'Mut';
         const noneWT = baseCells.filter(c => c.mainMut === 0).map(c => c.ge);
         const noneMut = baseCells.filter(c => c.mainMut >= 1).map(c => c.ge);
         if (noneWT.length > 0 && noneMut.length > 0) {
@@ -9233,8 +9751,9 @@ Results:
             rows.push({ label: 'None', nWT: noneWT.length, nMut: noneMut.length, delta: meanMut - meanWT, isRef: true, hotspot: '' });
         }
 
-        this.mutations.genes.forEach(hGene => {
-            if (hGene === mainHotspot) return;
+        // Iterate over both mutation genes AND translocation genes
+        this.mutations?.genes?.forEach(hGene => {
+            if (hGene === mainHotspot && !isTranslocation) return;
             const hMutData = this.mutations.geneData[hGene];
             if (!hMutData) return;
             const filtered = baseCells.filter(c => (hMutData.mutations[c.cellLine] || 0) >= 1);
@@ -9247,10 +9766,30 @@ Results:
             }
         });
 
+        // Also iterate over translocation genes
+        if (this.translocations?.genes) {
+            this.translocations.genes.forEach(tGene => {
+                if (tGene === mainHotspot && isTranslocation) return;
+                // Skip if already added as a mutation gene
+                if (this.mutations?.genes?.includes(tGene) && !isTranslocation) return;
+                const tData = this.translocations.geneData[tGene];
+                if (!tData) return;
+                const filtered = baseCells.filter(c => (tData.translocations[c.cellLine] || 0) >= 1);
+                const wtGE = filtered.filter(c => c.mainMut === 0).map(c => c.ge);
+                const mutGE = filtered.filter(c => c.mainMut >= 1).map(c => c.ge);
+                if (wtGE.length > 0 && mutGE.length > 0) {
+                    const meanWT = wtGE.reduce((a, b) => a + b, 0) / wtGE.length;
+                    const meanMut = mutGE.reduce((a, b) => a + b, 0) / mutGE.length;
+                    rows.push({ label: `${tGene} (fusion)`, nWT: wtGE.length, nMut: mutGE.length, delta: meanMut - meanWT, hotspot: tGene });
+                }
+            });
+        }
+
         const refRow = rows.filter(r => r.isRef);
         const otherRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-        this._inlineCompareData = { title: `${gene} — Δ GE by Additional Hotspot (${mainHotspot} WT vs Mut)`, headers: ['Hotspot Filter', 'N(WT)', 'N(Mut)', 'Δ GE'], refRows: refRow, sortableRows: otherRows, mode: 'hotspot' };
+        const typeLabel = isTranslocation ? 'Fusion' : 'Hotspot';
+        this._inlineCompareData = { title: `${gene} — Δ GE by Additional ${typeLabel} (${mainHotspot} WT vs ${mutLabel})`, headers: [`${typeLabel} Filter`, 'N(WT)', `N(${mutLabel})`, 'Δ GE'], refRows: refRow, sortableRows: otherRows, mode: 'hotspot' };
         this._renderInlineCompareTable();
     }
 
@@ -9485,7 +10024,10 @@ Results:
 
         const mr = this.mutationResults;
         const hotspotGene = mr.hotspotGene;
-        const mutationData = this.mutations.geneData[hotspotGene];
+        const isTranslocation = mr.isTranslocation;
+        const mutationData = isTranslocation
+            ? this.translocations?.geneData?.[hotspotGene]
+            : this.mutations?.geneData?.[hotspotGene];
         const targetGene = this.currentGeneEffectGene.toUpperCase();
         const targetGeneIdx = this.geneIndex.get(targetGene);
 
@@ -9528,8 +10070,10 @@ Results:
                 }
             }
 
-            // Check mutation subgroup
-            const mutLevel = mutationData.mutations[cellLine] || 0;
+            // Check mutation/translocation subgroup
+            const mutLevel = isTranslocation
+                ? (mutationData.translocations[cellLine] || 0)
+                : (mutationData.mutations[cellLine] || 0);
             if (subgroup === '0' && mutLevel !== 0) return;
             if (subgroup === '1' && mutLevel !== 1) return;
             if (subgroup === '1+2' && mutLevel === 0) return;
@@ -9610,6 +10154,7 @@ Results:
             targetGeneIdx,
             hotspotGene,
             mutationData,
+            isTranslocation,
             subgroup,
             subgroupIndices,
             inspectTissueFilter
@@ -9708,6 +10253,7 @@ Results:
 
         const nExprCellLines = this.expressionMetadata.nCellLines;
         const mutationData = ctx.mutationData;
+        const isTranslocation = ctx.isTranslocation;
 
         // Read expand checkbox states
         const expandGenotypes = document.getElementById('exprScatterAllGenotypes')?.checked || false;
@@ -9732,7 +10278,9 @@ Results:
             const cellLine = this.metadata.cellLines[geCellIdx];
             const cellName = this.getCellLineName(cellLine);
             const lineage = this.getCellLineLineage(cellLine);
-            const mutLevel = mutationData.mutations[cellLine] || 0;
+            const mutLevel = isTranslocation
+                ? (mutationData.translocations[cellLine] || 0)
+                : (mutationData.mutations[cellLine] || 0);
 
             const point = { x: geVal, y: exprVal, cellName, lineage, mutLevel };
 
@@ -9754,7 +10302,9 @@ Results:
                 if (exprCellIdx === undefined || exprCellIdx === -1) continue;
 
                 const cellLine = cellLines[geCellIdx];
-                const mutLevel = mutationData.mutations[cellLine] || 0;
+                const mutLevel = isTranslocation
+                    ? (mutationData.translocations[cellLine] || 0)
+                    : (mutationData.mutations[cellLine] || 0);
                 const lineage = this.cellLineMetadata?.lineage?.[cellLine] || '';
 
                 // Determine if this cell line should be included
@@ -9815,10 +10365,11 @@ Results:
 
         // Extra points as background traces
         if (allExtraPoints.length > 0) {
+            const bgLabel = isTranslocation ? 'fus' : 'mut';
             const extraGroups = [
                 { data: extraPoints.wt, name: 'WT (bg)', color: '#cccccc' },
-                { data: extraPoints.mut1, name: '1 mut (bg)', color: '#93c5fd' },
-                { data: extraPoints.mut2, name: '2 mut (bg)', color: '#fca5a5' }
+                { data: extraPoints.mut1, name: `1 ${bgLabel} (bg)`, color: isTranslocation ? '#c4b5fd' : '#93c5fd' },
+                { data: extraPoints.mut2, name: `2 ${bgLabel} (bg)`, color: isTranslocation ? '#ddd6fe' : '#fca5a5' }
             ];
             extraGroups.forEach(g => {
                 if (g.data.length === 0) return;
@@ -9836,10 +10387,12 @@ Results:
         }
 
         // Core points on top
+        const fgLabel1 = isTranslocation ? '1 fusion partner' : '1 mutation';
+        const fgLabel2 = isTranslocation ? '2+ fusion partners' : '2 mutations';
         const groups = [
             { data: points.wt, name: 'WT (0)', color: '#888888' },
-            { data: points.mut1, name: '1 mutation', color: '#3b82f6' },
-            { data: points.mut2, name: '2 mutations', color: '#dc2626' }
+            { data: points.mut1, name: fgLabel1, color: isTranslocation ? '#7c3aed' : '#3b82f6' },
+            { data: points.mut2, name: fgLabel2, color: isTranslocation ? '#5b21b6' : '#dc2626' }
         ];
 
         groups.forEach(g => {
@@ -9986,16 +10539,19 @@ Results:
         if (!this.mutationResults) return;
         const mr = this.mutationResults;
         const hotspotGene = mr.hotspotGene;
-        const mutationData = this.mutations.geneData[hotspotGene];
+        const isTranslocation = mr.isTranslocation;
+        const mutationData = isTranslocation
+            ? this.translocations?.geneData?.[hotspotGene]
+            : this.mutations?.geneData?.[hotspotGene];
         if (!mutationData) return;
 
         const cellLines = this.metadata.cellLines;
 
-        // Build tissue → { cellLine indices by mutation status } map
+        // Build tissue -> { cellLine indices by mutation status } map
         const tissueMap = {};
         cellLines.forEach((cellLine, idx) => {
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-                const addMutData = this.mutations.geneData[mr.additionalHotspot];
+                const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
                     if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
@@ -10005,7 +10561,9 @@ Results:
                 }
             }
             const lineage = this.cellLineMetadata?.lineage?.[cellLine] || 'Unknown';
-            const mutLevel = mutationData.mutations[cellLine] || 0;
+            const mutLevel = isTranslocation
+                ? (mutationData.translocations[cellLine] || 0)
+                : (mutationData.mutations[cellLine] || 0);
             if (!tissueMap[lineage]) tissueMap[lineage] = { wt: [], mut: [], total: 0 };
             tissueMap[lineage].total++;
             if (mutLevel === 0) tissueMap[lineage].wt.push(idx);
@@ -10022,13 +10580,15 @@ Results:
             cols.push({ label: tissue, wtIdx: data.wt, mutIdx: data.mut, totalCells: data.total, nWT: data.wt.length, nMut: data.mut.length, tissue });
         });
 
+        const typeLabel = isTranslocation ? 'Translocation/Fusion' : 'Hotspot Mutational';
         // Store data for rendering
         this._compareModalData = {
             cols,
             genes: mr.significantResults.map(r => r.gene),
             hotspotGene,
             mode: 'tissue',
-            title: `Compare by Tissue — ${hotspotGene} Hotspot Mutational Analysis`
+            title: `Compare by Tissue — ${hotspotGene} ${typeLabel} Analysis`,
+            isTranslocation
         };
         this._compareModalMode = 'tissue';
         this._compareSortCol = null;
@@ -10042,7 +10602,10 @@ Results:
         if (!this.mutationResults) return;
         const mr = this.mutationResults;
         const mainHotspot = mr.hotspotGene;
-        const mainMutData = this.mutations.geneData[mainHotspot];
+        const isTranslocation = mr.isTranslocation;
+        const mainMutData = isTranslocation
+            ? this.translocations?.geneData?.[mainHotspot]
+            : this.mutations?.geneData?.[mainHotspot];
         if (!mainMutData) return;
 
         const cellLines = this.metadata.cellLines;
@@ -10057,7 +10620,7 @@ Results:
                 if (lineage && mr.excludedTissues.has(lineage)) return;
             }
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-                const addMutData = this.mutations.geneData[mr.additionalHotspot];
+                const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
                     if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
@@ -10066,7 +10629,9 @@ Results:
                     if (mr.additionalHotspotLevel === '1+2' && addMutLevel === 0) return;
                 }
             }
-            const mainMut = mainMutData.mutations[cellLine] || 0;
+            const mainMut = isTranslocation
+                ? (mainMutData.translocations[cellLine] || 0)
+                : (mainMutData.mutations[cellLine] || 0);
             baseCells.push({ cellLine, idx, mainMut });
         });
 
@@ -10076,8 +10641,8 @@ Results:
         const cols = [{ label: 'All', wtIdx: allWT, mutIdx: allMut, totalCells: baseCells.length, nWT: allWT.length, nMut: allMut.length, isRef: true }];
 
         // For each other hotspot gene
-        this.mutations.genes.forEach(hGene => {
-            if (hGene === mainHotspot) return;
+        this.mutations?.genes?.forEach(hGene => {
+            if (hGene === mainHotspot && !isTranslocation) return;
             const hMutData = this.mutations.geneData[hGene];
             if (!hMutData) return;
             const filtered = baseCells.filter(c => (hMutData.mutations[c.cellLine] || 0) >= 1);
@@ -10088,12 +10653,30 @@ Results:
             }
         });
 
+        // Also include translocation genes
+        if (this.translocations?.genes) {
+            this.translocations.genes.forEach(tGene => {
+                if (tGene === mainHotspot && isTranslocation) return;
+                if (this.mutations?.genes?.includes(tGene) && !isTranslocation) return;
+                const tData = this.translocations.geneData[tGene];
+                if (!tData) return;
+                const filtered = baseCells.filter(c => (tData.translocations[c.cellLine] || 0) >= 1);
+                const wt = filtered.filter(c => c.mainMut === 0).map(c => c.idx);
+                const mut = filtered.filter(c => c.mainMut >= 1).map(c => c.idx);
+                if (wt.length > 0 || mut.length > 0) {
+                    cols.push({ label: `${tGene} (fusion)`, wtIdx: wt, mutIdx: mut, totalCells: filtered.length, nWT: wt.length, nMut: mut.length, hotspot: tGene });
+                }
+            });
+        }
+
+        const typeLabel = isTranslocation ? 'Translocation/Fusion' : 'Hotspot Mutational';
         this._compareModalData = {
             cols,
             genes: mr.significantResults.map(r => r.gene),
             hotspotGene: mainHotspot,
             mode: 'hotspot',
-            title: `Compare by Hotspot — ${mainHotspot} Hotspot Mutational Analysis`
+            title: `Compare by Hotspot — ${mainHotspot} ${typeLabel} Analysis`,
+            isTranslocation
         };
         this._compareModalMode = 'hotspot';
         this._compareSortCol = null;
@@ -10158,12 +10741,16 @@ Results:
 
         // Title and info
         document.getElementById('mutCompareModalTitle').textContent = d.title;
-        const modeLabel = d.mode === 'tissue' ? 'tissue/cancer type' : 'hotspot mutation';
+        const isTrans = d.isTranslocation;
+        const mutLabel = isTrans ? 'fused' : 'mutated';
+        const mutNoun = isTrans ? 'fusion' : 'mutation';
+        const mutAbbr = isTrans ? 'Fus' : 'Mut';
+        const modeLabel = d.mode === 'tissue' ? 'tissue/cancer type' : (isTrans ? 'fusion gene' : 'hotspot mutation');
         document.getElementById('mutCompareModalInfo').innerHTML =
-            `<b>Δ GE = Mean GE(mutated) − Mean GE(WT)</b> for ${d.hotspotGene} mutation, stratified by ${modeLabel}. ` +
-            `<span style="color:#dc2626;">Red = more essential when mutated</span>, <span style="color:#16a34a;">Green = less essential</span>. ` +
-            `${geneRows.length} genes × ${filteredCols.length} ${d.mode === 'tissue' ? 'tissues' : 'hotspots'} | Min mutated cells: ${minN} | ` +
-            `Click cell to inspect, hover column header for N(WT)/N(Mut)`;
+            `<b>Δ GE = Mean GE(${mutLabel}) − Mean GE(WT)</b> for ${d.hotspotGene} ${mutNoun}, stratified by ${modeLabel}. ` +
+            `<span style="color:#dc2626;">Red = more essential when ${mutLabel}</span>, <span style="color:#16a34a;">Green = less essential</span>. ` +
+            `${geneRows.length} genes × ${filteredCols.length} ${d.mode === 'tissue' ? 'tissues' : 'hotspots'} | Min ${mutLabel} cells: ${minN} | ` +
+            `Click cell to inspect, hover column header for N(WT)/N(${mutAbbr})`;
 
         // Build table HTML
         let html = '<table style="border-collapse:collapse; font-size:11px; width:auto; max-width:100%; margin:0 auto;">';
@@ -10267,7 +10854,8 @@ Results:
         const tooltip = document.createElement('div');
         tooltip.id = 'columnTooltip';
         tooltip.style.cssText = 'position:fixed; z-index:10001; background:white; border:1px solid #d1d5db; border-radius:8px; padding:8px 12px; max-width:250px; box-shadow:0 4px 12px rgba(0,0,0,0.15); font-size:11px; line-height:1.5;';
-        tooltip.innerHTML = `<b>${col.label}</b><br>Total cell lines: ${col.totalCells}<br>N(WT): ${col.nWT}<br>N(Mut): ${col.nMut}`;
+        const mutAbbr = this._compareModalData?.isTranslocation ? 'Fus' : 'Mut';
+        tooltip.innerHTML = `<b>${col.label}</b><br>Total cell lines: ${col.totalCells}<br>N(WT): ${col.nWT}<br>N(${mutAbbr}): ${col.nMut}`;
         const x = Math.min(event.clientX + 10, window.innerWidth - 270);
         const y = Math.min(event.clientY + 10, window.innerHeight - 100);
         tooltip.style.left = x + 'px';
