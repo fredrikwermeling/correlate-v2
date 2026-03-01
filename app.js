@@ -12484,20 +12484,26 @@ Results:
 
     getGenesFromTable(source) {
         const geneSet = new Set();
-        if (source === 'correlations' && this.results?.correlations) {
-            this.results.correlations.forEach(c => {
-                geneSet.add(c.gene1);
-                geneSet.add(c.gene2);
+        const tableMap = {
+            'correlations':   { bodyId: 'correlationsBody', geneCols: [0, 1] },
+            'clusters':       { bodyId: 'clustersBody', geneCols: [0] },
+            'mutations':      { bodyId: 'mutationTableBody', geneCols: [1] },
+            'exprCorrelates': { bodyId: 'exprCorrelatesTableBody', geneCols: [0] }
+        };
+        const config = tableMap[source];
+        if (!config) return [];
+        const tbody = document.getElementById(config.bodyId);
+        if (!tbody) return [];
+        tbody.querySelectorAll('tr').forEach(row => {
+            if (row.style.display === 'none') return;
+            config.geneCols.forEach(colIdx => {
+                const cell = row.cells[colIdx];
+                if (cell) {
+                    const gene = cell.textContent.trim().replace(/\*$/, '');
+                    if (gene) geneSet.add(gene);
+                }
             });
-        } else if (source === 'clusters' && this.results?.clusters) {
-            this.results.clusters.forEach(c => {
-                geneSet.add(c.gene.replace(/\*$/, ''));
-            });
-        } else if (source === 'mutations' && this.mutationResults?.significantResults) {
-            this.mutationResults.significantResults.forEach(r => {
-                geneSet.add(r.gene);
-            });
-        }
+        });
         return [...geneSet];
     }
 
@@ -12566,8 +12572,9 @@ Results:
         // Render tabs
         tabsEl.innerHTML = libraries.map(lib => {
             const active = lib.key === activeLibrary;
-            const count = results[lib.key]?.length || 0;
-            return `<button data-lib="${lib.key}" style="padding:5px 12px; font-size:12px; border:1px solid ${active ? '#5a9f4a' : '#555'}; background:${active ? '#5a9f4a' : 'transparent'}; color:${active ? '#fff' : '#ccc'}; border-radius:4px; cursor:pointer;">${lib.label} (${count})</button>`;
+            const total = results[lib.key]?.length || 0;
+            const sig = (results[lib.key] || []).filter(r => r[6] < 0.05).length;
+            return `<button data-lib="${lib.key}" style="padding:5px 12px; font-size:12px; border:1px solid ${active ? '#5a9f4a' : '#555'}; background:${active ? '#5a9f4a' : 'transparent'}; color:${active ? '#fff' : '#ccc'}; border-radius:4px; cursor:pointer;">${lib.label} (${sig}/${total})</button>`;
         }).join('');
 
         tabsEl.querySelectorAll('button').forEach(btn => {
@@ -12589,7 +12596,12 @@ Results:
             combinedScore: r[4],
             genes: r[5],
             adjPValue: r[6]
-        }));
+        })).filter(r => r.adjPValue < 0.05);
+
+        if (parsed.length === 0) {
+            contentEl.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;">No significant pathways (adj p &lt; 0.05)</div>';
+            return;
+        }
 
         // Sort
         const sortState = this._enrichrSortState[activeLibrary] || { col: 'adjPValue', asc: true };
@@ -12628,17 +12640,15 @@ Results:
         html += '</tr></thead><tbody>';
 
         parsed.forEach((row, i) => {
-            const significant = row.adjPValue < 0.05;
-            const bgColor = significant ? 'rgba(90,159,74,0.12)' : 'transparent';
             const geneList = Array.isArray(row.genes) ? row.genes.join(', ') : String(row.genes);
             const geneCount = Array.isArray(row.genes) ? row.genes.length : 0;
             const truncatedGenes = geneList.length > 60 ? geneList.substring(0, 60) + '...' : geneList;
 
-            html += `<tr style="background:${bgColor}; border-bottom:1px solid #333;">`;
+            html += `<tr style="border-bottom:1px solid #333;">`;
             html += `<td style="padding:5px 8px; color:#888;">${row.rank}</td>`;
             html += `<td style="padding:5px 8px; max-width:350px; overflow:hidden; text-overflow:ellipsis;" title="${row.term}">${row.term}</td>`;
             html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px;">${row.pValue.toExponential(2)}</td>`;
-            html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px; ${significant ? 'color:#5a9f4a; font-weight:bold;' : ''}">${row.adjPValue.toExponential(2)}</td>`;
+            html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px; color:#5a9f4a; font-weight:bold;">${row.adjPValue.toExponential(2)}</td>`;
             html += `<td style="padding:5px 8px;">${row.zScore.toFixed(2)}</td>`;
             html += `<td style="padding:5px 8px;">${row.combinedScore.toFixed(1)}</td>`;
             html += `<td style="padding:5px 8px; max-width:200px; overflow:hidden; text-overflow:ellipsis; font-size:11px;" title="${geneList}">${truncatedGenes}</td>`;
