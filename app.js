@@ -4597,9 +4597,14 @@ class CorrelationExplorer {
 
         const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
 
-        // Adjust stabilization iterations based on network size
+        // Adjust physics based on network size
         const nodeCount = nodes.length;
         const stabilizationIterations = nodeCount > 50 ? 300 : 150;
+
+        // Scale repulsion and spring length based on node count
+        // Small networks need stronger repulsion to spread out well
+        const gravConstant = nodeCount <= 10 ? -200 : nodeCount <= 30 ? -100 : -50;
+        const springLen = nodeCount <= 10 ? 250 : nodeCount <= 30 ? 180 : 100;
 
         const options = {
             autoResize: false,  // Prevent auto-fit when container resizes
@@ -4621,9 +4626,9 @@ class CorrelationExplorer {
                 enabled: true,
                 solver: 'forceAtlas2Based',
                 forceAtlas2Based: {
-                    gravitationalConstant: -50,
+                    gravitationalConstant: gravConstant,
                     centralGravity: 0.01,
-                    springLength: 100,
+                    springLength: springLen,
                     springConstant: 0.08,
                     damping: 0.4
                 },
@@ -5710,35 +5715,31 @@ Results:
         // Get current scale for sizing elements
         const scale = this.network.getScale();
 
-        // Draw edges
+        // Draw edges — read stored width so SVG matches vis.js rendering
         this.networkData.edges.forEach(edge => {
             const from = domPositions[edge.from];
             const to = domPositions[edge.to];
             if (from && to) {
-                const color = edge.color || '#3182ce';
-                const edgeCorrAbs = Math.abs(edge.correlation || 0.5);
-                const edgeCutoffVal = this.results?.cutoff || 0.5;
-                const edgeWSlider = parseInt(document.getElementById('netEdgeWidth').value) || 3;
-                const computedW = 1 + (edgeCorrAbs - edgeCutoffVal) / (1 - edgeCutoffVal) * (edgeWSlider * 3);
-                const strokeWidth = Math.max(1, computedW) * scale;
+                const color = typeof edge.color === 'object' ? (edge.color?.color || '#3182ce') : (edge.color || '#3182ce');
+                const strokeWidth = (edge.width || 1) * scale;
                 svg += `  <line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="${color}" stroke-width="${strokeWidth}" opacity="0.8"/>\n`;
             }
         });
 
-        // Draw nodes
-        const nodeSize = (parseInt(document.getElementById('netNodeSize').value) || 25) * scale;
-        const fontSize = (parseInt(document.getElementById('netFontSize').value) || 16) * scale;
+        // Draw nodes — read stored size/font so SVG matches vis.js rendering
         this.networkData.nodes.forEach(node => {
             const pos = domPositions[node.id];
             if (pos) {
                 const bgColor = node.color?.background || '#5a9f4a';
-                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeSize/2}" fill="${bgColor}" stroke="white" stroke-width="${2 * scale}"/>\n`;
+                const nodeRadius = (node.size || 25) * scale;
+                const nodeFontSize = (node.font?.size || 16) * scale;
+                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="white" stroke-width="${2 * scale}"/>\n`;
 
                 // Handle multi-line labels
                 const labelLines = (node.label || node.id).split('\n');
                 labelLines.forEach((line, i) => {
-                    const yOffset = pos.y + nodeSize/2 + 14 * scale + (i * (fontSize - 2 * scale));
-                    svg += `  <text x="${pos.x}" y="${yOffset}" text-anchor="middle" style="font-family: Arial; font-size: ${fontSize - 2 * scale}px; fill: #333;">${this.escapeXml(line)}</text>\n`;
+                    const yOffset = pos.y + nodeRadius + 14 * scale + (i * nodeFontSize);
+                    svg += `  <text x="${pos.x}" y="${yOffset}" text-anchor="middle" style="font-family: Arial; font-size: ${nodeFontSize}px; fill: ${node.font?.color || '#333'};">${this.escapeXml(line)}</text>\n`;
                 });
             }
         });
@@ -5747,7 +5748,7 @@ Results:
         const legendY = networkHeight + 35;
 
         // Calculate total legend width to center it
-        let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness (note: 110+160 is used but let's use similar calc)
+        let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
         if (this.results?.mode === 'design') totalLegendWidth += 140;
         if (document.getElementById('colorByGeneEffect').checked && this.results?.clusters) totalLegendWidth += 170;
         if (document.getElementById('colorByStats').checked && this.geneStats && this.geneStats.size > 0) totalLegendWidth += 200;
@@ -5764,7 +5765,6 @@ Results:
         svg += `  <line x1="${legendX}" y1="${legendY + 48}" x2="${legendX + 35}" y2="${legendY + 48}" stroke="#e53e3e" stroke-width="4"/>\n`;
         svg += `  <text x="${legendX + 42}" y="${legendY + 53}" class="legend-text">Negative</text>\n`;
 
-        legendX += 110;
         legendX += 160;
 
         // Edge thickness legend - use actual data values
@@ -6972,35 +6972,31 @@ Results:
         // Get current scale for sizing elements
         const scale = this.network.getScale();
 
-        // Draw edges
+        // Draw edges — read stored width so SVG matches vis.js rendering
         this.networkData.edges.forEach(edge => {
             const from = domPositions[edge.from];
             const to = domPositions[edge.to];
             if (from && to) {
-                const color = edge.color || '#3182ce';
-                const edgeCorrAbs = Math.abs(edge.correlation || 0.5);
-                const edgeCutoffVal = this.results?.cutoff || 0.5;
-                const edgeWSlider = parseInt(document.getElementById('netEdgeWidth').value) || 3;
-                const computedW = 1 + (edgeCorrAbs - edgeCutoffVal) / (1 - edgeCutoffVal) * (edgeWSlider * 3);
-                const strokeWidth = Math.max(1, computedW) * scale;
+                const color = typeof edge.color === 'object' ? (edge.color?.color || '#3182ce') : (edge.color || '#3182ce');
+                const strokeWidth = (edge.width || 1) * scale;
                 svg += `  <line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="${color}" stroke-width="${strokeWidth}" opacity="0.8"/>\n`;
             }
         });
 
-        // Draw nodes
-        const nodeSize = (parseInt(document.getElementById('netNodeSize').value) || 25) * scale;
-        const fontSize = (parseInt(document.getElementById('netFontSize').value) || 16) * scale;
+        // Draw nodes — read stored size/font so SVG matches vis.js rendering
         this.networkData.nodes.forEach(node => {
             const pos = domPositions[node.id];
             if (pos) {
                 const bgColor = node.color?.background || '#5a9f4a';
-                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeSize/2}" fill="${bgColor}" stroke="white" stroke-width="${2 * scale}"/>\n`;
+                const nodeRadius = (node.size || 25) * scale;
+                const nodeFontSize = (node.font?.size || 16) * scale;
+                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="white" stroke-width="${2 * scale}"/>\n`;
 
                 // Handle multi-line labels
                 const labelLines = (node.label || node.id).split('\n');
                 labelLines.forEach((line, i) => {
-                    const yOffset = pos.y + nodeSize/2 + 14 * scale + (i * (fontSize - 2 * scale));
-                    svg += `  <text x="${pos.x}" y="${yOffset}" text-anchor="middle" style="font-family: Arial; font-size: ${fontSize - 2 * scale}px; fill: #333;">${this.escapeXml(line)}</text>\n`;
+                    const yOffset = pos.y + nodeRadius + 14 * scale + (i * nodeFontSize);
+                    svg += `  <text x="${pos.x}" y="${yOffset}" text-anchor="middle" style="font-family: Arial; font-size: ${nodeFontSize}px; fill: ${node.font?.color || '#333'};">${this.escapeXml(line)}</text>\n`;
                 });
             }
         });
