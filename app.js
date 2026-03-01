@@ -9318,8 +9318,15 @@ Results:
 
         // Use saved pre-render copies (Plotly mutates layout after rendering,
         // which can strip annotations and axis titles from the serializable state)
+        console.log('Export: _exportLayout exists?', !!this._exportLayout);
+        console.log('Export: _exportLayout annotations?', this._exportLayout?.annotations?.length);
+        console.log('Export: _exportLayout xaxis.title?', this._exportLayout?.xaxis?.title);
+        console.log('Export: plotEl.layout annotations?', plotEl.layout?.annotations?.length);
+        console.log('Export: plotEl.layout xaxis.title?', plotEl.layout?.xaxis?.title);
         const data = JSON.parse(JSON.stringify(this._exportData || plotEl.data));
         const layout = JSON.parse(JSON.stringify(this._exportLayout || plotEl.layout));
+        console.log('Export: final layout annotations?', layout.annotations?.length);
+        console.log('Export: final layout xaxis.title?', layout.xaxis?.title);
 
         // Apply any user-dragged title/legend positions
         if (this._userTitlePosition && layout.annotations?.[0]) {
