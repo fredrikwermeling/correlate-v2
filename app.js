@@ -9319,38 +9319,61 @@ Results:
         // Temporarily set export backgrounds on the live plot so Plotly.toImage renders them
         await Plotly.relayout(plotEl, { paper_bgcolor: exportPaperBg, plot_bgcolor: exportPlotBg });
 
-        const opts = {
-            format: format === 'png' ? 'png' : 'svg',
+        // Always export as SVG first so we can post-process (remove legend clipPath),
+        // then convert to PNG via canvas if needed.
+        const svgDataUrl = await Plotly.toImage(plotEl, {
+            format: 'svg',
             width: plotEl.layout.width,
-            height: plotEl.layout.height,
-            scale: format === 'png' ? 4 : 1
-        };
-
-        const dataUrl = await Plotly.toImage(plotEl, opts);
+            height: plotEl.layout.height
+        });
 
         // Restore original backgrounds
         await Plotly.relayout(plotEl, { paper_bgcolor: origPaperBg, plot_bgcolor: origPlotBg });
 
+        // Decode SVG
+        let svgString;
+        if (svgDataUrl.indexOf('base64,') > -1) {
+            svgString = atob(svgDataUrl.split('base64,')[1]);
+        } else {
+            svgString = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
+        }
+        // Remove legend clipPath so text isn't cropped
+        svgString = svgString.replace(/clip-path="url\(#legend[^"]*\)"/g, '');
+
         const a = document.createElement('a');
         if (format === 'svg') {
-            let svgString;
-            if (dataUrl.indexOf('base64,') > -1) {
-                svgString = atob(dataUrl.split('base64,')[1]);
-            } else {
-                svgString = decodeURIComponent(dataUrl.split(',').slice(1).join(','));
-            }
-            // Remove legend clipPath so text isn't cropped
-            svgString = svgString.replace(/clip-path="url\(#legend[^"]*\)"/g, '');
             const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
             a.href = URL.createObjectURL(blob);
             a.download = filename + '.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         } else {
-            a.href = dataUrl;
-            a.download = filename + '.png';
+            // Render the fixed SVG to canvas at 4x for publication quality PNG
+            const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+            const img = new Image();
+            img.onload = () => {
+                const scale = 4;
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth * scale;
+                canvas.height = img.naturalHeight * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(scale, scale);
+                if (!transparentBg) {
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
+                }
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(svgUrl);
+                a.href = canvas.toDataURL('image/png');
+                a.download = filename + '.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            img.src = svgUrl;
         }
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
     }
 
     downloadScatterPNG() {
