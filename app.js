@@ -455,30 +455,36 @@ class CorrelationExplorer {
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
         const currentValue = input.value;
 
-        // Count fusions per gene and sort by count descending
-        const geneCounts = genes.map(gene => {
+        // Build filtered cell line list once
+        const filteredCLs = lineageFilter || subLineageFilter
+            ? cellLines.filter(cl => {
+                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
+                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                return true;
+            }) : cellLines;
+
+        // Count fusions per gene, skip genes with 0 fusions
+        const geneCounts = [];
+        for (const gene of genes) {
             const translocations = this.translocations.geneData[gene].translocations;
             let nFused = 0;
-            cellLines.forEach(cl => {
-                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return;
-                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return;
+            for (const cl of filteredCLs) {
                 if (translocations[cl] && translocations[cl] > 0) nFused++;
-            });
-            return { gene, nFused };
-        }).sort((a, b) => {
+            }
+            if (nFused > 0) geneCounts.push({ gene, nFused });
+        }
+        geneCounts.sort((a, b) => {
             const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
             const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
             if (aPri !== bPri) return bPri - aPri;
             return b.nFused - a.nFused;
         });
 
-        datalist.innerHTML = '';
+        let html = '';
         geneCounts.forEach(({ gene, nFused }) => {
-            const option = document.createElement('option');
-            option.value = gene;
-            option.textContent = `${gene} (n=${nFused} fused)`;
-            datalist.appendChild(option);
+            html += `<option value="${gene}">${gene} (n=${nFused} fused)</option>`;
         });
+        datalist.innerHTML = html;
 
         if (currentValue) input.value = currentValue;
 
@@ -670,30 +676,36 @@ class CorrelationExplorer {
         const genes = Object.keys(this.translocations.geneData);
         const cellLines = this.metadata.cellLines;
 
-        // Count fusions per gene and sort by count descending (priority genes first)
-        const geneCounts = genes.map(gene => {
+        // Build filtered cell line list once
+        const filteredCLs = lineageFilter || subLineageFilter
+            ? cellLines.filter(cl => {
+                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
+                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                return true;
+            }) : cellLines;
+
+        // Count fusions per gene, skip genes with 0 fusions
+        const geneCounts = [];
+        for (const gene of genes) {
             const translocations = this.translocations.geneData[gene].translocations;
             let nFused = 0;
-            cellLines.forEach(cl => {
-                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return;
-                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return;
+            for (const cl of filteredCLs) {
                 if (translocations[cl] && translocations[cl] > 0) nFused++;
-            });
-            return { gene, nFused };
-        }).sort((a, b) => {
+            }
+            if (nFused > 0) geneCounts.push({ gene, nFused });
+        }
+        geneCounts.sort((a, b) => {
             const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
             const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
             if (aPri !== bPri) return bPri - aPri;
             return b.nFused - a.nFused;
         });
 
-        datalist.innerHTML = '';
+        let html = '';
         geneCounts.forEach(({ gene, nFused }) => {
-            const option = document.createElement('option');
-            option.value = gene;
-            option.textContent = `${gene} (${nFused} fused cells)`;
-            datalist.appendChild(option);
+            html += `<option value="${gene}">${gene} (${nFused} fused cells)</option>`;
         });
+        datalist.innerHTML = html;
 
         if (currentValue) input.value = currentValue;
     }
@@ -6784,26 +6796,28 @@ Results:
         if (this.translocations?.genes?.length > 0) {
             transGeneInput.value = '';
             transFilterGeneInput.value = '';
-            const geneCounts = this.translocations.genes.map(g => {
+            const geneCounts = [];
+            for (const g of this.translocations.genes) {
                 const transData = this.translocations.geneData?.[g]?.translocations || {};
                 let count = 0;
-                cellLinesInPlot.forEach(cl => {
+                for (const cl of cellLinesInPlot) {
                     if (transData[cl] && transData[cl] > 0) count++;
-                });
-                return { gene: g, count };
-            }).sort((a, b) => {
+                }
+                if (count > 0) geneCounts.push({ gene: g, count });
+            }
+            geneCounts.sort((a, b) => {
                 const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
                 const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
                 if (aPri !== bPri) return bPri - aPri;
                 return b.count - a.count;
             });
 
-            transGeneDatalist.innerHTML = '';
-            transFilterGeneDatalist.innerHTML = '';
+            let transHtml = '';
             geneCounts.forEach(({ gene, count }) => {
-                transGeneDatalist.innerHTML += `<option value="${gene}">${gene} (${count} fused)</option>`;
-                transFilterGeneDatalist.innerHTML += `<option value="${gene}">${gene} (${count} fused)</option>`;
+                transHtml += `<option value="${gene}">${gene} (${count} fused)</option>`;
             });
+            transGeneDatalist.innerHTML = transHtml;
+            transFilterGeneDatalist.innerHTML = transHtml;
             document.getElementById('translocationBox').style.display = 'block';
             document.getElementById('translocationFilterBox').style.display = 'block';
             document.getElementById('compareAllTranslocationsBtn').style.display = '';
@@ -7874,9 +7888,21 @@ Results:
         }
 
         const tableData = [];
-        const transGenes = Object.keys(this.translocations.geneData).sort();
+        const transGenes = Object.keys(this.translocations.geneData);
 
-        transGenes.forEach(tGene => {
+        // Pre-filter: only process genes that have ≥3 fused cells in filteredData
+        const cellIdSet = new Set(filteredData.map(d => d.cellLineId));
+        const candidateGenes = transGenes.filter(tGene => {
+            const transData = this.translocations.geneData[tGene].translocations;
+            let fusedCount = 0;
+            for (const cl of cellIdSet) {
+                if (transData[cl] && transData[cl] > 0) fusedCount++;
+                if (fusedCount >= 3) return true;
+            }
+            return false;
+        });
+
+        candidateGenes.forEach(tGene => {
             const transData = this.translocations.geneData[tGene].translocations;
 
             const wt = filteredData.filter(d => (transData[d.cellLineId] || 0) === 0);
@@ -8507,26 +8533,28 @@ Results:
         if (this.translocations?.genes?.length > 0) {
             transGeneInput2.value = '';
             transFilterGeneInput2.value = '';
-            const geneCounts2 = this.translocations.genes.map(g => {
+            const geneCounts2 = [];
+            for (const g of this.translocations.genes) {
                 const transData = this.translocations.geneData?.[g]?.translocations || {};
                 let count = 0;
-                cellLinesInPlot.forEach(cl => {
+                for (const cl of cellLinesInPlot) {
                     if (transData[cl] && transData[cl] > 0) count++;
-                });
-                return { gene: g, count };
-            }).sort((a, b) => {
+                }
+                if (count > 0) geneCounts2.push({ gene: g, count });
+            }
+            geneCounts2.sort((a, b) => {
                 const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
                 const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
                 if (aPri !== bPri) return bPri - aPri;
                 return b.count - a.count;
             });
 
-            transGeneDatalist2.innerHTML = '';
-            transFilterGeneDatalist2.innerHTML = '';
+            let transHtml2 = '';
             geneCounts2.forEach(({ gene, count }) => {
-                transGeneDatalist2.innerHTML += `<option value="${gene}">${gene} (${count} fused)</option>`;
-                transFilterGeneDatalist2.innerHTML += `<option value="${gene}">${gene} (${count} fused)</option>`;
+                transHtml2 += `<option value="${gene}">${gene} (${count} fused)</option>`;
             });
+            transGeneDatalist2.innerHTML = transHtml2;
+            transFilterGeneDatalist2.innerHTML = transHtml2;
             document.getElementById('translocationBox').style.display = 'block';
             document.getElementById('translocationFilterBox').style.display = 'block';
             document.getElementById('compareAllTranslocationsBtn').style.display = '';
@@ -10085,14 +10113,20 @@ Results:
             }
         });
 
-        // Also iterate over translocation genes
+        // Also iterate over translocation genes — pre-filter to genes with fusions in baseCells
         if (this.translocations?.genes) {
-            this.translocations.genes.forEach(tGene => {
-                if (tGene === mainHotspot && isTranslocation) return;
-                // Skip if already added as a mutation gene
-                if (this.mutations?.genes?.includes(tGene) && !isTranslocation) return;
+            const baseCellIds = new Set(baseCells.map(c => c.cellLine));
+            const mutGeneSet = new Set(this.mutations?.genes || []);
+            for (const tGene of this.translocations.genes) {
+                if (tGene === mainHotspot && isTranslocation) continue;
+                if (mutGeneSet.has(tGene) && !isTranslocation) continue;
                 const tData = this.translocations.geneData[tGene];
-                if (!tData) return;
+                if (!tData) continue;
+                let hasFused = false;
+                for (const cl of baseCellIds) {
+                    if (tData.translocations[cl] && tData.translocations[cl] > 0) { hasFused = true; break; }
+                }
+                if (!hasFused) continue;
                 const filtered = baseCells.filter(c => (tData.translocations[c.cellLine] || 0) >= 1);
                 const wtGE = filtered.filter(c => c.mainMut === 0).map(c => c.ge);
                 const mutGE = filtered.filter(c => c.mainMut >= 1).map(c => c.ge);
@@ -10101,7 +10135,7 @@ Results:
                     const meanMut = mutGE.reduce((a, b) => a + b, 0) / mutGE.length;
                     rows.push({ label: `${tGene} (fusion)`, nWT: wtGE.length, nMut: mutGE.length, delta: meanMut - meanWT, hotspot: tGene });
                 }
-            });
+            }
         }
 
         const refRow = rows.filter(r => r.isRef);
@@ -10173,11 +10207,18 @@ Results:
             rows.push({ label: 'None', nWT: noneWT.length, nMut: noneMut.length, delta: meanMut - meanWT, isRef: true, hotspot: '' });
         }
 
-        // Iterate ONLY over translocation genes
-        this.translocations.genes.forEach(tGene => {
-            if (tGene === mainHotspot && isTranslocation) return;
+        // Iterate ONLY over translocation genes — pre-filter to genes with fusions in baseCells
+        const baseCellIds = new Set(baseCells.map(c => c.cellLine));
+        for (const tGene of this.translocations.genes) {
+            if (tGene === mainHotspot && isTranslocation) continue;
             const tData = this.translocations.geneData[tGene];
-            if (!tData) return;
+            if (!tData) continue;
+            // Quick check: does this gene have any fused cells in our base set?
+            let hasFused = false;
+            for (const cl of baseCellIds) {
+                if (tData.translocations[cl] && tData.translocations[cl] > 0) { hasFused = true; break; }
+            }
+            if (!hasFused) continue;
             const filtered = baseCells.filter(c => (tData.translocations[c.cellLine] || 0) >= 1);
             const wtGE = filtered.filter(c => c.mainMut === 0).map(c => c.ge);
             const mutGE = filtered.filter(c => c.mainMut >= 1).map(c => c.ge);
@@ -10186,7 +10227,7 @@ Results:
                 const meanMut = mutGE.reduce((a, b) => a + b, 0) / mutGE.length;
                 rows.push({ label: tGene, nWT: wtGE.length, nMut: mutGE.length, delta: meanMut - meanWT, hotspot: tGene });
             }
-        });
+        }
 
         const refRow = rows.filter(r => r.isRef);
         const otherRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
