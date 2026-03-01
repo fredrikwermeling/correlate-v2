@@ -1619,7 +1619,7 @@
                         <button class="btn btn-outline btn-sm" id="copyCorrelationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadCorrelations">Download CSV</button>
                         <button class="btn btn-secondary btn-sm" id="correlationsGeneEffectBtn" title="Open Gene Effect analysis for searched gene">Gene Effect</button>
-                        <button class="btn btn-secondary btn-sm enrichrBtn" data-source="correlations" title="Pathway enrichment analysis via Enrichr">Enrichr</button>
+                        <button class="btn btn-secondary btn-sm enrichrBtn" data-source="correlations" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr — Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
                     </div>
                     <div class="table-container">
                         <table class="data-table" id="correlationsTable">
@@ -1653,7 +1653,7 @@
                         <button class="btn btn-outline btn-sm" id="copyClustersGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadClusters">Download CSV</button>
                         <button class="btn btn-secondary btn-sm" id="clustersGeneEffectBtn" title="Open Gene Effect analysis for searched gene">Gene Effect</button>
-                        <button class="btn btn-secondary btn-sm enrichrBtn" data-source="clusters" title="Pathway enrichment analysis via Enrichr">Enrichr</button>
+                        <button class="btn btn-secondary btn-sm enrichrBtn" data-source="clusters" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr — Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
                     </div>
                     <div class="table-container">
                         <table class="data-table" id="clustersTable">
@@ -1690,7 +1690,7 @@
                         <button class="btn btn-secondary btn-sm" id="mutCompareByTissueBtn" title="Compare mutation effect across cancer types">Compare by Tissue</button>
                         <button class="btn btn-secondary btn-sm" id="mutCompareByHotspotBtn" title="Compare with other hotspot mutations">Compare by Hotspot</button>
                         <button class="btn btn-secondary btn-sm" id="mutCompareByFusionBtn" title="Compare with fusion genes" style="display: none;">Compare by Fusion</button>
-                        <button class="btn btn-secondary btn-sm enrichrBtn" data-source="mutations" title="Pathway enrichment analysis via Enrichr">Enrichr</button>
+                        <button class="btn btn-secondary btn-sm enrichrBtn" data-source="mutations" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr — Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
                     </div>
                     <div class="table-container" style="max-height: 600px; overflow-y: auto;">
                         <table class="data-table" id="mutationTable">
@@ -2199,7 +2199,10 @@
     <div id="enrichrModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000;">
       <div style="background:#1e1e1e; margin:30px auto; width:90%; max-width:1100px; max-height:90vh; border-radius:8px; display:flex; flex-direction:column;">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid #444;">
-          <h3 id="enrichrTitle" style="margin:0; color:#e0e0e0; font-size:15px;">Enrichr Pathway Analysis</h3>
+          <div>
+            <h3 id="enrichrTitle" style="margin:0; color:#e0e0e0; font-size:15px;">Enrichr Pathway Analysis</h3>
+            <div style="font-size:10px; color:#888; margin-top:2px;">Powered by <a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" style="color:#7cabcf; text-decoration:none;">Enrichr</a> — Chen et al. <a href="https://doi.org/10.1186/1471-2105-14-128" target="_blank" rel="noopener" style="color:#7cabcf; text-decoration:none;">BMC Bioinformatics 2013</a></div>
+          </div>
           <div style="display:flex; gap:8px; align-items:center;">
             <button id="enrichrDownloadBtn" class="btn btn-outline btn-sm" style="color:#ccc; border-color:#555;">Download CSV</button>
             <button id="enrichrCloseBtn" style="background:none; border:none; color:#aaa; font-size:24px; cursor:pointer; padding:0 4px; line-height:1;">&times;</button>
