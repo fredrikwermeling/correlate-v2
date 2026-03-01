@@ -1111,7 +1111,8 @@ class CorrelationExplorer {
         document.getElementById('loadTestGenes').addEventListener('click', () => {
             const testGenes = ['TP53', 'BRCA1', 'BRCA2', 'MYC', 'KRAS', 'EGFR', 'PTEN',
                 'RB1', 'APC', 'CDKN2A', 'NOTCH1', 'PIK3CA', 'BRAF',
-                'ATM', 'ERBB2', 'CDK4', 'MDM2', 'NRAS', 'TSC1', 'TSC2'];
+                'ATM', 'ERBB2', 'CDK4', 'MDM2', 'NRAS', 'TSC1', 'TSC2',
+                'BCR', 'ABL1'];
             document.getElementById('geneTextarea').value = testGenes.join('\n');
             this.updateGeneCount();
         });
