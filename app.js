@@ -35,6 +35,7 @@ class CorrelationExplorer {
         // Current inspect state
         this.currentInspect = null;
         this.clickedCells = new Set();
+        this._userLegendPosition = null;
 
         // Gene statistics (LFC, FDR)
         this.geneStats = null;
@@ -6737,6 +6738,7 @@ Results:
         }
 
         // Set up currentInspect with the data needed for By tissue
+        this._userLegendPosition = null;
         this.currentInspect = {
             gene1: c.gene1,
             gene2: c.gene2,
@@ -6800,6 +6802,7 @@ Results:
 
     openInspect(c) {
         // c is now the correlation object directly
+        this._userLegendPosition = null;
         this.currentInspect = {
             gene1: c.gene1,
             gene2: c.gene2,
@@ -7400,10 +7403,50 @@ Results:
             plot_bgcolor: '#fafafa'
         };
 
-        Plotly.newPlot('scatterPlot', traces, layout, { responsive: true });
+        // Apply user-dragged legend position if available
+        if (this._userLegendPosition) {
+            layout.legend.x = this._userLegendPosition.x;
+            layout.legend.y = this._userLegendPosition.y;
+            layout.legend.xanchor = 'auto';
+            layout.legend.yanchor = 'auto';
+        }
 
-        // Add click handler
-        this.setupScatterClickHandler(filteredData);
+        Plotly.newPlot('scatterPlot', traces, layout, {
+            responsive: true,
+            edits: { legendPosition: true }
+        }).then(plotEl => {
+            // Listen for legend drag events
+            let isProgrammaticRelayout = false;
+            plotEl.on('plotly_relayout', (relayoutData) => {
+                if (isProgrammaticRelayout) return;
+                if (relayoutData['legend.x'] !== undefined && relayoutData['legend.y'] !== undefined) {
+                    this._userLegendPosition = {
+                        x: relayoutData['legend.x'],
+                        y: relayoutData['legend.y']
+                    };
+                }
+            });
+
+            // Auto-reposition legend inside the actual plot domain (scaleanchor shrinks it)
+            if (!this._userLegendPosition && layout.showlegend) {
+                const fl = plotEl._fullLayout;
+                if (fl && fl.xaxis && fl.yaxis) {
+                    const xDomain = fl.xaxis.domain;
+                    const yDomain = fl.yaxis.domain;
+                    // Place legend at top-right of actual plot area
+                    isProgrammaticRelayout = true;
+                    Plotly.relayout('scatterPlot', {
+                        'legend.x': xDomain[1] - 0.02,
+                        'legend.y': yDomain[1],
+                        'legend.xanchor': 'right',
+                        'legend.yanchor': 'top'
+                    }).then(() => { isProgrammaticRelayout = false; });
+                }
+            }
+
+            // Add click handler
+            this.setupScatterClickHandler(filteredData);
+        });
     }
 
     renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc = '') {
@@ -7587,7 +7630,10 @@ Results:
             plot_bgcolor: '#fafafa'
         };
 
-        Plotly.newPlot('scatterPlot', traces, layout, { responsive: true });
+        Plotly.newPlot('scatterPlot', traces, layout, {
+            responsive: true,
+            edits: { legendPosition: true }
+        });
     }
 
     renderCompareTable(filteredData, gene1, gene2, hotspotGene, filterDesc = '') {
@@ -8388,9 +8434,17 @@ Results:
     downloadScatterPNG() {
         const hotspotGene = document.getElementById('hotspotGene').value;
         const hotspotMode = document.getElementById('hotspotMode').value;
-        // Increase height for 3-panel to accommodate annotations without overlap
-        const width = hotspotMode === 'three_panel' ? 1800 : 1000;
-        const height = hotspotMode === 'three_panel' ? 800 : 1000;
+        let width, height;
+        if (hotspotMode === 'three_panel') {
+            width = 1800;
+            height = 800;
+        } else {
+            const plotEl = document.getElementById('scatterPlot');
+            const rect = plotEl.getBoundingClientRect();
+            const screenAspect = rect.width / rect.height;
+            width = 1200;
+            height = Math.round(1200 / screenAspect);
+        }
         const suffix = hotspotGene && hotspotMode !== 'none' ? `_${hotspotGene}` : '';
 
         Plotly.downloadImage('scatterPlot', {
@@ -8404,9 +8458,17 @@ Results:
     downloadScatterSVG() {
         const hotspotGene = document.getElementById('hotspotGene').value;
         const hotspotMode = document.getElementById('hotspotMode').value;
-        // Increase height for 3-panel to accommodate annotations without overlap
-        const width = hotspotMode === 'three_panel' ? 1800 : 1000;
-        const height = hotspotMode === 'three_panel' ? 800 : 1000;
+        let width, height;
+        if (hotspotMode === 'three_panel') {
+            width = 1800;
+            height = 800;
+        } else {
+            const plotEl = document.getElementById('scatterPlot');
+            const rect = plotEl.getBoundingClientRect();
+            const screenAspect = rect.width / rect.height;
+            width = 1200;
+            height = Math.round(1200 / screenAspect);
+        }
         const suffix = hotspotGene && hotspotMode !== 'none' ? `_${hotspotGene}` : '';
 
         Plotly.downloadImage('scatterPlot', {
