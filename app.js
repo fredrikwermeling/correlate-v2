@@ -7366,14 +7366,14 @@ Results:
                 font: { size: 14 }
             },
             xaxis: {
-                title: `${gene1} CRISPR Effect`,
+                title: `${gene1} Gene Effect`,
                 range: xRange,
                 zeroline: true,
                 zerolinecolor: '#ddd',
                 constrain: 'domain'
             },
             yaxis: {
-                title: `${gene2} CRISPR Effect`,
+                title: `${gene2} Gene Effect`,
                 range: yRange,
                 zeroline: true,
                 zerolinecolor: '#ddd',
