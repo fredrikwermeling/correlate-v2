@@ -7,6 +7,13 @@
  */
 
 class CorrelationExplorer {
+    static PRIORITY_FUSION_GENES = new Set([
+        'BCR','ABL1','ALK','EML4','EWSR1','FLI1','MYC','KMT2A','PML','RARA',
+        'RET','ROS1','NTRK1','NTRK2','NTRK3','ETV6','RUNX1','BRAF','FGFR1',
+        'FGFR2','FGFR3','TMPRSS2','ERG','SS18','PAX3','PAX7','NUTM1','RAF1',
+        'MET','NRG1','PDGFRA','PDGFRB'
+    ]);
+
     constructor() {
         // Data storage
         this.metadata = null;
@@ -458,13 +465,18 @@ class CorrelationExplorer {
                 if (translocations[cl] && translocations[cl] > 0) nFused++;
             });
             return { gene, nFused };
-        }).sort((a, b) => b.nFused - a.nFused);
+        }).sort((a, b) => {
+            const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
+            const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
+            if (aPri !== bPri) return bPri - aPri;
+            return b.nFused - a.nFused;
+        });
 
         datalist.innerHTML = '';
         geneCounts.forEach(({ gene, nFused }) => {
             const option = document.createElement('option');
             option.value = gene;
-            option.label = `${gene} (n=${nFused} fused)`;
+            option.textContent = `${gene} (n=${nFused} fused)`;
             datalist.appendChild(option);
         });
 
@@ -658,7 +670,7 @@ class CorrelationExplorer {
         const genes = Object.keys(this.translocations.geneData);
         const cellLines = this.metadata.cellLines;
 
-        // Count fusions per gene and sort by count descending
+        // Count fusions per gene and sort by count descending (priority genes first)
         const geneCounts = genes.map(gene => {
             const translocations = this.translocations.geneData[gene].translocations;
             let nFused = 0;
@@ -668,13 +680,18 @@ class CorrelationExplorer {
                 if (translocations[cl] && translocations[cl] > 0) nFused++;
             });
             return { gene, nFused };
-        }).sort((a, b) => b.nFused - a.nFused);
+        }).sort((a, b) => {
+            const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
+            const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
+            if (aPri !== bPri) return bPri - aPri;
+            return b.nFused - a.nFused;
+        });
 
         datalist.innerHTML = '';
         geneCounts.forEach(({ gene, nFused }) => {
             const option = document.createElement('option');
             option.value = gene;
-            option.label = `${gene} (${nFused} fused cells)`;
+            option.textContent = `${gene} (${nFused} fused cells)`;
             datalist.appendChild(option);
         });
 
@@ -1385,6 +1402,7 @@ class CorrelationExplorer {
         document.getElementById('downloadTissueCSV').addEventListener('click', () => this.downloadTissueTableCSV());
         document.getElementById('scatterFontSize')?.addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('compareAllMutationsBtn')?.addEventListener('click', () => this.showCompareAllMutations());
+        document.getElementById('compareAllTranslocationsBtn')?.addEventListener('click', () => this.showCompareAllTranslocations());
         document.getElementById('compareAllCancerTypesBtn')?.addEventListener('click', () => this.showCompareAllCancerTypes());
         document.getElementById('updateInspectGenes')?.addEventListener('click', () => this.updateInspectGenes());
 
@@ -1500,6 +1518,7 @@ class CorrelationExplorer {
         // Inline compare buttons
         document.getElementById('geCompareByTissueBtn')?.addEventListener('click', () => this.showInlineCompareByTissue());
         document.getElementById('geCompareByHotspotBtn')?.addEventListener('click', () => this.showInlineCompareByHotspot());
+        document.getElementById('geCompareByTranslocationBtn')?.addEventListener('click', () => this.showInlineCompareByTranslocation());
         document.getElementById('geInlineCompareClose')?.addEventListener('click', () => {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         });
@@ -3524,6 +3543,8 @@ class CorrelationExplorer {
         document.getElementById('geHotspotFilter').style.display = '';
         document.getElementById('geCompareButtons').style.display = '';
         document.getElementById('geResetFiltersBtn').style.display = '';
+        document.getElementById('geCompareByTranslocationBtn').style.display =
+            this.translocations?.genes?.length > 0 ? '' : 'none';
         document.getElementById('geViewTissue').style.display = 'none';
         document.getElementById('geViewHotspot').style.display = 'none';
         // Hide the "View:" label too (previous sibling span)
@@ -6770,19 +6791,26 @@ Results:
                     if (transData[cl] && transData[cl] > 0) count++;
                 });
                 return { gene: g, count };
-            }).sort((a, b) => b.count - a.count);
+            }).sort((a, b) => {
+                const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
+                const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
+                if (aPri !== bPri) return bPri - aPri;
+                return b.count - a.count;
+            });
 
             transGeneDatalist.innerHTML = '';
             transFilterGeneDatalist.innerHTML = '';
             geneCounts.forEach(({ gene, count }) => {
-                transGeneDatalist.innerHTML += `<option value="${gene}" label="${gene} (${count} fused)">`;
-                transFilterGeneDatalist.innerHTML += `<option value="${gene}" label="${gene} (${count} fused)">`;
+                transGeneDatalist.innerHTML += `<option value="${gene}">${gene} (${count} fused)</option>`;
+                transFilterGeneDatalist.innerHTML += `<option value="${gene}">${gene} (${count} fused)</option>`;
             });
             document.getElementById('translocationBox').style.display = 'block';
             document.getElementById('translocationFilterBox').style.display = 'block';
+            document.getElementById('compareAllTranslocationsBtn').style.display = '';
         } else {
             document.getElementById('translocationBox').style.display = 'none';
             document.getElementById('translocationFilterBox').style.display = 'none';
+            document.getElementById('compareAllTranslocationsBtn').style.display = 'none';
         }
 
         // Calculate stats for ALL cells (unfiltered) for the title
@@ -7767,6 +7795,211 @@ Results:
         this.setupSortableTable('compareMutationsTable');
     }
 
+    showCompareAllTranslocations() {
+        if (!this.currentInspect) return;
+
+        const { gene1, gene2, data } = this.currentInspect;
+
+        // Apply current filters
+        const cancerFilter = document.getElementById('scatterCancerFilter').value;
+        const subtypeFilter = document.getElementById('scatterSubtypeFilter').value;
+        const mutFilterGene = document.getElementById('mutationFilterGene').value;
+        const mutFilterLevel = document.getElementById('mutationFilterLevel').value;
+        const transFilterGene = document.getElementById('translocationFilterGene').value;
+        const transFilterLevel = document.getElementById('translocationFilterLevel').value;
+
+        let filteredData = cancerFilter ?
+            data.filter(d => d.lineage === cancerFilter) : data;
+
+        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
+            filteredData = filteredData.filter(d =>
+                this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter
+            );
+        }
+
+        if (mutFilterGene && this.mutations?.geneData?.[mutFilterGene] && mutFilterLevel !== 'all') {
+            const filterMutations = this.mutations.geneData[mutFilterGene].mutations;
+            filteredData = filteredData.filter(d => {
+                const mutLevel = filterMutations[d.cellLineId] || 0;
+                if (mutFilterLevel === '0') return mutLevel === 0;
+                if (mutFilterLevel === '1') return mutLevel === 1;
+                if (mutFilterLevel === '2') return mutLevel >= 2;
+                if (mutFilterLevel === '1+2') return mutLevel >= 1;
+                return true;
+            });
+        }
+
+        if (transFilterGene && this.translocations?.geneData?.[transFilterGene] && transFilterLevel !== 'all') {
+            const filterTrans = this.translocations.geneData[transFilterGene].translocations;
+            filteredData = filteredData.filter(d => {
+                const tLevel = filterTrans[d.cellLineId] || 0;
+                if (transFilterLevel === '0') return tLevel === 0;
+                if (transFilterLevel === '1') return tLevel === 1;
+                if (transFilterLevel === '2') return tLevel >= 2;
+                if (transFilterLevel === '1+2') return tLevel >= 1;
+                return true;
+            });
+        }
+
+        let filterParts = [];
+        if (cancerFilter) {
+            let cancerText = `Cancer: ${cancerFilter}`;
+            if (subtypeFilter) cancerText += ` (${subtypeFilter})`;
+            filterParts.push(cancerText);
+        }
+        if (mutFilterGene && mutFilterLevel !== 'all') {
+            const levelText = mutFilterLevel === '0' ? 'WT' :
+                              mutFilterLevel === '1' ? '1 mut' :
+                              mutFilterLevel === '2' ? '2 mut' : '1+2 mut';
+            filterParts.push(`${mutFilterGene}: ${levelText}`);
+        }
+        if (transFilterGene && transFilterLevel !== 'all') {
+            const levelText = transFilterLevel === '0' ? 'WT' :
+                              transFilterLevel === '1' ? '1 fusion' :
+                              transFilterLevel === '2' ? '2 fusions' : '1+2 fusions';
+            filterParts.push(`${transFilterGene}: ${levelText}`);
+        }
+        const filterDesc = filterParts.length > 0 ? filterParts.join(' | ') : '';
+
+        document.getElementById('scatterPlot').style.display = 'none';
+        document.getElementById('compareTable').style.display = 'block';
+
+        this.renderTranslocationComparisonTable(filteredData, gene1, gene2, filterDesc);
+    }
+
+    renderTranslocationComparisonTable(filteredData, gene1, gene2, filterDesc = '') {
+        if (!this.translocations || !this.translocations.geneData) {
+            document.getElementById('compareTable').innerHTML = '<p>No translocation data available.</p>';
+            return;
+        }
+
+        const tableData = [];
+        const transGenes = Object.keys(this.translocations.geneData).sort();
+
+        transGenes.forEach(tGene => {
+            const transData = this.translocations.geneData[tGene].translocations;
+
+            const wt = filteredData.filter(d => (transData[d.cellLineId] || 0) === 0);
+            const fused = filteredData.filter(d => (transData[d.cellLineId] || 0) >= 1);
+
+            if (wt.length >= 3 && fused.length >= 3) {
+                const wtStats = this.pearsonWithSlope(wt.map(d => d.x), wt.map(d => d.y));
+                const fusedStats = this.pearsonWithSlope(fused.map(d => d.x), fused.map(d => d.y));
+
+                const deltaR = fusedStats.correlation - wtStats.correlation;
+                const deltaSlope = fusedStats.slope - wtStats.slope;
+
+                const z1 = 0.5 * Math.log((1 + wtStats.correlation) / (1 - wtStats.correlation));
+                const z2 = 0.5 * Math.log((1 + fusedStats.correlation) / (1 - fusedStats.correlation));
+                const se = Math.sqrt(1/(wt.length - 3) + 1/(fused.length - 3));
+                const zDiff = (z2 - z1) / se;
+                const pR = 2 * (1 - this.normalCDF(Math.abs(zDiff)));
+
+                tableData.push({
+                    tGene,
+                    nWT: wt.length,
+                    rWT: wtStats.correlation,
+                    slopeWT: wtStats.slope,
+                    nFused: fused.length,
+                    rFused: fusedStats.correlation,
+                    slopeFused: fusedStats.slope,
+                    deltaR,
+                    pR,
+                    deltaSlope
+                });
+            }
+        });
+
+        tableData.sort((a, b) => a.pR - b.pR);
+
+        const filterInfo = filterDesc ? `<p style="font-size: 11px; color: #333; margin-bottom: 8px; background: #f0f9ff; padding: 4px 8px; border-radius: 4px;"><b>Filter:</b> ${filterDesc}</p>` : '';
+        let html = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h4 style="margin: 0;">Translocations affecting ${gene1} vs ${gene2}</h4>
+                <div>
+                    <button class="btn btn-primary btn-sm" id="backToGraphBtnTrans" style="margin-right: 8px;">← Back to Graph</button>
+                    <button class="btn btn-success btn-sm" id="downloadTransCompareCSV">Download CSV</button>
+                </div>
+            </div>
+            ${filterInfo}
+            <p style="font-size: 11px; color: #666; margin-bottom: 6px;">
+                Comparing WT (0 fusions) vs Fused (1+ fusions). Sorted by p-value.
+            </p>
+            <p style="font-size: 10px; color: #0c4a6e; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; margin-bottom: 8px;">
+                <b>Statistics:</b> p(Δr) uses Fisher z-transformation to test if correlations differ significantly between WT and fused cells.
+            </p>
+            <p style="font-size: 11px; color: #059669; margin-bottom: 8px;">Click any row to color scatter plot by that translocation</p>
+            <div class="table-container" style="max-height: 380px; overflow-y: auto;">
+            <table id="compareTranslocationsTable" class="data-table" style="width: 100%; font-size: 11px;">
+                <thead>
+                    <tr>
+                        <th data-sort="tGene" data-type="string" style="cursor: pointer;">Fusion Gene ↕</th>
+                        <th data-sort="nWT" data-type="number" style="cursor: pointer; border-left: 2px solid #2563eb;">N(WT) ↕</th>
+                        <th data-sort="rWT" data-type="number" style="cursor: pointer;">r(WT) ↕</th>
+                        <th data-sort="nFused" data-type="number" style="cursor: pointer; border-left: 2px solid #dc2626;">N(Fused) ↕</th>
+                        <th data-sort="rFused" data-type="number" style="cursor: pointer;">r(Fused) ↕</th>
+                        <th data-sort="deltaR" data-type="number" style="cursor: pointer; border-left: 2px solid #6b7280;">Δr ↕</th>
+                        <th data-sort="pR" data-type="number" style="cursor: pointer;">p(Δr) ↕</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        tableData.forEach(row => {
+            const deltaRColor = row.deltaR < 0 ? '#dc2626' : '#5a9f4a';
+            const pHighlight = row.pR < 0.05 ? 'background: #fef3c7;' : '';
+
+            html += `
+                <tr class="clickable-trans-row" data-trans-gene="${row.tGene}" style="${pHighlight} cursor: pointer;">
+                    <td><b>${row.tGene}</b></td>
+                    <td style="text-align: center; border-left: 2px solid #2563eb;">${row.nWT}</td>
+                    <td style="text-align: center;">${row.rWT.toFixed(3)}</td>
+                    <td style="text-align: center; border-left: 2px solid #dc2626;">${row.nFused}</td>
+                    <td style="text-align: center;">${row.rFused.toFixed(3)}</td>
+                    <td style="text-align: center; border-left: 2px solid #6b7280; color: ${deltaRColor}; font-weight: 600;">${row.deltaR.toFixed(3)}</td>
+                    <td style="text-align: center;">${row.pR.toExponential(1)}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+            </div>
+            <p style="font-size: 11px; color: #666; margin-top: 8px;">
+                Yellow = p < 0.05. This analysis may be biased as translocations select for cancer types.
+            </p>
+        `;
+
+        document.getElementById('compareTable').innerHTML = html;
+
+        document.getElementById('backToGraphBtnTrans')?.addEventListener('click', () => {
+            document.getElementById('compareTable').style.display = 'none';
+            document.getElementById('scatterPlot').style.display = 'block';
+        });
+
+        document.getElementById('downloadTransCompareCSV')?.addEventListener('click', () => {
+            let csv = 'Fusion_Gene,N_WT,r_WT,slope_WT,N_Fused,r_Fused,slope_Fused,Delta_r,p_Delta_r,Delta_slope\n';
+            tableData.forEach(row => {
+                csv += `${row.tGene},${row.nWT},${row.rWT.toFixed(4)},${row.slopeWT.toFixed(4)},${row.nFused},${row.rFused.toFixed(4)},${row.slopeFused.toFixed(4)},${row.deltaR.toFixed(4)},${row.pR.toExponential(2)},${row.deltaSlope.toFixed(4)}\n`;
+            });
+            this.downloadFile(csv, `${gene1}_vs_${gene2}_all_translocations_comparison.csv`, 'text/csv');
+        });
+
+        document.querySelectorAll('#compareTranslocationsTable .clickable-trans-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const tGene = row.dataset.transGene;
+                document.getElementById('translocationGene').value = tGene;
+                document.getElementById('translocationMode').value = 'color';
+                document.getElementById('compareTable').style.display = 'none';
+                document.getElementById('scatterPlot').style.display = 'block';
+                this.updateInspectPlot();
+            });
+        });
+
+        this.setupSortableTable('compareTranslocationsTable');
+    }
+
     updateInspectGenes() {
         const gene1 = document.getElementById('inspectGeneX').value.trim().toUpperCase();
         const gene2 = document.getElementById('inspectGeneY').value.trim().toUpperCase();
@@ -8281,19 +8514,26 @@ Results:
                     if (transData[cl] && transData[cl] > 0) count++;
                 });
                 return { gene: g, count };
-            }).sort((a, b) => b.count - a.count);
+            }).sort((a, b) => {
+                const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
+                const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
+                if (aPri !== bPri) return bPri - aPri;
+                return b.count - a.count;
+            });
 
             transGeneDatalist2.innerHTML = '';
             transFilterGeneDatalist2.innerHTML = '';
             geneCounts2.forEach(({ gene, count }) => {
-                transGeneDatalist2.innerHTML += `<option value="${gene}" label="${gene} (${count} fused)">`;
-                transFilterGeneDatalist2.innerHTML += `<option value="${gene}" label="${gene} (${count} fused)">`;
+                transGeneDatalist2.innerHTML += `<option value="${gene}">${gene} (${count} fused)</option>`;
+                transFilterGeneDatalist2.innerHTML += `<option value="${gene}">${gene} (${count} fused)</option>`;
             });
             document.getElementById('translocationBox').style.display = 'block';
             document.getElementById('translocationFilterBox').style.display = 'block';
+            document.getElementById('compareAllTranslocationsBtn').style.display = '';
         } else {
             document.getElementById('translocationBox').style.display = 'none';
             document.getElementById('translocationFilterBox').style.display = 'none';
+            document.getElementById('compareAllTranslocationsBtn').style.display = 'none';
         }
 
         // Reset hotspot mode to default
@@ -9869,6 +10109,89 @@ Results:
 
         const typeLabel = isTranslocation ? 'Fusion' : 'Hotspot';
         this._inlineCompareData = { title: `${gene} — Δ GE by Additional ${typeLabel} (${mainHotspot} WT vs ${mutLabel})`, headers: [`${typeLabel} Filter`, 'N(WT)', `N(${mutLabel})`, 'Δ GE'], refRows: refRow, sortableRows: otherRows, mode: 'hotspot' };
+        this._renderInlineCompareTable();
+    }
+
+    showInlineCompareByTranslocation() {
+        if (!this.mutationResults || !this.currentGeneEffectGene) return;
+        if (!this.translocations?.genes?.length) return;
+        this._inlineSortCol = null;
+        this._inlineSortAsc = true;
+        const mr = this.mutationResults;
+        const gene = this.currentGeneEffectGene;
+        const mainHotspot = mr.hotspotGene;
+        const isTranslocation = mr.isTranslocation;
+        const mainMutData = isTranslocation
+            ? this.translocations?.geneData?.[mainHotspot]
+            : this.mutations?.geneData?.[mainHotspot];
+        if (!mainMutData) return;
+
+        const geneIdx = this.geneIndex.get(gene.toUpperCase());
+        if (geneIdx === undefined) return;
+
+        const cellLines = this.metadata.cellLines;
+        const tissueFilter = document.getElementById('geTissueFilter')?.value || '';
+
+        const baseCells = [];
+        cellLines.forEach((cellLine, idx) => {
+            if (tissueFilter) {
+                const lineage = this.cellLineMetadata?.lineage?.[cellLine] || '';
+                if (lineage !== tissueFilter) return;
+            } else {
+                if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
+                if (mr.excludedTissues && mr.excludedTissues.size > 0) {
+                    const lineage = this.cellLineMetadata?.lineage?.[cellLine];
+                    if (lineage && mr.excludedTissues.has(lineage)) return;
+                }
+            }
+            if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
+                const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
+                if (addMutData) {
+                    const addMutLevel = addMutData.mutations[cellLine] || 0;
+                    if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
+                    if (mr.additionalHotspotLevel === '1' && addMutLevel !== 1) return;
+                    if (mr.additionalHotspotLevel === '2' && addMutLevel < 2) return;
+                    if (mr.additionalHotspotLevel === '1+2' && addMutLevel === 0) return;
+                }
+            }
+            const ge = this.geneEffects[geneIdx * this.nCellLines + idx];
+            if (isNaN(ge)) return;
+            const mainLevel = isTranslocation
+                ? (mainMutData.translocations[cellLine] || 0)
+                : (mainMutData.mutations[cellLine] || 0);
+            baseCells.push({ cellLine, idx, ge, mainMut: mainLevel });
+        });
+
+        const rows = [];
+        const mutLabel = isTranslocation ? 'Fused' : 'Mut';
+        const noneWT = baseCells.filter(c => c.mainMut === 0).map(c => c.ge);
+        const noneMut = baseCells.filter(c => c.mainMut >= 1).map(c => c.ge);
+        if (noneWT.length > 0 && noneMut.length > 0) {
+            const meanWT = noneWT.reduce((a, b) => a + b, 0) / noneWT.length;
+            const meanMut = noneMut.reduce((a, b) => a + b, 0) / noneMut.length;
+            rows.push({ label: 'None', nWT: noneWT.length, nMut: noneMut.length, delta: meanMut - meanWT, isRef: true, hotspot: '' });
+        }
+
+        // Iterate ONLY over translocation genes
+        this.translocations.genes.forEach(tGene => {
+            if (tGene === mainHotspot && isTranslocation) return;
+            const tData = this.translocations.geneData[tGene];
+            if (!tData) return;
+            const filtered = baseCells.filter(c => (tData.translocations[c.cellLine] || 0) >= 1);
+            const wtGE = filtered.filter(c => c.mainMut === 0).map(c => c.ge);
+            const mutGE = filtered.filter(c => c.mainMut >= 1).map(c => c.ge);
+            if (wtGE.length > 0 && mutGE.length > 0) {
+                const meanWT = wtGE.reduce((a, b) => a + b, 0) / wtGE.length;
+                const meanMut = mutGE.reduce((a, b) => a + b, 0) / mutGE.length;
+                rows.push({ label: tGene, nWT: wtGE.length, nMut: mutGE.length, delta: meanMut - meanWT, hotspot: tGene });
+            }
+        });
+
+        const refRow = rows.filter(r => r.isRef);
+        const otherRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+        this._inlineCompareData = { title: `${gene} — Δ GE by Translocation (${mainHotspot} WT vs ${mutLabel})`, headers: ['Fusion Gene', 'N(WT)', `N(${mutLabel})`, 'Δ GE'], refRows: refRow, sortableRows: otherRows, mode: 'hotspot' };
         this._renderInlineCompareTable();
     }
 
