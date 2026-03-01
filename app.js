@@ -9319,8 +9319,8 @@ Results:
             const rightMargin = plotEl._fullLayout.width - size.l - size.w;
             const topMargin = size.t;
             const bottomMargin = plotEl._fullLayout.height - size.t - size.h;
-            w = desiredW + leftMargin + rightMargin;
-            h = desiredH + topMargin + bottomMargin;
+            w = desiredW + leftMargin + rightMargin + 1;  // +1 for Plotly rounding
+            h = desiredH + topMargin + bottomMargin + 1;
         } else {
             w = plotEl.layout.width || plotEl.offsetWidth;
             h = plotEl.layout.height || plotEl.offsetHeight;
@@ -9364,8 +9364,11 @@ Results:
                         const raw = commaIdx > -1 ? dataUrl.substring(commaIdx + 1) : dataUrl;
                         try { svgString = decodeURIComponent(raw); } catch(e) { svgString = raw; }
                     }
-                    // Remove Plotly's legend clip path which can crop long legend text
+                    // Remove Plotly's legend clip path which can crop long legend text.
+                    // Must remove both the definition AND the reference, otherwise browsers
+                    // may hide the content entirely when the referenced clipPath doesn't exist.
                     svgString = svgString.replace(/<clipPath\s+id="legend[^"]*">.*?<\/clipPath>/g, '');
+                    svgString = svgString.replace(/clip-path="url\(#legend[^"]*\)"/g, '');
                     const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
