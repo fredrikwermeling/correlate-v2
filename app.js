@@ -9357,7 +9357,9 @@ Results:
                 if (right > maxRight) maxRight = right;
             });
             if (maxRight > 0) {
-                const newWidth = Math.ceil(maxRight + 15);
+                // Scale up by 1.3x — canvas.measureText uses a fallback font that's
+                // narrower than the actual Open Sans rendered in the SVG
+                const newWidth = Math.ceil(maxRight * 1.3);
                 const oldWidth = parseFloat(legendBg.getAttribute('width'));
                 if (newWidth > oldWidth) {
                     legendBg.setAttribute('width', String(newWidth));
