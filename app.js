@@ -7342,6 +7342,13 @@ Results:
             titleLines.push(`<span style="font-size:10px;"><b>${hotspotGene}:</b> WT: n=${wt.length}, r=${wtStats.correlation.toFixed(3)}, slope=${wtStats.slope.toFixed(3)} | ` +
                 `1mut: n=${mut1.length}, r=${mut1Stats.correlation.toFixed(3)}, slope=${mut1Stats.slope.toFixed(3)} | ` +
                 `2mut: n=${mut2.length}, r=${mut2Stats.correlation.toFixed(3)}, slope=${mut2Stats.slope.toFixed(3)}</span>`);
+        } else if (transOverlayMode === 'color' && transOverlayGene) {
+            const tWT = filteredData.filter(d => d.translocationLevel === 0);
+            const tFused = filteredData.filter(d => d.translocationLevel >= 1);
+            const tWTStats = this.pearsonWithSlope(tWT.map(d => d.x), tWT.map(d => d.y));
+            const tFusedStats = this.pearsonWithSlope(tFused.map(d => d.x), tFused.map(d => d.y));
+            titleLines.push(`<span style="font-size:10px;"><b>${transOverlayGene} (fusion):</b> No fusion: n=${tWT.length}, r=${tWTStats.correlation.toFixed(3)} | ` +
+                `Fused: n=${tFused.length}, r=${tFusedStats.correlation.toFixed(3)}</span>`);
         }
 
         const titleText = titleLines.join('<br>');
@@ -7376,13 +7383,13 @@ Results:
             },
             hovermode: 'closest',
             margin: { t: topMargin, r: 150, b: 60, l: 60 },
-            showlegend: hotspotMode === 'color' && hotspotGene,
+            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene),
             legend: {
                 x: 1.02,
                 y: 0.5,
                 xanchor: 'left',
                 yanchor: 'middle',
-                title: { text: hotspotGene, font: { size: 12 } }
+                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 12 } }
             },
             annotations: annotations,
             plot_bgcolor: '#fafafa'
