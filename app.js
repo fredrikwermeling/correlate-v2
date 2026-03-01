@@ -8003,9 +8003,7 @@ Results:
                 bordercolor: '#ddd',
                 borderwidth: 1,
                 title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
-                font: { size: 11 },
-                entrywidth: 170,
-                entrywidthmode: 'pixels'
+                font: { size: 11 }
             },
             annotations: annotations,
             plot_bgcolor: '#fafafa'
@@ -9339,8 +9337,53 @@ Results:
         } else {
             svgString = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
         }
-        // Remove legend clipPath so text isn't cropped
+
+        // Fix legend: remove clipPath, measure text with canvas, widen rect to fit
         svgString = svgString.replace(/clip-path="url\(#legend[^"]*\)"/g, '');
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
+        const legendBg = svgDoc.querySelector('.legend rect.bg');
+        const legendTexts = svgDoc.querySelectorAll('.legend .legendtext, .legend .legendtitletext');
+        if (legendBg && legendTexts.length) {
+            // Use canvas.measureText with Open Sans (loaded on page) for accurate width
+            const measureCanvas = document.createElement('canvas');
+            const mctx = measureCanvas.getContext('2d');
+            let maxRight = 0;
+            legendTexts.forEach(t => {
+                const fs = t.style.fontSize || '11px';
+                const x = parseFloat(t.getAttribute('x')) || 0;
+                mctx.font = `${fs} "Open Sans", verdana, arial, sans-serif`;
+                const right = x + mctx.measureText(t.textContent).width;
+                if (right > maxRight) maxRight = right;
+            });
+            if (maxRight > 0) {
+                const newWidth = Math.ceil(maxRight + 15);
+                const oldWidth = parseFloat(legendBg.getAttribute('width'));
+                if (newWidth > oldWidth) {
+                    legendBg.setAttribute('width', String(newWidth));
+                    // Expand SVG width if legend extends beyond edge
+                    const svgEl = svgDoc.documentElement;
+                    const legendTransform = svgDoc.querySelector('.legend')?.getAttribute('transform');
+                    const tMatch = legendTransform?.match(/translate\(([\d.]+)/);
+                    if (tMatch) {
+                        const legendX = parseFloat(tMatch[1]);
+                        const needed = legendX + newWidth + 5;
+                        const svgW = parseFloat(svgEl.getAttribute('width'));
+                        if (needed > svgW) {
+                            const w = Math.ceil(needed);
+                            svgEl.setAttribute('width', String(w));
+                            svgEl.setAttribute('viewBox', `0 0 ${w} ${svgEl.getAttribute('height')}`);
+                            // Expand paper background rect
+                            const paperRect = svgEl.querySelector('rect');
+                            if (paperRect) paperRect.setAttribute('width', String(w));
+                        }
+                    }
+                }
+            }
+            // Remove clipPath definitions too
+            svgDoc.querySelectorAll('clipPath[id^="legend"]').forEach(cp => cp.remove());
+        }
+        svgString = new XMLSerializer().serializeToString(svgDoc.documentElement);
 
         const a = document.createElement('a');
         if (format === 'svg') {
