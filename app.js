@@ -4674,17 +4674,18 @@ class CorrelationExplorer {
         }
         document.getElementById('selectedNodesList').style.display = 'none';
 
-        // For large networks, disable physics after stabilization
-        if (nodeCount > 30) {
-            this.network.once('stabilizationIterationsDone', () => {
+        // After stabilization: resolve edge crossings, then lock large networks
+        this.network.once('stabilizationIterationsDone', () => {
+            this.resolveEdgeCrossings();
+            if (nodeCount > 30) {
                 this.network.setOptions({ physics: { enabled: false } });
                 this.physicsEnabled = false;
                 if (physicsBtn) {
                     physicsBtn.textContent = 'Unlock Nodes';
                     physicsBtn.classList.add('btn-active');
                 }
-            });
-        }
+            }
+        });
 
         // Track state for click vs double-click vs drag
         let clickTimeout = null;
@@ -4840,6 +4841,72 @@ class CorrelationExplorer {
 
         // Update edge thickness legend with actual data values
         this.updateEdgeLegend(edgeWidthBase, cutoff);
+    }
+
+    resolveEdgeCrossings() {
+        if (!this.network || !this.networkData) return;
+
+        const positions = this.network.getPositions();
+        const edges = [];
+        this.networkData.edges.forEach(e => edges.push(e));
+
+        // Line segment intersection test (excludes shared endpoints)
+        const cross = (a, b, c, d) => {
+            const det = (c.x - a.x) * (d.y - a.y) - (d.x - a.x) * (c.y - a.y);
+            const det2 = (c.x - b.x) * (d.y - b.y) - (d.x - b.x) * (c.y - b.y);
+            if (det * det2 >= 0) return false;
+            const det3 = (a.x - c.x) * (b.y - c.y) - (b.x - c.x) * (a.y - c.y);
+            const det4 = (a.x - d.x) * (b.y - d.y) - (b.x - d.x) * (a.y - d.y);
+            return det3 * det4 < 0;
+        };
+
+        const countCrossings = () => {
+            let n = 0;
+            for (let i = 0; i < edges.length; i++) {
+                for (let j = i + 1; j < edges.length; j++) {
+                    const e1 = edges[i], e2 = edges[j];
+                    if (e1.from === e2.from || e1.from === e2.to || e1.to === e2.from || e1.to === e2.to) continue;
+                    const p1 = positions[e1.from], p2 = positions[e1.to], p3 = positions[e2.from], p4 = positions[e2.to];
+                    if (p1 && p2 && p3 && p4 && cross(p1, p2, p3, p4)) n++;
+                }
+            }
+            return n;
+        };
+
+        let crossings = countCrossings();
+        if (crossings === 0) return;
+
+        // Try swapping pairs of nodes to reduce crossings
+        const nodeIds = Object.keys(positions);
+        let improved = true;
+        while (improved && crossings > 0) {
+            improved = false;
+            for (let i = 0; i < nodeIds.length && !improved; i++) {
+                for (let j = i + 1; j < nodeIds.length && !improved; j++) {
+                    const a = nodeIds[i], b = nodeIds[j];
+                    // Swap positions
+                    const tmp = { x: positions[a].x, y: positions[a].y };
+                    positions[a] = { x: positions[b].x, y: positions[b].y };
+                    positions[b] = tmp;
+
+                    const newCrossings = countCrossings();
+                    if (newCrossings < crossings) {
+                        crossings = newCrossings;
+                        improved = true;
+                    } else {
+                        // Undo swap
+                        const tmp2 = { x: positions[a].x, y: positions[a].y };
+                        positions[a] = { x: positions[b].x, y: positions[b].y };
+                        positions[b] = tmp2;
+                    }
+                }
+            }
+        }
+
+        // Apply resolved positions
+        for (const nodeId of nodeIds) {
+            this.network.moveNode(nodeId, positions[nodeId].x, positions[nodeId].y);
+        }
     }
 
     updateNetworkStyle() {
