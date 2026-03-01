@@ -9306,9 +9306,25 @@ Results:
         else if (transGene && transMode !== 'none') suffix = `_${transGene}`;
         const filename = `scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`;
 
-        // Use layout dimensions for export (not offsetWidth which may be constrained by modal CSS)
-        const w = plotEl.layout.width || plotEl.offsetWidth;
-        const h = plotEl.layout.height || plotEl.offsetHeight;
+        // Calculate export dimensions: desired plot area + Plotly's actual computed margins.
+        // Plotly auto-expands margins for legends, which shrinks the plot area. By reading
+        // the actual margins from _fullLayout._size and adding them to the desired plot area,
+        // the re-render will produce the correct plot area dimensions.
+        const desiredW = parseInt(document.getElementById('plotWidth')?.value) || 400;
+        const desiredH = parseInt(document.getElementById('plotHeight')?.value) || 400;
+        const size = plotEl._fullLayout?._size;
+        let w, h;
+        if (size) {
+            const leftMargin = size.l;
+            const rightMargin = plotEl._fullLayout.width - size.l - size.w;
+            const topMargin = size.t;
+            const bottomMargin = plotEl._fullLayout.height - size.t - size.h;
+            w = desiredW + leftMargin + rightMargin;
+            h = desiredH + topMargin + bottomMargin;
+        } else {
+            w = plotEl.layout.width || plotEl.offsetWidth;
+            h = plotEl.layout.height || plotEl.offsetHeight;
+        }
 
         // Read export settings
         const transparentBg = document.getElementById('exportTransparentBg')?.checked;
@@ -9348,6 +9364,8 @@ Results:
                         const raw = commaIdx > -1 ? dataUrl.substring(commaIdx + 1) : dataUrl;
                         try { svgString = decodeURIComponent(raw); } catch(e) { svgString = raw; }
                     }
+                    // Remove Plotly's legend clip path which can crop long legend text
+                    svgString = svgString.replace(/<clipPath\s+id="legend[^"]*">.*?<\/clipPath>/g, '');
                     const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
