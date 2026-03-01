@@ -7979,7 +7979,7 @@ Results:
                 zerolinecolor: '#ddd'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 140 : 30, b: colorByCategory ? 100 : 60, l: 60 },
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 190 : 30, b: colorByCategory ? 100 : 60, l: 60, autoexpand: false },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: colorByCategory ? {
                 orientation: 'h',
@@ -7995,9 +7995,9 @@ Results:
                 entrywidth: 120,
                 entrywidthmode: 'pixels'
             } : {
-                x: 0.98,
-                y: 0.98,
-                xanchor: 'right',
+                x: 1.02,
+                y: 1,
+                xanchor: 'left',
                 yanchor: 'top',
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
