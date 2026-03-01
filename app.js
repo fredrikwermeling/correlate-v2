@@ -328,6 +328,43 @@ class CorrelationExplorer {
         }
     }
 
+    updateGeSubtypeFilter() {
+        const lineage = document.getElementById('geTissueFilter')?.value;
+        const subSelect = document.getElementById('geSubtypeFilter');
+        if (!subSelect) return;
+
+        if (!lineage || !this.cellLineMetadata?.primaryDisease) {
+            subSelect.style.display = 'none';
+            subSelect.innerHTML = '<option value="">All subtypes</option>';
+            return;
+        }
+
+        // Gather primaryDisease counts from ALL cell lines in this lineage
+        const cellLines = this.metadata?.cellLines || [];
+        const subtypeCounts = {};
+        let lineageTotal = 0;
+        cellLines.forEach(cl => {
+            if ((this.cellLineMetadata?.lineage?.[cl] || '') !== lineage) return;
+            lineageTotal++;
+            const subtype = this.cellLineMetadata.primaryDisease[cl] || '';
+            if (subtype) {
+                subtypeCounts[subtype] = (subtypeCounts[subtype] || 0) + 1;
+            }
+        });
+
+        const subtypes = Object.keys(subtypeCounts).sort();
+        if (subtypes.length > 1) {
+            subSelect.innerHTML = `<option value="">All subtypes (n=${lineageTotal})</option>`;
+            subtypes.forEach(sub => {
+                subSelect.innerHTML += `<option value="${sub}">${sub} (n=${subtypeCounts[sub]})</option>`;
+            });
+            subSelect.style.display = '';
+        } else {
+            subSelect.style.display = 'none';
+            subSelect.innerHTML = '<option value="">All subtypes</option>';
+        }
+    }
+
     updateHotspotCountsForCurrentFilters() {
         if (this.mutations?.geneData) {
             this.updateParamHotspotGeneCounts();
@@ -1521,10 +1558,17 @@ class CorrelationExplorer {
             }
         });
         document.getElementById('geTissueFilter')?.addEventListener('change', () => {
+            this.updateGeSubtypeFilter();
             if (this.geneEffectViewMode === 'mutation' && this.mutationResults && this.currentGeneEffectGene) {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             } else {
                 this.switchGeneEffectView(this.currentGEView || 'tissue');
+            }
+        });
+        // Inspect-level subtype filter
+        document.getElementById('geSubtypeFilter')?.addEventListener('change', () => {
+            if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
+                this.showGeneEffectDistribution(this.currentGeneEffectGene);
             }
         });
         // Inspect-level hotspot filter
@@ -1562,6 +1606,9 @@ class CorrelationExplorer {
         });
         document.getElementById('geResetFiltersBtn')?.addEventListener('click', () => {
             document.getElementById('geTissueFilter').value = '';
+            document.getElementById('geSubtypeFilter').value = '';
+            const geSubEl = document.getElementById('geSubtypeFilter');
+            if (geSubEl) geSubEl.style.display = 'none';
             document.getElementById('geHotspotFilter').value = '';
             document.getElementById('geFusionFilter').value = '';
             // Clear analysis-level filters so inspect truly shows ALL cell lines
@@ -3328,6 +3375,9 @@ class CorrelationExplorer {
         const inspectFusion = document.getElementById('geFusionFilter')?.value || '';
         const inspFusionData = inspectFusion ? this.translocations?.geneData?.[inspectFusion]?.translocations : null;
 
+        // Compute inspect-level subtype filter
+        const inspectSubtype = document.getElementById('geSubtypeFilter')?.value || '';
+
         // Collect data for each cell line
         const cellLines = this.metadata.cellLines;
         const data = { wt: [], mut1: [], mut2: [] };
@@ -3350,9 +3400,14 @@ class CorrelationExplorer {
                 }
             }
 
-            // Check sublineage filter
+            // Check sublineage filter (analysis-level)
             if (!inspectTissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) {
                 return;
+            }
+
+            // Check inspect-level subtype filter
+            if (inspectSubtype && this.cellLineMetadata?.primaryDisease) {
+                if (this.cellLineMetadata.primaryDisease[cellLine] !== inspectSubtype) return;
             }
 
             // Check additional hotspot filter
@@ -3550,7 +3605,12 @@ class CorrelationExplorer {
             filterInfo.push(`Lineage: ${lineageText}`);
         }
         if (inspectTissueFilter) {
-            filterInfo.push(`Tissue: ${inspectTissueFilter}`);
+            let tissueText = `Tissue: ${inspectTissueFilter}`;
+            if (inspectSubtype) tissueText += ` (${inspectSubtype})`;
+            filterInfo.push(tissueText);
+        }
+        if (inspectSubtype && !inspectTissueFilter) {
+            filterInfo.push(`Subtype: ${inspectSubtype}`);
         }
         if (mr.excludedTissues && mr.excludedTissues.size > 0 && !inspectTissueFilter) {
             const allLineages = this.cellLineMetadata?.lineage
@@ -3627,6 +3687,18 @@ class CorrelationExplorer {
                 tHtml += `<option value="${l}"${sel}>${l}</option>`;
             }
             tissueFilterEl.innerHTML = tHtml;
+
+            // Pre-select lineage filter from analysis params if no inspect override
+            if (!inspectTissueFilter && mr.lineageFilter) {
+                tissueFilterEl.value = mr.lineageFilter;
+                this.updateGeSubtypeFilter();
+                if (mr.subLineageFilter) {
+                    const geSubEl = document.getElementById('geSubtypeFilter');
+                    if (geSubEl) geSubEl.value = mr.subLineageFilter;
+                }
+            } else {
+                this.updateGeSubtypeFilter();
+            }
         }
 
         // Populate inspect-level hotspot filter dropdown
@@ -9081,15 +9153,21 @@ Results:
         const data = this.getGETissueFilteredData();
         const gene = this.currentGeneEffect.gene;
 
+        // Determine if we should group by subtype (when a lineage filter is active)
+        const tissueFilter = document.getElementById('geTissueFilter')?.value;
+        const groupBySubtype = !!tissueFilter && !!this.cellLineMetadata?.primaryDisease;
+
         // Get all gene effects for comparison
         const allEffects = data.map(d => d.geneEffect);
 
-        // Group data by cancer type (keep full data for box plots)
+        // Group data by cancer type or subtype
         const groupedData = {};
         data.forEach(d => {
-            const lineage = d.lineage || 'Unknown';
-            if (!groupedData[lineage]) groupedData[lineage] = [];
-            groupedData[lineage].push({
+            const groupKey = groupBySubtype
+                ? (this.cellLineMetadata.primaryDisease[d.cellLineId] || 'Unknown')
+                : (d.lineage || 'Unknown');
+            if (!groupedData[groupKey]) groupedData[groupKey] = [];
+            groupedData[groupKey].push({
                 geneEffect: d.geneEffect,
                 cellLineName: d.cellLineName || d.cellLineId,
                 cellLineId: d.cellLineId
@@ -9098,18 +9176,23 @@ Results:
 
         // Calculate stats for each group including p-value vs all cells
         const stats = [];
-        Object.entries(groupedData).forEach(([lineage, cellData]) => {
+        Object.entries(groupedData).forEach(([groupName, cellData]) => {
             if (cellData.length >= 3) {
                 const effects = cellData.map(c => c.geneEffect);
                 const mean = effects.reduce((a, b) => a + b, 0) / effects.length;
                 const sd = Math.sqrt(effects.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / effects.length);
 
                 // Calculate p-value comparing this group to all other cells
-                const otherEffects = data.filter(d => (d.lineage || 'Unknown') !== lineage).map(d => d.geneEffect);
+                const otherEffects = data.filter(d => {
+                    const key = groupBySubtype
+                        ? (this.cellLineMetadata.primaryDisease[d.cellLineId] || 'Unknown')
+                        : (d.lineage || 'Unknown');
+                    return key !== groupName;
+                }).map(d => d.geneEffect);
                 const tTest = this.welchTTest(effects, otherEffects);
 
                 stats.push({
-                    group: lineage,
+                    group: groupName,
                     n: cellData.length,
                     mean,
                     sd,
@@ -9123,7 +9206,7 @@ Results:
         stats.sort((a, b) => a.mean - b.mean);
         this.currentGEStats = stats;
 
-        // Create box plot traces for each cancer type
+        // Create box plot traces for each group
         const traces = stats.map((s, idx) => ({
             type: 'box',
             name: `${s.group} (n=${s.n})`,
@@ -9148,7 +9231,7 @@ Results:
         const chartHeight = Math.max(350, numEntries * boxHeight + 80);
 
         const layout = {
-            title: { text: `${gene} by Cancer Type`, font: { size: 13 } },
+            title: { text: `${gene} by ${groupBySubtype ? 'Disease Subtype' : 'Cancer Type'}`, font: { size: 13 } },
             xaxis: {
                 title: 'Gene Effect',
                 zeroline: true,
@@ -9178,6 +9261,7 @@ Results:
         }));
         tableStats.sort((a, b) => a.pValue - b.pValue); // Sort by p-value (low to high)
         this.currentGEStats = tableStats;
+        this._geGroupBySubtype = groupBySubtype;
         this.renderGETable(tableStats, 'tissue');
     }
 
@@ -9419,8 +9503,9 @@ Results:
         const sortIcon = ' ↕';
 
         if (mode === 'tissue') {
+            const groupLabel = this._geGroupBySubtype ? 'Disease Subtype' : 'Cancer Type';
             thead.innerHTML = `<tr>
-                <th style="${headerStyle}" data-sort="group" data-type="string">Cancer Type${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="group" data-type="string">${groupLabel}${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="n" data-type="number">N${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="mean" data-type="number">Mean GE${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="sd" data-type="number">SD${sortIcon}</th>
@@ -10181,17 +10266,31 @@ Results:
 
         const cellLines = this.metadata.cellLines;
         const inspectHotspot = document.getElementById('geHotspotFilter')?.value || '';
+        const inspectFusion = document.getElementById('geFusionFilter')?.value || '';
+        const inspFusionData = inspectFusion ? this.translocations?.geneData?.[inspectFusion]?.translocations : null;
+        const inspectSubtype = document.getElementById('geSubtypeFilter')?.value || '';
+
+        // Determine if we should group by subtype (when a lineage filter is active)
+        const activeTissueFilter = document.getElementById('geTissueFilter')?.value || '';
+        const activeLineage = activeTissueFilter || mr.lineageFilter;
+        const groupBySubtype = !!activeLineage && !!this.cellLineMetadata?.primaryDisease;
 
         // Gather cell lines respecting all filters
-        const lineageMap = {};
+        const groupMap = {};
         const allWT = [], allMut = [];
         cellLines.forEach((cellLine, idx) => {
-            if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
-            if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
-            if (mr.excludedTissues && mr.excludedTissues.size > 0) {
-                const lineage = this.cellLineMetadata?.lineage?.[cellLine];
-                if (lineage && mr.excludedTissues.has(lineage)) return;
+            // Apply tissue/lineage filters
+            if (activeTissueFilter) {
+                if ((this.cellLineMetadata?.lineage?.[cellLine] || '') !== activeTissueFilter) return;
+            } else {
+                if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
+                if (mr.excludedTissues && mr.excludedTissues.size > 0) {
+                    const lineage = this.cellLineMetadata?.lineage?.[cellLine];
+                    if (lineage && mr.excludedTissues.has(lineage)) return;
+                }
             }
+            if (!activeTissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations.geneData[mr.additionalHotspot];
                 if (addMutData) {
@@ -10209,17 +10308,22 @@ Results:
                     if (inspMutLevel === 0) return;
                 }
             }
+            if (inspectFusion && inspFusionData) {
+                if ((inspFusionData[cellLine] || 0) < 1) return;
+            }
 
             const ge = this.geneEffects[geneIdx * this.nCellLines + idx];
             if (isNaN(ge)) return;
 
-            const lineage = this.cellLineMetadata?.lineage?.[cellLine] || 'Unknown';
+            const groupKey = groupBySubtype
+                ? (this.cellLineMetadata.primaryDisease[cellLine] || 'Unknown')
+                : (this.cellLineMetadata?.lineage?.[cellLine] || 'Unknown');
             const mutLevel = isTranslocation
                 ? (mutationData.translocations[cellLine] || 0)
                 : (mutationData.mutations[cellLine] || 0);
-            if (!lineageMap[lineage]) lineageMap[lineage] = { wt: [], mut: [] };
-            if (mutLevel === 0) { lineageMap[lineage].wt.push(ge); allWT.push(ge); }
-            else { lineageMap[lineage].mut.push(ge); allMut.push(ge); }
+            if (!groupMap[groupKey]) groupMap[groupKey] = { wt: [], mut: [] };
+            if (mutLevel === 0) { groupMap[groupKey].wt.push(ge); allWT.push(ge); }
+            else { groupMap[groupKey].mut.push(ge); allMut.push(ge); }
         });
 
         // Build rows
@@ -10230,18 +10334,19 @@ Results:
             const meanMut = allMut.reduce((a, b) => a + b, 0) / allMut.length;
             rows.push({ label: 'All', nWT: allWT.length, nMut: allMut.length, delta: meanMut - meanWT, isAll: true, tissue: '' });
         }
-        Object.entries(lineageMap).forEach(([lineage, groups]) => {
+        Object.entries(groupMap).forEach(([group, groups]) => {
             if (groups.wt.length > 0 && groups.mut.length > 0) {
                 const meanWT = groups.wt.reduce((a, b) => a + b, 0) / groups.wt.length;
                 const meanMut = groups.mut.reduce((a, b) => a + b, 0) / groups.mut.length;
-                rows.push({ label: lineage, nWT: groups.wt.length, nMut: groups.mut.length, delta: meanMut - meanWT, tissue: lineage });
+                rows.push({ label: group, nWT: groups.wt.length, nMut: groups.mut.length, delta: meanMut - meanWT, tissue: group });
             }
         });
 
         const allRow = rows.filter(r => r.isAll);
         const otherRows = rows.filter(r => !r.isAll).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-        this._inlineCompareData = { title: `${gene} — Δ GE by Tissue (${hotspotGene} WT vs ${mutLabel})`, headers: ['Tissue', 'N(WT)', `N(${mutLabel})`, 'Δ GE'], refRows: allRow, sortableRows: otherRows, mode: 'tissue' };
+        const groupLabel = groupBySubtype ? 'Subtype' : 'Tissue';
+        this._inlineCompareData = { title: `${gene} — Δ GE by ${groupLabel} (${hotspotGene} WT vs ${mutLabel})`, headers: [groupLabel, 'N(WT)', `N(${mutLabel})`, 'Δ GE'], refRows: allRow, sortableRows: otherRows, mode: 'tissue' };
         this._renderInlineCompareTable();
     }
 
@@ -10263,6 +10368,7 @@ Results:
 
         const cellLines = this.metadata.cellLines;
         const tissueFilter = document.getElementById('geTissueFilter')?.value || '';
+        const inspectSubtype = document.getElementById('geSubtypeFilter')?.value || '';
 
         const baseCells = [];
         cellLines.forEach((cellLine, idx) => {
@@ -10277,6 +10383,7 @@ Results:
                 }
             }
             if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
@@ -10347,6 +10454,7 @@ Results:
 
         const cellLines = this.metadata.cellLines;
         const tissueFilter = document.getElementById('geTissueFilter')?.value || '';
+        const inspectSubtype = document.getElementById('geSubtypeFilter')?.value || '';
 
         const baseCells = [];
         cellLines.forEach((cellLine, idx) => {
@@ -10361,6 +10469,7 @@ Results:
                 }
             }
             if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
@@ -10494,7 +10603,21 @@ Results:
     }
 
     onInlineCompareTissueClick(tissue) {
+        // If we're in subtype grouping mode, set the subtype filter instead
+        const activeTissueFilter = document.getElementById('geTissueFilter')?.value || '';
+        const activeLineage = activeTissueFilter || this.mutationResults?.lineageFilter;
+        if (activeLineage && this.cellLineMetadata?.primaryDisease) {
+            // Check if the clicked value is a subtype (not a lineage)
+            const lineages = this.cellLineMetadata?.lineage ? new Set(Object.values(this.cellLineMetadata.lineage)) : new Set();
+            if (!lineages.has(tissue)) {
+                document.getElementById('geSubtypeFilter').value = tissue;
+                this._keepInlineCompare = true;
+                this.showGeneEffectDistribution(this.currentGeneEffectGene);
+                return;
+            }
+        }
         document.getElementById('geTissueFilter').value = tissue;
+        this.updateGeSubtypeFilter();
         this._keepInlineCompare = true;
         this.showGeneEffectDistribution(this.currentGeneEffectGene);
     }
@@ -11181,9 +11304,19 @@ Results:
 
         const cellLines = this.metadata.cellLines;
 
-        // Build tissue -> { cellLine indices by mutation status } map
-        const tissueMap = {};
+        // Determine if we should group by subtype (when a lineage filter is active)
+        const groupBySubtype = !!(mr.lineageFilter) && !!this.cellLineMetadata?.primaryDisease;
+
+        // Build group -> { cellLine indices by mutation status } map
+        const groupMap = {};
         cellLines.forEach((cellLine, idx) => {
+            // Apply lineage/sublineage filters from analysis params
+            if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
+            if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (mr.excludedTissues && mr.excludedTissues.size > 0) {
+                const lineage = this.cellLineMetadata?.lineage?.[cellLine];
+                if (lineage && mr.excludedTissues.has(lineage)) return;
+            }
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
@@ -11194,34 +11327,37 @@ Results:
                     if (mr.additionalHotspotLevel === '1+2' && addMutLevel === 0) return;
                 }
             }
-            const lineage = this.cellLineMetadata?.lineage?.[cellLine] || 'Unknown';
+            const groupKey = groupBySubtype
+                ? (this.cellLineMetadata.primaryDisease[cellLine] || 'Unknown')
+                : (this.cellLineMetadata?.lineage?.[cellLine] || 'Unknown');
             const mutLevel = isTranslocation
                 ? (mutationData.translocations[cellLine] || 0)
                 : (mutationData.mutations[cellLine] || 0);
-            if (!tissueMap[lineage]) tissueMap[lineage] = { wt: [], mut: [], total: 0 };
-            tissueMap[lineage].total++;
-            if (mutLevel === 0) tissueMap[lineage].wt.push(idx);
-            else tissueMap[lineage].mut.push(idx);
+            if (!groupMap[groupKey]) groupMap[groupKey] = { wt: [], mut: [], total: 0 };
+            groupMap[groupKey].total++;
+            if (mutLevel === 0) groupMap[groupKey].wt.push(idx);
+            else groupMap[groupKey].mut.push(idx);
         });
 
         // Also build "All" column
         const allWT = [], allMut = [];
-        Object.values(tissueMap).forEach(t => { allWT.push(...t.wt); allMut.push(...t.mut); });
+        Object.values(groupMap).forEach(t => { allWT.push(...t.wt); allMut.push(...t.mut); });
 
-        // Build columns: "All" + each tissue
+        // Build columns: "All" + each group
         const cols = [{ label: 'All', wtIdx: allWT, mutIdx: allMut, totalCells: allWT.length + allMut.length, nWT: allWT.length, nMut: allMut.length, isRef: true }];
-        Object.entries(tissueMap).forEach(([tissue, data]) => {
-            cols.push({ label: tissue, wtIdx: data.wt, mutIdx: data.mut, totalCells: data.total, nWT: data.wt.length, nMut: data.mut.length, tissue });
+        Object.entries(groupMap).forEach(([group, data]) => {
+            cols.push({ label: group, wtIdx: data.wt, mutIdx: data.mut, totalCells: data.total, nWT: data.wt.length, nMut: data.mut.length, tissue: group });
         });
 
         const typeLabel = isTranslocation ? 'Translocation/Fusion' : 'Hotspot Mutational';
+        const groupLabel = groupBySubtype ? 'Subtype' : 'Tissue';
         // Store data for rendering
         this._compareModalData = {
             cols,
             genes: mr.significantResults.map(r => r.gene),
             hotspotGene,
             mode: 'tissue',
-            title: `Compare by Tissue — ${hotspotGene} ${typeLabel} Analysis`,
+            title: `Compare by ${groupLabel} — ${hotspotGene} ${typeLabel} Analysis`,
             isTranslocation
         };
         this._compareModalMode = 'tissue';
@@ -11286,22 +11422,6 @@ Results:
                 cols.push({ label: hGene, wtIdx: wt, mutIdx: mut, totalCells: filtered.length, nWT: wt.length, nMut: mut.length, hotspot: hGene });
             }
         });
-
-        // Also include translocation genes
-        if (this.translocations?.genes) {
-            this.translocations.genes.forEach(tGene => {
-                if (tGene === mainHotspot && isTranslocation) return;
-                if (this.mutations?.genes?.includes(tGene) && !isTranslocation) return;
-                const tData = this.translocations.geneData[tGene];
-                if (!tData) return;
-                const filtered = baseCells.filter(c => (tData.translocations[c.cellLine] || 0) >= 1);
-                const wt = filtered.filter(c => c.mainMut === 0).map(c => c.idx);
-                const mut = filtered.filter(c => c.mainMut >= 1).map(c => c.idx);
-                if (wt.length > 0 || mut.length > 0) {
-                    cols.push({ label: `${tGene} (fusion)`, wtIdx: wt, mutIdx: mut, totalCells: filtered.length, nWT: wt.length, nMut: mut.length, hotspot: tGene });
-                }
-            });
-        }
 
         const typeLabel = isTranslocation ? 'Translocation/Fusion' : 'Hotspot Mutational';
         this._compareModalData = {
