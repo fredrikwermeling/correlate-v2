@@ -7979,7 +7979,7 @@ Results:
                 zerolinecolor: '#ddd'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: 30, b: colorByCategory ? 100 : 60, l: 60 },
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 140 : 30, b: colorByCategory ? 100 : 60, l: 60 },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: colorByCategory ? {
                 orientation: 'h',
@@ -9306,9 +9306,9 @@ Results:
         else if (transGene && transMode !== 'none') suffix = `_${transGene}`;
         const filename = `scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`;
 
-        // Use on-screen dimensions for export
-        const w = plotEl.offsetWidth;
-        const h = plotEl.offsetHeight;
+        // Use layout dimensions for export (not offsetWidth which may be constrained by modal CSS)
+        const w = plotEl.layout.width || plotEl.offsetWidth;
+        const h = plotEl.layout.height || plotEl.offsetHeight;
 
         // Read export settings
         const transparentBg = document.getElementById('exportTransparentBg')?.checked;
