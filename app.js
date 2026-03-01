@@ -9310,15 +9310,36 @@ Results:
         const transparentBg = document.getElementById('exportTransparentBg')?.checked;
         const whitePlotBg = document.getElementById('exportWhitePlotBg')?.checked;
 
-        // Clone the on-screen SVG directly — this captures exactly what the user sees,
+        // Clone the on-screen SVGs directly — this captures exactly what the user sees,
         // avoiding Plotly.toImage re-rendering which auto-adjusts margins and clips legends.
-        const svgEl = plotEl.querySelector('svg.main-svg');
-        if (!svgEl) return;
-        const clonedSvg = svgEl.cloneNode(true);
+        // Plotly creates TWO <svg class="main-svg"> elements:
+        //   1st: background, plot data, axes, tick labels
+        //   2nd: infolayer overlay (legend, axis titles, title annotation)
+        // We merge both into a single SVG for export.
+        const svgEls = plotEl.querySelectorAll('svg.main-svg');
+        if (!svgEls.length) return;
+        const clonedSvg = svgEls[0].cloneNode(true);
+
+        // Merge the second SVG's children (infolayer) into the cloned first SVG
+        if (svgEls.length > 1) {
+            const overlaySvg = svgEls[1];
+            for (const child of overlaySvg.childNodes) {
+                clonedSvg.appendChild(child.cloneNode(true));
+            }
+        }
 
         // Ensure standalone SVG attributes
         clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
         clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+        // Remove any legend clip-path that might crop legend text
+        const legendScrollbox = clonedSvg.querySelector('.legend .scrollbox');
+        if (legendScrollbox) {
+            legendScrollbox.removeAttribute('clip-path');
+        }
+        // Also remove the clipPath definition for the legend
+        const legendClipPaths = clonedSvg.querySelectorAll('clipPath[id^="legend"]');
+        legendClipPaths.forEach(cp => cp.remove());
 
         // Apply background settings to the clone
         const rects = clonedSvg.querySelectorAll('rect');
