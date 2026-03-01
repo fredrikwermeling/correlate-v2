@@ -7736,7 +7736,8 @@ Results:
                     hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                     marker: { color: color, size: 8, opacity: 0.8 },
                     name: `${cat} (${catData.length})`,
-                    showlegend: false
+                    legendgroup: cat,
+                    showlegend: true
                 });
             });
         } else {
@@ -7880,8 +7881,8 @@ Results:
                 constrain: 'domain'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 140 : 30, b: 60, l: 60 },
-            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene),
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || colorByCategories) ? 140 : 30, b: 60, l: 60 },
+            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategories,
             legend: {
                 x: 0.98,
                 y: 0.98,
@@ -7890,8 +7891,8 @@ Results:
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
-                font: { size: 11 }
+                title: { text: colorByCategories ? (colorByCategory === 'subtype' ? 'Subtype' : 'Tissue') : (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
+                font: { size: 10 }
             },
             annotations: annotations,
             plot_bgcolor: '#fafafa'
@@ -8047,7 +8048,7 @@ Results:
                         hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                         marker: { color: ci < colors.length ? colors[ci] : '#999', size: cfg.size, opacity: 0.8 },
                         name: `${cat} (${catData.length})`,
-                        showlegend: false,
+                        showlegend: i === 0,
                         legendgroup: cat
                     });
                 });
@@ -8199,7 +8200,18 @@ Results:
                   showarrow: false, font: { size: 9 } },
                 ...threePanelHighlightAnnotations
             ],
-            margin: { t: filterDesc ? 160 : 140, r: 30, b: 60, l: 60 },
+            margin: { t: filterDesc ? 160 : 140, r: categoryOrder ? 140 : 30, b: 60, l: 60 },
+            showlegend: !!categoryOrder,
+            legend: {
+                x: 1.02,
+                y: 1,
+                xanchor: 'left',
+                yanchor: 'top',
+                bgcolor: 'rgba(255,255,255,0.85)',
+                bordercolor: '#ddd',
+                borderwidth: 1,
+                font: { size: 10 }
+            },
             plot_bgcolor: '#fafafa'
         };
 
