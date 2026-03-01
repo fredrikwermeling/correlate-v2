@@ -7347,7 +7347,7 @@ Results:
             const tFused = filteredData.filter(d => d.translocationLevel >= 1);
             const tWTStats = this.pearsonWithSlope(tWT.map(d => d.x), tWT.map(d => d.y));
             const tFusedStats = this.pearsonWithSlope(tFused.map(d => d.x), tFused.map(d => d.y));
-            titleLines.push(`<span style="font-size:10px;"><b>${transOverlayGene} (fusion):</b> No fusion: n=${tWT.length}, r=${tWTStats.correlation.toFixed(3)} | ` +
+            titleLines.push(`<span style="font-size:10px;">${transOverlayGene} (fusion): No fusion: n=${tWT.length}, r=${tWTStats.correlation.toFixed(3)} | ` +
                 `Fused: n=${tFused.length}, r=${tFusedStats.correlation.toFixed(3)}</span>`);
         }
 
@@ -7382,14 +7382,18 @@ Results:
                 constrain: 'domain'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: 150, b: 60, l: 60 },
+            margin: { t: topMargin, r: 30, b: 60, l: 60 },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene),
             legend: {
-                x: 1.02,
-                y: 0.5,
-                xanchor: 'left',
-                yanchor: 'middle',
-                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 12 } }
+                x: 0.98,
+                y: 0.98,
+                xanchor: 'right',
+                yanchor: 'top',
+                bgcolor: 'rgba(255,255,255,0.85)',
+                bordercolor: '#ddd',
+                borderwidth: 1,
+                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
+                font: { size: 11 }
             },
             annotations: annotations,
             plot_bgcolor: '#fafafa'
