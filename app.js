@@ -337,6 +337,23 @@ class CorrelationExplorer {
         }
     }
 
+    _styleActiveFilters() {
+        const ids = ['scatterCancerFilter', 'scatterSubtypeFilter', 'colorByCategory'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.value) {
+                el.style.borderColor = '#3b82f6';
+                el.style.background = '#eff6ff';
+                el.style.fontWeight = '600';
+            } else {
+                el.style.borderColor = '';
+                el.style.background = '';
+                el.style.fontWeight = '';
+            }
+        });
+    }
+
     updateGeSubtypeFilter() {
         const lineage = document.getElementById('geTissueFilter')?.value;
         const subSelect = document.getElementById('geSubtypeFilter');
@@ -1551,6 +1568,7 @@ class CorrelationExplorer {
             this.clickedCells.clear();
             this._userLabelPositions.clear();
             document.getElementById('colorByCategory').value = '';
+            this._styleActiveFilters();
             this.updateInspectPlot();
         });
 
@@ -1563,7 +1581,10 @@ class CorrelationExplorer {
         });
 
         document.getElementById('scatterCellSearch').addEventListener('input', () => this.updateInspectPlot());
-        document.getElementById('colorByCategory').addEventListener('change', () => this.updateInspectPlot());
+        document.getElementById('colorByCategory').addEventListener('change', () => {
+            this._styleActiveFilters();
+            this.updateInspectPlot();
+        });
         document.getElementById('scatterCancerFilter').addEventListener('change', () => {
             this.updateScatterSubtypeFilter();
             // Show/hide "Color by subtype" option based on whether a tissue is selected
@@ -1575,9 +1596,13 @@ class CorrelationExplorer {
                     document.getElementById('colorByCategory').value = '';
                 }
             }
+            this._styleActiveFilters();
             this.updateInspectPlot();
         });
-        document.getElementById('scatterSubtypeFilter').addEventListener('change', () => this.updateInspectPlot());
+        document.getElementById('scatterSubtypeFilter').addEventListener('change', () => {
+            this._styleActiveFilters();
+            this.updateInspectPlot();
+        });
         document.getElementById('mutationFilterGene').addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('mutationFilterLevel').addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('hotspotGene').addEventListener('change', () => this.updateInspectPlot());
@@ -7310,6 +7335,7 @@ Results:
         // Show/hide subtype option based on initial cancer filter
         const subtypeOpt = document.getElementById('colorBySubtypeOption');
         if (subtypeOpt) subtypeOpt.style.display = (paramLineageFilter && lineages.includes(paramLineageFilter)) ? '' : 'none';
+        this._styleActiveFilters();
 
         // Populate hotspot genes
         // Count mutations based on cell lines with valid data (plotData)
@@ -7442,6 +7468,7 @@ Results:
         // Reset color-by
         document.getElementById('colorByCategory').value = '';
 
+        this._styleActiveFilters();
         // Update the plot
         this.updateInspectPlot();
     }
@@ -7737,7 +7764,7 @@ Results:
                     marker: { color: color, size: 8, opacity: 0.8 },
                     name: `${cat} (${catData.length})`,
                     legendgroup: cat,
-                    showlegend: true
+                    showlegend: false
                 });
             });
         } else {
@@ -7824,25 +7851,21 @@ Results:
         const medianX = this.median(filteredData.map(d => d.x));
         const medianY = this.median(filteredData.map(d => d.y));
 
-        // Build title with all stats (like 3-panel style)
+        // Build title - condensed to avoid overlapping with data
         let titleLines = [`<b>${gene1} vs ${gene2}</b>`];
         if (filterDesc) {
-            titleLines.push(`<span style="font-size:11px;color:#666;">Filter: ${filterDesc}</span>`);
+            titleLines.push(`<span style="font-size:10px;color:#666;">${filterDesc}</span>`);
         }
-        titleLines.push(`<span style="font-size:11px;">n=${filteredData.length}, r=${allStats.correlation.toFixed(3)}, slope=${allStats.slope.toFixed(3)}</span>`);
-        titleLines.push(`<span style="font-size:10px;">mean: x=${meanX.toFixed(2)}, y=${meanY.toFixed(2)} | median: x=${medianX.toFixed(2)}, y=${medianY.toFixed(2)}</span>`);
+        titleLines.push(`<span style="font-size:10px;">n=${filteredData.length}, r=${allStats.correlation.toFixed(3)}, slope=${allStats.slope.toFixed(3)} | mean(${meanX.toFixed(2)}, ${meanY.toFixed(2)}) med(${medianX.toFixed(2)}, ${medianY.toFixed(2)})</span>`);
 
         if (hotspotMode === 'color' && hotspotGene) {
-            titleLines.push(`<span style="font-size:10px;"><b>${hotspotGene}:</b> WT: n=${wt.length}, r=${wtStats.correlation.toFixed(3)}, slope=${wtStats.slope.toFixed(3)} | ` +
-                `1mut: n=${mut1.length}, r=${mut1Stats.correlation.toFixed(3)}, slope=${mut1Stats.slope.toFixed(3)} | ` +
-                `2mut: n=${mut2.length}, r=${mut2Stats.correlation.toFixed(3)}, slope=${mut2Stats.slope.toFixed(3)}</span>`);
+            titleLines.push(`<span style="font-size:10px;"><b>${hotspotGene}:</b> WT n=${wt.length} r=${wtStats.correlation.toFixed(3)} | 1mut n=${mut1.length} r=${mut1Stats.correlation.toFixed(3)} | 2mut n=${mut2.length} r=${mut2Stats.correlation.toFixed(3)}</span>`);
         } else if (transOverlayMode === 'color' && transOverlayGene) {
             const tWT = filteredData.filter(d => d.translocationLevel === 0);
             const tFused = filteredData.filter(d => d.translocationLevel >= 1);
             const tWTStats = this.pearsonWithSlope(tWT.map(d => d.x), tWT.map(d => d.y));
             const tFusedStats = this.pearsonWithSlope(tFused.map(d => d.x), tFused.map(d => d.y));
-            titleLines.push(`<span style="font-size:10px;">${transOverlayGene} (fusion): No fusion: n=${tWT.length}, r=${tWTStats.correlation.toFixed(3)} | ` +
-                `Fused: n=${tFused.length}, r=${tFusedStats.correlation.toFixed(3)}</span>`);
+            titleLines.push(`<span style="font-size:10px;">${transOverlayGene}: No fusion n=${tWT.length} r=${tWTStats.correlation.toFixed(3)} | Fused n=${tFused.length} r=${tFusedStats.correlation.toFixed(3)}</span>`);
         }
 
         const titleText = titleLines.join('<br>');
@@ -7881,8 +7904,8 @@ Results:
                 constrain: 'domain'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || colorByCategories) ? 140 : 30, b: 60, l: 60 },
-            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategories,
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 140 : 30, b: 60, l: 60 },
+            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene),
             legend: {
                 x: 0.98,
                 y: 0.98,
@@ -7891,8 +7914,8 @@ Results:
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                title: { text: colorByCategories ? (colorByCategory === 'subtype' ? 'Subtype' : 'Tissue') : (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
-                font: { size: 10 }
+                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
+                font: { size: 11 }
             },
             annotations: annotations,
             plot_bgcolor: '#fafafa'
@@ -8048,7 +8071,7 @@ Results:
                         hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                         marker: { color: ci < colors.length ? colors[ci] : '#999', size: cfg.size, opacity: 0.8 },
                         name: `${cat} (${catData.length})`,
-                        showlegend: i === 0,
+                        showlegend: false,
                         legendgroup: cat
                     });
                 });
@@ -8200,18 +8223,7 @@ Results:
                   showarrow: false, font: { size: 9 } },
                 ...threePanelHighlightAnnotations
             ],
-            margin: { t: filterDesc ? 160 : 140, r: categoryOrder ? 140 : 30, b: 60, l: 60 },
-            showlegend: !!categoryOrder,
-            legend: {
-                x: 1.02,
-                y: 1,
-                xanchor: 'left',
-                yanchor: 'top',
-                bgcolor: 'rgba(255,255,255,0.85)',
-                bordercolor: '#ddd',
-                borderwidth: 1,
-                font: { size: 10 }
-            },
+            margin: { t: filterDesc ? 160 : 140, r: 30, b: 60, l: 60 },
             plot_bgcolor: '#fafafa'
         };
 
@@ -8492,6 +8504,7 @@ Results:
                 // Set cancer type filter
                 document.getElementById('scatterCancerFilter').value = lineage;
                 this.updateScatterSubtypeFilter();
+                this._styleActiveFilters();
                 // Keep the gene as color overlay
                 if (isFusion) {
                     document.getElementById('translocationGene').value = hotspotGene;
@@ -9104,6 +9117,7 @@ Results:
                 document.getElementById('compareTable').style.display = 'none';
                 document.getElementById('scatterPlot').style.display = 'block';
                 this.updateScatterSubtypeFilter();
+                this._styleActiveFilters();
                 this.updateInspectPlot();
             });
         });
@@ -9172,6 +9186,25 @@ Results:
         // Deep-copy data and layout from live chart
         const data = JSON.parse(JSON.stringify(plotEl.data));
         const layout = JSON.parse(JSON.stringify(plotEl.layout));
+
+        // Enable legend for color-by traces in export (hidden interactively)
+        const colorByCategory = document.getElementById('colorByCategory').value;
+        if (colorByCategory) {
+            const seen = new Set();
+            data.forEach(t => {
+                if (t.legendgroup && !seen.has(t.legendgroup)) {
+                    t.showlegend = true;
+                    seen.add(t.legendgroup);
+                }
+            });
+            layout.showlegend = true;
+            layout.legend = {
+                x: 1.02, y: 1, xanchor: 'left', yanchor: 'top',
+                bgcolor: 'rgba(255,255,255,0.85)', bordercolor: '#ddd', borderwidth: 1,
+                title: { text: colorByCategory === 'subtype' ? 'Subtype' : 'Tissue', font: { size: 11 } },
+                font: { size: 10 }
+            };
+        }
 
         // Increase right margin to prevent legend clipping in export
         const hasLegend = layout.showlegend !== false &&
@@ -9493,6 +9526,7 @@ Results:
             cancerBox.style.display = 'block';
             // Update subtype filter for the selected tissue
             this.updateScatterSubtypeFilter();
+            this._styleActiveFilters();
         } else {
             cancerBox.style.display = 'none';
             document.getElementById('scatterSubtypeFilter').style.display = 'none';
