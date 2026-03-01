@@ -118,6 +118,24 @@ class CorrelationExplorer {
         this.orthologs = await orthologsRes.json();
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
+            // Pre-compute fusion gene counts for fast dropdown population
+            if (this.translocations?.genes) {
+                const PRIO = CorrelationExplorer.PRIORITY_FUSION_GENES;
+                this._fusionGeneCounts = this.translocations.genes
+                    .map(g => {
+                        const td = this.translocations.geneData[g];
+                        let nFused = 0;
+                        if (td) { for (const v of Object.values(td.translocations)) { if (v >= 1) nFused++; } }
+                        return { gene: g, nFused };
+                    })
+                    .filter(x => x.nFused > 0)
+                    .sort((a, b) => {
+                        const aPri = PRIO.has(a.gene) ? 1 : 0;
+                        const bPri = PRIO.has(b.gene) ? 1 : 0;
+                        if (aPri !== bPri) return bPri - aPri;
+                        return b.nFused - a.nFused;
+                    });
+            }
         }
         // synonymLookup loaded lazily when "Find Synonyms" is clicked
 
@@ -3543,6 +3561,9 @@ class CorrelationExplorer {
         if (inspectHotspot) {
             filterInfo.push(`Also ${inspectHotspot}-mutated`);
         }
+        if (inspectFusion) {
+            filterInfo.push(`Also ${inspectFusion}-fused`);
+        }
         const lineageText = filterInfo.length > 0 ? filterInfo.join(' | ') : 'All lineages';
 
         // Build stats text for subtitle
@@ -3593,71 +3614,51 @@ class CorrelationExplorer {
         const tissueFilterEl = document.getElementById('geTissueFilter');
         if (tissueFilterEl) {
             const allLineages = [...new Set(cellLines.map(cl => this.cellLineMetadata?.lineage?.[cl]).filter(Boolean))].sort();
-            tissueFilterEl.innerHTML = '<option value="">All tissues</option>';
-            allLineages.forEach(l => {
-                const opt = document.createElement('option');
-                opt.value = l;
-                opt.textContent = l;
-                tissueFilterEl.appendChild(opt);
-            });
-            tissueFilterEl.value = inspectTissueFilter;
+            let tHtml = '<option value="">All tissues</option>';
+            for (const l of allLineages) {
+                const sel = l === inspectTissueFilter ? ' selected' : '';
+                tHtml += `<option value="${l}"${sel}>${l}</option>`;
+            }
+            tissueFilterEl.innerHTML = tHtml;
         }
 
         // Populate inspect-level hotspot filter dropdown
         const hotspotFilterEl = document.getElementById('geHotspotFilter');
         if (hotspotFilterEl && this.mutations?.genes) {
-            hotspotFilterEl.innerHTML = '<option value="">No hotspot filter</option>';
-            this.mutations.genes.forEach(g => {
-                if (g === hotspotGene) return; // Skip the main analysis hotspot
-                const opt = document.createElement('option');
-                opt.value = g; opt.textContent = g;
-                if (g === inspectHotspot) opt.selected = true;
-                hotspotFilterEl.appendChild(opt);
-            });
+            let hHtml = '<option value="">No hotspot filter</option>';
+            for (const g of this.mutations.genes) {
+                if (g === hotspotGene) continue;
+                const sel = g === inspectHotspot ? ' selected' : '';
+                hHtml += `<option value="${g}"${sel}>${g}</option>`;
+            }
+            hotspotFilterEl.innerHTML = hHtml;
         }
 
-        // Populate inspect-level fusion filter dropdown
+        // Populate inspect-level fusion filter dropdown (using pre-computed cache)
         const fusionFilterEl = document.getElementById('geFusionFilter');
-        if (fusionFilterEl && this.translocations?.genes?.length > 0) {
+        if (fusionFilterEl && this._fusionGeneCounts?.length > 0) {
             const currentFusion = fusionFilterEl.value;
-            fusionFilterEl.innerHTML = '<option value="">No fusion filter</option>';
-            const PRIO = CorrelationExplorer.PRIORITY_FUSION_GENES;
-            const fusionGenes = this.translocations.genes
-                .map(g => {
-                    const td = this.translocations.geneData[g];
-                    const nFused = td ? Object.values(td.translocations).filter(v => v >= 1).length : 0;
-                    return { gene: g, nFused };
-                })
-                .filter(x => x.nFused > 0 && x.gene !== hotspotGene)
-                .sort((a, b) => {
-                    const aPri = PRIO.has(a.gene) ? 1 : 0;
-                    const bPri = PRIO.has(b.gene) ? 1 : 0;
-                    if (aPri !== bPri) return bPri - aPri;
-                    return b.nFused - a.nFused;
-                });
-            fusionGenes.forEach(({ gene, nFused }) => {
-                const opt = document.createElement('option');
-                opt.value = gene;
-                opt.textContent = `${gene} (${nFused} fused)`;
-                if (gene === currentFusion) opt.selected = true;
-                fusionFilterEl.appendChild(opt);
-            });
+            let html = '<option value="">No fusion filter</option>';
+            for (const { gene, nFused } of this._fusionGeneCounts) {
+                if (gene === hotspotGene) continue;
+                const sel = gene === currentFusion ? ' selected' : '';
+                html += `<option value="${gene}"${sel}>${gene} (${nFused} fused)</option>`;
+            }
+            fusionFilterEl.innerHTML = html;
         }
 
         // Populate and show hotspot gene selector (Y axis mutation/fusion)
         const hotspotGeneSelectEl = document.getElementById('geHotspotGeneSelect');
         if (hotspotGeneSelectEl) {
-            hotspotGeneSelectEl.innerHTML = '';
             const geneList = isTranslocation
                 ? (this.translocations?.genes || [])
                 : (this.mutations?.genes || []);
-            geneList.forEach(g => {
-                const opt = document.createElement('option');
-                opt.value = g;
-                opt.textContent = g;
-                if (g === hotspotGene) opt.selected = true;
-                hotspotGeneSelectEl.appendChild(opt);
-            });
+            let gHtml = '';
+            for (const g of geneList) {
+                const sel = g === hotspotGene ? ' selected' : '';
+                gHtml += `<option value="${g}"${sel}>${g}</option>`;
+            }
+            hotspotGeneSelectEl.innerHTML = gHtml;
         }
         document.getElementById('geHotspotGeneGroup').style.display = '';
 
@@ -3698,7 +3699,7 @@ class CorrelationExplorer {
         // Update target gene label in the expression correlates panel
         document.getElementById('exprCorrelatesTargetGene').textContent = gene.toUpperCase();
 
-        Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true });
+        Plotly.react('geneEffectPlot', traces, layout, { responsive: true });
     }
 
     _exportMutationInspectChart(format) {
@@ -10260,7 +10261,7 @@ Results:
                 if (wtGE.length > 0 && mutGE.length > 0) {
                     const meanWT = wtGE.reduce((a, b) => a + b, 0) / wtGE.length;
                     const meanMut = mutGE.reduce((a, b) => a + b, 0) / mutGE.length;
-                    rows.push({ label: `${tGene} (fusion)`, nWT: wtGE.length, nMut: mutGE.length, delta: meanMut - meanWT, hotspot: tGene });
+                    rows.push({ label: `${tGene} (fusion)`, nWT: wtGE.length, nMut: mutGE.length, delta: meanMut - meanWT, hotspot: tGene, clickMode: 'fusion', fusion: tGene });
                 }
             }
         }
@@ -10331,7 +10332,7 @@ Results:
         if (noneWT.length > 0 && noneMut.length > 0) {
             const meanWT = noneWT.reduce((a, b) => a + b, 0) / noneWT.length;
             const meanMut = noneMut.reduce((a, b) => a + b, 0) / noneMut.length;
-            rows.push({ label: 'None', nWT: noneWT.length, nMut: noneMut.length, delta: meanMut - meanWT, isRef: true, hotspot: '' });
+            rows.push({ label: 'None', nWT: noneWT.length, nMut: noneMut.length, delta: meanMut - meanWT, isRef: true, fusion: '' });
         }
 
         // Iterate ONLY over translocation genes — pre-filter to genes with fusions in baseCells
@@ -10352,14 +10353,14 @@ Results:
             if (wtGE.length > 0 && mutGE.length > 0) {
                 const meanWT = wtGE.reduce((a, b) => a + b, 0) / wtGE.length;
                 const meanMut = mutGE.reduce((a, b) => a + b, 0) / mutGE.length;
-                rows.push({ label: tGene, nWT: wtGE.length, nMut: mutGE.length, delta: meanMut - meanWT, hotspot: tGene });
+                rows.push({ label: tGene, nWT: wtGE.length, nMut: mutGE.length, delta: meanMut - meanWT, fusion: tGene });
             }
         }
 
         const refRow = rows.filter(r => r.isRef);
         const otherRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-        this._inlineCompareData = { title: `${gene} — Δ GE by Fusion (${mainHotspot} WT vs ${mutLabel})`, headers: ['Fusion Gene', 'N(WT)', `N(${mutLabel})`, 'Δ GE'], refRows: refRow, sortableRows: otherRows, mode: 'hotspot' };
+        this._inlineCompareData = { title: `${gene} — Δ GE by Fusion (${mainHotspot} WT vs ${mutLabel})`, headers: ['Fusion Gene', 'N(WT)', `N(${mutLabel})`, 'Δ GE'], refRows: refRow, sortableRows: otherRows, mode: 'fusion' };
         this._renderInlineCompareTable();
     }
 
@@ -10417,9 +10418,12 @@ Results:
             }
             const bgColor = `rgb(${r},${g},${b})`;
             const bold = row.isAll || row.isRef ? 'font-weight:600;' : '';
-            const clickVal = mode === 'tissue' ? row.tissue : row.hotspot;
-            const clickFn = mode === 'tissue'
+            const rowMode = row.clickMode || mode;
+            const clickVal = rowMode === 'tissue' ? row.tissue : rowMode === 'fusion' ? (row.fusion ?? '') : row.hotspot;
+            const clickFn = rowMode === 'tissue'
                 ? `app.onInlineCompareTissueClick('${(clickVal || '').replace(/'/g, "\\'")}')`
+                : rowMode === 'fusion'
+                ? `app.onInlineCompareFusionClick('${(clickVal || '').replace(/'/g, "\\'")}')`
                 : `app.onInlineCompareHotspotClick('${(clickVal || '').replace(/'/g, "\\'")}')`;
 
             html += `<tr onclick="${clickFn}" style="cursor:pointer; ${bold}">`;
@@ -10443,6 +10447,12 @@ Results:
 
     onInlineCompareHotspotClick(hotspot) {
         document.getElementById('geHotspotFilter').value = hotspot;
+        this._keepInlineCompare = true;
+        this.showGeneEffectDistribution(this.currentGeneEffectGene);
+    }
+
+    onInlineCompareFusionClick(fusion) {
+        document.getElementById('geFusionFilter').value = fusion;
         this._keepInlineCompare = true;
         this.showGeneEffectDistribution(this.currentGeneEffectGene);
     }
