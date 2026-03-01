@@ -7,6 +7,13 @@
  */
 
 class CorrelationExplorer {
+    static CATEGORY_COLORS = [
+        '#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4',
+        '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990',
+        '#dcbeff', '#9A6324', '#800000', '#aaffc3', '#808000',
+        '#000075', '#a9a9a9', '#e6beff', '#ffe119', '#ffd8b1'
+    ];
+
     static PRIORITY_FUSION_GENES = new Set([
         'BCR','ABL1','ALK','EML4','EWSR1','FLI1','MYC','KMT2A','PML','RARA',
         'RET','ROS1','NTRK1','NTRK2','NTRK3','ETV6','RUNX1','BRAF','FGFR1',
@@ -327,40 +334,6 @@ class CorrelationExplorer {
         } else {
             subSelect.style.display = 'none';
             subSelect.innerHTML = '<option value="">All subtypes</option>';
-        }
-    }
-
-    updateHighlightSubtypeFilter() {
-        const lineage = document.getElementById('highlightTissue').value;
-        const subSelect = document.getElementById('highlightSubtype');
-
-        if (!lineage || !this.currentInspect?.data) {
-            subSelect.style.display = 'none';
-            subSelect.innerHTML = '<option value="">Highlight subtype...</option>';
-            return;
-        }
-
-        const subtypeCounts = {};
-        this.currentInspect.data.forEach(d => {
-            if (d.lineage === lineage) {
-                const subtype = this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || '';
-                if (subtype) {
-                    subtypeCounts[subtype] = (subtypeCounts[subtype] || 0) + 1;
-                }
-            }
-        });
-
-        const subtypes = Object.keys(subtypeCounts).sort();
-        if (subtypes.length > 1) {
-            const lineageCount = this.currentInspect.data.filter(d => d.lineage === lineage).length;
-            subSelect.innerHTML = `<option value="">All subtypes (n=${lineageCount})</option>`;
-            subtypes.forEach(sub => {
-                subSelect.innerHTML += `<option value="${sub}">${sub} (n=${subtypeCounts[sub]})</option>`;
-            });
-            subSelect.style.display = 'block';
-        } else {
-            subSelect.style.display = 'none';
-            subSelect.innerHTML = '<option value="">Highlight subtype...</option>';
         }
     }
 
@@ -1577,9 +1550,7 @@ class CorrelationExplorer {
             document.getElementById('scatterCellSearch').value = '';
             this.clickedCells.clear();
             this._userLabelPositions.clear();
-            document.getElementById('highlightTissue').value = '';
-            document.getElementById('highlightSubtype').value = '';
-            document.getElementById('highlightSubtype').style.display = 'none';
+            document.getElementById('colorByCategory').value = '';
             this.updateInspectPlot();
         });
 
@@ -1592,13 +1563,18 @@ class CorrelationExplorer {
         });
 
         document.getElementById('scatterCellSearch').addEventListener('input', () => this.updateInspectPlot());
-        document.getElementById('highlightTissue').addEventListener('change', () => {
-            this.updateHighlightSubtypeFilter();
-            this.updateInspectPlot();
-        });
-        document.getElementById('highlightSubtype').addEventListener('change', () => this.updateInspectPlot());
+        document.getElementById('colorByCategory').addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('scatterCancerFilter').addEventListener('change', () => {
             this.updateScatterSubtypeFilter();
+            // Show/hide "Color by subtype" option based on whether a tissue is selected
+            const subtypeOpt = document.getElementById('colorBySubtypeOption');
+            if (subtypeOpt) {
+                subtypeOpt.style.display = document.getElementById('scatterCancerFilter').value ? '' : 'none';
+                // Reset color-by if subtype was selected but tissue filter cleared
+                if (!document.getElementById('scatterCancerFilter').value && document.getElementById('colorByCategory').value === 'subtype') {
+                    document.getElementById('colorByCategory').value = '';
+                }
+            }
             this.updateInspectPlot();
         });
         document.getElementById('scatterSubtypeFilter').addEventListener('change', () => this.updateInspectPlot());
@@ -7329,15 +7305,11 @@ Results:
             document.getElementById('scatterSubtypeFilter').style.display = 'none';
         }
 
-        // Populate highlight tissue dropdown
-        const highlightTissue = document.getElementById('highlightTissue');
-        highlightTissue.innerHTML = '<option value="">Highlight tissue...</option>';
-        highlightTissue.value = '';
-        lineages.forEach(l => {
-            highlightTissue.innerHTML += `<option value="${l}">${l} (n=${lineageCounts[l]})</option>`;
-        });
-        document.getElementById('highlightSubtype').innerHTML = '<option value="">Highlight subtype...</option>';
-        document.getElementById('highlightSubtype').style.display = 'none';
+        // Reset color-by dropdown
+        document.getElementById('colorByCategory').value = '';
+        // Show/hide subtype option based on initial cancer filter
+        const subtypeOpt = document.getElementById('colorBySubtypeOption');
+        if (subtypeOpt) subtypeOpt.style.display = (paramLineageFilter && lineages.includes(paramLineageFilter)) ? '' : 'none';
 
         // Populate hotspot genes
         // Count mutations based on cell lines with valid data (plotData)
@@ -7467,10 +7439,8 @@ Results:
         document.getElementById('translocationGene').value = '';
         document.getElementById('translocationMode').value = 'color';
 
-        // Reset highlight tissue/subtype
-        document.getElementById('highlightTissue').value = '';
-        document.getElementById('highlightSubtype').value = '';
-        document.getElementById('highlightSubtype').style.display = 'none';
+        // Reset color-by
+        document.getElementById('colorByCategory').value = '';
 
         // Update the plot
         this.updateInspectPlot();
@@ -7497,8 +7467,7 @@ Results:
         const transOverlayMode = document.getElementById('translocationMode').value;
         const transFilterGene = document.getElementById('translocationFilterGene').value;
         const transFilterLevel = document.getElementById('translocationFilterLevel').value;
-        const highlightTissue = document.getElementById('highlightTissue').value;
-        const highlightSubtype = document.getElementById('highlightSubtype').value;
+        const colorByCategory = document.getElementById('colorByCategory').value;
 
         // Show/hide mutation caution message
         const cautionEl = document.getElementById('mutationCautionScatter');
@@ -7617,19 +7586,19 @@ Results:
 
         // Handle 3-panel mode
         if (hotspotMode === 'three_panel' && hotspotGene) {
-            this.renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc, false, highlightTissue, highlightSubtype);
+            this.renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc, false, colorByCategory);
             return;
         }
         if (transOverlayMode === 'three_panel' && transOverlayGene) {
-            this.renderThreePanelPlot(filteredData, gene1, gene2, transOverlayGene, searchTerms, fontSize, filterDesc, true, highlightTissue, highlightSubtype);
+            this.renderThreePanelPlot(filteredData, gene1, gene2, transOverlayGene, searchTerms, fontSize, filterDesc, true, colorByCategory);
             return;
         }
 
         // Single panel color mode
-        this.renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc, transOverlayGene, transOverlayMode, highlightTissue, highlightSubtype);
+        this.renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc, transOverlayGene, transOverlayMode, colorByCategory);
     }
 
-    renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc = '', transOverlayGene = '', transOverlayMode = 'none', highlightTissue = '', highlightSubtype = '') {
+    renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc = '', transOverlayGene = '', transOverlayMode = 'none', colorByCategory = '') {
         // Calculate stats for each mutation group
         const wt = filteredData.filter(d => d.mutationLevel === 0);
         const mut1 = filteredData.filter(d => d.mutationLevel === 1);
@@ -7729,40 +7698,35 @@ Results:
                 marker: { color: '#dc2626', size: 11, opacity: 0.8 },
                 name: `2+ partners (n=${t2.length}, ${t2Pct}%)`
             });
-        } else if (highlightTissue) {
-            // Tissue highlight mode - dim non-matching, highlight matching
-            let tissueData = filteredData.filter(d => d.lineage === highlightTissue);
-            if (highlightSubtype && this.cellLineMetadata?.primaryDisease) {
-                tissueData = tissueData.filter(d =>
-                    this.cellLineMetadata.primaryDisease[d.cellLineId] === highlightSubtype
-                );
-            }
-            const tissueIds = new Set(tissueData.map(d => d.cellLineId));
-            const otherData = filteredData.filter(d => !tissueIds.has(d.cellLineId));
-
-            // Dimmed non-matching cells
-            traces.push({
-                x: otherData.map(d => d.x),
-                y: otherData.map(d => d.y),
-                mode: 'markers',
-                type: 'scatter',
-                text: otherData.map(d => `${d.cellLineName}<br>${d.lineage}`),
-                hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                marker: { color: '#d1d5db', size: 7, opacity: 0.4 },
-                name: 'Other',
-                showlegend: false
+        } else if (colorByCategory === 'tissue' || colorByCategory === 'subtype') {
+            // Color by tissue or subtype
+            const categoryMap = {};
+            filteredData.forEach(d => {
+                let cat;
+                if (colorByCategory === 'subtype') {
+                    cat = this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown';
+                } else {
+                    cat = d.lineage || 'Unknown';
+                }
+                if (!categoryMap[cat]) categoryMap[cat] = [];
+                categoryMap[cat].push(d);
             });
-            // Highlighted tissue cells
-            const tissueLabel = highlightSubtype || highlightTissue;
-            traces.push({
-                x: tissueData.map(d => d.x),
-                y: tissueData.map(d => d.y),
-                mode: 'markers',
-                type: 'scatter',
-                text: tissueData.map(d => `${d.cellLineName}<br>${d.lineage}`),
-                hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                marker: { color: '#f59e0b', size: 10, opacity: 0.8 },
-                name: `${tissueLabel} (n=${tissueData.length})`
+            // Sort categories by count descending
+            const categories = Object.keys(categoryMap).sort((a, b) => categoryMap[b].length - categoryMap[a].length);
+            const colors = CorrelationExplorer.CATEGORY_COLORS;
+            categories.forEach((cat, i) => {
+                const catData = categoryMap[cat];
+                const color = i < colors.length ? colors[i] : '#999';
+                traces.push({
+                    x: catData.map(d => d.x),
+                    y: catData.map(d => d.y),
+                    mode: 'markers',
+                    type: 'scatter',
+                    text: catData.map(d => `${d.cellLineName}<br>${cat}`),
+                    hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
+                    marker: { color: color, size: 8, opacity: 0.8 },
+                    name: `${cat} (${catData.length})`
+                });
             });
         } else {
             // Default mode - all same color
@@ -7905,8 +7869,8 @@ Results:
                 constrain: 'domain'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || highlightTissue) ? 140 : 30, b: 60, l: 60 },
-            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!highlightTissue,
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || colorByCategory) ? 140 : 30, b: 60, l: 60 },
+            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: {
                 x: 0.98,
                 y: 0.98,
@@ -7915,7 +7879,7 @@ Results:
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                title: { text: highlightTissue ? 'Tissue' : (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
+                title: { text: colorByCategory === 'tissue' ? 'Tissue' : colorByCategory === 'subtype' ? 'Subtype' : (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
                 font: { size: 11 }
             },
             annotations: annotations,
@@ -7987,7 +7951,7 @@ Results:
         });
     }
 
-    renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc = '', isFusion = false, highlightTissue = '', highlightSubtype = '') {
+    renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc = '', isFusion = false, colorByCategory = '') {
         const levelField = isFusion ? 'translocationLevel' : 'mutationLevel';
         const wt = filteredData.filter(d => d[levelField] === 0);
         const mut1 = filteredData.filter(d => d[levelField] === 1);
@@ -8020,53 +7984,51 @@ Results:
             ? ['No fusion', '1 partner', '2+ partners']
             : ['WT', '1 mut', '2 mut'];
 
-        // Helper to filter tissue data
-        const getTissueMatch = (data) => {
-            if (!highlightTissue) return { match: data, other: [] };
-            let match = data.filter(d => d.lineage === highlightTissue);
-            if (highlightSubtype && this.cellLineMetadata?.primaryDisease) {
-                match = match.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === highlightSubtype);
-            }
-            const matchIds = new Set(match.map(d => d.cellLineId));
-            const other = data.filter(d => !matchIds.has(d.cellLineId));
-            return { match, other };
+        // Build category map for color-by mode (shared across panels)
+        let categoryOrder = null;
+        if (colorByCategory === 'tissue' || colorByCategory === 'subtype') {
+            const catCounts = {};
+            filteredData.forEach(d => {
+                const cat = colorByCategory === 'subtype'
+                    ? (this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown')
+                    : (d.lineage || 'Unknown');
+                catCounts[cat] = (catCounts[cat] || 0) + 1;
+            });
+            categoryOrder = Object.keys(catCounts).sort((a, b) => catCounts[b] - catCounts[a]);
+        }
+
+        const getCategory = (d) => {
+            if (colorByCategory === 'subtype') return this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown';
+            return d.lineage || 'Unknown';
         };
 
-        // Build panel traces with optional tissue highlighting
+        // Build panel traces with optional category coloring
         const panelConfigs = [
             { data: wt, xaxis: 'x', yaxis: 'y', color: '#9ca3af', size: 7, opacity: 0.6 },
             { data: mut1, xaxis: 'x2', yaxis: 'y2', color: '#3b82f6', size: 8, opacity: 0.7 },
             { data: mut2, xaxis: 'x3', yaxis: 'y3', color: '#dc2626', size: 8, opacity: 0.7 }
         ];
 
+        const colors = CorrelationExplorer.CATEGORY_COLORS;
+
         panelConfigs.forEach((cfg, i) => {
-            if (highlightTissue) {
-                const { match, other } = getTissueMatch(cfg.data);
-                // Dimmed non-matching
-                if (other.length > 0) {
+            if (categoryOrder) {
+                // Color by category within each panel
+                categoryOrder.forEach((cat, ci) => {
+                    const catData = cfg.data.filter(d => getCategory(d) === cat);
+                    if (catData.length === 0) return;
                     traces.push({
-                        x: other.map(d => d.x), y: other.map(d => d.y),
+                        x: catData.map(d => d.x), y: catData.map(d => d.y),
                         xaxis: cfg.xaxis, yaxis: cfg.yaxis,
                         mode: 'markers', type: 'scatter',
-                        text: other.map(d => `${d.cellLineName}<br>${d.lineage}`),
+                        text: catData.map(d => `${d.cellLineName}<br>${cat}`),
                         hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                        marker: { color: '#d1d5db', size: cfg.size, opacity: 0.3 },
-                        name: panelLabels[i], showlegend: false
+                        marker: { color: ci < colors.length ? colors[ci] : '#999', size: cfg.size, opacity: 0.8 },
+                        name: `${cat} (${catData.length})`,
+                        showlegend: i === 0, // only show legend for first panel
+                        legendgroup: cat
                     });
-                }
-                // Highlighted matching
-                if (match.length > 0) {
-                    traces.push({
-                        x: match.map(d => d.x), y: match.map(d => d.y),
-                        xaxis: cfg.xaxis, yaxis: cfg.yaxis,
-                        mode: 'markers', type: 'scatter',
-                        text: match.map(d => `${d.cellLineName}<br>${d.lineage}`),
-                        hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                        marker: { color: '#f59e0b', size: cfg.size + 2, opacity: 0.8 },
-                        name: i === 0 ? `${highlightSubtype || highlightTissue} (n=${match.length})` : panelLabels[i],
-                        showlegend: false
-                    });
-                }
+                });
             } else {
                 traces.push({
                     x: cfg.data.map(d => d.x), y: cfg.data.map(d => d.y),
@@ -8215,7 +8177,15 @@ Results:
                   showarrow: false, font: { size: 9 } },
                 ...threePanelHighlightAnnotations
             ],
-            margin: { t: filterDesc ? 160 : 140, r: 30, b: 60, l: 60 },
+            margin: { t: filterDesc ? 160 : 140, r: colorByCategory ? 140 : 30, b: 60, l: 60 },
+            showlegend: !!colorByCategory,
+            legend: colorByCategory ? {
+                x: 1.02, y: 1, xanchor: 'left', yanchor: 'top',
+                bgcolor: 'rgba(255,255,255,0.85)',
+                bordercolor: '#ddd', borderwidth: 1,
+                title: { text: colorByCategory === 'subtype' ? 'Subtype' : 'Tissue', font: { size: 11 } },
+                font: { size: 10 }
+            } : undefined,
             plot_bgcolor: '#fafafa'
         };
 
@@ -9115,6 +9085,15 @@ Results:
         document.body.appendChild(tempDiv);
 
         Plotly.newPlot(tempDiv, data, layout, { staticPlot: true }).then(() => {
+            // Widen Plotly's internal legend clipPath to prevent text clipping
+            const legendClips = tempDiv.querySelectorAll('clipPath[id^="legend"] rect');
+            legendClips.forEach(rect => {
+                rect.setAttribute('width', parseFloat(rect.getAttribute('width')) + 40);
+            });
+            const legendBg = tempDiv.querySelector('.legend .bg');
+            if (legendBg) {
+                legendBg.setAttribute('width', parseFloat(legendBg.getAttribute('width')) + 40);
+            }
             return Plotly.downloadImage(tempDiv, {
                 format,
                 width: exportWidth,
