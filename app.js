@@ -1624,6 +1624,19 @@ class CorrelationExplorer {
         document.getElementById('filterMutationToggle')?.addEventListener('click', () => this.toggleTableFilters('mutationTable'));
         document.getElementById('filterExprCorrelatesToggle')?.addEventListener('click', () => this.toggleTableFilters('exprCorrelatesTable'));
 
+        // Enrichr buttons
+        document.querySelectorAll('.enrichrBtn').forEach(btn => {
+            btn.addEventListener('click', () => this.openEnrichr(btn.dataset.source));
+        });
+        document.getElementById('enrichrCloseBtn')?.addEventListener('click', () => {
+            document.getElementById('enrichrModal').style.display = 'none';
+        });
+        document.getElementById('enrichrModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'enrichrModal') {
+                document.getElementById('enrichrModal').style.display = 'none';
+            }
+        });
+        document.getElementById('enrichrDownloadBtn')?.addEventListener('click', () => this.downloadEnrichrCSV());
 
         // Infographic modal
         document.getElementById('showInfoGraphic')?.addEventListener('click', () => {
@@ -12016,6 +12029,213 @@ Results:
     hideColumnTooltip() {
         const existing = document.getElementById('columnTooltip');
         if (existing) existing.remove();
+    }
+
+    // ===== Enrichr Pathway Analysis =====
+
+    getGenesFromTable(source) {
+        const geneSet = new Set();
+        if (source === 'correlations' && this.results?.correlations) {
+            this.results.correlations.forEach(c => {
+                geneSet.add(c.gene1);
+                geneSet.add(c.gene2);
+            });
+        } else if (source === 'clusters' && this.results?.clusters) {
+            this.results.clusters.forEach(c => {
+                geneSet.add(c.gene.replace(/\*$/, ''));
+            });
+        } else if (source === 'mutations' && this.mutationResults?.significantResults) {
+            this.mutationResults.significantResults.forEach(r => {
+                geneSet.add(r.gene);
+            });
+        }
+        return [...geneSet];
+    }
+
+    async openEnrichr(source) {
+        const genes = this.getGenesFromTable(source);
+        if (genes.length < 2) {
+            this.showCopyNotification('Need at least 2 genes for Enrichr analysis');
+            return;
+        }
+
+        const modal = document.getElementById('enrichrModal');
+        const content = document.getElementById('enrichrContent');
+        const title = document.getElementById('enrichrTitle');
+        title.textContent = `Enrichr — ${genes.length} genes`;
+        content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
+        modal.style.display = 'block';
+
+        try {
+            await this.submitToEnrichr(genes);
+        } catch (err) {
+            content.innerHTML = `<div style="text-align:center; padding:60px; color:#ef4444;">Failed to connect to Enrichr. Check internet connection.<br><small style="color:#888;">${err.message}</small></div>`;
+        }
+    }
+
+    async submitToEnrichr(genes) {
+        const formData = new FormData();
+        formData.append('list', genes.join('\n'));
+        formData.append('description', 'Correlate V2');
+
+        const addRes = await fetch('https://maayanlab.cloud/Enrichr/addList', {
+            method: 'POST',
+            body: formData
+        });
+        if (!addRes.ok) throw new Error(`Enrichr addList failed: ${addRes.status}`);
+        const { userListId } = await addRes.json();
+
+        const libraries = [
+            { key: 'GO_Biological_Process_2023', label: 'GO:BP' },
+            { key: 'GO_Molecular_Function_2023', label: 'GO:MF' },
+            { key: 'GO_Cellular_Component_2023', label: 'GO:CC' },
+            { key: 'KEGG_2021_Human', label: 'KEGG' },
+            { key: 'Reactome_2022', label: 'Reactome' }
+        ];
+
+        const content = document.getElementById('enrichrContent');
+        content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Fetching enrichment results...</div>';
+
+        const results = {};
+        await Promise.all(libraries.map(async (lib) => {
+            const res = await fetch(`https://maayanlab.cloud/Enrichr/enrich?userListId=${userListId}&backgroundType=${lib.key}`);
+            if (!res.ok) throw new Error(`Enrichr enrich failed for ${lib.key}: ${res.status}`);
+            const data = await res.json();
+            results[lib.key] = data[lib.key] || [];
+        }));
+
+        this._enrichrData = { genes, results, libraries };
+        this._enrichrSortState = {};
+        this.renderEnrichrResults(libraries[0].key);
+    }
+
+    renderEnrichrResults(activeLibrary) {
+        const { results, libraries } = this._enrichrData;
+        const tabsEl = document.getElementById('enrichrTabs');
+        const contentEl = document.getElementById('enrichrContent');
+
+        // Render tabs
+        tabsEl.innerHTML = libraries.map(lib => {
+            const active = lib.key === activeLibrary;
+            const count = results[lib.key]?.length || 0;
+            return `<button data-lib="${lib.key}" style="padding:5px 12px; font-size:12px; border:1px solid ${active ? '#5a9f4a' : '#555'}; background:${active ? '#5a9f4a' : 'transparent'}; color:${active ? '#fff' : '#ccc'}; border-radius:4px; cursor:pointer;">${lib.label} (${count})</button>`;
+        }).join('');
+
+        tabsEl.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', () => this.renderEnrichrResults(btn.dataset.lib));
+        });
+
+        const rows = results[activeLibrary] || [];
+        if (rows.length === 0) {
+            contentEl.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;">No pathways found for this library.</div>';
+            return;
+        }
+
+        // Parse rows: [rank, term, pvalue, zscore, combined_score, overlapping_genes, adj_pvalue, old_p, old_adj_p]
+        let parsed = rows.map(r => ({
+            rank: r[0],
+            term: r[1],
+            pValue: r[2],
+            zScore: r[3],
+            combinedScore: r[4],
+            genes: r[5],
+            adjPValue: r[6]
+        }));
+
+        // Sort
+        const sortState = this._enrichrSortState[activeLibrary] || { col: 'adjPValue', asc: true };
+        this._enrichrSortState[activeLibrary] = sortState;
+        this._enrichrActiveLibrary = activeLibrary;
+
+        parsed.sort((a, b) => {
+            let va = a[sortState.col], vb = b[sortState.col];
+            if (typeof va === 'string') return sortState.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+            return sortState.asc ? va - vb : vb - va;
+        });
+
+        const columns = [
+            { key: 'rank', label: '#' },
+            { key: 'term', label: 'Term' },
+            { key: 'pValue', label: 'P-value' },
+            { key: 'adjPValue', label: 'Adj P-value' },
+            { key: 'zScore', label: 'Z-score' },
+            { key: 'combinedScore', label: 'Combined' },
+            { key: 'genesDisplay', label: 'Genes' },
+            { key: 'geneCount', label: '# Genes' }
+        ];
+
+        const arrow = (col) => {
+            if (sortState.col !== col) return '';
+            return sortState.asc ? ' ▲' : ' ▼';
+        };
+
+        let html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">';
+        html += '<thead><tr>';
+        columns.forEach(c => {
+            const sortable = c.key !== 'genesDisplay';
+            const sortKey = c.key === 'geneCount' ? 'geneCount' : c.key;
+            html += `<th data-enrichr-sort="${sortable ? sortKey : ''}" style="padding:6px 8px; text-align:left; border-bottom:2px solid #555; color:#aaa; cursor:${sortable ? 'pointer' : 'default'}; white-space:nowrap; font-size:11px;">${c.label}${arrow(sortKey)}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        parsed.forEach((row, i) => {
+            const significant = row.adjPValue < 0.05;
+            const bgColor = significant ? 'rgba(90,159,74,0.12)' : 'transparent';
+            const geneList = Array.isArray(row.genes) ? row.genes.join(', ') : String(row.genes);
+            const geneCount = Array.isArray(row.genes) ? row.genes.length : 0;
+            const truncatedGenes = geneList.length > 60 ? geneList.substring(0, 60) + '...' : geneList;
+
+            html += `<tr style="background:${bgColor}; border-bottom:1px solid #333;">`;
+            html += `<td style="padding:5px 8px; color:#888;">${row.rank}</td>`;
+            html += `<td style="padding:5px 8px; max-width:350px; overflow:hidden; text-overflow:ellipsis;" title="${row.term}">${row.term}</td>`;
+            html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px;">${row.pValue.toExponential(2)}</td>`;
+            html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px; ${significant ? 'color:#5a9f4a; font-weight:bold;' : ''}">${row.adjPValue.toExponential(2)}</td>`;
+            html += `<td style="padding:5px 8px;">${row.zScore.toFixed(2)}</td>`;
+            html += `<td style="padding:5px 8px;">${row.combinedScore.toFixed(1)}</td>`;
+            html += `<td style="padding:5px 8px; max-width:200px; overflow:hidden; text-overflow:ellipsis; font-size:11px;" title="${geneList}">${truncatedGenes}</td>`;
+            html += `<td style="padding:5px 8px; text-align:center;">${geneCount}</td>`;
+            html += '</tr>';
+
+            // Store geneCount for sorting
+            row.geneCount = geneCount;
+        });
+
+        html += '</tbody></table>';
+        contentEl.innerHTML = html;
+
+        // Wire sort clicks
+        contentEl.querySelectorAll('th[data-enrichr-sort]').forEach(th => {
+            const col = th.dataset.enrichrSort;
+            if (!col) return;
+            th.addEventListener('click', () => {
+                const st = this._enrichrSortState[activeLibrary];
+                if (st.col === col) {
+                    st.asc = !st.asc;
+                } else {
+                    st.col = col;
+                    st.asc = true;
+                }
+                this.renderEnrichrResults(activeLibrary);
+            });
+        });
+    }
+
+    downloadEnrichrCSV() {
+        if (!this._enrichrData || !this._enrichrActiveLibrary) return;
+        const lib = this._enrichrActiveLibrary;
+        const rows = this._enrichrData.results[lib] || [];
+        if (rows.length === 0) return;
+
+        let csv = 'Rank,Term,P-value,Adjusted P-value,Z-score,Combined Score,Genes,Num Genes\n';
+        rows.forEach(r => {
+            const genes = Array.isArray(r[5]) ? r[5].join(';') : String(r[5]);
+            const geneCount = Array.isArray(r[5]) ? r[5].length : 0;
+            const term = String(r[1]).replace(/"/g, '""');
+            csv += `${r[0]},"${term}",${r[2]},${r[6]},${r[3]},${r[4]},"${genes}",${geneCount}\n`;
+        });
+
+        const libLabel = this._enrichrData.libraries.find(l => l.key === lib)?.label || lib;
+        this.downloadFile(csv, `enrichr_${libLabel}.csv`, 'text/csv');
     }
 
     openCompareInspect(gene, tissue, hotspot, mode) {
