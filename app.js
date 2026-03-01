@@ -1513,6 +1513,12 @@ class CorrelationExplorer {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             }
         });
+        // Inspect-level fusion filter
+        document.getElementById('geFusionFilter')?.addEventListener('change', () => {
+            if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
+                this.showGeneEffectDistribution(this.currentGeneEffectGene);
+            }
+        });
         // Hotspot gene selector (Y axis mutation gene)
         document.getElementById('geHotspotGeneSelect')?.addEventListener('change', () => {
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene && this.mutationResults) {
@@ -1537,6 +1543,7 @@ class CorrelationExplorer {
         document.getElementById('geResetFiltersBtn')?.addEventListener('click', () => {
             document.getElementById('geTissueFilter').value = '';
             document.getElementById('geHotspotFilter').value = '';
+            document.getElementById('geFusionFilter').value = '';
             // Clear analysis-level filters so inspect truly shows ALL cell lines
             if (this.mutationResults) {
                 this.mutationResults.lineageFilter = '';
@@ -3292,6 +3299,10 @@ class CorrelationExplorer {
             ? inspectHotspotOverride
             : (document.getElementById('geHotspotFilter')?.value || '');
 
+        // Compute inspect-level fusion filter
+        const inspectFusion = document.getElementById('geFusionFilter')?.value || '';
+        const inspFusionData = inspectFusion ? this.translocations?.geneData?.[inspectFusion]?.translocations : null;
+
         // Collect data for each cell line
         const cellLines = this.metadata.cellLines;
         const data = { wt: [], mut1: [], mut2: [] };
@@ -3350,6 +3361,12 @@ class CorrelationExplorer {
                     const inspMutLevel = inspHotData.mutations[cellLine] || 0;
                     if (inspMutLevel === 0) return;
                 }
+            }
+
+            // Check inspect-level fusion filter
+            if (inspectFusion && inspFusionData) {
+                const fusionLevel = inspFusionData[cellLine] || 0;
+                if (fusionLevel < 1) return;
             }
 
             const ge = this.geneEffects[geneIdx * this.nCellLines + idx];
@@ -3599,6 +3616,34 @@ class CorrelationExplorer {
             });
         }
 
+        // Populate inspect-level fusion filter dropdown
+        const fusionFilterEl = document.getElementById('geFusionFilter');
+        if (fusionFilterEl && this.translocations?.genes?.length > 0) {
+            const currentFusion = fusionFilterEl.value;
+            fusionFilterEl.innerHTML = '<option value="">No fusion filter</option>';
+            const PRIO = CorrelationExplorer.PRIORITY_FUSION_GENES;
+            const fusionGenes = this.translocations.genes
+                .map(g => {
+                    const td = this.translocations.geneData[g];
+                    const nFused = td ? Object.values(td.translocations).filter(v => v >= 1).length : 0;
+                    return { gene: g, nFused };
+                })
+                .filter(x => x.nFused > 0 && x.gene !== hotspotGene)
+                .sort((a, b) => {
+                    const aPri = PRIO.has(a.gene) ? 1 : 0;
+                    const bPri = PRIO.has(b.gene) ? 1 : 0;
+                    if (aPri !== bPri) return bPri - aPri;
+                    return b.nFused - a.nFused;
+                });
+            fusionGenes.forEach(({ gene, nFused }) => {
+                const opt = document.createElement('option');
+                opt.value = gene;
+                opt.textContent = `${gene} (${nFused} fused)`;
+                if (gene === currentFusion) opt.selected = true;
+                fusionFilterEl.appendChild(opt);
+            });
+        }
+
         // Populate and show hotspot gene selector (Y axis mutation/fusion)
         const hotspotGeneSelectEl = document.getElementById('geHotspotGeneSelect');
         if (hotspotGeneSelectEl) {
@@ -3632,6 +3677,8 @@ class CorrelationExplorer {
 
         // Show mutation inspect controls, hide non-mutation view buttons
         document.getElementById('geHotspotFilter').style.display = '';
+        document.getElementById('geFusionFilter').style.display =
+            this.translocations?.genes?.length > 0 ? '' : 'none';
         document.getElementById('geCompareButtons').style.display = '';
         document.getElementById('geResetFiltersBtn').style.display = '';
         document.getElementById('geCompareByTranslocationBtn').style.display =
@@ -8855,6 +8902,7 @@ Results:
 
         // Hide mutation inspect controls
         document.getElementById('geHotspotFilter').style.display = 'none';
+        document.getElementById('geFusionFilter').style.display = 'none';
         document.getElementById('geCompareButtons').style.display = 'none';
         document.getElementById('geResetFiltersBtn').style.display = 'none';
         document.getElementById('geInlineCompareTable').style.display = 'none';
