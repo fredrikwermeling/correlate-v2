@@ -5429,35 +5429,38 @@ Results:
             return;
         }
 
-        // Create a new canvas that includes the legend - larger for publication quality
+        // Create a high-resolution canvas for publication quality (300 DPI)
+        const pngScale = 2;
+        const container = document.getElementById('networkPlot');
+        const cssWidth = container.clientWidth;
+        const cssHeight = container.clientHeight;
         const legendHeight = 160;
         const padding = 30;
-        const networkWidth = networkCanvas.width;
-        const networkHeight = networkCanvas.height;
-        const totalWidth = networkWidth;
-        const totalHeight = networkHeight + legendHeight + padding;
+        const totalWidth = cssWidth;
+        const totalHeight = cssHeight + legendHeight + padding;
 
         const canvas = document.createElement('canvas');
-        canvas.width = totalWidth;
-        canvas.height = totalHeight;
+        canvas.width = totalWidth * pngScale;
+        canvas.height = totalHeight * pngScale;
         const ctx = canvas.getContext('2d');
+        ctx.scale(pngScale, pngScale);
 
         // Draw white background
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, totalWidth, totalHeight);
 
-        // Draw network
-        ctx.drawImage(networkCanvas, 0, 0);
+        // Draw network scaled from canvas pixels to CSS dimensions
+        ctx.drawImage(networkCanvas, 0, 0, cssWidth, cssHeight);
 
         // Draw legend background
         ctx.fillStyle = '#f9fafb';
         ctx.strokeStyle = '#e5e7eb';
         ctx.lineWidth = 1;
-        ctx.fillRect(15, networkHeight + 10, totalWidth - 30, legendHeight - 10);
-        ctx.strokeRect(15, networkHeight + 10, totalWidth - 30, legendHeight - 10);
+        ctx.fillRect(15, cssHeight + 10, totalWidth - 30, legendHeight - 10);
+        ctx.strokeRect(15, cssHeight + 10, totalWidth - 30, legendHeight - 10);
 
-        // Draw legend - LARGER fonts for publication
-        const legendY = networkHeight + padding + 10;
+        // Draw legend
+        const legendY = cssHeight + padding + 10;
         const titleFont = 'bold 16px Arial';
         const textFont = '14px Arial';
         const smallFont = '13px Arial';
@@ -9312,8 +9315,8 @@ Results:
                 URL.revokeObjectURL(url);
             });
         } else {
-            // PNG at 2× for print quality
-            Plotly.toImage(plotEl, { format: 'png', width: w, height: h, scale: 2 }).then(dataUrl => {
+            // PNG at 4× for publication quality (300 DPI at up to 17cm column width)
+            Plotly.toImage(plotEl, { format: 'png', width: w, height: h, scale: 4 }).then(dataUrl => {
                 const a = document.createElement('a');
                 a.href = dataUrl;
                 a.download = filename + '.png';
