@@ -7956,7 +7956,7 @@ Results:
         let plotAreaH = parseInt(heightEl?.value);
         if (isNaN(plotAreaW) || isNaN(plotAreaH)) {
             // Default: square, fit within viewport
-            const defaultSize = 450;
+            const defaultSize = 400;
             if (isNaN(plotAreaW)) plotAreaW = defaultSize;
             if (isNaN(plotAreaH)) plotAreaH = defaultSize;
         }
@@ -9237,10 +9237,12 @@ Results:
             exportWidth = 1800;
             exportHeight = 800;
         } else {
-            const rect = plotEl.getBoundingClientRect();
-            const screenAspect = rect.width / rect.height;
+            // Use the plot's layout dimensions to preserve aspect ratio
+            const lw = plotEl.layout?.width || 500;
+            const lh = plotEl.layout?.height || 500;
+            const scale = 1200 / lw;
             exportWidth = 1200;
-            exportHeight = Math.round(1200 / screenAspect);
+            exportHeight = Math.round(lh * scale);
         }
 
         let suffix = '';
