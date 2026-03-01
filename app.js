@@ -9310,134 +9310,44 @@ Results:
         const transparentBg = document.getElementById('exportTransparentBg')?.checked;
         const whitePlotBg = document.getElementById('exportWhitePlotBg')?.checked;
 
-        // Clone the on-screen SVGs directly — this captures exactly what the user sees,
-        // avoiding Plotly.toImage re-rendering which auto-adjusts margins and clips legends.
-        // Plotly creates TWO <svg class="main-svg"> elements:
-        //   1st: background, plot data, axes, tick labels
-        //   2nd: infolayer overlay (legend, axis titles, title annotation)
-        // We merge both into a single SVG for export.
-        const svgEls = plotEl.querySelectorAll('svg.main-svg');
-        if (!svgEls.length) return;
-        const clonedSvg = svgEls[0].cloneNode(true);
+        // Build background overrides for export
+        const paperBg = transparentBg ? 'rgba(0,0,0,0)' : (plotEl.layout.paper_bgcolor || '#fff');
+        const plotBg = transparentBg ? 'rgba(0,0,0,0)' : (whitePlotBg ? '#fff' : (plotEl.layout.plot_bgcolor || '#fafafa'));
 
-        // Merge the second SVG's children (infolayer) into the cloned first SVG
-        if (svgEls.length > 1) {
-            const overlaySvg = svgEls[1];
-            for (const child of overlaySvg.childNodes) {
-                clonedSvg.appendChild(child.cloneNode(true));
+        // Use Plotly's own export with the on-screen layout dimensions.
+        // margin.autoexpand: false ensures the plot area stays exactly as configured.
+        const opts = {
+            format: format === 'png' ? 'png' : 'svg',
+            width: plotEl.layout.width,
+            height: plotEl.layout.height,
+            scale: format === 'png' ? 4 : 1,
+            setBackground: function(gd) {
+                gd._fullLayout.paper_bgcolor = paperBg;
+                gd._fullLayout.plot_bgcolor = plotBg;
             }
-        }
+        };
 
-        // Ensure standalone SVG attributes
-        clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-        clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-
-        // Remove any legend clip-path that might crop legend text
-        const legendScrollbox = clonedSvg.querySelector('.legend .scrollbox');
-        if (legendScrollbox) {
-            legendScrollbox.removeAttribute('clip-path');
-        }
-        // Also remove the clipPath definition for the legend
-        const legendClipPaths = clonedSvg.querySelectorAll('clipPath[id^="legend"]');
-        legendClipPaths.forEach(cp => cp.remove());
-
-        // Fix legend box size: temporarily insert into DOM to measure text widths
-        const legendGroup = clonedSvg.querySelector('.legend');
-        if (legendGroup) {
-            const measureContainer = document.createElement('div');
-            measureContainer.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
-            document.body.appendChild(measureContainer);
-            measureContainer.appendChild(clonedSvg);
-            const legendBg = legendGroup.querySelector('rect.bg');
-            const legendTexts = legendGroup.querySelectorAll('.legendtext, .legendtitletext');
-            let maxRight = 0;
-            legendTexts.forEach(t => {
-                try { const b = t.getBBox(); if (b.x + b.width > maxRight) maxRight = b.x + b.width; } catch(e) {}
-            });
-            if (legendBg && maxRight > 0) {
-                const newWidth = maxRight + 10;
-                legendBg.setAttribute('width', String(newWidth));
-                // Expand SVG width if legend extends beyond it
-                const transformMatch = legendGroup.getAttribute('transform')?.match(/translate\(([\d.]+)/);
-                if (transformMatch) {
-                    const legendX = parseFloat(transformMatch[1]);
-                    const needed = legendX + newWidth + 5;
-                    const svgW = parseFloat(clonedSvg.getAttribute('width'));
-                    if (needed > svgW) {
-                        clonedSvg.setAttribute('width', String(Math.ceil(needed)));
-                        // Also expand the paper background rect
-                        const paperRect = clonedSvg.querySelector('rect');
-                        if (paperRect) paperRect.setAttribute('width', String(Math.ceil(needed)));
-                    }
-                }
-            }
-            measureContainer.removeChild(clonedSvg);
-            document.body.removeChild(measureContainer);
-        }
-
-        // Apply background settings to the clone
-        const rects = clonedSvg.querySelectorAll('rect');
-        if (rects.length > 0) {
-            // First rect is the paper background (full SVG area)
-            const paperRect = rects[0];
-            if (transparentBg) {
-                paperRect.style.fill = 'rgba(0,0,0,0)';
-                paperRect.style.fillOpacity = '0';
-            }
-            // Plot area background (rect with class "bg" inside bglayer)
-            const plotBgRect = clonedSvg.querySelector('.bglayer .bg');
-            if (plotBgRect) {
-                if (transparentBg) {
-                    plotBgRect.style.fill = 'rgba(0,0,0,0)';
-                    plotBgRect.style.fillOpacity = '0';
-                } else if (whitePlotBg) {
-                    plotBgRect.style.fill = '#ffffff';
-                }
-            }
-        }
-
-        // Serialize to SVG string
-        const serializer = new XMLSerializer();
-        const svgString = serializer.serializeToString(clonedSvg);
-
-        if (format === 'svg') {
-            const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
+        Plotly.toImage(plotEl, opts).then(dataUrl => {
             const a = document.createElement('a');
-            a.href = url;
-            a.download = filename + '.svg';
+            if (format === 'svg') {
+                // Plotly returns URL-encoded SVG data URL
+                let svgString;
+                if (dataUrl.indexOf('base64,') > -1) {
+                    svgString = atob(dataUrl.split('base64,')[1]);
+                } else {
+                    svgString = decodeURIComponent(dataUrl.split(',').slice(1).join(','));
+                }
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                a.href = URL.createObjectURL(blob);
+                a.download = filename + '.svg';
+            } else {
+                a.href = dataUrl;
+                a.download = filename + '.png';
+            }
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } else {
-            // PNG: render the SVG to a canvas at 4× for publication quality
-            const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-            const svgUrl = URL.createObjectURL(svgBlob);
-            const img = new Image();
-            img.onload = () => {
-                const scale = 4;
-                const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth * scale;
-                canvas.height = img.naturalHeight * scale;
-                const ctx = canvas.getContext('2d');
-                ctx.scale(scale, scale);
-                if (!transparentBg) {
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
-                }
-                ctx.drawImage(img, 0, 0);
-                URL.revokeObjectURL(svgUrl);
-                const dataUrl = canvas.toDataURL('image/png');
-                const a = document.createElement('a');
-                a.href = dataUrl;
-                a.download = filename + '.png';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            };
-            img.src = svgUrl;
-        }
+        });
     }
 
     downloadScatterPNG() {
