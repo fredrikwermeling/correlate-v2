@@ -430,6 +430,7 @@
             accent-color: var(--green-600);
             width: 16px;
             height: 16px;
+            flex-shrink: 0;
         }
 
         /* Sliders - Shiny IRS style */
@@ -1167,7 +1168,7 @@
 
     <!-- Logo Header -->
     <div class="logo-header">
-        <img src="web_data/correlate_logo.png" alt="Correlate - a CRISPR Screen Analysis Tool">
+        <img src="web_data/correlate_logo.png" alt="Correlate - a Gene Effect Analysis Tool">
     </div>
 
     <!-- Navigation Bar -->
@@ -1199,6 +1200,7 @@
                         </ul>
                         <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data.</p>
                     </div>
+                    <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="margin-top: 10px; width: 100%;">Reset App</button>
                 </div>
             </div>
 
@@ -1291,9 +1293,12 @@
 
                     <div class="form-group" id="lineageFilterGroup" style="display: none;">
                         <label class="form-label">Lineage Filter:</label>
-                        <select id="lineageFilter" class="form-control">
-                            <option value="">All lineages</option>
-                        </select>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <select id="lineageFilter" class="form-control" style="flex: 1;">
+                                <option value="">All lineages</option>
+                            </select>
+                            <button id="generalTissueBreakdownBtn" type="button" style="padding: 4px 10px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show cell line counts per tissue">Tissues</button>
+                        </div>
                     </div>
 
                     <div class="form-group" id="subLineageFilterGroup" style="display: none;">
@@ -1304,7 +1309,10 @@
                     </div>
 
                     <div class="form-group" id="tissueExcludeGroup">
-                        <label class="form-label" style="cursor: pointer;" onclick="document.getElementById('tissueExcludeList').style.display = document.getElementById('tissueExcludeList').style.display === 'none' ? 'block' : 'none'">Exclude Tissues: <span style="font-size: 10px; color: #6b7280;">▼ click to expand</span></label>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <label class="form-label" style="cursor: pointer; margin-bottom: 0;" onclick="document.getElementById('tissueExcludeList').style.display = document.getElementById('tissueExcludeList').style.display === 'none' ? 'block' : 'none'">Exclude Tissues: <span style="font-size: 10px; color: #6b7280;">▼ click to expand</span></label>
+                            <button class="btn btn-secondary" id="resetExcludedTissuesBtn" style="padding: 1px 6px; font-size: 10px;">Reset</button>
+                        </div>
                         <div id="tissueExcludeList" style="display: none; max-height: 150px; overflow-y: auto; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; background: #f9fafb;"></div>
                     </div>
 
@@ -1320,6 +1328,9 @@
                             <option value="2">Only 2 mutations</option>
                             <option value="1+2">Only mutated (1+2)</option>
                         </select>
+                        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 4px; font-size: 9px; color: #92400e;">
+                            Selecting for mutations may introduce bias — mutations are often enriched in specific cancer types.
+                        </div>
                     </div>
 
                     <div class="form-group" id="paramTranslocationFilterGroup" style="display: none;">
@@ -1495,10 +1506,10 @@
                                 </span>
                             </div>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
-                                <label><input type="checkbox" id="colorByGeneEffect"> Color by GE</label>
+                                <label><input type="checkbox" id="showUncorrelatedGenes"> Show all input genes in network</label>
                             </div>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
-                                <label><input type="checkbox" id="showUncorrelatedGenes"> Show all input genes in network</label>
+                                <label><input type="checkbox" id="colorByGeneEffect"> Color by GE</label>
                             </div>
                             <div id="colorGEOptions" style="display: none; margin-left: 20px; margin-bottom: 4px;">
                                 <div class="radio-group-inline">
@@ -1607,6 +1618,7 @@
                         <button class="btn btn-outline btn-sm" id="filterCorrelationsToggle" title="Toggle column filters">Filters</button>
                         <button class="btn btn-outline btn-sm" id="copyCorrelationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadCorrelations">Download CSV</button>
+                        <button class="btn btn-secondary btn-sm" id="correlationsGeneEffectBtn" title="Open Gene Effect analysis for searched gene">Gene Effect</button>
                     </div>
                     <div class="table-container">
                         <table class="data-table" id="correlationsTable">
@@ -1639,6 +1651,7 @@
                         <button class="btn btn-outline btn-sm" id="filterClustersToggle" title="Toggle column filters">Filters</button>
                         <button class="btn btn-outline btn-sm" id="copyClustersGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadClusters">Download CSV</button>
+                        <button class="btn btn-secondary btn-sm" id="clustersGeneEffectBtn" title="Open Gene Effect analysis for searched gene">Gene Effect</button>
                     </div>
                     <div class="table-container">
                         <table class="data-table" id="clustersTable">
@@ -1963,6 +1976,7 @@
                         <select id="geHotspotFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Additional hotspot filter — only show cell lines mutated in this gene">
                             <option value="">No hotspot filter</option>
                         </select>
+                        <span id="geHotspotBiasWarning" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias — mutations are often enriched in specific cancer types.">&#9888;</span>
                         <select id="geFusionFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Fusion filter — only show cell lines with this fusion">
                             <option value="">No fusion filter</option>
                         </select>
