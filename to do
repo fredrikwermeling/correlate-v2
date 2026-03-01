@@ -1,3 +1,4 @@
+Divide this task into parts. make sure that you undertand what to do first.
 - make a reset button that does the same as refreshing the page. perhaos in the reference data box 
 - summary tab should include data on filters eg for hotspot mutaitons and for excluded cell lines.
 - in anslysis/design mode, also inlcude a "tissues" button in set parameterrs like in mutation analysis.
@@ -8,6 +9,7 @@
 - correlate tab, also add by hotspot
 - in clusters tab, also add button to add GE effect. I want the corelationa nd clusters tabs to hormonize which buttons they have and how they look.
 - the circle for selecting design is larger than other modes on some computers (?). perhaps its because the design has less text and the selection circle adapts?
+- would it be possible to do eg a go term analyis of the genes in any table, eg a go, or KEGG and reactome button to analysse any pattern. This could be a very usefull feature. 
 Regarding the analysis mode, network tab:
 - SVG export of network does not look like on the screen, the changes to node size, edge width, etc., are not followed.
 - the color by GE should have the possibility (and by default) show the color intensity based on the genes shown on the screen(network) 
