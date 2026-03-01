@@ -9287,77 +9287,40 @@ Results:
         const hotspotMode = document.getElementById('hotspotMode').value;
         const transGene = document.getElementById('translocationGene').value;
         const transMode = document.getElementById('translocationMode').value;
-        const isThreePanel = (hotspotMode === 'three_panel' && hotspotGene) ||
-                             (transMode === 'three_panel' && transGene);
 
         let suffix = '';
         if (hotspotGene && hotspotMode !== 'none') suffix = `_${hotspotGene}`;
         else if (transGene && transMode !== 'none') suffix = `_${transGene}`;
         const filename = `scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`;
 
-        // Serialize SVG directly from the on-screen plot (guarantees export matches screen)
-        const svgEl = plotEl.querySelector('svg.main-svg');
-        if (!svgEl) return;
-
-        const exportWidth = svgEl.getAttribute('width') || plotEl.offsetWidth;
-        const exportHeight = svgEl.getAttribute('height') || plotEl.offsetHeight;
-
-        // Clone SVG and add white background
-        const svgClone = svgEl.cloneNode(true);
-        // Ensure white background
-        const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        bgRect.setAttribute('width', '100%');
-        bgRect.setAttribute('height', '100%');
-        bgRect.setAttribute('fill', 'white');
-        svgClone.insertBefore(bgRect, svgClone.firstChild);
-
-        const serializer = new XMLSerializer();
-        let svgString = serializer.serializeToString(svgClone);
-        if (!svgString.includes('xmlns="http://www.w3.org/2000/svg"')) {
-            svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
-        }
+        // Use on-screen dimensions for export
+        const w = plotEl.offsetWidth;
+        const h = plotEl.offsetHeight;
 
         if (format === 'svg') {
-            const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename + '.svg';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } else {
-            // PNG: render SVG to canvas at 2× for print quality
-            const pngScale = 2;
-            const w = parseFloat(exportWidth);
-            const h = parseFloat(exportHeight);
-            const canvas = document.createElement('canvas');
-            canvas.width = w * pngScale;
-            canvas.height = h * pngScale;
-            const ctx = canvas.getContext('2d');
-            ctx.scale(pngScale, pngScale);
-            const img = new Image();
-            const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(svgBlob);
-            img.onload = () => {
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(0, 0, w, h);
-                ctx.drawImage(img, 0, 0, w, h);
+            Plotly.toImage(plotEl, { format: 'svg', width: w, height: h }).then(dataUrl => {
+                // dataUrl is "data:image/svg+xml;base64,..." — decode to SVG string
+                const svgString = atob(dataUrl.split(',')[1]);
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename + '.svg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                canvas.toBlob(blob => {
-                    const pngUrl = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = pngUrl;
-                    a.download = filename + '.png';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(pngUrl);
-                }, 'image/png');
-            };
-            img.onerror = () => URL.revokeObjectURL(url);
-            img.src = url;
+            });
+        } else {
+            // PNG at 2× for print quality
+            Plotly.toImage(plotEl, { format: 'png', width: w, height: h, scale: 2 }).then(dataUrl => {
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = filename + '.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
         }
     }
 
