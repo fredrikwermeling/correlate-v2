@@ -5439,25 +5439,31 @@ Results:
         const totalWidth = cssWidth;
         const totalHeight = cssHeight + legendHeight + padding;
 
+        const transparentBg = document.getElementById('exportNetworkTransparentBg')?.checked;
+
         const canvas = document.createElement('canvas');
         canvas.width = totalWidth * pngScale;
         canvas.height = totalHeight * pngScale;
         const ctx = canvas.getContext('2d');
         ctx.scale(pngScale, pngScale);
 
-        // Draw white background
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, totalWidth, totalHeight);
+        // Draw background (skip for transparent)
+        if (!transparentBg) {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, totalWidth, totalHeight);
+        }
 
         // Draw network scaled from canvas pixels to CSS dimensions
         ctx.drawImage(networkCanvas, 0, 0, cssWidth, cssHeight);
 
         // Draw legend background
-        ctx.fillStyle = '#f9fafb';
-        ctx.strokeStyle = '#e5e7eb';
-        ctx.lineWidth = 1;
-        ctx.fillRect(15, cssHeight + 10, totalWidth - 30, legendHeight - 10);
-        ctx.strokeRect(15, cssHeight + 10, totalWidth - 30, legendHeight - 10);
+        if (!transparentBg) {
+            ctx.fillStyle = '#f9fafb';
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+            ctx.fillRect(15, cssHeight + 10, totalWidth - 30, legendHeight - 10);
+            ctx.strokeRect(15, cssHeight + 10, totalWidth - 30, legendHeight - 10);
+        }
 
         // Draw legend
         const legendY = cssHeight + padding + 10;
@@ -5733,6 +5739,8 @@ Results:
     downloadNetworkSVG() {
         if (!this.network || !this.networkData) return;
 
+        const transparentBg = document.getElementById('exportNetworkTransparentBg')?.checked;
+
         // Build SVG from network data
         const container = document.getElementById('networkPlot');
         const width = container.clientWidth;
@@ -5774,7 +5782,7 @@ Results:
   .legend-text { font-family: Arial, sans-serif; font-size: 14px; fill: #333; }
   .legend-small { font-family: Arial, sans-serif; font-size: 13px; fill: #333; }
 </style>
-<rect width="100%" height="100%" fill="white"/>
+${transparentBg ? '' : '<rect width="100%" height="100%" fill="white"/>'}
 `;
 
         // Get current scale for sizing elements
@@ -5821,7 +5829,9 @@ Results:
         let legendX = Math.max(40, (width - totalLegendWidth) / 2);
 
         // Legend background
-        svg += `  <rect x="15" y="${networkHeight + 10}" width="${width - 30}" height="145" fill="#f9fafb" stroke="#e5e7eb" rx="4"/>\n`;
+        if (!transparentBg) {
+            svg += `  <rect x="15" y="${networkHeight + 10}" width="${width - 30}" height="145" fill="#f9fafb" stroke="#e5e7eb" rx="4"/>\n`;
+        }
 
         // Correlation legend
         svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Correlation:</text>\n`;
@@ -9300,30 +9310,70 @@ Results:
         const w = plotEl.offsetWidth;
         const h = plotEl.offsetHeight;
 
-        if (format === 'svg') {
-            Plotly.toImage(plotEl, { format: 'svg', width: w, height: h }).then(dataUrl => {
-                // dataUrl is "data:image/svg+xml;base64,..." — decode to SVG string
-                const svgString = atob(dataUrl.split(',')[1]);
-                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename + '.svg';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+        // Read export settings
+        const transparentBg = document.getElementById('exportTransparentBg')?.checked;
+        const whitePlotBg = document.getElementById('exportWhitePlotBg')?.checked;
+
+        // Save original backgrounds (default to Plotly defaults if unset)
+        const origPaperBg = plotEl.layout.paper_bgcolor || '#fff';
+        const origPlotBg = plotEl.layout.plot_bgcolor || '#fff';
+
+        let exportPaperBg = origPaperBg;
+        let exportPlotBg = origPlotBg;
+
+        if (transparentBg) {
+            exportPaperBg = 'rgba(0,0,0,0)';
+            exportPlotBg = 'rgba(0,0,0,0)';
+        } else if (whitePlotBg) {
+            exportPlotBg = '#ffffff';
+        }
+
+        // Apply export backgrounds, export, then restore
+        const needsRelayout = exportPaperBg !== origPaperBg || exportPlotBg !== origPlotBg;
+        const doExport = () => {
+            const exportPromise = format === 'svg'
+                ? Plotly.toImage(plotEl, { format: 'svg', width: w, height: h })
+                : Plotly.toImage(plotEl, { format: 'png', width: w, height: h, scale: 4 });
+
+            return exportPromise.then(dataUrl => {
+                if (format === 'svg') {
+                    // Extract SVG string — handle raw SVG, base64, and URL-encoded data URLs
+                    let svgString;
+                    if (dataUrl.startsWith('<svg') || dataUrl.startsWith('<?xml')) {
+                        svgString = dataUrl;
+                    } else if (dataUrl.indexOf('base64,') > -1) {
+                        svgString = atob(dataUrl.split('base64,')[1]);
+                    } else {
+                        const commaIdx = dataUrl.indexOf(',');
+                        const raw = commaIdx > -1 ? dataUrl.substring(commaIdx + 1) : dataUrl;
+                        try { svgString = decodeURIComponent(raw); } catch(e) { svgString = raw; }
+                    }
+                    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename + '.svg';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    const a = document.createElement('a');
+                    a.href = dataUrl;
+                    a.download = filename + '.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
             });
+        };
+
+        if (needsRelayout) {
+            Plotly.relayout(plotEl, { paper_bgcolor: exportPaperBg, plot_bgcolor: exportPlotBg })
+                .then(doExport)
+                .finally(() => Plotly.relayout(plotEl, { paper_bgcolor: origPaperBg, plot_bgcolor: origPlotBg }));
         } else {
-            // PNG at 4× for publication quality (300 DPI at up to 17cm column width)
-            Plotly.toImage(plotEl, { format: 'png', width: w, height: h, scale: 4 }).then(dataUrl => {
-                const a = document.createElement('a');
-                a.href = dataUrl;
-                a.download = filename + '.png';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            });
+            doExport();
         }
     }
 

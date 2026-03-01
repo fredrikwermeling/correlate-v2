@@ -1570,6 +1570,9 @@
                                 <button class="btn btn-sm" id="restoreAllNodes" style="padding: 1px 4px; font-size: 8px; margin-left: 4px;">Restore All</button>
                             </div>
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">Export:</label>
+                            <label style="font-size: 11px; margin-bottom: 4px; cursor: pointer;">
+                                <input type="checkbox" id="exportNetworkTransparentBg"> Transparent background
+                            </label>
                             <div class="button-group-horizontal">
                                 <button class="btn btn-secondary" id="downloadNetworkPNG">PNG</button>
                                 <button class="btn btn-secondary" id="downloadNetworkSVG">SVG</button>
@@ -1934,6 +1937,10 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <div style="display: flex; gap: 12px; align-items: center; margin-right: auto; font-size: 12px;">
+                    <label style="cursor: pointer;"><input type="checkbox" id="exportWhitePlotBg" checked> White plot area</label>
+                    <label style="cursor: pointer;"><input type="checkbox" id="exportTransparentBg"> Transparent background</label>
+                </div>
                 <button class="btn btn-outline" id="downloadScatterPNG">Download PNG</button>
                 <button class="btn btn-outline" id="downloadScatterSVG">Download SVG</button>
                 <button class="btn btn-outline" id="downloadScatterCSV">Download CSV</button>
