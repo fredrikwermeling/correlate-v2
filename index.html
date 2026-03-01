@@ -964,6 +964,7 @@
         .inspect-layout {
             display: flex;
             gap: 20px;
+            align-items: flex-start;
         }
 
         .inspect-controls {
@@ -981,6 +982,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: flex-start;
         }
 
         .control-box {
@@ -1777,52 +1779,53 @@
             <div class="modal-body">
                 <div class="inspect-layout">
                     <div class="inspect-controls">
-                        <!-- Gene Selection -->
-                        <div class="control-box-compact" style="padding: 4px 8px;">
-                            <span class="control-label" style="margin-bottom: 2px;">Genes (X/Y)</span>
-                            <div style="display: flex; gap: 4px; align-items: center;">
-                                <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="X gene">
-                                <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="Y gene">
-                                <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px; white-space: nowrap;">Update</button>
+                        <!-- Gene Selection + Plot Size -->
+                        <div class="control-box-compact" style="grid-column: span 2; padding: 4px 8px;">
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <div style="flex: 1;">
+                                    <span class="control-label" style="margin-bottom: 2px;">Genes (X/Y)</span>
+                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                        <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="X gene">
+                                        <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="Y gene">
+                                        <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px; white-space: nowrap;">Update</button>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 4px; align-items: flex-end;">
+                                    <div style="text-align: center;">
+                                        <label style="font-size: 9px; color: #666; display: block;">Width</label>
+                                        <input type="text" inputmode="numeric" id="plotWidth" placeholder="auto" class="form-control" style="width: 52px; font-size: 11px; padding: 2px 4px; text-align: center;">
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <label style="font-size: 9px; color: #666; display: block;">Height</label>
+                                        <input type="text" inputmode="numeric" id="plotHeight" placeholder="auto" class="form-control" style="width: 52px; font-size: 11px; padding: 2px 4px; text-align: center;">
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Axis Ranges -->
-                        <div class="control-box-compact">
+                        <div class="control-box-compact" style="grid-column: span 2;">
                             <span class="control-label">Axis Ranges</span>
-                            <div class="axis-inputs" style="gap: 4px;">
-                                <div>
-                                    <label>X min</label>
-                                    <input type="text" inputmode="decimal" id="scatterXmin" step="0.1">
+                            <div style="display: flex; gap: 4px; align-items: flex-end;">
+                                <div class="axis-inputs" style="gap: 4px; flex: 1;">
+                                    <div>
+                                        <label>X min</label>
+                                        <input type="text" inputmode="decimal" id="scatterXmin" step="0.1">
+                                    </div>
+                                    <div>
+                                        <label>X max</label>
+                                        <input type="text" inputmode="decimal" id="scatterXmax" step="0.1">
+                                    </div>
+                                    <div>
+                                        <label>Y min</label>
+                                        <input type="text" inputmode="decimal" id="scatterYmin" step="0.1">
+                                    </div>
+                                    <div>
+                                        <label>Y max</label>
+                                        <input type="text" inputmode="decimal" id="scatterYmax" step="0.1">
+                                    </div>
                                 </div>
-                                <div>
-                                    <label>X max</label>
-                                    <input type="text" inputmode="decimal" id="scatterXmax" step="0.1">
-                                </div>
-                                <div>
-                                    <label>Y min</label>
-                                    <input type="text" inputmode="decimal" id="scatterYmin" step="0.1">
-                                </div>
-                                <div>
-                                    <label>Y max</label>
-                                    <input type="text" inputmode="decimal" id="scatterYmax" step="0.1">
-                                </div>
-                            </div>
-                            <button class="btn btn-outline btn-sm" id="resetAxes" style="width: 100%; margin-top: 4px; font-size: 10px; padding: 2px 6px;">Reset</button>
-                        </div>
-
-                        <!-- Plot Size -->
-                        <div class="control-box-compact">
-                            <span class="control-label">Plot Size</span>
-                            <div class="axis-inputs" style="gap: 4px;">
-                                <div>
-                                    <label>Width</label>
-                                    <input type="text" inputmode="numeric" id="plotWidth" placeholder="auto">
-                                </div>
-                                <div>
-                                    <label>Height</label>
-                                    <input type="text" inputmode="numeric" id="plotHeight" placeholder="auto">
-                                </div>
+                                <button class="btn btn-outline btn-sm" id="resetAxes" style="font-size: 10px; padding: 2px 6px; white-space: nowrap;">Reset</button>
                             </div>
                         </div>
 
@@ -1867,13 +1870,13 @@
                         </div>
 
                         <!-- Compare + Reset -->
-                        <div class="control-box-compact">
-                            <span class="control-label">Compare</span>
-                            <div style="display: flex; flex-direction: column; gap: 3px;">
-                                <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size: 10px; padding: 2px 8px; width: 100%;">By Tissue</button>
-                                <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size: 10px; padding: 2px 8px; width: 100%;">By Hotspot</button>
-                                <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size: 10px; padding: 2px 8px; width: 100%; display: none;">By Fusion</button>
-                                <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size: 10px; padding: 2px 8px; width: 100%; margin-top: 2px;">Reset Filters</button>
+                        <div class="control-box-compact" style="grid-column: span 2;">
+                            <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+                                <span class="control-label" style="margin-bottom: 0; margin-right: 2px;">Compare:</span>
+                                <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size: 10px; padding: 2px 8px;">By Tissue</button>
+                                <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size: 10px; padding: 2px 8px;">By Hotspot</button>
+                                <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size: 10px; padding: 2px 8px; display: none;">By Fusion</button>
+                                <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size: 10px; padding: 2px 8px; margin-left: auto;">Reset Filters</button>
                             </div>
                         </div>
 

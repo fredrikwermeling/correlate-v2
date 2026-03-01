@@ -7959,8 +7959,9 @@ Results:
             if (totalW) { layout.width = totalW; plotContainer.style.width = totalW + 'px'; }
             if (totalH) { layout.height = totalH; plotContainer.style.height = totalH + 'px'; }
         } else {
-            // Square plot area by default: use available viewport height
-            const plotArea = Math.max(400, Math.min(650, window.innerHeight - 250));
+            // Square plot area by default: fit within viewport
+            // Account for modal header (~50), footer (~60), padding (~40), margins
+            const plotArea = Math.max(350, Math.min(550, window.innerHeight - 300));
             layout.width = plotArea + m.l + m.r;
             layout.height = plotArea + m.t + m.b;
             plotContainer.style.width = layout.width + 'px';
