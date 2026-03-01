@@ -36,6 +36,7 @@ class CorrelationExplorer {
         this.currentInspect = null;
         this.clickedCells = new Set();
         this._userLegendPosition = null;
+        this._userTitlePosition = null;
 
         // Gene statistics (LFC, FDR)
         this.geneStats = null;
@@ -7128,6 +7129,7 @@ Results:
 
         // Set up currentInspect with the data needed for By tissue
         this._userLegendPosition = null;
+        this._userTitlePosition = null;
         this.currentInspect = {
             gene1: c.gene1,
             gene2: c.gene2,
@@ -7192,6 +7194,7 @@ Results:
     openInspect(c) {
         // c is now the correlation object directly
         this._userLegendPosition = null;
+        this._userTitlePosition = null;
         this.currentInspect = {
             gene1: c.gene1,
             gene2: c.gene2,
@@ -7257,7 +7260,7 @@ Results:
         });
         const lineages = Object.keys(lineageCounts).sort();
         if (lineages.length > 0) {
-            cancerFilter.innerHTML = `<option value="">All cancer types (n=${plotData.length})</option>`;
+            cancerFilter.innerHTML = `<option value="">All tissues (n=${plotData.length})</option>`;
             lineages.forEach(l => {
                 cancerFilter.innerHTML += `<option value="${l}">${l} (n=${lineageCounts[l]})</option>`;
             });
@@ -7540,6 +7543,11 @@ Results:
             compareTable.style.display = 'block';
             this.renderCompareTable(filteredData, gene1, gene2, hotspotGene, filterDesc);
             return;
+        } else if (transOverlayMode === 'compare_table' && transOverlayGene) {
+            scatterPlot.style.display = 'none';
+            compareTable.style.display = 'block';
+            this.renderCompareTable(filteredData, gene1, gene2, transOverlayGene, filterDesc, true);
+            return;
         } else {
             scatterPlot.style.display = 'block';
             compareTable.style.display = 'none';
@@ -7548,6 +7556,10 @@ Results:
         // Handle 3-panel mode
         if (hotspotMode === 'three_panel' && hotspotGene) {
             this.renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc);
+            return;
+        }
+        if (transOverlayMode === 'three_panel' && transOverlayGene) {
+            this.renderThreePanelPlot(filteredData, gene1, gene2, transOverlayGene, searchTerms, fontSize, filterDesc, true);
             return;
         }
 
@@ -7745,19 +7757,24 @@ Results:
         }
 
         const titleText = titleLines.join('<br>');
-        const annotations = [];
+
+        // Title as draggable annotation
+        const titleAnnotation = {
+            x: this._userTitlePosition ? this._userTitlePosition.x : 0.5,
+            y: this._userTitlePosition ? this._userTitlePosition.y : 1.0,
+            xref: 'paper', yref: 'paper',
+            xanchor: this._userTitlePosition ? 'auto' : 'center',
+            yanchor: this._userTitlePosition ? 'auto' : 'bottom',
+            text: titleText,
+            showarrow: false,
+            font: { size: 14 }
+        };
+        const annotations = [titleAnnotation];
 
         // Calculate margin based on title lines
         const topMargin = 80 + (titleLines.length * 18);
 
         const layout = {
-            title: {
-                text: titleText,
-                x: 0.5,
-                y: 0.98,
-                yanchor: 'top',
-                font: { size: 14 }
-            },
             xaxis: {
                 title: `${gene1} Gene Effect`,
                 range: xRange,
@@ -7802,9 +7819,9 @@ Results:
 
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: true,
-            edits: { legendPosition: true }
+            edits: { annotationPosition: true, legendPosition: true }
         }).then(plotEl => {
-            // Listen for legend drag events
+            // Listen for legend and title drag events
             let isProgrammaticRelayout = false;
             plotEl.on('plotly_relayout', (relayoutData) => {
                 if (isProgrammaticRelayout) return;
@@ -7812,6 +7829,12 @@ Results:
                     this._userLegendPosition = {
                         x: relayoutData['legend.x'],
                         y: relayoutData['legend.y']
+                    };
+                }
+                if (relayoutData['annotations[0].x'] !== undefined && relayoutData['annotations[0].y'] !== undefined) {
+                    this._userTitlePosition = {
+                        x: relayoutData['annotations[0].x'],
+                        y: relayoutData['annotations[0].y']
                     };
                 }
             });
@@ -7838,10 +7861,11 @@ Results:
         });
     }
 
-    renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc = '') {
-        const wt = filteredData.filter(d => d.mutationLevel === 0);
-        const mut1 = filteredData.filter(d => d.mutationLevel === 1);
-        const mut2 = filteredData.filter(d => d.mutationLevel >= 2);
+    renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc = '', isFusion = false) {
+        const levelField = isFusion ? 'translocationLevel' : 'mutationLevel';
+        const wt = filteredData.filter(d => d[levelField] === 0);
+        const mut1 = filteredData.filter(d => d[levelField] === 1);
+        const mut2 = filteredData.filter(d => d[levelField] >= 2);
 
         const xRange = [this.getInputNum('scatterXmin'),
                        this.getInputNum('scatterXmax')];
@@ -7865,7 +7889,12 @@ Results:
 
         const traces = [];
 
-        // Panel 1: WT (0 mut)
+        // Panel labels
+        const panelLabels = isFusion
+            ? ['No fusion', '1 partner', '2+ partners']
+            : ['WT', '1 mut', '2 mut'];
+
+        // Panel 1: WT / No fusion
         traces.push({
             x: wt.map(d => d.x),
             y: wt.map(d => d.y),
@@ -7876,11 +7905,11 @@ Results:
             text: wt.map(d => `${d.cellLineName}<br>${d.lineage}`),
             hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
             marker: { color: '#9ca3af', size: 7, opacity: 0.6 },
-            name: 'WT',
+            name: panelLabels[0],
             showlegend: false
         });
 
-        // Panel 2: 1 mutation
+        // Panel 2: 1 mutation / 1 partner
         traces.push({
             x: mut1.map(d => d.x),
             y: mut1.map(d => d.y),
@@ -7891,11 +7920,11 @@ Results:
             text: mut1.map(d => `${d.cellLineName}<br>${d.lineage}`),
             hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
             marker: { color: '#3b82f6', size: 8, opacity: 0.7 },
-            name: '1 mut',
+            name: panelLabels[1],
             showlegend: false
         });
 
-        // Panel 3: 2 mutations
+        // Panel 3: 2 mutations / 2+ partners
         traces.push({
             x: mut2.map(d => d.x),
             y: mut2.map(d => d.y),
@@ -7906,7 +7935,7 @@ Results:
             text: mut2.map(d => `${d.cellLineName}<br>${d.lineage}`),
             hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
             marker: { color: '#dc2626', size: 8, opacity: 0.7 },
-            name: '2 mut',
+            name: panelLabels[2],
             showlegend: false
         });
 
@@ -7970,18 +7999,30 @@ Results:
         addHighlights(mut2, 'x3', 'y3');
 
         // Build title with filter info
-        let titleText = `<b>${gene1} vs ${gene2} - ${hotspotGene} hotspot mutation stratification</b>`;
+        const stratLabel = isFusion ? 'fusion stratification' : 'hotspot mutation stratification';
+        let titleText = `<b>${gene1} vs ${gene2} - ${hotspotGene} ${stratLabel}</b>`;
         if (filterDesc) {
             titleText += `<br><span style="font-size: 11px; color: #666;">Filter: ${filterDesc}</span>`;
         }
 
+        // Annotation labels for panels
+        const annotLabels = isFusion
+            ? [`<b>No fusion</b>`, `<b>1 partner</b>`, `<b>2+ partners</b>`]
+            : [`<b>WT (0 mut)</b>`, `<b>1 mutation</b>`, `<b>2 mutations</b>`];
+
+        // Title annotation (draggable)
+        const titleAnnotation = {
+            x: this._userTitlePosition ? this._userTitlePosition.x : 0.5,
+            y: this._userTitlePosition ? this._userTitlePosition.y : 1.12,
+            xref: 'paper', yref: 'paper',
+            xanchor: this._userTitlePosition ? 'auto' : 'center',
+            yanchor: this._userTitlePosition ? 'auto' : 'bottom',
+            text: titleText,
+            showarrow: false,
+            font: { size: 14 }
+        };
+
         const layout = {
-            title: {
-                text: titleText,
-                x: 0.5,
-                y: 0.98,
-                font: { size: 14 }
-            },
             grid: { rows: 1, columns: 3, pattern: 'independent' },
             xaxis: { title: `${gene1} Effect`, range: xRange, domain: [0, 0.28], constrain: 'domain' },
             yaxis: {
@@ -8005,14 +8046,15 @@ Results:
                 constrain: 'domain'
             },
             annotations: [
+                titleAnnotation,
                 { x: 0.14, y: 1.02, xref: 'paper', yref: 'paper',
-                  text: `<b>WT (0 mut)</b> n=${wt.length}<br>r=${wtStats.correlation.toFixed(3)}, slope=${wtStats.slope.toFixed(3)}<br>mean: x=${wtExtra.meanX.toFixed(2)}, y=${wtExtra.meanY.toFixed(2)}<br>median: x=${wtExtra.medianX.toFixed(2)}, y=${wtExtra.medianY.toFixed(2)}`,
+                  text: `${annotLabels[0]} n=${wt.length}<br>r=${wtStats.correlation.toFixed(3)}, slope=${wtStats.slope.toFixed(3)}<br>mean: x=${wtExtra.meanX.toFixed(2)}, y=${wtExtra.meanY.toFixed(2)}<br>median: x=${wtExtra.medianX.toFixed(2)}, y=${wtExtra.medianY.toFixed(2)}`,
                   showarrow: false, font: { size: 9 } },
                 { x: 0.5, y: 1.02, xref: 'paper', yref: 'paper',
-                  text: `<b>1 mutation</b> n=${mut1.length}<br>r=${mut1Stats.correlation.toFixed(3)}, slope=${mut1Stats.slope.toFixed(3)}<br>mean: x=${mut1Extra.meanX.toFixed(2)}, y=${mut1Extra.meanY.toFixed(2)}<br>median: x=${mut1Extra.medianX.toFixed(2)}, y=${mut1Extra.medianY.toFixed(2)}`,
+                  text: `${annotLabels[1]} n=${mut1.length}<br>r=${mut1Stats.correlation.toFixed(3)}, slope=${mut1Stats.slope.toFixed(3)}<br>mean: x=${mut1Extra.meanX.toFixed(2)}, y=${mut1Extra.meanY.toFixed(2)}<br>median: x=${mut1Extra.medianX.toFixed(2)}, y=${mut1Extra.medianY.toFixed(2)}`,
                   showarrow: false, font: { size: 9 } },
                 { x: 0.86, y: 1.02, xref: 'paper', yref: 'paper',
-                  text: `<b>2 mutations</b> n=${mut2.length}<br>r=${mut2Stats.correlation.toFixed(3)}, slope=${mut2Stats.slope.toFixed(3)}<br>mean: x=${mut2Extra.meanX.toFixed(2)}, y=${mut2Extra.meanY.toFixed(2)}<br>median: x=${mut2Extra.medianX.toFixed(2)}, y=${mut2Extra.medianY.toFixed(2)}`,
+                  text: `${annotLabels[2]} n=${mut2.length}<br>r=${mut2Stats.correlation.toFixed(3)}, slope=${mut2Stats.slope.toFixed(3)}<br>mean: x=${mut2Extra.meanX.toFixed(2)}, y=${mut2Extra.meanY.toFixed(2)}<br>median: x=${mut2Extra.medianX.toFixed(2)}, y=${mut2Extra.medianY.toFixed(2)}`,
                   showarrow: false, font: { size: 9 } }
             ],
             margin: { t: filterDesc ? 160 : 140, r: 30, b: 60, l: 60 },
@@ -8021,24 +8063,35 @@ Results:
 
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: true,
-            edits: { legendPosition: true }
+            edits: { annotationPosition: true, legendPosition: true }
+        }).then(plotEl => {
+            plotEl.on('plotly_relayout', (relayoutData) => {
+                if (relayoutData['annotations[0].x'] !== undefined && relayoutData['annotations[0].y'] !== undefined) {
+                    this._userTitlePosition = {
+                        x: relayoutData['annotations[0].x'],
+                        y: relayoutData['annotations[0].y']
+                    };
+                }
+            });
+            this.setupScatterClickHandler(filteredData);
         });
     }
 
-    renderCompareTable(filteredData, gene1, gene2, hotspotGene, filterDesc = '') {
-        // Group by cancer type (lineage) - comparing 0 vs 2 mutations only
+    renderCompareTable(filteredData, gene1, gene2, hotspotGene, filterDesc = '', isFusion = false) {
+        // Group by cancer type (lineage) - comparing 0 vs 2+ level only
+        const levelField = isFusion ? 'translocationLevel' : 'mutationLevel';
         const lineageGroups = {};
         filteredData.forEach(d => {
             if (!d.lineage) return;
             if (!lineageGroups[d.lineage]) {
                 lineageGroups[d.lineage] = { wt: [], mut: [] };
             }
-            if (d.mutationLevel === 0) {
+            if (d[levelField] === 0) {
                 lineageGroups[d.lineage].wt.push(d);
-            } else if (d.mutationLevel >= 2) {
+            } else if (d[levelField] >= (isFusion ? 1 : 2)) {
                 lineageGroups[d.lineage].mut.push(d);
             }
-            // Note: mutationLevel === 1 is excluded from comparison
+            // Note: for hotspot, mutationLevel === 1 is excluded from comparison
         });
 
         // Calculate stats for each lineage
@@ -8082,14 +8135,19 @@ Results:
         tableData.sort((a, b) => a.pR - b.pR);
 
         // Build HTML table
+        const typeLabel = isFusion ? 'Fusion' : 'Mutation';
+        const wtLabel = isFusion ? 'No fusion' : 'WT';
+        const mutLabel = isFusion ? 'Fused (1+)' : 'Mut';
         const filterInfo = filterDesc ? `<p style="font-size: 11px; color: #333; margin-bottom: 8px; background: #f0f9ff; padding: 4px 8px; border-radius: 4px;"><b>Filter:</b> ${filterDesc}</p>` : '';
+        const exclusionNote = isFusion ? '' : ' Note: Cells with exactly 1 mutation are excluded from this comparison.';
+        const wtDesc = isFusion ? `no ${hotspotGene} fusions` : `0 ${hotspotGene} mutations`;
+        const mutDesc = isFusion ? `${hotspotGene} fused (1+)` : `2+ ${hotspotGene} mutations`;
         let html = `
-            <h4 style="margin-bottom: 8px;">Effect of <span style="color: #0066cc;">${hotspotGene}</span> Mutation on ${gene1} vs ${gene2} Correlation</h4>
+            <h4 style="margin-bottom: 8px;">Effect of <span style="color: #0066cc;">${hotspotGene}</span> ${typeLabel} on ${gene1} vs ${gene2} Correlation</h4>
             ${filterInfo}
             <p style="font-size: 11px; color: #666; margin-bottom: 8px;">
-                Comparing correlation between WT (0 ${hotspotGene} mutations) vs Mutant (2+ ${hotspotGene} mutations) cells, stratified by cancer type.
-                Note: Cells with exactly 1 mutation are excluded from this comparison.
-                <strong>Click a cancer type</strong> to view its scatter plot with the ${hotspotGene} mutation overlay.
+                Comparing correlation between ${wtLabel} (${wtDesc}) vs ${mutLabel} (${mutDesc}) cells, stratified by cancer type.${exclusionNote}
+                <strong>Click a cancer type</strong> to view its scatter plot with the ${hotspotGene} ${typeLabel.toLowerCase()} overlay.
             </p>
             <p style="font-size: 10px; color: #0c4a6e; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; margin-bottom: 12px;">
                 <b>Statistics:</b> p(Δr) uses Fisher z-transformation to compare correlations. p(Δslope) is an approximation based on correlation difference.
@@ -8099,12 +8157,12 @@ Results:
                 <thead>
                     <tr>
                         <th data-col="0" style="cursor: pointer;">Cancer Type ▼</th>
-                        <th data-col="1" style="cursor: pointer; border-left: 2px solid #2563eb;">N (WT)</th>
-                        <th data-col="2" style="cursor: pointer;">r (WT)</th>
-                        <th data-col="3" style="cursor: pointer;">slope (WT)</th>
-                        <th data-col="4" style="cursor: pointer; border-left: 2px solid #dc2626;">N (Mut)</th>
-                        <th data-col="5" style="cursor: pointer;">r (Mut)</th>
-                        <th data-col="6" style="cursor: pointer;">slope (Mut)</th>
+                        <th data-col="1" style="cursor: pointer; border-left: 2px solid #2563eb;">N (${wtLabel})</th>
+                        <th data-col="2" style="cursor: pointer;">r (${wtLabel})</th>
+                        <th data-col="3" style="cursor: pointer;">slope (${wtLabel})</th>
+                        <th data-col="4" style="cursor: pointer; border-left: 2px solid #dc2626;">N (${mutLabel})</th>
+                        <th data-col="5" style="cursor: pointer;">r (${mutLabel})</th>
+                        <th data-col="6" style="cursor: pointer;">slope (${mutLabel})</th>
                         <th data-col="7" style="cursor: pointer; border-left: 2px solid #6b7280;">Δr</th>
                         <th data-col="8" style="cursor: pointer;">p(Δr)</th>
                         <th data-col="9" style="cursor: pointer;">Δslope</th>
@@ -8156,28 +8214,33 @@ Results:
         // Add download handler
         document.getElementById('downloadCompareCSV')?.addEventListener('click', () => {
             let csv = `# Correlation: ${gene1} vs ${gene2}\n`;
-            csv += `# Hotspot filter: ${hotspotGene}\n`;
-            csv += `# Comparing WT (0 mutations) vs Mutant (2 mutations) by cancer type\n`;
-            csv += 'Cancer Type,N (WT),r (WT),slope (WT),N (Mut),r (Mut),slope (Mut),Δr,p(Δr),Δslope,p(Δslope)\n';
+            csv += `# ${isFusion ? 'Fusion' : 'Hotspot'} filter: ${hotspotGene}\n`;
+            csv += `# Comparing ${wtLabel} vs ${mutLabel} by cancer type\n`;
+            csv += `Cancer Type,N (${wtLabel}),r (${wtLabel}),slope (${wtLabel}),N (${mutLabel}),r (${mutLabel}),slope (${mutLabel}),Δr,p(Δr),Δslope,p(Δslope)\n`;
             tableData.forEach(row => {
                 csv += `"${row.lineage}",${row.nWT},${row.rWT.toFixed(4)},${row.slopeWT.toFixed(4)},${row.nMut},${row.rMut.toFixed(4)},${row.slopeMut.toFixed(4)},${row.deltaR.toFixed(4)},${row.pR.toExponential(2)},${row.deltaSlope.toFixed(4)},${row.pSlope.toExponential(2)}\n`;
             });
-            this.downloadFile(csv, `correlation_${gene1}_vs_${gene2}_by_${hotspotGene}_mutation.csv`, 'text/csv');
+            this.downloadFile(csv, `correlation_${gene1}_vs_${gene2}_by_${hotspotGene}_${isFusion ? 'fusion' : 'mutation'}.csv`, 'text/csv');
         });
 
         // Make table sortable
         this.setupSortableTable('compareByCancerTable');
 
-        // Make rows clickable - clicking a cancer type shows scatter with that cancer + hotspot filter
+        // Make rows clickable - clicking a cancer type shows scatter with that cancer + overlay filter
         document.querySelectorAll('#compareByCancerTable .clickable-row').forEach(row => {
             row.addEventListener('click', () => {
                 const lineage = row.dataset.lineage;
                 // Set cancer type filter
                 document.getElementById('scatterCancerFilter').value = lineage;
                 this.updateScatterSubtypeFilter();
-                // Keep the hotspot gene as color overlay
-                document.getElementById('hotspotGene').value = hotspotGene;
-                document.getElementById('hotspotMode').value = 'color';
+                // Keep the gene as color overlay
+                if (isFusion) {
+                    document.getElementById('translocationGene').value = hotspotGene;
+                    document.getElementById('translocationMode').value = 'color';
+                } else {
+                    document.getElementById('hotspotGene').value = hotspotGene;
+                    document.getElementById('hotspotMode').value = 'color';
+                }
                 // Switch back to scatter plot
                 document.getElementById('compareTable').style.display = 'none';
                 document.getElementById('scatterPlot').style.display = 'block';
@@ -9081,7 +9144,7 @@ Results:
         });
         const lineages = Object.keys(lineageCounts).sort();
         if (lineages.length > 0) {
-            cancerFilter.innerHTML = `<option value="">All cancer types (n=${data.length})</option>`;
+            cancerFilter.innerHTML = `<option value="">All tissues (n=${data.length})</option>`;
             lineages.forEach(l => {
                 cancerFilter.innerHTML += `<option value="${l}">${l} (n=${lineageCounts[l]})</option>`;
             });

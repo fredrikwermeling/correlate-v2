@@ -1778,12 +1778,12 @@
                     <div class="inspect-controls">
                         <!-- Gene Selection -->
                         <div class="control-box-compact">
-                            <span class="control-label">Genes (X / Y)</span>
-                            <div style="display: flex; gap: 4px;">
+                            <span class="control-label">Genes (X/Y)</span>
+                            <div style="display: flex; gap: 4px; align-items: center;">
                                 <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; font-size: 11px; padding: 3px 6px;" placeholder="X gene">
                                 <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; font-size: 11px; padding: 3px 6px;" placeholder="Y gene">
+                                <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px; white-space: nowrap;">Update</button>
                             </div>
-                            <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="width: 100%; margin-top: 4px; font-size: 10px; padding: 2px 6px;">Update</button>
                         </div>
 
                         <!-- Axis Ranges -->
@@ -1821,9 +1821,9 @@
 
                         <!-- Filter by Cancer Type -->
                         <div class="control-box-compact" id="cancerFilterBox" style="display: none;">
-                            <span class="control-label">Cancer Type</span>
+                            <span class="control-label">Tissue Filter</span>
                             <select id="scatterCancerFilter" class="form-control" style="font-size: 11px; padding: 2px 4px;">
-                                <option value="">All cancer types</option>
+                                <option value="">All tissues</option>
                             </select>
                             <select id="scatterSubtypeFilter" class="form-control" style="margin-top: 3px; display: none; font-size: 11px; padding: 2px 4px;">
                                 <option value="">All subtypes</option>
@@ -1866,7 +1866,6 @@
                                 <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size: 10px; padding: 2px 8px;">By Tissue</button>
                                 <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size: 10px; padding: 2px 8px;">By Hotspot</button>
                                 <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size: 10px; padding: 2px 8px; display: none;">By Fusion</button>
-                                <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
                                 <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size: 10px; padding: 2px 8px;">Reset Filters</button>
                             </div>
                         </div>
@@ -1909,6 +1908,8 @@
                             <select id="translocationMode" class="form-control" style="margin-top: 4px; font-size: 11px; padding: 2px 4px;">
                                 <option value="none">None</option>
                                 <option value="color" selected>Color (0/1/2+)</option>
+                                <option value="three_panel">3-panel</option>
+                                <option value="compare_table">Compare table</option>
                             </select>
                         </div>
                     </div>
