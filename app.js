@@ -9183,18 +9183,66 @@ Results:
             // Widen Plotly's internal legend clipPath to prevent text clipping
             const legendClips = tempDiv.querySelectorAll('clipPath[id^="legend"] rect');
             legendClips.forEach(rect => {
-                rect.setAttribute('width', parseFloat(rect.getAttribute('width')) + 40);
+                rect.setAttribute('width', parseFloat(rect.getAttribute('width')) + 60);
             });
             const legendBg = tempDiv.querySelector('.legend .bg');
             if (legendBg) {
-                legendBg.setAttribute('width', parseFloat(legendBg.getAttribute('width')) + 40);
+                legendBg.setAttribute('width', parseFloat(legendBg.getAttribute('width')) + 60);
             }
-            return Plotly.downloadImage(tempDiv, {
-                format,
-                width: exportWidth,
-                height: exportHeight,
-                filename
-            });
+
+            // Manually serialize SVG and trigger download (Plotly.downloadImage
+            // re-renders from internal state, discarding our DOM clipPath fixes)
+            const svgEl = tempDiv.querySelector('svg');
+            if (!svgEl) throw new Error('No SVG found');
+
+            const serializer = new XMLSerializer();
+            let svgString = serializer.serializeToString(svgEl);
+            // Ensure XML namespace
+            if (!svgString.includes('xmlns="http://www.w3.org/2000/svg"')) {
+                svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+            }
+
+            if (format === 'svg') {
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename + '.svg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } else {
+                // PNG: render SVG to canvas then export
+                const canvas = document.createElement('canvas');
+                canvas.width = exportWidth;
+                canvas.height = exportHeight;
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                return new Promise((resolve, reject) => {
+                    img.onload = () => {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                        URL.revokeObjectURL(url);
+                        canvas.toBlob(blob => {
+                            const pngUrl = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = pngUrl;
+                            a.download = filename + '.png';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(pngUrl);
+                            resolve();
+                        }, 'image/png');
+                    };
+                    img.onerror = reject;
+                    img.src = url;
+                });
+            }
         }).then(() => {
             Plotly.purge(tempDiv);
             document.body.removeChild(tempDiv);
