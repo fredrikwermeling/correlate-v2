@@ -3917,18 +3917,17 @@ class CorrelationExplorer {
         }
         const lineageText = filterInfo.length > 0 ? filterInfo.join(' | ') : 'All lineages';
 
-        // Build stats text for subtitle
+        // Build stats text for subtitle - condensed to one line
         const formatP = (p) => isNaN(p) ? '-' : (p < 0.001 ? p.toExponential(1) : p.toFixed(3));
         const fusedLabel = isTranslocation ? 'Fused' : 'Mut';
-        let statsLine1 = `WT: n=${wtStats.n}, mean=${wtStats.mean.toFixed(2)}, med=${wtStats.median.toFixed(2)}`;
-        statsLine1 += `  ·  ${fusedLabel}: n=${mutAllStats.n}, mean=${mutAllStats.mean.toFixed(2)}, med=${mutAllStats.median.toFixed(2)}`;
-        let statsLine2 = `p(WT vs ${fusedLabel}): ${formatP(pWTvsMut)}`;
+        let statsLine = `WT: n=${wtStats.n}, mean=${wtStats.mean.toFixed(2)}, med=${wtStats.median.toFixed(2)}  ·  ${fusedLabel}: n=${mutAllStats.n}, mean=${mutAllStats.mean.toFixed(2)}, med=${mutAllStats.median.toFixed(2)}`;
+        statsLine += `  ·  p(WT vs ${fusedLabel}): ${formatP(pWTvsMut)}`;
         if (mut2Stats.n >= 3) {
-            statsLine2 += `  ·  p(WT vs 2${isTranslocation ? '+' : ''}): ${formatP(pWTvs2)}`;
+            statsLine += `  ·  p(WT vs 2${isTranslocation ? '+' : ''}): ${formatP(pWTvs2)}`;
         }
 
         // Combine lineage info and stats in subtitle
-        const subtitle = `${lineageText}<br>${statsLine1}<br>${statsLine2}`;
+        const subtitle = `${lineageText}<br>${statsLine}`;
 
         const statusLabel = isTranslocation ? 'Fusion Status' : 'Mutation Status';
         const yAxisTitle = isTranslocation ? `${hotspotGene} Fusions` : `${hotspotGene} Mutations`;
@@ -3945,11 +3944,11 @@ class CorrelationExplorer {
                 xref: 'paper',
                 yref: 'paper',
                 x: 0.5,
-                y: 1.22,
+                y: 1.18,
                 xanchor: 'center',
                 yanchor: 'top',
                 showarrow: false,
-                font: { size: 14 }
+                font: { size: 13 }
             }],
             xaxis: {
                 title: `${gene} Gene Effect`,
@@ -3963,16 +3962,8 @@ class CorrelationExplorer {
                 range: [-0.5, 2.5],
                 automargin: true
             },
-            showlegend: true,
-            legend: {
-                orientation: 'h',
-                x: 0.5,
-                xanchor: 'center',
-                y: -0.15,
-                yanchor: 'top',
-                font: { size: 11 }
-            },
-            margin: { t: 130, r: 30, b: 80, l: 30 }
+            showlegend: false,
+            margin: { t: 120, r: 30, b: 50, l: 30 }
         };
 
         // Show modal
@@ -4000,6 +3991,11 @@ class CorrelationExplorer {
                 }
             } else {
                 this.updateGeSubtypeFilter();
+                // Restore subtype selection after repopulating dropdown
+                if (inspectSubtype) {
+                    const geSubEl = document.getElementById('geSubtypeFilter');
+                    if (geSubEl) geSubEl.value = inspectSubtype;
+                }
             }
         }
 
