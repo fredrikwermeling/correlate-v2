@@ -7572,11 +7572,15 @@ Results:
         if (hotspotMode === 'compare_table' && hotspotGene) {
             scatterPlot.style.display = 'none';
             compareTable.style.display = 'block';
+            const legend = document.getElementById('colorByLegend');
+            if (legend) legend.style.display = 'none';
             this.renderCompareTable(filteredData, gene1, gene2, hotspotGene, filterDesc);
             return;
         } else if (transOverlayMode === 'compare_table' && transOverlayGene) {
             scatterPlot.style.display = 'none';
             compareTable.style.display = 'block';
+            const legend = document.getElementById('colorByLegend');
+            if (legend) legend.style.display = 'none';
             this.renderCompareTable(filteredData, gene1, gene2, transOverlayGene, filterDesc, true);
             return;
         } else {
@@ -7608,6 +7612,11 @@ Results:
         const mut1Stats = this.pearsonWithSlope(mut1.map(d => d.x), mut1.map(d => d.y));
         const mut2Stats = this.pearsonWithSlope(mut2.map(d => d.x), mut2.map(d => d.y));
         const allStats = this.pearsonWithSlope(filteredData.map(d => d.x), filteredData.map(d => d.y));
+
+        // Color-by tracking
+        let colorByCategories = null;
+        let colorByColors = null;
+        const colorByTraceIndices = {};
 
         // Build traces
         const traces = [];
@@ -7712,11 +7721,12 @@ Results:
                 categoryMap[cat].push(d);
             });
             // Sort categories by count descending
-            const categories = Object.keys(categoryMap).sort((a, b) => categoryMap[b].length - categoryMap[a].length);
-            const colors = CorrelationExplorer.CATEGORY_COLORS;
-            categories.forEach((cat, i) => {
+            colorByCategories = Object.keys(categoryMap).sort((a, b) => categoryMap[b].length - categoryMap[a].length);
+            colorByColors = CorrelationExplorer.CATEGORY_COLORS;
+            colorByCategories.forEach((cat, i) => {
                 const catData = categoryMap[cat];
-                const color = i < colors.length ? colors[i] : '#999';
+                const color = i < colorByColors.length ? colorByColors[i] : '#999';
+                colorByTraceIndices[cat] = [traces.length];
                 traces.push({
                     x: catData.map(d => d.x),
                     y: catData.map(d => d.y),
@@ -7725,7 +7735,8 @@ Results:
                     text: catData.map(d => `${d.cellLineName}<br>${cat}`),
                     hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                     marker: { color: color, size: 8, opacity: 0.8 },
-                    name: `${cat} (${catData.length})`
+                    name: `${cat} (${catData.length})`,
+                    showlegend: false
                 });
             });
         } else {
@@ -7869,8 +7880,8 @@ Results:
                 constrain: 'domain'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || colorByCategory) ? 140 : 30, b: 60, l: 60 },
-            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 140 : 30, b: 60, l: 60 },
+            showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene),
             legend: {
                 x: 0.98,
                 y: 0.98,
@@ -7879,7 +7890,7 @@ Results:
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                title: { text: colorByCategory === 'tissue' ? 'Tissue' : colorByCategory === 'subtype' ? 'Subtype' : (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
+                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
                 font: { size: 11 }
             },
             annotations: annotations,
@@ -7896,7 +7907,7 @@ Results:
 
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: true,
-            edits: { annotationPosition: true, legendPosition: true }
+            edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
         }).then(plotEl => {
             // Listen for legend and title drag events
             let isProgrammaticRelayout = false;
@@ -7948,6 +7959,14 @@ Results:
 
             // Add click handler
             this.setupScatterClickHandler(filteredData);
+
+            // Build custom HTML legend for color-by mode
+            if (colorByCategories) {
+                this._buildColorByLegend(colorByCategories, colorByColors, colorByTraceIndices);
+            } else {
+                const legend = document.getElementById('colorByLegend');
+                if (legend) legend.style.display = 'none';
+            }
         });
     }
 
@@ -8010,6 +8029,7 @@ Results:
         ];
 
         const colors = CorrelationExplorer.CATEGORY_COLORS;
+        const colorByTraceIndices = {};
 
         panelConfigs.forEach((cfg, i) => {
             if (categoryOrder) {
@@ -8017,6 +8037,8 @@ Results:
                 categoryOrder.forEach((cat, ci) => {
                     const catData = cfg.data.filter(d => getCategory(d) === cat);
                     if (catData.length === 0) return;
+                    if (!colorByTraceIndices[cat]) colorByTraceIndices[cat] = [];
+                    colorByTraceIndices[cat].push(traces.length);
                     traces.push({
                         x: catData.map(d => d.x), y: catData.map(d => d.y),
                         xaxis: cfg.xaxis, yaxis: cfg.yaxis,
@@ -8025,7 +8047,7 @@ Results:
                         hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                         marker: { color: ci < colors.length ? colors[ci] : '#999', size: cfg.size, opacity: 0.8 },
                         name: `${cat} (${catData.length})`,
-                        showlegend: i === 0, // only show legend for first panel
+                        showlegend: false,
                         legendgroup: cat
                     });
                 });
@@ -8177,15 +8199,7 @@ Results:
                   showarrow: false, font: { size: 9 } },
                 ...threePanelHighlightAnnotations
             ],
-            margin: { t: filterDesc ? 160 : 140, r: colorByCategory ? 140 : 30, b: 60, l: 60 },
-            showlegend: !!colorByCategory,
-            legend: colorByCategory ? {
-                x: 1.02, y: 1, xanchor: 'left', yanchor: 'top',
-                bgcolor: 'rgba(255,255,255,0.85)',
-                bordercolor: '#ddd', borderwidth: 1,
-                title: { text: colorByCategory === 'subtype' ? 'Subtype' : 'Tissue', font: { size: 11 } },
-                font: { size: 10 }
-            } : undefined,
+            margin: { t: filterDesc ? 160 : 140, r: 30, b: 60, l: 60 },
             plot_bgcolor: '#fafafa'
         };
 
@@ -8201,7 +8215,7 @@ Results:
 
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: true,
-            edits: { annotationPosition: true, legendPosition: true }
+            edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
         }).then(plotEl => {
             plotEl.on('plotly_relayout', (relayoutData) => {
                 if (relayoutData['annotations[0].x'] !== undefined && relayoutData['annotations[0].y'] !== undefined) {
@@ -8226,6 +8240,87 @@ Results:
                 }
             });
             this.setupScatterClickHandler(filteredData);
+
+            // Build custom HTML legend for color-by mode
+            if (categoryOrder) {
+                this._buildColorByLegend(categoryOrder, colors, colorByTraceIndices);
+            } else {
+                const legend = document.getElementById('colorByLegend');
+                if (legend) legend.style.display = 'none';
+            }
+        });
+    }
+
+    _buildColorByLegend(categories, colors, categoryTraceIndices) {
+        const container = document.getElementById('colorByLegend');
+        if (!container) return;
+
+        if (!categories || categories.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'block';
+        let html = '<div style="display: flex; gap: 2px; margin-bottom: 4px;">';
+        html += '<button id="colorByShowAll" class="btn btn-secondary btn-sm" style="font-size: 9px; padding: 1px 5px;">Show all</button>';
+        html += '<button id="colorByHideAll" class="btn btn-secondary btn-sm" style="font-size: 9px; padding: 1px 5px;">Hide all</button>';
+        html += '</div>';
+        html += '<div style="display: flex; flex-wrap: wrap; gap: 2px;">';
+        categories.forEach((cat, i) => {
+            const color = i < colors.length ? colors[i] : '#999';
+            html += `<span class="color-by-chip" data-cat-index="${i}" style="display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; border: 1px solid ${color}; background: rgba(255,255,255,0.9); white-space: nowrap; user-select: none;">`;
+            html += `<span style="width: 8px; height: 8px; border-radius: 50%; background: ${color}; display: inline-block; flex-shrink: 0;"></span>`;
+            html += `${cat}`;
+            html += `</span>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+
+        // Track hidden categories
+        const hidden = new Set();
+
+        // Click chip to toggle
+        container.querySelectorAll('.color-by-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const idx = parseInt(chip.dataset.catIndex);
+                const cat = categories[idx];
+                const indices = categoryTraceIndices[cat];
+                if (!indices) return;
+
+                if (hidden.has(cat)) {
+                    hidden.delete(cat);
+                    chip.style.opacity = '1';
+                    chip.style.textDecoration = 'none';
+                    Plotly.restyle('scatterPlot', { visible: true }, indices);
+                } else {
+                    hidden.add(cat);
+                    chip.style.opacity = '0.3';
+                    chip.style.textDecoration = 'line-through';
+                    Plotly.restyle('scatterPlot', { visible: false }, indices);
+                }
+            });
+        });
+
+        // Show all
+        document.getElementById('colorByShowAll')?.addEventListener('click', () => {
+            hidden.clear();
+            container.querySelectorAll('.color-by-chip').forEach(c => {
+                c.style.opacity = '1';
+                c.style.textDecoration = 'none';
+            });
+            const allIndices = Object.values(categoryTraceIndices).flat();
+            if (allIndices.length > 0) Plotly.restyle('scatterPlot', { visible: true }, allIndices);
+        });
+
+        // Hide all
+        document.getElementById('colorByHideAll')?.addEventListener('click', () => {
+            categories.forEach(cat => hidden.add(cat));
+            container.querySelectorAll('.color-by-chip').forEach(c => {
+                c.style.opacity = '0.3';
+                c.style.textDecoration = 'line-through';
+            });
+            const allIndices = Object.values(categoryTraceIndices).flat();
+            if (allIndices.length > 0) Plotly.restyle('scatterPlot', { visible: false }, allIndices);
         });
     }
 
