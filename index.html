@@ -978,6 +978,9 @@
         .inspect-plot {
             flex: 1;
             min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .control-box {
@@ -1774,23 +1777,13 @@
             <div class="modal-body">
                 <div class="inspect-layout">
                     <div class="inspect-controls">
-                        <!-- Gene Selection + Plot Size -->
+                        <!-- Gene Selection -->
                         <div class="control-box-compact" style="padding: 4px 8px;">
                             <span class="control-label" style="margin-bottom: 2px;">Genes (X/Y)</span>
                             <div style="display: flex; gap: 4px; align-items: center;">
                                 <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="X gene">
                                 <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="Y gene">
                                 <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px; white-space: nowrap;">Update</button>
-                            </div>
-                            <div class="axis-inputs" style="gap: 4px; margin-top: 4px;">
-                                <div>
-                                    <label>Width</label>
-                                    <input type="text" inputmode="numeric" id="plotWidth" placeholder="auto">
-                                </div>
-                                <div>
-                                    <label>Height</label>
-                                    <input type="text" inputmode="numeric" id="plotHeight" placeholder="auto">
-                                </div>
                             </div>
                         </div>
 
@@ -1816,6 +1809,21 @@
                                 </div>
                             </div>
                             <button class="btn btn-outline btn-sm" id="resetAxes" style="width: 100%; margin-top: 4px; font-size: 10px; padding: 2px 6px;">Reset</button>
+                        </div>
+
+                        <!-- Plot Size -->
+                        <div class="control-box-compact">
+                            <span class="control-label">Plot Size</span>
+                            <div class="axis-inputs" style="gap: 4px;">
+                                <div>
+                                    <label>Width</label>
+                                    <input type="text" inputmode="numeric" id="plotWidth" placeholder="auto">
+                                </div>
+                                <div>
+                                    <label>Height</label>
+                                    <input type="text" inputmode="numeric" id="plotHeight" placeholder="auto">
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Filter by Cancer Type -->
@@ -1858,14 +1866,14 @@
                             </select>
                         </div>
 
-                        <!-- Compare + Reset row -->
-                        <div class="control-box-compact" style="grid-column: span 2;">
-                            <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
-                                <span class="control-label" style="margin-bottom: 0; margin-right: 4px;">Compare:</span>
-                                <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size: 10px; padding: 2px 8px;">By Tissue</button>
-                                <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size: 10px; padding: 2px 8px;">By Hotspot</button>
-                                <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size: 10px; padding: 2px 8px; display: none;">By Fusion</button>
-                                <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size: 10px; padding: 2px 8px;">Reset Filters</button>
+                        <!-- Compare + Reset -->
+                        <div class="control-box-compact">
+                            <span class="control-label">Compare</span>
+                            <div style="display: flex; flex-direction: column; gap: 3px;">
+                                <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size: 10px; padding: 2px 8px; width: 100%;">By Tissue</button>
+                                <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size: 10px; padding: 2px 8px; width: 100%;">By Hotspot</button>
+                                <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size: 10px; padding: 2px 8px; width: 100%; display: none;">By Fusion</button>
+                                <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size: 10px; padding: 2px 8px; width: 100%; margin-top: 2px;">Reset Filters</button>
                             </div>
                         </div>
 
@@ -1879,7 +1887,7 @@
                                     <button class="btn btn-secondary btn-sm" id="clearHighlights" style="font-size: 10px; padding: 1px 6px;">Clear</button>
                                 </div>
                             </div>
-                            <textarea id="scatterCellSearch" class="form-control" style="min-height: 24px; height: 24px; font-size: 11px; margin-top: 4px;" placeholder="Type names or click plot..."></textarea>
+                            <textarea id="scatterCellSearch" class="form-control" style="min-height: 40px; height: 40px; font-size: 11px; margin-top: 4px;" placeholder="Type names or click plot..."></textarea>
                             <select id="colorByCategory" class="form-control" style="font-size: 11px; padding: 2px 4px; margin-top: 4px;">
                                 <option value="">Color by...</option>
                                 <option value="tissue">Color by tissue</option>

@@ -7947,20 +7947,24 @@ Results:
         }
 
         // Apply plot dimensions (square by default)
+        // User-specified values refer to the plot area only; margins are added on top
         const plotContainer = document.getElementById('scatterPlot');
-        const userWidth = parseInt(document.getElementById('plotWidth')?.value);
-        const userHeight = parseInt(document.getElementById('plotHeight')?.value);
-        const hasUserSize = !isNaN(userWidth) || !isNaN(userHeight);
+        const userPlotW = parseInt(document.getElementById('plotWidth')?.value);
+        const userPlotH = parseInt(document.getElementById('plotHeight')?.value);
+        const m = layout.margin;
+        const hasUserSize = !isNaN(userPlotW) || !isNaN(userPlotH);
         if (hasUserSize) {
-            if (!isNaN(userWidth)) { layout.width = userWidth; plotContainer.style.width = userWidth + 'px'; }
-            if (!isNaN(userHeight)) { layout.height = userHeight; plotContainer.style.height = userHeight + 'px'; }
+            const totalW = !isNaN(userPlotW) ? userPlotW + m.l + m.r : undefined;
+            const totalH = !isNaN(userPlotH) ? userPlotH + m.t + m.b : undefined;
+            if (totalW) { layout.width = totalW; plotContainer.style.width = totalW + 'px'; }
+            if (totalH) { layout.height = totalH; plotContainer.style.height = totalH + 'px'; }
         } else {
-            // Square by default: use available viewport height
-            const size = Math.max(450, Math.min(700, window.innerHeight - 200));
-            layout.width = size;
-            layout.height = size;
-            plotContainer.style.width = size + 'px';
-            plotContainer.style.height = size + 'px';
+            // Square plot area by default: use available viewport height
+            const plotArea = Math.max(400, Math.min(650, window.innerHeight - 250));
+            layout.width = plotArea + m.l + m.r;
+            layout.height = plotArea + m.t + m.b;
+            plotContainer.style.width = layout.width + 'px';
+            plotContainer.style.height = layout.height + 'px';
         }
 
         Plotly.newPlot('scatterPlot', traces, layout, {
@@ -8281,17 +8285,20 @@ Results:
 
         // Apply plot dimensions (wide default for three-panel)
         const plotContainer3 = document.getElementById('scatterPlot');
-        const userWidth3 = parseInt(document.getElementById('plotWidth')?.value);
-        const userHeight3 = parseInt(document.getElementById('plotHeight')?.value);
-        if (!isNaN(userWidth3) || !isNaN(userHeight3)) {
-            if (!isNaN(userWidth3)) { layout.width = userWidth3; plotContainer3.style.width = userWidth3 + 'px'; }
-            if (!isNaN(userHeight3)) { layout.height = userHeight3; plotContainer3.style.height = userHeight3 + 'px'; }
+        const userPlotW3 = parseInt(document.getElementById('plotWidth')?.value);
+        const userPlotH3 = parseInt(document.getElementById('plotHeight')?.value);
+        const m3 = layout.margin;
+        const hasUserSize3 = !isNaN(userPlotW3) || !isNaN(userPlotH3);
+        if (hasUserSize3) {
+            const totalW3 = !isNaN(userPlotW3) ? userPlotW3 + m3.l + m3.r : undefined;
+            const totalH3 = !isNaN(userPlotH3) ? userPlotH3 + m3.t + m3.b : undefined;
+            if (totalW3) { layout.width = totalW3; plotContainer3.style.width = totalW3 + 'px'; }
+            if (totalH3) { layout.height = totalH3; plotContainer3.style.height = totalH3 + 'px'; }
         } else {
             plotContainer3.style.width = '';
             plotContainer3.style.height = '';
         }
 
-        const hasUserSize3 = !isNaN(userWidth3) || !isNaN(userHeight3);
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: !hasUserSize3,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
