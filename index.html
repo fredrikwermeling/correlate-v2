@@ -1870,10 +1870,12 @@
                         <!-- Compare + Reset -->
                         <div class="control-box-compact">
                             <span class="control-label">Compare</span>
-                            <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size: 10px; padding: 2px 8px; width: 100%;">By Tissue</button>
-                            <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size: 10px; padding: 2px 8px; width: 100%; margin-top: 3px;">By Hotspot</button>
-                            <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size: 10px; padding: 2px 8px; width: 100%; margin-top: 3px; display: none;">By Fusion</button>
-                            <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size: 10px; padding: 2px 8px; width: 100%; margin-top: 3px;">Reset Filters</button>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px;">
+                                <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size: 10px; padding: 2px 4px;">By Tissue</button>
+                                <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size: 10px; padding: 2px 4px;">By Hotspot</button>
+                                <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size: 10px; padding: 2px 4px; display: none;">By Fusion</button>
+                                <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size: 10px; padding: 2px 4px;">Reset</button>
+                            </div>
                         </div>
 
                         <!-- Highlight Cell Lines -->
