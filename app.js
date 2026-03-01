@@ -2725,7 +2725,7 @@ class CorrelationExplorer {
                     significantResults
                 };
 
-                this.displayMutationResults();
+                this.displayMutationResults(true);
 
                 // Switch to mutation tab
                 document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
@@ -3402,7 +3402,7 @@ class CorrelationExplorer {
         return p.toFixed(4);
     }
 
-    displayMutationResults() {
+    displayMutationResults(resetSortIndicator = false) {
         if (!this.mutationResults) return;
 
         const mr = this.mutationResults;
@@ -3410,6 +3410,22 @@ class CorrelationExplorer {
         const hasFusion = mr.hasFusionData;
         const tbody = document.getElementById('mutationTableBody');
         tbody.innerHTML = '';
+
+        // Reset sort indicator to default (Δ GE ascending) on initial display
+        if (resetSortIndicator) {
+            const headerRow = document.querySelector('#mutationTable thead tr');
+            if (headerRow) {
+                headerRow.querySelectorAll('th').forEach(h => {
+                    h.textContent = h.textContent.replace(' ▲', '').replace(' ▼', '');
+                    delete h.dataset.sortDir;
+                });
+                const diffTh = headerRow.querySelector('th[data-col="diff_mut"]');
+                if (diffTh) {
+                    diffTh.textContent += ' ▲';
+                    diffTh.dataset.sortDir = 'asc';
+                }
+            }
+        }
 
         // Show/hide fusion columns in header
         document.querySelectorAll('#mutationTable .fusion-col').forEach(el => {
