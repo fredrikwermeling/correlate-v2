@@ -9292,7 +9292,7 @@ Results:
         });
     }
 
-    _exportScatterChart(format) {
+    async _exportScatterChart(format) {
         const plotEl = document.getElementById('scatterPlot');
         if (!plotEl || !plotEl.data) return;
 
@@ -9310,44 +9310,47 @@ Results:
         const transparentBg = document.getElementById('exportTransparentBg')?.checked;
         const whitePlotBg = document.getElementById('exportWhitePlotBg')?.checked;
 
-        // Build background overrides for export
-        const paperBg = transparentBg ? 'rgba(0,0,0,0)' : (plotEl.layout.paper_bgcolor || '#fff');
-        const plotBg = transparentBg ? 'rgba(0,0,0,0)' : (whitePlotBg ? '#fff' : (plotEl.layout.plot_bgcolor || '#fafafa'));
+        // Determine export backgrounds
+        const origPaperBg = plotEl.layout.paper_bgcolor || '#fff';
+        const origPlotBg = plotEl.layout.plot_bgcolor || '#fafafa';
+        const exportPaperBg = transparentBg ? 'rgba(0,0,0,0)' : origPaperBg;
+        const exportPlotBg = transparentBg ? 'rgba(0,0,0,0)' : (whitePlotBg ? '#fff' : origPlotBg);
 
-        // Use Plotly's own export with the on-screen layout dimensions.
-        // margin.autoexpand: false ensures the plot area stays exactly as configured.
+        // Temporarily set export backgrounds on the live plot so Plotly.toImage renders them
+        await Plotly.relayout(plotEl, { paper_bgcolor: exportPaperBg, plot_bgcolor: exportPlotBg });
+
         const opts = {
             format: format === 'png' ? 'png' : 'svg',
             width: plotEl.layout.width,
             height: plotEl.layout.height,
-            scale: format === 'png' ? 4 : 1,
-            setBackground: function(gd) {
-                gd._fullLayout.paper_bgcolor = paperBg;
-                gd._fullLayout.plot_bgcolor = plotBg;
-            }
+            scale: format === 'png' ? 4 : 1
         };
 
-        Plotly.toImage(plotEl, opts).then(dataUrl => {
-            const a = document.createElement('a');
-            if (format === 'svg') {
-                // Plotly returns URL-encoded SVG data URL
-                let svgString;
-                if (dataUrl.indexOf('base64,') > -1) {
-                    svgString = atob(dataUrl.split('base64,')[1]);
-                } else {
-                    svgString = decodeURIComponent(dataUrl.split(',').slice(1).join(','));
-                }
-                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-                a.href = URL.createObjectURL(blob);
-                a.download = filename + '.svg';
+        const dataUrl = await Plotly.toImage(plotEl, opts);
+
+        // Restore original backgrounds
+        await Plotly.relayout(plotEl, { paper_bgcolor: origPaperBg, plot_bgcolor: origPlotBg });
+
+        const a = document.createElement('a');
+        if (format === 'svg') {
+            let svgString;
+            if (dataUrl.indexOf('base64,') > -1) {
+                svgString = atob(dataUrl.split('base64,')[1]);
             } else {
-                a.href = dataUrl;
-                a.download = filename + '.png';
+                svgString = decodeURIComponent(dataUrl.split(',').slice(1).join(','));
             }
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        });
+            // Remove legend clipPath so text isn't cropped
+            svgString = svgString.replace(/clip-path="url\(#legend[^"]*\)"/g, '');
+            const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+            a.href = URL.createObjectURL(blob);
+            a.download = filename + '.svg';
+        } else {
+            a.href = dataUrl;
+            a.download = filename + '.png';
+        }
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
 
     downloadScatterPNG() {
