@@ -8883,52 +8883,76 @@ Results:
         });
     }
 
-    downloadScatterPNG() {
+    _exportScatterChart(format) {
+        const plotEl = document.getElementById('scatterPlot');
+        if (!plotEl || !plotEl.data) return;
+
         const hotspotGene = document.getElementById('hotspotGene').value;
         const hotspotMode = document.getElementById('hotspotMode').value;
-        let width, height;
-        if (hotspotMode === 'three_panel') {
-            width = 1800;
-            height = 800;
+        const transGene = document.getElementById('translocationGene').value;
+        const transMode = document.getElementById('translocationMode').value;
+        const isThreePanel = (hotspotMode === 'three_panel' && hotspotGene) ||
+                             (transMode === 'three_panel' && transGene);
+
+        let exportWidth, exportHeight;
+        if (isThreePanel) {
+            exportWidth = 1800;
+            exportHeight = 800;
         } else {
-            const plotEl = document.getElementById('scatterPlot');
             const rect = plotEl.getBoundingClientRect();
             const screenAspect = rect.width / rect.height;
-            width = 1200;
-            height = Math.round(1200 / screenAspect);
+            exportWidth = 1200;
+            exportHeight = Math.round(1200 / screenAspect);
         }
-        const suffix = hotspotGene && hotspotMode !== 'none' ? `_${hotspotGene}` : '';
 
-        Plotly.downloadImage('scatterPlot', {
-            format: 'png',
-            width: width,
-            height: height,
-            filename: `scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`
+        let suffix = '';
+        if (hotspotGene && hotspotMode !== 'none') suffix = `_${hotspotGene}`;
+        else if (transGene && transMode !== 'none') suffix = `_${transGene}`;
+        const filename = `scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`;
+
+        // Deep-copy data and layout from live chart
+        const data = JSON.parse(JSON.stringify(plotEl.data));
+        const layout = JSON.parse(JSON.stringify(plotEl.layout));
+
+        // Increase right margin to prevent legend clipping in export
+        const hasLegend = layout.showlegend !== false &&
+            data.some(t => t.showlegend !== false && t.name);
+        if (hasLegend) {
+            layout.margin = Object.assign({}, layout.margin, { r: 200 });
+        }
+        layout.width = exportWidth;
+        layout.height = exportHeight;
+
+        // Render into a temporary off-screen div for a clean export
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-10000px';
+        tempDiv.style.top = '0';
+        tempDiv.style.width = exportWidth + 'px';
+        tempDiv.style.height = exportHeight + 'px';
+        document.body.appendChild(tempDiv);
+
+        Plotly.newPlot(tempDiv, data, layout, { staticPlot: true }).then(() => {
+            return Plotly.downloadImage(tempDiv, {
+                format,
+                width: exportWidth,
+                height: exportHeight,
+                filename
+            });
+        }).then(() => {
+            Plotly.purge(tempDiv);
+            document.body.removeChild(tempDiv);
+        }).catch(() => {
+            try { Plotly.purge(tempDiv); document.body.removeChild(tempDiv); } catch(e) {}
         });
     }
 
-    downloadScatterSVG() {
-        const hotspotGene = document.getElementById('hotspotGene').value;
-        const hotspotMode = document.getElementById('hotspotMode').value;
-        let width, height;
-        if (hotspotMode === 'three_panel') {
-            width = 1800;
-            height = 800;
-        } else {
-            const plotEl = document.getElementById('scatterPlot');
-            const rect = plotEl.getBoundingClientRect();
-            const screenAspect = rect.width / rect.height;
-            width = 1200;
-            height = Math.round(1200 / screenAspect);
-        }
-        const suffix = hotspotGene && hotspotMode !== 'none' ? `_${hotspotGene}` : '';
+    downloadScatterPNG() {
+        this._exportScatterChart('png');
+    }
 
-        Plotly.downloadImage('scatterPlot', {
-            format: 'svg',
-            width: width,
-            height: height,
-            filename: `scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`
-        });
+    downloadScatterSVG() {
+        this._exportScatterChart('svg');
     }
 
     showByTissueModal() {
