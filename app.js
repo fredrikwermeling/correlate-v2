@@ -7979,7 +7979,7 @@ Results:
                 zerolinecolor: '#ddd'
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 140 : 30, b: colorByCategory ? 100 : 60, l: 60 },
+            margin: { t: topMargin, r: 30, b: colorByCategory ? 100 : 60, l: 60 },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: colorByCategory ? {
                 orientation: 'h',
