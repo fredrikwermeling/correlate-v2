@@ -9542,12 +9542,14 @@ Results:
         const chartHeight = Math.max(400, tissueStats.length * 22 + 80);
         compareTableEl.style.display = 'block';
         compareTableEl.style.maxHeight = 'none';
+        compareTableEl.style.width = '100%';
+        compareTableEl.style.alignSelf = 'stretch';
         compareTableEl.innerHTML = `
             <div style="display: flex; gap: 20px; align-items: flex-start;">
-                <div style="flex: 0 0 45%;">
+                <div style="flex: 1 1 50%; min-width: 400px;">
                     <div id="byTissueChart" style="height: ${chartHeight}px;"></div>
                 </div>
-                <div style="flex: 1; min-width: 0;">
+                <div style="flex: 1 1 50%; min-width: 0; overflow-x: auto;">
                     ${tableHtml}
                 </div>
             </div>
