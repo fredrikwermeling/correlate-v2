@@ -531,6 +531,21 @@
             display: block;
         }
 
+        /* Network tab uses visibility instead of display to preserve
+           container dimensions and prevent vis.js from breaking the viewport */
+        #tab-network {
+            display: block !important;
+            visibility: hidden;
+            position: absolute;
+            left: -9999px;
+        }
+
+        #tab-network.active {
+            visibility: visible;
+            position: static;
+            left: auto;
+        }
+
         /* Status boxes - exact Shiny match */
         .status-box {
             padding: 12px 15px;

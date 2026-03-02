@@ -1181,59 +1181,13 @@ class CorrelationExplorer {
     }
 
     setupUI() {
-        // Tab switching - preserve network view state
+        // Tab switching
         document.querySelectorAll('.nav-link').forEach(tab => {
             tab.addEventListener('click', () => {
-                // Save network view state before switching away
-                if (this.network) {
-                    this.savedNetworkView = {
-                        scale: this.network.getScale(),
-                        position: this.network.getViewPosition()
-                    };
-                }
-
                 document.querySelectorAll('.nav-link').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 tab.classList.add('active');
                 document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-
-                // Restore network view state when switching back to network tab
-                if (tab.dataset.tab === 'network' && this.network && !this.savedNetworkView) {
-                    setTimeout(() => this.network?.fit(), 100);
-                }
-                if (tab.dataset.tab === 'network' && this.network && this.savedNetworkView) {
-                    const container = document.getElementById('networkPlot');
-                    const savedView = this.savedNetworkView;
-
-                    const restoreView = () => {
-                        if (savedView && this.network) {
-                            this.network.moveTo({
-                                position: savedView.position,
-                                scale: savedView.scale,
-                                animation: false
-                            });
-                        }
-                    };
-
-                    // Wait for container to have valid dimensions
-                    const waitForDimensions = () => {
-                        const width = container.clientWidth;
-                        const height = container.clientHeight;
-                        if (width > 0 && height > 0) {
-                            // Tell vis.js to use the correct size
-                            this.network.setSize(width + 'px', height + 'px');
-                            // Restore view multiple times to ensure it sticks
-                            restoreView();
-                            setTimeout(restoreView, 100);
-                            setTimeout(restoreView, 300);
-                        } else {
-                            // Container not ready yet, try again
-                            requestAnimationFrame(waitForDimensions);
-                        }
-                    };
-
-                    requestAnimationFrame(waitForDimensions);
-                }
             });
         });
 
