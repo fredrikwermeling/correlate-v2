@@ -9532,19 +9532,13 @@ Results:
         tableHtml += '</tbody></table></div>';
         tableHtml += '<p style="font-size: 11px; color: #666; margin-top: 8px; font-style: italic;">Click a lineage to view its scatter plot</p>';
 
-        // Hide scatterPlot, use compareTable for side-by-side layout
-        const scatterPlotEl = document.getElementById('scatterPlot');
-        const compareTableEl = document.getElementById('compareTable');
+        // Hide inspect-layout, use byTissueContainer for full-width layout
+        document.querySelector('.inspect-layout').style.display = 'none';
+        const tissueContainer = document.getElementById('byTissueContainer');
 
-        scatterPlotEl.style.display = 'none';
-
-        // Create side-by-side layout in compareTable
         const chartHeight = Math.max(400, tissueStats.length * 22 + 80);
-        compareTableEl.style.display = 'block';
-        compareTableEl.style.maxHeight = 'none';
-        compareTableEl.style.width = '100%';
-        compareTableEl.style.alignSelf = 'stretch';
-        compareTableEl.innerHTML = `
+        tissueContainer.style.display = 'block';
+        tissueContainer.innerHTML = `
             <div style="display: flex; gap: 20px; align-items: flex-start;">
                 <div style="flex: 1 1 50%; min-width: 400px;">
                     <div id="byTissueChart" style="height: ${chartHeight}px;"></div>
@@ -9567,6 +9561,11 @@ Results:
         if (!this.currentInspect || !this.currentInspect.data) return;
 
         const { gene1, gene2, data } = this.currentInspect;
+
+        // Restore inspect layout and hide tissue container
+        document.querySelector('.inspect-layout').style.display = '';
+        document.getElementById('byTissueContainer').style.display = 'none';
+        document.getElementById('scatterPlot').style.display = '';
 
         // Show the scatter plot controls again
         document.querySelector('.inspect-controls').style.display = '';
