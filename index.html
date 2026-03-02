@@ -1227,6 +1227,12 @@
                                 <input type="radio" name="analysisMode" value="design">
                                 Design (all genes)
                             </label>
+                            <div id="designExpandOption" style="display: none; margin-top: 2px; margin-bottom: 4px; margin-left: 20px;">
+                                <label style="font-size: 11px; color: #4b5563;">
+                                    <input type="checkbox" id="designExpandNetwork">
+                                    Expand network (find correlations between discovered genes)
+                                </label>
+                            </div>
                             <label>
                                 <input type="radio" name="analysisMode" value="mutation">
                                 Mutation Analysis (differential GE)
@@ -1234,12 +1240,6 @@
                             <label>
                                 <input type="radio" name="analysisMode" value="synonym">
                                 Synonym/Ortholog Lookup
-                            </label>
-                        </div>
-                        <div id="designExpandOption" style="display: none; margin-top: 6px; margin-left: 20px;">
-                            <label style="font-size: 11px; color: #4b5563;">
-                                <input type="checkbox" id="designExpandNetwork">
-                                Expand network (find correlations between discovered genes)
                             </label>
                         </div>
                     </div>
