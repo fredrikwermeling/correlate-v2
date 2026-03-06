@@ -3948,15 +3948,14 @@ class CorrelationExplorer {
                 range: [xMin, xMax]
             },
             yaxis: {
-                title: { text: yAxisTitle, standoff: 15 },
+                title: yAxisTitle,
                 tickmode: 'array',
                 tickvals: [0, 1, 2],
                 ticktext: [`${tick0Label} (n=${data.wt.length})`, `${tick1Label} (n=${data.mut1.length})`, `${tick2Label} (n=${data.mut2.length})`],
-                range: [-0.5, 2.5],
-                automargin: true
+                range: [-0.5, 2.5]
             },
             showlegend: false,
-            margin: { t: 120, r: 30, b: 50, l: 80 },
+            margin: { t: 140, r: 30, b: 50, l: 130 },
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
