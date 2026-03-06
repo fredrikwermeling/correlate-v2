@@ -1,3 +1,6 @@
+- same genes in test data sets for input genes +/- stats.
+
+
 the size setting sfor the 3 plot vresion in correlate is off. 
 the network moves around if selecting other tabs and then go back to network.
 correlation table "by hotspot" doesnt work properly. also, both corelation and clusters tab should under analysis have a "by fusion" button
