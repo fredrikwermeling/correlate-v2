@@ -1789,19 +1789,23 @@ class CorrelationExplorer {
             }
         });
 
-        // Y-axis range control for gene effect distribution plot
-        const geYRangeHandler = () => {
+        // Axis range controls for gene effect distribution plot
+        const geAxisRangeHandler = () => {
+            const plotEl = document.getElementById('geneEffectPlot');
+            if (!plotEl?.data?.length) return;
+            const update = {};
+            const xMin = parseFloat(document.getElementById('geXmin')?.value);
+            const xMax = parseFloat(document.getElementById('geXmax')?.value);
+            if (!isNaN(xMin) && !isNaN(xMax)) update['xaxis.range'] = [xMin, xMax];
             const yMin = parseFloat(document.getElementById('geYmin')?.value);
             const yMax = parseFloat(document.getElementById('geYmax')?.value);
-            if (!isNaN(yMin) && !isNaN(yMax)) {
-                const plotEl = document.getElementById('geneEffectPlot');
-                if (plotEl?.data?.length) {
-                    Plotly.relayout(plotEl, { 'yaxis.range': [yMin, yMax] });
-                }
-            }
+            if (!isNaN(yMin) && !isNaN(yMax)) update['yaxis.range'] = [yMin, yMax];
+            if (Object.keys(update).length) Plotly.relayout(plotEl, update);
         };
-        document.getElementById('geYmin')?.addEventListener('change', geYRangeHandler);
-        document.getElementById('geYmax')?.addEventListener('change', geYRangeHandler);
+        document.getElementById('geXmin')?.addEventListener('change', geAxisRangeHandler);
+        document.getElementById('geXmax')?.addEventListener('change', geAxisRangeHandler);
+        document.getElementById('geYmin')?.addEventListener('change', geAxisRangeHandler);
+        document.getElementById('geYmax')?.addEventListener('change', geAxisRangeHandler);
     }
 
     updateGeneCount() {
@@ -3371,30 +3375,57 @@ class CorrelationExplorer {
 
         const mr = this.mutationResults;
         const results = mr.significantResults;
-        const hasFusion = mr.hasFusionData;
+        const hasFusion = mr.hasFusionData && mr.isTranslocation;
         const tbody = document.getElementById('mutationTableBody');
         tbody.innerHTML = '';
 
-        // Reset sort indicator to default (Δ GE ascending) on initial display
+        // Build dynamic header with hotspot gene name
         if (resetSortIndicator) {
-            const headerRow = document.querySelector('#mutationTable thead tr');
-            if (headerRow) {
-                headerRow.querySelectorAll('th').forEach(h => {
-                    h.textContent = h.textContent.replace(' ▲', '').replace(' ▼', '');
-                    delete h.dataset.sortDir;
-                });
-                const diffTh = headerRow.querySelector('th[data-col="diff_mut"]');
-                if (diffTh) {
-                    diffTh.textContent += ' ▲';
-                    diffTh.dataset.sortDir = 'asc';
-                }
-            }
+            this._mutTableSortCol = 'diff_mut';
+            this._mutTableSortDir = 'asc';
         }
-
-        // Show/hide fusion columns in header
-        document.querySelectorAll('#mutationTable .fusion-col').forEach(el => {
-            el.style.display = hasFusion ? '' : 'none';
+        const sortCol = this._mutTableSortCol || 'diff_mut';
+        const sortDir = this._mutTableSortDir || 'asc';
+        const hg = mr.hotspotGene || 'Hotspot';
+        const isT = mr.isTranslocation;
+        const wtLabel = isT ? `No ${hg} Fusion` : `${hg} WT`;
+        const mutLbl = isT ? `${hg} Fused` : `${hg} Mut`;
+        const thead = document.querySelector('#mutationTable thead');
+        const thStyle = 'cursor: pointer;';
+        const sortClick = 'onclick="app.sortMutationTable(this, event)"';
+        const tip = 'title="Click to sort. Ctrl/Cmd+click to copy column."';
+        const arrow = (col) => col === sortCol ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+        const sortAttr = (col) => col === sortCol ? ` data-sort-dir="${sortDir}"` : '';
+        const cols = [
+            { col: 'gene', label: 'Gene', style: '' },
+            { col: 'n_wt', label: `N (${wtLabel})`, style: 'border-left: 2px solid #2563eb;' },
+            { col: 'mean_wt', label: `Mean GE (${wtLabel})`, style: '' },
+            { col: 'n_mut', label: `N (${mutLbl} 1+2)`, style: 'border-left: 2px solid #f97316;' },
+            { col: 'mean_mut', label: `Mean GE (${mutLbl} 1+2)`, style: '' },
+            { col: 'diff_mut', label: 'Δ GE', style: '' },
+            { col: 'p_mut', label: 'p-value', style: '' },
+            { col: 'n_2', label: `N (${mutLbl} 2${isT ? '+' : ''})`, style: 'border-left: 2px solid #dc2626;' },
+            { col: 'mean_2', label: `Mean GE (${mutLbl} 2${isT ? '+' : ''})`, style: '' },
+            { col: 'diff_2', label: 'Δ GE (2v0)', style: '' },
+            { col: 'p_2', label: 'p-value (2v0)', style: '' }
+        ];
+        let headerHTML = '<tr><th></th>';
+        cols.forEach(c => {
+            headerHTML += `<th ${sortClick} data-col="${c.col}" ${tip} style="${thStyle} ${c.style}"${sortAttr(c.col)}>${c.label}${arrow(c.col)}</th>`;
         });
+        if (hasFusion) {
+            const fusionCols = [
+                { col: 'n_fused', label: 'N (Fused)', style: 'border-left: 2px solid #8b5cf6;' },
+                { col: 'mean_fused', label: 'Mean GE (F)', style: '' },
+                { col: 'diff_fused', label: 'Δ GE (F)', style: '' },
+                { col: 'p_fused', label: 'p (F)', style: '' }
+            ];
+            fusionCols.forEach(c => {
+                headerHTML += `<th ${sortClick} data-col="${c.col}" class="fusion-col" ${tip} style="${thStyle} ${c.style}"${sortAttr(c.col)}>${c.label}${arrow(c.col)}</th>`;
+            });
+        }
+        headerHTML += '</tr>';
+        thead.innerHTML = headerHTML;
 
         // Show/hide Compare by Fusion button
         const hasTranslocations = this.translocations?.genes?.length > 0;
@@ -3433,7 +3464,7 @@ class CorrelationExplorer {
         const mutLabel = mr.isTranslocation ? 'Fused' : 'Mutated';
         let settingsText = `${typeLabel}: ${mr.hotspotGene} | `;
         settingsText += `WT: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells`;
-        if (mr.hasFusionData) {
+        if (hasFusion) {
             settingsText += ` | Fused: ${mr.nFused} cells`;
         }
         settingsText += ` | `;
@@ -3497,13 +3528,8 @@ class CorrelationExplorer {
 
         const col = th.dataset.col;
         const currentDir = th.dataset.sortDir === 'asc' ? 'desc' : 'asc';
-        th.dataset.sortDir = currentDir;
-
-        // Update header indicators
-        th.closest('tr').querySelectorAll('th').forEach(h => {
-            h.textContent = h.textContent.replace(' ▲', '').replace(' ▼', '');
-        });
-        th.textContent += currentDir === 'asc' ? ' ▲' : ' ▼';
+        this._mutTableSortCol = col;
+        this._mutTableSortDir = currentDir;
 
         // Sort data
         this.mutationTableData.sort((a, b) => {
@@ -3559,9 +3585,10 @@ class CorrelationExplorer {
         csv += `# Date: ${new Date().toISOString().slice(0, 10)}\n`;
         csv += '#\n';
 
+        const hasFusion = mr.hasFusionData && mr.isTranslocation;
         let headers = ['Gene', 'N_WT', 'Mean_GE_WT', 'N_1+2', 'Mean_GE_1+2', 'Delta_GE', 'pValue_1+2_vs_0',
                         'N_2', 'Mean_GE_2', 'Delta_GE_2vs0', 'pValue_2_vs_0'];
-        if (mr.hasFusionData) {
+        if (hasFusion) {
             headers.push('N_Fused', 'Mean_GE_Fused', 'Delta_GE_Fused', 'pValue_Fused');
         }
 
@@ -3580,7 +3607,7 @@ class CorrelationExplorer {
                 isNaN(r.diff_2) ? '' : r.diff_2.toFixed(2),
                 this.formatPValue(r.p_2)
             ];
-            if (mr.hasFusionData) {
+            if (hasFusion) {
                 row.push(
                     r.n_fused || 0,
                     isNaN(r.mean_fused) ? '' : r.mean_fused.toFixed(2),
@@ -3916,7 +3943,7 @@ class CorrelationExplorer {
             }],
             xaxis: {
                 title: `${gene} Gene Effect`,
-                range: [xMin, xMax]
+                range: [parseFloat(document.getElementById('geXmin')?.value) || xMin, parseFloat(document.getElementById('geXmax')?.value) || xMax]
             },
             yaxis: {
                 title: yAxisTitle,
@@ -10367,14 +10394,18 @@ Results:
             </tr>`;
             this.renderGETableBody(stats, mode);
         } else {
+            const hg = this.mutationResults?.hotspotGene || 'Hotspot';
+            const isT = this.mutationResults?.isTranslocation;
+            const wtLbl = isT ? 'No Fusion' : `${hg} WT`;
+            const mutLbl = isT ? 'Fused' : `${hg} Mut`;
             thead.innerHTML = `<tr>
-                <th style="${headerStyle}" data-sort="group" data-type="string">Hotspot${sortIcon}</th>
-                <th style="${headerStyle}; border-left: 2px solid #2563eb;" data-sort="n0" data-type="number">n(0)${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean0" data-type="number">GE(0)${sortIcon}</th>
-                <th style="${headerStyle}; border-left: 2px solid #f97316;" data-sort="n1" data-type="number">n(1)${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean1" data-type="number">GE(1)${sortIcon}</th>
-                <th style="${headerStyle}; border-left: 2px solid #dc2626;" data-sort="n2" data-type="number">n(2)${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean2" data-type="number">GE(2)${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="group" data-type="string">Gene${sortIcon}</th>
+                <th style="${headerStyle}; border-left: 2px solid #2563eb;" data-sort="n0" data-type="number">N (${wtLbl})${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="mean0" data-type="number">GE (${wtLbl})${sortIcon}</th>
+                <th style="${headerStyle}; border-left: 2px solid #f97316;" data-sort="n1" data-type="number">N (${mutLbl} 1)${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="mean1" data-type="number">GE (${mutLbl} 1)${sortIcon}</th>
+                <th style="${headerStyle}; border-left: 2px solid #dc2626;" data-sort="n2" data-type="number">N (${mutLbl} 2${isT ? '+' : ''})${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="mean2" data-type="number">GE (${mutLbl} 2${isT ? '+' : ''})${sortIcon}</th>
                 <th style="${headerStyle}; border-left: 2px solid #6b7280;" data-sort="diff" data-type="number">Δ GE${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="pValue" data-type="number">p-value${sortIcon}</th>
             </tr>`;
