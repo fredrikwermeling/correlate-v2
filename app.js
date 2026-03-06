@@ -1788,6 +1788,20 @@ class CorrelationExplorer {
                 this.showGEDetailedView(this.geDetailedView.group, this.geDetailedView.mode);
             }
         });
+
+        // Y-axis range control for gene effect distribution plot
+        const geYRangeHandler = () => {
+            const yMin = parseFloat(document.getElementById('geYmin')?.value);
+            const yMax = parseFloat(document.getElementById('geYmax')?.value);
+            if (!isNaN(yMin) && !isNaN(yMax)) {
+                const plotEl = document.getElementById('geneEffectPlot');
+                if (plotEl?.data?.length) {
+                    Plotly.relayout(plotEl, { 'yaxis.range': [yMin, yMax] });
+                }
+            }
+        };
+        document.getElementById('geYmin')?.addEventListener('change', geYRangeHandler);
+        document.getElementById('geYmax')?.addEventListener('change', geYRangeHandler);
     }
 
     updateGeneCount() {
@@ -2352,28 +2366,30 @@ class CorrelationExplorer {
     }
 
     loadTestGenesWithStats() {
-        // Test data with LFC and FDR values (20 genes)
+        // Test data with LFC and FDR values (22 genes — matches simple test gene list)
         const testData = [
             { gene: 'TP53', lfc: 1.8, fdr: 0.001 },
-            { gene: 'MDM2', lfc: -2.3, fdr: 0.0001 },
             { gene: 'BRCA1', lfc: 0.3, fdr: 0.15 },
+            { gene: 'BRCA2', lfc: -0.5, fdr: 0.11 },
             { gene: 'MYC', lfc: -1.5, fdr: 0.02 },
             { gene: 'KRAS', lfc: 2.1, fdr: 0.005 },
             { gene: 'EGFR', lfc: -0.8, fdr: 0.08 },
             { gene: 'PTEN', lfc: 1.2, fdr: 0.03 },
-            { gene: 'AKT1', lfc: -0.4, fdr: 0.25 },
+            { gene: 'RB1', lfc: -0.6, fdr: 0.12 },
+            { gene: 'APC', lfc: 0.7, fdr: 0.09 },
+            { gene: 'CDKN2A', lfc: 1.4, fdr: 0.007 },
+            { gene: 'NOTCH1', lfc: -1.1, fdr: 0.03 },
             { gene: 'PIK3CA', lfc: 0.9, fdr: 0.04 },
             { gene: 'BRAF', lfc: -1.9, fdr: 0.002 },
             { gene: 'ATM', lfc: 0.7, fdr: 0.06 },
-            { gene: 'CHEK2', lfc: 1.1, fdr: 0.01 },
-            { gene: 'RB1', lfc: -0.6, fdr: 0.12 },
-            { gene: 'CDKN2A', lfc: 1.4, fdr: 0.007 },
-            { gene: 'NFE2L2', lfc: -1.2, fdr: 0.015 },
-            { gene: 'KEAP1', lfc: 0.8, fdr: 0.05 },
-            { gene: 'STK11', lfc: -0.9, fdr: 0.04 },
-            { gene: 'CREBBP', lfc: 0.4, fdr: 0.18 },
+            { gene: 'ERBB2', lfc: 1.6, fdr: 0.008 },
+            { gene: 'CDK4', lfc: -0.3, fdr: 0.22 },
+            { gene: 'MDM2', lfc: -2.3, fdr: 0.0001 },
+            { gene: 'NRAS', lfc: 1.3, fdr: 0.015 },
             { gene: 'TSC1', lfc: 1.0, fdr: 0.02 },
-            { gene: 'TSC2', lfc: 0.9, fdr: 0.03 }
+            { gene: 'TSC2', lfc: 0.9, fdr: 0.03 },
+            { gene: 'BCR', lfc: -0.7, fdr: 0.14 },
+            { gene: 'ABL1', lfc: 0.6, fdr: 0.07 }
         ];
 
         this.geneStats = new Map();
@@ -2398,25 +2414,27 @@ class CorrelationExplorer {
         const sampleData = [
             ['Gene', 'LFC', 'FDR'],
             ['TP53', '1.8', '0.001'],
-            ['MDM2', '-2.3', '0.0001'],
             ['BRCA1', '0.3', '0.15'],
+            ['BRCA2', '-0.5', '0.11'],
             ['MYC', '-1.5', '0.02'],
             ['KRAS', '2.1', '0.005'],
             ['EGFR', '-0.8', '0.08'],
             ['PTEN', '1.2', '0.03'],
-            ['AKT1', '-0.4', '0.25'],
+            ['RB1', '-0.6', '0.12'],
+            ['APC', '0.7', '0.09'],
+            ['CDKN2A', '1.4', '0.007'],
+            ['NOTCH1', '-1.1', '0.03'],
             ['PIK3CA', '0.9', '0.04'],
             ['BRAF', '-1.9', '0.002'],
             ['ATM', '0.7', '0.06'],
-            ['CHEK2', '1.1', '0.01'],
-            ['RB1', '-0.6', '0.12'],
-            ['CDKN2A', '1.4', '0.007'],
-            ['SMAD4', '-0.3', '0.35'],
-            ['ARID1A', '0.5', '0.09'],
-            ['NFE2L2', '-1.2', '0.015'],
-            ['KEAP1', '0.8', '0.05'],
-            ['STK11', '-0.9', '0.04'],
-            ['CREBBP', '0.4', '0.18']
+            ['ERBB2', '1.6', '0.008'],
+            ['CDK4', '-0.3', '0.22'],
+            ['MDM2', '-2.3', '0.0001'],
+            ['NRAS', '1.3', '0.015'],
+            ['TSC1', '1.0', '0.02'],
+            ['TSC2', '0.9', '0.03'],
+            ['BCR', '-0.7', '0.14'],
+            ['ABL1', '0.6', '0.07']
         ];
 
         const csv = sampleData.map(row => row.join(',')).join('\n');
@@ -3905,7 +3923,7 @@ class CorrelationExplorer {
                 tickmode: 'array',
                 tickvals: [0, 1, 2],
                 ticktext: [`${tick0Label} (n=${data.wt.length})`, `${tick1Label} (n=${data.mut1.length})`, `${tick2Label} (n=${data.mut2.length})`],
-                range: [-0.5, 2.5],
+                range: [parseFloat(document.getElementById('geYmin')?.value) || -0.5, parseFloat(document.getElementById('geYmax')?.value) || 2.5],
                 automargin: true
             },
             showlegend: false,
@@ -10937,7 +10955,7 @@ Results:
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.style.cssText = 'width: 100%; font-size: 10px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; box-sizing: border-box;';
-                input.placeholder = isNumeric ? '>0.5' : 'filter';
+                input.placeholder = isNumeric ? '>0.5 or <-1' : 'filter';
                 input.dataset.colIndex = idx;
                 input.dataset.isNumeric = isNumeric;
                 input.addEventListener('input', () => this.applyColumnFilters(tableId));
