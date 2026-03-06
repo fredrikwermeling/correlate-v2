@@ -3948,7 +3948,7 @@ class CorrelationExplorer {
                 range: [xMin, xMax]
             },
             yaxis: {
-                title: yAxisTitle,
+                title: { text: yAxisTitle, standoff: 15 },
                 tickmode: 'array',
                 tickvals: [0, 1, 2],
                 ticktext: [`${tick0Label} (n=${data.wt.length})`, `${tick1Label} (n=${data.mut1.length})`, `${tick2Label} (n=${data.mut2.length})`],
@@ -3956,7 +3956,7 @@ class CorrelationExplorer {
                 automargin: true
             },
             showlegend: false,
-            margin: { t: 120, r: 30, b: 50, l: 30 },
+            margin: { t: 120, r: 30, b: 50, l: 80 },
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
