@@ -2050,15 +2050,9 @@
                         <!-- Aspect ratio control (shown in detailed view) -->
                         <div id="geAspectRatioControl" style="display: none; margin-bottom: 8px; font-size: 11px;">
                             <label style="margin-right: 8px;">Chart Width:</label>
-                            <input type="range" id="geAspectRatio" min="0.3" max="1" step="0.1" value="1" style="width: 100px; vertical-align: middle;">
+                            <input type="range" id="geAspectRatio" min="0.3" max="1" step="0.05" value="1" style="width: 100px; vertical-align: middle;">
                             <span id="geAspectRatioValue" style="margin-left: 4px;">1.0</span>
-                            <div style="display: inline-flex; gap: 6px; align-items: center; margin-left: 16px;">
-                                <label>X range:</label>
-                                <input type="text" id="geXmin" style="width: 45px; font-size: 11px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; text-align: center;" placeholder="auto">
-                                <span>to</span>
-                                <input type="text" id="geXmax" style="width: 45px; font-size: 11px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; text-align: center;" placeholder="auto">
-                            </div>
-                            <div style="display: inline-flex; gap: 6px; align-items: center; margin-left: 16px;">
+                            <div id="geYRangeControl" style="display: inline-flex; gap: 6px; align-items: center; margin-left: 16px;">
                                 <label>Y range:</label>
                                 <input type="text" id="geYmin" style="width: 45px; font-size: 11px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; text-align: center;" value="-0.5">
                                 <span>to</span>

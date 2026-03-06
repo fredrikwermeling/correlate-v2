@@ -1778,34 +1778,37 @@ class CorrelationExplorer {
         document.getElementById('downloadGETableCSV')?.addEventListener('click', () => this.downloadGETableCSV());
         document.getElementById('downloadGECellLineCSV')?.addEventListener('click', () => this.downloadGECellLineCSV());
 
-        // Aspect ratio control for detailed views
+        // Chart width control — works for both inspect and detailed views
         document.getElementById('geAspectRatio')?.addEventListener('input', (e) => {
             const ratio = parseFloat(e.target.value);
             document.getElementById('geAspectRatioValue').textContent = ratio.toFixed(1);
             this.geChartWidthRatio = ratio;
-            // Re-render the detailed view with new width
+            const container = document.getElementById('geChartContainer');
+            if (container) {
+                container.style.flex = `0 0 ${Math.round(ratio * 55)}%`;
+            }
+            // Re-render the detailed view with new width if in that mode
             if (this.geDetailedView) {
                 this.showGEDetailedView(this.geDetailedView.group, this.geDetailedView.mode);
+            } else {
+                // Trigger Plotly resize for the inspect plot
+                const plotEl = document.getElementById('geneEffectPlot');
+                if (plotEl?.data?.length) Plotly.Plots.resize(plotEl);
             }
         });
 
-        // Axis range controls for gene effect distribution plot
-        const geAxisRangeHandler = () => {
+        // Y-axis range control for gene effect distribution plot
+        const geYRangeHandler = () => {
             const plotEl = document.getElementById('geneEffectPlot');
             if (!plotEl?.data?.length) return;
-            const update = {};
-            const xMin = parseFloat(document.getElementById('geXmin')?.value);
-            const xMax = parseFloat(document.getElementById('geXmax')?.value);
-            if (!isNaN(xMin) && !isNaN(xMax)) update['xaxis.range'] = [xMin, xMax];
             const yMin = parseFloat(document.getElementById('geYmin')?.value);
             const yMax = parseFloat(document.getElementById('geYmax')?.value);
-            if (!isNaN(yMin) && !isNaN(yMax)) update['yaxis.range'] = [yMin, yMax];
-            if (Object.keys(update).length) Plotly.relayout(plotEl, update);
+            if (!isNaN(yMin) && !isNaN(yMax)) {
+                Plotly.relayout(plotEl, { 'yaxis.range': [yMin, yMax] });
+            }
         };
-        document.getElementById('geXmin')?.addEventListener('change', geAxisRangeHandler);
-        document.getElementById('geXmax')?.addEventListener('change', geAxisRangeHandler);
-        document.getElementById('geYmin')?.addEventListener('change', geAxisRangeHandler);
-        document.getElementById('geYmax')?.addEventListener('change', geAxisRangeHandler);
+        document.getElementById('geYmin')?.addEventListener('change', geYRangeHandler);
+        document.getElementById('geYmax')?.addEventListener('change', geYRangeHandler);
     }
 
     updateGeneCount() {
@@ -3943,7 +3946,7 @@ class CorrelationExplorer {
             }],
             xaxis: {
                 title: `${gene} Gene Effect`,
-                range: [parseFloat(document.getElementById('geXmin')?.value) || xMin, parseFloat(document.getElementById('geXmax')?.value) || xMax]
+                range: [xMin, xMax]
             },
             yaxis: {
                 title: yAxisTitle,
@@ -4067,10 +4070,20 @@ class CorrelationExplorer {
         // Update target gene label in the expression correlates panel
         document.getElementById('exprCorrelatesTargetGene').textContent = gene.toUpperCase();
 
+        // Apply current width ratio to container
+        const container = document.getElementById('geChartContainer');
+        const ratio = this.geChartWidthRatio || 1;
+        if (container) {
+            container.style.flex = `0 0 ${Math.round(ratio * 55)}%`;
+        }
+
         Plotly.newPlot('geneEffectPlot', traces, layout, {
             responsive: true,
             edits: { annotationPosition: true, legendPosition: true }
         });
+
+        // Show chart width and Y range controls
+        this.updateShowAllButton();
     }
 
     _exportMutationInspectChart(format) {
@@ -10722,11 +10735,18 @@ Results:
     updateShowAllButton() {
         const btn = document.getElementById('geShowAllBtn');
         const ratioControl = document.getElementById('geAspectRatioControl');
+        const isInspect = this.geneEffectViewMode === 'mutation';
         if (btn) {
             btn.style.display = this.geDetailedView ? 'inline-block' : 'none';
         }
         if (ratioControl) {
-            ratioControl.style.display = this.geDetailedView ? 'flex' : 'none';
+            // Show controls for detailed views AND mutation inspect views
+            ratioControl.style.display = (this.geDetailedView || isInspect) ? 'flex' : 'none';
+            // Y range only relevant for inspect plot (not tissue/hotspot overview)
+            const yRangeControl = document.getElementById('geYRangeControl');
+            if (yRangeControl) {
+                yRangeControl.style.display = isInspect ? 'inline-flex' : 'none';
+            }
         }
     }
 
