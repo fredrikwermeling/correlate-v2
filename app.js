@@ -4091,43 +4091,24 @@ class CorrelationExplorer {
         const plotEl = document.getElementById('geneEffectPlot');
         if (!plotEl || !plotEl.data) return;
 
-        // Use the on-screen dimensions so export matches what the user sees
-        const onScreenWidth = plotEl.offsetWidth || 800;
-        const onScreenHeight = plotEl.offsetHeight || 400;
-        // Scale up 2x for crisp PNG export
-        const scale = format === 'png' ? 2 : 1;
         const filename = `gene_effect_${this.currentGeneEffectGene}_${this.mutationResults.hotspotGene}`;
+        // Scale up for crisp PNG; SVG is vector so no scaling needed
+        const scale = format === 'png' ? 2 : 1;
 
-        // Deep-copy data and layout from live chart
-        const data = JSON.parse(JSON.stringify(plotEl.data));
-        const layout = JSON.parse(JSON.stringify(plotEl.layout));
-
-        // Use exact on-screen dimensions and margins
-        layout.width = onScreenWidth;
-        layout.height = onScreenHeight;
-
-        // Render into a temporary off-screen div for a clean export
-        const tempDiv = document.createElement('div');
-        tempDiv.style.position = 'absolute';
-        tempDiv.style.left = '-10000px';
-        tempDiv.style.top = '0';
-        tempDiv.style.width = onScreenWidth + 'px';
-        tempDiv.style.height = onScreenHeight + 'px';
-        document.body.appendChild(tempDiv);
-
-        Plotly.newPlot(tempDiv, data, layout, { staticPlot: true }).then(() => {
-            return Plotly.downloadImage(tempDiv, {
-                format,
-                width: onScreenWidth,
-                height: onScreenHeight,
-                scale,
-                filename
-            });
-        }).then(() => {
-            Plotly.purge(tempDiv);
-            document.body.removeChild(tempDiv);
-        }).catch(() => {
-            try { Plotly.purge(tempDiv); document.body.removeChild(tempDiv); } catch(e) {}
+        // Export directly from the live on-screen plot — captures exactly what's visible
+        // including automargin adjustments, annotation positions, and axis labels
+        Plotly.toImage(plotEl, {
+            format,
+            width: plotEl.offsetWidth,
+            height: plotEl.offsetHeight,
+            scale
+        }).then(dataUrl => {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `${filename}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         });
     }
 
