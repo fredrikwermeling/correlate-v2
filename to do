@@ -1,5 +1,6 @@
 - same genes in test data sets for input genes +/- stats.
-
+- mutation analysis inspect make possible to change size of y axis.
+- filtering should allow for - values
 
 the size setting sfor the 3 plot vresion in correlate is off. 
 the network moves around if selecting other tabs and then go back to network.
