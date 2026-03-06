@@ -1797,18 +1797,17 @@ class CorrelationExplorer {
             }
         });
 
-        // Y-axis range control for gene effect distribution plot
-        const geYRangeHandler = () => {
+        // Chart height control for inspect plot
+        document.getElementById('geHeightRatio')?.addEventListener('input', (e) => {
+            const ratio = parseFloat(e.target.value);
+            document.getElementById('geHeightRatioValue').textContent = ratio.toFixed(1);
+            this.geChartHeightRatio = ratio;
             const plotEl = document.getElementById('geneEffectPlot');
-            if (!plotEl?.data?.length) return;
-            const yMin = parseFloat(document.getElementById('geYmin')?.value);
-            const yMax = parseFloat(document.getElementById('geYmax')?.value);
-            if (!isNaN(yMin) && !isNaN(yMax)) {
-                Plotly.relayout(plotEl, { 'yaxis.range': [yMin, yMax] });
+            if (plotEl?.data?.length) {
+                const baseHeight = 400;
+                Plotly.relayout(plotEl, { height: Math.round(baseHeight * ratio) });
             }
-        };
-        document.getElementById('geYmin')?.addEventListener('change', geYRangeHandler);
-        document.getElementById('geYmax')?.addEventListener('change', geYRangeHandler);
+        });
     }
 
     updateGeneCount() {
@@ -3953,11 +3952,12 @@ class CorrelationExplorer {
                 tickmode: 'array',
                 tickvals: [0, 1, 2],
                 ticktext: [`${tick0Label} (n=${data.wt.length})`, `${tick1Label} (n=${data.mut1.length})`, `${tick2Label} (n=${data.mut2.length})`],
-                range: [parseFloat(document.getElementById('geYmin')?.value) || -0.5, parseFloat(document.getElementById('geYmax')?.value) || 2.5],
+                range: [-0.5, 2.5],
                 automargin: true
             },
             showlegend: false,
-            margin: { t: 120, r: 30, b: 50, l: 30 }
+            margin: { t: 120, r: 30, b: 50, l: 30 },
+            height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
         // Show modal
@@ -10742,10 +10742,10 @@ Results:
         if (ratioControl) {
             // Show controls for detailed views AND mutation inspect views
             ratioControl.style.display = (this.geDetailedView || isInspect) ? 'flex' : 'none';
-            // Y range only relevant for inspect plot (not tissue/hotspot overview)
-            const yRangeControl = document.getElementById('geYRangeControl');
-            if (yRangeControl) {
-                yRangeControl.style.display = isInspect ? 'inline-flex' : 'none';
+            // Height control only relevant for inspect plot (not tissue/hotspot overview)
+            const heightControl = document.getElementById('geHeightControl');
+            if (heightControl) {
+                heightControl.style.display = isInspect ? 'inline-flex' : 'none';
             }
         }
     }

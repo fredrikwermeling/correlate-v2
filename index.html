@@ -2049,14 +2049,13 @@
                     <div id="geChartContainer" style="flex: 0 0 55%; min-width: 0;">
                         <!-- Aspect ratio control (shown in detailed view) -->
                         <div id="geAspectRatioControl" style="display: none; margin-bottom: 8px; font-size: 11px;">
-                            <label style="margin-right: 8px;">Chart Width:</label>
-                            <input type="range" id="geAspectRatio" min="0.3" max="1" step="0.05" value="1" style="width: 100px; vertical-align: middle;">
+                            <label style="margin-right: 8px;">Width:</label>
+                            <input type="range" id="geAspectRatio" min="0.3" max="1.8" step="0.05" value="1" style="width: 100px; vertical-align: middle;">
                             <span id="geAspectRatioValue" style="margin-left: 4px;">1.0</span>
-                            <div id="geYRangeControl" style="display: inline-flex; gap: 6px; align-items: center; margin-left: 16px;">
-                                <label>Y range:</label>
-                                <input type="text" id="geYmin" style="width: 45px; font-size: 11px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; text-align: center;" value="-0.5">
-                                <span>to</span>
-                                <input type="text" id="geYmax" style="width: 45px; font-size: 11px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; text-align: center;" value="2.5">
+                            <div id="geHeightControl" style="display: inline-flex; gap: 6px; align-items: center; margin-left: 16px;">
+                                <label>Height:</label>
+                                <input type="range" id="geHeightRatio" min="0.5" max="2" step="0.1" value="1" style="width: 80px; vertical-align: middle;">
+                                <span id="geHeightRatioValue" style="margin-left: 4px;">1.0</span>
                             </div>
                         </div>
                         <div id="geByTissueView">
