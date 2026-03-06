@@ -653,6 +653,22 @@
             border: 1px solid var(--gray-200);
             border-radius: 6px;
             background: white;
+            position: relative;
+        }
+        .network-filter-banner {
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 3px 10px;
+            font-size: 10px;
+            color: #374151;
+            white-space: nowrap;
+            pointer-events: none;
         }
 
         /* New horizontal grid layout for network controls */

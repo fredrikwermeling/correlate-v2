@@ -4461,6 +4461,35 @@ class CorrelationExplorer {
         const container = document.getElementById('networkPlot');
         container.innerHTML = '';
 
+        // Build filter banner if any filters are active
+        const filterParts = [];
+        const lineage = document.getElementById('lineageFilter')?.value;
+        const subLineage = document.getElementById('subLineageFilter')?.value;
+        if (lineage) {
+            filterParts.push(subLineage ? `${lineage} / ${subLineage}` : lineage);
+        }
+        if (this.excludedTissues && this.excludedTissues.size > 0) {
+            filterParts.push(`${this.excludedTissues.size} tissue${this.excludedTissues.size > 1 ? 's' : ''} excluded`);
+        }
+        const hotspotGene = document.getElementById('paramHotspotGene')?.value;
+        const hotspotLevel = document.getElementById('paramHotspotLevel')?.value;
+        if (hotspotGene) {
+            const levelLabel = hotspotLevel === '1+2' ? 'mut' : hotspotLevel === '0' ? 'WT' : `level ${hotspotLevel}`;
+            filterParts.push(`${hotspotGene} ${levelLabel}`);
+        }
+        const translocGene = document.getElementById('paramTranslocationGene')?.value;
+        const translocLevel = document.getElementById('paramTranslocationLevel')?.value;
+        if (translocGene) {
+            const levelLabel = translocLevel === '1+2' ? 'fused' : translocLevel === '0' ? 'not fused' : `level ${translocLevel}`;
+            filterParts.push(`${translocGene} ${levelLabel}`);
+        }
+        if (filterParts.length > 0) {
+            const banner = document.createElement('div');
+            banner.className = 'network-filter-banner';
+            banner.textContent = `Filters: ${filterParts.join('  ·  ')}  ·  n=${this.results.nCellLines}`;
+            container.appendChild(banner);
+        }
+
         const nodes = [];
         const edges = [];
         const geneSet = new Set();
