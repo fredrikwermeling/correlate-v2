@@ -4636,31 +4636,11 @@ class CorrelationExplorer {
         this.networkData = data;
 
         // Add filter banner after vis.Network has set up its canvas
-        const filterParts = [];
-        const lineage = document.getElementById('lineageFilter')?.value;
-        const subLineage = document.getElementById('subLineageFilter')?.value;
-        if (lineage) {
-            filterParts.push(subLineage ? `${lineage} / ${subLineage}` : lineage);
-        }
-        if (this.excludedTissues && this.excludedTissues.size > 0) {
-            filterParts.push(`${this.excludedTissues.size} tissue${this.excludedTissues.size > 1 ? 's' : ''} excluded`);
-        }
-        const hotspotGene = document.getElementById('paramHotspotGene')?.value;
-        const hotspotLevel = document.getElementById('paramHotspotLevel')?.value;
-        if (hotspotGene) {
-            const levelLabel = hotspotLevel === '1+2' ? 'mut' : hotspotLevel === '0' ? 'WT' : `level ${hotspotLevel}`;
-            filterParts.push(`${hotspotGene} ${levelLabel}`);
-        }
-        const translocGene = document.getElementById('paramTranslocationGene')?.value;
-        const translocLevel = document.getElementById('paramTranslocationLevel')?.value;
-        if (translocGene) {
-            const levelLabel = translocLevel === '1+2' ? 'fused' : translocLevel === '0' ? 'not fused' : `level ${translocLevel}`;
-            filterParts.push(`${translocGene} ${levelLabel}`);
-        }
-        if (filterParts.length > 0) {
+        const filterText = this._getNetworkFilterText();
+        if (filterText) {
             const banner = document.createElement('div');
             banner.className = 'network-filter-banner';
-            banner.textContent = `Filters: ${filterParts.join('  ·  ')}  ·  n=${this.results.nCellLines}`;
+            banner.textContent = filterText;
             container.appendChild(banner);
         }
 
@@ -5441,6 +5421,32 @@ Results:
         URL.revokeObjectURL(url);
     }
 
+    _getNetworkFilterText() {
+        const parts = [];
+        const lineage = document.getElementById('lineageFilter')?.value;
+        const subLineage = document.getElementById('subLineageFilter')?.value;
+        if (lineage) {
+            parts.push(subLineage ? `${lineage} / ${subLineage}` : lineage);
+        }
+        if (this.excludedTissues && this.excludedTissues.size > 0) {
+            parts.push(`${this.excludedTissues.size} tissue${this.excludedTissues.size > 1 ? 's' : ''} excluded`);
+        }
+        const hotspotGene = document.getElementById('paramHotspotGene')?.value;
+        const hotspotLevel = document.getElementById('paramHotspotLevel')?.value;
+        if (hotspotGene) {
+            const levelLabel = hotspotLevel === '1+2' ? 'mut' : hotspotLevel === '0' ? 'WT' : `level ${hotspotLevel}`;
+            parts.push(`${hotspotGene} ${levelLabel}`);
+        }
+        const translocGene = document.getElementById('paramTranslocationGene')?.value;
+        const translocLevel = document.getElementById('paramTranslocationLevel')?.value;
+        if (translocGene) {
+            const levelLabel = translocLevel === '1+2' ? 'fused' : translocLevel === '0' ? 'not fused' : `level ${translocLevel}`;
+            parts.push(`${translocGene} ${levelLabel}`);
+        }
+        if (parts.length === 0) return null;
+        return `Filters: ${parts.join('  \u00b7  ')}  \u00b7  n=${this.results.nCellLines}`;
+    }
+
     downloadNetworkPNG() {
         if (!this.network) return;
 
@@ -5457,8 +5463,10 @@ Results:
         const cssHeight = container.clientHeight;
         const legendHeight = 160;
         const padding = 30;
+        const filterText = this._getNetworkFilterText();
+        const filterBannerHeight = filterText ? 24 : 0;
         const totalWidth = cssWidth;
-        const totalHeight = cssHeight + legendHeight + padding;
+        const totalHeight = filterBannerHeight + cssHeight + legendHeight + padding;
 
         const transparentBg = document.getElementById('exportNetworkTransparentBg')?.checked;
 
@@ -5474,20 +5482,30 @@ Results:
             ctx.fillRect(0, 0, totalWidth, totalHeight);
         }
 
+        // Draw filter banner at top if active
+        if (filterText) {
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#374151';
+            ctx.textAlign = 'center';
+            ctx.fillText(filterText, totalWidth / 2, 16);
+            ctx.textAlign = 'left';
+        }
+
         // Draw network scaled from canvas pixels to CSS dimensions
-        ctx.drawImage(networkCanvas, 0, 0, cssWidth, cssHeight);
+        ctx.drawImage(networkCanvas, 0, filterBannerHeight, cssWidth, cssHeight);
 
         // Draw legend background
+        const legendTop = filterBannerHeight + cssHeight;
         if (!transparentBg) {
             ctx.fillStyle = '#f9fafb';
             ctx.strokeStyle = '#e5e7eb';
             ctx.lineWidth = 1;
-            ctx.fillRect(15, cssHeight + 10, totalWidth - 30, legendHeight - 10);
-            ctx.strokeRect(15, cssHeight + 10, totalWidth - 30, legendHeight - 10);
+            ctx.fillRect(15, legendTop + 10, totalWidth - 30, legendHeight - 10);
+            ctx.strokeRect(15, legendTop + 10, totalWidth - 30, legendHeight - 10);
         }
 
         // Draw legend
-        const legendY = cssHeight + padding + 10;
+        const legendY = legendTop + padding + 10;
         const titleFont = 'bold 16px Arial';
         const textFont = '14px Arial';
         const smallFont = '13px Arial';
@@ -5767,7 +5785,9 @@ Results:
         const width = container.clientWidth;
         const networkHeight = container.clientHeight;
         const legendHeight = 160;  // Larger for publication
-        const totalHeight = networkHeight + legendHeight;
+        const filterText = this._getNetworkFilterText();
+        const filterBannerHeight = filterText ? 24 : 0;
+        const totalHeight = filterBannerHeight + networkHeight + legendHeight;
 
         // Get positions from vis.js and convert to DOM coordinates
         const positions = this.network.getPositions();
@@ -5775,7 +5795,7 @@ Results:
         for (const nodeId in positions) {
             const canvasPos = positions[nodeId];
             const domPos = this.network.canvasToDOM({ x: canvasPos.x, y: canvasPos.y });
-            domPositions[nodeId] = domPos;
+            domPositions[nodeId] = { x: domPos.x, y: domPos.y + filterBannerHeight };
         }
 
         let svg = `<?xml version="1.0" encoding="UTF-8"?>
@@ -5804,6 +5824,7 @@ Results:
   .legend-small { font-family: Arial, sans-serif; font-size: 13px; fill: #333; }
 </style>
 ${transparentBg ? '' : '<rect width="100%" height="100%" fill="white"/>'}
+${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-family: Arial, sans-serif; font-size: 12px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
 `;
 
         // Get current scale for sizing elements
@@ -5839,7 +5860,8 @@ ${transparentBg ? '' : '<rect width="100%" height="100%" fill="white"/>'}
         });
 
         // Draw legend - LARGER for publication
-        const legendY = networkHeight + 35;
+        const legendTop = filterBannerHeight + networkHeight;
+        const legendY = legendTop + 35;
 
         // Calculate total legend width to center it
         let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
@@ -5851,7 +5873,7 @@ ${transparentBg ? '' : '<rect width="100%" height="100%" fill="white"/>'}
 
         // Legend background
         if (!transparentBg) {
-            svg += `  <rect x="15" y="${networkHeight + 10}" width="${width - 30}" height="145" fill="#f9fafb" stroke="#e5e7eb" rx="4"/>\n`;
+            svg += `  <rect x="15" y="${legendTop + 10}" width="${width - 30}" height="145" fill="#f9fafb" stroke="#e5e7eb" rx="4"/>\n`;
         }
 
         // Correlation legend
@@ -7026,7 +7048,9 @@ Results:
         const width = container.clientWidth;
         const networkHeight = container.clientHeight;
         const legendHeight = 160;  // Larger for publication
-        const totalHeight = networkHeight + legendHeight;
+        const filterText = this._getNetworkFilterText();
+        const filterBannerHeight = filterText ? 24 : 0;
+        const totalHeight = filterBannerHeight + networkHeight + legendHeight;
 
         // Get positions from vis.js and convert to DOM coordinates
         const positions = this.network.getPositions();
@@ -7034,7 +7058,7 @@ Results:
         for (const nodeId in positions) {
             const canvasPos = positions[nodeId];
             const domPos = this.network.canvasToDOM({ x: canvasPos.x, y: canvasPos.y });
-            domPositions[nodeId] = domPos;
+            domPositions[nodeId] = { x: domPos.x, y: domPos.y + filterBannerHeight };
         }
 
         let svg = `<?xml version="1.0" encoding="UTF-8"?>
@@ -7063,6 +7087,7 @@ Results:
   .legend-small { font-family: Arial, sans-serif; font-size: 13px; fill: #333; }
 </style>
 <rect width="100%" height="100%" fill="white"/>
+${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-family: Arial, sans-serif; font-size: 12px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
 `;
 
         // Get current scale for sizing elements
@@ -7098,7 +7123,8 @@ Results:
         });
 
         // Draw legend - LARGER for publication
-        const legendY = networkHeight + 35;
+        const legendTopZip = filterBannerHeight + networkHeight;
+        const legendY = legendTopZip + 35;
 
         // Calculate total legend width to center it
         let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
@@ -7109,7 +7135,7 @@ Results:
         let legendX = Math.max(40, (width - totalLegendWidth) / 2);
 
         // Legend background
-        svg += `  <rect x="15" y="${networkHeight + 10}" width="${width - 30}" height="145" fill="#f9fafb" stroke="#e5e7eb" rx="4"/>\n`;
+        svg += `  <rect x="15" y="${legendTopZip + 10}" width="${width - 30}" height="145" fill="#f9fafb" stroke="#e5e7eb" rx="4"/>\n`;
 
         // Correlation legend
         svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Correlation:</text>\n`;
