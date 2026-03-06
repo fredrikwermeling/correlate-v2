@@ -3937,7 +3937,7 @@ class CorrelationExplorer {
                 xref: 'paper',
                 yref: 'paper',
                 x: 0.5,
-                y: 1.18,
+                y: 1.35,
                 xanchor: 'center',
                 yanchor: 'top',
                 showarrow: false,
@@ -3955,7 +3955,7 @@ class CorrelationExplorer {
                 range: [-0.5, 2.5]
             },
             showlegend: false,
-            margin: { t: 140, r: 30, b: 50, l: 130 },
+            margin: { t: 160, r: 30, b: 50, l: 130 },
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
@@ -4091,23 +4091,81 @@ class CorrelationExplorer {
         if (!plotEl || !plotEl.data) return;
 
         const filename = `gene_effect_${this.currentGeneEffectGene}_${this.mutationResults.hotspotGene}`;
-        // Scale up for crisp PNG; SVG is vector so no scaling needed
-        const scale = format === 'png' ? 2 : 1;
 
-        // Export directly from the live on-screen plot — captures exactly what's visible
-        // including automargin adjustments, annotation positions, and axis labels
+        // Always export as SVG first so we can post-process (fix Y-axis title overlap),
+        // then convert to PNG via canvas if needed.
         Plotly.toImage(plotEl, {
-            format,
+            format: 'svg',
             width: plotEl.offsetWidth,
-            height: plotEl.offsetHeight,
-            scale
-        }).then(dataUrl => {
+            height: plotEl.offsetHeight
+        }).then(svgDataUrl => {
+            // Decode SVG
+            let svgString;
+            if (svgDataUrl.indexOf('base64,') > -1) {
+                svgString = atob(svgDataUrl.split('base64,')[1]);
+            } else {
+                svgString = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
+            }
+
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
+
+            // Fix Y-axis title: Plotly underestimates Open Sans tick label width,
+            // causing the rotated Y-axis title to overlap with tick labels.
+            // Measure tick labels with canvas and reposition the title to their left.
+            const ytitleGroup = svgDoc.querySelector('.g-ytitle');
+            const ytitle = ytitleGroup?.querySelector('text.ytitle');
+            const yticks = svgDoc.querySelectorAll('.ytick text');
+            if (ytitle && yticks.length && ytitleGroup) {
+                const measureCanvas = document.createElement('canvas');
+                const mctx = measureCanvas.getContext('2d');
+                let maxTickWidth = 0;
+                yticks.forEach(t => {
+                    mctx.font = '12px "Open Sans", verdana, arial, sans-serif';
+                    maxTickWidth = Math.max(maxTickWidth, mctx.measureText(t.textContent).width * 1.3);
+                });
+                const tickX = parseFloat(yticks[0].getAttribute('x')) || 0;
+                const tickLeftEdge = tickX - maxTickWidth;
+                const titleX = parseFloat(ytitle.getAttribute('x')) || 0;
+                const newTitleX = tickLeftEdge - 15;
+                const shift = newTitleX - titleX;
+                ytitleGroup.setAttribute('transform', `translate(${shift},0)`);
+            }
+
+            svgString = new XMLSerializer().serializeToString(svgDoc.documentElement);
+
             const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = `${filename}.${format}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            if (format === 'svg') {
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                a.href = URL.createObjectURL(blob);
+                a.download = `${filename}.svg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } else {
+                // Render the fixed SVG to canvas at 4x for publication quality PNG
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const svgUrl = URL.createObjectURL(svgBlob);
+                const img = new Image();
+                img.onload = () => {
+                    const scale = 4;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth * scale;
+                    canvas.height = img.naturalHeight * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.scale(scale, scale);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(svgUrl);
+                    a.href = canvas.toDataURL('image/png');
+                    a.download = `${filename}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+                img.src = svgUrl;
+            }
         });
     }
 
