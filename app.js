@@ -12982,6 +12982,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             this.renderCellLineList();
         });
         document.getElementById('clbSubtypeFilter').addEventListener('change', () => this.renderCellLineList());
+        document.getElementById('clbHotspotFilter').addEventListener('change', () => this.renderCellLineList());
+        document.getElementById('clbTranslocationFilter').addEventListener('change', () => this.renderCellLineList());
 
         // Event delegation on list container
         document.getElementById('clbListContainer').addEventListener('click', (e) => {
@@ -13025,6 +13027,34 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         document.getElementById('clbSubtypeFilter').style.display = 'none';
         document.getElementById('clbSubtypeFilter').innerHTML = '<option value="">All subtypes</option>';
+
+        // Populate hotspot filter
+        const hotspotSelect = document.getElementById('clbHotspotFilter');
+        hotspotSelect.innerHTML = '<option value="">Hotspot mutation</option>';
+        if (this.mutations?.geneData) {
+            Object.keys(this.mutations.geneData).sort().forEach(gene => {
+                const muts = this.mutations.geneData[gene].mutations;
+                let n = 0;
+                for (const v of Object.values(muts)) { if (v > 0) n++; }
+                const opt = document.createElement('option');
+                opt.value = gene;
+                opt.textContent = `${gene} (n=${n})`;
+                hotspotSelect.appendChild(opt);
+            });
+        }
+
+        // Populate translocation filter
+        const transSelect = document.getElementById('clbTranslocationFilter');
+        transSelect.innerHTML = '<option value="">Translocation</option>';
+        if (this._fusionGeneCounts) {
+            this._fusionGeneCounts.forEach(({ gene, nFused }) => {
+                const opt = document.createElement('option');
+                opt.value = gene;
+                opt.textContent = `${gene} (n=${nFused})`;
+                transSelect.appendChild(opt);
+            });
+        }
+
         document.getElementById('clbSearch').value = '';
         document.getElementById('clbDetailPanel').classList.remove('active');
         document.getElementById('clbDetailContent').style.display = 'none';
@@ -13040,10 +13070,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const search = document.getElementById('clbSearch').value.trim().toLowerCase();
         const tissue = document.getElementById('clbTissueFilter').value;
         const subtype = document.getElementById('clbSubtypeFilter').value;
+        const hotspotGene = document.getElementById('clbHotspotFilter').value;
+        const transGene = document.getElementById('clbTranslocationFilter').value;
+
+        // Pre-fetch mutation/translocation lookups for selected genes
+        const hotspotMuts = hotspotGene && this.mutations?.geneData?.[hotspotGene]?.mutations;
+        const transMuts = transGene && this.translocations?.geneData?.[transGene]?.translocations;
 
         let filtered = this.metadata.cellLines.filter(cl => {
             if (tissue && this.getCellLineLineage(cl) !== tissue) return false;
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
+            if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
+            if (transMuts && !(transMuts[cl] >= 1)) return false;
             if (search) {
                 const name = this.getCellLineName(cl).toLowerCase();
                 const lin = this.getCellLineLineage(cl).toLowerCase();
