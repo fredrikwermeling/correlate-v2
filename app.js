@@ -12985,6 +12985,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbHotspotFilter').addEventListener('change', () => this.renderCellLineList());
         document.getElementById('clbTranslocationFilter').addEventListener('change', () => this.renderCellLineList());
 
+        let clbGeneTimer;
+        document.getElementById('clbSortGene').addEventListener('input', () => {
+            clearTimeout(clbGeneTimer);
+            clbGeneTimer = setTimeout(() => this.renderCellLineList(), 200);
+        });
+
         // Event delegation on list container
         document.getElementById('clbListContainer').addEventListener('click', (e) => {
             const entry = e.target.closest('.clb-entry');
@@ -13056,6 +13062,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         document.getElementById('clbSearch').value = '';
+        document.getElementById('clbSortGene').value = '';
         document.getElementById('clbDetailPanel').classList.remove('active');
         document.getElementById('clbDetailContent').style.display = 'none';
         document.getElementById('clbDetailPlaceholder').style.display = '';
@@ -13090,7 +13097,29 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             return true;
         });
 
-        filtered.sort((a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)));
+        // Check if sorting by a gene
+        const sortGene = document.getElementById('clbSortGene').value.trim().toUpperCase();
+        const sortGeneIdx = sortGene ? this.geneIndex.get(sortGene) : undefined;
+        let geMap = null;
+        if (sortGeneIdx !== undefined) {
+            geMap = new Map();
+            for (const cl of filtered) {
+                const clIdx = this.metadata.cellLines.indexOf(cl);
+                if (clIdx >= 0) {
+                    const val = this.geneEffects[sortGeneIdx * this.nCellLines + clIdx];
+                    geMap.set(cl, (!isNaN(val) && val !== -999) ? val : NaN);
+                }
+            }
+            filtered.sort((a, b) => {
+                const va = geMap.get(a), vb = geMap.get(b);
+                if (isNaN(va) && isNaN(vb)) return 0;
+                if (isNaN(va)) return 1;
+                if (isNaN(vb)) return -1;
+                return va - vb;
+            });
+        } else {
+            filtered.sort((a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)));
+        }
         this._clbVisibleCellLines = filtered;
 
         const container = document.getElementById('clbList');
@@ -13107,10 +13136,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const cls = ['clb-entry'];
             if (selected) cls.push('clb-selected');
             if (inspected) cls.push('clb-inspected');
+            const geVal = geMap ? geMap.get(cl) : null;
+            const geStr = geVal !== null && !isNaN(geVal) ? `<span style="font-size:10px; color:#666; margin-left:auto; flex-shrink:0;">${geVal.toFixed(2)}</span>` : '';
             return `<div class="${cls.join(' ')}" data-clid="${cl}">` +
                 `<input type="checkbox"${selected ? ' checked' : ''}>` +
                 `<span class="clb-entry-name" title="${name}">${name}</span>` +
-                `<span class="clb-entry-tissue">${lin}</span></div>`;
+                `<span class="clb-entry-tissue">${lin}</span>${geStr}</div>`;
         }).join('');
         container.innerHTML = html;
     }
