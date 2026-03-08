@@ -1188,6 +1188,7 @@ class CorrelationExplorer {
     setupUI() {
         // Tab switching
         document.querySelectorAll('.nav-link').forEach(tab => {
+            if (!tab.dataset.tab) return; // skip non-tab links (e.g. Cell Lines)
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.nav-link').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -1503,7 +1504,7 @@ class CorrelationExplorer {
                 if (e.key === 'Escape') {
                     const clbModal = document.getElementById('cellLineBrowserModal');
                     if (clbModal && clbModal.style.display !== 'none') {
-                        clbModal.style.display = 'none';
+                        this.closeCellLineBrowser();
                         return;
                     }
                 }
@@ -12963,13 +12964,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             e.preventDefault();
             this.openCellLineBrowser();
         });
-        document.getElementById('clbCloseBtn').addEventListener('click', () => {
-            document.getElementById('cellLineBrowserModal').style.display = 'none';
-        });
+        document.getElementById('clbCloseBtn').addEventListener('click', () => this.closeCellLineBrowser());
         document.getElementById('cellLineBrowserModal').addEventListener('click', (e) => {
-            if (e.target.id === 'cellLineBrowserModal') {
-                document.getElementById('cellLineBrowserModal').style.display = 'none';
-            }
+            if (e.target.id === 'cellLineBrowserModal') this.closeCellLineBrowser();
         });
 
         let clbSearchTimer;
@@ -12989,6 +12986,17 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbSortGene').addEventListener('input', () => {
             clearTimeout(clbGeneTimer);
             clbGeneTimer = setTimeout(() => this.renderCellLineList(), 200);
+        });
+
+        document.getElementById('clbResetFilters').addEventListener('click', () => {
+            document.getElementById('clbSearch').value = '';
+            document.getElementById('clbTissueFilter').value = '';
+            document.getElementById('clbSubtypeFilter').style.display = 'none';
+            document.getElementById('clbSubtypeFilter').innerHTML = '<option value="">All subtypes</option>';
+            document.getElementById('clbHotspotFilter').value = '';
+            document.getElementById('clbTranslocationFilter').value = '';
+            document.getElementById('clbSortGene').value = '';
+            this.renderCellLineList();
         });
 
         // Event delegation on list container
@@ -13071,6 +13079,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this.renderCellLineList();
         this.updateClbSelectionCount();
         document.getElementById('cellLineBrowserModal').style.display = 'flex';
+    }
+
+    closeCellLineBrowser() {
+        document.getElementById('cellLineBrowserModal').style.display = 'none';
+        // Switch back to network tab
+        document.querySelectorAll('.nav-link').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector('[data-tab="network"]').classList.add('active');
+        document.getElementById('tab-network').classList.add('active');
     }
 
     renderCellLineList() {
