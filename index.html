@@ -2378,7 +2378,7 @@
             <button id="clbSelectVisible" class="btn btn-outline btn-sm">Select Visible</button>
             <button id="clbDeselectAll" class="btn btn-outline btn-sm">Deselect All</button>
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);">Export CSV</button>
-            <button id="clbExportFull" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);">Export Full CSV</button>
+            <button id="clbExportFull" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);">Export Report</button>
           </div>
         </div>
         <!-- Content -->
@@ -2388,7 +2388,20 @@
           </div>
           <div class="clb-detail" id="clbDetailPanel">
             <div class="clb-detail-placeholder" id="clbDetailPlaceholder">Click a cell line to view details</div>
-            <div id="clbDetailContent" style="display:none;"></div>
+            <div id="clbDetailContent" style="display:none;">
+              <div id="clbDetailTop"></div>
+              <div style="display:flex; align-items:center; gap:6px; margin:8px 0 4px 0;">
+                <label style="font-size:11px; color:var(--gray-500); white-space:nowrap;">Show top</label>
+                <select id="clbTopN" style="padding:2px 4px; font-size:11px; border:1px solid var(--gray-200); border-radius:3px;">
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                </select>
+                <label style="font-size:11px; color:var(--gray-500);">genes per list</label>
+              </div>
+              <div id="clbDetailGeneLists"></div>
+            </div>
           </div>
         </div>
       </div>

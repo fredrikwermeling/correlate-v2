@@ -12999,6 +12999,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             this.renderCellLineList();
         });
 
+        document.getElementById('clbTopN').addEventListener('change', () => {
+            if (this._clbInspectedCellLine) this.showCellLineDetail(this._clbInspectedCellLine);
+        });
+
         // Event delegation on list container
         document.getElementById('clbListContainer').addEventListener('click', (e) => {
             const entry = e.target.closest('.clb-entry');
@@ -13197,7 +13201,6 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     showCellLineDetail(cellLineId) {
         this._clbInspectedCellLine = cellLineId;
-        // Update highlight in list
         document.querySelectorAll('#clbList .clb-entry').forEach(el => {
             el.classList.toggle('clb-inspected', el.dataset.clid === cellLineId);
         });
@@ -13212,34 +13215,25 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const name = this.getCellLineName(cellLineId);
         const lineage = this.getCellLineLineage(cellLineId);
         const sublineage = this.getCellLineSublineage(cellLineId);
+        const N = parseInt(document.getElementById('clbTopN').value) || 10;
 
         // Count hotspot mutations
-        let mutCount = 0;
         const mutGenes = [];
         if (this.mutations?.geneData) {
             for (const gene of Object.keys(this.mutations.geneData)) {
-                const val = this.mutations.geneData[gene].mutations?.[cellLineId];
-                if (val && val >= 1) {
-                    mutCount++;
-                    mutGenes.push(gene);
-                }
+                if (this.mutations.geneData[gene].mutations?.[cellLineId] >= 1) mutGenes.push(gene);
             }
         }
 
         // Count fusions
-        let fusionCount = 0;
         const fusionGenes = [];
         if (this.translocations?.geneData) {
             for (const gene of Object.keys(this.translocations.geneData)) {
-                const val = this.translocations.geneData[gene].translocations?.[cellLineId];
-                if (val && val >= 1) {
-                    fusionCount++;
-                    fusionGenes.push(gene);
-                }
+                if (this.translocations.geneData[gene].translocations?.[cellLineId] >= 1) fusionGenes.push(gene);
             }
         }
 
-        // Quick stats: mean, range, and top/bottom 10 genes
+        // Gene effect stats
         const clIdx = this.metadata.cellLines.indexOf(cellLineId);
         let sum = 0, count = 0, min = Infinity, max = -Infinity;
         const geneVals = [];
@@ -13247,8 +13241,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             for (let g = 0; g < this.nGenes; g++) {
                 const val = this.geneEffects[g * this.nCellLines + clIdx];
                 if (!isNaN(val) && val !== -999) {
-                    sum += val;
-                    count++;
+                    sum += val; count++;
                     if (val < min) min = val;
                     if (val > max) max = val;
                     geneVals.push({ gene: this.geneNames[g], val });
@@ -13257,57 +13250,47 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
         const mean = count > 0 ? sum / count : NaN;
         geneVals.sort((a, b) => a.val - b.val);
-        const bottom10 = geneVals.slice(0, 10);
-        const top10 = geneVals.slice(-10).reverse();
 
-        let html = `<h4>${name}</h4>`;
-        html += `<div class="clb-detail-id">${cellLineId}</div>`;
+        // Top section (metadata) — rendered once
+        let top = `<h4>${name}</h4>`;
+        top += `<div class="clb-detail-id">${cellLineId}</div>`;
+        top += `<div class="clb-detail-section">`;
+        top += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
+        top += `<div class="clb-stat-row"><span class="clb-stat-label">Subtype</span><span class="clb-stat-value">${sublineage || '-'}</span></div>`;
+        top += `</div>`;
 
-        html += `<div class="clb-detail-section">`;
-        html += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
-        html += `<div class="clb-stat-row"><span class="clb-stat-label">Subtype</span><span class="clb-stat-value">${sublineage || '-'}</span></div>`;
-        html += `</div>`;
+        top += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutGenes.length})</strong>`;
+        top += `<div style="color:var(--gray-500); font-size:11px;">${mutGenes.length > 0 ? mutGenes.join(', ') : 'None'}</div></div>`;
 
-        html += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutCount})</strong>`;
-        if (mutGenes.length > 0) {
-            const show = mutGenes.slice(0, 5);
-            html += `<div style="color:var(--gray-500); font-size:11px;">${show.join(', ')}${mutGenes.length > 5 ? `, +${mutGenes.length - 5} more` : ''}</div>`;
-        } else {
-            html += `<div style="color:var(--gray-500); font-size:11px;">None</div>`;
-        }
-        html += `</div>`;
+        top += `<div class="clb-detail-section"><strong>Fusions (${fusionGenes.length})</strong>`;
+        top += `<div style="color:var(--gray-500); font-size:11px;">${fusionGenes.length > 0 ? fusionGenes.join(', ') : 'None'}</div></div>`;
 
-        html += `<div class="clb-detail-section"><strong>Fusions (${fusionCount})</strong>`;
-        if (fusionGenes.length > 0) {
-            const show = fusionGenes.slice(0, 5);
-            html += `<div style="color:var(--gray-500); font-size:11px;">${show.join(', ')}${fusionGenes.length > 5 ? `, +${fusionGenes.length - 5} more` : ''}</div>`;
-        } else {
-            html += `<div style="color:var(--gray-500); font-size:11px;">None</div>`;
-        }
-        html += `</div>`;
+        top += `<div class="clb-detail-section"><strong>Gene Effect Stats</strong>`;
+        top += `<div class="clb-stat-row"><span class="clb-stat-label">Genes</span><span class="clb-stat-value">${count.toLocaleString()}</span></div>`;
+        top += `<div class="clb-stat-row"><span class="clb-stat-label">Mean GE</span><span class="clb-stat-value">${this.formatNum(mean)}</span></div>`;
+        top += `<div class="clb-stat-row"><span class="clb-stat-label">Range</span><span class="clb-stat-value">${count > 0 ? this.formatNum(min) + ' to ' + this.formatNum(max) : '-'}</span></div>`;
+        top += `</div>`;
+        document.getElementById('clbDetailTop').innerHTML = top;
 
-        html += `<div class="clb-detail-section"><strong>Gene Effect Stats</strong>`;
-        html += `<div class="clb-stat-row"><span class="clb-stat-label">Genes</span><span class="clb-stat-value">${count.toLocaleString()}</span></div>`;
-        html += `<div class="clb-stat-row"><span class="clb-stat-label">Mean GE</span><span class="clb-stat-value">${this.formatNum(mean)}</span></div>`;
-        html += `<div class="clb-stat-row"><span class="clb-stat-label">Range</span><span class="clb-stat-value">${count > 0 ? this.formatNum(min) + ' to ' + this.formatNum(max) : '-'}</span></div>`;
-        html += `</div>`;
+        // Gene lists section
+        const bottomN = geneVals.slice(0, N);
+        const topN = geneVals.slice(-N).reverse();
 
-        // Absolute top/bottom 10
-        html += `<div class="clb-detail-section"><strong>Most Depleted (Bottom 10)</strong>`;
-        html += `<div style="font-size:11px;">`;
-        bottom10.forEach(({ gene, val }) => {
-            html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
+        let gl = `<div class="clb-detail-section"><strong>Most Depleted (Bottom ${N})</strong>`;
+        gl += `<div style="font-size:11px;">`;
+        bottomN.forEach(({ gene, val }) => {
+            gl += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
         });
-        html += `</div></div>`;
+        gl += `</div></div>`;
 
-        html += `<div class="clb-detail-section"><strong>Least Depleted (Top 10)</strong>`;
-        html += `<div style="font-size:11px;">`;
-        top10.forEach(({ gene, val }) => {
-            html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
+        gl += `<div class="clb-detail-section"><strong>Least Depleted (Top ${N})</strong>`;
+        gl += `<div style="font-size:11px;">`;
+        topN.forEach(({ gene, val }) => {
+            gl += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
         });
-        html += `</div></div>`;
+        gl += `</div></div>`;
 
-        // Context-aware z-scores relative to filtered cell lines
+        // Context-aware z-scores
         const filteredCls = this._clbVisibleCellLines;
         const filteredIndices = filteredCls.map(cl => this.metadata.cellLines.indexOf(cl)).filter(i => i >= 0);
         if (filteredIndices.length >= 3 && clIdx >= 0) {
@@ -13328,10 +13311,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 zScores.push({ gene: this.geneNames[g], z: (val - mu) / sd, val });
             }
             zScores.sort((a, b) => a.z - b.z);
-            const extremeLow = zScores.slice(0, 10);
-            const extremeHigh = zScores.slice(-10).reverse();
 
-            // Build filter label from all active filters
             const filterParts = [];
             const tissueVal = document.getElementById('clbTissueFilter').value;
             const subtypeVal = document.getElementById('clbSubtypeFilter').value;
@@ -13343,24 +13323,27 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (transVal) filterParts.push(transVal + ' fus');
             const filterLabel = filterParts.length > 0 ? filterParts.join(' / ') : `all (n=${filteredIndices.length})`;
 
-            html += `<div class="clb-detail-section"><strong>Uniquely Depleted vs ${filterLabel}</strong>`;
-            html += `<div style="font-size:10px; color:var(--gray-500); margin-bottom:3px;">Lowest z-score vs visible cell lines (n=${filteredIndices.length})</div>`;
-            html += `<div style="font-size:11px;">`;
-            extremeLow.forEach(({ gene, z, val }) => {
-                html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)} <span style="color:#888;">(z=${this.formatNum(z, 1)})</span></span></div>`;
-            });
-            html += `</div></div>`;
+            const extremeLow = zScores.slice(0, N);
+            const extremeHigh = zScores.slice(-N).reverse();
 
-            html += `<div class="clb-detail-section"><strong>Uniquely Resistant vs ${filterLabel}</strong>`;
-            html += `<div style="font-size:10px; color:var(--gray-500); margin-bottom:3px;">Highest z-score vs visible cell lines (n=${filteredIndices.length})</div>`;
-            html += `<div style="font-size:11px;">`;
-            extremeHigh.forEach(({ gene, z, val }) => {
-                html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)} <span style="color:#888;">(z=${this.formatNum(z, 1)})</span></span></div>`;
+            gl += `<div class="clb-detail-section"><strong>Uniquely Depleted vs ${filterLabel}</strong>`;
+            gl += `<div style="font-size:10px; color:var(--gray-500); margin-bottom:3px;">Lowest z-score vs visible cell lines (n=${filteredIndices.length})</div>`;
+            gl += `<div style="font-size:11px;">`;
+            extremeLow.forEach(({ gene, z, val }) => {
+                gl += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)} <span style="color:#888;">(z=${this.formatNum(z, 1)})</span></span></div>`;
             });
-            html += `</div></div>`;
+            gl += `</div></div>`;
+
+            gl += `<div class="clb-detail-section"><strong>Uniquely Resistant vs ${filterLabel}</strong>`;
+            gl += `<div style="font-size:10px; color:var(--gray-500); margin-bottom:3px;">Highest z-score vs visible cell lines (n=${filteredIndices.length})</div>`;
+            gl += `<div style="font-size:11px;">`;
+            extremeHigh.forEach(({ gene, z, val }) => {
+                gl += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)} <span style="color:#888;">(z=${this.formatNum(z, 1)})</span></span></div>`;
+            });
+            gl += `</div></div>`;
         }
 
-        content.innerHTML = html;
+        document.getElementById('clbDetailGeneLists').innerHTML = gl;
     }
 
     updateClbSelectionCount() {
@@ -13374,62 +13357,121 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         const selectedIds = [...this._clbSelectedCellLines];
-        const isFull = mode === 'full';
-
-        // Build cell line index lookup
         const clIndices = selectedIds.map(cl => this.metadata.cellLines.indexOf(cl)).filter(i => i >= 0);
         const clNames = clIndices.map(i => this.getCellLineName(this.metadata.cellLines[i]));
-
-        // Header
-        const headerParts = ['Gene'];
-        for (let c = 0; c < clIndices.length; c++) {
-            const clId = this.metadata.cellLines[clIndices[c]];
-            const n = clNames[c].replace(/,/g, '');
-            if (isFull) {
-                // Collect hotspot mutations for this cell line
-                const muts = [];
-                if (this.mutations?.geneData) {
-                    for (const gene of Object.keys(this.mutations.geneData)) {
-                        if (this.mutations.geneData[gene].mutations?.[clId] >= 1) muts.push(gene);
-                    }
-                }
-                // Collect translocations for this cell line
-                const trans = [];
-                if (this.translocations?.geneData) {
-                    for (const gene of Object.keys(this.translocations.geneData)) {
-                        if (this.translocations.geneData[gene].translocations?.[clId] >= 1) trans.push(gene);
-                    }
-                }
-                let label = n;
-                const parts = [];
-                if (muts.length) parts.push('Mut:' + muts.join('/'));
-                if (trans.length) parts.push('Fus:' + trans.join('/'));
-                if (parts.length) label += ' [' + parts.join('; ') + ']';
-                headerParts.push(label);
-            } else {
-                headerParts.push(n);
-            }
-        }
-
-        // Rows
-        const lines = [headerParts.join(',')];
-        for (let g = 0; g < this.nGenes; g++) {
-            const row = [this.geneNames[g]];
-            for (let c = 0; c < clIndices.length; c++) {
-                const val = this.geneEffects[g * this.nCellLines + clIndices[c]];
-                row.push((!isNaN(val) && val !== -999) ? val.toFixed(4) : '');
-            }
-            lines.push(row.join(','));
-        }
-
-        const csv = lines.join('\n');
         const namePart = clNames.length <= 4
             ? '_' + clNames.map(n => n.replace(/[^A-Za-z0-9]/g, '')).join('_')
             : `_${clNames.length}cl`;
-        const filename = isFull
-            ? `correlate_full${namePart}.csv`
-            : `correlate${namePart}.csv`;
-        this.downloadFile(csv, filename, 'text/csv');
+
+        if (mode === 'minimal') {
+            // Gene x cell line GE matrix
+            const headerParts = ['Gene'];
+            clNames.forEach(n => headerParts.push(n.replace(/,/g, '')));
+            const lines = [headerParts.join(',')];
+            for (let g = 0; g < this.nGenes; g++) {
+                const row = [this.geneNames[g]];
+                for (let c = 0; c < clIndices.length; c++) {
+                    const val = this.geneEffects[g * this.nCellLines + clIndices[c]];
+                    row.push((!isNaN(val) && val !== -999) ? val.toFixed(4) : '');
+                }
+                lines.push(row.join(','));
+            }
+            this.downloadFile(lines.join('\n'), `correlate${namePart}.csv`, 'text/csv');
+        } else {
+            // Report: cell line info + gene lists
+            const N = parseInt(document.getElementById('clbTopN').value) || 10;
+            const filteredCls = this._clbVisibleCellLines;
+            const filteredIndices = filteredCls.map(cl => this.metadata.cellLines.indexOf(cl)).filter(i => i >= 0);
+
+            // Build filter label
+            const filterParts = [];
+            const tissueVal = document.getElementById('clbTissueFilter').value;
+            const subtypeVal = document.getElementById('clbSubtypeFilter').value;
+            const hotspotVal = document.getElementById('clbHotspotFilter').value;
+            const transVal = document.getElementById('clbTranslocationFilter').value;
+            if (tissueVal) filterParts.push(tissueVal);
+            if (subtypeVal) filterParts.push(subtypeVal);
+            if (hotspotVal) filterParts.push(hotspotVal + ' mut');
+            if (transVal) filterParts.push(transVal + ' fus');
+            const filterLabel = filterParts.length > 0 ? filterParts.join(' / ') : `all (n=${filteredIndices.length})`;
+
+            const lines = ['CellLine,CellLineID,Tissue,Subtype,Category,Rank,Gene,GE,ZScore'];
+
+            for (let c = 0; c < clIndices.length; c++) {
+                const clId = this.metadata.cellLines[clIndices[c]];
+                const clName = clNames[c].replace(/,/g, '');
+                const tissue = this.getCellLineLineage(clId);
+                const subtype = this.getCellLineSublineage(clId);
+                const ci = clIndices[c];
+
+                // Hotspot mutations
+                if (this.mutations?.geneData) {
+                    for (const gene of Object.keys(this.mutations.geneData)) {
+                        if (this.mutations.geneData[gene].mutations?.[clId] >= 1) {
+                            lines.push(`${clName},${clId},${tissue},${subtype},Hotspot Mutation,,${gene},,`);
+                        }
+                    }
+                }
+
+                // Fusions
+                if (this.translocations?.geneData) {
+                    for (const gene of Object.keys(this.translocations.geneData)) {
+                        if (this.translocations.geneData[gene].translocations?.[clId] >= 1) {
+                            lines.push(`${clName},${clId},${tissue},${subtype},Fusion,,${gene},,`);
+                        }
+                    }
+                }
+
+                // Compute gene effects for this cell line
+                const geneVals = [];
+                for (let g = 0; g < this.nGenes; g++) {
+                    const val = this.geneEffects[g * this.nCellLines + ci];
+                    if (!isNaN(val) && val !== -999) geneVals.push({ gene: this.geneNames[g], val, idx: g });
+                }
+                geneVals.sort((a, b) => a.val - b.val);
+
+                // Most depleted
+                geneVals.slice(0, N).forEach(({ gene, val }, i) => {
+                    lines.push(`${clName},${clId},${tissue},${subtype},Most Depleted,${i + 1},${gene},${val.toFixed(4)},`);
+                });
+
+                // Least depleted
+                geneVals.slice(-N).reverse().forEach(({ gene, val }, i) => {
+                    lines.push(`${clName},${clId},${tissue},${subtype},Least Depleted,${i + 1},${gene},${val.toFixed(4)},`);
+                });
+
+                // Z-scores vs filtered
+                if (filteredIndices.length >= 3) {
+                    const zScores = [];
+                    for (let g = 0; g < this.nGenes; g++) {
+                        const offset = g * this.nCellLines;
+                        let s = 0, s2 = 0, n = 0;
+                        for (const fi of filteredIndices) {
+                            const v = this.geneEffects[offset + fi];
+                            if (!isNaN(v) && v !== -999) { s += v; s2 += v * v; n++; }
+                        }
+                        if (n < 3) continue;
+                        const mu = s / n;
+                        const sd = Math.sqrt(s2 / n - mu * mu);
+                        if (sd < 1e-6) continue;
+                        const val = this.geneEffects[offset + ci];
+                        if (isNaN(val) || val === -999) continue;
+                        zScores.push({ gene: this.geneNames[g], z: (val - mu) / sd, val });
+                    }
+                    zScores.sort((a, b) => a.z - b.z);
+
+                    zScores.slice(0, N).forEach(({ gene, val, z }, i) => {
+                        lines.push(`${clName},${clId},${tissue},${subtype},Uniquely Depleted vs ${filterLabel},${i + 1},${gene},${val.toFixed(4)},${z.toFixed(2)}`);
+                    });
+
+                    zScores.slice(-N).reverse().forEach(({ gene, val, z }, i) => {
+                        lines.push(`${clName},${clId},${tissue},${subtype},Uniquely Resistant vs ${filterLabel},${i + 1},${gene},${val.toFixed(4)},${z.toFixed(2)}`);
+                    });
+                }
+            }
+
+            this.downloadFile(lines.join('\n'), `correlate_report${namePart}.csv`, 'text/csv');
+        }
     }
 }
 
