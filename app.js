@@ -13255,59 +13255,48 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const selectedIds = [...this._clbSelectedCellLines];
         const isFull = mode === 'full';
 
-        if (isFull && selectedIds.length > 10) {
-            if (!confirm(`Full export for ${selectedIds.length} cell lines will create a large CSV with ${selectedIds.length * 3} columns. Continue?`)) return;
-        }
-
         // Build cell line index lookup
         const clIndices = selectedIds.map(cl => this.metadata.cellLines.indexOf(cl)).filter(i => i >= 0);
         const clNames = clIndices.map(i => this.getCellLineName(this.metadata.cellLines[i]));
 
-        // Build mutation and translocation gene lookups for full mode
-        let mutGeneSet = null, transGeneSet = null;
-        if (isFull) {
-            if (this.mutations?.geneData) {
-                mutGeneSet = new Map();
-                for (const gene of Object.keys(this.mutations.geneData)) {
-                    mutGeneSet.set(gene, this.mutations.geneData[gene].mutations);
-                }
-            }
-            if (this.translocations?.geneData) {
-                transGeneSet = new Map();
-                for (const gene of Object.keys(this.translocations.geneData)) {
-                    transGeneSet.set(gene, this.translocations.geneData[gene].translocations);
-                }
-            }
-        }
-
         // Header
         const headerParts = ['Gene'];
-        for (let c = 0; c < clNames.length; c++) {
+        for (let c = 0; c < clIndices.length; c++) {
+            const clId = this.metadata.cellLines[clIndices[c]];
             const n = clNames[c].replace(/,/g, '');
-            headerParts.push(`${n}_GE`);
             if (isFull) {
-                headerParts.push(`${n}_Hotspot_Mut`);
-                headerParts.push(`${n}_Translocation`);
+                // Collect hotspot mutations for this cell line
+                const muts = [];
+                if (this.mutations?.geneData) {
+                    for (const gene of Object.keys(this.mutations.geneData)) {
+                        if (this.mutations.geneData[gene].mutations?.[clId] >= 1) muts.push(gene);
+                    }
+                }
+                // Collect translocations for this cell line
+                const trans = [];
+                if (this.translocations?.geneData) {
+                    for (const gene of Object.keys(this.translocations.geneData)) {
+                        if (this.translocations.geneData[gene].translocations?.[clId] >= 1) trans.push(gene);
+                    }
+                }
+                let label = n;
+                const parts = [];
+                if (muts.length) parts.push('Mut:' + muts.join('/'));
+                if (trans.length) parts.push('Fus:' + trans.join('/'));
+                if (parts.length) label += ' [' + parts.join('; ') + ']';
+                headerParts.push(label);
+            } else {
+                headerParts.push(n);
             }
         }
 
         // Rows
         const lines = [headerParts.join(',')];
         for (let g = 0; g < this.nGenes; g++) {
-            const geneName = this.geneNames[g];
-            const row = [geneName];
+            const row = [this.geneNames[g]];
             for (let c = 0; c < clIndices.length; c++) {
                 const val = this.geneEffects[g * this.nCellLines + clIndices[c]];
                 row.push((!isNaN(val) && val !== -999) ? val.toFixed(4) : '');
-                if (isFull) {
-                    const clId = this.metadata.cellLines[clIndices[c]];
-                    // Hotspot mutation
-                    const mutData = mutGeneSet?.get(geneName);
-                    row.push(mutData?.[clId] !== undefined ? mutData[clId] : '');
-                    // Translocation
-                    const transData = transGeneSet?.get(geneName);
-                    row.push(transData?.[clId] !== undefined ? transData[clId] : '');
-                }
             }
             lines.push(row.join(','));
         }
