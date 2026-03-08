@@ -1055,10 +1055,15 @@
         .clb-detail h4 { margin: 0 0 4px 0; font-size: 14px; color: var(--green-800); }
         .clb-detail .clb-detail-id { font-size: 10px; color: var(--gray-500); margin-bottom: 10px; word-break: break-all; }
         .clb-detail-section { margin-bottom: 10px; }
-        .clb-detail-section strong { display: block; margin-bottom: 2px; color: #374151; }
+        .clb-detail-section strong { display: inline; margin-bottom: 2px; color: #374151; }
         .clb-detail-section .clb-stat-row { display: flex; justify-content: space-between; padding: 1px 0; }
         .clb-detail-section .clb-stat-label { color: var(--gray-500); }
         .clb-detail-section .clb-stat-value { font-weight: 600; }
+        .clb-gene-link { color: var(--green-700); text-decoration: none; cursor: pointer; }
+        .clb-gene-link:hover { text-decoration: underline; }
+        .clb-enrichr-btn { font-size: 9px; padding: 1px 5px; background: none; border: 1px solid #9ca3af;
+            border-radius: 3px; color: #6b7280; cursor: pointer; margin-left: 4px; vertical-align: middle; }
+        .clb-enrichr-btn:hover { border-color: var(--green-500); color: var(--green-700); }
         .clb-detail-placeholder { color: var(--gray-500); font-size: 12px; padding: 20px 0; text-align: center; }
         .clb-no-results { text-align: center; color: var(--gray-500); padding: 40px 0; font-size: 13px; }
         .clb-selection-count { font-size: 11px; color: var(--gray-500); white-space: nowrap; }
@@ -2079,7 +2084,7 @@
     </footer>
 
     <!-- Gene Effect Analysis Modal -->
-    <div class="modal-overlay" id="geneEffectModal" style="display: none;">
+    <div class="modal-overlay" id="geneEffectModal" style="display: none; z-index: 1200;">
         <div class="modal" style="max-width: 1200px;">
             <div class="modal-header">
                 <h3 id="geneEffectTitle">Gene Effect Analysis</h3>
@@ -2120,6 +2125,7 @@
                         <select id="geFusionFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Fusion filter — only show cell lines with this fusion">
                             <option value="">No fusion filter</option>
                         </select>
+                        <input type="text" id="geCellLineSearch" class="form-control" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span id="geCompareButtons" style="display: none;">
                             <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
                             <button class="btn btn-secondary btn-sm" id="geCompareByTissueBtn" title="Show Δ GE per tissue for this gene">Δ Tissue</button>
