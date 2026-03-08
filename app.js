@@ -13191,9 +13191,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
         }
 
-        // Quick stats: mean and range of gene effect across all genes
+        // Quick stats: mean, range, and top/bottom 10 genes
         const clIdx = this.metadata.cellLines.indexOf(cellLineId);
         let sum = 0, count = 0, min = Infinity, max = -Infinity;
+        const geneVals = [];
         if (clIdx >= 0) {
             for (let g = 0; g < this.nGenes; g++) {
                 const val = this.geneEffects[g * this.nCellLines + clIdx];
@@ -13202,10 +13203,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     count++;
                     if (val < min) min = val;
                     if (val > max) max = val;
+                    geneVals.push({ gene: this.geneNames[g], val });
                 }
             }
         }
         const mean = count > 0 ? sum / count : NaN;
+        geneVals.sort((a, b) => a.val - b.val);
+        const bottom10 = geneVals.slice(0, 10);
+        const top10 = geneVals.slice(-10).reverse();
 
         let html = `<h4>${name}</h4>`;
         html += `<div class="clb-detail-id">${cellLineId}</div>`;
@@ -13238,6 +13243,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         html += `<div class="clb-stat-row"><span class="clb-stat-label">Mean GE</span><span class="clb-stat-value">${this.formatNum(mean)}</span></div>`;
         html += `<div class="clb-stat-row"><span class="clb-stat-label">Range</span><span class="clb-stat-value">${count > 0 ? this.formatNum(min) + ' to ' + this.formatNum(max) : '-'}</span></div>`;
         html += `</div>`;
+
+        html += `<div class="clb-detail-section"><strong>Most Depleted (Bottom 10)</strong>`;
+        html += `<div style="font-size:11px;">`;
+        bottom10.forEach(({ gene, val }) => {
+            html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
+        });
+        html += `</div></div>`;
+
+        html += `<div class="clb-detail-section"><strong>Least Depleted (Top 10)</strong>`;
+        html += `<div style="font-size:11px;">`;
+        top10.forEach(({ gene, val }) => {
+            html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
+        });
+        html += `</div></div>`;
 
         content.innerHTML = html;
     }
