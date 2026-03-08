@@ -13313,9 +13313,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         const csv = lines.join('\n');
+        const namePart = clNames.length <= 4
+            ? '_' + clNames.map(n => n.replace(/[^A-Za-z0-9]/g, '')).join('_')
+            : `_${clNames.length}cl`;
         const filename = isFull
-            ? `correlate_cell_lines_full_${selectedIds.length}cl.csv`
-            : `correlate_cell_lines_${selectedIds.length}cl.csv`;
+            ? `correlate_full${namePart}.csv`
+            : `correlate${namePart}.csv`;
         this.downloadFile(csv, filename, 'text/csv');
     }
 }
