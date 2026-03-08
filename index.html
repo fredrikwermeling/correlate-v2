@@ -1317,7 +1317,10 @@
                         </ul>
                         <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data.</p>
                     </div>
-                    <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="margin-top: 10px; width: 100%;">Reset App</button>
+                    <div style="display:flex; gap:6px; margin-top:10px;">
+                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="flex:1;">Reset App</button>
+                        <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="flex:1; color:var(--green-700); border-color:var(--green-400);">Cell Lines</button>
+                    </div>
                 </div>
             </div>
 
@@ -1568,7 +1571,6 @@
                     <li><button class="nav-link" data-tab="mutation" style="display: none;" id="mutationTab">Mutation Analysis</button></li>
                     <li><button class="nav-link" data-tab="synonyms" style="display: none;" id="synonymsTab">Synonyms/Orthologs</button></li>
                     <li><button class="nav-link" data-tab="summary">Summary</button></li>
-                    <li style="margin-left:auto;"><a href="#" id="showCellLineBrowser" class="nav-link" style="color:var(--green-700); font-size:0.8em;">Cell Lines</a></li>
                 </ul>
 
                 <!-- Network Tab -->

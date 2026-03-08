@@ -13292,12 +13292,25 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         html += `<div class="clb-stat-row"><span class="clb-stat-label">Range</span><span class="clb-stat-value">${count > 0 ? this.formatNum(min) + ' to ' + this.formatNum(max) : '-'}</span></div>`;
         html += `</div>`;
 
-        // Compute z-scores relative to currently filtered cell lines
+        // Absolute top/bottom 10
+        html += `<div class="clb-detail-section"><strong>Most Depleted (Bottom 10)</strong>`;
+        html += `<div style="font-size:11px;">`;
+        bottom10.forEach(({ gene, val }) => {
+            html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
+        });
+        html += `</div></div>`;
+
+        html += `<div class="clb-detail-section"><strong>Least Depleted (Top 10)</strong>`;
+        html += `<div style="font-size:11px;">`;
+        top10.forEach(({ gene, val }) => {
+            html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
+        });
+        html += `</div></div>`;
+
+        // Context-aware z-scores relative to filtered cell lines
         const filteredCls = this._clbVisibleCellLines;
         const filteredIndices = filteredCls.map(cl => this.metadata.cellLines.indexOf(cl)).filter(i => i >= 0);
-        const hasFilter = filteredCls.length < this.metadata.cellLines.length && filteredIndices.length >= 3;
-
-        if (hasFilter && clIdx >= 0) {
+        if (filteredIndices.length >= 3 && clIdx >= 0) {
             const zScores = [];
             for (let g = 0; g < this.nGenes; g++) {
                 const offset = g * this.nCellLines;
@@ -13318,9 +13331,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const extremeLow = zScores.slice(0, 10);
             const extremeHigh = zScores.slice(-10).reverse();
 
-            const filterLabel = document.getElementById('clbTissueFilter').value || 'filtered';
+            // Build filter label from all active filters
+            const filterParts = [];
+            const tissueVal = document.getElementById('clbTissueFilter').value;
+            const subtypeVal = document.getElementById('clbSubtypeFilter').value;
+            const hotspotVal = document.getElementById('clbHotspotFilter').value;
+            const transVal = document.getElementById('clbTranslocationFilter').value;
+            if (tissueVal) filterParts.push(tissueVal);
+            if (subtypeVal) filterParts.push(subtypeVal);
+            if (hotspotVal) filterParts.push(hotspotVal + ' mut');
+            if (transVal) filterParts.push(transVal + ' fus');
+            const filterLabel = filterParts.length > 0 ? filterParts.join(' / ') : `all (n=${filteredIndices.length})`;
+
             html += `<div class="clb-detail-section"><strong>Uniquely Depleted vs ${filterLabel}</strong>`;
-            html += `<div style="font-size:10px; color:var(--gray-500); margin-bottom:3px;">Genes with lowest z-score relative to filtered cell lines</div>`;
+            html += `<div style="font-size:10px; color:var(--gray-500); margin-bottom:3px;">Lowest z-score vs visible cell lines (n=${filteredIndices.length})</div>`;
             html += `<div style="font-size:11px;">`;
             extremeLow.forEach(({ gene, z, val }) => {
                 html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)} <span style="color:#888;">(z=${this.formatNum(z, 1)})</span></span></div>`;
@@ -13328,24 +13352,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             html += `</div></div>`;
 
             html += `<div class="clb-detail-section"><strong>Uniquely Resistant vs ${filterLabel}</strong>`;
-            html += `<div style="font-size:10px; color:var(--gray-500); margin-bottom:3px;">Genes with highest z-score relative to filtered cell lines</div>`;
+            html += `<div style="font-size:10px; color:var(--gray-500); margin-bottom:3px;">Highest z-score vs visible cell lines (n=${filteredIndices.length})</div>`;
             html += `<div style="font-size:11px;">`;
             extremeHigh.forEach(({ gene, z, val }) => {
                 html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)} <span style="color:#888;">(z=${this.formatNum(z, 1)})</span></span></div>`;
-            });
-            html += `</div></div>`;
-        } else {
-            html += `<div class="clb-detail-section"><strong>Most Depleted (Bottom 10)</strong>`;
-            html += `<div style="font-size:11px;">`;
-            bottom10.forEach(({ gene, val }) => {
-                html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
-            });
-            html += `</div></div>`;
-
-            html += `<div class="clb-detail-section"><strong>Least Depleted (Top 10)</strong>`;
-            html += `<div style="font-size:11px;">`;
-            top10.forEach(({ gene, val }) => {
-                html += `<div class="clb-stat-row"><span class="clb-stat-label">${gene}</span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
             });
             html += `</div></div>`;
         }
