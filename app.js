@@ -74,6 +74,11 @@ class CorrelationExplorer {
         this.exprCorrelatesSortCol = 'absR';
         this.exprCorrelatesSortAsc = false;
 
+        // Cell Line Browser state
+        this._clbSelectedCellLines = new Set();
+        this._clbInspectedCellLine = null;
+        this._clbVisibleCellLines = [];
+
         this.init();
     }
 
@@ -1494,6 +1499,14 @@ class CorrelationExplorer {
         // Global keyboard handler for closing modals with Enter or Escape
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' || e.key === 'Enter') {
+                // Close cell line browser if open (Escape only)
+                if (e.key === 'Escape') {
+                    const clbModal = document.getElementById('cellLineBrowserModal');
+                    if (clbModal && clbModal.style.display !== 'none') {
+                        clbModal.style.display = 'none';
+                        return;
+                    }
+                }
                 // Close inspect modal if open
                 const inspectModal = document.getElementById('inspectModal');
                 if (inspectModal && inspectModal.classList.contains('active')) {
@@ -1808,6 +1821,8 @@ class CorrelationExplorer {
                 Plotly.relayout(plotEl, { height: Math.round(baseHeight * ratio) });
             }
         });
+
+        this.setupCellLineBrowserEvents();
     }
 
     updateGeneCount() {
@@ -12939,6 +12954,331 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         } else {
             this.showGeneEffectDistribution(gene);
         }
+    }
+
+    // ===== Cell Line Browser =====
+
+    setupCellLineBrowserEvents() {
+        document.getElementById('showCellLineBrowser').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.openCellLineBrowser();
+        });
+        document.getElementById('clbCloseBtn').addEventListener('click', () => {
+            document.getElementById('cellLineBrowserModal').style.display = 'none';
+        });
+        document.getElementById('cellLineBrowserModal').addEventListener('click', (e) => {
+            if (e.target.id === 'cellLineBrowserModal') {
+                document.getElementById('cellLineBrowserModal').style.display = 'none';
+            }
+        });
+
+        let clbSearchTimer;
+        document.getElementById('clbSearch').addEventListener('input', () => {
+            clearTimeout(clbSearchTimer);
+            clbSearchTimer = setTimeout(() => this.renderCellLineList(), 150);
+        });
+        document.getElementById('clbTissueFilter').addEventListener('change', () => {
+            this.updateClbSubtypeFilter();
+            this.renderCellLineList();
+        });
+        document.getElementById('clbSubtypeFilter').addEventListener('change', () => this.renderCellLineList());
+
+        // Event delegation on list container
+        document.getElementById('clbListContainer').addEventListener('click', (e) => {
+            const entry = e.target.closest('.clb-entry');
+            if (!entry) return;
+            const clId = entry.dataset.clid;
+            if (e.target.type === 'checkbox') {
+                if (e.target.checked) this._clbSelectedCellLines.add(clId);
+                else this._clbSelectedCellLines.delete(clId);
+                entry.classList.toggle('clb-selected', e.target.checked);
+                this.updateClbSelectionCount();
+            } else {
+                this.showCellLineDetail(clId);
+            }
+        });
+
+        document.getElementById('clbSelectVisible').addEventListener('click', () => {
+            this._clbVisibleCellLines.forEach(cl => this._clbSelectedCellLines.add(cl));
+            this.renderCellLineList();
+            this.updateClbSelectionCount();
+        });
+        document.getElementById('clbDeselectAll').addEventListener('click', () => {
+            this._clbSelectedCellLines.clear();
+            this.renderCellLineList();
+            this.updateClbSelectionCount();
+        });
+        document.getElementById('clbExportMinimal').addEventListener('click', () => this.exportCellLineBrowserCSV('minimal'));
+        document.getElementById('clbExportFull').addEventListener('click', () => this.exportCellLineBrowserCSV('full'));
+    }
+
+    openCellLineBrowser() {
+        const tissueSelect = document.getElementById('clbTissueFilter');
+        const total = this.metadata.cellLines.length;
+        tissueSelect.innerHTML = `<option value="">All tissues (n=${total})</option>`;
+        Object.keys(this.lineageCounts).sort().forEach(lineage => {
+            const opt = document.createElement('option');
+            opt.value = lineage;
+            opt.textContent = `${lineage} (n=${this.lineageCounts[lineage]})`;
+            tissueSelect.appendChild(opt);
+        });
+
+        document.getElementById('clbSubtypeFilter').style.display = 'none';
+        document.getElementById('clbSubtypeFilter').innerHTML = '<option value="">All subtypes</option>';
+        document.getElementById('clbSearch').value = '';
+        document.getElementById('clbDetailPanel').classList.remove('active');
+        document.getElementById('clbDetailContent').style.display = 'none';
+        document.getElementById('clbDetailPlaceholder').style.display = '';
+        this._clbInspectedCellLine = null;
+
+        this.renderCellLineList();
+        this.updateClbSelectionCount();
+        document.getElementById('cellLineBrowserModal').style.display = 'flex';
+    }
+
+    renderCellLineList() {
+        const search = document.getElementById('clbSearch').value.trim().toLowerCase();
+        const tissue = document.getElementById('clbTissueFilter').value;
+        const subtype = document.getElementById('clbSubtypeFilter').value;
+
+        let filtered = this.metadata.cellLines.filter(cl => {
+            if (tissue && this.getCellLineLineage(cl) !== tissue) return false;
+            if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
+            if (search) {
+                const name = this.getCellLineName(cl).toLowerCase();
+                const lin = this.getCellLineLineage(cl).toLowerCase();
+                if (!name.includes(search) && !lin.includes(search) && !cl.toLowerCase().includes(search)) return false;
+            }
+            return true;
+        });
+
+        filtered.sort((a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)));
+        this._clbVisibleCellLines = filtered;
+
+        const container = document.getElementById('clbList');
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="clb-no-results">No cell lines match your filters</div>';
+            return;
+        }
+
+        const html = filtered.map(cl => {
+            const name = this.getCellLineName(cl);
+            const lin = this.getCellLineLineage(cl);
+            const selected = this._clbSelectedCellLines.has(cl);
+            const inspected = this._clbInspectedCellLine === cl;
+            const cls = ['clb-entry'];
+            if (selected) cls.push('clb-selected');
+            if (inspected) cls.push('clb-inspected');
+            return `<div class="${cls.join(' ')}" data-clid="${cl}">` +
+                `<input type="checkbox"${selected ? ' checked' : ''}>` +
+                `<span class="clb-entry-name" title="${name}">${name}</span>` +
+                `<span class="clb-entry-tissue">${lin}</span></div>`;
+        }).join('');
+        container.innerHTML = html;
+    }
+
+    updateClbSubtypeFilter() {
+        const tissue = document.getElementById('clbTissueFilter').value;
+        const subSelect = document.getElementById('clbSubtypeFilter');
+
+        if (!tissue) {
+            subSelect.style.display = 'none';
+            subSelect.innerHTML = '<option value="">All subtypes</option>';
+            return;
+        }
+
+        const prefix = `${tissue}|`;
+        const subtypes = Object.keys(this.subLineageCounts)
+            .filter(k => k.startsWith(prefix))
+            .map(k => ({ name: k.slice(prefix.length), count: this.subLineageCounts[k] }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        if (subtypes.length === 0) {
+            subSelect.style.display = 'none';
+            subSelect.innerHTML = '<option value="">All subtypes</option>';
+            return;
+        }
+
+        subSelect.innerHTML = '<option value="">All subtypes</option>';
+        subtypes.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.name;
+            opt.textContent = `${s.name} (n=${s.count})`;
+            subSelect.appendChild(opt);
+        });
+        subSelect.style.display = '';
+    }
+
+    showCellLineDetail(cellLineId) {
+        this._clbInspectedCellLine = cellLineId;
+        // Update highlight in list
+        document.querySelectorAll('#clbList .clb-entry').forEach(el => {
+            el.classList.toggle('clb-inspected', el.dataset.clid === cellLineId);
+        });
+
+        const panel = document.getElementById('clbDetailPanel');
+        const content = document.getElementById('clbDetailContent');
+        const placeholder = document.getElementById('clbDetailPlaceholder');
+        panel.classList.add('active');
+        placeholder.style.display = 'none';
+        content.style.display = '';
+
+        const name = this.getCellLineName(cellLineId);
+        const lineage = this.getCellLineLineage(cellLineId);
+        const sublineage = this.getCellLineSublineage(cellLineId);
+
+        // Count hotspot mutations
+        let mutCount = 0;
+        const mutGenes = [];
+        if (this.mutations?.geneData) {
+            for (const gene of Object.keys(this.mutations.geneData)) {
+                const val = this.mutations.geneData[gene].mutations?.[cellLineId];
+                if (val && val >= 1) {
+                    mutCount++;
+                    mutGenes.push(gene);
+                }
+            }
+        }
+
+        // Count fusions
+        let fusionCount = 0;
+        const fusionGenes = [];
+        if (this.translocations?.geneData) {
+            for (const gene of Object.keys(this.translocations.geneData)) {
+                const val = this.translocations.geneData[gene].translocations?.[cellLineId];
+                if (val && val >= 1) {
+                    fusionCount++;
+                    fusionGenes.push(gene);
+                }
+            }
+        }
+
+        // Quick stats: mean and range of gene effect across all genes
+        const clIdx = this.metadata.cellLines.indexOf(cellLineId);
+        let sum = 0, count = 0, min = Infinity, max = -Infinity;
+        if (clIdx >= 0) {
+            for (let g = 0; g < this.nGenes; g++) {
+                const val = this.geneEffects[g * this.nCellLines + clIdx];
+                if (!isNaN(val) && val !== -999) {
+                    sum += val;
+                    count++;
+                    if (val < min) min = val;
+                    if (val > max) max = val;
+                }
+            }
+        }
+        const mean = count > 0 ? sum / count : NaN;
+
+        let html = `<h4>${name}</h4>`;
+        html += `<div class="clb-detail-id">${cellLineId}</div>`;
+
+        html += `<div class="clb-detail-section">`;
+        html += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
+        html += `<div class="clb-stat-row"><span class="clb-stat-label">Subtype</span><span class="clb-stat-value">${sublineage || '-'}</span></div>`;
+        html += `</div>`;
+
+        html += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutCount})</strong>`;
+        if (mutGenes.length > 0) {
+            const show = mutGenes.slice(0, 5);
+            html += `<div style="color:var(--gray-500); font-size:11px;">${show.join(', ')}${mutGenes.length > 5 ? `, +${mutGenes.length - 5} more` : ''}</div>`;
+        } else {
+            html += `<div style="color:var(--gray-500); font-size:11px;">None</div>`;
+        }
+        html += `</div>`;
+
+        html += `<div class="clb-detail-section"><strong>Fusions (${fusionCount})</strong>`;
+        if (fusionGenes.length > 0) {
+            const show = fusionGenes.slice(0, 5);
+            html += `<div style="color:var(--gray-500); font-size:11px;">${show.join(', ')}${fusionGenes.length > 5 ? `, +${fusionGenes.length - 5} more` : ''}</div>`;
+        } else {
+            html += `<div style="color:var(--gray-500); font-size:11px;">None</div>`;
+        }
+        html += `</div>`;
+
+        html += `<div class="clb-detail-section"><strong>Gene Effect Stats</strong>`;
+        html += `<div class="clb-stat-row"><span class="clb-stat-label">Genes</span><span class="clb-stat-value">${count.toLocaleString()}</span></div>`;
+        html += `<div class="clb-stat-row"><span class="clb-stat-label">Mean GE</span><span class="clb-stat-value">${this.formatNum(mean)}</span></div>`;
+        html += `<div class="clb-stat-row"><span class="clb-stat-label">Range</span><span class="clb-stat-value">${count > 0 ? this.formatNum(min) + ' to ' + this.formatNum(max) : '-'}</span></div>`;
+        html += `</div>`;
+
+        content.innerHTML = html;
+    }
+
+    updateClbSelectionCount() {
+        document.getElementById('clbSelectionCount').textContent = `${this._clbSelectedCellLines.size} selected`;
+    }
+
+    exportCellLineBrowserCSV(mode) {
+        if (this._clbSelectedCellLines.size === 0) {
+            alert('Select at least one cell line to export.');
+            return;
+        }
+
+        const selectedIds = [...this._clbSelectedCellLines];
+        const isFull = mode === 'full';
+
+        if (isFull && selectedIds.length > 10) {
+            if (!confirm(`Full export for ${selectedIds.length} cell lines will create a large CSV with ${selectedIds.length * 3} columns. Continue?`)) return;
+        }
+
+        // Build cell line index lookup
+        const clIndices = selectedIds.map(cl => this.metadata.cellLines.indexOf(cl)).filter(i => i >= 0);
+        const clNames = clIndices.map(i => this.getCellLineName(this.metadata.cellLines[i]));
+
+        // Build mutation and translocation gene lookups for full mode
+        let mutGeneSet = null, transGeneSet = null;
+        if (isFull) {
+            if (this.mutations?.geneData) {
+                mutGeneSet = new Map();
+                for (const gene of Object.keys(this.mutations.geneData)) {
+                    mutGeneSet.set(gene, this.mutations.geneData[gene].mutations);
+                }
+            }
+            if (this.translocations?.geneData) {
+                transGeneSet = new Map();
+                for (const gene of Object.keys(this.translocations.geneData)) {
+                    transGeneSet.set(gene, this.translocations.geneData[gene].translocations);
+                }
+            }
+        }
+
+        // Header
+        const headerParts = ['Gene'];
+        for (let c = 0; c < clNames.length; c++) {
+            const n = clNames[c].replace(/,/g, '');
+            headerParts.push(`${n}_GE`);
+            if (isFull) {
+                headerParts.push(`${n}_Hotspot_Mut`);
+                headerParts.push(`${n}_Translocation`);
+            }
+        }
+
+        // Rows
+        const lines = [headerParts.join(',')];
+        for (let g = 0; g < this.nGenes; g++) {
+            const geneName = this.geneNames[g];
+            const row = [geneName];
+            for (let c = 0; c < clIndices.length; c++) {
+                const val = this.geneEffects[g * this.nCellLines + clIndices[c]];
+                row.push((!isNaN(val) && val !== -999) ? val.toFixed(4) : '');
+                if (isFull) {
+                    const clId = this.metadata.cellLines[clIndices[c]];
+                    // Hotspot mutation
+                    const mutData = mutGeneSet?.get(geneName);
+                    row.push(mutData?.[clId] !== undefined ? mutData[clId] : '');
+                    // Translocation
+                    const transData = transGeneSet?.get(geneName);
+                    row.push(transData?.[clId] !== undefined ? transData[clId] : '');
+                }
+            }
+            lines.push(row.join(','));
+        }
+
+        const csv = lines.join('\n');
+        const filename = isFull
+            ? `correlate_cell_lines_full_${selectedIds.length}cl.csv`
+            : `correlate_cell_lines_${selectedIds.length}cl.csv`;
+        this.downloadFile(csv, filename, 'text/csv');
     }
 }
 
