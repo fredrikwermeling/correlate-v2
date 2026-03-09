@@ -13228,6 +13228,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         this.renderCellLineList();
         this.updateClbSelectionCount();
+        this.updateClbFilterCounts(this.metadata.cellLines);
         document.getElementById('cellLineBrowserModal').style.display = 'flex';
     }
 
