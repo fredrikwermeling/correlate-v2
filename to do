@@ -1,3 +1,10 @@
+- analyse mode, correlations tab. if press by tissue, it doesnt allow to close and open by hotspot, instead it opens by tissue after a while.
+- in analysis mode. if press correlations/clusters/summary tab, before pressing run, and then add a library and press run (while still in correlations/clusters/summary tab), the generated network looks strange. 
+are there repositories of mouse cell lines that could be included?
+
+
+
+
 - same genes in test data sets for input genes +/- stats.
 - mutation analysis inspect make possible to change size of y axis.
 - filtering should allow for - values
