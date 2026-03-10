@@ -1,6 +1,9 @@
 - analyse mode, correlations tab. if press by tissue, it doesnt allow to close and open by hotspot, instead it opens by tissue after a while.
 - in analysis mode. if press correlations/clusters/summary tab, before pressing run, and then add a library and press run (while still in correlations/clusters/summary tab), the generated network looks strange. 
-are there repositories of mouse cell lines that could be included?
+- are there repositories of mouse cell lines that could be included?
+- press graphs in eg Gene effect by tissue data set, allow to press the cell and have the name labeled (and it apears in a list above the graph with a x that could be pressed to remove the name from the graph. this would also integrate with the serch name function. also, if comming from ecll line clicking of a cell line, the name should be integrated in the same manner
+- cell line browser, also include info about subtype in the list deiplayed on the screen. Also allow for sorting the searched gene top-bottom, bottom-top in cell line browser. 
+- export of .png/svg from mutational analysis:_inspect. crops output. Also perhaps not full on screen. 
 
 
 
