@@ -26,6 +26,7 @@ class CorrelationExplorer {
         this.metadata = null;
         this.cellLineMetadata = null;
         this.mutations = null;
+        this.damagingMutations = null;
         this.translocations = null;
         this.orthologs = null;
         this.geneEffects = null; // Float32Array [nGenes x nCellLines]
@@ -42,6 +43,10 @@ class CorrelationExplorer {
         // Current inspect state
         this.currentInspect = null;
         this.clickedCells = new Set();
+        this._gateA = null;
+        this._gateB = null;
+        this._gateSelecting = null;
+        this._gateCompareResults = null;
         this._userLegendPosition = null;
         this._userTitlePosition = null;
         this._userLabelPositions = new Map();
@@ -122,18 +127,22 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
             fetch('web_data/orthologs.json'),
-            fetch('web_data/translocations.json').catch(() => null)
+            fetch('web_data/translocations.json').catch(() => null),
+            fetch('web_data/damaging_mutations.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
         this.cellLineMetadata = await cellLineRes.json();
         this.mutations = await mutationsRes.json();
         this.orthologs = await orthologsRes.json();
+        if (damagingMutRes && damagingMutRes.ok) {
+            this.damagingMutations = await damagingMutRes.json();
+        }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
             // Pre-compute fusion gene counts for fast dropdown population
@@ -705,12 +714,30 @@ class CorrelationExplorer {
     updateMutAnalysisTypeUI() {
         const subType = document.querySelector('input[name="mutAnalysisType"]:checked')?.value || 'hotspot';
         const isTranslocation = subType === 'translocation';
-        document.getElementById('hotspotAnalysisControls').style.display = isTranslocation ? 'none' : '';
+        const isDamaging = subType === 'damaging';
+        document.getElementById('hotspotAnalysisControls').style.display = (!isTranslocation && !isDamaging) ? '' : 'none';
         document.getElementById('translocationAnalysisControls').style.display = isTranslocation ? '' : 'none';
-        // Hide translocation radio if no data
-        if (!this.translocations?.geneData) {
+        document.getElementById('damagingAnalysisControls').style.display = isDamaging ? '' : 'none';
+        // Hide type selector if no extra data types
+        if (!this.translocations?.geneData && !this.damagingMutations?.geneData) {
             document.getElementById('mutAnalysisTypeSelector').style.display = 'none';
         }
+        // Populate damaging mutation datalist on first show
+        if (isDamaging && this.damagingMutations?.genes) {
+            this._populateDamagingMutationList();
+        }
+    }
+
+    _populateDamagingMutationList() {
+        const datalist = document.getElementById('damagingHotspotList');
+        if (!datalist || datalist.children.length > 0) return;
+        const genes = this.damagingMutations.genes; // already sorted by count desc
+        let html = '';
+        for (const gene of genes) {
+            const count = this.damagingMutations.geneCounts[gene];
+            html += `<option value="${gene}">${gene} (${count} mutated)</option>`;
+        }
+        datalist.innerHTML = html;
     }
 
     populateMutationHotspotSelector() {
@@ -1551,6 +1578,22 @@ class CorrelationExplorer {
 
         document.getElementById('resetAllFilters').addEventListener('click', () => this.resetAllInspectFilters());
 
+        // Gate controls
+        document.getElementById('setGateABtn').addEventListener('click', () => this.startGateSelection('A'));
+        document.getElementById('setGateBBtn').addEventListener('click', () => this.startGateSelection('B'));
+        document.getElementById('compareGatesBtn').addEventListener('click', () => this.compareGates());
+        document.getElementById('clearGatesBtn').addEventListener('click', () => this.clearGates());
+        document.getElementById('closeGateCompare')?.addEventListener('click', () => {
+            document.getElementById('gateComparePanel').style.display = 'none';
+        });
+        // Gate tab switching
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('gate-tab')) {
+                document.querySelectorAll('.gate-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                this.renderGateTab(e.target.dataset.gateTab);
+            }
+        });
 
         ['scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax'].forEach(id => {
             const el = document.getElementById(id);
@@ -1742,9 +1785,12 @@ class CorrelationExplorer {
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene && this.mutationResults) {
                 const newHotspot = document.getElementById('geHotspotGeneSelect').value;
                 const isTransloc = this.mutationResults.isTranslocation;
+                const isDmg = this.mutationResults.isDamaging;
                 const hasData = isTransloc
                     ? this.translocations?.geneData?.[newHotspot]
-                    : this.mutations?.geneData?.[newHotspot];
+                    : isDmg
+                        ? this.damagingMutations?.geneData?.[newHotspot]
+                        : this.mutations?.geneData?.[newHotspot];
                 if (newHotspot && hasData) {
                     this.mutationResults.hotspotGene = newHotspot;
                     this.showGeneEffectDistribution(this.currentGeneEffectGene);
@@ -2573,10 +2619,14 @@ class CorrelationExplorer {
         const transGene = document.getElementById('paramTranslocationGene').value;
         const transLevel = document.getElementById('paramTranslocationLevel').value;
 
-        // Get mutation data for hotspot filter
+        // Get mutation data for hotspot/damaging filter
         let mutationData = null;
-        if (hotspotGene && this.mutations?.geneData?.[hotspotGene]) {
-            mutationData = this.mutations.geneData[hotspotGene].mutations;
+        if (hotspotGene) {
+            if (this.mutations?.geneData?.[hotspotGene]) {
+                mutationData = this.mutations.geneData[hotspotGene].mutations;
+            } else if (this.damagingMutations?.geneData?.[hotspotGene]) {
+                mutationData = this.damagingMutations.geneData[hotspotGene].mutations;
+            }
         }
 
         // Get translocation data for fusion filter
@@ -2736,10 +2786,13 @@ class CorrelationExplorer {
         // Check mutation analysis sub-type
         const mutAnalysisType = document.querySelector('input[name="mutAnalysisType"]:checked')?.value || 'hotspot';
         const isTranslocation = mutAnalysisType === 'translocation';
+        const isDamaging = mutAnalysisType === 'damaging';
 
         const hotspotGene = isTranslocation
             ? document.getElementById('translocationHotspotSelect').value
-            : document.getElementById('mutationHotspotSelect').value;
+            : isDamaging
+                ? document.getElementById('damagingHotspotSelect').value
+                : document.getElementById('mutationHotspotSelect').value;
         const minN = parseInt(document.getElementById('minCellLines').value);
         const pThreshold = this.getInputNum('pValueThreshold');
         const lineageFilter = document.getElementById('lineageFilter').value;
@@ -2754,22 +2807,27 @@ class CorrelationExplorer {
         const additionalTransLevel = document.getElementById('paramTranslocationLevel').value;
 
         if (!hotspotGene) {
-            this.showStatus('error', isTranslocation ? 'Please select a translocation/fusion gene' : 'Please select a hotspot mutation');
+            this.showStatus('error', isTranslocation ? 'Please select a translocation/fusion gene' : isDamaging ? 'Please select a damaging mutation gene' : 'Please select a hotspot mutation');
             return;
         }
         if (isTranslocation && !this.translocations?.geneData?.[hotspotGene]) {
             this.showStatus('error', `"${hotspotGene}" is not a valid fusion gene. Please select from the list.`);
             return;
         }
+        if (isDamaging && !this.damagingMutations?.geneData?.[hotspotGene]) {
+            this.showStatus('error', `"${hotspotGene}" is not a valid gene in damaging mutations data. Please select from the list.`);
+            return;
+        }
 
-        this.showStatus('info', isTranslocation ? 'Running fusion analysis...' : 'Running mutation analysis...');
+        this.showStatus('info', isTranslocation ? 'Running fusion analysis...' : isDamaging ? 'Running damaging mutation analysis...' : 'Running mutation analysis...');
 
         // Use setTimeout to allow UI to update
         setTimeout(() => {
             try {
+                const mutDataSource = isDamaging ? this.damagingMutations : this.mutations;
                 const analysisResult = isTranslocation
                     ? this.calculateTranslocationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel)
-                    : this.calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel);
+                    : this.calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel, mutDataSource);
 
                 // Filter by p-value threshold
                 const significantResults = analysisResult.results.filter(r => r.p_mut < pThreshold || r.p_2 < pThreshold || (r.p_fused !== undefined && r.p_fused < pThreshold));
@@ -2793,6 +2851,7 @@ class CorrelationExplorer {
                     additionalTransGene,
                     additionalTransLevel,
                     isTranslocation,
+                    isDamaging,
                     excludedTissues: new Set(this.excludedTissues),
                     nWT: analysisResult.nWT,
                     nMut: analysisResult.nMut,
@@ -2812,7 +2871,7 @@ class CorrelationExplorer {
                 document.querySelector('[data-tab="mutation"]').classList.add('active');
                 document.getElementById('tab-mutation').classList.add('active');
 
-                const analysisLabel = isTranslocation ? 'Fusion' : 'Mutation';
+                const analysisLabel = isTranslocation ? 'Fusion' : isDamaging ? 'Damaging Mutation' : 'Mutation';
                 this.showStatus('success',
                     `&#10003; ${analysisLabel} analysis complete: ${significantResults.length} genes with p < ${pThreshold}`);
             } catch (error) {
@@ -3029,8 +3088,9 @@ class CorrelationExplorer {
         this.downloadFile(csv, 'synonym_ortholog_lookup.csv', 'text/csv');
     }
 
-    calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel) {
-        const mutationData = this.mutations.geneData[hotspotGene];
+    calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel, mutDataSource) {
+        const source = mutDataSource || this.mutations;
+        const mutationData = source.geneData[hotspotGene];
         if (!mutationData) {
             throw new Error(`No mutation data for ${hotspotGene}`);
         }
@@ -3499,8 +3559,9 @@ class CorrelationExplorer {
         const sortDir = this._mutTableSortDir || 'asc';
         const hg = mr.hotspotGene || 'Hotspot';
         const isT = mr.isTranslocation;
+        const isD = mr.isDamaging;
         const wtLabel = isT ? `No ${hg} Fusion` : `${hg} WT`;
-        const mutLbl = isT ? `${hg} Fused` : `${hg} Mut`;
+        const mutLbl = isT ? `${hg} Fused` : isD ? `${hg} Dmg` : `${hg} Mut`;
         const thead = document.querySelector('#mutationTable thead');
         const thStyle = 'cursor: pointer;';
         const sortClick = 'onclick="app.sortMutationTable(this, event)"';
@@ -3511,15 +3572,20 @@ class CorrelationExplorer {
             { col: 'gene', label: 'Gene', style: '' },
             { col: 'n_wt', label: `N (${wtLabel})`, style: 'border-left: 2px solid #2563eb;' },
             { col: 'mean_wt', label: `Mean GE (${wtLabel})`, style: '' },
-            { col: 'n_mut', label: `N (${mutLbl} 1+2)`, style: 'border-left: 2px solid #f97316;' },
-            { col: 'mean_mut', label: `Mean GE (${mutLbl} 1+2)`, style: '' },
+            { col: 'n_mut', label: `N (${mutLbl}${isD ? '' : ' 1+2'})`, style: 'border-left: 2px solid #f97316;' },
+            { col: 'mean_mut', label: `Mean GE (${mutLbl}${isD ? '' : ' 1+2'})`, style: '' },
             { col: 'diff_mut', label: 'Δ GE', style: '' },
             { col: 'p_mut', label: 'p-value', style: '' },
-            { col: 'n_2', label: `N (${mutLbl} 2${isT ? '+' : ''})`, style: 'border-left: 2px solid #dc2626;' },
-            { col: 'mean_2', label: `Mean GE (${mutLbl} 2${isT ? '+' : ''})`, style: '' },
-            { col: 'diff_2', label: 'Δ GE (2v0)', style: '' },
-            { col: 'p_2', label: 'p-value (2v0)', style: '' }
         ];
+        // Only show het/hom columns for non-damaging mutations (damaging is binary)
+        if (!isD) {
+            cols.push(
+                { col: 'n_2', label: `N (${mutLbl} 2${isT ? '+' : ''})`, style: 'border-left: 2px solid #dc2626;' },
+                { col: 'mean_2', label: `Mean GE (${mutLbl} 2${isT ? '+' : ''})`, style: '' },
+                { col: 'diff_2', label: 'Δ GE (2v0)', style: '' },
+                { col: 'p_2', label: 'p-value (2v0)', style: '' }
+            );
+        }
         let headerHTML = '<tr><th></th>';
         cols.forEach(c => {
             headerHTML += `<th ${sortClick} data-col="${c.col}" ${tip} style="${thStyle} ${c.style}"${sortAttr(c.col)}>${c.label}${arrow(c.col)}</th>`;
@@ -3553,11 +3619,15 @@ class CorrelationExplorer {
                 <td>${r.mean_mut.toFixed(2)}</td>
                 <td class="${r.diff_mut < 0 ? 'negative' : 'positive'}">${r.diff_mut.toFixed(2)}</td>
                 <td>${this.formatPValue(r.p_mut)}</td>
+            `;
+            if (!isD) {
+                html += `
                 <td style="border-left: 2px solid #dc2626;">${r.n_2}</td>
                 <td>${isNaN(r.mean_2) ? '-' : r.mean_2.toFixed(2)}</td>
                 <td class="${r.diff_2 < 0 ? 'negative' : 'positive'}">${isNaN(r.diff_2) ? '-' : r.diff_2.toFixed(2)}</td>
                 <td>${this.formatPValue(r.p_2)}</td>
-            `;
+                `;
+            }
             if (hasFusion) {
                 html += `
                     <td class="fusion-col" style="border-left: 2px solid #8b5cf6;">${r.n_fused || 0}</td>
@@ -3571,7 +3641,7 @@ class CorrelationExplorer {
         });
 
         // Build settings summary
-        const typeLabel = mr.isTranslocation ? 'Fusion Gene' : 'Hotspot';
+        const typeLabel = mr.isTranslocation ? 'Fusion Gene' : mr.isDamaging ? 'Damaging Mut' : 'Hotspot';
         const mutLabel = mr.isTranslocation ? 'Fused' : 'Mutated';
         let settingsText = `${typeLabel}: ${mr.hotspotGene} | `;
         settingsText += `WT: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells`;
@@ -3739,9 +3809,12 @@ class CorrelationExplorer {
         const mr = this.mutationResults;
         const hotspotGene = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
+        const isDamaging = mr.isDamaging;
         const mutationData = isTranslocation
             ? this.translocations.geneData[hotspotGene]
-            : this.mutations.geneData[hotspotGene];
+            : isDamaging
+                ? this.damagingMutations?.geneData?.[hotspotGene]
+                : this.mutations.geneData[hotspotGene];
         const geneIdx = this.geneIndex.get(gene.toUpperCase());
 
         if (geneIdx === undefined) {
@@ -3820,9 +3893,10 @@ class CorrelationExplorer {
                 }
             }
 
-            // Check inspect-level additional hotspot filter
+            // Check inspect-level additional hotspot/damaging filter
             if (inspectHotspot) {
-                const inspHotData = this.mutations?.geneData?.[inspectHotspot];
+                const inspHotData = this.mutations?.geneData?.[inspectHotspot]
+                    || this.damagingMutations?.geneData?.[inspectHotspot];
                 if (inspHotData) {
                     const inspMutLevel = inspHotData.mutations[cellLine] || 0;
                     if (inspMutLevel === 0) return;
@@ -3863,9 +3937,9 @@ class CorrelationExplorer {
         // Create jitter for y-axis
         const jitter = (base, spread = 0.15) => base + (Math.random() - 0.5) * spread;
 
-        // Labels and colors depend on translocation mode
-        const mut1Label = isTranslocation ? '1 fusion partner' : '1 mutation';
-        const mut2Label = isTranslocation ? '2+ fusion partners' : '2 mutations';
+        // Labels and colors depend on mutation type
+        const mut1Label = isTranslocation ? '1 fusion partner' : isDamaging ? 'Damaging mutation' : '1 mutation';
+        const mut2Label = isTranslocation ? '2+ fusion partners' : isDamaging ? '' : '2 mutations';
         const color1 = '#3b82f6';
         const color2 = '#dc2626';
 
@@ -4024,17 +4098,17 @@ class CorrelationExplorer {
         const fusedLabel = isTranslocation ? 'Fused' : 'Mut';
         const statsLine1 = `WT: n=${wtStats.n}, mean=${wtStats.mean.toFixed(2)}, med=${wtStats.median.toFixed(2)}  ·  ${fusedLabel}: n=${mutAllStats.n}, mean=${mutAllStats.mean.toFixed(2)}, med=${mutAllStats.median.toFixed(2)}`;
         let statsLine2 = `p(WT vs ${fusedLabel}): ${formatP(pWTvsMut)}`;
-        if (mut2Stats.n >= 3) {
+        if (mut2Stats.n >= 3 && !isDamaging) {
             statsLine2 += `  ·  p(WT vs 2${isTranslocation ? '+' : ''}): ${formatP(pWTvs2)}`;
         }
 
         // Combine lineage info and stats in subtitle
         const subtitle = `${lineageText}<br>${statsLine1}<br>${statsLine2}`;
 
-        const statusLabel = isTranslocation ? 'Fusion Status' : 'Mutation Status';
-        const yAxisTitle = isTranslocation ? `${hotspotGene} Fusions` : `${hotspotGene} Mutations`;
+        const statusLabel = isTranslocation ? 'Fusion Status' : isDamaging ? 'Damaging Mutation' : 'Mutation Status';
+        const yAxisTitle = isTranslocation ? `${hotspotGene} Fusions` : isDamaging ? `${hotspotGene} Damaging` : `${hotspotGene} Mutations`;
         const tick0Label = isTranslocation ? '0 No fusion' : '0 WT';
-        const tick1Label = isTranslocation ? '1 partner' : '1';
+        const tick1Label = isTranslocation ? '1 partner' : isDamaging ? '1 Damaging' : '1';
         const tick2Label = isTranslocation ? '2+ partners' : '2';
 
         const titleText = `${gene} Gene Effect by ${hotspotGene} ${statusLabel}`;
@@ -4070,7 +4144,7 @@ class CorrelationExplorer {
 
         // Show modal
         document.getElementById('geneEffectModal').style.display = 'flex';
-        document.getElementById('geneEffectTitle').textContent = `${gene} Gene Effect by ${hotspotGene} ${isTranslocation ? 'Fusion' : 'Mutation'}`;
+        document.getElementById('geneEffectTitle').textContent = `${gene} Gene Effect by ${hotspotGene} ${isTranslocation ? 'Fusion' : isDamaging ? 'Damaging Mutation' : 'Mutation'}`;
 
         // Populate tissue filter dropdown with ALL lineages (inspect can override analysis filters)
         const tissueFilterEl = document.getElementById('geTissueFilter');
@@ -4103,12 +4177,25 @@ class CorrelationExplorer {
 
         // Populate inspect-level hotspot filter dropdown
         const hotspotFilterEl = document.getElementById('geHotspotFilter');
-        if (hotspotFilterEl && this.mutations?.genes) {
-            let hHtml = '<option value="">No hotspot filter</option>';
-            for (const g of this.mutations.genes) {
-                if (g === hotspotGene) continue;
-                const sel = g === inspectHotspot ? ' selected' : '';
-                hHtml += `<option value="${g}"${sel}>${g}</option>`;
+        if (hotspotFilterEl) {
+            let hHtml = '<option value="">No mutation filter</option>';
+            if (this.mutations?.genes) {
+                hHtml += '<optgroup label="Hotspot">';
+                for (const g of this.mutations.genes) {
+                    if (g === hotspotGene) continue;
+                    const sel = g === inspectHotspot ? ' selected' : '';
+                    hHtml += `<option value="${g}"${sel}>${g}</option>`;
+                }
+                hHtml += '</optgroup>';
+            }
+            if (this.damagingMutations?.genes) {
+                hHtml += '<optgroup label="Damaging">';
+                for (const g of this.damagingMutations.genes) {
+                    if (g === hotspotGene) continue;
+                    const sel = g === inspectHotspot ? ' selected' : '';
+                    hHtml += `<option value="${g}"${sel}>${g} (${this.damagingMutations.geneCounts[g]})</option>`;
+                }
+                hHtml += '</optgroup>';
             }
             hotspotFilterEl.innerHTML = hHtml;
         }
@@ -4131,7 +4218,9 @@ class CorrelationExplorer {
         if (hotspotGeneSelectEl) {
             const geneList = isTranslocation
                 ? (this.translocations?.genes || [])
-                : (this.mutations?.genes || []);
+                : isDamaging
+                    ? (this.damagingMutations?.genes || [])
+                    : (this.mutations?.genes || []);
             let gHtml = '';
             for (const g of geneList) {
                 const sel = g === hotspotGene ? ' selected' : '';
@@ -7543,6 +7632,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             correlation: c.correlation
         };
         this.clickedCells.clear();
+        this.clearGates();
 
         // Get data for both genes
         const idx1 = this.geneIndex.get(c.gene1);
@@ -7639,22 +7729,39 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const mutFilterGeneSelect = document.getElementById('mutationFilterGene');
         const cellLinesInPlot = new Set(plotData.map(d => d.cellLineId));
 
-        if (this.mutations?.genes?.length > 0) {
+        if (this.mutations?.genes?.length > 0 || this.damagingMutations?.genes?.length > 0) {
             hotspotSelect.innerHTML = '<option value="">Select gene...</option>';
             mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>';
-            this.mutations.genes
-                .forEach(g => {
-                    // Count mutations only in cell lines with valid data
+            if (this.mutations?.genes?.length > 0) {
+                hotspotSelect.innerHTML += '<optgroup label="Hotspot">';
+                mutFilterGeneSelect.innerHTML += '<optgroup label="Hotspot">';
+                this.mutations.genes.forEach(g => {
                     const mutData = this.mutations.geneData?.[g]?.mutations || {};
                     let count = 0;
-                    cellLinesInPlot.forEach(cl => {
-                        if (mutData[cl] && mutData[cl] > 0) count++;
-                    });
+                    cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
                     hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
                     mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
                 });
+                hotspotSelect.innerHTML += '</optgroup>';
+                mutFilterGeneSelect.innerHTML += '</optgroup>';
+            }
+            if (this.damagingMutations?.genes?.length > 0) {
+                hotspotSelect.innerHTML += '<optgroup label="Damaging">';
+                mutFilterGeneSelect.innerHTML += '<optgroup label="Damaging">';
+                const hsSet = new Set(this.mutations?.genes || []);
+                this.damagingMutations.genes.forEach(g => {
+                    if (hsSet.has(g)) return;
+                    const mutData = this.damagingMutations.geneData?.[g]?.mutations || {};
+                    let count = 0;
+                    cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
+                    hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} dmg)</option>`;
+                    mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} dmg)</option>`;
+                });
+                hotspotSelect.innerHTML += '</optgroup>';
+                mutFilterGeneSelect.innerHTML += '</optgroup>';
+            }
             // Pre-select the hotspot gene from parameters if it exists
-            if (paramHotspotGene && this.mutations.genes.includes(paramHotspotGene)) {
+            if (paramHotspotGene && (this.mutations?.genes?.includes(paramHotspotGene) || this.damagingMutations?.genes?.includes(paramHotspotGene))) {
                 hotspotSelect.value = paramHotspotGene;
             }
             document.getElementById('mutationBox').style.display = 'block';
@@ -7813,7 +7920,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Apply mutation filter (separate from overlay)
         if (mutFilterGene && this.mutations?.geneData?.[mutFilterGene] && mutFilterLevel !== 'all') {
-            const filterMutations = this.mutations.geneData[mutFilterGene].mutations;
+            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
                 if (mutFilterLevel === '0') return mutLevel === 0;
@@ -7837,11 +7944,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
         }
 
-        // Get mutation info for overlay (separate gene)
+        // Get mutation info for overlay (separate gene — hotspot or damaging)
         let mutationMap = new Map();
-        if (hotspotGene && this.mutations?.geneData?.[hotspotGene]) {
-            const geneData = this.mutations.geneData[hotspotGene];
-            Object.entries(geneData.mutations).forEach(([cellLine, mutLevel]) => {
+        const overlayMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
+        if (overlayMutSource) {
+            Object.entries(overlayMutSource.mutations).forEach(([cellLine, mutLevel]) => {
                 mutationMap.set(cellLine, mutLevel);
             });
         }
@@ -8899,7 +9006,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Apply mutation filter
         if (mutFilterGene && this.mutations?.geneData?.[mutFilterGene] && mutFilterLevel !== 'all') {
-            const filterMutations = this.mutations.geneData[mutFilterGene].mutations;
+            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
                 if (mutFilterLevel === '0') return mutLevel === 0;
@@ -9101,7 +9208,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         if (mutFilterGene && this.mutations?.geneData?.[mutFilterGene] && mutFilterLevel !== 'all') {
-            const filterMutations = this.mutations.geneData[mutFilterGene].mutations;
+            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
                 if (mutFilterLevel === '0') return mutLevel === 0;
@@ -9333,7 +9440,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Apply mutation filter
         if (mutFilterGene && this.mutations?.geneData?.[mutFilterGene] && mutFilterLevel !== 'all') {
-            const filterMutations = this.mutations.geneData[mutFilterGene].mutations;
+            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
                 if (mutFilterLevel === '0') return mutLevel === 0;
@@ -9490,6 +9597,287 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const t = 1 / (1 + p * x);
         const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
         return 0.5 * (1 + sign * y);
+    }
+
+    // ── Gating Feature ─────────────────────────────────────────────
+
+    startGateSelection(gate) {
+        this._gateSelecting = gate;
+        const plotEl = document.getElementById('scatterPlot');
+
+        // Switch to select mode
+        Plotly.relayout(plotEl, { dragmode: 'select' });
+
+        const status = document.getElementById('gateStatus');
+        status.textContent = `Draw Gate ${gate} on the plot (box or lasso select)`;
+        status.style.color = gate === 'A' ? '#2563eb' : '#dc2626';
+
+        // Listen for selection
+        plotEl.removeAllListeners?.('plotly_selected');
+        plotEl.on('plotly_selected', (eventData) => {
+            if (!eventData || !eventData.points || eventData.points.length === 0) return;
+
+            const selectedCells = eventData.points.map(p => {
+                // Match to our data
+                const match = this.currentInspect?.data?.find(d =>
+                    Math.abs(d.x - p.x) < 0.001 && Math.abs(d.y - p.y) < 0.001
+                );
+                return match;
+            }).filter(Boolean);
+
+            if (gate === 'A') {
+                this._gateA = selectedCells;
+                document.getElementById('setGateABtn').textContent = `Gate A (n=${selectedCells.length})`;
+                document.getElementById('setGateABtn').style.opacity = '0.7';
+                document.getElementById('setGateBBtn').disabled = false;
+                document.getElementById('gateStatus').textContent = `Gate A: ${selectedCells.length} cells. Now set Gate B.`;
+                document.getElementById('gateStatus').style.color = '#16a34a';
+                document.getElementById('clearGatesBtn').style.display = '';
+            } else {
+                this._gateB = selectedCells;
+                document.getElementById('setGateBBtn').textContent = `Gate B (n=${selectedCells.length})`;
+                document.getElementById('setGateBBtn').style.opacity = '0.7';
+                document.getElementById('compareGatesBtn').style.display = '';
+                document.getElementById('gateStatus').textContent = `Gate A: ${this._gateA.length}, Gate B: ${selectedCells.length}. Click Compare.`;
+                document.getElementById('gateStatus').style.color = '#16a34a';
+            }
+
+            this._gateSelecting = null;
+
+            // Restore drag mode
+            Plotly.relayout(plotEl, { dragmode: 'zoom' });
+
+            // Remove this one-time listener
+            plotEl.removeAllListeners('plotly_selected');
+        });
+    }
+
+    clearGates() {
+        this._gateA = null;
+        this._gateB = null;
+        this._gateSelecting = null;
+        this._gateCompareResults = null;
+
+        document.getElementById('setGateABtn').textContent = 'Set Gate A';
+        document.getElementById('setGateABtn').style.opacity = '1';
+        document.getElementById('setGateBBtn').textContent = 'Set Gate B';
+        document.getElementById('setGateBBtn').style.opacity = '1';
+        document.getElementById('setGateBBtn').disabled = true;
+        document.getElementById('compareGatesBtn').style.display = 'none';
+        document.getElementById('clearGatesBtn').style.display = 'none';
+        document.getElementById('gateStatus').textContent = 'Use box/lasso select on plot to define gates';
+        document.getElementById('gateStatus').style.color = '#6b7280';
+        document.getElementById('gateComparePanel').style.display = 'none';
+
+        // Restore drag mode
+        const plotEl = document.getElementById('scatterPlot');
+        if (plotEl) {
+            plotEl.removeAllListeners?.('plotly_selected');
+            Plotly.relayout(plotEl, { dragmode: 'zoom' });
+        }
+    }
+
+    async compareGates() {
+        if (!this._gateA?.length || !this._gateB?.length) return;
+
+        const gateA = this._gateA;
+        const gateB = this._gateB;
+        const gateAIds = new Set(gateA.map(d => d.cellLineId));
+        const gateBIds = new Set(gateB.map(d => d.cellLineId));
+
+        // Summary
+        document.getElementById('gateASummary').textContent = `${gateA.length} cell lines`;
+        document.getElementById('gateBSummary').textContent = `${gateB.length} cell lines`;
+
+        // 1. Tissue enrichment
+        const tissueA = {}, tissueB = {};
+        gateA.forEach(d => { tissueA[d.lineage || 'Unknown'] = (tissueA[d.lineage || 'Unknown'] || 0) + 1; });
+        gateB.forEach(d => { tissueB[d.lineage || 'Unknown'] = (tissueB[d.lineage || 'Unknown'] || 0) + 1; });
+        const allTissues = [...new Set([...Object.keys(tissueA), ...Object.keys(tissueB)])].sort();
+        const tissueStats = allTissues.map(t => ({
+            tissue: t,
+            nA: tissueA[t] || 0,
+            pctA: ((tissueA[t] || 0) / gateA.length * 100),
+            nB: tissueB[t] || 0,
+            pctB: ((tissueB[t] || 0) / gateB.length * 100)
+        }));
+        tissueStats.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
+
+        // 2. Mutation enrichment (hotspot + damaging mutations)
+        const mutStats = [];
+        const gateMutSources = [];
+        if (this.mutations?.genes) {
+            for (const g of this.mutations.genes) gateMutSources.push({ gene: g, source: this.mutations, type: 'hotspot' });
+        }
+        if (this.damagingMutations?.genes) {
+            const hsSet = new Set(this.mutations?.genes || []);
+            for (const g of this.damagingMutations.genes) {
+                if (!hsSet.has(g)) gateMutSources.push({ gene: g, source: this.damagingMutations, type: 'damaging' });
+            }
+        }
+        gateMutSources.forEach(({ gene, source, type }) => {
+            const mutData = source.geneData?.[gene]?.mutations || {};
+            const mutA = gateA.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
+            const mutB = gateB.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
+            const pctA = mutA / gateA.length * 100;
+            const pctB = mutB / gateB.length * 100;
+
+            // Fisher's exact test approximation (chi-squared for 2x2)
+            const a = mutA, b = mutB, c = gateA.length - mutA, d2 = gateB.length - mutB;
+            const n = a + b + c + d2;
+            const chi2 = n > 0 ? Math.pow(a * d2 - b * c, 2) * n / ((a + b) * (c + d2) * (a + c) * (b + d2) || 1) : 0;
+            // Approximate p-value from chi-squared (1 df)
+            const pValue = 1 - this.normalCDF(Math.sqrt(chi2)) * 2 + 1;
+            const pApprox = Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
+
+            if (mutA > 0 || mutB > 0) {
+                mutStats.push({ gene, mutA, mutB, pctA, pctB, diff: pctA - pctB, pValue: pApprox, type });
+            }
+        });
+        mutStats.sort((a, b) => a.pValue - b.pValue);
+
+        // 3. Differential gene effect (compare GE across all genes)
+        document.getElementById('gateStatus').textContent = 'Computing differential gene effects...';
+        const diffGE = [];
+
+        // Process in chunks to avoid blocking UI
+        const geneNames = [...this.geneIndex.keys()];
+        for (let i = 0; i < geneNames.length; i++) {
+            const gene = geneNames[i];
+            const geneIdx = this.geneIndex.get(gene);
+            const geneData = this.getGeneData(geneIdx);
+
+            const valsA = [], valsB = [];
+            for (let j = 0; j < this.nCellLines; j++) {
+                if (isNaN(geneData[j])) continue;
+                const cl = this.metadata.cellLines[j];
+                if (gateAIds.has(cl)) valsA.push(geneData[j]);
+                else if (gateBIds.has(cl)) valsB.push(geneData[j]);
+            }
+
+            if (valsA.length >= 2 && valsB.length >= 2) {
+                const meanA = valsA.reduce((a, b) => a + b, 0) / valsA.length;
+                const meanB = valsB.reduce((a, b) => a + b, 0) / valsB.length;
+                const tTest = this.welchTTest(valsA, valsB);
+                diffGE.push({
+                    gene,
+                    meanA: meanA,
+                    meanB: meanB,
+                    diff: meanA - meanB,
+                    pValue: tTest.p,
+                    nA: valsA.length,
+                    nB: valsB.length
+                });
+            }
+
+            // Yield to UI every 500 genes
+            if (i % 500 === 0 && i > 0) {
+                await new Promise(r => setTimeout(r, 0));
+            }
+        }
+        diffGE.sort((a, b) => a.pValue - b.pValue);
+
+        this._gateCompareResults = { tissueStats, mutStats, diffGE };
+
+        document.getElementById('gateStatus').textContent = `Comparison complete. Gate A: ${gateA.length}, Gate B: ${gateB.length}`;
+        document.getElementById('gateStatus').style.color = '#16a34a';
+
+        // Show panel
+        document.getElementById('gateComparePanel').style.display = '';
+        document.getElementById('gateCompareTitle').textContent = `Gate A (${gateA.length}) vs Gate B (${gateB.length})`;
+
+        // Show first tab
+        document.querySelectorAll('.gate-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector('[data-gate-tab="tissue"]').classList.add('active');
+        this.renderGateTab('tissue');
+    }
+
+    renderGateTab(tab) {
+        const r = this._gateCompareResults;
+        if (!r) return;
+        const container = document.getElementById('gateCompareContent');
+
+        if (tab === 'tissue') {
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="padding:5px;text-align:left;">Tissue</th>
+                    <th style="padding:5px;text-align:center;">Gate A</th>
+                    <th style="padding:5px;text-align:center;">%A</th>
+                    <th style="padding:5px;text-align:center;">Gate B</th>
+                    <th style="padding:5px;text-align:center;">%B</th>
+                    <th style="padding:5px;text-align:center;">Δ%</th>
+                </tr></thead><tbody>`;
+            r.tissueStats.forEach(t => {
+                const delta = t.pctA - t.pctB;
+                const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
+                html += `<tr>
+                    <td style="padding:4px;border-bottom:1px solid #eee;">${t.tissue}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.nA}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.pctA.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.nB}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.pctB.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+        } else if (tab === 'mutations') {
+            if (r.mutStats.length === 0) {
+                container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">No hotspot mutation data available</div>';
+                return;
+            }
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="padding:5px;text-align:left;">Gene</th>
+                    <th style="padding:5px;text-align:center;">Mut A</th>
+                    <th style="padding:5px;text-align:center;">%A</th>
+                    <th style="padding:5px;text-align:center;">Mut B</th>
+                    <th style="padding:5px;text-align:center;">%B</th>
+                    <th style="padding:5px;text-align:center;">Δ%</th>
+                    <th style="padding:5px;text-align:center;">p-value</th>
+                </tr></thead><tbody>`;
+            r.mutStats.slice(0, 50).forEach(m => {
+                const delta = m.pctA - m.pctB;
+                const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
+                const pStr = m.pValue < 0.001 ? '<0.001' : m.pValue.toFixed(3);
+                html += `<tr>
+                    <td style="padding:4px;border-bottom:1px solid #eee;">${m.gene}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.mutA}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.pctA.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${m.mutB}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${m.pctB.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${m.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+        } else if (tab === 'diffge') {
+            let html = `<p style="font-size:10px;color:#6b7280;margin:0 0 8px;">Top genes with different gene effect between gates (Welch's t-test). Click gene to open Gene Effect analysis.</p>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="padding:5px;text-align:left;">Gene</th>
+                    <th style="padding:5px;text-align:center;">Mean A</th>
+                    <th style="padding:5px;text-align:center;">Mean B</th>
+                    <th style="padding:5px;text-align:center;">Δ GE</th>
+                    <th style="padding:5px;text-align:center;">p-value</th>
+                </tr></thead><tbody>`;
+            r.diffGE.slice(0, 100).forEach(d => {
+                const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
+                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                html += `<tr style="cursor:pointer;" onclick="app.openGeneEffectModal('${d.gene}', 'tissue')">
+                    <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${d.diff > 0 ? '+' : ''}${d.diff.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${d.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
     }
 
     setupScatterClickHandler(filteredData) {
@@ -9902,12 +10290,23 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             tissueFilter.value = '';
         }
 
-        // Populate hotspot filter
+        // Populate hotspot filter (hotspot + damaging mutations)
         const hotspotFilter = document.getElementById('caHotspotFilter');
-        if (hotspotFilter && this.mutations?.genes) {
-            let hHtml = '<option value="">No hotspot filter</option>';
-            for (const g of this.mutations.genes) {
-                hHtml += `<option value="${g}">${g}</option>`;
+        if (hotspotFilter) {
+            let hHtml = '<option value="">No mutation filter</option>';
+            if (this.mutations?.genes) {
+                hHtml += '<optgroup label="Hotspot Mutations">';
+                for (const g of this.mutations.genes) {
+                    hHtml += `<option value="${g}">${g}</option>`;
+                }
+                hHtml += '</optgroup>';
+            }
+            if (this.damagingMutations?.genes) {
+                hHtml += '<optgroup label="Damaging Mutations">';
+                for (const g of this.damagingMutations.genes) {
+                    hHtml += `<option value="${g}">${g} (${this.damagingMutations.geneCounts[g]})</option>`;
+                }
+                hHtml += '</optgroup>';
             }
             hotspotFilter.innerHTML = hHtml;
             hotspotFilter.value = '';
@@ -9945,9 +10344,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         // Hotspot filter — only keep cell lines that have mutation in selected gene
+        // Check hotspot, then damaging mutations
         const hotspotVal = document.getElementById('caHotspotFilter')?.value;
-        if (hotspotVal && this.mutations?.geneData?.[hotspotVal]) {
-            const mutData = this.mutations.geneData[hotspotVal].mutations || {};
+        if (hotspotVal) {
+            const mutData = this.mutations?.geneData?.[hotspotVal]?.mutations
+                || this.damagingMutations?.geneData?.[hotspotVal]?.mutations
+                || {};
             filtered = filtered.filter(p => (mutData[p.cellLineId] || 0) > 0);
         }
 
@@ -10128,8 +10530,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const data = this.getCATissueFilteredData();
         const hotspotStats = [];
 
-        this.mutations.genes.forEach(hotspotGene => {
-            const mutData = this.mutations.geneData?.[hotspotGene]?.mutations || {};
+        // Combine hotspot and damaging mutation genes
+        const caAllMutGenes = [];
+        if (this.mutations?.genes) {
+            for (const g of this.mutations.genes) caAllMutGenes.push({ gene: g, source: this.mutations });
+        }
+        if (this.damagingMutations?.genes) {
+            const hotspotSet = new Set(this.mutations?.genes || []);
+            for (const g of this.damagingMutations.genes) {
+                if (!hotspotSet.has(g)) caAllMutGenes.push({ gene: g, source: this.damagingMutations });
+            }
+        }
+
+        caAllMutGenes.forEach(({ gene: hotspotGene, source: mutSource }) => {
+            const mutData = mutSource.geneData?.[hotspotGene]?.mutations || {};
 
             const wtPts = [];
             const mutPts = [];
@@ -10406,7 +10820,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             };
         } else {
             // Hotspot: scatter with WT (blue) vs Mut (red)
-            const mutData = this.mutations.geneData?.[group]?.mutations || {};
+            const mutData = (this.mutations?.geneData?.[group] || this.damagingMutations?.geneData?.[group])?.mutations || {};
             const wtPts = d.data.filter(p => (mutData[p.cellLineId] || 0) === 0);
             const mutPts = d.data.filter(p => (mutData[p.cellLineId] || 0) > 0);
 
@@ -10590,18 +11004,37 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const mutFilterGeneSelect = document.getElementById('mutationFilterGene');
         const cellLinesInPlot = new Set(data.map(d => d.cellLineId));
 
-        if (this.mutations?.genes?.length > 0) {
+        if (this.mutations?.genes?.length > 0 || this.damagingMutations?.genes?.length > 0) {
             hotspotSelect.innerHTML = '<option value="">Select gene...</option>';
             mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>';
-            this.mutations.genes.forEach(g => {
-                const mutData = this.mutations.geneData?.[g]?.mutations || {};
-                let count = 0;
-                cellLinesInPlot.forEach(cl => {
-                    if (mutData[cl] && mutData[cl] > 0) count++;
+            if (this.mutations?.genes?.length > 0) {
+                hotspotSelect.innerHTML += '<optgroup label="Hotspot">';
+                mutFilterGeneSelect.innerHTML += '<optgroup label="Hotspot">';
+                this.mutations.genes.forEach(g => {
+                    const mutData = this.mutations.geneData?.[g]?.mutations || {};
+                    let count = 0;
+                    cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
+                    hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
+                    mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
                 });
-                hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
-                mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
-            });
+                hotspotSelect.innerHTML += '</optgroup>';
+                mutFilterGeneSelect.innerHTML += '</optgroup>';
+            }
+            if (this.damagingMutations?.genes?.length > 0) {
+                hotspotSelect.innerHTML += '<optgroup label="Damaging">';
+                mutFilterGeneSelect.innerHTML += '<optgroup label="Damaging">';
+                const hsSet = new Set(this.mutations?.genes || []);
+                this.damagingMutations.genes.forEach(g => {
+                    if (hsSet.has(g)) return;
+                    const mutData = this.damagingMutations.geneData?.[g]?.mutations || {};
+                    let count = 0;
+                    cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
+                    hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} dmg)</option>`;
+                    mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} dmg)</option>`;
+                });
+                hotspotSelect.innerHTML += '</optgroup>';
+                mutFilterGeneSelect.innerHTML += '</optgroup>';
+            }
             document.getElementById('mutationBox').style.display = 'block';
             document.getElementById('mutationFilterBox').style.display = 'block';
         } else {
@@ -10721,13 +11154,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const hotspotGene = document.getElementById('hotspotGene').value;
         let header = 'CellLine,CellLineID,Lineage,Subtype,Gene1_Effect,Gene2_Effect';
-        if (hotspotGene && this.mutations?.geneData?.[hotspotGene]) {
+        const csvMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
+        if (csvMutSource) {
             header += `,${hotspotGene}_mutation`;
         }
         header += '\n';
 
         let csv = header;
-        const mutationData = hotspotGene && this.mutations?.geneData?.[hotspotGene]?.mutations;
+        const mutationData = csvMutSource?.mutations;
 
         this.currentInspect.data.forEach(d => {
             const subtype = this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || '';
@@ -10869,10 +11303,21 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Populate and show hotspot filter
         const hotspotFilterEl = document.getElementById('geHotspotFilter');
-        if (hotspotFilterEl && this.mutations?.genes) {
-            let hHtml = '<option value="">No hotspot filter</option>';
-            for (const g of this.mutations.genes) {
-                hHtml += `<option value="${g}">${g}</option>`;
+        if (hotspotFilterEl) {
+            let hHtml = '<option value="">No mutation filter</option>';
+            if (this.mutations?.genes) {
+                hHtml += '<optgroup label="Hotspot">';
+                for (const g of this.mutations.genes) {
+                    hHtml += `<option value="${g}">${g}</option>`;
+                }
+                hHtml += '</optgroup>';
+            }
+            if (this.damagingMutations?.genes) {
+                hHtml += '<optgroup label="Damaging">';
+                for (const g of this.damagingMutations.genes) {
+                    hHtml += `<option value="${g}">${g} (${this.damagingMutations.geneCounts[g]})</option>`;
+                }
+                hHtml += '</optgroup>';
             }
             hotspotFilterEl.innerHTML = hHtml;
             hotspotFilterEl.value = '';
@@ -10985,8 +11430,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
         // Hotspot filter — only show cell lines mutated in this gene
         const hotspotGene = document.getElementById('geHotspotFilter')?.value;
-        if (hotspotGene && this.mutations?.geneData?.[hotspotGene]) {
-            const mutData = this.mutations.geneData[hotspotGene].mutations || {};
+        const geFilterMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
+        if (geFilterMutSource) {
+            const mutData = geFilterMutSource.mutations || {};
             data = data.filter(d => (mutData[d.cellLineId] || 0) >= 1);
         }
         // Fusion filter — only show cell lines with this fusion
@@ -11157,8 +11603,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             return;
         }
 
-        if (!this.mutations?.genes || this.mutations.genes.length === 0) {
-            document.getElementById('geneEffectHotspotPlot').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">No hotspot mutation data available</div>';
+        if ((!this.mutations?.genes || this.mutations.genes.length === 0) && (!this.damagingMutations?.genes || this.damagingMutations.genes.length === 0)) {
+            document.getElementById('geneEffectHotspotPlot').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">No mutation data available</div>';
             document.getElementById('geneEffectTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #6b7280;">No mutation data</td></tr>';
             return;
         }
@@ -11166,12 +11612,24 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const data = this.getGETissueFilteredData();
         const gene = this.currentGeneEffect.gene;
 
-        // Calculate stats for each hotspot gene, keeping cell-level data for box plots
+        // Calculate stats for each hotspot/damaging gene, keeping cell-level data for box plots
         // Now showing 3 levels: 0 (WT), 1, and 2 mutations
         const hotspotStats = [];
 
-        this.mutations.genes.forEach(hotspotGene => {
-            const mutData = this.mutations.geneData?.[hotspotGene]?.mutations || {};
+        // Combine hotspot and damaging mutation genes
+        const allMutGenes = [];
+        if (this.mutations?.genes) {
+            for (const g of this.mutations.genes) allMutGenes.push({ gene: g, source: this.mutations });
+        }
+        if (this.damagingMutations?.genes) {
+            const hotspotSet = new Set(this.mutations?.genes || []);
+            for (const g of this.damagingMutations.genes) {
+                if (!hotspotSet.has(g)) allMutGenes.push({ gene: g, source: this.damagingMutations });
+            }
+        }
+
+        allMutGenes.forEach(({ gene: hotspotGene, source: mutSource }) => {
+            const mutData = mutSource.geneData?.[hotspotGene]?.mutations || {};
 
             const cellData0 = []; // WT (0 mutations)
             const cellData1 = []; // 1 mutation
@@ -12153,9 +12611,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const gene = this.currentGeneEffectGene;
         const hotspotGene = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
+        const isDamaging = mr.isDamaging;
         const mutationData = isTranslocation
             ? this.translocations?.geneData?.[hotspotGene]
-            : this.mutations?.geneData?.[hotspotGene];
+            : isDamaging
+                ? this.damagingMutations?.geneData?.[hotspotGene]
+                : this.mutations?.geneData?.[hotspotGene];
         if (!mutationData) return;
 
         const geneIdx = this.geneIndex.get(gene.toUpperCase());
@@ -12199,7 +12660,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 }
             }
             if (inspectHotspot) {
-                const inspHotData = this.mutations.geneData[inspectHotspot];
+                const inspHotData = this.mutations?.geneData?.[inspectHotspot] || this.damagingMutations?.geneData?.[inspectHotspot];
                 if (inspHotData) {
                     const inspMutLevel = inspHotData.mutations[cellLine] || 0;
                     if (inspMutLevel === 0) return;
@@ -12255,9 +12716,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const gene = this.currentGeneEffectGene;
         const mainHotspot = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
+        const isDamaging = mr.isDamaging;
         const mainMutData = isTranslocation
             ? this.translocations?.geneData?.[mainHotspot]
-            : this.mutations?.geneData?.[mainHotspot];
+            : isDamaging
+                ? this.damagingMutations?.geneData?.[mainHotspot]
+                : this.mutations?.geneData?.[mainHotspot];
         if (!mainMutData) return;
 
         const geneIdx = this.geneIndex.get(gene.toUpperCase());
@@ -12341,9 +12805,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const gene = this.currentGeneEffectGene;
         const mainHotspot = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
+        const isDamaging = mr.isDamaging;
         const mainMutData = isTranslocation
             ? this.translocations?.geneData?.[mainHotspot]
-            : this.mutations?.geneData?.[mainHotspot];
+            : isDamaging
+                ? this.damagingMutations?.geneData?.[mainHotspot]
+                : this.mutations?.geneData?.[mainHotspot];
         if (!mainMutData) return;
 
         const geneIdx = this.geneIndex.get(gene.toUpperCase());
@@ -12682,9 +13149,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const mr = this.mutationResults;
         const hotspotGene = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
+        const isDamaging = mr.isDamaging;
         const mutationData = isTranslocation
             ? this.translocations?.geneData?.[hotspotGene]
-            : this.mutations?.geneData?.[hotspotGene];
+            : isDamaging
+                ? this.damagingMutations?.geneData?.[hotspotGene]
+                : this.mutations?.geneData?.[hotspotGene];
         const targetGene = this.currentGeneEffectGene.toUpperCase();
         const targetGeneIdx = this.geneIndex.get(targetGene);
 
@@ -13197,9 +13667,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const mr = this.mutationResults;
         const hotspotGene = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
+        const isDamaging = mr.isDamaging;
         const mutationData = isTranslocation
             ? this.translocations?.geneData?.[hotspotGene]
-            : this.mutations?.geneData?.[hotspotGene];
+            : isDamaging
+                ? this.damagingMutations?.geneData?.[hotspotGene]
+                : this.mutations?.geneData?.[hotspotGene];
         if (!mutationData) return;
 
         const cellLines = this.metadata.cellLines;
@@ -13273,9 +13746,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const mr = this.mutationResults;
         const mainHotspot = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
+        const isDamaging = mr.isDamaging;
         const mainMutData = isTranslocation
             ? this.translocations?.geneData?.[mainHotspot]
-            : this.mutations?.geneData?.[mainHotspot];
+            : isDamaging
+                ? this.damagingMutations?.geneData?.[mainHotspot]
+                : this.mutations?.geneData?.[mainHotspot];
         if (!mainMutData) return;
 
         const cellLines = this.metadata.cellLines;
@@ -13346,9 +13822,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const mr = this.mutationResults;
         const mainHotspot = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
+        const isDamaging = mr.isDamaging;
         const mainMutData = isTranslocation
             ? this.translocations?.geneData?.[mainHotspot]
-            : this.mutations?.geneData?.[mainHotspot];
+            : isDamaging
+                ? this.damagingMutations?.geneData?.[mainHotspot]
+                : this.mutations?.geneData?.[mainHotspot];
         if (!mainMutData) return;
 
         const cellLines = this.metadata.cellLines;
@@ -14050,7 +14529,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const transGene = document.getElementById('clbTranslocationFilter').value;
 
         // Pre-fetch mutation/translocation lookups for selected genes
-        const hotspotMuts = hotspotGene && this.mutations?.geneData?.[hotspotGene]?.mutations;
+        const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
         const transMuts = transGene && this.translocations?.geneData?.[transGene]?.translocations;
 
         let filtered = this.metadata.cellLines.filter(cl => {
@@ -14159,7 +14638,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const hotspotGene = document.getElementById('clbHotspotFilter').value;
         const transGene = document.getElementById('clbTranslocationFilter').value;
 
-        const hotspotMuts = hotspotGene && this.mutations?.geneData?.[hotspotGene]?.mutations;
+        const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
         const transMuts = transGene && this.translocations?.geneData?.[transGene]?.translocations;
         const allCls = this.metadata.cellLines;
 
@@ -14218,26 +14697,51 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             subSelect.innerHTML = '<option value="">All subtypes</option>';
         }
 
-        // Update hotspot filter counts
-        if (this.mutations?.geneData) {
+        // Update hotspot filter counts (hotspot + damaging)
+        if (this.mutations?.geneData || this.damagingMutations?.geneData) {
             const hotspotBase = getBaseSet('hotspot');
             const hotspotBaseSet = new Set(hotspotBase);
             const hotspotSelect = document.getElementById('clbHotspotFilter');
             const hotspotVal = hotspotSelect.value;
-            hotspotSelect.innerHTML = '<option value="">Hotspot mutation</option>';
-            Object.keys(this.mutations.geneData).sort().forEach(gene => {
-                const muts = this.mutations.geneData[gene].mutations;
-                let n = 0;
-                for (const [cl, v] of Object.entries(muts)) {
-                    if (v > 0 && hotspotBaseSet.has(cl)) n++;
-                }
-                if (n === 0) return;
-                const opt = document.createElement('option');
-                opt.value = gene;
-                opt.textContent = `${gene} (n=${n})`;
-                if (gene === hotspotVal) opt.selected = true;
-                hotspotSelect.appendChild(opt);
-            });
+            hotspotSelect.innerHTML = '<option value="">Mutation filter</option>';
+            if (this.mutations?.geneData) {
+                const grp = document.createElement('optgroup');
+                grp.label = 'Hotspot';
+                Object.keys(this.mutations.geneData).sort().forEach(gene => {
+                    const muts = this.mutations.geneData[gene].mutations;
+                    let n = 0;
+                    for (const [cl, v] of Object.entries(muts)) {
+                        if (v > 0 && hotspotBaseSet.has(cl)) n++;
+                    }
+                    if (n === 0) return;
+                    const opt = document.createElement('option');
+                    opt.value = gene;
+                    opt.textContent = `${gene} (n=${n})`;
+                    if (gene === hotspotVal) opt.selected = true;
+                    grp.appendChild(opt);
+                });
+                hotspotSelect.appendChild(grp);
+            }
+            if (this.damagingMutations?.geneData) {
+                const hsSet = new Set(Object.keys(this.mutations?.geneData || {}));
+                const grp = document.createElement('optgroup');
+                grp.label = 'Damaging';
+                this.damagingMutations.genes.forEach(gene => {
+                    if (hsSet.has(gene)) return;
+                    const muts = this.damagingMutations.geneData[gene].mutations;
+                    let n = 0;
+                    for (const [cl, v] of Object.entries(muts)) {
+                        if (v > 0 && hotspotBaseSet.has(cl)) n++;
+                    }
+                    if (n === 0) return;
+                    const opt = document.createElement('option');
+                    opt.value = gene;
+                    opt.textContent = `${gene} (n=${n})`;
+                    if (gene === hotspotVal) opt.selected = true;
+                    grp.appendChild(opt);
+                });
+                hotspotSelect.appendChild(grp);
+            }
         }
 
         // Update translocation filter counts

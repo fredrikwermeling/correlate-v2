@@ -1385,6 +1385,9 @@
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
                                     <input type="radio" name="mutAnalysisType" value="translocation"> Translocation/Fusion
                                 </label>
+                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="radio" name="mutAnalysisType" value="damaging"> Damaging Mutation
+                                </label>
                             </div>
                         </div>
                         <div id="hotspotAnalysisControls">
@@ -1402,6 +1405,13 @@
                                 <input type="text" id="translocationHotspotSelect" list="translocationHotspotList" class="form-control" placeholder="Search fusion gene..." style="flex: 1;" autocomplete="off">
                                 <datalist id="translocationHotspotList"></datalist>
                                 <button id="translocationTissueBreakdownBtn" type="button" style="display: none; padding: 4px 10px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this fusion">Tissues</button>
+                            </div>
+                        </div>
+                        <div id="damagingAnalysisControls" style="display: none;">
+                            <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Damaging Mutation Gene (required):</label>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <input type="text" id="damagingHotspotSelect" list="damagingHotspotList" class="form-control" placeholder="Search gene..." style="flex: 1;" autocomplete="off">
+                                <datalist id="damagingHotspotList"></datalist>
                             </div>
                         </div>
                     </div>
@@ -2000,6 +2010,20 @@
                             </div>
                         </div>
 
+                        <!-- Gating -->
+                        <div class="control-box-compact" style="grid-column: span 2;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span class="control-label" style="margin-bottom: 0;">Gate Compare</span>
+                                <button class="btn btn-outline btn-sm" id="clearGatesBtn" style="font-size: 10px; padding: 1px 6px; display: none;">Clear</button>
+                            </div>
+                            <div style="margin-top: 4px; display: flex; gap: 4px; align-items: center;">
+                                <button class="btn btn-sm" id="setGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;">Set Gate A</button>
+                                <button class="btn btn-sm" id="setGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled>Set Gate B</button>
+                                <button class="btn btn-success btn-sm" id="compareGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Compare</button>
+                            </div>
+                            <div id="gateStatus" style="font-size: 9px; color: #6b7280; margin-top: 3px;">Use box/lasso select on plot to define gates</div>
+                        </div>
+
                         <!-- Highlight Cell Lines -->
                         <div class="control-box-compact" style="grid-column: span 2;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -2054,6 +2078,28 @@
                         <div id="compareTable" style="display: none; max-height: 500px; overflow-y: auto;"></div>
                     </div>
                 </div>
+                <!-- Gate Comparison Results -->
+                <div id="gateComparePanel" style="display: none; margin-top: 15px; border: 2px solid #5a9f4a; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #5a9f4a; color: white; padding: 8px 15px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>Gate Comparison: <span id="gateCompareTitle">Gate A vs Gate B</span></span>
+                        <button id="closeGateCompare" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+                    </div>
+                    <div style="padding: 15px;">
+                        <!-- Gate summary -->
+                        <div style="display: flex; gap: 20px; margin-bottom: 15px; font-size: 12px;">
+                            <div><span style="display: inline-block; width: 12px; height: 12px; background: #2563eb; border-radius: 2px; margin-right: 4px; vertical-align: middle;"></span><strong>Gate A:</strong> <span id="gateASummary">-</span></div>
+                            <div><span style="display: inline-block; width: 12px; height: 12px; background: #dc2626; border-radius: 2px; margin-right: 4px; vertical-align: middle;"></span><strong>Gate B:</strong> <span id="gateBSummary">-</span></div>
+                        </div>
+                        <!-- Tabs -->
+                        <div style="display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">
+                            <button class="btn btn-sm gate-tab active" data-gate-tab="tissue" style="font-size: 11px; padding: 3px 10px;">Tissue</button>
+                            <button class="btn btn-sm gate-tab" data-gate-tab="mutations" style="font-size: 11px; padding: 3px 10px;">Mutations</button>
+                            <button class="btn btn-sm gate-tab" data-gate-tab="diffge" style="font-size: 11px; padding: 3px 10px;">Differential GE</button>
+                        </div>
+                        <div id="gateCompareContent" style="max-height: 400px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+
                 <div id="byTissueContainer" style="display: none;"></div>
             </div>
             <div class="modal-footer">
