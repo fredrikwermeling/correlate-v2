@@ -4133,25 +4133,10 @@ class CorrelationExplorer {
 
         const filename = `gene_effect_${this.currentGeneEffectGene}_${this.mutationResults.hotspotGene}`;
 
-        // Measure annotation text to determine export width
-        const measureCanvas = document.createElement('canvas');
-        const mctx = measureCanvas.getContext('2d');
-        mctx.font = '13px "Open Sans", verdana, arial, sans-serif';
-        const annotations = plotEl._fullLayout?.annotations || [];
-        let annotationTextWidth = 0;
-        for (const ann of annotations) {
-            const plainText = (ann.text || '').replace(/<[^>]*>/g, '');
-            // Annotations may have <br> line breaks — measure each line
-            const lines = plainText.split(/\n|<br>/i);
-            for (const line of lines) {
-                annotationTextWidth = Math.max(annotationTextWidth, mctx.measureText(line).width * 1.2);
-            }
-        }
-        const exportWidth = Math.max(plotEl.offsetWidth, annotationTextWidth + 60);
+        // Export at on-screen size, then post-process SVG to expand viewBox to fit all content
+        const exportWidth = plotEl.offsetWidth;
         const exportHeight = plotEl.offsetHeight;
 
-        // Always export as SVG first so we can post-process (fix Y-axis title overlap),
-        // then convert to PNG via canvas if needed.
         Plotly.toImage(plotEl, {
             format: 'svg',
             width: exportWidth,
@@ -4167,30 +4152,36 @@ class CorrelationExplorer {
 
             const parser = new DOMParser();
             const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
+            const svgEl = svgDoc.documentElement;
 
-            // Fix Y-axis title: Plotly underestimates Open Sans tick label width,
-            // causing the rotated Y-axis title to overlap with tick labels.
-            // Measure tick labels with canvas and reposition the title to their left.
-            const ytitleGroup = svgDoc.querySelector('.g-ytitle');
-            const ytitle = ytitleGroup?.querySelector('text.ytitle');
-            const yticks = svgDoc.querySelectorAll('.ytick text');
-            if (ytitle && yticks.length && ytitleGroup) {
-                const measureCanvas = document.createElement('canvas');
-                const mctx = measureCanvas.getContext('2d');
-                let maxTickWidth = 0;
-                yticks.forEach(t => {
-                    mctx.font = '12px "Open Sans", verdana, arial, sans-serif';
-                    maxTickWidth = Math.max(maxTickWidth, mctx.measureText(t.textContent).width * 1.3);
-                });
-                const tickX = parseFloat(yticks[0].getAttribute('x')) || 0;
-                const tickLeftEdge = tickX - maxTickWidth;
-                const titleX = parseFloat(ytitle.getAttribute('x')) || 0;
-                const newTitleX = tickLeftEdge - 15;
-                const shift = newTitleX - titleX;
-                ytitleGroup.setAttribute('transform', `translate(${shift},0)`);
+            // Insert SVG into DOM offscreen to measure actual bounding box
+            const measurer = document.createElement('div');
+            measurer.style.cssText = 'position:absolute; left:-99999px; top:-99999px; visibility:hidden;';
+            document.body.appendChild(measurer);
+            const clonedSvg = svgEl.cloneNode(true);
+            // Remove viewBox and fixed dimensions to let content determine size
+            clonedSvg.removeAttribute('viewBox');
+            clonedSvg.style.overflow = 'visible';
+            measurer.appendChild(clonedSvg);
+
+            try {
+                const bbox = clonedSvg.getBBox();
+                // Expand viewBox to include all content with padding
+                const pad = 10;
+                const vbX = Math.min(0, bbox.x - pad);
+                const vbY = Math.min(0, bbox.y - pad);
+                const vbW = Math.max(exportWidth, bbox.x + bbox.width + pad) - vbX;
+                const vbH = Math.max(exportHeight, bbox.y + bbox.height + pad) - vbY;
+
+                svgEl.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+                svgEl.setAttribute('width', vbW);
+                svgEl.setAttribute('height', vbH);
+            } catch (e) {
+                // Fallback: keep original dimensions
             }
+            document.body.removeChild(measurer);
 
-            svgString = new XMLSerializer().serializeToString(svgDoc.documentElement);
+            svgString = new XMLSerializer().serializeToString(svgEl);
 
             const a = document.createElement('a');
             if (format === 'svg') {
