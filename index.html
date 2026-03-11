@@ -2316,7 +2316,7 @@
         </div>
     </div>
 
-    <!-- Correlation Analysis Modal -->
+    <!-- Correlation Analysis Modal (mirrors gene effect modal structure) -->
     <div class="modal-overlay" id="corrAnalysisModal" style="display: none; z-index: 1200;">
         <div class="modal" style="max-width: 95vw; width: 1300px;">
             <div class="modal-header">
@@ -2324,11 +2324,21 @@
                 <button class="modal-close" id="closeCorrAnalysis">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
-                <!-- Toolbar (matches gene effect modal layout) -->
-                <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
+                <!-- Search bar (mirrors gene effect search bar) -->
+                <div id="caSearchBar" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
+                    <!-- Row 1: Gene pair display -->
+                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Correlation:</label>
+                            <span id="corrAnalysisGenes" style="font-weight: 600; color: #5a9f4a; font-size: 13px;"></span>
+                        </div>
+                    </div>
+                    <!-- Row 2: Filters + View (same layout as gene effect) -->
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <span id="corrAnalysisGenes" style="font-weight: 600; color: #5a9f4a; font-size: 13px;"></span>
-                        <span style="flex: 1;"></span>
+                        <button class="btn btn-sm btn-outline" id="caShowAllBtn" style="display: none;">← Show All</button>
+                        <select id="caTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
+                            <option value="">All tissues</option>
+                        </select>
                         <input type="text" id="caCellLineSearch" class="form-control" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
                         <button class="btn btn-sm" id="caViewTissue" style="background: #5a9f4a; color: white;">By Tissue</button>
@@ -2336,7 +2346,7 @@
                     </div>
                 </div>
 
-                <!-- Summary stats -->
+                <!-- Summary stats (same style as gene effect) -->
                 <div id="corrAnalysisSummary" style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 10px 14px; margin-bottom: 15px;">
                     <div style="display: flex; gap: 25px; flex-wrap: wrap; font-size: 12px;">
                         <div><strong>Genes:</strong> <span id="caSummaryGenes">-</span></div>
@@ -2346,7 +2356,7 @@
                     </div>
                 </div>
 
-                <!-- Side-by-side layout: Chart + Table -->
+                <!-- Side-by-side layout: Chart + Table (same structure as gene effect) -->
                 <div id="caChartTableLayout" style="display: flex; gap: 20px; align-items: flex-start;">
                     <!-- Chart container -->
                     <div id="caChartContainer" style="flex: 0 0 55%; min-width: 0;">
@@ -2355,31 +2365,39 @@
                         </div>
                         <div id="caByHotspotView" style="display: none;">
                             <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; color: #92400e;">
-                                <strong>Caution:</strong> Hotspot mutations are often enriched in specific cancer types. Observed differences in correlation may reflect cancer type rather than the mutation itself.
+                                <strong>⚠️ Caution:</strong> Hotspot mutations are often enriched in specific cancer types. Observed differences in correlation may reflect cancer type rather than the mutation itself.
                             </div>
                             <div id="corrAnalysisHotspotPlot" style="width: 100%; min-height: 400px;"></div>
                         </div>
                     </div>
 
-                    <!-- Table container -->
+                    <!-- Table container (same as gene effect) -->
                     <div id="caTableContainer" style="flex: 1; min-width: 300px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <div style="font-weight: 600; color: #374151; font-size: 13px;">Statistics (click row to focus)</div>
                             <input type="text" id="caTableSearch" class="form-control" placeholder="Search..." style="width: 120px; font-size: 11px; padding: 4px 8px;">
                         </div>
                         <div id="caStatsExplanation" style="margin-bottom: 8px; font-size: 10px; color: #6b7280;">
-                            <span id="caStatsExplanationText">Pearson correlation per tissue (min 3 cell lines).</span>
+                            <span id="caStatsExplanationText">Pearson correlation per cancer type. p-value: Fisher z-test vs rest.</span>
                         </div>
                         <div class="table-container" style="max-height: 450px; overflow-y: auto;">
                             <table class="data-table" id="corrAnalysisTable" style="font-size: 11px;">
-                                <thead id="caTableHead"></thead>
-                                <tbody id="corrAnalysisTableBody"></tbody>
+                                <thead id="caTableHead">
+                                    <tr>
+                                        <th>Group</th>
+                                        <th>N</th>
+                                        <th>Corr</th>
+                                        <th>Slope</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corrAnalysisTableBody">
+                                </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- Download buttons -->
+                <!-- Download buttons (same as gene effect) -->
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
                     <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisPNG">PNG</button>

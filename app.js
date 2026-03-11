@@ -1831,6 +1831,14 @@ class CorrelationExplorer {
         document.getElementById('caTableSearch')?.addEventListener('input', (e) => {
             this.filterCATable(e.target.value);
         });
+        document.getElementById('caTissueFilter')?.addEventListener('change', () => {
+            this.switchCorrAnalysisView(this._caView || 'tissue');
+        });
+        document.getElementById('caShowAllBtn')?.addEventListener('click', () => {
+            this._caDetailedView = null;
+            document.getElementById('caShowAllBtn').style.display = 'none';
+            this.switchCorrAnalysisView(this._caView || 'tissue');
+        });
         document.getElementById('geShowAllBtn')?.addEventListener('click', () => {
             this.showAllGeneEffect();
         });
@@ -9779,17 +9787,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this.setupSortableTable('byTissueTable');
     }
 
-    // ── Correlation Analysis Modal ──────────────────────────────────
+    // ── Correlation Analysis Modal (mirrors gene effect modal) ─────
 
     openCorrelationAnalysisModal(gene1, gene2, view = 'tissue') {
-        // Find correlation entry
         const c = this.results.correlations.find(corr =>
             (corr.gene1 === gene1 && corr.gene2 === gene2) ||
             (corr.gene1 === gene2 && corr.gene2 === gene1)
         );
         if (!c) return;
 
-        // Get data for both genes
         const idx1 = this.geneIndex.get(c.gene1);
         const idx2 = this.geneIndex.get(c.gene2);
         const data1 = this.getGeneData(idx1);
@@ -9817,7 +9823,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             data: plotData
         };
 
-        // Update summary
+        // UI
         document.getElementById('corrAnalysisTitle').textContent = `${c.gene1} vs ${c.gene2} — Correlation Analysis`;
         document.getElementById('corrAnalysisGenes').textContent = `${c.gene1} vs ${c.gene2}`;
         document.getElementById('caSummaryGenes').textContent = `${c.gene1} / ${c.gene2}`;
@@ -9825,21 +9831,40 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('caSummarySlope').textContent = c.slope.toFixed(3);
         document.getElementById('caSummaryN').textContent = plotData.length;
 
-        // Reset search
+        // Reset
         const caSearch = document.getElementById('caCellLineSearch');
         if (caSearch) caSearch.value = '';
         const caTableSearch = document.getElementById('caTableSearch');
         if (caTableSearch) caTableSearch.value = '';
+        document.getElementById('caShowAllBtn').style.display = 'none';
 
-        // Show modal
+        // Populate tissue filter
+        const tissueFilter = document.getElementById('caTissueFilter');
+        if (tissueFilter) {
+            const lineages = [...new Set(plotData.map(d => d.lineage).filter(Boolean))].sort();
+            tissueFilter.innerHTML = '<option value="">All tissues</option>';
+            lineages.forEach(l => {
+                tissueFilter.innerHTML += `<option value="${l}">${l}</option>`;
+            });
+            tissueFilter.value = '';
+        }
+
         document.getElementById('corrAnalysisModal').style.display = 'flex';
-
         this.switchCorrAnalysisView(view);
+    }
+
+    getCATissueFilteredData() {
+        const d = this._corrAnalysisData;
+        if (!d) return [];
+        const tissueVal = document.getElementById('caTissueFilter')?.value;
+        if (!tissueVal) return d.data;
+        return d.data.filter(p => p.lineage === tissueVal);
     }
 
     switchCorrAnalysisView(view) {
         this._caView = view;
         this._caDetailedView = null;
+        document.getElementById('caShowAllBtn').style.display = 'none';
 
         const tissueBtn = document.getElementById('caViewTissue');
         const hotspotBtn = document.getElementById('caViewHotspot');
@@ -9855,12 +9880,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (view === 'tissue') {
             document.getElementById('caByTissueView').style.display = 'block';
             document.getElementById('caByHotspotView').style.display = 'none';
-            if (explanation) explanation.textContent = "Pearson correlation per cancer type (min 3 cell lines). Click a row to focus.";
+            if (explanation) explanation.textContent = "Pearson correlation per cancer type. p-value: Fisher z-test vs all other cell lines.";
             this.renderCorrAnalysisByTissue();
         } else {
             document.getElementById('caByTissueView').style.display = 'none';
             document.getElementById('caByHotspotView').style.display = 'block';
-            if (explanation) explanation.textContent = "Correlation split by WT vs mutated. p-value: Fisher z-test comparing the two correlations. Click a row to focus.";
+            if (explanation) explanation.textContent = "Shows WT (blue) vs mutated (red) correlation. p-value: Fisher z-test comparing the two correlations.";
             this.renderCorrAnalysisByHotspot();
         }
     }
@@ -9869,28 +9894,25 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const d = this._corrAnalysisData;
         if (!d) return;
 
+        const data = this.getCATissueFilteredData();
+
         // Group by tissue
         const groups = {};
-        d.data.forEach(p => {
+        data.forEach(p => {
             const lin = p.lineage || 'Unknown';
             if (!groups[lin]) groups[lin] = [];
             groups[lin].push(p);
         });
 
-        // Calculate stats per tissue including scatter data for detailed view
         const stats = [];
-        const allX = d.data.map(p => p.x);
-        const allY = d.data.map(p => p.y);
-        const overallStats = this.pearsonWithSlope(allX, allY);
-
         Object.entries(groups).forEach(([tissue, pts]) => {
             if (pts.length >= 3) {
                 const xVals = pts.map(p => p.x);
                 const yVals = pts.map(p => p.y);
                 const s = this.pearsonWithSlope(xVals, yVals);
 
-                // p-value: Fisher z-test comparing this tissue's r vs all other cells' r
-                const otherPts = d.data.filter(p => (p.lineage || 'Unknown') !== tissue);
+                // p-value: Fisher z-test vs all other cell lines
+                const otherPts = data.filter(p => (p.lineage || 'Unknown') !== tissue);
                 let pValue = 1;
                 if (otherPts.length >= 3) {
                     const otherR = this.pearsonWithSlope(otherPts.map(p => p.x), otherPts.map(p => p.y));
@@ -9912,7 +9934,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
         });
 
-        stats.sort((a, b) => a.pValue - b.pValue);
+        // Sort by correlation (like gene effect sorts by mean)
+        stats.sort((a, b) => a.correlation - b.correlation);
         this._caCurrentStats = stats;
 
         if (stats.length === 0) {
@@ -9921,42 +9944,35 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             return;
         }
 
-        // Horizontal bar chart (sorted by correlation for visual clarity)
-        const chartStats = [...stats].sort((a, b) => a.correlation - b.correlation);
+        // Box plots — one per tissue, showing individual cell line gene effects
+        // X-axis = gene effect of gene1, showing how spread each tissue is
+        // This mirrors the gene effect By Tissue view exactly
+        const traces = stats.map(s => ({
+            type: 'box',
+            name: `${s.group} (n=${s.n})`,
+            x: s.cellData.map(c => c.x),
+            text: s.cellData.map(c => `${c.cellLineName}<br>${d.gene1}=${c.x.toFixed(3)}, ${d.gene2}=${c.y.toFixed(3)}<br>r=${s.correlation.toFixed(3)}`),
+            boxpoints: 'all',
+            jitter: 0.3,
+            pointpos: 0,
+            marker: {
+                color: s.correlation > 0.3 ? 'rgba(34, 197, 94, 0.5)' : s.correlation < -0.3 ? 'rgba(220, 38, 38, 0.6)' : 'rgba(107, 114, 128, 0.5)',
+                size: 4
+            },
+            line: { color: s.pValue < 0.05 ? '#1f2937' : '#9ca3af' },
+            fillcolor: s.correlation > 0.3 ? 'rgba(34, 197, 94, 0.15)' : s.correlation < -0.3 ? 'rgba(220, 38, 38, 0.2)' : 'rgba(156, 163, 175, 0.2)',
+            hovertemplate: '<b>%{text}</b><extra></extra>'
+        }));
 
-        const barColors = chartStats.map(t => {
-            if (t.correlation > 0) {
-                const intensity = Math.min(1, t.correlation);
-                return `rgba(34, 197, 94, ${0.3 + intensity * 0.7})`;
-            } else {
-                const intensity = Math.min(1, Math.abs(t.correlation));
-                return `rgba(239, 68, 68, ${0.3 + intensity * 0.7})`;
-            }
-        });
-
-        const trace = {
-            type: 'bar', orientation: 'h',
-            y: chartStats.map(t => `${t.group} (n=${t.n})`),
-            x: chartStats.map(t => t.correlation),
-            text: chartStats.map(t => `n=${t.n}`),
-            textposition: chartStats.map(t => t.correlation >= 0 ? 'outside' : 'inside'),
-            textfont: { size: 10 },
-            insidetextanchor: 'start',
-            marker: { color: barColors },
-            hovertemplate: '%{y}<br>r=%{x:.3f}<extra></extra>',
-            cliponaxis: false
-        };
-
-        const numEntries = chartStats.length;
+        const numEntries = stats.length;
         const tickFontSize = numEntries > 25 ? 7 : numEntries > 15 ? 8 : 9;
-        const barHeight = numEntries > 25 ? 18 : numEntries > 15 ? 22 : 28;
-        const chartHeight = Math.max(350, numEntries * barHeight + 80);
+        const boxHeight = numEntries > 25 ? 18 : numEntries > 15 ? 22 : 28;
+        const chartHeight = Math.max(350, numEntries * boxHeight + 80);
 
         const layout = {
             title: { text: `${d.gene1} vs ${d.gene2} by Cancer Type`, font: { size: 13 } },
             xaxis: {
-                title: 'Correlation (r)',
-                range: [-1.15, 1.15],
+                title: `${d.gene1} (Gene Effect)`,
                 zeroline: true,
                 zerolinecolor: '#374151',
                 zerolinewidth: 2
@@ -9972,10 +9988,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             plot_bgcolor: 'white'
         };
 
-        Plotly.newPlot('corrAnalysisTissuePlot', [trace], layout, { responsive: true });
+        Plotly.newPlot('corrAnalysisTissuePlot', traces, layout, { responsive: true });
 
-        // Table — use renderGETable-style with sort icons, clickable rows
-        this.renderCATable(stats, 'tissue');
+        // Table — sorted by p-value for table display
+        const tableStats = stats.map(s => ({
+            group: s.group, n: s.n, correlation: s.correlation, slope: s.slope, pValue: s.pValue
+        }));
+        tableStats.sort((a, b) => a.pValue - b.pValue);
+        this._caCurrentStats = tableStats;
+        this.renderCATable(tableStats, 'tissue');
     }
 
     renderCorrAnalysisByHotspot() {
@@ -9988,6 +10009,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             return;
         }
 
+        const data = this.getCATissueFilteredData();
         const hotspotStats = [];
 
         this.mutations.genes.forEach(hotspotGene => {
@@ -9996,17 +10018,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const wtPts = [];
             const mutPts = [];
 
-            d.data.forEach(p => {
+            data.forEach(p => {
                 const level = mutData[p.cellLineId] || 0;
                 if (level === 0) wtPts.push(p);
                 else mutPts.push(p);
             });
 
             if (wtPts.length >= 3 && mutPts.length >= 3) {
-                const wtX = wtPts.map(p => p.x), wtY = wtPts.map(p => p.y);
-                const mutX = mutPts.map(p => p.x), mutY = mutPts.map(p => p.y);
-                const wtCorr = this.pearsonWithSlope(wtX, wtY);
-                const mutCorr = this.pearsonWithSlope(mutX, mutY);
+                const wtCorr = this.pearsonWithSlope(wtPts.map(p => p.x), wtPts.map(p => p.y));
+                const mutCorr = this.pearsonWithSlope(mutPts.map(p => p.x), mutPts.map(p => p.y));
 
                 // Fisher z-test
                 const fisherZ = (r, n) => ({ z: 0.5 * Math.log((1 + r) / (1 - r)), se: 1 / Math.sqrt(n - 3) });
@@ -10023,8 +10043,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     rMut: mutCorr.correlation,
                     diff: mutCorr.correlation - wtCorr.correlation,
                     pValue,
-                    wtPts,
-                    mutPts
+                    cellData0: wtPts,
+                    cellData1: mutPts
                 });
             }
         });
@@ -10038,39 +10058,60 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         hotspotStats.sort((a, b) => a.pValue - b.pValue);
         this._caCurrentStats = hotspotStats;
 
-        // Top 20 for chart
+        // Top 20 for chart — box plots matching gene effect hotspot view
         const topStats = hotspotStats.slice(0, 20);
+        const traces = [];
+        let showWTLegend = true, showMutLegend = true;
 
-        // Grouped horizontal bar chart matching gene effect colors: WT=blue, Mut=red
-        const traceWT = {
-            type: 'bar', orientation: 'h',
-            name: 'WT (0)',
-            legendgroup: 'wt',
-            y: topStats.map(s => s.group),
-            x: topStats.map(s => s.r0),
-            marker: { color: 'rgba(37, 99, 235, 0.6)' },
-            hovertemplate: '%{y}<br>WT r=%{x:.3f}<extra></extra>'
-        };
-        const traceMut = {
-            type: 'bar', orientation: 'h',
-            name: 'Mutated (1+)',
-            legendgroup: 'mut',
-            y: topStats.map(s => s.group),
-            x: topStats.map(s => s.rMut),
-            marker: { color: 'rgba(220, 38, 38, 0.6)' },
-            hovertemplate: '%{y}<br>Mut r=%{x:.3f}<extra></extra>'
-        };
+        topStats.forEach(s => {
+            const yLabel = s.group;
+
+            // Mutated trace (red) — added first so WT overlays
+            traces.push({
+                type: 'box',
+                name: 'Mutated (1+)',
+                legendgroup: 'mut',
+                showlegend: showMutLegend,
+                y: Array(s.cellData1.length).fill(yLabel),
+                x: s.cellData1.map(c => c.x),
+                orientation: 'h',
+                boxpoints: 'outliers',
+                marker: { color: '#dc2626', size: 4, outliercolor: '#991b1b' },
+                line: { color: '#991b1b', width: 1.5 },
+                fillcolor: 'rgba(220, 38, 38, 0.6)',
+                hoverinfo: 'x',
+                offsetgroup: 'mut'
+            });
+            showMutLegend = false;
+
+            // WT trace (blue)
+            traces.push({
+                type: 'box',
+                name: '0 (WT)',
+                legendgroup: 'wt',
+                showlegend: showWTLegend,
+                y: Array(s.cellData0.length).fill(yLabel),
+                x: s.cellData0.map(c => c.x),
+                orientation: 'h',
+                boxpoints: 'outliers',
+                marker: { color: '#2563eb', size: 4, outliercolor: '#1e40af' },
+                line: { color: '#1e40af', width: 1.5 },
+                fillcolor: 'rgba(37, 99, 235, 0.6)',
+                hoverinfo: 'x',
+                offsetgroup: 'wt'
+            });
+            showWTLegend = false;
+        });
 
         const numEntries = topStats.length;
         const tickFontSize = numEntries > 15 ? 8 : 9;
-        const barHeight = numEntries > 15 ? 35 : 45;
-        const chartHeight = Math.max(400, numEntries * barHeight + 100);
+        const boxHeight = numEntries > 15 ? 35 : 45;
+        const chartHeight = Math.max(400, numEntries * boxHeight + 100);
 
         const layout = {
             title: { text: `${d.gene1} vs ${d.gene2} Correlation by Hotspot Mutation`, font: { size: 13 } },
             xaxis: {
-                title: 'Correlation (r)',
-                range: [-1.15, 1.15],
+                title: `${d.gene1} (Gene Effect)`,
                 zeroline: true,
                 zerolinecolor: '#374151',
                 zerolinewidth: 2
@@ -10081,7 +10122,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 categoryorder: 'array',
                 categoryarray: topStats.map(s => s.group).reverse()
             },
-            barmode: 'group',
+            boxmode: 'group',
+            boxgap: 0.1,
+            boxgroupgap: 0.05,
             margin: { t: 50, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: true,
@@ -10090,15 +10133,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             plot_bgcolor: 'white'
         };
 
-        Plotly.newPlot('corrAnalysisHotspotPlot', [traceWT, traceMut], layout, { responsive: true });
+        Plotly.newPlot('corrAnalysisHotspotPlot', traces, layout, { responsive: true });
 
-        // Table
-        this.renderCATable(hotspotStats, 'hotspot');
+        // Table — sorted by p-value
+        const tableStats = hotspotStats.map(s => ({
+            group: s.group, n0: s.n0, nMut: s.nMut, r0: s.r0, rMut: s.rMut, diff: s.diff, pValue: s.pValue
+        }));
+        tableStats.sort((a, b) => a.pValue - b.pValue);
+        this.renderCATable(tableStats, 'hotspot');
     }
 
     renderCATable(stats, mode) {
         const thead = document.getElementById('caTableHead');
-        const tbody = document.getElementById('corrAnalysisTableBody');
         this._caTableMode = mode;
         this._caTableStats = stats;
 
@@ -10127,7 +10173,6 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         this.renderCATableBody(stats, mode);
 
-        // Sortable headers with Ctrl+click to copy
         thead.querySelectorAll('th').forEach(th => {
             th.addEventListener('click', (e) => {
                 if (e.ctrlKey || e.metaKey) {
@@ -10173,10 +10218,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
         }
 
-        // Click-to-focus handlers (show scatter for that tissue/hotspot)
+        // Click-to-focus handlers
         tbody.querySelectorAll('.clickable-row').forEach(row => {
             row.addEventListener('click', () => {
-                this.showCADetailedView(row.dataset.group, mode);
+                this.showCADetailedView(row.dataset.group);
             });
         });
     }
@@ -10185,7 +10230,6 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (!this._caTableStats) return;
         const stats = [...this._caTableStats];
 
-        // Toggle direction
         if (this._caSortKey === sortKey) {
             this._caSortAsc = !this._caSortAsc;
         } else {
@@ -10208,48 +10252,72 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this.renderCATableBody(stats, this._caTableMode);
     }
 
-    showCADetailedView(group, mode) {
+    showCADetailedView(group) {
         const d = this._corrAnalysisData;
         if (!d) return;
 
         this._caDetailedView = group;
+        document.getElementById('caShowAllBtn').style.display = '';
 
-        let pts;
-        let titleSuffix;
+        const mode = this._caView;
+        let plotId, traces, layout;
 
         if (mode === 'tissue') {
-            pts = d.data.filter(p => (p.lineage || 'Unknown') === group);
-            titleSuffix = group;
+            // Show scatter of this tissue's cell lines
+            const pts = d.data.filter(p => (p.lineage || 'Unknown') === group);
+            if (pts.length < 2) return;
+
+            const xVals = pts.map(p => p.x);
+            const yVals = pts.map(p => p.y);
+            const s = this.pearsonWithSlope(xVals, yVals);
+
+            plotId = 'corrAnalysisTissuePlot';
+            traces = [{
+                type: 'scatter', mode: 'markers',
+                x: xVals, y: yVals,
+                text: pts.map(p => p.cellLineName),
+                marker: { color: '#5a9f4a', size: 6 },
+                hovertemplate: '<b>%{text}</b><br>%{x:.3f}, %{y:.3f}<extra></extra>'
+            }];
+            layout = {
+                title: { text: `${d.gene1} vs ${d.gene2} — ${group} (n=${pts.length}, r=${s.correlation.toFixed(3)})`, font: { size: 13 } },
+                xaxis: { title: `${d.gene1} (Gene Effect)` },
+                yaxis: { title: `${d.gene2} (Gene Effect)` },
+                margin: { t: 50, b: 50, l: 60, r: 30 },
+                showlegend: false,
+                paper_bgcolor: 'white',
+                plot_bgcolor: 'white'
+            };
         } else {
-            // Hotspot: show all cell lines, colored by WT vs Mut
+            // Hotspot: scatter with WT (blue) vs Mut (red)
             const mutData = this.mutations.geneData?.[group]?.mutations || {};
             const wtPts = d.data.filter(p => (mutData[p.cellLineId] || 0) === 0);
             const mutPts = d.data.filter(p => (mutData[p.cellLineId] || 0) > 0);
 
-            // Show a scatter with WT and Mut as separate traces
-            const traceWT = {
-                type: 'scatter', mode: 'markers',
-                name: `WT (n=${wtPts.length})`,
-                x: wtPts.map(p => p.x), y: wtPts.map(p => p.y),
-                text: wtPts.map(p => p.cellLineName),
-                marker: { color: 'rgba(37, 99, 235, 0.6)', size: 5 },
-                hovertemplate: '<b>%{text}</b><br>x=%{x:.3f}<br>y=%{y:.3f}<extra>WT</extra>'
-            };
-            const traceMut = {
-                type: 'scatter', mode: 'markers',
-                name: `Mut (n=${mutPts.length})`,
-                x: mutPts.map(p => p.x), y: mutPts.map(p => p.y),
-                text: mutPts.map(p => p.cellLineName),
-                marker: { color: 'rgba(220, 38, 38, 0.6)', size: 6 },
-                hovertemplate: '<b>%{text}</b><br>x=%{x:.3f}<br>y=%{y:.3f}<extra>Mut</extra>'
-            };
-
             const wtR = wtPts.length >= 3 ? this.pearsonWithSlope(wtPts.map(p => p.x), wtPts.map(p => p.y)) : { correlation: NaN };
             const mutR = mutPts.length >= 3 ? this.pearsonWithSlope(mutPts.map(p => p.x), mutPts.map(p => p.y)) : { correlation: NaN };
 
-            const plotId = this._caView === 'tissue' ? 'corrAnalysisTissuePlot' : 'corrAnalysisHotspotPlot';
-            const layout = {
-                title: { text: `${d.gene1} vs ${d.gene2} — ${group} mutations<br><span style="font-size:11px">WT r=${isNaN(wtR.correlation) ? '-' : wtR.correlation.toFixed(3)}, Mut r=${isNaN(mutR.correlation) ? '-' : mutR.correlation.toFixed(3)}</span>`, font: { size: 13 } },
+            plotId = 'corrAnalysisHotspotPlot';
+            traces = [
+                {
+                    type: 'scatter', mode: 'markers',
+                    name: `WT (n=${wtPts.length})`,
+                    x: wtPts.map(p => p.x), y: wtPts.map(p => p.y),
+                    text: wtPts.map(p => p.cellLineName),
+                    marker: { color: 'rgba(37, 99, 235, 0.6)', size: 5 },
+                    hovertemplate: '<b>%{text}</b><br>%{x:.3f}, %{y:.3f}<extra>WT</extra>'
+                },
+                {
+                    type: 'scatter', mode: 'markers',
+                    name: `Mut (n=${mutPts.length})`,
+                    x: mutPts.map(p => p.x), y: mutPts.map(p => p.y),
+                    text: mutPts.map(p => p.cellLineName),
+                    marker: { color: 'rgba(220, 38, 38, 0.6)', size: 6 },
+                    hovertemplate: '<b>%{text}</b><br>%{x:.3f}, %{y:.3f}<extra>Mut</extra>'
+                }
+            ];
+            layout = {
+                title: { text: `${d.gene1} vs ${d.gene2} — ${group}<br><span style="font-size:11px">WT r=${isNaN(wtR.correlation) ? '-' : wtR.correlation.toFixed(3)}, Mut r=${isNaN(mutR.correlation) ? '-' : mutR.correlation.toFixed(3)}</span>`, font: { size: 13 } },
                 xaxis: { title: `${d.gene1} (Gene Effect)` },
                 yaxis: { title: `${d.gene2} (Gene Effect)` },
                 margin: { t: 60, b: 50, l: 60, r: 30 },
@@ -10258,38 +10326,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 paper_bgcolor: 'white',
                 plot_bgcolor: 'white'
             };
-
-            Plotly.newPlot(plotId, [traceWT, traceMut], layout, { responsive: true });
-            return;
         }
 
-        if (pts.length < 2) return;
-
-        // For tissue mode: scatter plot of that tissue's cell lines
-        const plotId = 'corrAnalysisTissuePlot';
-        const xVals = pts.map(p => p.x);
-        const yVals = pts.map(p => p.y);
-        const stats = this.pearsonWithSlope(xVals, yVals);
-
-        const trace = {
-            type: 'scatter', mode: 'markers',
-            x: xVals, y: yVals,
-            text: pts.map(p => p.cellLineName),
-            marker: { color: '#5a9f4a', size: 6 },
-            hovertemplate: '<b>%{text}</b><br>x=%{x:.3f}<br>y=%{y:.3f}<extra></extra>'
-        };
-
-        const layout = {
-            title: { text: `${d.gene1} vs ${d.gene2} — ${titleSuffix} (n=${pts.length}, r=${stats.correlation.toFixed(3)})`, font: { size: 13 } },
-            xaxis: { title: `${d.gene1} (Gene Effect)` },
-            yaxis: { title: `${d.gene2} (Gene Effect)` },
-            margin: { t: 50, b: 50, l: 60, r: 30 },
-            showlegend: false,
-            paper_bgcolor: 'white',
-            plot_bgcolor: 'white'
-        };
-
-        Plotly.newPlot(plotId, [trace], layout, { responsive: true });
+        Plotly.newPlot(plotId, traces, layout, { responsive: true });
     }
 
     filterCATable(searchTerm) {
