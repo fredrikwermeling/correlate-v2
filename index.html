@@ -2316,6 +2316,73 @@
         </div>
     </div>
 
+    <!-- Correlation Analysis Modal -->
+    <div class="modal-overlay" id="corrAnalysisModal" style="display: none; z-index: 1200;">
+        <div class="modal" style="max-width: 95vw; width: 1300px;">
+            <div class="modal-header">
+                <h3 id="corrAnalysisTitle">Correlation Analysis</h3>
+                <button class="modal-close" id="closeCorrAnalysis">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
+                <!-- Toolbar -->
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
+                    <span id="corrAnalysisGenes" style="font-weight: 600; color: #5a9f4a; font-size: 13px;"></span>
+                    <span style="flex: 1;"></span>
+                    <span style="font-size: 12px; color: #6b7280;">View:</span>
+                    <button class="btn btn-sm" id="caViewTissue" style="background: #5a9f4a; color: white;">By Tissue</button>
+                    <button class="btn btn-sm btn-secondary" id="caViewHotspot">By Hotspot</button>
+                </div>
+
+                <!-- Summary stats -->
+                <div id="corrAnalysisSummary" style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 10px 14px; margin-bottom: 15px;">
+                    <div style="display: flex; gap: 25px; flex-wrap: wrap; font-size: 12px;">
+                        <div><strong>Genes:</strong> <span id="caSummaryGenes">-</span></div>
+                        <div><strong>Overall r:</strong> <span id="caSummaryCorr">-</span></div>
+                        <div><strong>Slope:</strong> <span id="caSummarySlope">-</span></div>
+                        <div><strong>Cell lines:</strong> <span id="caSummaryN">-</span></div>
+                    </div>
+                </div>
+
+                <!-- Side-by-side layout: Chart + Table -->
+                <div id="caChartTableLayout" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div id="caChartContainer" style="flex: 0 0 55%; min-width: 0;">
+                        <div id="caByTissueView">
+                            <div id="corrAnalysisTissuePlot" style="width: 100%; min-height: 400px;"></div>
+                        </div>
+                        <div id="caByHotspotView" style="display: none;">
+                            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; color: #92400e;">
+                                <strong>Note:</strong> Correlations are computed separately for WT and mutated cell lines. Differences may reflect cancer type enrichment rather than direct mutation effects.
+                            </div>
+                            <div id="corrAnalysisHotspotPlot" style="width: 100%; min-height: 400px;"></div>
+                        </div>
+                    </div>
+                    <div id="caTableContainer" style="flex: 1; min-width: 300px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div style="font-weight: 600; color: #374151; font-size: 13px;">Statistics</div>
+                        </div>
+                        <div id="caStatsExplanation" style="margin-bottom: 8px; font-size: 10px; color: #6b7280;">
+                            Pearson correlation per tissue (min 3 cell lines).
+                        </div>
+                        <div class="table-container" style="max-height: 500px; overflow-y: auto;">
+                            <table class="data-table" id="corrAnalysisTable" style="font-size: 11px;">
+                                <thead id="caTableHead"></thead>
+                                <tbody id="corrAnalysisTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download buttons -->
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+                    <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export:</span>
+                    <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisPNG">PNG</button>
+                    <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisSVG">SVG</button>
+                    <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisCSV" style="margin-left: 10px;">CSV</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Infographic Modal -->
     <div class="modal-overlay" id="infographicModal" style="display: none;">
         <div class="modal" style="max-width: 860px; max-height: 90vh; overflow: auto; border-radius: 16px;">
