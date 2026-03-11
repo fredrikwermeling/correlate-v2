@@ -1827,6 +1827,10 @@ class CorrelationExplorer {
         document.getElementById('downloadCorrAnalysisPNG')?.addEventListener('click', () => this.downloadCorrAnalysisChart('png'));
         document.getElementById('downloadCorrAnalysisSVG')?.addEventListener('click', () => this.downloadCorrAnalysisChart('svg'));
         document.getElementById('downloadCorrAnalysisCSV')?.addEventListener('click', () => this.downloadCorrAnalysisCSV());
+        document.getElementById('downloadCACellLineCSV')?.addEventListener('click', () => this.downloadCACellLineCSV());
+        document.getElementById('caTableSearch')?.addEventListener('input', (e) => {
+            this.filterCATable(e.target.value);
+        });
         document.getElementById('geShowAllBtn')?.addEventListener('click', () => {
             this.showAllGeneEffect();
         });
@@ -9821,6 +9825,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('caSummarySlope').textContent = c.slope.toFixed(3);
         document.getElementById('caSummaryN').textContent = plotData.length;
 
+        // Reset search
+        const caSearch = document.getElementById('caCellLineSearch');
+        if (caSearch) caSearch.value = '';
+        const caTableSearch = document.getElementById('caTableSearch');
+        if (caTableSearch) caTableSearch.value = '';
+
         // Show modal
         document.getElementById('corrAnalysisModal').style.display = 'flex';
 
@@ -9829,6 +9839,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     switchCorrAnalysisView(view) {
         this._caView = view;
+        this._caDetailedView = null;
 
         const tissueBtn = document.getElementById('caViewTissue');
         const hotspotBtn = document.getElementById('caViewHotspot');
@@ -9839,17 +9850,17 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const activeBtn = view === 'tissue' ? tissueBtn : hotspotBtn;
         if (activeBtn) { activeBtn.style.background = '#5a9f4a'; activeBtn.style.color = 'white'; activeBtn.classList.remove('btn-secondary'); }
 
-        const explanation = document.getElementById('caStatsExplanation');
+        const explanation = document.getElementById('caStatsExplanationText');
 
         if (view === 'tissue') {
             document.getElementById('caByTissueView').style.display = 'block';
             document.getElementById('caByHotspotView').style.display = 'none';
-            if (explanation) explanation.textContent = 'Pearson correlation per tissue (min 3 cell lines).';
+            if (explanation) explanation.textContent = "Pearson correlation per cancer type (min 3 cell lines). Click a row to focus.";
             this.renderCorrAnalysisByTissue();
         } else {
             document.getElementById('caByTissueView').style.display = 'none';
             document.getElementById('caByHotspotView').style.display = 'block';
-            if (explanation) explanation.textContent = 'Correlation computed separately for WT (0 mutations) and mutated (1+) cell lines per hotspot gene.';
+            if (explanation) explanation.textContent = "Correlation split by WT vs mutated. p-value: Fisher z-test comparing the two correlations. Click a row to focus.";
             this.renderCorrAnalysisByHotspot();
         }
     }
@@ -9858,7 +9869,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const d = this._corrAnalysisData;
         if (!d) return;
 
-        // Group by tissue and compute correlation per tissue
+        // Group by tissue
         const groups = {};
         d.data.forEach(p => {
             const lin = p.lineage || 'Unknown';
@@ -9866,19 +9877,42 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             groups[lin].push(p);
         });
 
+        // Calculate stats per tissue including scatter data for detailed view
         const stats = [];
+        const allX = d.data.map(p => p.x);
+        const allY = d.data.map(p => p.y);
+        const overallStats = this.pearsonWithSlope(allX, allY);
+
         Object.entries(groups).forEach(([tissue, pts]) => {
             if (pts.length >= 3) {
                 const xVals = pts.map(p => p.x);
                 const yVals = pts.map(p => p.y);
                 const s = this.pearsonWithSlope(xVals, yVals);
-                const meanX = xVals.reduce((a, b) => a + b, 0) / xVals.length;
-                const meanY = yVals.reduce((a, b) => a + b, 0) / yVals.length;
-                stats.push({ tissue, n: pts.length, correlation: s.correlation, slope: s.slope, meanX, meanY });
+
+                // p-value: Fisher z-test comparing this tissue's r vs all other cells' r
+                const otherPts = d.data.filter(p => (p.lineage || 'Unknown') !== tissue);
+                let pValue = 1;
+                if (otherPts.length >= 3) {
+                    const otherR = this.pearsonWithSlope(otherPts.map(p => p.x), otherPts.map(p => p.y));
+                    const fisherZ = (r, n) => ({ z: 0.5 * Math.log((1 + r) / (1 - r)), se: 1 / Math.sqrt(n - 3) });
+                    const fz1 = fisherZ(s.correlation, pts.length);
+                    const fz2 = fisherZ(otherR.correlation, otherPts.length);
+                    const zDiff = (fz1.z - fz2.z) / Math.sqrt(fz1.se * fz1.se + fz2.se * fz2.se);
+                    pValue = 2 * (1 - this.normalCDF(Math.abs(zDiff)));
+                }
+
+                stats.push({
+                    group: tissue,
+                    n: pts.length,
+                    correlation: s.correlation,
+                    slope: s.slope,
+                    pValue,
+                    cellData: pts
+                });
             }
         });
 
-        stats.sort((a, b) => b.correlation - a.correlation);
+        stats.sort((a, b) => a.pValue - b.pValue);
         this._caCurrentStats = stats;
 
         if (stats.length === 0) {
@@ -9887,66 +9921,61 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             return;
         }
 
-        // Bar chart
-        const barColors = stats.map(t => t.correlation > 0
-            ? `rgba(34, 197, 94, ${0.3 + Math.min(1, t.correlation) * 0.7})`
-            : `rgba(239, 68, 68, ${0.3 + Math.min(1, Math.abs(t.correlation)) * 0.7})`
-        );
+        // Horizontal bar chart (sorted by correlation for visual clarity)
+        const chartStats = [...stats].sort((a, b) => a.correlation - b.correlation);
+
+        const barColors = chartStats.map(t => {
+            if (t.correlation > 0) {
+                const intensity = Math.min(1, t.correlation);
+                return `rgba(34, 197, 94, ${0.3 + intensity * 0.7})`;
+            } else {
+                const intensity = Math.min(1, Math.abs(t.correlation));
+                return `rgba(239, 68, 68, ${0.3 + intensity * 0.7})`;
+            }
+        });
 
         const trace = {
             type: 'bar', orientation: 'h',
-            y: stats.map(t => t.tissue),
-            x: stats.map(t => t.correlation),
-            text: stats.map(t => `n=${t.n}`),
-            textposition: stats.map(t => t.correlation >= 0 ? 'outside' : 'inside'),
+            y: chartStats.map(t => `${t.group} (n=${t.n})`),
+            x: chartStats.map(t => t.correlation),
+            text: chartStats.map(t => `n=${t.n}`),
+            textposition: chartStats.map(t => t.correlation >= 0 ? 'outside' : 'inside'),
             textfont: { size: 10 },
             insidetextanchor: 'start',
             marker: { color: barColors },
-            hovertemplate: '%{y}<br>r=%{x:.3f}<br>n=%{text}<extra></extra>',
+            hovertemplate: '%{y}<br>r=%{x:.3f}<extra></extra>',
             cliponaxis: false
         };
 
-        const maxLen = Math.max(...stats.map(t => t.tissue.length));
-        const chartHeight = Math.max(400, stats.length * 22 + 80);
+        const numEntries = chartStats.length;
+        const tickFontSize = numEntries > 25 ? 7 : numEntries > 15 ? 8 : 9;
+        const barHeight = numEntries > 25 ? 18 : numEntries > 15 ? 22 : 28;
+        const chartHeight = Math.max(350, numEntries * barHeight + 80);
+
         const layout = {
-            title: { text: `<b>${d.gene1} vs ${d.gene2} — By Tissue</b>`, font: { size: 14 } },
-            xaxis: { title: 'Correlation', range: [-1.15, 1.15], zeroline: true, zerolinecolor: '#000', zerolinewidth: 1 },
-            yaxis: { automargin: true, tickfont: { size: 9 } },
-            margin: { t: 50, r: 50, b: 50, l: Math.max(150, maxLen * 7) },
-            plot_bgcolor: '#fafafa',
+            title: { text: `${d.gene1} vs ${d.gene2} by Cancer Type`, font: { size: 13 } },
+            xaxis: {
+                title: 'Correlation (r)',
+                range: [-1.15, 1.15],
+                zeroline: true,
+                zerolinecolor: '#374151',
+                zerolinewidth: 2
+            },
+            yaxis: {
+                automargin: true,
+                tickfont: { size: tickFontSize }
+            },
+            margin: { t: 40, b: 50, l: 10, r: 30 },
+            height: chartHeight,
             showlegend: false,
-            height: chartHeight
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white'
         };
 
         Plotly.newPlot('corrAnalysisTissuePlot', [trace], layout, { responsive: true });
 
-        // Table
-        const thead = document.getElementById('caTableHead');
-        thead.innerHTML = `<tr style="background-color: #5a9f4a; color: white;">
-            <th data-col="0" style="padding:6px;border:1px solid #5a9f4a;text-align:left;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">Lineage</th>
-            <th data-col="1" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">N</th>
-            <th data-col="2" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">Corr</th>
-            <th data-col="3" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">Slope</th>
-            <th data-col="4" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">Mean ${d.gene1}</th>
-            <th data-col="5" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">Mean ${d.gene2}</th>
-        </tr>`;
-
-        const tbody = document.getElementById('corrAnalysisTableBody');
-        tbody.innerHTML = stats.map(t => {
-            const corrColor = t.correlation > 0
-                ? `rgba(34,197,94,${Math.min(1, Math.abs(t.correlation))})`
-                : `rgba(239,68,68,${Math.min(1, Math.abs(t.correlation))})`;
-            return `<tr onmouseover="this.style.backgroundColor='#f0f9ff'" onmouseout="this.style.backgroundColor=''">
-                <td style="padding:5px;border:1px solid #ddd;">${t.tissue}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;">${t.n}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;background:${corrColor};color:${Math.abs(t.correlation) > 0.5 ? 'white' : 'black'}">${t.correlation.toFixed(3)}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;">${t.slope.toFixed(3)}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;">${t.meanX.toFixed(2)}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;">${t.meanY.toFixed(2)}</td>
-            </tr>`;
-        }).join('');
-
-        this.setupSortableTable('corrAnalysisTable');
+        // Table — use renderGETable-style with sort icons, clickable rows
+        this.renderCATable(stats, 'tissue');
     }
 
     renderCorrAnalysisByHotspot() {
@@ -9973,32 +10002,29 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 else mutPts.push(p);
             });
 
-            // Need at least 3 in each group for meaningful correlation
             if (wtPts.length >= 3 && mutPts.length >= 3) {
                 const wtX = wtPts.map(p => p.x), wtY = wtPts.map(p => p.y);
                 const mutX = mutPts.map(p => p.x), mutY = mutPts.map(p => p.y);
-                const wtStats = this.pearsonWithSlope(wtX, wtY);
-                const mutStats = this.pearsonWithSlope(mutX, mutY);
+                const wtCorr = this.pearsonWithSlope(wtX, wtY);
+                const mutCorr = this.pearsonWithSlope(mutX, mutY);
 
-                // Fisher z-test for comparing two correlations
-                const fisherZ = (r, n) => {
-                    const z = 0.5 * Math.log((1 + r) / (1 - r));
-                    const se = 1 / Math.sqrt(n - 3);
-                    return { z, se };
-                };
-                const wt_fz = fisherZ(wtStats.correlation, wtPts.length);
-                const mut_fz = fisherZ(mutStats.correlation, mutPts.length);
+                // Fisher z-test
+                const fisherZ = (r, n) => ({ z: 0.5 * Math.log((1 + r) / (1 - r)), se: 1 / Math.sqrt(n - 3) });
+                const wt_fz = fisherZ(wtCorr.correlation, wtPts.length);
+                const mut_fz = fisherZ(mutCorr.correlation, mutPts.length);
                 const zDiff = (wt_fz.z - mut_fz.z) / Math.sqrt(wt_fz.se * wt_fz.se + mut_fz.se * mut_fz.se);
                 const pValue = 2 * (1 - this.normalCDF(Math.abs(zDiff)));
 
                 hotspotStats.push({
-                    gene: hotspotGene,
-                    nWT: wtPts.length,
+                    group: hotspotGene,
+                    n0: wtPts.length,
                     nMut: mutPts.length,
-                    rWT: wtStats.correlation,
-                    rMut: mutStats.correlation,
-                    delta: mutStats.correlation - wtStats.correlation,
-                    pValue
+                    r0: wtCorr.correlation,
+                    rMut: mutCorr.correlation,
+                    diff: mutCorr.correlation - wtCorr.correlation,
+                    pValue,
+                    wtPts,
+                    mutPts
                 });
             }
         });
@@ -10009,72 +10035,273 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             return;
         }
 
-        // Sort by p-value
         hotspotStats.sort((a, b) => a.pValue - b.pValue);
         this._caCurrentStats = hotspotStats;
 
-        // Take top 25 for display
-        const topStats = hotspotStats.slice(0, 25);
+        // Top 20 for chart
+        const topStats = hotspotStats.slice(0, 20);
 
-        // Grouped horizontal bar chart: WT vs Mut correlation for each hotspot
+        // Grouped horizontal bar chart matching gene effect colors: WT=blue, Mut=red
         const traceWT = {
-            type: 'bar', orientation: 'h', name: 'WT',
-            y: topStats.map(s => s.gene),
-            x: topStats.map(s => s.rWT),
-            marker: { color: 'rgba(59, 130, 246, 0.7)' },
+            type: 'bar', orientation: 'h',
+            name: 'WT (0)',
+            legendgroup: 'wt',
+            y: topStats.map(s => s.group),
+            x: topStats.map(s => s.r0),
+            marker: { color: 'rgba(37, 99, 235, 0.6)' },
             hovertemplate: '%{y}<br>WT r=%{x:.3f}<extra></extra>'
         };
         const traceMut = {
-            type: 'bar', orientation: 'h', name: 'Mutated',
-            y: topStats.map(s => s.gene),
+            type: 'bar', orientation: 'h',
+            name: 'Mutated (1+)',
+            legendgroup: 'mut',
+            y: topStats.map(s => s.group),
             x: topStats.map(s => s.rMut),
-            marker: { color: 'rgba(239, 68, 68, 0.7)' },
+            marker: { color: 'rgba(220, 38, 38, 0.6)' },
             hovertemplate: '%{y}<br>Mut r=%{x:.3f}<extra></extra>'
         };
 
-        const chartHeight = Math.max(400, topStats.length * 30 + 100);
+        const numEntries = topStats.length;
+        const tickFontSize = numEntries > 15 ? 8 : 9;
+        const barHeight = numEntries > 15 ? 35 : 45;
+        const chartHeight = Math.max(400, numEntries * barHeight + 100);
+
         const layout = {
-            title: { text: `<b>${d.gene1} vs ${d.gene2} — By Hotspot</b>`, font: { size: 14 } },
-            xaxis: { title: 'Correlation', range: [-1.15, 1.15], zeroline: true, zerolinecolor: '#000', zerolinewidth: 1 },
-            yaxis: { automargin: true, tickfont: { size: 10 } },
-            margin: { t: 50, r: 30, b: 50, l: 80 },
-            plot_bgcolor: '#fafafa',
+            title: { text: `${d.gene1} vs ${d.gene2} Correlation by Hotspot Mutation`, font: { size: 13 } },
+            xaxis: {
+                title: 'Correlation (r)',
+                range: [-1.15, 1.15],
+                zeroline: true,
+                zerolinecolor: '#374151',
+                zerolinewidth: 2
+            },
+            yaxis: {
+                automargin: true,
+                tickfont: { size: tickFontSize },
+                categoryorder: 'array',
+                categoryarray: topStats.map(s => s.group).reverse()
+            },
             barmode: 'group',
-            legend: { orientation: 'h', y: 1.05, x: 0.5, xanchor: 'center' },
-            height: chartHeight
+            margin: { t: 50, b: 50, l: 10, r: 30 },
+            height: chartHeight,
+            showlegend: true,
+            legend: { x: 0.5, y: 1.0, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.8)', traceorder: 'reversed' },
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white'
         };
 
         Plotly.newPlot('corrAnalysisHotspotPlot', [traceWT, traceMut], layout, { responsive: true });
 
         // Table
+        this.renderCATable(hotspotStats, 'hotspot');
+    }
+
+    renderCATable(stats, mode) {
         const thead = document.getElementById('caTableHead');
-        thead.innerHTML = `<tr style="background-color: #5a9f4a; color: white;">
-            <th data-col="0" style="padding:6px;border:1px solid #5a9f4a;text-align:left;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">Hotspot Gene</th>
-            <th data-col="1" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">N(WT)</th>
-            <th data-col="2" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">r(WT)</th>
-            <th data-col="3" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">N(Mut)</th>
-            <th data-col="4" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">r(Mut)</th>
-            <th data-col="5" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">Δr</th>
-            <th data-col="6" style="padding:6px;border:1px solid #5a9f4a;text-align:center;position:sticky;top:0;background-color:#5a9f4a;cursor:pointer;">p-value</th>
-        </tr>`;
-
         const tbody = document.getElementById('corrAnalysisTableBody');
-        const formatP = (p) => isNaN(p) ? '-' : (p < 0.001 ? p.toExponential(1) : p.toFixed(3));
-        tbody.innerHTML = hotspotStats.map(s => {
-            const deltaColor = Math.abs(s.delta) > 0.2 ? (s.delta > 0 ? '#22c55e' : '#ef4444') : '';
-            const pBold = s.pValue < 0.05 ? 'font-weight:bold;' : '';
-            return `<tr onmouseover="this.style.backgroundColor='#f0f9ff'" onmouseout="this.style.backgroundColor=''">
-                <td style="padding:5px;border:1px solid #ddd;">${s.gene}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;">${s.nWT}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;">${s.rWT.toFixed(3)}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;">${s.nMut}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;">${s.rMut.toFixed(3)}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;${deltaColor ? `color:${deltaColor};` : ''}">${s.delta > 0 ? '+' : ''}${s.delta.toFixed(3)}</td>
-                <td style="padding:5px;border:1px solid #ddd;text-align:center;${pBold}">${formatP(s.pValue)}</td>
-            </tr>`;
-        }).join('');
+        this._caTableMode = mode;
+        this._caTableStats = stats;
 
-        this.setupSortableTable('corrAnalysisTable');
+        const headerStyle = 'cursor: pointer; user-select: none;';
+        const sortIcon = ' ↕';
+
+        if (mode === 'tissue') {
+            thead.innerHTML = `<tr>
+                <th style="${headerStyle}" data-sort="group" data-type="string">Cancer Type${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="n" data-type="number">N${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="correlation" data-type="number">Corr${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="slope" data-type="number">Slope${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="pValue" data-type="number">p-value${sortIcon}</th>
+            </tr>`;
+        } else {
+            thead.innerHTML = `<tr>
+                <th style="${headerStyle}" data-sort="group" data-type="string">Gene${sortIcon}</th>
+                <th style="${headerStyle}; border-left: 2px solid #2563eb;" data-sort="n0" data-type="number">N (WT)${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="r0" data-type="number">r (WT)${sortIcon}</th>
+                <th style="${headerStyle}; border-left: 2px solid #dc2626;" data-sort="nMut" data-type="number">N (Mut)${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="rMut" data-type="number">r (Mut)${sortIcon}</th>
+                <th style="${headerStyle}; border-left: 2px solid #6b7280;" data-sort="diff" data-type="number">Δr${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="pValue" data-type="number">p-value${sortIcon}</th>
+            </tr>`;
+        }
+
+        this.renderCATableBody(stats, mode);
+
+        // Sortable headers with Ctrl+click to copy
+        thead.querySelectorAll('th').forEach(th => {
+            th.addEventListener('click', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    const colIndex = Array.from(th.parentNode.children).indexOf(th);
+                    this.copyColumnToClipboard(th.closest('table'), colIndex);
+                } else {
+                    this.sortCATable(th.dataset.sort, th.dataset.type);
+                }
+            });
+            th.title = 'Click to sort. Ctrl/Cmd+click to copy column.';
+        });
+    }
+
+    renderCATableBody(stats, mode) {
+        const tbody = document.getElementById('corrAnalysisTableBody');
+        tbody.innerHTML = '';
+
+        if (mode === 'tissue') {
+            stats.forEach(s => {
+                const color = s.pValue < 0.05 ? (s.correlation > 0.3 ? '#16a34a' : s.correlation < -0.3 ? '#dc2626' : '#374151') : '#6b7280';
+                const pStr = s.pValue < 0.001 ? '<0.001' : s.pValue.toFixed(3);
+                tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" style="cursor: pointer;">
+                    <td>${s.group}</td>
+                    <td style="text-align: center;">${s.n}</td>
+                    <td style="text-align: center; font-weight: 500; color: ${color};">${s.correlation.toFixed(3)}</td>
+                    <td style="text-align: center;">${s.slope.toFixed(3)}</td>
+                    <td style="text-align: center; ${s.pValue < 0.05 ? 'font-weight: 600;' : ''}">${pStr}</td>
+                </tr>`;
+            });
+        } else {
+            stats.forEach(s => {
+                const pStr = s.pValue < 0.001 ? '<0.001' : s.pValue.toFixed(3);
+                const diffColor = s.diff > 0.15 ? '#16a34a' : s.diff < -0.15 ? '#dc2626' : '#374151';
+                tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" style="cursor: pointer;">
+                    <td>${s.group}</td>
+                    <td style="text-align: center; color: #2563eb; border-left: 2px solid #2563eb;">${s.n0}</td>
+                    <td style="text-align: center; color: #2563eb;">${s.r0.toFixed(3)}</td>
+                    <td style="text-align: center; color: #dc2626; border-left: 2px solid #dc2626;">${s.nMut}</td>
+                    <td style="text-align: center; color: #dc2626;">${s.rMut.toFixed(3)}</td>
+                    <td style="text-align: center; color: ${diffColor}; font-weight: 500; border-left: 2px solid #6b7280;">${s.diff > 0 ? '+' : ''}${s.diff.toFixed(3)}</td>
+                    <td style="text-align: center; ${s.pValue < 0.05 ? 'font-weight: 600;' : ''}">${pStr}</td>
+                </tr>`;
+            });
+        }
+
+        // Click-to-focus handlers (show scatter for that tissue/hotspot)
+        tbody.querySelectorAll('.clickable-row').forEach(row => {
+            row.addEventListener('click', () => {
+                this.showCADetailedView(row.dataset.group, mode);
+            });
+        });
+    }
+
+    sortCATable(sortKey, sortType) {
+        if (!this._caTableStats) return;
+        const stats = [...this._caTableStats];
+
+        // Toggle direction
+        if (this._caSortKey === sortKey) {
+            this._caSortAsc = !this._caSortAsc;
+        } else {
+            this._caSortKey = sortKey;
+            this._caSortAsc = sortType === 'string';
+        }
+
+        stats.sort((a, b) => {
+            let va = a[sortKey], vb = b[sortKey];
+            if (sortType === 'string') {
+                va = (va || '').toLowerCase();
+                vb = (vb || '').toLowerCase();
+                return this._caSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+            }
+            va = parseFloat(va) || 0;
+            vb = parseFloat(vb) || 0;
+            return this._caSortAsc ? va - vb : vb - va;
+        });
+
+        this.renderCATableBody(stats, this._caTableMode);
+    }
+
+    showCADetailedView(group, mode) {
+        const d = this._corrAnalysisData;
+        if (!d) return;
+
+        this._caDetailedView = group;
+
+        let pts;
+        let titleSuffix;
+
+        if (mode === 'tissue') {
+            pts = d.data.filter(p => (p.lineage || 'Unknown') === group);
+            titleSuffix = group;
+        } else {
+            // Hotspot: show all cell lines, colored by WT vs Mut
+            const mutData = this.mutations.geneData?.[group]?.mutations || {};
+            const wtPts = d.data.filter(p => (mutData[p.cellLineId] || 0) === 0);
+            const mutPts = d.data.filter(p => (mutData[p.cellLineId] || 0) > 0);
+
+            // Show a scatter with WT and Mut as separate traces
+            const traceWT = {
+                type: 'scatter', mode: 'markers',
+                name: `WT (n=${wtPts.length})`,
+                x: wtPts.map(p => p.x), y: wtPts.map(p => p.y),
+                text: wtPts.map(p => p.cellLineName),
+                marker: { color: 'rgba(37, 99, 235, 0.6)', size: 5 },
+                hovertemplate: '<b>%{text}</b><br>x=%{x:.3f}<br>y=%{y:.3f}<extra>WT</extra>'
+            };
+            const traceMut = {
+                type: 'scatter', mode: 'markers',
+                name: `Mut (n=${mutPts.length})`,
+                x: mutPts.map(p => p.x), y: mutPts.map(p => p.y),
+                text: mutPts.map(p => p.cellLineName),
+                marker: { color: 'rgba(220, 38, 38, 0.6)', size: 6 },
+                hovertemplate: '<b>%{text}</b><br>x=%{x:.3f}<br>y=%{y:.3f}<extra>Mut</extra>'
+            };
+
+            const wtR = wtPts.length >= 3 ? this.pearsonWithSlope(wtPts.map(p => p.x), wtPts.map(p => p.y)) : { correlation: NaN };
+            const mutR = mutPts.length >= 3 ? this.pearsonWithSlope(mutPts.map(p => p.x), mutPts.map(p => p.y)) : { correlation: NaN };
+
+            const plotId = this._caView === 'tissue' ? 'corrAnalysisTissuePlot' : 'corrAnalysisHotspotPlot';
+            const layout = {
+                title: { text: `${d.gene1} vs ${d.gene2} — ${group} mutations<br><span style="font-size:11px">WT r=${isNaN(wtR.correlation) ? '-' : wtR.correlation.toFixed(3)}, Mut r=${isNaN(mutR.correlation) ? '-' : mutR.correlation.toFixed(3)}</span>`, font: { size: 13 } },
+                xaxis: { title: `${d.gene1} (Gene Effect)` },
+                yaxis: { title: `${d.gene2} (Gene Effect)` },
+                margin: { t: 60, b: 50, l: 60, r: 30 },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98, bgcolor: 'rgba(255,255,255,0.8)', font: { size: 10 } },
+                paper_bgcolor: 'white',
+                plot_bgcolor: 'white'
+            };
+
+            Plotly.newPlot(plotId, [traceWT, traceMut], layout, { responsive: true });
+            return;
+        }
+
+        if (pts.length < 2) return;
+
+        // For tissue mode: scatter plot of that tissue's cell lines
+        const plotId = 'corrAnalysisTissuePlot';
+        const xVals = pts.map(p => p.x);
+        const yVals = pts.map(p => p.y);
+        const stats = this.pearsonWithSlope(xVals, yVals);
+
+        const trace = {
+            type: 'scatter', mode: 'markers',
+            x: xVals, y: yVals,
+            text: pts.map(p => p.cellLineName),
+            marker: { color: '#5a9f4a', size: 6 },
+            hovertemplate: '<b>%{text}</b><br>x=%{x:.3f}<br>y=%{y:.3f}<extra></extra>'
+        };
+
+        const layout = {
+            title: { text: `${d.gene1} vs ${d.gene2} — ${titleSuffix} (n=${pts.length}, r=${stats.correlation.toFixed(3)})`, font: { size: 13 } },
+            xaxis: { title: `${d.gene1} (Gene Effect)` },
+            yaxis: { title: `${d.gene2} (Gene Effect)` },
+            margin: { t: 50, b: 50, l: 60, r: 30 },
+            showlegend: false,
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white'
+        };
+
+        Plotly.newPlot(plotId, [trace], layout, { responsive: true });
+    }
+
+    filterCATable(searchTerm) {
+        const tbody = document.getElementById('corrAnalysisTableBody');
+        if (!tbody) return;
+        const term = searchTerm.toLowerCase().trim();
+        tbody.querySelectorAll('tr').forEach(row => {
+            const firstCell = row.querySelector('td:first-child');
+            if (firstCell) {
+                row.style.display = term === '' || firstCell.textContent.toLowerCase().includes(term) ? '' : 'none';
+            }
+        });
     }
 
     downloadCorrAnalysisChart(format) {
@@ -10107,14 +10334,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         let csv;
         if (this._caView === 'tissue') {
-            csv = `Lineage,N,Correlation,Slope,Mean_${d.gene1},Mean_${d.gene2}\n`;
+            csv = `Cancer_Type,N,Correlation,Slope,p_value\n`;
             stats.forEach(t => {
-                csv += `${t.tissue},${t.n},${t.correlation.toFixed(4)},${t.slope.toFixed(4)},${t.meanX.toFixed(4)},${t.meanY.toFixed(4)}\n`;
+                csv += `"${t.group}",${t.n},${t.correlation.toFixed(4)},${t.slope.toFixed(4)},${t.pValue.toExponential(3)}\n`;
             });
         } else {
             csv = `Hotspot_Gene,N_WT,r_WT,N_Mut,r_Mut,Delta_r,p_value\n`;
             stats.forEach(s => {
-                csv += `${s.gene},${s.nWT},${s.rWT.toFixed(4)},${s.nMut},${s.rMut.toFixed(4)},${s.delta.toFixed(4)},${s.pValue.toExponential(3)}\n`;
+                csv += `${s.group},${s.n0},${s.r0.toFixed(4)},${s.nMut},${s.rMut.toFixed(4)},${s.diff.toFixed(4)},${s.pValue.toExponential(3)}\n`;
             });
         }
 
@@ -10122,6 +10349,24 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = `correlation_${d.gene1}_vs_${d.gene2}_by_${this._caView}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    downloadCACellLineCSV() {
+        const d = this._corrAnalysisData;
+        if (!d) return;
+
+        let csv = `Cell_Line_ID,Cell_Line_Name,Lineage,${d.gene1}_GE,${d.gene2}_GE\n`;
+        d.data.forEach(p => {
+            csv += `${p.cellLineId},"${p.cellLineName}","${p.lineage || ''}",${p.x.toFixed(4)},${p.y.toFixed(4)}\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `correlation_${d.gene1}_vs_${d.gene2}_cell_lines.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
