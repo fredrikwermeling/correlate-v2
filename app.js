@@ -1832,12 +1832,47 @@ class CorrelationExplorer {
             this.filterCATable(e.target.value);
         });
         document.getElementById('caTissueFilter')?.addEventListener('change', () => {
+            this._showCAResetBtn();
+            this.switchCorrAnalysisView(this._caView || 'tissue');
+        });
+        document.getElementById('caHotspotFilter')?.addEventListener('change', () => {
+            const warn = document.getElementById('caHotspotBiasWarning');
+            if (warn) warn.style.display = document.getElementById('caHotspotFilter').value ? 'inline' : 'none';
+            this._showCAResetBtn();
+            this.switchCorrAnalysisView(this._caView || 'tissue');
+        });
+        document.getElementById('caFusionFilter')?.addEventListener('change', () => {
+            this._showCAResetBtn();
+            this.switchCorrAnalysisView(this._caView || 'tissue');
+        });
+        document.getElementById('caResetFiltersBtn')?.addEventListener('click', () => {
+            document.getElementById('caTissueFilter').value = '';
+            document.getElementById('caHotspotFilter').value = '';
+            document.getElementById('caFusionFilter').value = '';
+            document.getElementById('caHotspotBiasWarning').style.display = 'none';
+            document.getElementById('caResetFiltersBtn').style.display = 'none';
             this.switchCorrAnalysisView(this._caView || 'tissue');
         });
         document.getElementById('caShowAllBtn')?.addEventListener('click', () => {
             this._caDetailedView = null;
             document.getElementById('caShowAllBtn').style.display = 'none';
             this.switchCorrAnalysisView(this._caView || 'tissue');
+        });
+        document.getElementById('caAnalyzeBtn')?.addEventListener('click', () => {
+            const g1 = document.getElementById('caGene1Search').value.trim().toUpperCase();
+            const g2 = document.getElementById('caGene2Search').value.trim().toUpperCase();
+            if (g1 && g2 && this.geneIndex.has(g1) && this.geneIndex.has(g2)) {
+                this.openCorrelationAnalysisModal(g1, g2, this._caView || 'tissue');
+            } else {
+                alert('Both genes must be valid gene symbols in the dataset.');
+            }
+        });
+        // Enter key on gene inputs triggers analyze
+        document.getElementById('caGene1Search')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('caAnalyzeBtn').click();
+        });
+        document.getElementById('caGene2Search')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('caAnalyzeBtn').click();
         });
         document.getElementById('geShowAllBtn')?.addEventListener('click', () => {
             this.showAllGeneEffect();
@@ -9790,14 +9825,22 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     // ── Correlation Analysis Modal (mirrors gene effect modal) ─────
 
     openCorrelationAnalysisModal(gene1, gene2, view = 'tissue') {
-        const c = this.results.correlations.find(corr =>
-            (corr.gene1 === gene1 && corr.gene2 === gene2) ||
-            (corr.gene1 === gene2 && corr.gene2 === gene1)
-        );
-        if (!c) return;
+        const g1 = gene1.toUpperCase();
+        const g2 = gene2.toUpperCase();
 
-        const idx1 = this.geneIndex.get(c.gene1);
-        const idx2 = this.geneIndex.get(c.gene2);
+        if (!this.geneIndex.has(g1) || !this.geneIndex.has(g2)) {
+            alert(`One or both genes not found in dataset.`);
+            return;
+        }
+
+        // Try to find existing correlation entry, or compute on the fly
+        let c = this.results?.correlations?.find(corr =>
+            (corr.gene1 === g1 && corr.gene2 === g2) ||
+            (corr.gene1 === g2 && corr.gene2 === g1)
+        );
+
+        const idx1 = this.geneIndex.get(g1);
+        const idx2 = this.geneIndex.get(g2);
         const data1 = this.getGeneData(idx1);
         const data2 = this.getGeneData(idx2);
 
@@ -9815,18 +9858,26 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
         }
 
+        // Compute correlation if not found in results
+        if (!c) {
+            const computed = this.pearsonWithSlope(plotData.map(p => p.x), plotData.map(p => p.y));
+            c = { gene1: g1, gene2: g2, correlation: computed.correlation, slope: computed.slope };
+        }
+
         this._corrAnalysisData = {
-            gene1: c.gene1,
-            gene2: c.gene2,
+            gene1: g1,
+            gene2: g2,
             correlation: c.correlation,
             slope: c.slope,
             data: plotData
         };
 
         // UI
-        document.getElementById('corrAnalysisTitle').textContent = `${c.gene1} vs ${c.gene2} — Correlation Analysis`;
-        document.getElementById('corrAnalysisGenes').textContent = `${c.gene1} vs ${c.gene2}`;
-        document.getElementById('caSummaryGenes').textContent = `${c.gene1} / ${c.gene2}`;
+        document.getElementById('corrAnalysisTitle').textContent = `${g1} vs ${g2} — Correlation Analysis`;
+        document.getElementById('corrAnalysisGenes').textContent = '';
+        document.getElementById('caGene1Search').value = g1;
+        document.getElementById('caGene2Search').value = g2;
+        document.getElementById('caSummaryGenes').textContent = `${g1} / ${g2}`;
         document.getElementById('caSummaryCorr').textContent = c.correlation.toFixed(3);
         document.getElementById('caSummarySlope').textContent = c.slope.toFixed(3);
         document.getElementById('caSummaryN').textContent = plotData.length;
@@ -9837,6 +9888,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const caTableSearch = document.getElementById('caTableSearch');
         if (caTableSearch) caTableSearch.value = '';
         document.getElementById('caShowAllBtn').style.display = 'none';
+        document.getElementById('caResetFiltersBtn').style.display = 'none';
+        document.getElementById('caHotspotBiasWarning').style.display = 'none';
 
         // Populate tissue filter
         const tissueFilter = document.getElementById('caTissueFilter');
@@ -9849,6 +9902,32 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             tissueFilter.value = '';
         }
 
+        // Populate hotspot filter
+        const hotspotFilter = document.getElementById('caHotspotFilter');
+        if (hotspotFilter && this.mutations?.genes) {
+            let hHtml = '<option value="">No hotspot filter</option>';
+            for (const g of this.mutations.genes) {
+                hHtml += `<option value="${g}">${g}</option>`;
+            }
+            hotspotFilter.innerHTML = hHtml;
+            hotspotFilter.value = '';
+            hotspotFilter.style.display = '';
+        }
+
+        // Populate fusion filter
+        const fusionFilter = document.getElementById('caFusionFilter');
+        if (fusionFilter && this._fusionGeneCounts?.length > 0) {
+            let fHtml = '<option value="">No fusion filter</option>';
+            for (const { gene, nFused } of this._fusionGeneCounts) {
+                fHtml += `<option value="${gene}">${gene} (${nFused} fused)</option>`;
+            }
+            fusionFilter.innerHTML = fHtml;
+            fusionFilter.value = '';
+            fusionFilter.style.display = '';
+        } else if (fusionFilter) {
+            fusionFilter.style.display = 'none';
+        }
+
         document.getElementById('corrAnalysisModal').style.display = 'flex';
         this.switchCorrAnalysisView(view);
     }
@@ -9856,9 +9935,37 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     getCATissueFilteredData() {
         const d = this._corrAnalysisData;
         if (!d) return [];
+
+        let filtered = d.data;
+
+        // Tissue filter
         const tissueVal = document.getElementById('caTissueFilter')?.value;
-        if (!tissueVal) return d.data;
-        return d.data.filter(p => p.lineage === tissueVal);
+        if (tissueVal) {
+            filtered = filtered.filter(p => p.lineage === tissueVal);
+        }
+
+        // Hotspot filter — only keep cell lines that have mutation in selected gene
+        const hotspotVal = document.getElementById('caHotspotFilter')?.value;
+        if (hotspotVal && this.mutations?.geneData?.[hotspotVal]) {
+            const mutData = this.mutations.geneData[hotspotVal].mutations || {};
+            filtered = filtered.filter(p => (mutData[p.cellLineId] || 0) > 0);
+        }
+
+        // Fusion filter — only keep cell lines with selected fusion
+        const fusionVal = document.getElementById('caFusionFilter')?.value;
+        if (fusionVal && this.translocations?.geneData?.[fusionVal]) {
+            const fusionData = this.translocations.geneData[fusionVal].translocations || {};
+            filtered = filtered.filter(p => (fusionData[p.cellLineId] || 0) > 0);
+        }
+
+        return filtered;
+    }
+
+    _showCAResetBtn() {
+        const hasFilter = document.getElementById('caTissueFilter')?.value ||
+                         document.getElementById('caHotspotFilter')?.value ||
+                         document.getElementById('caFusionFilter')?.value;
+        document.getElementById('caResetFiltersBtn').style.display = hasFilter ? '' : 'none';
     }
 
     switchCorrAnalysisView(view) {
@@ -9874,6 +9981,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         });
         const activeBtn = view === 'tissue' ? tissueBtn : hotspotBtn;
         if (activeBtn) { activeBtn.style.background = '#5a9f4a'; activeBtn.style.color = 'white'; activeBtn.classList.remove('btn-secondary'); }
+
+        // Update summary with filtered data
+        const filteredData = this.getCATissueFilteredData();
+        if (filteredData.length >= 3) {
+            const fCorr = this.pearsonWithSlope(filteredData.map(p => p.x), filteredData.map(p => p.y));
+            document.getElementById('caSummaryCorr').textContent = fCorr.correlation.toFixed(3);
+            document.getElementById('caSummarySlope').textContent = fCorr.slope.toFixed(3);
+        }
+        document.getElementById('caSummaryN').textContent = filteredData.length;
 
         const explanation = document.getElementById('caStatsExplanationText');
 
