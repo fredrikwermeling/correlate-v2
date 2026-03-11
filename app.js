@@ -1719,6 +1719,14 @@ class CorrelationExplorer {
                 this.switchGeneEffectView('hotspot');
             }
         });
+        document.getElementById('geViewFusion')?.addEventListener('click', () => {
+            if (this.geneEffectViewMode === 'mutation') {
+                const gene = document.getElementById('geneEffectSearch').value.trim().toUpperCase() || this.currentGeneEffectGene;
+                if (gene) this.openGeneEffectModal(gene, 'fusion');
+            } else {
+                this.switchGeneEffectView('fusion');
+            }
+        });
         document.getElementById('geTissueFilter')?.addEventListener('change', () => {
             this.updateGeSubtypeFilter();
             if (this.geneEffectViewMode === 'mutation' && this.mutationResults && this.currentGeneEffectGene) {
@@ -3967,7 +3975,8 @@ class CorrelationExplorer {
         // Build stats text for subtitle - condensed to one line
         const formatP = (p) => isNaN(p) ? '-' : (p < 0.001 ? p.toExponential(1) : p.toFixed(3));
         const fusedLabel = isTranslocation ? 'Fused' : 'Mut';
-        let statsLine = `WT: n=${wtStats.n}, mean=${wtStats.mean.toFixed(2)}, med=${wtStats.median.toFixed(2)}  ·  ${fusedLabel}: n=${mutAllStats.n}, mean=${mutAllStats.mean.toFixed(2)}, med=${mutAllStats.median.toFixed(2)}`;
+        let statsLine = `WT: n=${wtStats.n}, mean=${wtStats.mean.toFixed(2)}, med=${wtStats.median.toFixed(2)}`;
+        statsLine += `  ·  ${fusedLabel}: n=${mutAllStats.n}, mean=${mutAllStats.mean.toFixed(2)}, med=${mutAllStats.median.toFixed(2)}`;
         statsLine += `  ·  p(WT vs ${fusedLabel}): ${formatP(pWTvsMut)}`;
         if (mut2Stats.n >= 3) {
             statsLine += `  ·  p(WT vs 2${isTranslocation ? '+' : ''}): ${formatP(pWTvs2)}`;
@@ -4110,6 +4119,7 @@ class CorrelationExplorer {
             this.translocations?.genes?.length > 0 ? '' : 'none';
         document.getElementById('geViewTissue').style.display = 'none';
         document.getElementById('geViewHotspot').style.display = 'none';
+        document.getElementById('geViewFusion').style.display = 'none';
         // Hide the "View:" label too (previous sibling span)
         const viewLabel = document.getElementById('geViewTissue').previousElementSibling;
         if (viewLabel && viewLabel.textContent.trim() === 'View:') viewLabel.style.display = 'none';
@@ -5120,19 +5130,16 @@ class CorrelationExplorer {
                     <td>${c.cluster}</td>
                     <td style="white-space: nowrap;">
                         <button class="btn btn-sm inspect-btn" style="padding: 2px 6px; font-size: 10px; background: #5a9f4a; color: white;" data-gene1="${c.gene1}" data-gene2="${c.gene2}">Correlate</button>
-                        <button class="btn btn-sm tissue-btn" style="padding: 2px 6px; font-size: 10px; margin-left: 4px; background: #6b7280; color: white;" data-gene1="${c.gene1}" data-gene2="${c.gene2}">By Tissue</button>
-                        <button class="btn btn-sm hotspot-btn" style="padding: 2px 6px; font-size: 10px; margin-left: 4px; background: #6b7280; color: white;" data-gene1="${c.gene1}" data-gene2="${c.gene2}">By Hotspot</button>
+                        <button class="btn btn-sm ge-btn" style="padding: 2px 6px; font-size: 10px; margin-left: 4px; background: #6b7280; color: white;" data-gene="${c.gene1}">${c.gene1}</button>
+                        <button class="btn btn-sm ge-btn" style="padding: 2px 6px; font-size: 10px; margin-left: 2px; background: #6b7280; color: white;" data-gene="${c.gene2}">${c.gene2}</button>
                     </td>
                 `;
                 // Add click handlers
                 tr.querySelector('.inspect-btn').addEventListener('click', () => {
                     this.openInspectByGenes(c.gene1, c.gene2);
                 });
-                tr.querySelector('.tissue-btn').addEventListener('click', () => {
-                    this.openByTissueByGenes(c.gene1, c.gene2);
-                });
-                tr.querySelector('.hotspot-btn').addEventListener('click', () => {
-                    this.openInspectWithHotspot(c.gene1, c.gene2);
+                tr.querySelectorAll('.ge-btn').forEach(btn => {
+                    btn.addEventListener('click', () => this.openGeneEffectModal(btn.dataset.gene, 'tissue'));
                 });
                 tbody.appendChild(tr);
             });
@@ -5292,12 +5299,10 @@ class CorrelationExplorer {
                     `;
                 }
 
-                // Add analyze buttons
+                // Add analyze button
                 rowHtml += `
                     <td style="text-align: center; white-space: nowrap;">
                         <button class="btn btn-sm gene-effect-btn" style="padding: 2px 6px; font-size: 10px; background: #5a9f4a; color: white;" data-gene="${c.gene}">Gene Effect</button>
-                        <button class="btn btn-sm tissue-btn" style="padding: 2px 6px; font-size: 10px; margin-left: 4px; background: #6b7280; color: white;" data-gene="${c.gene}">By Tissue</button>
-                        <button class="btn btn-sm hotspot-btn" style="padding: 2px 6px; font-size: 10px; margin-left: 4px; background: #6b7280; color: white;" data-gene="${c.gene}">By Hotspot</button>
                     </td>
                 `;
 
@@ -5308,12 +5313,6 @@ class CorrelationExplorer {
         // Add event listeners to buttons
         tbody.querySelectorAll('.gene-effect-btn').forEach(btn => {
             btn.addEventListener('click', () => this.openGeneEffectModal(btn.dataset.gene, 'tissue'));
-        });
-        tbody.querySelectorAll('.tissue-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.openGeneEffectModal(btn.dataset.gene, 'tissue'));
-        });
-        tbody.querySelectorAll('.hotspot-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.openGeneEffectModal(btn.dataset.gene, 'hotspot'));
         });
 
         // Attach gene tooltips
@@ -7731,14 +7730,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     updateClickedCellsBar() {
         const bar = document.getElementById('clickedCellsBar');
         if (!bar) return;
-        if (this.clickedCells.size === 0) {
-            bar.style.display = 'none';
-            return;
-        }
-        bar.style.display = 'flex';
-        bar.innerHTML = '<span style="font-size: 10px; color: var(--gray-500); margin-right: 4px;">Labeled:</span>';
+        // Remove old tags (keep the label span and input)
+        bar.querySelectorAll('.clicked-cell-tag').forEach(el => el.remove());
+        // Add tags for each clicked cell
+        const input = document.getElementById('labelCellLineInput');
         for (const name of this.clickedCells) {
             const tag = document.createElement('span');
+            tag.className = 'clicked-cell-tag';
             tag.style.cssText = 'display:inline-flex; align-items:center; gap:3px; padding:1px 6px; background:var(--green-100); border:1px solid var(--green-300); border-radius:10px; font-size:10px; color:var(--green-800);';
             tag.textContent = name;
             const x = document.createElement('span');
@@ -7750,7 +7748,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 this.updateInspectPlot();
             });
             tag.appendChild(x);
-            bar.appendChild(tag);
+            bar.insertBefore(tag, input);
         }
     }
 
@@ -10174,6 +10172,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // Restore view buttons (may have been hidden by mutation inspect)
         document.getElementById('geViewTissue').style.display = '';
         document.getElementById('geViewHotspot').style.display = '';
+        document.getElementById('geViewFusion').style.display = this.translocations?.genes?.length > 0 ? '' : 'none';
         const viewLabel = document.getElementById('geViewTissue').previousElementSibling;
         if (viewLabel && viewLabel.textContent.trim() === 'View:') viewLabel.style.display = '';
 
@@ -10200,28 +10199,39 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // Update button styles
         const tissueBtn = document.getElementById('geViewTissue');
         const hotspotBtn = document.getElementById('geViewHotspot');
+        const fusionBtn = document.getElementById('geViewFusion');
+
+        // Reset all button styles
+        [tissueBtn, hotspotBtn, fusionBtn].forEach(btn => {
+            if (btn) {
+                btn.style.background = '';
+                btn.style.color = '';
+                btn.classList.add('btn-secondary');
+            }
+        });
+
+        // Highlight active button
+        const activeBtn = view === 'tissue' ? tissueBtn : view === 'fusion' ? fusionBtn : hotspotBtn;
+        if (activeBtn) {
+            activeBtn.style.background = '#5a9f4a';
+            activeBtn.style.color = 'white';
+            activeBtn.classList.remove('btn-secondary');
+        }
 
         // Update statistics explanation text
         const statsExplanation = document.getElementById('geStatsExplanationText');
 
         if (view === 'tissue') {
-            tissueBtn.style.background = '#5a9f4a';
-            tissueBtn.style.color = 'white';
-            tissueBtn.classList.remove('btn-secondary');
-            hotspotBtn.style.background = '';
-            hotspotBtn.style.color = '';
-            hotspotBtn.classList.add('btn-secondary');
             document.getElementById('geByTissueView').style.display = 'block';
             document.getElementById('geByHotspotView').style.display = 'none';
             if (statsExplanation) statsExplanation.textContent = "p-values: Welch's t-test comparing each cancer type vs all other cell lines.";
             this.renderGeneEffectByTissue();
+        } else if (view === 'fusion') {
+            document.getElementById('geByTissueView').style.display = 'none';
+            document.getElementById('geByHotspotView').style.display = 'block';
+            if (statsExplanation) statsExplanation.textContent = "Shows fusion levels: 0 (no fusion, blue), 1 (one partner, orange), 2+ (multiple partners, red). p-value: Welch's t-test comparing fused vs non-fused.";
+            this.renderGeneEffectByFusion();
         } else {
-            hotspotBtn.style.background = '#5a9f4a';
-            hotspotBtn.style.color = 'white';
-            hotspotBtn.classList.remove('btn-secondary');
-            tissueBtn.style.background = '';
-            tissueBtn.style.color = '';
-            tissueBtn.classList.add('btn-secondary');
             document.getElementById('geByTissueView').style.display = 'none';
             document.getElementById('geByHotspotView').style.display = 'block';
             if (statsExplanation) statsExplanation.textContent = "Shows 3 mutation levels: 0 (WT, blue), 1 (orange), 2 (red). p-value: Welch's t-test comparing 1+2 combined vs WT.";
@@ -10646,6 +10656,158 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this.currentGEStats = tableStats;
 
         // Render table
+        this.renderGETable(tableStats, 'hotspot');
+    }
+
+    renderGeneEffectByFusion() {
+        if (!this.currentGeneEffect) {
+            document.getElementById('geneEffectHotspotPlot').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">No gene selected</div>';
+            return;
+        }
+
+        if (!this.translocations?.genes || this.translocations.genes.length === 0) {
+            document.getElementById('geneEffectHotspotPlot').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">No fusion/translocation data available</div>';
+            document.getElementById('geneEffectTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #6b7280;">No fusion data</td></tr>';
+            return;
+        }
+
+        const data = this.getGETissueFilteredData();
+        const gene = this.currentGeneEffect.gene;
+
+        const fusionStats = [];
+
+        this.translocations.genes.forEach(fusionGene => {
+            const transData = this.translocations.geneData?.[fusionGene]?.translocations || {};
+
+            const cellData0 = []; // No fusion
+            const cellData1 = []; // 1 partner
+            const cellData2 = []; // 2+ partners
+
+            data.forEach(d => {
+                const fusionLevel = transData[d.cellLineId] || 0;
+                const cellInfo = {
+                    geneEffect: d.geneEffect,
+                    cellLineName: d.cellLineName || d.cellLineId,
+                    cellLineId: d.cellLineId
+                };
+                if (fusionLevel === 0) {
+                    cellData0.push(cellInfo);
+                } else if (fusionLevel === 1) {
+                    cellData1.push(cellInfo);
+                } else {
+                    cellData2.push(cellInfo);
+                }
+            });
+
+            const fusedCellData = [...cellData1, ...cellData2];
+            if (fusedCellData.length >= 1 && cellData0.length >= 3) {
+                const effects0 = cellData0.map(c => c.geneEffect);
+                const effectsFused = fusedCellData.map(c => c.geneEffect);
+
+                const mean0 = effects0.reduce((a, b) => a + b, 0) / effects0.length;
+                const sd0 = Math.sqrt(effects0.reduce((a, b) => a + Math.pow(b - mean0, 2), 0) / effects0.length);
+
+                const effects1 = cellData1.map(c => c.geneEffect);
+                const mean1 = effects1.length > 0 ? effects1.reduce((a, b) => a + b, 0) / effects1.length : NaN;
+                const sd1 = effects1.length > 1 ? Math.sqrt(effects1.reduce((a, b) => a + Math.pow(b - mean1, 2), 0) / effects1.length) : NaN;
+
+                const effects2 = cellData2.map(c => c.geneEffect);
+                const mean2 = effects2.length > 0 ? effects2.reduce((a, b) => a + b, 0) / effects2.length : NaN;
+                const sd2 = effects2.length > 1 ? Math.sqrt(effects2.reduce((a, b) => a + Math.pow(b - mean2, 2), 0) / effects2.length) : NaN;
+
+                const tTest = effectsFused.length >= 3 ? this.welchTTest(effects0, effectsFused) : { p: 1 };
+                const diff = effectsFused.length > 0 ? effectsFused.reduce((a, b) => a + b, 0) / effectsFused.length - mean0 : 0;
+
+                fusionStats.push({
+                    group: fusionGene,
+                    n0: cellData0.length,
+                    n1: cellData1.length,
+                    n2: cellData2.length,
+                    nMut: fusedCellData.length,
+                    mean0, mean1, mean2, sd0, sd1, sd2,
+                    diff,
+                    pValue: tTest.p,
+                    cellData0, cellData1, cellData2
+                });
+            }
+        });
+
+        if (fusionStats.length === 0) {
+            document.getElementById('geneEffectHotspotPlot').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">No fusion genes with sufficient data</div>';
+            document.getElementById('geneEffectTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #6b7280;">Insufficient data</td></tr>';
+            return;
+        }
+
+        fusionStats.sort((a, b) => a.pValue - b.pValue);
+        const topStats = fusionStats.slice(0, 20);
+
+        const traces = [];
+        const yCategories = [];
+        let show0Legend = true, show1Legend = true, show2Legend = true;
+
+        topStats.forEach(s => {
+            const yLabel = s.group;
+            yCategories.push(yLabel);
+
+            if (s.cellData2.length > 0) {
+                traces.push({
+                    type: 'box', name: '2+ partners', legendgroup: '2', showlegend: show2Legend,
+                    y: Array(s.cellData2.length).fill(yLabel), x: s.cellData2.map(c => c.geneEffect),
+                    orientation: 'h', boxpoints: 'outliers',
+                    marker: { color: '#dc2626', size: 4, outliercolor: '#991b1b' },
+                    line: { color: '#991b1b', width: 1.5 }, fillcolor: 'rgba(220, 38, 38, 0.6)',
+                    hoverinfo: 'x', offsetgroup: '2'
+                });
+                show2Legend = false;
+            }
+            if (s.cellData1.length > 0) {
+                traces.push({
+                    type: 'box', name: '1 partner', legendgroup: '1', showlegend: show1Legend,
+                    y: Array(s.cellData1.length).fill(yLabel), x: s.cellData1.map(c => c.geneEffect),
+                    orientation: 'h', boxpoints: 'outliers',
+                    marker: { color: '#f97316', size: 4, outliercolor: '#c2410c' },
+                    line: { color: '#c2410c', width: 1.5 }, fillcolor: 'rgba(249, 115, 22, 0.6)',
+                    hoverinfo: 'x', offsetgroup: '1'
+                });
+                show1Legend = false;
+            }
+            traces.push({
+                type: 'box', name: 'No fusion', legendgroup: '0', showlegend: show0Legend,
+                y: Array(s.cellData0.length).fill(yLabel), x: s.cellData0.map(c => c.geneEffect),
+                orientation: 'h', boxpoints: 'outliers',
+                marker: { color: '#2563eb', size: 4, outliercolor: '#1e40af' },
+                line: { color: '#1e40af', width: 1.5 }, fillcolor: 'rgba(37, 99, 235, 0.6)',
+                hoverinfo: 'x', offsetgroup: '0'
+            });
+            show0Legend = false;
+        });
+
+        const numEntries = topStats.length;
+        const tickFontSize = numEntries > 15 ? 8 : 9;
+        const boxHeight = numEntries > 15 ? 35 : 45;
+        const chartHeight = Math.max(400, numEntries * boxHeight + 100);
+
+        const layout = {
+            title: { text: `${gene} Gene Effect by Fusion Gene`, font: { size: 13 } },
+            xaxis: { title: 'Gene Effect', zeroline: true, zerolinecolor: '#374151', zerolinewidth: 2 },
+            yaxis: { automargin: true, tickfont: { size: tickFontSize }, categoryorder: 'array', categoryarray: yCategories.slice().reverse() },
+            boxmode: 'group', boxgap: 0.1, boxgroupgap: 0.05,
+            margin: { t: 50, b: 50, l: 10, r: 30 },
+            height: chartHeight, showlegend: true,
+            legend: { x: 0.5, y: 1.0, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.8)', traceorder: 'reversed' },
+            paper_bgcolor: 'white', plot_bgcolor: 'white'
+        };
+
+        Plotly.newPlot('geneEffectHotspotPlot', traces, layout, { responsive: true });
+
+        const tableStats = fusionStats.map(s => ({
+            group: s.group, n0: s.n0, n1: s.n1, n2: s.n2, nMut: s.nMut,
+            mean0: s.mean0, mean1: s.mean1, mean2: s.mean2,
+            sd0: s.sd0, sd1: s.sd1, sd2: s.sd2,
+            diff: s.diff, pValue: s.pValue
+        }));
+        tableStats.sort((a, b) => a.pValue - b.pValue);
+        this.currentGEStats = tableStats;
         this.renderGETable(tableStats, 'hotspot');
     }
 
@@ -13383,11 +13545,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (inspected) cls.push('clb-inspected');
             const geVal = geMap ? geMap.get(cl) : null;
             const geStr = geVal !== null && !isNaN(geVal) ? `<span style="font-size:10px; color:#666; margin-left:auto; flex-shrink:0;">${geVal.toFixed(2)}</span>` : '';
-            const subStr = sub ? `<span style="font-size:9px; color:#aaa; margin-left:2px;">${sub}</span>` : '';
-            return `<div class="${cls.join(' ')}" data-clid="${cl}">` +
+            const titleParts = [name, lin, sub].filter(Boolean).join(' · ');
+            return `<div class="${cls.join(' ')}" data-clid="${cl}" title="${titleParts}">` +
                 `<input type="checkbox"${selected ? ' checked' : ''}>` +
-                `<span class="clb-entry-name" title="${name}">${name}</span>` +
-                `<span class="clb-entry-tissue">${lin}${subStr}</span>${geStr}</div>`;
+                `<span class="clb-entry-name">${name}</span>` +
+                `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${geStr}</div>`;
         }).join('');
         container.innerHTML = html;
 

@@ -1039,8 +1039,8 @@
         .clb-entry.clb-selected { border-color: var(--green-400); background: var(--green-50); }
         .clb-entry.clb-inspected { border-color: #60a5fa; background: #eff6ff; }
         .clb-entry input[type="checkbox"] { flex-shrink: 0; cursor: pointer; }
-        .clb-entry-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .clb-entry-tissue { font-size: 10px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .clb-entry-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; max-width: 55%; }
+        .clb-entry-tissue { font-size: 10px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
         .clb-detail {
             width: 280px;
             flex-shrink: 0;
@@ -2090,12 +2090,12 @@
 
     <!-- Gene Effect Analysis Modal -->
     <div class="modal-overlay" id="geneEffectModal" style="display: none; z-index: 1200;">
-        <div class="modal" style="max-width: 1200px;">
+        <div class="modal" style="max-width: 95vw; width: 1300px;">
             <div class="modal-header">
                 <h3 id="geneEffectTitle">Gene Effect Analysis</h3>
                 <button class="modal-close" id="closeGeneEffect">&times;</button>
             </div>
-            <div class="modal-body" style="padding: 15px;">
+            <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
                 <!-- Gene search bar -->
                 <div id="geSearchBar" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
                     <!-- Row 1: Gene Effect + Mutation + Analyze -->
@@ -2140,6 +2140,7 @@
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot">By Hotspot</button>
+                        <button class="btn btn-sm btn-secondary" id="geViewFusion" style="display:none;">By Fusion</button>
                     </div>
                 </div>
 
