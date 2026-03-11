@@ -46,6 +46,9 @@ class CorrelationExplorer {
         this._userTitlePosition = null;
         this._userLabelPositions = new Map();
 
+        // CLB sort direction (true = ascending, false = descending)
+        this._clbSortAsc = true;
+
         // Gene statistics (LFC, FDR)
         this.geneStats = null;
         this.statsFileData = null;
@@ -1542,10 +1545,26 @@ class CorrelationExplorer {
             this._userLabelPositions.clear();
             document.getElementById('colorByCategory').value = '';
             this._styleActiveFilters();
+            this.updateClickedCellsBar();
             this.updateInspectPlot();
         });
 
         document.getElementById('resetAllFilters').addEventListener('click', () => this.resetAllInspectFilters());
+
+        // Label cell line search input
+        document.getElementById('labelCellLineInput').addEventListener('change', () => {
+            const input = document.getElementById('labelCellLineInput');
+            const val = input.value.trim();
+            if (val && this.currentInspect?.data) {
+                const match = this.currentInspect.data.find(d => d.cellLineName === val);
+                if (match) {
+                    this.clickedCells.add(match.cellLineName);
+                    this.updateClickedCellsBar();
+                    this.updateInspectPlot();
+                }
+            }
+            input.value = '';
+        });
 
         ['scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax'].forEach(id => {
             const el = document.getElementById(id);
@@ -4127,12 +4146,17 @@ class CorrelationExplorer {
 
         const filename = `gene_effect_${this.currentGeneEffectGene}_${this.mutationResults.hotspotGene}`;
 
+        // Use Plotly's full layout width (includes legend) to avoid cropping
+        const fullLayout = plotEl._fullLayout || {};
+        const exportWidth = Math.max(plotEl.offsetWidth, fullLayout.width || 0) + 50;
+        const exportHeight = Math.max(plotEl.offsetHeight, fullLayout.height || 0);
+
         // Always export as SVG first so we can post-process (fix Y-axis title overlap),
         // then convert to PNG via canvas if needed.
         Plotly.toImage(plotEl, {
             format: 'svg',
-            width: plotEl.offsetWidth,
-            height: plotEl.offsetHeight
+            width: exportWidth,
+            height: exportHeight
         }).then(svgDataUrl => {
             // Decode SVG
             let svgString;
@@ -4514,17 +4538,17 @@ class CorrelationExplorer {
         // Reset network settings to defaults
         this.resetNetworkSettings();
 
+        // Switch to network tab FIRST so vis.js can calculate layout in visible container
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelector('[data-tab="network"]').classList.add('active');
+        document.getElementById('tab-network').classList.add('active');
+
         // Display all results
         this.displayNetwork();
         this.displayCorrelationsTable();
         this.displayClustersTable();
         this.displaySummary();
-
-        // Switch to network tab
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        document.querySelector('[data-tab="network"]').classList.add('active');
-        document.getElementById('tab-network').classList.add('active');
     }
 
     resetNetworkSettings() {
@@ -7465,6 +7489,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             correlation: c.correlation
         };
         this.clickedCells.clear();
+        this.updateClickedCellsBar();
 
         // Get data for both genes
         const idx1 = this.geneIndex.get(c.gene1);
@@ -7487,6 +7512,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
         }
         this.currentInspect.data = plotData;
+
+        // Populate label cell line datalist
+        const labelDatalist = document.getElementById('labelCellLineList');
+        if (labelDatalist) {
+            labelDatalist.innerHTML = plotData
+                .map(d => d.cellLineName)
+                .sort()
+                .map(n => `<option value="${n}">`)
+                .join('');
+        }
 
         // Set axis limits with 10% padding on each side
         const xVals = plotData.map(d => d.x);
@@ -7636,6 +7671,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Make sure controls are visible (may have been hidden by By tissue view)
         document.querySelector('.inspect-controls').style.display = '';
+        document.querySelector('.inspect-layout').style.display = '';
+        document.getElementById('byTissueContainer').style.display = 'none';
         document.getElementById('downloadScatterPNG').style.display = '';
         document.getElementById('downloadScatterSVG').style.display = '';
         document.getElementById('downloadScatterCSV').style.display = '';
@@ -7689,6 +7726,32 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this._styleActiveFilters();
         // Update the plot
         this.updateInspectPlot();
+    }
+
+    updateClickedCellsBar() {
+        const bar = document.getElementById('clickedCellsBar');
+        if (!bar) return;
+        if (this.clickedCells.size === 0) {
+            bar.style.display = 'none';
+            return;
+        }
+        bar.style.display = 'flex';
+        bar.innerHTML = '<span style="font-size: 10px; color: var(--gray-500); margin-right: 4px;">Labeled:</span>';
+        for (const name of this.clickedCells) {
+            const tag = document.createElement('span');
+            tag.style.cssText = 'display:inline-flex; align-items:center; gap:3px; padding:1px 6px; background:var(--green-100); border:1px solid var(--green-300); border-radius:10px; font-size:10px; color:var(--green-800);';
+            tag.textContent = name;
+            const x = document.createElement('span');
+            x.textContent = '×';
+            x.style.cssText = 'cursor:pointer; font-size:12px; line-height:1; margin-left:2px; color:var(--gray-500);';
+            x.addEventListener('click', () => {
+                this.clickedCells.delete(name);
+                this.updateClickedCellsBar();
+                this.updateInspectPlot();
+            });
+            tag.appendChild(x);
+            bar.appendChild(tag);
+        }
     }
 
     updateInspectPlot() {
@@ -9425,6 +9488,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     } else {
                         this.clickedCells.add(matchingData.cellLineName);
                     }
+                    this.updateClickedCellsBar();
                     this.updateInspectPlot();
                 }
             }
@@ -13095,7 +13159,17 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         let clbGeneTimer;
         document.getElementById('clbSortGene').addEventListener('input', () => {
             clearTimeout(clbGeneTimer);
-            clbGeneTimer = setTimeout(() => this.renderCellLineList(), 200);
+            clbGeneTimer = setTimeout(() => {
+                const hasGene = document.getElementById('clbSortGene').value.trim() !== '';
+                document.getElementById('clbSortDir').style.display = hasGene ? '' : 'none';
+                this.renderCellLineList();
+            }, 200);
+        });
+
+        document.getElementById('clbSortDir').addEventListener('click', () => {
+            this._clbSortAsc = !this._clbSortAsc;
+            document.getElementById('clbSortDir').innerHTML = this._clbSortAsc ? '&#x25B2;' : '&#x25BC;';
+            this.renderCellLineList();
         });
 
         document.getElementById('clbResetFilters').addEventListener('click', () => {
@@ -13278,12 +13352,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     geMap.set(cl, (!isNaN(val) && val !== -999) ? val : NaN);
                 }
             }
+            const dir = this._clbSortAsc ? 1 : -1;
             filtered.sort((a, b) => {
                 const va = geMap.get(a), vb = geMap.get(b);
                 if (isNaN(va) && isNaN(vb)) return 0;
                 if (isNaN(va)) return 1;
                 if (isNaN(vb)) return -1;
-                return va - vb;
+                return (va - vb) * dir;
             });
         } else {
             filtered.sort((a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)));
@@ -13300,6 +13375,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const html = filtered.map(cl => {
             const name = this.getCellLineName(cl);
             const lin = this.getCellLineLineage(cl);
+            const sub = this.getCellLineSublineage(cl);
             const selected = this._clbSelectedCellLines.has(cl);
             const inspected = this._clbInspectedCellLine === cl;
             const cls = ['clb-entry'];
@@ -13307,10 +13383,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (inspected) cls.push('clb-inspected');
             const geVal = geMap ? geMap.get(cl) : null;
             const geStr = geVal !== null && !isNaN(geVal) ? `<span style="font-size:10px; color:#666; margin-left:auto; flex-shrink:0;">${geVal.toFixed(2)}</span>` : '';
+            const subStr = sub ? `<span style="font-size:9px; color:#aaa; margin-left:2px;">${sub}</span>` : '';
             return `<div class="${cls.join(' ')}" data-clid="${cl}">` +
                 `<input type="checkbox"${selected ? ' checked' : ''}>` +
                 `<span class="clb-entry-name" title="${name}">${name}</span>` +
-                `<span class="clb-entry-tissue">${lin}</span>${geStr}</div>`;
+                `<span class="clb-entry-tissue">${lin}${subStr}</span>${geStr}</div>`;
         }).join('');
         container.innerHTML = html;
 

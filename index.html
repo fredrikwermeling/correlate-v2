@@ -1899,6 +1899,11 @@
                 <h3 id="inspectTitle">Correlation: Gene1 vs Gene2</h3>
                 <button class="modal-close" id="closeInspect">&times;</button>
             </div>
+            <div id="clickedCellsBar" style="padding: 4px 16px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+                <span style="font-size: 10px; color: var(--gray-500); margin-right: 2px;">Label:</span>
+                <input type="text" id="labelCellLineInput" placeholder="Search cell line..." list="labelCellLineList" style="font-size: 10px; padding: 1px 6px; border: 1px solid var(--gray-200); border-radius: 10px; width: 130px;">
+                <datalist id="labelCellLineList"></datalist>
+            </div>
             <div class="modal-body">
                 <div class="inspect-layout">
                     <div class="inspect-controls">
@@ -2513,6 +2518,7 @@
           <select id="clbHotspotFilter"><option value="">Hotspot mutation</option></select>
           <select id="clbTranslocationFilter"><option value="">Translocation</option></select>
           <input type="text" id="clbSortGene" placeholder="Sort by gene..." style="width:120px;">
+          <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="padding:4px 6px; font-size:10px; display:none;">&#x25B2;</button>
           <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Reset all filters">Reset</button>
           <span id="clbSelectionCount" class="clb-selection-count">0 selected</span>
           <div style="margin-left:auto; display:flex; gap:6px;">
