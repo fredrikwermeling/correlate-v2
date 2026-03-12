@@ -4189,11 +4189,13 @@ class CorrelationExplorer {
                 hHtml += '</optgroup>';
             }
             if (this.damagingMutations?.genes) {
-                hHtml += '<optgroup label="Damaging">';
+                hHtml += '<optgroup label="Damaging (top 100)">';
+                let count = 0;
                 for (const g of this.damagingMutations.genes) {
                     if (g === hotspotGene) continue;
                     const sel = g === inspectHotspot ? ' selected' : '';
                     hHtml += `<option value="${g}"${sel}>${g} (${this.damagingMutations.geneCounts[g]})</option>`;
+                    if (++count >= 100) break;
                 }
                 hHtml += '</optgroup>';
             }
@@ -7729,39 +7731,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const mutFilterGeneSelect = document.getElementById('mutationFilterGene');
         const cellLinesInPlot = new Set(plotData.map(d => d.cellLineId));
 
-        if (this.mutations?.genes?.length > 0 || this.damagingMutations?.genes?.length > 0) {
+        if (this.mutations?.genes?.length > 0) {
             hotspotSelect.innerHTML = '<option value="">Select gene...</option>';
             mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>';
-            if (this.mutations?.genes?.length > 0) {
-                hotspotSelect.innerHTML += '<optgroup label="Hotspot">';
-                mutFilterGeneSelect.innerHTML += '<optgroup label="Hotspot">';
-                this.mutations.genes.forEach(g => {
-                    const mutData = this.mutations.geneData?.[g]?.mutations || {};
-                    let count = 0;
-                    cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
-                    hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
-                    mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
-                });
-                hotspotSelect.innerHTML += '</optgroup>';
-                mutFilterGeneSelect.innerHTML += '</optgroup>';
-            }
-            if (this.damagingMutations?.genes?.length > 0) {
-                hotspotSelect.innerHTML += '<optgroup label="Damaging">';
-                mutFilterGeneSelect.innerHTML += '<optgroup label="Damaging">';
-                const hsSet = new Set(this.mutations?.genes || []);
-                this.damagingMutations.genes.forEach(g => {
-                    if (hsSet.has(g)) return;
-                    const mutData = this.damagingMutations.geneData?.[g]?.mutations || {};
-                    let count = 0;
-                    cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
-                    hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} dmg)</option>`;
-                    mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} dmg)</option>`;
-                });
-                hotspotSelect.innerHTML += '</optgroup>';
-                mutFilterGeneSelect.innerHTML += '</optgroup>';
-            }
+            this.mutations.genes.forEach(g => {
+                const mutData = this.mutations.geneData?.[g]?.mutations || {};
+                let count = 0;
+                cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
+                hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
+                mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
+            });
             // Pre-select the hotspot gene from parameters if it exists
-            if (paramHotspotGene && (this.mutations?.genes?.includes(paramHotspotGene) || this.damagingMutations?.genes?.includes(paramHotspotGene))) {
+            if (paramHotspotGene && this.mutations.genes.includes(paramHotspotGene)) {
                 hotspotSelect.value = paramHotspotGene;
             }
             document.getElementById('mutationBox').style.display = 'block';
@@ -10299,9 +10280,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 hHtml += '</optgroup>';
             }
             if (this.damagingMutations?.genes) {
-                hHtml += '<optgroup label="Damaging Mutations">';
+                hHtml += '<optgroup label="Damaging (top 100)">';
+                let cnt = 0;
                 for (const g of this.damagingMutations.genes) {
                     hHtml += `<option value="${g}">${g} (${this.damagingMutations.geneCounts[g]})</option>`;
+                    if (++cnt >= 100) break;
                 }
                 hHtml += '</optgroup>';
             }
@@ -10527,20 +10510,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const data = this.getCATissueFilteredData();
         const hotspotStats = [];
 
-        // Combine hotspot and damaging mutation genes
-        const caAllMutGenes = [];
-        if (this.mutations?.genes) {
-            for (const g of this.mutations.genes) caAllMutGenes.push({ gene: g, source: this.mutations });
-        }
-        if (this.damagingMutations?.genes) {
-            const hotspotSet = new Set(this.mutations?.genes || []);
-            for (const g of this.damagingMutations.genes) {
-                if (!hotspotSet.has(g)) caAllMutGenes.push({ gene: g, source: this.damagingMutations });
-            }
-        }
-
-        caAllMutGenes.forEach(({ gene: hotspotGene, source: mutSource }) => {
-            const mutData = mutSource.geneData?.[hotspotGene]?.mutations || {};
+        this.mutations.genes.forEach(hotspotGene => {
+            const mutData = this.mutations.geneData?.[hotspotGene]?.mutations || {};
 
             const wtPts = [];
             const mutPts = [];
@@ -11001,37 +10972,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const mutFilterGeneSelect = document.getElementById('mutationFilterGene');
         const cellLinesInPlot = new Set(data.map(d => d.cellLineId));
 
-        if (this.mutations?.genes?.length > 0 || this.damagingMutations?.genes?.length > 0) {
+        if (this.mutations?.genes?.length > 0) {
             hotspotSelect.innerHTML = '<option value="">Select gene...</option>';
             mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>';
-            if (this.mutations?.genes?.length > 0) {
-                hotspotSelect.innerHTML += '<optgroup label="Hotspot">';
-                mutFilterGeneSelect.innerHTML += '<optgroup label="Hotspot">';
-                this.mutations.genes.forEach(g => {
-                    const mutData = this.mutations.geneData?.[g]?.mutations || {};
-                    let count = 0;
-                    cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
-                    hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
-                    mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
-                });
-                hotspotSelect.innerHTML += '</optgroup>';
-                mutFilterGeneSelect.innerHTML += '</optgroup>';
-            }
-            if (this.damagingMutations?.genes?.length > 0) {
-                hotspotSelect.innerHTML += '<optgroup label="Damaging">';
-                mutFilterGeneSelect.innerHTML += '<optgroup label="Damaging">';
-                const hsSet = new Set(this.mutations?.genes || []);
-                this.damagingMutations.genes.forEach(g => {
-                    if (hsSet.has(g)) return;
-                    const mutData = this.damagingMutations.geneData?.[g]?.mutations || {};
-                    let count = 0;
-                    cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
-                    hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} dmg)</option>`;
-                    mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} dmg)</option>`;
-                });
-                hotspotSelect.innerHTML += '</optgroup>';
-                mutFilterGeneSelect.innerHTML += '</optgroup>';
-            }
+            this.mutations.genes.forEach(g => {
+                const mutData = this.mutations.geneData?.[g]?.mutations || {};
+                let count = 0;
+                cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
+                hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
+                mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
+            });
             document.getElementById('mutationBox').style.display = 'block';
             document.getElementById('mutationFilterBox').style.display = 'block';
         } else {
@@ -11310,9 +11260,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 hHtml += '</optgroup>';
             }
             if (this.damagingMutations?.genes) {
-                hHtml += '<optgroup label="Damaging">';
+                hHtml += '<optgroup label="Damaging (top 100)">';
+                let cnt = 0;
                 for (const g of this.damagingMutations.genes) {
                     hHtml += `<option value="${g}">${g} (${this.damagingMutations.geneCounts[g]})</option>`;
+                    if (++cnt >= 100) break;
                 }
                 hHtml += '</optgroup>';
             }
@@ -11600,8 +11552,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             return;
         }
 
-        if ((!this.mutations?.genes || this.mutations.genes.length === 0) && (!this.damagingMutations?.genes || this.damagingMutations.genes.length === 0)) {
-            document.getElementById('geneEffectHotspotPlot').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">No mutation data available</div>';
+        if (!this.mutations?.genes || this.mutations.genes.length === 0) {
+            document.getElementById('geneEffectHotspotPlot').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">No hotspot mutation data available</div>';
             document.getElementById('geneEffectTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #6b7280;">No mutation data</td></tr>';
             return;
         }
@@ -11609,24 +11561,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const data = this.getGETissueFilteredData();
         const gene = this.currentGeneEffect.gene;
 
-        // Calculate stats for each hotspot/damaging gene, keeping cell-level data for box plots
+        // Calculate stats for each hotspot gene, keeping cell-level data for box plots
         // Now showing 3 levels: 0 (WT), 1, and 2 mutations
         const hotspotStats = [];
 
-        // Combine hotspot and damaging mutation genes
-        const allMutGenes = [];
-        if (this.mutations?.genes) {
-            for (const g of this.mutations.genes) allMutGenes.push({ gene: g, source: this.mutations });
-        }
-        if (this.damagingMutations?.genes) {
-            const hotspotSet = new Set(this.mutations?.genes || []);
-            for (const g of this.damagingMutations.genes) {
-                if (!hotspotSet.has(g)) allMutGenes.push({ gene: g, source: this.damagingMutations });
-            }
-        }
-
-        allMutGenes.forEach(({ gene: hotspotGene, source: mutSource }) => {
-            const mutData = mutSource.geneData?.[hotspotGene]?.mutations || {};
+        this.mutations.genes.forEach(hotspotGene => {
+            const mutData = this.mutations.geneData?.[hotspotGene]?.mutations || {};
 
             const cellData0 = []; // WT (0 mutations)
             const cellData1 = []; // 1 mutation
@@ -14706,26 +14646,6 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 grp.label = 'Hotspot';
                 Object.keys(this.mutations.geneData).sort().forEach(gene => {
                     const muts = this.mutations.geneData[gene].mutations;
-                    let n = 0;
-                    for (const [cl, v] of Object.entries(muts)) {
-                        if (v > 0 && hotspotBaseSet.has(cl)) n++;
-                    }
-                    if (n === 0) return;
-                    const opt = document.createElement('option');
-                    opt.value = gene;
-                    opt.textContent = `${gene} (n=${n})`;
-                    if (gene === hotspotVal) opt.selected = true;
-                    grp.appendChild(opt);
-                });
-                hotspotSelect.appendChild(grp);
-            }
-            if (this.damagingMutations?.geneData) {
-                const hsSet = new Set(Object.keys(this.mutations?.geneData || {}));
-                const grp = document.createElement('optgroup');
-                grp.label = 'Damaging';
-                this.damagingMutations.genes.forEach(gene => {
-                    if (hsSet.has(gene)) return;
-                    const muts = this.damagingMutations.geneData[gene].mutations;
                     let n = 0;
                     for (const [cl, v] of Object.entries(muts)) {
                         if (v > 0 && hotspotBaseSet.has(cl)) n++;
