@@ -47,6 +47,7 @@ class CorrelationExplorer {
         this._gateB = null;
         this._gateSelecting = null;
         this._gateCompareResults = null;
+        this._gateOverlayTraceCount = 0;
         this._userLegendPosition = null;
         this._userTitlePosition = null;
         this._userLabelPositions = new Map();
@@ -9633,6 +9634,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             // Restore drag mode
             Plotly.relayout(plotEl, { dragmode: 'zoom' });
 
+            // Update gate overlay on scatter plot
+            this.updateGateOverlay();
+
             // Remove this one-time listener
             plotEl.removeAllListeners('plotly_selected');
         });
@@ -9652,11 +9656,65 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (el('gateStatus')) { el('gateStatus').textContent = 'Use box/lasso select on plot to define gates'; el('gateStatus').style.color = '#6b7280'; }
         if (el('gateComparePanel')) el('gateComparePanel').style.display = 'none';
 
+        // Remove gate overlay traces
+        this.updateGateOverlay();
+
         // Restore drag mode
         const plotEl = document.getElementById('scatterPlot');
         if (plotEl && plotEl.data) {
             plotEl.removeAllListeners?.('plotly_selected');
             try { Plotly.relayout(plotEl, { dragmode: 'zoom' }); } catch(e) {}
+        }
+    }
+
+    updateGateOverlay() {
+        const plotEl = document.getElementById('scatterPlot');
+        if (!plotEl || !plotEl.data) return;
+
+        // Remove previous gate overlay traces
+        if (this._gateOverlayTraceCount > 0) {
+            const indices = [];
+            for (let i = 0; i < this._gateOverlayTraceCount; i++) {
+                indices.push(plotEl.data.length - 1 - i);
+            }
+            try {
+                Plotly.deleteTraces('scatterPlot', indices.sort((a, b) => b - a));
+            } catch (e) {
+                console.warn('Failed to delete gate overlay traces:', e);
+            }
+        }
+        this._gateOverlayTraceCount = 0;
+
+        // Add new traces if gates exist
+        const newTraces = [];
+        if (this._gateA?.length) {
+            newTraces.push({
+                x: this._gateA.map(d => d.x),
+                y: this._gateA.map(d => d.y),
+                mode: 'markers', type: 'scatter',
+                text: this._gateA.map(d => `${d.cellLineName} [Gate A]`),
+                hovertemplate: '%{text}<extra></extra>',
+                marker: { color: '#2563eb', size: 12, opacity: 0.9, line: { color: '#1e40af', width: 2 } },
+                name: `Gate A (n=${this._gateA.length})`,
+                showlegend: true
+            });
+        }
+        if (this._gateB?.length) {
+            newTraces.push({
+                x: this._gateB.map(d => d.x),
+                y: this._gateB.map(d => d.y),
+                mode: 'markers', type: 'scatter',
+                text: this._gateB.map(d => `${d.cellLineName} [Gate B]`),
+                hovertemplate: '%{text}<extra></extra>',
+                marker: { color: '#dc2626', size: 12, opacity: 0.9, line: { color: '#991b1b', width: 2 } },
+                name: `Gate B (n=${this._gateB.length})`,
+                showlegend: true
+            });
+        }
+
+        if (newTraces.length > 0) {
+            Plotly.addTraces('scatterPlot', newTraces);
+            this._gateOverlayTraceCount = newTraces.length;
         }
     }
 
@@ -11332,6 +11390,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             gene: geneUpper,
             data: []
         };
+        this.currentGeneEffectGene = geneUpper;
         this.currentGEView = view;
 
         // Get gene effect data for all cell lines
@@ -11441,8 +11500,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const viewLabel = document.getElementById('geViewTissue').previousElementSibling;
         if (viewLabel && viewLabel.textContent.trim() === 'View:') viewLabel.style.display = '';
 
-        // Hide expression correlates button and panel (only for mutation inspect mode)
-        document.getElementById('toggleExprCorrelatesBtn').style.display = 'none';
+        // Show expression correlates button (hide panel until toggled)
+        document.getElementById('toggleExprCorrelatesBtn').style.display = '';
         document.getElementById('exprCorrelatesPanel').style.display = 'none';
 
         // Show modal
@@ -13212,7 +13271,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     }
 
     async runExpressionCorrelates() {
-        if (!this.mutationResults || !this.currentGeneEffectGene) return;
+        if (!this.currentGeneEffectGene) return;
 
         const statusEl = document.getElementById('exprCorrelatesStatus');
         statusEl.textContent = '';
@@ -13232,14 +13291,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         await new Promise(resolve => setTimeout(resolve, 50));
 
         const mr = this.mutationResults;
-        const hotspotGene = mr.hotspotGene;
-        const isTranslocation = mr.isTranslocation;
-        const isDamaging = mr.isDamaging;
-        const mutationData = isTranslocation
+        const hotspotGene = mr?.hotspotGene;
+        const isTranslocation = mr?.isTranslocation;
+        const isDamaging = mr?.isDamaging;
+        const mutationData = mr ? (isTranslocation
             ? this.translocations?.geneData?.[hotspotGene]
             : isDamaging
                 ? this.damagingMutations?.geneData?.[hotspotGene]
-                : this.mutations?.geneData?.[hotspotGene];
+                : this.mutations?.geneData?.[hotspotGene]) : null;
         const targetGene = this.currentGeneEffectGene.toUpperCase();
         const targetGeneIdx = this.geneIndex.get(targetGene);
 
@@ -13249,7 +13308,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         // Get selected subgroup
-        const subgroup = document.querySelector('input[name="exprSubgroup"]:checked').value;
+        const subgroup = document.querySelector('input[name="exprSubgroup"]:checked')?.value || 'all';
 
         // Build list of cell line indices in the subgroup (same filtering as showGeneEffectDistribution)
         const cellLines = this.metadata.cellLines;
@@ -13263,15 +13322,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (inspectTissueFilter) {
                 const lineage = this.cellLineMetadata?.lineage?.[cellLine] || '';
                 if (lineage !== inspectTissueFilter) return;
-            } else {
+            } else if (mr) {
                 if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
                 if (mr.excludedTissues && mr.excludedTissues.size > 0) {
                     const lineage = this.cellLineMetadata?.lineage?.[cellLine];
                     if (lineage && mr.excludedTissues.has(lineage)) return;
                 }
             }
-            if (!inspectTissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
-            if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
+            if (!inspectTissueFilter && mr?.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (mr?.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations.geneData[mr.additionalHotspot];
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
@@ -13282,15 +13341,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 }
             }
 
-            // Check mutation/translocation subgroup
-            const mutLevel = isTranslocation
-                ? (mutationData.translocations[cellLine] || 0)
-                : (mutationData.mutations[cellLine] || 0);
-            if (subgroup === '0' && mutLevel !== 0) return;
-            if (subgroup === '1' && mutLevel !== 1) return;
-            if (subgroup === '1+2' && mutLevel === 0) return;
-            if (subgroup === '2' && mutLevel < 2) return;
-            // 'all' = no filter
+            // Check mutation/translocation subgroup (only when mutation data is available)
+            if (mr && mutationData && subgroup !== 'all') {
+                const mutLevel = isTranslocation
+                    ? (mutationData.translocations[cellLine] || 0)
+                    : (mutationData.mutations[cellLine] || 0);
+                if (subgroup === '0' && mutLevel !== 0) return;
+                if (subgroup === '1' && mutLevel !== 1) return;
+                if (subgroup === '1+2' && mutLevel === 0) return;
+                if (subgroup === '2' && mutLevel < 2) return;
+            }
 
             // Check that this cell line has expression data
             if (this.expressionCellLineMap[idx] === -1) return;
@@ -13490,9 +13550,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const cellLine = this.metadata.cellLines[geCellIdx];
             const cellName = this.getCellLineName(cellLine);
             const lineage = this.getCellLineLineage(cellLine);
-            const mutLevel = isTranslocation
-                ? (mutationData.translocations[cellLine] || 0)
-                : (mutationData.mutations[cellLine] || 0);
+            const mutLevel = mutationData
+                ? (isTranslocation
+                    ? (mutationData.translocations[cellLine] || 0)
+                    : (mutationData.mutations[cellLine] || 0))
+                : 0;
 
             const point = { x: geVal, y: exprVal, cellName, lineage, mutLevel };
 
@@ -13514,14 +13576,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 if (exprCellIdx === undefined || exprCellIdx === -1) continue;
 
                 const cellLine = cellLines[geCellIdx];
-                const mutLevel = isTranslocation
-                    ? (mutationData.translocations[cellLine] || 0)
-                    : (mutationData.mutations[cellLine] || 0);
+                const mutLevel = mutationData
+                    ? (isTranslocation
+                        ? (mutationData.translocations[cellLine] || 0)
+                        : (mutationData.mutations[cellLine] || 0))
+                    : 0;
                 const lineage = this.cellLineMetadata?.lineage?.[cellLine] || '';
 
                 // Determine if this cell line should be included
                 // If NOT expanding genotypes, must match subgroup genotype filter
-                if (!expandGenotypes) {
+                if (!expandGenotypes && mutationData) {
                     const subgroup = ctx.subgroup;
                     if (subgroup === '0' && mutLevel !== 0) continue;
                     if (subgroup === '1' && mutLevel !== 1) continue;
@@ -13534,15 +13598,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     const inspectTissueFilter = ctx.inspectTissueFilter || '';
                     if (inspectTissueFilter) {
                         if (lineage !== inspectTissueFilter) continue;
-                    } else {
+                    } else if (mr) {
                         if (mr.lineageFilter && lineage !== mr.lineageFilter) continue;
                         if (mr.excludedTissues && mr.excludedTissues.size > 0 && mr.excludedTissues.has(lineage)) continue;
                     }
-                    if (!inspectTissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) continue;
+                    if (!inspectTissueFilter && mr?.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) continue;
                 }
 
                 // Still apply additional hotspot filter
-                if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
+                if (mr?.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                     const addMutData = this.mutations.geneData[mr.additionalHotspot];
                     if (addMutData) {
                         const addMutLevel = addMutData.mutations[cellLine] || 0;
