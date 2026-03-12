@@ -1315,10 +1315,12 @@
                     <div style="font-size: 10px; color: #666; margin-top: 8px; line-height: 1.4;">
                         <p style="margin: 0;">Data from <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a>:</p>
                         <ul style="margin: 4px 0 0 0; padding-left: 16px;">
-                            <li>CRISPRGeneEffect.csv</li>
-                            <li>Model.csv</li>
-                            <li>OmicsSomaticMutationsMatrixHotspot.csv</li>
-                            <li>OmicsFusionFiltered.csv</li>
+                            <li>CRISPRGeneEffect.csv <span style="color:#999;">(gene effects)</span></li>
+                            <li>Model.csv <span style="color:#999;">(cell line metadata)</span></li>
+                            <li>OmicsSomaticMutationsMatrixHotspot.csv <span style="color:#999;">(hotspot mutations)</span></li>
+                            <li>OmicsSomaticMutationsMatrixDamaging.csv <span style="color:#999;">(damaging mutations)</span></li>
+                            <li>OmicsFusionFiltered.csv <span style="color:#999;">(translocations/fusions)</span></li>
+                            <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
                         </ul>
                         <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data.</p>
                     </div>
@@ -1939,26 +1941,26 @@
                             <div class="axis-inputs" style="gap: 4px;">
                                 <div>
                                     <label>X min</label>
-                                    <input type="text" id="scatterXmin" step="0.1">
+                                    <input type="text" id="scatterXmin">
                                 </div>
                                 <div>
                                     <label>X max</label>
-                                    <input type="text" id="scatterXmax" step="0.1">
+                                    <input type="text" id="scatterXmax">
                                 </div>
                                 <div>
                                     <label>Y min</label>
-                                    <input type="text" id="scatterYmin" step="0.1">
+                                    <input type="text" id="scatterYmin">
                                 </div>
                                 <div>
                                     <label>Y max</label>
-                                    <input type="text" id="scatterYmax" step="0.1">
+                                    <input type="text" id="scatterYmax">
                                 </div>
                                 <div style="display: flex; align-items: flex-end;">
                                     <button class="btn btn-outline btn-sm" id="resetAxes" style="font-size: 10px; padding: 2px 6px; width: 100%;">Reset</button>
                                 </div>
                                 <div style="display: flex; align-items: flex-end;">
-                                    <label style="font-size:11px; display:flex; align-items:center; gap:4px; cursor:pointer;">
-                                        <input type="checkbox" id="showCorrelationLine" checked> Corr. line
+                                    <label style="font-size:11px; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
+                                        <input type="checkbox" id="showCorrelationLine" checked> Regression line
                                     </label>
                                 </div>
                             </div>
