@@ -1941,26 +1941,43 @@
                             <div class="axis-inputs" style="gap: 4px;">
                                 <div>
                                     <label>X min</label>
-                                    <input type="text" id="scatterXmin">
+                                    <div style="display:flex; gap:2px;">
+                                        <button onclick="app.adjustAxis('scatterXmin',-0.5)" style="font-size:10px;padding:0 4px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">&minus;</button>
+                                        <input type="text" id="scatterXmin" style="flex:1; min-width:0;">
+                                        <button onclick="app.adjustAxis('scatterXmin',0.5)" style="font-size:10px;padding:0 4px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">+</button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label>X max</label>
-                                    <input type="text" id="scatterXmax">
+                                    <div style="display:flex; gap:2px;">
+                                        <button onclick="app.adjustAxis('scatterXmax',-0.5)" style="font-size:10px;padding:0 4px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">&minus;</button>
+                                        <input type="text" id="scatterXmax" style="flex:1; min-width:0;">
+                                        <button onclick="app.adjustAxis('scatterXmax',0.5)" style="font-size:10px;padding:0 4px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">+</button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label>Y min</label>
-                                    <input type="text" id="scatterYmin">
+                                    <div style="display:flex; gap:2px;">
+                                        <button onclick="app.adjustAxis('scatterYmin',-0.5)" style="font-size:10px;padding:0 4px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">&minus;</button>
+                                        <input type="text" id="scatterYmin" style="flex:1; min-width:0;">
+                                        <button onclick="app.adjustAxis('scatterYmin',0.5)" style="font-size:10px;padding:0 4px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">+</button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label>Y max</label>
-                                    <input type="text" id="scatterYmax">
+                                    <div style="display:flex; gap:2px;">
+                                        <button onclick="app.adjustAxis('scatterYmax',-0.5)" style="font-size:10px;padding:0 4px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">&minus;</button>
+                                        <input type="text" id="scatterYmax" style="flex:1; min-width:0;">
+                                        <button onclick="app.adjustAxis('scatterYmax',0.5)" style="font-size:10px;padding:0 4px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">+</button>
+                                    </div>
                                 </div>
-                                <div style="display: flex; align-items: flex-end;">
+                                <div style="grid-column: span 2; display:flex; align-items:center; justify-content:space-between;">
                                     <button class="btn btn-outline btn-sm" id="resetAxes" style="font-size: 10px; padding: 2px 6px;">Reset</button>
-                                </div>
-                                <div style="display: flex; align-items: flex-end; justify-content: flex-end;">
                                     <label style="font-size:10px; display:flex; align-items:center; gap:3px; cursor:pointer; white-space:nowrap; color:#6b7280;">
                                         <input type="checkbox" id="showCorrelationLine" checked style="margin:0;"> Regression line
+                                    </label>
+                                    <label style="font-size:10px; display:flex; align-items:center; gap:3px; cursor:pointer; white-space:nowrap; color:#6b7280;">
+                                        <input type="checkbox" id="showZeroLines" checked style="margin:0;"> Zero lines
                                     </label>
                                 </div>
                             </div>

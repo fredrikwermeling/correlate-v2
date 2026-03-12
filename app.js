@@ -1679,6 +1679,7 @@ class CorrelationExplorer {
         });
 
         document.getElementById('showCorrelationLine').addEventListener('change', () => this.updateInspectPlot());
+        document.getElementById('showZeroLines')?.addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('scatterCellSearch').addEventListener('input', () => this.updateInspectPlot());
         document.getElementById('colorByCategory').addEventListener('change', () => {
             this._styleActiveFilters();
@@ -7954,6 +7955,17 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this.updateInspectPlot();
     }
 
+    adjustAxis(id, delta) {
+        const el = document.getElementById(id);
+        const current = parseFloat(el.value.replace(',', '.'));
+        if (isNaN(current)) {
+            el.value = delta.toFixed(1);
+        } else {
+            el.value = (current + delta).toFixed(1);
+        }
+        this.updateInspectPlot();
+    }
+
     resetAllInspectFilters() {
         // Reset cancer type and subtype filters
         document.getElementById('scatterCancerFilter').value = '';
@@ -8396,18 +8408,22 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // Calculate margin based on title lines
         const topMargin = 80 + (titleLines.length * 18);
 
+        const showZero = document.getElementById('showZeroLines')?.checked !== false;
+
         const layout = {
             xaxis: {
                 title: `${gene1} Gene Effect`,
                 range: xRange,
-                zeroline: true,
-                zerolinecolor: '#ddd'
+                zeroline: showZero,
+                zerolinecolor: showZero ? '#000' : '#ddd',
+                zerolinewidth: showZero ? 2 : 0
             },
             yaxis: {
                 title: `${gene2} Gene Effect`,
                 range: yRange,
-                zeroline: true,
-                zerolinecolor: '#ddd'
+                zeroline: showZero,
+                zerolinecolor: showZero ? '#000' : '#ddd',
+                zerolinewidth: showZero ? 2 : 0
             },
             hovermode: 'closest',
             margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 240 : 30, b: colorByCategory ? 100 : 60, l: 60, autoexpand: false },
@@ -9944,6 +9960,39 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             Plotly.addTraces('scatterPlot', newTraces);
             this._gateOverlayTraceCount = newTraces.length;
         }
+
+        // Add/update gate label annotations
+        const existingAnnotations = (plotEl._fullLayout?.annotations || [])
+            .map(a => a._input || a)
+            .filter(a => a._gateLabel !== true);
+
+        const gateAnnotations = [];
+        if (this._gateAShape) {
+            gateAnnotations.push({
+                x: (this._gateAShape.x0 + this._gateAShape.x1) / 2,
+                y: Math.max(this._gateAShape.y0, this._gateAShape.y1),
+                text: '<b>A</b>',
+                showarrow: false,
+                font: { size: 16, color: '#2563eb' },
+                xanchor: 'center',
+                yanchor: 'bottom',
+                _gateLabel: true
+            });
+        }
+        if (this._gateBShape) {
+            gateAnnotations.push({
+                x: (this._gateBShape.x0 + this._gateBShape.x1) / 2,
+                y: Math.max(this._gateBShape.y0, this._gateBShape.y1),
+                text: '<b>B</b>',
+                showarrow: false,
+                font: { size: 16, color: '#dc2626' },
+                xanchor: 'center',
+                yanchor: 'bottom',
+                _gateLabel: true
+            });
+        }
+
+        Plotly.relayout('scatterPlot', { annotations: [...existingAnnotations, ...gateAnnotations] });
     }
 
     async compareGates() {
@@ -10487,7 +10536,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 yaxis: { title: '% of cells', range: [0, 105] },
                 width: 300,
                 height: 300,
-                margin: { t: 35, b: 30, l: 45, r: 15 },
+                margin: { t: 40, b: 60, l: 60, r: 30 },
                 showlegend: true,
                 legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 9 } }
             };
@@ -10548,7 +10597,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 yaxis: { title: 'Gene Effect (CERES)' },
                 width: 300,
                 height: 300,
-                margin: { t: 35, b: 30, l: 50, r: 15 },
+                margin: { t: 40, b: 60, l: 60, r: 30 },
                 showlegend: false
             };
             Plotly.newPlot(plotDiv, traces, layout, { displayModeBar: false, responsive: true });
@@ -10619,7 +10668,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 yaxis: { title: 'Expression (log2 TPM+1)' },
                 width: 300,
                 height: 300,
-                margin: { t: 35, b: 30, l: 50, r: 15 },
+                margin: { t: 40, b: 60, l: 60, r: 30 },
                 showlegend: false
             };
             Plotly.newPlot(plotDiv, traces, layout, { displayModeBar: false, responsive: true });
@@ -11363,7 +11412,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             Plotly.newPlot(plotDiv, traces, {
                 title: { text: `${gene} \u2014 Mutation Frequency`, font: { size: 13 } },
                 barmode: 'stack', yaxis: { title: '% of cells', range: [0, 105] },
-                width: 300, height: 300, margin: { t: 35, b: 30, l: 45, r: 15 },
+                width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 },
                 showlegend: true, legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 9 } }
             }, { displayModeBar: false, responsive: true });
 
@@ -11390,7 +11439,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true }
             ], {
                 title: { text: `${gene} \u2014 Gene Effect (\u0394=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
-                yaxis: { title: 'Gene Effect (CERES)' }, width: 300, height: 300, margin: { t: 35, b: 30, l: 50, r: 15 }, showlegend: false
+                yaxis: { title: 'Gene Effect (CERES)' }, width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 }, showlegend: false
             }, { displayModeBar: false, responsive: true });
 
         } else if (type === 'expression') {
@@ -11422,7 +11471,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true }
             ], {
                 title: { text: `${gene} \u2014 Expression (\u0394=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
-                yaxis: { title: 'Expression (log2 TPM+1)' }, width: 300, height: 300, margin: { t: 35, b: 30, l: 50, r: 15 }, showlegend: false
+                yaxis: { title: 'Expression (log2 TPM+1)' }, width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 }, showlegend: false
             }, { displayModeBar: false, responsive: true });
         }
 
@@ -17051,8 +17100,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         ctx.drawImage(mainImg, padding, padding, leftW, leftH);
 
         if (geneImg) {
-            const geneY = padding + (plotsHeight - rightH) / 2;
-            ctx.drawImage(geneImg, padding + leftW + padding, geneY, rightW, rightH);
+            ctx.drawImage(geneImg, padding + leftW + padding, padding, rightW, rightH);
         }
 
         const textY = padding + plotsHeight + padding;
@@ -17101,13 +17149,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}">
 <rect width="${totalW}" height="${totalH}" fill="white"/>
 <g transform="translate(${padding},${padding})">
-<image href="${mainSvgStr}" width="${leftW}" height="${leftH}"/>
+<image href="${mainSvgStr}" width="${leftW}" height="${leftH}" preserveAspectRatio="xMidYMid meet"/>
 </g>`;
 
         if (genePlotSvgStr) {
-            const geneY = padding + (plotsHeight - rightH) / 2;
-            svgContent += `\n<g transform="translate(${padding + leftW + padding},${geneY})">
-<image href="${genePlotSvgStr}" width="${rightW}" height="${rightH}"/>
+            svgContent += `\n<g transform="translate(${padding + leftW + padding},${padding})">
+<image href="${genePlotSvgStr}" width="${rightW}" height="${rightH}" preserveAspectRatio="xMidYMid meet"/>
 </g>`;
         }
 
