@@ -16975,12 +16975,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const plotH = 450;
         const scatterW = 450;
         const genePlotW = 450;
+        const imgFmt = format === 'svg' ? 'svg' : 'png';
 
-        const scatterDataUrl = await Plotly.toImage(scatterEl, { format: format === 'svg' ? 'svg' : 'png', width: scatterW, height: plotH, scale: 2 });
+        // Read scatter plot margins to match gene plot data area
+        const scatterMargin = scatterEl._fullLayout?.margin || { t: 80, b: 60, l: 60, r: 30 };
+        const scatterDataUrl = await Plotly.toImage(scatterEl, { format: imgFmt, width: scatterW, height: plotH, scale: 2 });
 
         let genePlotDataUrl = null;
         if (genePlotEl && genePlotEl.data) {
-            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: format === 'svg' ? 'svg' : 'png', width: genePlotW, height: plotH, scale: 2 });
+            // Temporarily match margins to scatter so data areas align
+            const origMargin = genePlotEl._fullLayout?.margin || {};
+            await Plotly.relayout(genePlotEl, { margin: { t: scatterMargin.t, b: scatterMargin.b, l: scatterMargin.l, r: scatterMargin.r } });
+            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: imgFmt, width: genePlotW, height: plotH, scale: 2 });
+            // Restore original margins
+            await Plotly.relayout(genePlotEl, { margin: { t: origMargin.t || 40, b: origMargin.b || 60, l: origMargin.l || 60, r: origMargin.r || 30 } });
         }
 
         const filters = this._gatherScatterFilters();
@@ -17001,12 +17009,17 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const plotH = 450;
         const mainW = 450;
         const genePlotW = 450;
+        const imgFmt = format === 'svg' ? 'svg' : 'png';
 
-        const geDataUrl = await Plotly.toImage(gePlotEl, { format: format === 'svg' ? 'svg' : 'png', width: mainW, height: plotH, scale: 2 });
+        const geMargin = gePlotEl._fullLayout?.margin || { t: 80, b: 60, l: 60, r: 30 };
+        const geDataUrl = await Plotly.toImage(gePlotEl, { format: imgFmt, width: mainW, height: plotH, scale: 2 });
 
         let genePlotDataUrl = null;
         if (genePlotEl && genePlotEl.data) {
-            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: format === 'svg' ? 'svg' : 'png', width: genePlotW, height: plotH, scale: 2 });
+            const origMargin = genePlotEl._fullLayout?.margin || {};
+            await Plotly.relayout(genePlotEl, { margin: { t: geMargin.t, b: geMargin.b, l: geMargin.l, r: geMargin.r } });
+            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: imgFmt, width: genePlotW, height: plotH, scale: 2 });
+            await Plotly.relayout(genePlotEl, { margin: { t: origMargin.t || 40, b: origMargin.b || 60, l: origMargin.l || 60, r: origMargin.r || 30 } });
         }
 
         const filters = this._gatherGEFilters();

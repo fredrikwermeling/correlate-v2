@@ -1971,7 +1971,7 @@
                                         <button onclick="app.adjustAxis('scatterYmax',0.5)" style="font-size:10px;padding:0 4px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">+</button>
                                     </div>
                                 </div>
-                                <div style="grid-column: span 2; display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">
+                                <div style="grid-column: span 2; display:flex; flex-direction:row; align-items:center; gap:8px; flex-wrap:nowrap;">
                                     <button class="btn btn-outline btn-sm" id="resetAxes" style="font-size:10px; padding:2px 6px; flex-shrink:0;">Reset</button>
                                     <label style="font-size:9px; display:flex; align-items:center; gap:2px; cursor:pointer; white-space:nowrap; color:#6b7280; flex-shrink:0;">
                                         <input type="checkbox" id="showCorrelationLine" checked style="margin:0; width:12px; height:12px;"> Reg. line
@@ -2123,7 +2123,7 @@
                         <div style="display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">
                             <button class="btn btn-sm gate-tab active" data-gate-tab="tissue" style="font-size: 11px; padding: 3px 10px;">Tissue</button>
                             <button class="btn btn-sm gate-tab" data-gate-tab="mutations" style="font-size: 11px; padding: 3px 10px;">Mutations</button>
-                            <button class="btn btn-sm gate-tab" data-gate-tab="diffge" style="font-size: 11px; padding: 3px 10px;">Diff GE</button>
+                            <button class="btn btn-sm gate-tab" data-gate-tab="diffge" style="font-size: 11px; padding: 3px 10px;">Δ Gene Effect</button>
                             <button class="btn btn-sm gate-tab" data-gate-tab="expression" style="font-size: 11px; padding: 3px 10px;">Expression</button>
                         </div>
                         <div id="gateCompareContent" style="max-height: 400px; overflow-y: auto; overscroll-behavior: contain;"></div>
@@ -2318,7 +2318,7 @@
                         <div style="display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">
                             <button class="btn btn-sm ge-gate-tab active" data-ge-gate-tab="tissue" style="font-size: 11px; padding: 3px 10px;">Tissue</button>
                             <button class="btn btn-sm ge-gate-tab" data-ge-gate-tab="mutations" style="font-size: 11px; padding: 3px 10px;">Mutations</button>
-                            <button class="btn btn-sm ge-gate-tab" data-ge-gate-tab="diffge" style="font-size: 11px; padding: 3px 10px;">Diff GE</button>
+                            <button class="btn btn-sm ge-gate-tab" data-ge-gate-tab="diffge" style="font-size: 11px; padding: 3px 10px;">Δ Gene Effect</button>
                             <button class="btn btn-sm ge-gate-tab" data-ge-gate-tab="expression" style="font-size: 11px; padding: 3px 10px;">Expression</button>
                         </div>
                         <div id="geGateCompareContent" style="max-height: 400px; overflow-y: auto; overscroll-behavior: contain;"></div>
