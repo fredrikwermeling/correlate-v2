@@ -1837,6 +1837,25 @@ class CorrelationExplorer {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             }
         });
+        // GE Gate controls
+        document.getElementById('geSetGateABtn')?.addEventListener('click', () => this.startGEGateSelection('A'));
+        document.getElementById('geSetGateBBtn')?.addEventListener('click', () => this.startGEGateSelection('B'));
+        document.getElementById('geCompareGatesBtn')?.addEventListener('click', () => this.compareGEGates());
+        document.getElementById('geClearGatesBtn')?.addEventListener('click', () => this.clearGEGates());
+        document.getElementById('closeGEGateCompare')?.addEventListener('click', () => {
+            document.getElementById('geGateComparePanel').style.display = 'none';
+        });
+        // GE Gate tab switching
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('ge-gate-tab')) {
+                document.querySelectorAll('.ge-gate-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                this._geGateSortCol = null;
+                this._geGateSortAsc = true;
+                this.renderGEGateTab(e.target.dataset.geGateTab);
+            }
+        });
+
         // Full-screen compare modal buttons
         document.getElementById('mutCompareByTissueBtn')?.addEventListener('click', () => this.showMutationCompareByTissue());
         document.getElementById('mutCompareByHotspotBtn')?.addEventListener('click', () => this.showMutationCompareByHotspot());
@@ -3959,11 +3978,21 @@ class CorrelationExplorer {
             return text;
         };
 
-        // Build Plotly traces
+        // Build Plotly traces — store jittered y values for gate matching
+        const wtY = data.wt.map(() => jitter(0));
+        const mut1Y = data.mut1.map(() => jitter(1));
+        const mut2Y = data.mut2.map(() => jitter(2));
+
+        // Store plot data with actual coordinates for gate selection matching
+        this._geGatePlotData = [];
+        data.wt.forEach((d, i) => this._geGatePlotData.push({ x: d.ge, y: wtY[i], cellLineId: d.cellLine, cellLineName: d.cellName, lineage: d.lineage, mutLevel: d.mutLevel }));
+        data.mut1.forEach((d, i) => this._geGatePlotData.push({ x: d.ge, y: mut1Y[i], cellLineId: d.cellLine, cellLineName: d.cellName, lineage: d.lineage, mutLevel: d.mutLevel }));
+        data.mut2.forEach((d, i) => this._geGatePlotData.push({ x: d.ge, y: mut2Y[i], cellLineId: d.cellLine, cellLineName: d.cellName, lineage: d.lineage, mutLevel: d.mutLevel }));
+
         const traces = [
             {
                 x: data.wt.map(d => d.ge),
-                y: data.wt.map(() => jitter(0)),
+                y: wtY,
                 mode: 'markers',
                 type: 'scatter',
                 name: `WT (n=${data.wt.length})`,
@@ -3973,7 +4002,7 @@ class CorrelationExplorer {
             },
             {
                 x: data.mut1.map(d => d.ge),
-                y: data.mut1.map(() => jitter(1)),
+                y: mut1Y,
                 mode: 'markers',
                 type: 'scatter',
                 name: `${mut1Label} (n=${data.mut1.length})`,
@@ -3983,7 +4012,7 @@ class CorrelationExplorer {
             },
             {
                 x: data.mut2.map(d => d.ge),
-                y: data.mut2.map(() => jitter(2)),
+                y: mut2Y,
                 mode: 'markers',
                 type: 'scatter',
                 name: `${mut2Label} (n=${data.mut2.length})`,
@@ -4284,6 +4313,15 @@ class CorrelationExplorer {
             responsive: true,
             edits: { annotationPosition: true, legendPosition: true }
         });
+
+        // Show GE gate controls in mutation inspect mode
+        const geGateCtrl = document.getElementById('geGateControls');
+        if (geGateCtrl) geGateCtrl.style.display = '';
+
+        // Clear GE gates on re-render (jitter changes, old coordinates invalid)
+        if (this._geGateA || this._geGateB) {
+            this.clearGEGates();
+        }
 
         // Show chart width and Y range controls
         this.updateShowAllButton();
@@ -8352,7 +8390,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: false,
-            edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
+            edits: { annotationPosition: true, annotationTail: true, legendPosition: true, shapePosition: true }
         }).then(plotEl => {
             // Listen for legend and title drag events
             let isProgrammaticRelayout = false;
@@ -8383,6 +8421,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                         });
                     }
                 }
+                // Handle gate shape drawing and editing
+                this._handleGateShapeRelayout(relayoutData);
             });
 
             // Auto-reposition vertical legend outside the actual plot domain
@@ -8683,7 +8723,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: false,
-            edits: { annotationPosition: true, annotationTail: true, legendPosition: true }
+            edits: { annotationPosition: true, annotationTail: true, legendPosition: true, shapePosition: true }
         }).then(plotEl => {
             plotEl.on('plotly_relayout', (relayoutData) => {
                 if (relayoutData['legend.x'] !== undefined && relayoutData['legend.y'] !== undefined) {
@@ -8712,6 +8752,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                         });
                     }
                 }
+                // Handle gate shape drawing and editing
+                this._handleGateShapeRelayout(relayoutData);
             });
             this.setupScatterClickHandler(filteredData);
             this._currentFilteredData = filteredData;
@@ -9594,55 +9636,153 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this._gateSelecting = gate;
         const plotEl = document.getElementById('scatterPlot');
 
-        // Switch to select mode
-        Plotly.relayout(plotEl, { dragmode: 'select' });
-
         const status = document.getElementById('gateStatus');
-        status.textContent = `Draw Gate ${gate} on the plot (box or lasso select)`;
+        status.textContent = `Draw Gate ${gate} rectangle on plot`;
         status.style.color = gate === 'A' ? '#2563eb' : '#dc2626';
 
-        // Listen for selection
-        plotEl.removeAllListeners?.('plotly_selected');
-        plotEl.on('plotly_selected', (eventData) => {
-            if (!eventData || !eventData.points || eventData.points.length === 0) return;
+        // Switch to drawrect mode with gate-specific styling
+        Plotly.relayout(plotEl, {
+            dragmode: 'drawrect',
+            newshape: {
+                line: { color: gate === 'A' ? '#2563eb' : '#dc2626', width: 2 },
+                fillcolor: gate === 'A' ? 'rgba(37,99,235,0.1)' : 'rgba(220,38,38,0.1)',
+                opacity: 1
+            }
+        });
+    }
 
-            const matchData = this._currentFilteredData || this.currentInspect?.data || [];
-            const selectedCells = eventData.points.map(p => {
-                // Match to filtered data (what's visible on screen)
-                const match = matchData.find(d =>
-                    Math.abs(d.x - p.x) < 0.001 && Math.abs(d.y - p.y) < 0.001
-                );
-                return match;
-            }).filter(Boolean);
+    _handleGateShapeRelayout(relayoutData) {
+        // Check if a new shape was drawn (Plotly emits shapes as array on draw)
+        const keys = Object.keys(relayoutData);
+        const hasShapeKeys = keys.some(k => k.startsWith('shapes'));
+
+        if (!hasShapeKeys) return;
+
+        const plotEl = document.getElementById('scatterPlot');
+        if (!plotEl || !plotEl.layout) return;
+        const currentShapes = (plotEl.layout.shapes || []).slice();
+
+        // Detect newly drawn shape (gateSelecting is set)
+        if (this._gateSelecting && currentShapes.length > 0) {
+            const newShape = currentShapes[currentShapes.length - 1];
+            const gate = this._gateSelecting;
+            const { x0, x1, y0, y1 } = newShape;
+            const cells = this._computeGateCells(x0, x1, y0, y1);
 
             if (gate === 'A') {
-                this._gateA = selectedCells;
-                document.getElementById('setGateABtn').textContent = `Gate A (n=${selectedCells.length})`;
+                // If there was already a Gate A shape, remove it
+                if (this._gateAShapeIndex != null && this._gateAShapeIndex !== currentShapes.length - 1) {
+                    currentShapes.splice(this._gateAShapeIndex, 1);
+                    // Adjust Gate B index if needed
+                    if (this._gateBShapeIndex != null && this._gateBShapeIndex > this._gateAShapeIndex) {
+                        this._gateBShapeIndex--;
+                    }
+                }
+                this._gateAShapeIndex = currentShapes.length - 1;
+                this._gateAShape = { x0, x1, y0, y1 };
+                this._gateA = cells;
+
+                // Style the shape for Gate A
+                currentShapes[this._gateAShapeIndex] = {
+                    ...currentShapes[this._gateAShapeIndex],
+                    line: { color: '#2563eb', width: 2 },
+                    fillcolor: 'rgba(37,99,235,0.1)',
+                    opacity: 1,
+                    editable: true
+                };
+
+                document.getElementById('setGateABtn').textContent = `Gate A (n=${cells.length})`;
                 document.getElementById('setGateABtn').style.opacity = '0.7';
                 document.getElementById('setGateBBtn').disabled = false;
-                document.getElementById('gateStatus').textContent = `Gate A: ${selectedCells.length} cells. Now set Gate B.`;
+                document.getElementById('gateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
                 document.getElementById('gateStatus').style.color = '#16a34a';
                 document.getElementById('clearGatesBtn').style.display = '';
             } else {
-                this._gateB = selectedCells;
-                document.getElementById('setGateBBtn').textContent = `Gate B (n=${selectedCells.length})`;
+                // If there was already a Gate B shape, remove it
+                if (this._gateBShapeIndex != null && this._gateBShapeIndex !== currentShapes.length - 1) {
+                    currentShapes.splice(this._gateBShapeIndex, 1);
+                    // Adjust Gate A index if needed
+                    if (this._gateAShapeIndex != null && this._gateAShapeIndex > this._gateBShapeIndex) {
+                        this._gateAShapeIndex--;
+                    }
+                }
+                this._gateBShapeIndex = currentShapes.length - 1;
+                this._gateBShape = { x0, x1, y0, y1 };
+                this._gateB = cells;
+
+                // Style the shape for Gate B
+                currentShapes[this._gateBShapeIndex] = {
+                    ...currentShapes[this._gateBShapeIndex],
+                    line: { color: '#dc2626', width: 2 },
+                    fillcolor: 'rgba(220,38,38,0.1)',
+                    opacity: 1,
+                    editable: true
+                };
+
+                document.getElementById('setGateBBtn').textContent = `Gate B (n=${cells.length})`;
                 document.getElementById('setGateBBtn').style.opacity = '0.7';
                 document.getElementById('compareGatesBtn').style.display = '';
-                document.getElementById('gateStatus').textContent = `Gate A: ${this._gateA.length}, Gate B: ${selectedCells.length}. Click Compare.`;
+                document.getElementById('gateStatus').textContent = `Gate A: ${this._gateA?.length || 0}, Gate B: ${cells.length}. Click Compare.`;
                 document.getElementById('gateStatus').style.color = '#16a34a';
             }
 
             this._gateSelecting = null;
 
-            // Restore drag mode
-            Plotly.relayout(plotEl, { dragmode: 'zoom' });
-
-            // Update gate overlay on scatter plot
+            // Update shapes on plot and restore zoom mode
+            Plotly.relayout(plotEl, { shapes: currentShapes, dragmode: 'zoom' });
             this.updateGateOverlay();
+            return;
+        }
 
-            // Remove this one-time listener
-            plotEl.removeAllListeners('plotly_selected');
-        });
+        // Handle editing of existing gate shapes (drag/resize)
+        // Detect shape coordinate changes like shapes[0].x0, shapes[1].y1, etc.
+        let gateAUpdated = false;
+        let gateBUpdated = false;
+
+        for (const key of keys) {
+            const match = key.match(/^shapes\[(\d+)\]\.(x0|x1|y0|y1)$/);
+            if (match) {
+                const shapeIdx = parseInt(match[1]);
+                const coord = match[2];
+                if (shapeIdx === this._gateAShapeIndex && this._gateAShape) {
+                    this._gateAShape[coord] = relayoutData[key];
+                    gateAUpdated = true;
+                } else if (shapeIdx === this._gateBShapeIndex && this._gateBShape) {
+                    this._gateBShape[coord] = relayoutData[key];
+                    gateBUpdated = true;
+                }
+            }
+        }
+
+        if (gateAUpdated && this._gateAShape) {
+            const { x0, x1, y0, y1 } = this._gateAShape;
+            this._gateA = this._computeGateCells(x0, x1, y0, y1);
+            document.getElementById('setGateABtn').textContent = `Gate A (n=${this._gateA.length})`;
+        }
+        if (gateBUpdated && this._gateBShape) {
+            const { x0, x1, y0, y1 } = this._gateBShape;
+            this._gateB = this._computeGateCells(x0, x1, y0, y1);
+            document.getElementById('setGateBBtn').textContent = `Gate B (n=${this._gateB.length})`;
+        }
+
+        if (gateAUpdated || gateBUpdated) {
+            this.updateGateOverlay();
+            const statusEl = document.getElementById('gateStatus');
+            if (statusEl && this._gateA && this._gateB) {
+                statusEl.textContent = `Gate A: ${this._gateA.length}, Gate B: ${this._gateB.length}. Click Compare to refresh.`;
+                statusEl.style.color = '#16a34a';
+            } else if (statusEl && this._gateA) {
+                statusEl.textContent = `Gate A: ${this._gateA.length} cells. Now set Gate B.`;
+                statusEl.style.color = '#16a34a';
+            }
+        }
+    }
+
+    _computeGateCells(x0, x1, y0, y1) {
+        const matchData = this._currentFilteredData || this.currentInspect?.data || [];
+        const xMin = Math.min(x0, x1), xMax = Math.max(x0, x1);
+        const yMin = Math.min(y0, y1), yMax = Math.max(y0, y1);
+        return matchData.filter(d => d.x >= xMin && d.x <= xMax && d.y >= yMin && d.y <= yMax);
     }
 
     clearGates() {
@@ -9650,23 +9790,26 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this._gateB = null;
         this._gateSelecting = null;
         this._gateCompareResults = null;
+        this._gateAShape = null;
+        this._gateBShape = null;
+        this._gateAShapeIndex = null;
+        this._gateBShapeIndex = null;
 
         const el = (id) => document.getElementById(id);
         if (el('setGateABtn')) { el('setGateABtn').textContent = 'Set Gate A'; el('setGateABtn').style.opacity = '1'; }
         if (el('setGateBBtn')) { el('setGateBBtn').textContent = 'Set Gate B'; el('setGateBBtn').style.opacity = '1'; el('setGateBBtn').disabled = true; }
         if (el('compareGatesBtn')) el('compareGatesBtn').style.display = 'none';
         if (el('clearGatesBtn')) el('clearGatesBtn').style.display = 'none';
-        if (el('gateStatus')) { el('gateStatus').textContent = 'Use box/lasso select on plot to define gates'; el('gateStatus').style.color = '#6b7280'; }
+        if (el('gateStatus')) { el('gateStatus').textContent = 'Draw rectangles on plot to define gates'; el('gateStatus').style.color = '#6b7280'; }
         if (el('gateComparePanel')) el('gateComparePanel').style.display = 'none';
 
         // Remove gate overlay traces
         this.updateGateOverlay();
 
-        // Restore drag mode
+        // Remove gate shapes and restore drag mode
         const plotEl = document.getElementById('scatterPlot');
         if (plotEl && plotEl.data) {
-            plotEl.removeAllListeners?.('plotly_selected');
-            try { Plotly.relayout(plotEl, { dragmode: 'zoom' }); } catch(e) {}
+            try { Plotly.relayout(plotEl, { shapes: [], dragmode: 'zoom' }); } catch(e) {}
         }
     }
 
@@ -10329,6 +10472,713 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Scroll the plot into view
         plotDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ── GE Inspect Gate Feature ─────────────────────────────────────
+
+    startGEGateSelection(gate) {
+        this._geGateSelecting = gate;
+        const plotEl = document.getElementById('geneEffectPlot');
+
+        // Switch to select mode
+        Plotly.relayout(plotEl, { dragmode: 'select' });
+
+        const status = document.getElementById('geGateStatus');
+        status.textContent = `Draw Gate ${gate} on the plot (box or lasso select)`;
+        status.style.color = gate === 'A' ? '#2563eb' : '#dc2626';
+
+        // Listen for selection
+        plotEl.removeAllListeners?.('plotly_selected');
+        plotEl.on('plotly_selected', (eventData) => {
+            if (!eventData || !eventData.points || eventData.points.length === 0) return;
+
+            const matchData = this._geGatePlotData || [];
+            const selectedCells = eventData.points.map(p => {
+                const match = matchData.find(d =>
+                    Math.abs(d.x - p.x) < 0.001 && Math.abs(d.y - p.y) < 0.001
+                );
+                return match;
+            }).filter(Boolean);
+
+            // Deduplicate by cellLineId
+            const seen = new Set();
+            const unique = selectedCells.filter(d => {
+                if (seen.has(d.cellLineId)) return false;
+                seen.add(d.cellLineId);
+                return true;
+            });
+
+            if (gate === 'A') {
+                this._geGateA = unique;
+                document.getElementById('geSetGateABtn').textContent = `Gate A (n=${unique.length})`;
+                document.getElementById('geSetGateABtn').style.opacity = '0.7';
+                document.getElementById('geSetGateBBtn').disabled = false;
+                document.getElementById('geGateStatus').textContent = `Gate A: ${unique.length} cells. Now set Gate B.`;
+                document.getElementById('geGateStatus').style.color = '#16a34a';
+                document.getElementById('geClearGatesBtn').style.display = '';
+            } else {
+                this._geGateB = unique;
+                document.getElementById('geSetGateBBtn').textContent = `Gate B (n=${unique.length})`;
+                document.getElementById('geSetGateBBtn').style.opacity = '0.7';
+                document.getElementById('geCompareGatesBtn').style.display = '';
+                document.getElementById('geGateStatus').textContent = `Gate A: ${this._geGateA.length}, Gate B: ${unique.length}. Click Compare.`;
+                document.getElementById('geGateStatus').style.color = '#16a34a';
+            }
+
+            this._geGateSelecting = null;
+
+            // Restore drag mode
+            Plotly.relayout(plotEl, { dragmode: 'zoom' });
+
+            // Update gate overlay
+            this.updateGEGateOverlay();
+
+            // Remove this one-time listener
+            plotEl.removeAllListeners('plotly_selected');
+        });
+    }
+
+    clearGEGates() {
+        this._geGateA = null;
+        this._geGateB = null;
+        this._geGateSelecting = null;
+        this._geGateCompareResults = null;
+
+        const el = (id) => document.getElementById(id);
+        if (el('geSetGateABtn')) { el('geSetGateABtn').textContent = 'Set Gate A'; el('geSetGateABtn').style.opacity = '1'; }
+        if (el('geSetGateBBtn')) { el('geSetGateBBtn').textContent = 'Set Gate B'; el('geSetGateBBtn').style.opacity = '1'; el('geSetGateBBtn').disabled = true; }
+        if (el('geCompareGatesBtn')) el('geCompareGatesBtn').style.display = 'none';
+        if (el('geClearGatesBtn')) el('geClearGatesBtn').style.display = 'none';
+        if (el('geGateStatus')) { el('geGateStatus').textContent = 'Use box/lasso select on plot to define gates'; el('geGateStatus').style.color = '#6b7280'; }
+        if (el('geGateComparePanel')) el('geGateComparePanel').style.display = 'none';
+
+        // Remove gate overlay traces
+        this.updateGEGateOverlay();
+
+        // Restore drag mode
+        const plotEl = document.getElementById('geneEffectPlot');
+        if (plotEl && plotEl.data) {
+            plotEl.removeAllListeners?.('plotly_selected');
+            try { Plotly.relayout(plotEl, { dragmode: 'zoom' }); } catch(e) {}
+        }
+    }
+
+    updateGEGateOverlay() {
+        const plotEl = document.getElementById('geneEffectPlot');
+        if (!plotEl || !plotEl.data) return;
+
+        // Remove previous gate overlay traces
+        if (this._geGateOverlayTraceCount > 0) {
+            const indices = [];
+            for (let i = 0; i < this._geGateOverlayTraceCount; i++) {
+                indices.push(plotEl.data.length - 1 - i);
+            }
+            try {
+                Plotly.deleteTraces('geneEffectPlot', indices.sort((a, b) => b - a));
+            } catch (e) {
+                console.warn('Failed to delete GE gate overlay traces:', e);
+            }
+        }
+        this._geGateOverlayTraceCount = 0;
+
+        // Add new traces if gates exist
+        const newTraces = [];
+        if (this._geGateA?.length) {
+            newTraces.push({
+                x: this._geGateA.map(d => d.x),
+                y: this._geGateA.map(d => d.y),
+                mode: 'markers', type: 'scatter',
+                text: this._geGateA.map(d => `${d.cellLineName} [Gate A]`),
+                hovertemplate: '%{text}<extra></extra>',
+                marker: { color: '#2563eb', size: 12, opacity: 0.9, line: { color: '#1e40af', width: 2 } },
+                name: `Gate A (n=${this._geGateA.length})`,
+                showlegend: true
+            });
+        }
+        if (this._geGateB?.length) {
+            newTraces.push({
+                x: this._geGateB.map(d => d.x),
+                y: this._geGateB.map(d => d.y),
+                mode: 'markers', type: 'scatter',
+                text: this._geGateB.map(d => `${d.cellLineName} [Gate B]`),
+                hovertemplate: '%{text}<extra></extra>',
+                marker: { color: '#dc2626', size: 12, opacity: 0.9, line: { color: '#991b1b', width: 2 } },
+                name: `Gate B (n=${this._geGateB.length})`,
+                showlegend: true
+            });
+        }
+
+        if (newTraces.length > 0) {
+            Plotly.addTraces('geneEffectPlot', newTraces);
+            this._geGateOverlayTraceCount = newTraces.length;
+        }
+    }
+
+    async compareGEGates() {
+        if (!this._geGateA?.length || !this._geGateB?.length) return;
+
+        const gateA = this._geGateA;
+        const gateB = this._geGateB;
+        const gateAIds = new Set(gateA.map(d => d.cellLineId));
+        const gateBIds = new Set(gateB.map(d => d.cellLineId));
+
+        // Summary
+        document.getElementById('geGateASummary').textContent = `${gateA.length} cell lines`;
+        document.getElementById('geGateBSummary').textContent = `${gateB.length} cell lines`;
+
+        // 1. Tissue enrichment
+        const tissueA = {}, tissueB = {};
+        gateA.forEach(d => { tissueA[d.lineage || 'Unknown'] = (tissueA[d.lineage || 'Unknown'] || 0) + 1; });
+        gateB.forEach(d => { tissueB[d.lineage || 'Unknown'] = (tissueB[d.lineage || 'Unknown'] || 0) + 1; });
+        const allTissues = [...new Set([...Object.keys(tissueA), ...Object.keys(tissueB)])].sort();
+        const tissueStats = allTissues.map(t => ({
+            tissue: t,
+            nA: tissueA[t] || 0,
+            pctA: ((tissueA[t] || 0) / gateA.length * 100),
+            nB: tissueB[t] || 0,
+            pctB: ((tissueB[t] || 0) / gateB.length * 100)
+        }));
+        tissueStats.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
+
+        // 1b. Subtissue enrichment
+        const subtissueA = {}, subtissueB = {};
+        gateA.forEach(d => {
+            const st = this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown';
+            subtissueA[st] = (subtissueA[st] || 0) + 1;
+        });
+        gateB.forEach(d => {
+            const st = this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown';
+            subtissueB[st] = (subtissueB[st] || 0) + 1;
+        });
+        const allSubtissues = [...new Set([...Object.keys(subtissueA), ...Object.keys(subtissueB)])].sort();
+        const subtissueStats = allSubtissues.map(st => ({
+            tissue: st,
+            nA: subtissueA[st] || 0,
+            pctA: ((subtissueA[st] || 0) / gateA.length * 100),
+            nB: subtissueB[st] || 0,
+            pctB: ((subtissueB[st] || 0) / gateB.length * 100)
+        }));
+        subtissueStats.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
+
+        // 2. Mutation enrichment
+        const mutStats = [];
+        const gateMutSources = [];
+        if (this.mutations?.genes) {
+            for (const g of this.mutations.genes) gateMutSources.push({ gene: g, source: this.mutations, type: 'hotspot' });
+        }
+        if (this.damagingMutations?.genes) {
+            const hsSet = new Set(this.mutations?.genes || []);
+            for (const g of this.damagingMutations.genes) {
+                if (!hsSet.has(g)) gateMutSources.push({ gene: g, source: this.damagingMutations, type: 'damaging' });
+            }
+        }
+        gateMutSources.forEach(({ gene, source, type }) => {
+            const mutData = source.geneData?.[gene]?.mutations || {};
+            const mutA = gateA.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
+            const mutB = gateB.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
+            const pctA = mutA / gateA.length * 100;
+            const pctB = mutB / gateB.length * 100;
+
+            const a = mutA, b = mutB, c = gateA.length - mutA, d2 = gateB.length - mutB;
+            const n = a + b + c + d2;
+            const chi2 = n > 0 ? Math.pow(a * d2 - b * c, 2) * n / ((a + b) * (c + d2) * (a + c) * (b + d2) || 1) : 0;
+            const pApprox = Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
+
+            if (mutA > 0 || mutB > 0) {
+                mutStats.push({ gene, mutA, mutB, pctA, pctB, diff: pctA - pctB, pValue: pApprox, type });
+            }
+        });
+        mutStats.sort((a, b) => a.pValue - b.pValue);
+
+        // 3. Differential gene effect
+        document.getElementById('geGateStatus').textContent = 'Computing differential gene effects...';
+        const diffGE = [];
+        const geneNames = [...this.geneIndex.keys()];
+        for (let i = 0; i < geneNames.length; i++) {
+            const gene = geneNames[i];
+            const geneIdx = this.geneIndex.get(gene);
+            const geneData = this.getGeneData(geneIdx);
+
+            const valsA = [], valsB = [];
+            for (let j = 0; j < this.nCellLines; j++) {
+                if (isNaN(geneData[j])) continue;
+                const cl = this.metadata.cellLines[j];
+                if (gateAIds.has(cl)) valsA.push(geneData[j]);
+                else if (gateBIds.has(cl)) valsB.push(geneData[j]);
+            }
+
+            if (valsA.length >= 2 && valsB.length >= 2) {
+                const meanA = valsA.reduce((a, b) => a + b, 0) / valsA.length;
+                const meanB = valsB.reduce((a, b) => a + b, 0) / valsB.length;
+                const tTest = this.welchTTest(valsA, valsB);
+                diffGE.push({ gene, meanA, meanB, diff: meanA - meanB, pValue: tTest.p, nA: valsA.length, nB: valsB.length });
+            }
+
+            if (i % 500 === 0 && i > 0) {
+                await new Promise(r => setTimeout(r, 0));
+            }
+        }
+        diffGE.sort((a, b) => a.pValue - b.pValue);
+
+        // 4. Differential expression
+        const diffExpr = [];
+        if (this.expressionLoaded && this.expressionData && this.expressionMetadata) {
+            document.getElementById('geGateStatus').textContent = 'Computing differential expression...';
+            const nExprCellLines = this.expressionMetadata.nCellLines;
+            const exprGeneNames = this.expressionMetadata.genes;
+            const exprCellLineIndex = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, idx) => { exprCellLineIndex.set(cl, idx); });
+
+            for (let gi = 0; gi < exprGeneNames.length; gi++) {
+                const eValsA = [], eValsB = [];
+                for (const d of gateA) {
+                    const exprIdx = exprCellLineIndex.get(d.cellLineId);
+                    if (exprIdx !== undefined) {
+                        const val = this.expressionData[gi * nExprCellLines + exprIdx];
+                        if (!isNaN(val)) eValsA.push(val);
+                    }
+                }
+                for (const d of gateB) {
+                    const exprIdx = exprCellLineIndex.get(d.cellLineId);
+                    if (exprIdx !== undefined) {
+                        const val = this.expressionData[gi * nExprCellLines + exprIdx];
+                        if (!isNaN(val)) eValsB.push(val);
+                    }
+                }
+                if (eValsA.length >= 2 && eValsB.length >= 2) {
+                    const meanA = eValsA.reduce((a, b) => a + b, 0) / eValsA.length;
+                    const meanB = eValsB.reduce((a, b) => a + b, 0) / eValsB.length;
+                    const tTest = this.welchTTest(eValsA, eValsB);
+                    diffExpr.push({ gene: exprGeneNames[gi], meanA, meanB, diff: meanA - meanB, pValue: tTest.p, nA: eValsA.length, nB: eValsB.length });
+                }
+                if (gi % 1000 === 0 && gi > 0) {
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+            diffExpr.sort((a, b) => a.pValue - b.pValue);
+        }
+
+        this._geGateCompareResults = { tissueStats, subtissueStats, mutStats, diffGE, diffExpr };
+        this._geGateSortCol = null;
+        this._geGateSortAsc = true;
+
+        document.getElementById('geGateStatus').textContent = `Comparison complete. Gate A: ${gateA.length}, Gate B: ${gateB.length}`;
+        document.getElementById('geGateStatus').style.color = '#16a34a';
+
+        // Show panel
+        document.getElementById('geGateComparePanel').style.display = '';
+        document.getElementById('geGateCompareTitle').textContent = `Gate A (${gateA.length}) vs Gate B (${gateB.length})`;
+
+        // Show first tab
+        document.querySelectorAll('.ge-gate-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector('[data-ge-gate-tab="tissue"]').classList.add('active');
+        this.renderGEGateTab('tissue');
+    }
+
+    renderGEGateTab(tab) {
+        const r = this._geGateCompareResults;
+        if (!r) return;
+        const container = document.getElementById('geGateCompareContent');
+        this._currentGEGateTab = tab;
+
+        const sortIcon = (col) => {
+            if (this._geGateSortCol !== col) return ' <span style="opacity:0.3;">\u21D5</span>';
+            return this._geGateSortAsc ? ' \u25B2' : ' \u25BC';
+        };
+        const thStyle = 'padding:5px;cursor:pointer;user-select:none;white-space:nowrap;';
+
+        if (tab === 'tissue') {
+            if (!this._geGateSortCol) { this._geGateSortCol = 'absDelta'; this._geGateSortAsc = false; }
+            const data = [...r.tissueStats];
+            this._sortGEGateData(data, {
+                tissue: d => d.tissue.toLowerCase(),
+                nA: d => d.nA, pctA: d => d.pctA,
+                nB: d => d.nB, pctB: d => d.pctB,
+                delta: d => d.pctA - d.pctB,
+                absDelta: d => Math.abs(d.pctA - d.pctB)
+            });
+
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('tissue')">Tissue${sortIcon('tissue')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('nA')">Gate A${sortIcon('nA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('pctA')">%A${sortIcon('pctA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('nB')">Gate B${sortIcon('nB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('pctB')">%B${sortIcon('pctB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('absDelta')">|\u0394%|${sortIcon('absDelta')}</th>
+                </tr></thead><tbody>`;
+            data.forEach(t => {
+                const delta = t.pctA - t.pctB;
+                const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
+                html += `<tr>
+                    <td style="padding:4px;border-bottom:1px solid #eee;">${t.tissue}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.nA}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.pctA.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.nB}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.pctB.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+
+            // Subtissue section
+            if (r.subtissueStats && r.subtissueStats.length > 0) {
+                const subData = [...r.subtissueStats];
+                subData.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
+                html += `<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;">
+                    <div style="font-size:11px;font-weight:600;margin-bottom:6px;color:#374151;">Subtissue (Primary Disease)</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                    <thead><tr style="background:#f3f4f6;">
+                        <th style="padding:5px;text-align:left;">Subtype</th>
+                        <th style="padding:5px;text-align:center;">Gate A</th>
+                        <th style="padding:5px;text-align:center;">%A</th>
+                        <th style="padding:5px;text-align:center;">Gate B</th>
+                        <th style="padding:5px;text-align:center;">%B</th>
+                        <th style="padding:5px;text-align:center;">|\u0394%|</th>
+                    </tr></thead><tbody>`;
+                subData.forEach(t => {
+                    const delta = t.pctA - t.pctB;
+                    const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
+                    html += `<tr>
+                        <td style="padding:4px;border-bottom:1px solid #eee;">${t.tissue}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.nA}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.pctA.toFixed(1)}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.nB}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.pctB.toFixed(1)}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table></div>';
+            }
+            container.innerHTML = html;
+
+        } else if (tab === 'mutations') {
+            if (r.mutStats.length === 0) {
+                container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">No mutation data available</div>';
+                return;
+            }
+            if (!this._geGateSortCol) { this._geGateSortCol = 'pValue'; this._geGateSortAsc = true; }
+            const data = [...r.mutStats];
+            this._sortGEGateData(data, {
+                gene: d => d.gene.toLowerCase(),
+                type: d => d.type,
+                mutA: d => d.mutA, pctA: d => d.pctA,
+                mutB: d => d.mutB, pctB: d => d.pctB,
+                delta: d => d.pctA - d.pctB,
+                pValue: d => d.pValue
+            });
+
+            const nHotspot = r.mutStats.filter(m => m.type === 'hotspot').length;
+            const nDamaging = r.mutStats.filter(m => m.type === 'damaging').length;
+            let html = `<div style="margin-bottom:8px;">
+                <p style="font-size:10px;color:#6b7280;margin:0;">Hotspot: ${nHotspot} genes, Damaging: ${nDamaging} genes. Chi-squared test for enrichment. Top 100 shown.</p>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('gene')">Gene${sortIcon('gene')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('type')">Type${sortIcon('type')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('mutA')">Mut A${sortIcon('mutA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('pctA')">%A${sortIcon('pctA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('mutB')">Mut B${sortIcon('mutB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('pctB')">%B${sortIcon('pctB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('delta')">\u0394%${sortIcon('delta')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('pValue')">p-value${sortIcon('pValue')}</th>
+                </tr></thead><tbody>`;
+            data.slice(0, 100).forEach(m => {
+                const delta = m.pctA - m.pctB;
+                const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
+                const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
+                const typeBadge = m.type === 'hotspot'
+                    ? '<span style="background:#f59e0b;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
+                    : '<span style="background:#8b5cf6;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
+                html += `<tr>
+                    <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation();app.showGEGateGenePlot('${m.gene}','mutation')">${m.gene}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;">${typeBadge}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.mutA}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.pctA.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${m.mutB}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${m.pctB.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${m.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            html += '<div id="geGateGenePlot" style="margin-top:8px;"></div>';
+            container.innerHTML = html;
+
+        } else if (tab === 'diffge') {
+            if (!this._geGateSortCol) { this._geGateSortCol = 'diff'; this._geGateSortAsc = true; }
+            const data = [...r.diffGE];
+            this._sortGEGateData(data, {
+                gene: d => d.gene.toLowerCase(),
+                meanA: d => d.meanA, meanB: d => d.meanB,
+                diff: d => d.diff,
+                pValue: d => d.pValue
+            });
+
+            let html = `<div style="margin-bottom:8px;">
+                <p style="font-size:10px;color:#6b7280;margin:0;">Top genes with different gene effect between gates (Welch's t-test). Click gene to plot.</p>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('gene')">Gene${sortIcon('gene')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('meanA')">Mean A${sortIcon('meanA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('meanB')">Mean B${sortIcon('meanB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('diff')">\u0394 GE${sortIcon('diff')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('pValue')">p-value${sortIcon('pValue')}</th>
+                </tr></thead><tbody>`;
+            data.slice(0, 100).forEach(d => {
+                const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
+                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                html += `<tr style="cursor:pointer;" onclick="app.showGEGateGenePlot('${d.gene}','ge')">
+                    <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${d.diff > 0 ? '+' : ''}${d.diff.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${d.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            html += '<div id="geGateGenePlot" style="margin-top:8px;"></div>';
+            container.innerHTML = html;
+
+        } else if (tab === 'expression') {
+            if (!r.diffExpr || r.diffExpr.length === 0) {
+                if (!this.expressionLoaded) {
+                    container.innerHTML = `<div style="padding:20px;text-align:center;">
+                        <p style="color:#6b7280;">Expression data not loaded.</p>
+                        <button class="btn btn-sm" style="background:#5a9f4a;color:white;margin-top:8px;" onclick="app.loadGEGateExpressionComparison()">Load Expression Data</button>
+                    </div>`;
+                } else {
+                    container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">No differential expression results</div>';
+                }
+                return;
+            }
+            if (!this._geGateSortCol) { this._geGateSortCol = 'diff'; this._geGateSortAsc = true; }
+            const data = [...r.diffExpr];
+            this._sortGEGateData(data, {
+                gene: d => d.gene.toLowerCase(),
+                meanA: d => d.meanA, meanB: d => d.meanB,
+                diff: d => d.diff,
+                pValue: d => d.pValue
+            });
+
+            let html = `<div style="margin-bottom:8px;">
+                <p style="font-size:10px;color:#6b7280;margin:0;">Top genes with different expression between gates (Welch's t-test). Click gene to plot.</p>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('gene')">Gene${sortIcon('gene')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('meanA')">Mean A${sortIcon('meanA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('meanB')">Mean B${sortIcon('meanB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('diff')">\u0394 Expr${sortIcon('diff')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('pValue')">p-value${sortIcon('pValue')}</th>
+                </tr></thead><tbody>`;
+            data.slice(0, 100).forEach(d => {
+                const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
+                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                html += `<tr style="cursor:pointer;" onclick="app.showGEGateGenePlot('${d.gene}','expression')">
+                    <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${d.diff > 0 ? '+' : ''}${d.diff.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${d.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            html += '<div id="geGateGenePlot" style="margin-top:8px;"></div>';
+            container.innerHTML = html;
+        }
+    }
+
+    _sortGEGateData(data, accessors) {
+        const col = this._geGateSortCol;
+        const asc = this._geGateSortAsc;
+        if (!col || !accessors[col]) return;
+        const fn = accessors[col];
+        data.sort((a, b) => {
+            const va = fn(a), vb = fn(b);
+            if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+            return asc ? va - vb : vb - va;
+        });
+    }
+
+    sortGEGateTable(col) {
+        if (this._geGateSortCol === col) {
+            this._geGateSortAsc = !this._geGateSortAsc;
+        } else {
+            this._geGateSortCol = col;
+            this._geGateSortAsc = true;
+        }
+        this.renderGEGateTab(this._currentGEGateTab || 'tissue');
+    }
+
+    showGEGateGenePlot(gene, type) {
+        const plotDiv = document.getElementById('geGateGenePlot');
+        if (!plotDiv) return;
+        if (!this._geGateA?.length || !this._geGateB?.length) return;
+
+        const gateA = this._geGateA;
+        const gateB = this._geGateB;
+
+        if (type === 'mutation') {
+            let mutData = null;
+            if (this.mutations?.geneData?.[gene]?.mutations) {
+                mutData = this.mutations.geneData[gene].mutations;
+            } else if (this.damagingMutations?.geneData?.[gene]?.mutations) {
+                mutData = this.damagingMutations.geneData[gene].mutations;
+            }
+            if (!mutData) {
+                plotDiv.innerHTML = '<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">No mutation data for ' + gene + '</div>';
+                return;
+            }
+            const mutA = gateA.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
+            const mutB = gateB.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
+            const pctMutA = mutA / gateA.length * 100;
+            const pctMutB = mutB / gateB.length * 100;
+            const pctWtA = 100 - pctMutA;
+            const pctWtB = 100 - pctMutB;
+
+            const traces = [
+                {
+                    x: ['Gate A', 'Gate B'],
+                    y: [pctMutA, pctMutB],
+                    name: 'Mutated',
+                    type: 'bar',
+                    marker: { color: ['#2563eb', '#dc2626'] },
+                    text: [`${mutA}/${gateA.length}`, `${mutB}/${gateB.length}`],
+                    textposition: 'inside',
+                    textfont: { color: 'white', size: 11 }
+                },
+                {
+                    x: ['Gate A', 'Gate B'],
+                    y: [pctWtA, pctWtB],
+                    name: 'WT',
+                    type: 'bar',
+                    marker: { color: ['#93bbfd', '#fca5a5'] },
+                    text: [`${gateA.length - mutA}`, `${gateB.length - mutB}`],
+                    textposition: 'inside',
+                    textfont: { color: '#333', size: 11 }
+                }
+            ];
+            Plotly.newPlot(plotDiv, traces, {
+                title: { text: `${gene} \u2014 Mutation Frequency`, font: { size: 13 } },
+                barmode: 'stack', yaxis: { title: '% of cells', range: [0, 100] },
+                height: 220, margin: { t: 35, b: 30, l: 45, r: 15 },
+                showlegend: true, legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 10 } }
+            }, { displayModeBar: false, responsive: true });
+
+        } else if (type === 'ge') {
+            const geneIdx = this.geneIndex.get(gene.toUpperCase());
+            if (geneIdx === undefined) {
+                plotDiv.innerHTML = '<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">Gene not found: ' + gene + '</div>';
+                return;
+            }
+            const gateAIds = new Set(gateA.map(d => d.cellLineId));
+            const gateBIds = new Set(gateB.map(d => d.cellLineId));
+            const valsA = [], valsB = [];
+            for (let j = 0; j < this.nCellLines; j++) {
+                const val = this.geneEffects[geneIdx * this.nCellLines + j];
+                if (isNaN(val)) continue;
+                const cl = this.metadata.cellLines[j];
+                if (gateAIds.has(cl)) valsA.push(val);
+                else if (gateBIds.has(cl)) valsB.push(val);
+            }
+            const meanA = valsA.length ? valsA.reduce((a, b) => a + b, 0) / valsA.length : 0;
+            const meanB = valsB.length ? valsB.reduce((a, b) => a + b, 0) / valsB.length : 0;
+            Plotly.newPlot(plotDiv, [
+                { y: valsA, x: valsA.map(() => 'Gate A'), type: 'box', name: `Gate A (n=${valsA.length})`, marker: { color: '#2563eb' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true },
+                { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true }
+            ], {
+                title: { text: `${gene} \u2014 Gene Effect (\u0394=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
+                yaxis: { title: 'Gene Effect (CERES)' }, height: 260, margin: { t: 35, b: 30, l: 50, r: 15 }, showlegend: false
+            }, { displayModeBar: false, responsive: true });
+
+        } else if (type === 'expression') {
+            if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata) {
+                plotDiv.innerHTML = '<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">Expression data not loaded</div>';
+                return;
+            }
+            const exprGeneIdx = this.expressionGeneIndex.get(gene.toUpperCase());
+            if (exprGeneIdx === undefined) {
+                plotDiv.innerHTML = '<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">Gene not found in expression data: ' + gene + '</div>';
+                return;
+            }
+            const nExprCellLines = this.expressionMetadata.nCellLines;
+            const exprCellLineIndex = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, idx) => { exprCellLineIndex.set(cl, idx); });
+            const valsA = [], valsB = [];
+            for (const d of gateA) {
+                const exprIdx = exprCellLineIndex.get(d.cellLineId);
+                if (exprIdx !== undefined) { const val = this.expressionData[exprGeneIdx * nExprCellLines + exprIdx]; if (!isNaN(val)) valsA.push(val); }
+            }
+            for (const d of gateB) {
+                const exprIdx = exprCellLineIndex.get(d.cellLineId);
+                if (exprIdx !== undefined) { const val = this.expressionData[exprGeneIdx * nExprCellLines + exprIdx]; if (!isNaN(val)) valsB.push(val); }
+            }
+            const meanA = valsA.length ? valsA.reduce((a, b) => a + b, 0) / valsA.length : 0;
+            const meanB = valsB.length ? valsB.reduce((a, b) => a + b, 0) / valsB.length : 0;
+            Plotly.newPlot(plotDiv, [
+                { y: valsA, x: valsA.map(() => 'Gate A'), type: 'box', name: `Gate A (n=${valsA.length})`, marker: { color: '#2563eb' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true },
+                { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true }
+            ], {
+                title: { text: `${gene} \u2014 Expression (\u0394=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
+                yaxis: { title: 'Expression (log2 TPM+1)' }, height: 260, margin: { t: 35, b: 30, l: 50, r: 15 }, showlegend: false
+            }, { displayModeBar: false, responsive: true });
+        }
+
+        plotDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async loadGEGateExpressionComparison() {
+        const container = document.getElementById('geGateCompareContent');
+        container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">Loading expression data...</div>';
+
+        try {
+            await this.loadExpressionData();
+        } catch (err) {
+            container.innerHTML = `<div style="padding:20px;text-align:center;color:#ef4444;">Failed to load expression data: ${err.message}</div>`;
+            return;
+        }
+
+        if (!this._geGateA?.length || !this._geGateB?.length || !this._geGateCompareResults) {
+            container.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">Gate data not available. Re-run gate comparison.</div>';
+            return;
+        }
+
+        container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">Computing differential expression...</div>';
+        await new Promise(r => setTimeout(r, 50));
+
+        const gateA = this._geGateA;
+        const gateB = this._geGateB;
+        const nExprCellLines = this.expressionMetadata.nCellLines;
+        const exprGeneNames = this.expressionMetadata.genes;
+        const exprCellLineIndex = new Map();
+        this.expressionMetadata.cellLines.forEach((cl, idx) => { exprCellLineIndex.set(cl, idx); });
+
+        const diffExpr = [];
+        for (let gi = 0; gi < exprGeneNames.length; gi++) {
+            const eValsA = [], eValsB = [];
+            for (const d of gateA) {
+                const exprIdx = exprCellLineIndex.get(d.cellLineId);
+                if (exprIdx !== undefined) { const val = this.expressionData[gi * nExprCellLines + exprIdx]; if (!isNaN(val)) eValsA.push(val); }
+            }
+            for (const d of gateB) {
+                const exprIdx = exprCellLineIndex.get(d.cellLineId);
+                if (exprIdx !== undefined) { const val = this.expressionData[gi * nExprCellLines + exprIdx]; if (!isNaN(val)) eValsB.push(val); }
+            }
+            if (eValsA.length >= 2 && eValsB.length >= 2) {
+                const meanA = eValsA.reduce((a, b) => a + b, 0) / eValsA.length;
+                const meanB = eValsB.reduce((a, b) => a + b, 0) / eValsB.length;
+                const tTest = this.welchTTest(eValsA, eValsB);
+                diffExpr.push({ gene: exprGeneNames[gi], meanA, meanB, diff: meanA - meanB, pValue: tTest.p, nA: eValsA.length, nB: eValsB.length });
+            }
+            if (gi % 1000 === 0 && gi > 0) await new Promise(r => setTimeout(r, 0));
+        }
+        diffExpr.sort((a, b) => a.pValue - b.pValue);
+
+        this._geGateCompareResults.diffExpr = diffExpr;
+        this.renderGEGateTab('expression');
     }
 
     enrichrGateDiffGE() {
@@ -11868,6 +12718,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Mark this as regular gene effect view
         this.geneEffectViewMode = 'geneEffect';
+
+        // Hide GE gate controls (only shown in mutation inspect mode)
+        const geGateCtrl = document.getElementById('geGateControls');
+        if (geGateCtrl) geGateCtrl.style.display = 'none';
+        const geGatePanel = document.getElementById('geGateComparePanel');
+        if (geGatePanel) geGatePanel.style.display = 'none';
 
         // Show hotspot/fusion filters in standalone mode (hide mutation-inspect-only controls)
         document.getElementById('geCompareButtons').style.display = 'none';

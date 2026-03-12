@@ -2026,7 +2026,7 @@
                                 <button class="btn btn-sm" id="setGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled>Set Gate B</button>
                                 <button class="btn btn-success btn-sm" id="compareGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Compare</button>
                             </div>
-                            <div id="gateStatus" style="font-size: 9px; color: #6b7280; margin-top: 3px;">Use box/lasso select on plot to define gates</div>
+                            <div id="gateStatus" style="font-size: 9px; color: #6b7280; margin-top: 3px;">Draw rectangles on plot to define gates</div>
                         </div>
 
                         <!-- Highlight Cell Lines -->
@@ -2259,6 +2259,41 @@
                         <button class="btn btn-sm" id="geInlineCompareClose" style="background: #ef4444; color: white; padding: 2px 8px; font-size: 11px;">Close</button>
                     </div>
                     <div id="geInlineCompareBody"></div>
+                </div>
+
+                <!-- GE Gate Compare Controls -->
+                <div id="geGateControls" style="display: none; margin-top: 12px; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 600; color: #374151;">Gate Compare</span>
+                        <button class="btn btn-outline btn-sm" id="geClearGatesBtn" style="font-size: 10px; padding: 1px 6px; display: none;">Clear</button>
+                    </div>
+                    <div style="margin-top: 4px; display: flex; gap: 4px; align-items: center;">
+                        <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;">Set Gate A</button>
+                        <button class="btn btn-sm" id="geSetGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled>Set Gate B</button>
+                        <button class="btn btn-success btn-sm" id="geCompareGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Compare</button>
+                    </div>
+                    <div id="geGateStatus" style="font-size: 9px; color: #6b7280; margin-top: 3px;">Draw rectangles on plot to define gates</div>
+                </div>
+
+                <!-- GE Gate Comparison Results Panel -->
+                <div id="geGateComparePanel" style="display: none; margin-top: 12px; border: 2px solid #5a9f4a; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #5a9f4a; color: white; padding: 8px 15px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>Gate Comparison: <span id="geGateCompareTitle">Gate A vs Gate B</span></span>
+                        <button id="closeGEGateCompare" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+                    </div>
+                    <div style="padding: 15px;">
+                        <div style="display: flex; gap: 20px; margin-bottom: 15px; font-size: 12px;">
+                            <div><span style="display: inline-block; width: 12px; height: 12px; background: #2563eb; border-radius: 2px; margin-right: 4px; vertical-align: middle;"></span><strong>Gate A:</strong> <span id="geGateASummary">-</span></div>
+                            <div><span style="display: inline-block; width: 12px; height: 12px; background: #dc2626; border-radius: 2px; margin-right: 4px; vertical-align: middle;"></span><strong>Gate B:</strong> <span id="geGateBSummary">-</span></div>
+                        </div>
+                        <div style="display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">
+                            <button class="btn btn-sm ge-gate-tab active" data-ge-gate-tab="tissue" style="font-size: 11px; padding: 3px 10px;">Tissue</button>
+                            <button class="btn btn-sm ge-gate-tab" data-ge-gate-tab="mutations" style="font-size: 11px; padding: 3px 10px;">Mutations</button>
+                            <button class="btn btn-sm ge-gate-tab" data-ge-gate-tab="diffge" style="font-size: 11px; padding: 3px 10px;">Diff GE</button>
+                            <button class="btn btn-sm ge-gate-tab" data-ge-gate-tab="expression" style="font-size: 11px; padding: 3px 10px;">Expression</button>
+                        </div>
+                        <div id="geGateCompareContent" style="max-height: 400px; overflow-y: auto; overscroll-behavior: contain;"></div>
+                    </div>
                 </div>
 
                 <!-- Download buttons -->
