@@ -1591,6 +1591,8 @@ class CorrelationExplorer {
             if (e.target.classList.contains('gate-tab')) {
                 document.querySelectorAll('.gate-tab').forEach(t => t.classList.remove('active'));
                 e.target.classList.add('active');
+                this._gateSortCol = null;
+                this._gateSortAsc = true;
                 this.renderGateTab(e.target.dataset.gateTab);
             }
         });
@@ -8400,6 +8402,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
             // Add click handler
             this.setupScatterClickHandler(filteredData);
+            this._currentFilteredData = filteredData;
 
             // Build custom HTML legend for color-by mode
             if (colorByCategories) {
@@ -8707,6 +8710,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 }
             });
             this.setupScatterClickHandler(filteredData);
+            this._currentFilteredData = filteredData;
 
             // Build custom HTML legend for color-by mode
             if (categoryOrder) {
@@ -9598,9 +9602,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         plotEl.on('plotly_selected', (eventData) => {
             if (!eventData || !eventData.points || eventData.points.length === 0) return;
 
+            const matchData = this._currentFilteredData || this.currentInspect?.data || [];
             const selectedCells = eventData.points.map(p => {
-                // Match to our data
-                const match = this.currentInspect?.data?.find(d =>
+                // Match to filtered data (what's visible on screen)
+                const match = matchData.find(d =>
                     Math.abs(d.x - p.x) < 0.001 && Math.abs(d.y - p.y) < 0.001
                 );
                 return match;
@@ -9681,6 +9686,26 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }));
         tissueStats.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
 
+        // 1b. Subtissue (primaryDisease) enrichment
+        const subtissueA = {}, subtissueB = {};
+        gateA.forEach(d => {
+            const st = this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown';
+            subtissueA[st] = (subtissueA[st] || 0) + 1;
+        });
+        gateB.forEach(d => {
+            const st = this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown';
+            subtissueB[st] = (subtissueB[st] || 0) + 1;
+        });
+        const allSubtissues = [...new Set([...Object.keys(subtissueA), ...Object.keys(subtissueB)])].sort();
+        const subtissueStats = allSubtissues.map(st => ({
+            tissue: st,
+            nA: subtissueA[st] || 0,
+            pctA: ((subtissueA[st] || 0) / gateA.length * 100),
+            nB: subtissueB[st] || 0,
+            pctB: ((subtissueB[st] || 0) / gateB.length * 100)
+        }));
+        subtissueStats.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
+
         // 2. Mutation enrichment (hotspot + damaging mutations)
         const mutStats = [];
         const gateMutSources = [];
@@ -9755,7 +9780,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
         diffGE.sort((a, b) => a.pValue - b.pValue);
 
-        this._gateCompareResults = { tissueStats, mutStats, diffGE };
+        this._gateCompareResults = { tissueStats, subtissueStats, mutStats, diffGE };
+        this._gateSortCol = null;
+        this._gateSortAsc = true;
 
         document.getElementById('gateStatus').textContent = `Comparison complete. Gate A: ${gateA.length}, Gate B: ${gateB.length}`;
         document.getElementById('gateStatus').style.color = '#16a34a';
@@ -9774,18 +9801,36 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const r = this._gateCompareResults;
         if (!r) return;
         const container = document.getElementById('gateCompareContent');
+        this._currentGateTab = tab;
+
+        const sortIcon = (col) => {
+            if (this._gateSortCol !== col) return ' <span style="opacity:0.3;">↕</span>';
+            return this._gateSortAsc ? ' ▲' : ' ▼';
+        };
+        const thStyle = 'padding:5px;cursor:pointer;user-select:none;white-space:nowrap;';
 
         if (tab === 'tissue') {
+            // Apply default sort if no sort set
+            if (!this._gateSortCol) { this._gateSortCol = 'absDelta'; this._gateSortAsc = false; }
+            const data = [...r.tissueStats];
+            this._sortGateData(data, {
+                tissue: d => d.tissue.toLowerCase(),
+                nA: d => d.nA, pctA: d => d.pctA,
+                nB: d => d.nB, pctB: d => d.pctB,
+                delta: d => d.pctA - d.pctB,
+                absDelta: d => Math.abs(d.pctA - d.pctB)
+            });
+
             let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
                 <thead><tr style="background:#f3f4f6;">
-                    <th style="padding:5px;text-align:left;">Tissue</th>
-                    <th style="padding:5px;text-align:center;">Gate A</th>
-                    <th style="padding:5px;text-align:center;">%A</th>
-                    <th style="padding:5px;text-align:center;">Gate B</th>
-                    <th style="padding:5px;text-align:center;">%B</th>
-                    <th style="padding:5px;text-align:center;">Δ%</th>
+                    <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('tissue')">Tissue${sortIcon('tissue')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('nA')">Gate A${sortIcon('nA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pctA')">%A${sortIcon('pctA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('nB')">Gate B${sortIcon('nB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pctB')">%B${sortIcon('pctB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('absDelta')">|Δ%|${sortIcon('absDelta')}</th>
                 </tr></thead><tbody>`;
-            r.tissueStats.forEach(t => {
+            data.forEach(t => {
                 const delta = t.pctA - t.pctB;
                 const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
                 html += `<tr>
@@ -9798,6 +9843,36 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 </tr>`;
             });
             html += '</tbody></table>';
+
+            // Subtissue section
+            if (r.subtissueStats && r.subtissueStats.length > 0) {
+                const subData = [...r.subtissueStats];
+                subData.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
+                html += `<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;">
+                    <div style="font-size:11px;font-weight:600;margin-bottom:6px;color:#374151;">Subtissue (Primary Disease)</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                    <thead><tr style="background:#f3f4f6;">
+                        <th style="padding:5px;text-align:left;">Subtype</th>
+                        <th style="padding:5px;text-align:center;">Gate A</th>
+                        <th style="padding:5px;text-align:center;">%A</th>
+                        <th style="padding:5px;text-align:center;">Gate B</th>
+                        <th style="padding:5px;text-align:center;">%B</th>
+                        <th style="padding:5px;text-align:center;">|Δ%|</th>
+                    </tr></thead><tbody>`;
+                subData.forEach(t => {
+                    const delta = t.pctA - t.pctB;
+                    const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
+                    html += `<tr>
+                        <td style="padding:4px;border-bottom:1px solid #eee;">${t.tissue}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.nA}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.pctA.toFixed(1)}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.nB}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.pctB.toFixed(1)}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table></div>';
+            }
             container.innerHTML = html;
 
         } else if (tab === 'mutations') {
@@ -9805,17 +9880,27 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">No hotspot mutation data available</div>';
                 return;
             }
+            if (!this._gateSortCol) { this._gateSortCol = 'pValue'; this._gateSortAsc = true; }
+            const data = [...r.mutStats];
+            this._sortGateData(data, {
+                gene: d => d.gene.toLowerCase(),
+                mutA: d => d.mutA, pctA: d => d.pctA,
+                mutB: d => d.mutB, pctB: d => d.pctB,
+                delta: d => d.pctA - d.pctB,
+                pValue: d => d.pValue
+            });
+
             let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
                 <thead><tr style="background:#f3f4f6;">
-                    <th style="padding:5px;text-align:left;">Gene</th>
-                    <th style="padding:5px;text-align:center;">Mut A</th>
-                    <th style="padding:5px;text-align:center;">%A</th>
-                    <th style="padding:5px;text-align:center;">Mut B</th>
-                    <th style="padding:5px;text-align:center;">%B</th>
-                    <th style="padding:5px;text-align:center;">Δ%</th>
-                    <th style="padding:5px;text-align:center;">p-value</th>
+                    <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('mutA')">Mut A${sortIcon('mutA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pctA')">%A${sortIcon('pctA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('mutB')">Mut B${sortIcon('mutB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pctB')">%B${sortIcon('pctB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('delta')">Δ%${sortIcon('delta')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pValue')">p-value${sortIcon('pValue')}</th>
                 </tr></thead><tbody>`;
-            r.mutStats.slice(0, 50).forEach(m => {
+            data.slice(0, 50).forEach(m => {
                 const delta = m.pctA - m.pctB;
                 const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
                 const pStr = m.pValue < 0.001 ? '<0.001' : m.pValue.toFixed(3);
@@ -9833,16 +9918,28 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             container.innerHTML = html;
 
         } else if (tab === 'diffge') {
-            let html = `<p style="font-size:10px;color:#6b7280;margin:0 0 8px;">Top genes with different gene effect between gates (Welch's t-test). Click gene to open Gene Effect analysis.</p>
+            if (!this._gateSortCol) { this._gateSortCol = 'diff'; this._gateSortAsc = true; }
+            const data = [...r.diffGE];
+            this._sortGateData(data, {
+                gene: d => d.gene.toLowerCase(),
+                meanA: d => d.meanA, meanB: d => d.meanB,
+                diff: d => d.diff,
+                pValue: d => d.pValue
+            });
+
+            let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <p style="font-size:10px;color:#6b7280;margin:0;">Top genes with different gene effect between gates (Welch's t-test). Click gene to open Gene Effect analysis.</p>
+                <button onclick="app.enrichrGateDiffGE()" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;margin-left:8px;" title="Submit top 100 most depleted genes (Gate A vs B) to Enrichr">Enrichr ↗</button>
+            </div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
                 <thead><tr style="background:#f3f4f6;">
-                    <th style="padding:5px;text-align:left;">Gene</th>
-                    <th style="padding:5px;text-align:center;">Mean A</th>
-                    <th style="padding:5px;text-align:center;">Mean B</th>
-                    <th style="padding:5px;text-align:center;">Δ GE</th>
-                    <th style="padding:5px;text-align:center;">p-value</th>
+                    <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('meanA')">Mean A${sortIcon('meanA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('meanB')">Mean B${sortIcon('meanB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('diff')">Δ GE${sortIcon('diff')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pValue')">p-value${sortIcon('pValue')}</th>
                 </tr></thead><tbody>`;
-            r.diffGE.slice(0, 100).forEach(d => {
+            data.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
                 const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
                 html += `<tr style="cursor:pointer;" onclick="app.openGeneEffectModal('${d.gene}', 'tissue')">
@@ -9856,6 +9953,48 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             html += '</tbody></table>';
             container.innerHTML = html;
         }
+    }
+
+    _sortGateData(data, accessors) {
+        const col = this._gateSortCol;
+        const asc = this._gateSortAsc;
+        if (!col || !accessors[col]) return;
+        const fn = accessors[col];
+        data.sort((a, b) => {
+            const va = fn(a), vb = fn(b);
+            if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+            return asc ? va - vb : vb - va;
+        });
+    }
+
+    sortGateTable(col) {
+        if (this._gateSortCol === col) {
+            this._gateSortAsc = !this._gateSortAsc;
+        } else {
+            this._gateSortCol = col;
+            this._gateSortAsc = true;
+        }
+        this.renderGateTab(this._currentGateTab || 'tissue');
+    }
+
+    enrichrGateDiffGE() {
+        const r = this._gateCompareResults;
+        if (!r || !r.diffGE || r.diffGE.length === 0) return;
+
+        // Top 100 genes sorted by Δ GE ascending (most depleted in Gate A vs B)
+        const sorted = [...r.diffGE].sort((a, b) => a.diff - b.diff);
+        const genes = sorted.slice(0, 100).map(d => d.gene);
+
+        const modal = document.getElementById('enrichrModal');
+        const title = document.getElementById('enrichrModalTitle');
+        const content = document.getElementById('enrichrContent');
+        title.textContent = `Enrichr — Top 100 depleted genes (Gate A vs B)`;
+        content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
+        modal.style.display = 'block';
+
+        this.submitToEnrichr(genes).catch(err => {
+            content.innerHTML = `<div style="text-align:center; padding:60px; color:#ef4444;">Failed to connect to Enrichr.<br><small style="color:#888;">${err.message}</small></div>`;
+        });
     }
 
     setupScatterClickHandler(filteredData) {
@@ -11100,15 +11239,21 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (!this.currentInspect) return;
 
         const hotspotGene = document.getElementById('hotspotGene').value;
+        const hasGates = this._gateA?.length > 0 || this._gateB?.length > 0;
         let header = 'CellLine,CellLineID,Lineage,Subtype,Gene1_Effect,Gene2_Effect';
         const csvMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
         if (csvMutSource) {
             header += `,${hotspotGene}_mutation`;
         }
+        if (hasGates) {
+            header += ',Gate_A,Gate_B';
+        }
         header += '\n';
 
         let csv = header;
         const mutationData = csvMutSource?.mutations;
+        const gateAIds = hasGates && this._gateA ? new Set(this._gateA.map(d => d.cellLineId)) : new Set();
+        const gateBIds = hasGates && this._gateB ? new Set(this._gateB.map(d => d.cellLineId)) : new Set();
 
         this.currentInspect.data.forEach(d => {
             const subtype = this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || '';
@@ -11116,6 +11261,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (mutationData) {
                 const mutLevel = mutationData[d.cellLineId] || 0;
                 row += `,${mutLevel}`;
+            }
+            if (hasGates) {
+                row += `,${gateAIds.has(d.cellLineId) ? 1 : 0},${gateBIds.has(d.cellLineId) ? 1 : 0}`;
             }
             csv += row + '\n';
         });
