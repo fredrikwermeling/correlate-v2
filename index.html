@@ -1939,22 +1939,27 @@
                             <div class="axis-inputs" style="gap: 4px;">
                                 <div>
                                     <label>X min</label>
-                                    <input type="text" inputmode="decimal" id="scatterXmin" step="0.1">
+                                    <input type="text" id="scatterXmin" step="0.1">
                                 </div>
                                 <div>
                                     <label>X max</label>
-                                    <input type="text" inputmode="decimal" id="scatterXmax" step="0.1">
+                                    <input type="text" id="scatterXmax" step="0.1">
                                 </div>
                                 <div>
                                     <label>Y min</label>
-                                    <input type="text" inputmode="decimal" id="scatterYmin" step="0.1">
+                                    <input type="text" id="scatterYmin" step="0.1">
                                 </div>
                                 <div>
                                     <label>Y max</label>
-                                    <input type="text" inputmode="decimal" id="scatterYmax" step="0.1">
+                                    <input type="text" id="scatterYmax" step="0.1">
                                 </div>
                                 <div style="display: flex; align-items: flex-end;">
                                     <button class="btn btn-outline btn-sm" id="resetAxes" style="font-size: 10px; padding: 2px 6px; width: 100%;">Reset</button>
+                                </div>
+                                <div style="display: flex; align-items: flex-end;">
+                                    <label style="font-size:11px; display:flex; align-items:center; gap:4px; cursor:pointer;">
+                                        <input type="checkbox" id="showCorrelationLine" checked> Corr. line
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -2094,7 +2099,8 @@
                         <div style="display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">
                             <button class="btn btn-sm gate-tab active" data-gate-tab="tissue" style="font-size: 11px; padding: 3px 10px;">Tissue</button>
                             <button class="btn btn-sm gate-tab" data-gate-tab="mutations" style="font-size: 11px; padding: 3px 10px;">Mutations</button>
-                            <button class="btn btn-sm gate-tab" data-gate-tab="diffge" style="font-size: 11px; padding: 3px 10px;">Differential GE</button>
+                            <button class="btn btn-sm gate-tab" data-gate-tab="diffge" style="font-size: 11px; padding: 3px 10px;">Diff GE</button>
+                            <button class="btn btn-sm gate-tab" data-gate-tab="expression" style="font-size: 11px; padding: 3px 10px;">Expression</button>
                         </div>
                         <div id="gateCompareContent" style="max-height: 400px; overflow-y: auto; overscroll-behavior: contain;"></div>
                     </div>
