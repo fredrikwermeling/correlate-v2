@@ -1655,7 +1655,8 @@ class CorrelationExplorer {
         document.getElementById('closeGateCompare')?.addEventListener('click', () => {
             document.getElementById('gateComparePanel').style.display = 'none';
         });
-        document.getElementById('exportGateReportBtn')?.addEventListener('click', () => this.exportGateReport());
+        document.getElementById('exportGateReportPNG')?.addEventListener('click', () => this.exportGateReport('png'));
+        document.getElementById('exportGateReportSVG')?.addEventListener('click', () => this.exportGateReport('svg'));
         // Gate tab switching
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('gate-tab')) {
@@ -1920,7 +1921,8 @@ class CorrelationExplorer {
         document.getElementById('closeGEGateCompare')?.addEventListener('click', () => {
             document.getElementById('geGateComparePanel').style.display = 'none';
         });
-        document.getElementById('exportGEGateReportBtn')?.addEventListener('click', () => this.exportGEGateReport());
+        document.getElementById('exportGEGateReportPNG')?.addEventListener('click', () => this.exportGEGateReport('png'));
+        document.getElementById('exportGEGateReportSVG')?.addEventListener('click', () => this.exportGEGateReport('svg'));
         // GE Gate tab switching
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('ge-gate-tab')) {
@@ -10220,6 +10222,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 pValue: d => d.pValue
             });
 
+            const pFilter = this._gatePvalueFilter || '';
             const nHotspot = r.mutStats.filter(m => m.type === 'hotspot').length;
             const nDamaging = r.mutStats.filter(m => m.type === 'damaging').length;
             let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -10229,7 +10232,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <button onclick="app.enrichrGateMutations('B')" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;" title="Submit top genes enriched in Gate B to Enrichr">Enrichr B ↗</button>
                 </div>
             </div>
-            <input type="text" id="gateGeneSearch" placeholder="Search gene..." oninput="app.filterGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;margin-bottom:4px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                <input type="text" id="gateGeneSearch" placeholder="Search gene..." oninput="app.filterGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
+                <select id="gatePvalueFilter" onchange="app._gatePvalueFilter=this.value;app.renderGateTab(app._currentGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
+                    <option value=""${pFilter === '' ? ' selected' : ''}>All p-values</option>
+                    <option value="0.05"${pFilter === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
+                    <option value="0.01"${pFilter === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
+                    <option value="0.001"${pFilter === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
+                </select>
+            </div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
@@ -10241,7 +10252,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('delta')">Δ%${sortIcon('delta')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pValue')">p-value${sortIcon('pValue')}</th>
                 </tr></thead><tbody>`;
-            data.slice(0, 100).forEach(m => {
+            const filteredMut = pFilter ? data.filter(m => m.pValue < parseFloat(pFilter)) : data;
+            filteredMut.slice(0, 100).forEach(m => {
                 const delta = m.pctA - m.pctB;
                 const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
                 const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
@@ -10273,11 +10285,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 pValue: d => d.pValue
             });
 
+            const pFilterDGE = this._gatePvalueFilter || '';
             let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                 <p style="font-size:10px;color:#6b7280;margin:0;">Top genes with different gene effect between gates (Welch's t-test). Click gene to plot.</p>
                 <button onclick="app.enrichrGateDiffGE()" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;margin-left:8px;" title="Submit top 100 most depleted genes (Gate A vs B) to Enrichr">Enrichr ↗</button>
             </div>
-            <input type="text" id="gateGeneSearch" placeholder="Search gene..." oninput="app.filterGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;margin-bottom:4px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                <input type="text" id="gateGeneSearch" placeholder="Search gene..." oninput="app.filterGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
+                <select id="gatePvalueFilter" onchange="app._gatePvalueFilter=this.value;app.renderGateTab(app._currentGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
+                    <option value=""${pFilterDGE === '' ? ' selected' : ''}>All p-values</option>
+                    <option value="0.05"${pFilterDGE === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
+                    <option value="0.01"${pFilterDGE === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
+                    <option value="0.001"${pFilterDGE === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
+                </select>
+            </div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
@@ -10286,7 +10307,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('diff')">Δ GE${sortIcon('diff')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pValue')">p-value${sortIcon('pValue')}</th>
                 </tr></thead><tbody>`;
-            data.slice(0, 100).forEach(d => {
+            const filteredDiffGE = pFilterDGE ? data.filter(d => d.pValue < parseFloat(pFilterDGE)) : data;
+            filteredDiffGE.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
                 const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
                 html += `<tr style="cursor:pointer;" onclick="app.showGateGenePlot('${d.gene}','ge')">
@@ -10322,11 +10344,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 pValue: d => d.pValue
             });
 
+            const pFilterExpr = this._gatePvalueFilter || '';
             let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                 <p style="font-size:10px;color:#6b7280;margin:0;">Mean expression (log2 TPM+1) comparison between gates (Welch's t-test). Click gene to plot. Top 100 shown.</p>
                 <button onclick="app.enrichrGateExpression()" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;margin-left:8px;" title="Submit top 100 most down-regulated genes (Gate A vs B) to Enrichr">Enrichr ↗</button>
             </div>
-            <input type="text" id="gateGeneSearch" placeholder="Search gene..." oninput="app.filterGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;margin-bottom:4px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                <input type="text" id="gateGeneSearch" placeholder="Search gene..." oninput="app.filterGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
+                <select id="gatePvalueFilter" onchange="app._gatePvalueFilter=this.value;app.renderGateTab(app._currentGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
+                    <option value=""${pFilterExpr === '' ? ' selected' : ''}>All p-values</option>
+                    <option value="0.05"${pFilterExpr === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
+                    <option value="0.01"${pFilterExpr === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
+                    <option value="0.001"${pFilterExpr === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
+                </select>
+            </div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
@@ -10335,7 +10366,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('diff')">Δ Expr${sortIcon('diff')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pValue')">p-value${sortIcon('pValue')}</th>
                 </tr></thead><tbody>`;
-            data.slice(0, 100).forEach(d => {
+            const filteredExpr = pFilterExpr ? data.filter(d => d.pValue < parseFloat(pFilterExpr)) : data;
+            filteredExpr.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
                 const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
                 html += `<tr style="cursor:pointer;" onclick="app.showGateGenePlot('${d.gene}','expression')">
@@ -10407,61 +10439,57 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 {
                     x: ['Gate A'],
                     y: [pctMutA],
-                    name: 'Mutated',
-                    legendgroup: 'mut',
+                    name: 'Gate A Mut',
                     type: 'bar',
                     marker: { color: '#2563eb' },
-                    text: [`${mutA}/${gateA.length}`],
-                    textposition: 'inside',
-                    textfont: { color: 'white', size: 11 },
-                    showlegend: true
-                },
-                {
-                    x: ['Gate B'],
-                    y: [pctMutB],
-                    name: 'Mutated',
-                    legendgroup: 'mut',
-                    type: 'bar',
-                    marker: { color: '#dc2626' },
-                    text: [`${mutB}/${gateB.length}`],
-                    textposition: 'inside',
-                    textfont: { color: 'white', size: 11 },
-                    showlegend: false
+                    text: [`${mutA}/${gateA.length} (${pctMutA.toFixed(1)}%)`],
+                    textposition: pctMutA > 10 ? 'inside' : 'outside',
+                    textfont: { color: pctMutA > 10 ? 'white' : '#2563eb', size: 10 },
+                    hovertemplate: `Gate A Mutated: ${mutA}/${gateA.length} (${pctMutA.toFixed(1)}%)<extra></extra>`
                 },
                 {
                     x: ['Gate A'],
                     y: [pctWtA],
-                    name: 'WT',
-                    legendgroup: 'wt',
+                    name: 'Gate A WT',
                     type: 'bar',
-                    marker: { color: '#93bbfd' },
-                    text: [`${wtA}`],
+                    marker: { color: 'rgba(37,99,235,0.2)' },
+                    text: [`${wtA} WT`],
                     textposition: 'inside',
-                    textfont: { color: '#333', size: 11 },
-                    showlegend: true
+                    textfont: { color: '#2563eb', size: 10 },
+                    hovertemplate: `Gate A WT: ${wtA}/${gateA.length} (${pctWtA.toFixed(1)}%)<extra></extra>`
+                },
+                {
+                    x: ['Gate B'],
+                    y: [pctMutB],
+                    name: 'Gate B Mut',
+                    type: 'bar',
+                    marker: { color: '#dc2626' },
+                    text: [`${mutB}/${gateB.length} (${pctMutB.toFixed(1)}%)`],
+                    textposition: pctMutB > 10 ? 'inside' : 'outside',
+                    textfont: { color: pctMutB > 10 ? 'white' : '#dc2626', size: 10 },
+                    hovertemplate: `Gate B Mutated: ${mutB}/${gateB.length} (${pctMutB.toFixed(1)}%)<extra></extra>`
                 },
                 {
                     x: ['Gate B'],
                     y: [pctWtB],
-                    name: 'WT',
-                    legendgroup: 'wt',
+                    name: 'Gate B WT',
                     type: 'bar',
-                    marker: { color: '#fca5a5' },
-                    text: [`${wtB}`],
+                    marker: { color: 'rgba(220,38,38,0.2)' },
+                    text: [`${wtB} WT`],
                     textposition: 'inside',
-                    textfont: { color: '#333', size: 11 },
-                    showlegend: false
+                    textfont: { color: '#dc2626', size: 10 },
+                    hovertemplate: `Gate B WT: ${wtB}/${gateB.length} (${pctWtB.toFixed(1)}%)<extra></extra>`
                 }
             ];
             const layout = {
                 title: { text: `${gene} — Mutation Frequency`, font: { size: 13 } },
                 barmode: 'stack',
-                yaxis: { title: '% of cells', range: [0, 100] },
+                yaxis: { title: '% of cells', range: [0, 105] },
                 width: 300,
                 height: 300,
                 margin: { t: 35, b: 30, l: 45, r: 15 },
                 showlegend: true,
-                legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 10 } }
+                legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 9 } }
             };
             Plotly.newPlot(plotDiv, traces, layout, { displayModeBar: false, responsive: true });
 
@@ -11074,6 +11102,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 pValue: d => d.pValue
             });
 
+            const geGatePFilter = this._geGatePvalueFilter || '';
             const nHotspot = r.mutStats.filter(m => m.type === 'hotspot').length;
             const nDamaging = r.mutStats.filter(m => m.type === 'damaging').length;
             let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -11083,7 +11112,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <button onclick="app.enrichrGEGateMutations('B')" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;" title="Submit top genes enriched in Gate B to Enrichr">Enrichr B ↗</button>
                 </div>
             </div>
-            <input type="text" id="geGateGeneSearch" placeholder="Search gene..." oninput="app.filterGEGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;margin-bottom:4px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                <input type="text" id="geGateGeneSearch" placeholder="Search gene..." oninput="app.filterGEGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
+                <select id="geGatePvalueFilter" onchange="app._geGatePvalueFilter=this.value;app.renderGEGateTab(app._currentGEGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
+                    <option value=""${geGatePFilter === '' ? ' selected' : ''}>All p-values</option>
+                    <option value="0.05"${geGatePFilter === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
+                    <option value="0.01"${geGatePFilter === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
+                    <option value="0.001"${geGatePFilter === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
+                </select>
+            </div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('gene')">Gene${sortIcon('gene')}</th>
@@ -11095,7 +11132,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('delta')">\u0394%${sortIcon('delta')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('pValue')">p-value${sortIcon('pValue')}</th>
                 </tr></thead><tbody>`;
-            data.slice(0, 100).forEach(m => {
+            const geFilteredMut = geGatePFilter ? data.filter(m => m.pValue < parseFloat(geGatePFilter)) : data;
+            geFilteredMut.slice(0, 100).forEach(m => {
                 const delta = m.pctA - m.pctB;
                 const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
                 const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
@@ -11127,11 +11165,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 pValue: d => d.pValue
             });
 
+            const geGatePFilterDGE = this._geGatePvalueFilter || '';
             let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                 <p style="font-size:10px;color:#6b7280;margin:0;">Top genes with different gene effect between gates (Welch's t-test). Click gene to plot.</p>
                 <button onclick="app.enrichrGEGateDiffGE()" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;margin-left:8px;" title="Submit top 100 most depleted genes (Gate A vs B) to Enrichr">Enrichr ↗</button>
             </div>
-            <input type="text" id="geGateGeneSearch" placeholder="Search gene..." oninput="app.filterGEGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;margin-bottom:4px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                <input type="text" id="geGateGeneSearch" placeholder="Search gene..." oninput="app.filterGEGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
+                <select id="geGatePvalueFilter" onchange="app._geGatePvalueFilter=this.value;app.renderGEGateTab(app._currentGEGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
+                    <option value=""${geGatePFilterDGE === '' ? ' selected' : ''}>All p-values</option>
+                    <option value="0.05"${geGatePFilterDGE === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
+                    <option value="0.01"${geGatePFilterDGE === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
+                    <option value="0.001"${geGatePFilterDGE === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
+                </select>
+            </div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('gene')">Gene${sortIcon('gene')}</th>
@@ -11140,7 +11187,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('diff')">\u0394 GE${sortIcon('diff')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('pValue')">p-value${sortIcon('pValue')}</th>
                 </tr></thead><tbody>`;
-            data.slice(0, 100).forEach(d => {
+            const geFilteredDiffGE = geGatePFilterDGE ? data.filter(d => d.pValue < parseFloat(geGatePFilterDGE)) : data;
+            geFilteredDiffGE.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
                 const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
                 html += `<tr style="cursor:pointer;" onclick="app.showGEGateGenePlot('${d.gene}','ge')">
@@ -11176,11 +11224,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 pValue: d => d.pValue
             });
 
+            const geGatePFilterExpr = this._geGatePvalueFilter || '';
             let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                 <p style="font-size:10px;color:#6b7280;margin:0;">Top genes with different expression between gates (Welch's t-test). Click gene to plot.</p>
                 <button onclick="app.enrichrGEGateExpression()" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;margin-left:8px;" title="Submit top 100 most down-regulated genes (Gate A vs B) to Enrichr">Enrichr ↗</button>
             </div>
-            <input type="text" id="geGateGeneSearch" placeholder="Search gene..." oninput="app.filterGEGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;margin-bottom:4px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                <input type="text" id="geGateGeneSearch" placeholder="Search gene..." oninput="app.filterGEGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
+                <select id="geGatePvalueFilter" onchange="app._geGatePvalueFilter=this.value;app.renderGEGateTab(app._currentGEGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
+                    <option value=""${geGatePFilterExpr === '' ? ' selected' : ''}>All p-values</option>
+                    <option value="0.05"${geGatePFilterExpr === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
+                    <option value="0.01"${geGatePFilterExpr === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
+                    <option value="0.001"${geGatePFilterExpr === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
+                </select>
+            </div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('gene')">Gene${sortIcon('gene')}</th>
@@ -11189,7 +11246,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('diff')">\u0394 Expr${sortIcon('diff')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('pValue')">p-value${sortIcon('pValue')}</th>
                 </tr></thead><tbody>`;
-            data.slice(0, 100).forEach(d => {
+            const geFilteredExpr = geGatePFilterExpr ? data.filter(d => d.pValue < parseFloat(geGatePFilterExpr)) : data;
+            geFilteredExpr.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
                 const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
                 html += `<tr style="cursor:pointer;" onclick="app.showGEGateGenePlot('${d.gene}','expression')">
@@ -11249,6 +11307,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
             const mutA = gateA.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
             const mutB = gateB.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
+            const wtA = gateA.length - mutA;
+            const wtB = gateB.length - mutB;
             const pctMutA = mutA / gateA.length * 100;
             const pctMutB = mutB / gateB.length * 100;
             const pctWtA = 100 - pctMutA;
@@ -11256,31 +11316,55 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
             const traces = [
                 {
-                    x: ['Gate A', 'Gate B'],
-                    y: [pctMutA, pctMutB],
-                    name: 'Mutated',
+                    x: ['Gate A'],
+                    y: [pctMutA],
+                    name: 'Gate A Mut',
                     type: 'bar',
-                    marker: { color: ['#2563eb', '#dc2626'] },
-                    text: [`${mutA}/${gateA.length}`, `${mutB}/${gateB.length}`],
-                    textposition: 'inside',
-                    textfont: { color: 'white', size: 11 }
+                    marker: { color: '#2563eb' },
+                    text: [`${mutA}/${gateA.length} (${pctMutA.toFixed(1)}%)`],
+                    textposition: pctMutA > 10 ? 'inside' : 'outside',
+                    textfont: { color: pctMutA > 10 ? 'white' : '#2563eb', size: 10 },
+                    hovertemplate: `Gate A Mutated: ${mutA}/${gateA.length} (${pctMutA.toFixed(1)}%)<extra></extra>`
                 },
                 {
-                    x: ['Gate A', 'Gate B'],
-                    y: [pctWtA, pctWtB],
-                    name: 'WT',
+                    x: ['Gate A'],
+                    y: [pctWtA],
+                    name: 'Gate A WT',
                     type: 'bar',
-                    marker: { color: ['#93bbfd', '#fca5a5'] },
-                    text: [`${gateA.length - mutA}`, `${gateB.length - mutB}`],
+                    marker: { color: 'rgba(37,99,235,0.2)' },
+                    text: [`${wtA} WT`],
                     textposition: 'inside',
-                    textfont: { color: '#333', size: 11 }
+                    textfont: { color: '#2563eb', size: 10 },
+                    hovertemplate: `Gate A WT: ${wtA}/${gateA.length} (${pctWtA.toFixed(1)}%)<extra></extra>`
+                },
+                {
+                    x: ['Gate B'],
+                    y: [pctMutB],
+                    name: 'Gate B Mut',
+                    type: 'bar',
+                    marker: { color: '#dc2626' },
+                    text: [`${mutB}/${gateB.length} (${pctMutB.toFixed(1)}%)`],
+                    textposition: pctMutB > 10 ? 'inside' : 'outside',
+                    textfont: { color: pctMutB > 10 ? 'white' : '#dc2626', size: 10 },
+                    hovertemplate: `Gate B Mutated: ${mutB}/${gateB.length} (${pctMutB.toFixed(1)}%)<extra></extra>`
+                },
+                {
+                    x: ['Gate B'],
+                    y: [pctWtB],
+                    name: 'Gate B WT',
+                    type: 'bar',
+                    marker: { color: 'rgba(220,38,38,0.2)' },
+                    text: [`${wtB} WT`],
+                    textposition: 'inside',
+                    textfont: { color: '#dc2626', size: 10 },
+                    hovertemplate: `Gate B WT: ${wtB}/${gateB.length} (${pctWtB.toFixed(1)}%)<extra></extra>`
                 }
             ];
             Plotly.newPlot(plotDiv, traces, {
                 title: { text: `${gene} \u2014 Mutation Frequency`, font: { size: 13 } },
-                barmode: 'stack', yaxis: { title: '% of cells', range: [0, 100] },
-                height: 220, margin: { t: 35, b: 30, l: 45, r: 15 },
-                showlegend: true, legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 10 } }
+                barmode: 'stack', yaxis: { title: '% of cells', range: [0, 105] },
+                width: 300, height: 300, margin: { t: 35, b: 30, l: 45, r: 15 },
+                showlegend: true, legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 9 } }
             }, { displayModeBar: false, responsive: true });
 
         } else if (type === 'ge') {
@@ -11306,7 +11390,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true }
             ], {
                 title: { text: `${gene} \u2014 Gene Effect (\u0394=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
-                yaxis: { title: 'Gene Effect (CERES)' }, height: 260, margin: { t: 35, b: 30, l: 50, r: 15 }, showlegend: false
+                yaxis: { title: 'Gene Effect (CERES)' }, width: 300, height: 300, margin: { t: 35, b: 30, l: 50, r: 15 }, showlegend: false
             }, { displayModeBar: false, responsive: true });
 
         } else if (type === 'expression') {
@@ -11338,7 +11422,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true }
             ], {
                 title: { text: `${gene} \u2014 Expression (\u0394=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
-                yaxis: { title: 'Expression (log2 TPM+1)' }, height: 260, margin: { t: 35, b: 30, l: 50, r: 15 }, showlegend: false
+                yaxis: { title: 'Expression (log2 TPM+1)' }, width: 300, height: 300, margin: { t: 35, b: 30, l: 50, r: 15 }, showlegend: false
             }, { displayModeBar: false, responsive: true });
         }
 
@@ -11396,12 +11480,33 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this.renderGEGateTab('expression');
     }
 
+    _getGatePvalueThreshold() {
+        let pThreshold = this._gatePvalueFilter || '';
+        if (!pThreshold) {
+            pThreshold = prompt('Enter p-value threshold for Enrichr analysis:', '0.05');
+            if (!pThreshold) return null;
+        }
+        return parseFloat(pThreshold);
+    }
+
+    _getGEGatePvalueThreshold() {
+        let pThreshold = this._geGatePvalueFilter || '';
+        if (!pThreshold) {
+            pThreshold = prompt('Enter p-value threshold for Enrichr analysis:', '0.05');
+            if (!pThreshold) return null;
+        }
+        return parseFloat(pThreshold);
+    }
+
     enrichrGateDiffGE() {
         const r = this._gateCompareResults;
         if (!r || !r.diffGE || r.diffGE.length === 0) return;
 
-        // Top 100 genes sorted by Δ GE ascending (most depleted in Gate A vs B)
-        const sorted = [...r.diffGE].sort((a, b) => a.diff - b.diff);
+        const pThreshold = this._getGatePvalueThreshold();
+        if (pThreshold === null) return;
+
+        // Filter by p-value then sort by Δ GE ascending (most depleted in Gate A vs B)
+        const sorted = [...r.diffGE].filter(d => d.pValue < pThreshold).sort((a, b) => a.diff - b.diff);
         const genes = sorted.slice(0, 100).map(d => d.gene);
 
         const modal = document.getElementById('enrichrModal');
@@ -11425,10 +11530,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const r = this._gateCompareResults;
         if (!r || !r.mutStats || r.mutStats.length === 0) return;
 
-        // Genes more mutated in the chosen gate, sorted by delta descending, top 100
+        const pThreshold = this._getGatePvalueThreshold();
+        if (pThreshold === null) return;
+
+        // Filter by p-value, then genes more mutated in the chosen gate
         const filtered = gate === 'A'
-            ? r.mutStats.filter(m => m.diff > 0).sort((a, b) => b.diff - a.diff)
-            : r.mutStats.filter(m => m.diff < 0).sort((a, b) => a.diff - b.diff);
+            ? r.mutStats.filter(m => m.diff > 0 && m.pValue < pThreshold).sort((a, b) => b.diff - a.diff)
+            : r.mutStats.filter(m => m.diff < 0 && m.pValue < pThreshold).sort((a, b) => a.diff - b.diff);
         const genes = filtered.slice(0, 100).map(m => m.gene);
 
         if (genes.length < 2) {
@@ -11521,8 +11629,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const r = this._gateCompareResults;
         if (!r || !r.diffExpr || r.diffExpr.length === 0) return;
 
-        // Top 100 genes sorted by Δ expression ascending (most down-regulated in Gate A vs B)
-        const sorted = [...r.diffExpr].sort((a, b) => a.diff - b.diff);
+        const pThreshold = this._getGatePvalueThreshold();
+        if (pThreshold === null) return;
+
+        // Filter by p-value then sort by Δ expression ascending (most down-regulated in Gate A vs B)
+        const sorted = [...r.diffExpr].filter(d => d.pValue < pThreshold).sort((a, b) => a.diff - b.diff);
         const genes = sorted.slice(0, 100).map(d => d.gene);
 
         if (genes.length < 2) {
@@ -11572,9 +11683,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const r = this._geGateCompareResults;
         if (!r || !r.mutStats || r.mutStats.length === 0) return;
 
+        const pThreshold = this._getGEGatePvalueThreshold();
+        if (pThreshold === null) return;
+
         const filtered = gate === 'A'
-            ? r.mutStats.filter(m => m.diff > 0).sort((a, b) => b.diff - a.diff)
-            : r.mutStats.filter(m => m.diff < 0).sort((a, b) => a.diff - b.diff);
+            ? r.mutStats.filter(m => m.diff > 0 && m.pValue < pThreshold).sort((a, b) => b.diff - a.diff)
+            : r.mutStats.filter(m => m.diff < 0 && m.pValue < pThreshold).sort((a, b) => a.diff - b.diff);
         const genes = filtered.slice(0, 100).map(m => m.gene);
 
         if (genes.length < 2) {
@@ -11598,7 +11712,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const r = this._geGateCompareResults;
         if (!r || !r.diffGE || r.diffGE.length === 0) return;
 
-        const sorted = [...r.diffGE].sort((a, b) => a.diff - b.diff);
+        const pThreshold = this._getGEGatePvalueThreshold();
+        if (pThreshold === null) return;
+
+        const sorted = [...r.diffGE].filter(d => d.pValue < pThreshold).sort((a, b) => a.diff - b.diff);
         const genes = sorted.slice(0, 100).map(d => d.gene);
 
         if (genes.length < 2) {
@@ -11622,7 +11739,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const r = this._geGateCompareResults;
         if (!r || !r.diffExpr || r.diffExpr.length === 0) return;
 
-        const sorted = [...r.diffExpr].sort((a, b) => a.diff - b.diff);
+        const pThreshold = this._getGEGatePvalueThreshold();
+        if (pThreshold === null) return;
+
+        const sorted = [...r.diffExpr].filter(d => d.pValue < pThreshold).sort((a, b) => a.diff - b.diff);
         const genes = sorted.slice(0, 100).map(d => d.gene);
 
         if (genes.length < 2) {
@@ -16775,53 +16895,79 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
     }
 
-    async exportGateReport() {
+    _buildGateReportFilename(prefix) {
+        const parts = [prefix];
+        const ci = this.currentInspect;
+        if (ci) {
+            parts.push(ci.gene1 || '');
+            parts.push('vs');
+            parts.push(ci.gene2 || '');
+        }
+        const tissue = document.getElementById('scatterCancerFilter')?.value;
+        if (tissue) parts.push(tissue.replace(/[^a-zA-Z0-9]/g, '_'));
+        return parts.filter(Boolean).join('_');
+    }
+
+    _buildGEGateReportFilename(prefix) {
+        const parts = [prefix];
+        if (this.currentGeneEffectGene) parts.push(this.currentGeneEffectGene);
+        const mr = this.mutationResults;
+        if (mr?.hotspotGene) parts.push(mr.hotspotGene);
+        const tissue = document.getElementById('geTissueFilter')?.value;
+        if (tissue) parts.push(tissue.replace(/[^a-zA-Z0-9]/g, '_'));
+        return parts.filter(Boolean).join('_');
+    }
+
+    async exportGateReport(format = 'png') {
         const scatterEl = document.getElementById('scatterPlot');
         const genePlotEl = document.getElementById('gateGenePlot');
         if (!scatterEl || !scatterEl.data) return;
 
-        // Capture images from Plotly
-        const scatterW = scatterEl.layout.width || 600;
-        const scatterH = scatterEl.layout.height || 500;
-        const scatterDataUrl = await Plotly.toImage(scatterEl, { format: 'png', width: scatterW, height: scatterH, scale: 2 });
+        const plotH = 450;
+        const scatterW = 450;
+        const genePlotW = 450;
+
+        const scatterDataUrl = await Plotly.toImage(scatterEl, { format: format === 'svg' ? 'svg' : 'png', width: scatterW, height: plotH, scale: 2 });
 
         let genePlotDataUrl = null;
-        let genePlotW = 0, genePlotH = 0;
         if (genePlotEl && genePlotEl.data) {
-            genePlotW = genePlotEl.layout.width || 400;
-            genePlotH = genePlotEl.layout.height || 400;
-            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: 'png', width: genePlotW, height: genePlotH, scale: 2 });
+            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: format === 'svg' ? 'svg' : 'png', width: genePlotW, height: plotH, scale: 2 });
         }
 
-        // Gather filter info
         const filters = this._gatherScatterFilters();
+        const filenameBase = this._buildGateReportFilename('gate_comparison');
 
-        // Compose
-        await this._composeGateReportImage(scatterDataUrl, scatterW, scatterH, genePlotDataUrl, genePlotW, genePlotH, filters, 'gate_report');
+        if (format === 'svg') {
+            await this._composeGateReportSVG(scatterDataUrl, scatterW, plotH, genePlotDataUrl, genePlotW, plotH, filters, filenameBase);
+        } else {
+            await this._composeGateReportImage(scatterDataUrl, scatterW, plotH, genePlotDataUrl, genePlotW, plotH, filters, filenameBase);
+        }
     }
 
-    async exportGEGateReport() {
+    async exportGEGateReport(format = 'png') {
         const gePlotEl = document.getElementById('geneEffectPlot');
         const genePlotEl = document.getElementById('geGateGenePlot');
         if (!gePlotEl || !gePlotEl.data) return;
 
-        const geW = gePlotEl.layout.width || 600;
-        const geH = gePlotEl.layout.height || 400;
-        const geDataUrl = await Plotly.toImage(gePlotEl, { format: 'png', width: geW, height: geH, scale: 2 });
+        const plotH = 450;
+        const mainW = 450;
+        const genePlotW = 450;
+
+        const geDataUrl = await Plotly.toImage(gePlotEl, { format: format === 'svg' ? 'svg' : 'png', width: mainW, height: plotH, scale: 2 });
 
         let genePlotDataUrl = null;
-        let genePlotW = 0, genePlotH = 0;
         if (genePlotEl && genePlotEl.data) {
-            genePlotW = genePlotEl.layout.width || 400;
-            genePlotH = genePlotEl.layout.height || 400;
-            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: 'png', width: genePlotW, height: genePlotH, scale: 2 });
+            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: format === 'svg' ? 'svg' : 'png', width: genePlotW, height: plotH, scale: 2 });
         }
 
-        // Gather filter info for GE context
         const filters = this._gatherGEFilters();
+        const filenameBase = this._buildGEGateReportFilename('ge_gate_comparison');
 
-        const gene = this.currentGeneEffectGene || 'unknown';
-        await this._composeGateReportImage(geDataUrl, geW, geH, genePlotDataUrl, genePlotW, genePlotH, filters, `ge_gate_report_${gene}`);
+        if (format === 'svg') {
+            await this._composeGateReportSVG(geDataUrl, mainW, plotH, genePlotDataUrl, genePlotW, plotH, filters, filenameBase);
+        } else {
+            await this._composeGateReportImage(geDataUrl, mainW, plotH, genePlotDataUrl, genePlotW, plotH, filters, filenameBase);
+        }
     }
 
     _gatherScatterFilters() {
@@ -16871,12 +17017,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     }
 
     async _composeGateReportImage(mainDataUrl, mainW, mainH, genePlotDataUrl, genePlotW, genePlotH, filterLines, filenameBase) {
-        const scale = 2; // render at 2x for quality
+        const scale = 2;
         const padding = 20;
         const textLineHeight = 18;
         const textFontSize = 13;
 
-        // Load images
         const mainImg = await this._loadImage(mainDataUrl);
 
         let geneImg = null;
@@ -16884,7 +17029,6 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             geneImg = await this._loadImage(genePlotDataUrl);
         }
 
-        // Calculate canvas dimensions (in logical pixels — we scale the canvas)
         const leftW = mainW;
         const leftH = mainH;
         const rightW = geneImg ? genePlotW : 0;
@@ -16901,20 +17045,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const ctx = canvas.getContext('2d');
         ctx.scale(scale, scale);
 
-        // White background
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, totalW, totalH);
 
-        // Draw main plot (left)
         ctx.drawImage(mainImg, padding, padding, leftW, leftH);
 
-        // Draw gene plot (right), vertically centered relative to main plot
         if (geneImg) {
             const geneY = padding + (plotsHeight - rightH) / 2;
             ctx.drawImage(geneImg, padding + leftW + padding, geneY, rightW, rightH);
         }
 
-        // Draw filter text below plots
         const textY = padding + plotsHeight + padding;
         ctx.fillStyle = '#374151';
         ctx.font = `${textFontSize}px "Open Sans", sans-serif`;
@@ -16922,13 +17062,71 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             ctx.fillText(line, padding, textY + i * textLineHeight + textFontSize);
         });
 
-        // Download
         const link = document.createElement('a');
         link.download = `${filenameBase}.png`;
         link.href = canvas.toDataURL('image/png');
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+
+    async _composeGateReportSVG(mainSvgStr, mainW, mainH, genePlotSvgStr, genePlotW, genePlotH, filterLines, filenameBase) {
+        const padding = 20;
+        const textLineHeight = 18;
+        const textFontSize = 13;
+
+        const leftW = mainW;
+        const leftH = mainH;
+        const rightW = genePlotSvgStr ? genePlotW : 0;
+        const rightH = genePlotSvgStr ? genePlotH : 0;
+        const plotsWidth = leftW + (genePlotSvgStr ? padding + rightW : 0);
+        const plotsHeight = Math.max(leftH, rightH);
+        const textBlockHeight = filterLines.length * textLineHeight + padding;
+        const totalW = plotsWidth + padding * 2;
+        const totalH = plotsHeight + textBlockHeight + padding * 2;
+
+        // Extract inner SVG content from Plotly SVG strings
+        const extractSvgInner = (svgStr) => {
+            // Plotly toImage returns a data URI for SVG
+            let decoded = svgStr;
+            if (svgStr.startsWith('data:image/svg+xml,')) {
+                decoded = decodeURIComponent(svgStr.replace('data:image/svg+xml,', ''));
+            } else if (svgStr.startsWith('data:image/svg+xml;base64,')) {
+                decoded = atob(svgStr.replace('data:image/svg+xml;base64,', ''));
+            }
+            return decoded;
+        };
+
+        let svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}">
+<rect width="${totalW}" height="${totalH}" fill="white"/>
+<g transform="translate(${padding},${padding})">
+<image href="${mainSvgStr}" width="${leftW}" height="${leftH}"/>
+</g>`;
+
+        if (genePlotSvgStr) {
+            const geneY = padding + (plotsHeight - rightH) / 2;
+            svgContent += `\n<g transform="translate(${padding + leftW + padding},${geneY})">
+<image href="${genePlotSvgStr}" width="${rightW}" height="${rightH}"/>
+</g>`;
+        }
+
+        const textY = padding + plotsHeight + padding;
+        filterLines.forEach((line, i) => {
+            const escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            svgContent += `\n<text x="${padding}" y="${textY + i * textLineHeight + textFontSize}" font-family="Open Sans, sans-serif" font-size="${textFontSize}" fill="#374151">${escaped}</text>`;
+        });
+
+        svgContent += '\n</svg>';
+
+        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+        const link = document.createElement('a');
+        link.download = `${filenameBase}.svg`;
+        link.href = URL.createObjectURL(blob);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
     }
 
     _loadImage(dataUrl) {
