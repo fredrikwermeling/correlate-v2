@@ -1579,10 +1579,10 @@ class CorrelationExplorer {
         document.getElementById('resetAllFilters').addEventListener('click', () => this.resetAllInspectFilters());
 
         // Gate controls
-        document.getElementById('setGateABtn').addEventListener('click', () => this.startGateSelection('A'));
-        document.getElementById('setGateBBtn').addEventListener('click', () => this.startGateSelection('B'));
-        document.getElementById('compareGatesBtn').addEventListener('click', () => this.compareGates());
-        document.getElementById('clearGatesBtn').addEventListener('click', () => this.clearGates());
+        document.getElementById('setGateABtn')?.addEventListener('click', () => this.startGateSelection('A'));
+        document.getElementById('setGateBBtn')?.addEventListener('click', () => this.startGateSelection('B'));
+        document.getElementById('compareGatesBtn')?.addEventListener('click', () => this.compareGates());
+        document.getElementById('clearGatesBtn')?.addEventListener('click', () => this.clearGates());
         document.getElementById('closeGateCompare')?.addEventListener('click', () => {
             document.getElementById('gateComparePanel').style.display = 'none';
         });
@@ -7919,7 +7919,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         // Apply mutation filter (separate from overlay)
-        if (mutFilterGene && this.mutations?.geneData?.[mutFilterGene] && mutFilterLevel !== 'all') {
+        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
             const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
@@ -9005,7 +9005,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         // Apply mutation filter
-        if (mutFilterGene && this.mutations?.geneData?.[mutFilterGene] && mutFilterLevel !== 'all') {
+        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
             const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
@@ -9207,7 +9207,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             );
         }
 
-        if (mutFilterGene && this.mutations?.geneData?.[mutFilterGene] && mutFilterLevel !== 'all') {
+        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
             const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
@@ -9439,7 +9439,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         let filteredData = [...data];
 
         // Apply mutation filter
-        if (mutFilterGene && this.mutations?.geneData?.[mutFilterGene] && mutFilterLevel !== 'all') {
+        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
             const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
@@ -9658,22 +9658,19 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this._gateSelecting = null;
         this._gateCompareResults = null;
 
-        document.getElementById('setGateABtn').textContent = 'Set Gate A';
-        document.getElementById('setGateABtn').style.opacity = '1';
-        document.getElementById('setGateBBtn').textContent = 'Set Gate B';
-        document.getElementById('setGateBBtn').style.opacity = '1';
-        document.getElementById('setGateBBtn').disabled = true;
-        document.getElementById('compareGatesBtn').style.display = 'none';
-        document.getElementById('clearGatesBtn').style.display = 'none';
-        document.getElementById('gateStatus').textContent = 'Use box/lasso select on plot to define gates';
-        document.getElementById('gateStatus').style.color = '#6b7280';
-        document.getElementById('gateComparePanel').style.display = 'none';
+        const el = (id) => document.getElementById(id);
+        if (el('setGateABtn')) { el('setGateABtn').textContent = 'Set Gate A'; el('setGateABtn').style.opacity = '1'; }
+        if (el('setGateBBtn')) { el('setGateBBtn').textContent = 'Set Gate B'; el('setGateBBtn').style.opacity = '1'; el('setGateBBtn').disabled = true; }
+        if (el('compareGatesBtn')) el('compareGatesBtn').style.display = 'none';
+        if (el('clearGatesBtn')) el('clearGatesBtn').style.display = 'none';
+        if (el('gateStatus')) { el('gateStatus').textContent = 'Use box/lasso select on plot to define gates'; el('gateStatus').style.color = '#6b7280'; }
+        if (el('gateComparePanel')) el('gateComparePanel').style.display = 'none';
 
         // Restore drag mode
         const plotEl = document.getElementById('scatterPlot');
-        if (plotEl) {
+        if (plotEl && plotEl.data) {
             plotEl.removeAllListeners?.('plotly_selected');
-            Plotly.relayout(plotEl, { dragmode: 'zoom' });
+            try { Plotly.relayout(plotEl, { dragmode: 'zoom' }); } catch(e) {}
         }
     }
 
