@@ -1655,6 +1655,7 @@ class CorrelationExplorer {
         document.getElementById('closeGateCompare')?.addEventListener('click', () => {
             document.getElementById('gateComparePanel').style.display = 'none';
         });
+        document.getElementById('exportGateReportBtn')?.addEventListener('click', () => this.exportGateReport());
         // Gate tab switching
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('gate-tab')) {
@@ -1919,6 +1920,7 @@ class CorrelationExplorer {
         document.getElementById('closeGEGateCompare')?.addEventListener('click', () => {
             document.getElementById('geGateComparePanel').style.display = 'none';
         });
+        document.getElementById('exportGEGateReportBtn')?.addEventListener('click', () => this.exportGEGateReport());
         // GE Gate tab switching
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('ge-gate-tab')) {
@@ -16771,6 +16773,171 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
             this.downloadFile(lines.join('\n'), `correlate_report${namePart}.csv`, 'text/csv');
         }
+    }
+
+    async exportGateReport() {
+        const scatterEl = document.getElementById('scatterPlot');
+        const genePlotEl = document.getElementById('gateGenePlot');
+        if (!scatterEl || !scatterEl.data) return;
+
+        // Capture images from Plotly
+        const scatterW = scatterEl.layout.width || 600;
+        const scatterH = scatterEl.layout.height || 500;
+        const scatterDataUrl = await Plotly.toImage(scatterEl, { format: 'png', width: scatterW, height: scatterH, scale: 2 });
+
+        let genePlotDataUrl = null;
+        let genePlotW = 0, genePlotH = 0;
+        if (genePlotEl && genePlotEl.data) {
+            genePlotW = genePlotEl.layout.width || 400;
+            genePlotH = genePlotEl.layout.height || 400;
+            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: 'png', width: genePlotW, height: genePlotH, scale: 2 });
+        }
+
+        // Gather filter info
+        const filters = this._gatherScatterFilters();
+
+        // Compose
+        await this._composeGateReportImage(scatterDataUrl, scatterW, scatterH, genePlotDataUrl, genePlotW, genePlotH, filters, 'gate_report');
+    }
+
+    async exportGEGateReport() {
+        const gePlotEl = document.getElementById('geneEffectPlot');
+        const genePlotEl = document.getElementById('geGateGenePlot');
+        if (!gePlotEl || !gePlotEl.data) return;
+
+        const geW = gePlotEl.layout.width || 600;
+        const geH = gePlotEl.layout.height || 400;
+        const geDataUrl = await Plotly.toImage(gePlotEl, { format: 'png', width: geW, height: geH, scale: 2 });
+
+        let genePlotDataUrl = null;
+        let genePlotW = 0, genePlotH = 0;
+        if (genePlotEl && genePlotEl.data) {
+            genePlotW = genePlotEl.layout.width || 400;
+            genePlotH = genePlotEl.layout.height || 400;
+            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: 'png', width: genePlotW, height: genePlotH, scale: 2 });
+        }
+
+        // Gather filter info for GE context
+        const filters = this._gatherGEFilters();
+
+        const gene = this.currentGeneEffectGene || 'unknown';
+        await this._composeGateReportImage(geDataUrl, geW, geH, genePlotDataUrl, genePlotW, genePlotH, filters, `ge_gate_report_${gene}`);
+    }
+
+    _gatherScatterFilters() {
+        const lines = [];
+        const ci = this.currentInspect;
+        if (ci) {
+            lines.push(`Gene pair: ${ci.gene1} (X) vs ${ci.gene2} (Y)`);
+            if (ci.correlation != null) lines.push(`Correlation: ${ci.correlation.toFixed(3)}`);
+        }
+        const tissue = document.getElementById('scatterCancerFilter')?.value;
+        if (tissue) lines.push(`Tissue filter: ${tissue}`);
+        const subtype = document.getElementById('scatterSubtypeFilter')?.value;
+        if (subtype) lines.push(`Subtype filter: ${subtype}`);
+        const hotspotGene = document.getElementById('hotspotGene')?.value;
+        const hotspotMode = document.getElementById('hotspotMode')?.value;
+        if (hotspotGene && hotspotMode && hotspotMode !== 'none') lines.push(`Mutation filter: ${hotspotGene} (${hotspotMode})`);
+        const transGene = document.getElementById('translocationGene')?.value;
+        const transMode = document.getElementById('translocationMode')?.value;
+        if (transGene && transMode && transMode !== 'none') lines.push(`Translocation filter: ${transGene} (${transMode})`);
+        const colorBy = document.getElementById('colorByCategory')?.value;
+        if (colorBy) lines.push(`Color by: ${colorBy}`);
+        if (this._gateA) lines.push(`Gate A: ${this._gateA.length} cells`);
+        if (this._gateB) lines.push(`Gate B: ${this._gateB.length} cells`);
+        return lines;
+    }
+
+    _gatherGEFilters() {
+        const lines = [];
+        const mr = this.mutationResults;
+        if (mr) {
+            const hotspotGene = mr.hotspotGene;
+            const type = mr.isTranslocation ? 'Translocation' : mr.isDamaging ? 'Damaging mutation' : 'Hotspot mutation';
+            lines.push(`${type}: ${hotspotGene}`);
+        }
+        if (this.currentGeneEffectGene) {
+            lines.push(`Gene effect: ${this.currentGeneEffectGene}`);
+        }
+        const tissue = document.getElementById('geTissueFilter')?.value;
+        if (tissue) lines.push(`Tissue filter: ${tissue}`);
+        const subtype = document.getElementById('geSubtypeFilter')?.value;
+        if (subtype) lines.push(`Subtype filter: ${subtype}`);
+        const hotspot = document.getElementById('geHotspotFilter')?.value;
+        if (hotspot) lines.push(`Additional hotspot filter: ${hotspot}`);
+        if (this._geGateA) lines.push(`Gate A: ${this._geGateA.length} cells`);
+        if (this._geGateB) lines.push(`Gate B: ${this._geGateB.length} cells`);
+        return lines;
+    }
+
+    async _composeGateReportImage(mainDataUrl, mainW, mainH, genePlotDataUrl, genePlotW, genePlotH, filterLines, filenameBase) {
+        const scale = 2; // render at 2x for quality
+        const padding = 20;
+        const textLineHeight = 18;
+        const textFontSize = 13;
+
+        // Load images
+        const mainImg = await this._loadImage(mainDataUrl);
+
+        let geneImg = null;
+        if (genePlotDataUrl) {
+            geneImg = await this._loadImage(genePlotDataUrl);
+        }
+
+        // Calculate canvas dimensions (in logical pixels — we scale the canvas)
+        const leftW = mainW;
+        const leftH = mainH;
+        const rightW = geneImg ? genePlotW : 0;
+        const rightH = geneImg ? genePlotH : 0;
+        const plotsWidth = leftW + (geneImg ? padding + rightW : 0);
+        const plotsHeight = Math.max(leftH, rightH);
+        const textBlockHeight = filterLines.length * textLineHeight + padding;
+        const totalW = plotsWidth + padding * 2;
+        const totalH = plotsHeight + textBlockHeight + padding * 2;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = totalW * scale;
+        canvas.height = totalH * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+
+        // White background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, totalW, totalH);
+
+        // Draw main plot (left)
+        ctx.drawImage(mainImg, padding, padding, leftW, leftH);
+
+        // Draw gene plot (right), vertically centered relative to main plot
+        if (geneImg) {
+            const geneY = padding + (plotsHeight - rightH) / 2;
+            ctx.drawImage(geneImg, padding + leftW + padding, geneY, rightW, rightH);
+        }
+
+        // Draw filter text below plots
+        const textY = padding + plotsHeight + padding;
+        ctx.fillStyle = '#374151';
+        ctx.font = `${textFontSize}px "Open Sans", sans-serif`;
+        filterLines.forEach((line, i) => {
+            ctx.fillText(line, padding, textY + i * textLineHeight + textFontSize);
+        });
+
+        // Download
+        const link = document.createElement('a');
+        link.download = `${filenameBase}.png`;
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    _loadImage(dataUrl) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = dataUrl;
+        });
     }
 }
 
