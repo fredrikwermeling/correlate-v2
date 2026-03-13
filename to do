@@ -1,5 +1,5 @@
 - in the double plot with gates and differences in the eg GE of a gene in the differnt gated groups, before the export png/svg, could an inspect windwo open where the graphs can be changed, eg size etc, so the user can mmek them uiniform before exporting the image?
-
+- the color by tissue legend in correlation scatter, doesnt fit within the scfreen and becomes cropped.
 
 
 - in a correlation plot, could two gates be setup to select all cells within those gatges and then comaparing them to each other, based on differences in GE, tisue type, subtype or hotspot mutations?
