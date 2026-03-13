@@ -1,3 +1,7 @@
+- in the double plot with gates and differences in the eg GE of a gene in the differnt gated groups, before the export png/svg, could an inspect windwo open where the graphs can be changed, eg size etc, so the user can mmek them uiniform before exporting the image?
+
+
+
 - in a correlation plot, could two gates be setup to select all cells within those gatges and then comaparing them to each other, based on differences in GE, tisue type, subtype or hotspot mutations?
 - could correlate v2 also include other muations from depmap in the mutational nalsysis inspect. trying to identify what is differnt between eg TP53 wt lung cancerr cells that are happy with KO of TP53 and those that doesnt care
 
