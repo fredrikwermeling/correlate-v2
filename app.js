@@ -17565,25 +17565,121 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
         }
 
-        const splitSelect = document.getElementById('clbUmapSplitGene');
-        splitSelect.innerHTML = '<option value="">None</option>';
-        const geneSet = new Set();
-        if (this.mutations?.genes) this.mutations.genes.forEach(g => geneSet.add(g));
-        if (this.damagingMutations?.genes) this.damagingMutations.genes.forEach(g => geneSet.add(g));
-        if (this.translocations?.genes) this.translocations.genes.forEach(g => geneSet.add(g));
-        [...geneSet].sort().forEach(g => {
+        // Tissue filter changes → populate subtypes
+        tissueSelect.addEventListener('change', () => this._populateUmapSubtypeFilter());
+
+        // Split source selector → update datalist
+        document.getElementById('clbUmapSplitSource').addEventListener('change', () => this._populateUmapSplitGenes());
+        this._populateUmapSplitGenes();
+
+        // Split button
+        document.getElementById('clbUmapSplitBtn').addEventListener('click', () => this._applyUmapSplit());
+        document.getElementById('clbUmapClearSplitBtn').addEventListener('click', () => this._clearUmapSplit());
+    }
+
+    _populateUmapSubtypeFilter() {
+        const tissue = document.getElementById('clbUmapTissueFilter').value;
+        const subtypeSelect = document.getElementById('clbUmapSubtypeFilter');
+        subtypeSelect.innerHTML = '<option value="">All subtypes</option>';
+        if (!tissue) {
+            subtypeSelect.style.display = 'none';
+            return;
+        }
+        subtypeSelect.style.display = '';
+        const subtypeCounts = {};
+        const allCL = this.metadata.cellLines;
+        for (let i = 0; i < allCL.length; i++) {
+            if (this.getCellLineLineage(allCL[i]) === tissue) {
+                const sub = this.getCellLineSublineage(allCL[i]) || 'Unknown';
+                subtypeCounts[sub] = (subtypeCounts[sub] || 0) + 1;
+            }
+        }
+        Object.keys(subtypeCounts).sort().forEach(sub => {
             const opt = document.createElement('option');
-            opt.value = g;
-            opt.textContent = g;
-            splitSelect.appendChild(opt);
+            opt.value = sub;
+            opt.textContent = `${sub} (n=${subtypeCounts[sub]})`;
+            subtypeSelect.appendChild(opt);
         });
+    }
+
+    _populateUmapSplitGenes() {
+        const source = document.getElementById('clbUmapSplitSource').value;
+        const datalist = document.getElementById('clbUmapSplitGeneList');
+        datalist.innerHTML = '';
+
+        let genes = [];
+        if (source === 'hotspot' && this.mutations?.genes) {
+            genes = this.mutations.genes.map(g => ({
+                name: g,
+                count: this.mutations.geneCounts?.[g] || 0
+            }));
+        } else if (source === 'translocation' && this.translocations?.genes) {
+            genes = this.translocations.genes.map(g => ({
+                name: g,
+                count: this.translocations.geneCounts?.[g] || 0
+            }));
+        }
+        // Already sorted by count desc from source data
+        genes.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.name;
+            opt.label = `${g.name} (${g.count})`;
+            datalist.appendChild(opt);
+        });
+    }
+
+    _applyUmapSplit() {
+        const gene = document.getElementById('clbUmapSplitGene').value.trim();
+        if (!gene || !this._clbUmapData) return;
+        const source = document.getElementById('clbUmapSplitSource').value;
+
+        // Validate gene exists in chosen source
+        let mutData;
+        if (source === 'hotspot') {
+            mutData = this.mutations?.geneData?.[gene]?.mutations;
+        } else {
+            mutData = this.translocations?.geneData?.[gene]?.translocations;
+        }
+        if (!mutData) {
+            document.getElementById('clbUmapSplitType').textContent = `${gene} not found in ${source} data`;
+            return;
+        }
+
+        const { cellLines, x, y, categories } = this._clbUmapData;
+        const nCL = cellLines.length;
+        const mutStatus = new Array(nCL).fill(false);
+        for (let i = 0; i < nCL; i++) {
+            if (mutData[cellLines[i]] >= 1) mutStatus[i] = true;
+        }
+        const nMut = mutStatus.filter(Boolean).length;
+        const label = source === 'hotspot' ? 'mutated' : 'translocated';
+        document.getElementById('clbUmapSplitType').textContent = `${gene}: ${nMut} ${label} / ${nCL - nMut} WT`;
+        document.getElementById('clbUmapClearSplitBtn').style.display = '';
+
+        this._clbUmapData.mutStatus = mutStatus;
+        this._clbUmapData.splitGene = gene;
+        this._clbUmapData.splitSource = source;
+        const colorBy = document.getElementById('clbUmapColorBy').value;
+        this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, gene);
+    }
+
+    _clearUmapSplit() {
+        document.getElementById('clbUmapSplitGene').value = '';
+        document.getElementById('clbUmapSplitType').textContent = '';
+        document.getElementById('clbUmapClearSplitBtn').style.display = 'none';
+        if (!this._clbUmapData) return;
+        this._clbUmapData.mutStatus = null;
+        this._clbUmapData.splitGene = null;
+        const { x, y, cellLines, categories } = this._clbUmapData;
+        const colorBy = document.getElementById('clbUmapColorBy').value;
+        this._renderUmapPlot(x, y, cellLines, categories, null, colorBy, null);
     }
 
     async runCLBUmap() {
         const dataType = document.getElementById('clbUmapDataType').value;
         const colorBy = document.getElementById('clbUmapColorBy').value;
         const tissueFilter = document.getElementById('clbUmapTissueFilter').value;
-        const splitGene = document.getElementById('clbUmapSplitGene').value;
+        const subtypeFilter = document.getElementById('clbUmapSubtypeFilter').value;
 
         if (typeof UMAP === 'undefined') {
             document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">UMAP library not loaded. Please refresh the page.</div>';
@@ -17605,7 +17701,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const allCellLines = this.metadata.cellLines;
             const cellLineIndices = [];
             for (let i = 0; i < allCellLines.length; i++) {
-                if (tissueFilter && this.getCellLineLineage(allCellLines[i]) !== tissueFilter) continue;
+                const cl = allCellLines[i];
+                if (tissueFilter && this.getCellLineLineage(cl) !== tissueFilter) continue;
+                if (subtypeFilter && (this.getCellLineSublineage(cl) || 'Unknown') !== subtypeFilter) continue;
                 cellLineIndices.push(i);
             }
 
@@ -17637,7 +17735,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
             const nNeighbors = Math.min(15, Math.floor(nCL / 3));
             const UMAPClass = (typeof UMAP === 'function') ? UMAP : UMAP.UMAP;
-            const umap = new UMAPClass({ nNeighbors: Math.max(5, nNeighbors), minDist: 0.1, nComponents: 2, spread: 1.0 });
+            const umap = new UMAPClass({ nNeighbors: Math.max(5, nNeighbors), minDist: 0.3, nComponents: 2, spread: 1.5 });
             const embedding = umap.fit(matrix);
 
             const cellLines = cellLineIndices.map(i => allCellLines[i]);
@@ -17649,25 +17747,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 return this.getCellLineLineage(cl) || 'Unknown';
             });
 
-            let mutStatus = null;
-            if (splitGene) {
-                mutStatus = new Array(nCL).fill(false);
-                const hotspotMuts = this.mutations?.geneData?.[splitGene]?.mutations;
-                const damagingMuts = this.damagingMutations?.geneData?.[splitGene]?.mutations;
-                const transMuts = this.translocations?.geneData?.[splitGene]?.translocations;
-                for (let i = 0; i < nCL; i++) {
-                    const cl = cellLines[i];
-                    if ((hotspotMuts && hotspotMuts[cl] >= 1) || (damagingMuts && damagingMuts[cl] >= 1) || (transMuts && transMuts[cl] >= 1)) mutStatus[i] = true;
-                }
-                const nMut = mutStatus.filter(Boolean).length;
-                document.getElementById('clbUmapSplitType').textContent = `${splitGene}: ${nMut} mutated / ${nCL - nMut} WT`;
-            } else {
-                document.getElementById('clbUmapSplitType').textContent = '';
-            }
+            // Clear any previous split
+            document.getElementById('clbUmapSplitType').textContent = '';
+            document.getElementById('clbUmapClearSplitBtn').style.display = 'none';
 
-            this._clbUmapData = { cellLines, cellLineIndices, embedding, x, y, categories, mutStatus };
+            this._clbUmapData = { cellLines, cellLineIndices, embedding, x, y, categories, mutStatus: null, splitGene: null };
             this._clbUmapSelectedPoints = new Set();
-            this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene);
+            this._renderUmapPlot(x, y, cellLines, categories, null, colorBy, null);
             document.getElementById('clbUmapSelectionControls').style.display = 'flex';
             document.getElementById('clbUmapSelectedCount').textContent = '';
         } catch (err) {
@@ -17738,99 +17824,139 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     _renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene) {
         const plotDiv = document.getElementById('clbUmapPlot');
+        const dataTypeLabel = document.getElementById('clbUmapDataType').value === 'ge' ? 'Gene Effect' :
+                              document.getElementById('clbUmapDataType').value === 'expr' ? 'Expression' : 'GE + Expression';
 
-        const hoverText = cellLines.map((cl, i) => {
+        const colors = [
+            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+            '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5',
+            '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5',
+            '#393b79', '#5254a3', '#6b6ecf', '#9c9ede', '#637939',
+            '#8ca252', '#b5cf6b', '#cedb9c', '#8c6d31', '#bd9e39'
+        ];
+
+        const makeHoverText = (idx) => {
+            const cl = cellLines[idx];
             const name = this.getCellLineName(cl);
             const lineage = this.getCellLineLineage(cl);
             const sub = this.getCellLineSublineage(cl);
             let text = `${name}<br>${lineage}${sub ? ' \u00b7 ' + sub : ''}`;
-            if (mutStatus) text += `<br>${splitGene}: ${mutStatus[i] ? 'Mutated' : 'WT'}`;
+            if (mutStatus && splitGene) text += `<br>${splitGene}: ${mutStatus[idx] ? 'Mutated' : 'WT'}`;
             return text;
-        });
+        };
 
-        let traces;
-
-        if (mutStatus && splitGene) {
-            const wtIdx = [], mutIdx = [];
-            for (let i = 0; i < cellLines.length; i++) {
-                if (mutStatus[i]) mutIdx.push(i); else wtIdx.push(i);
-            }
-            traces = [
-                {
-                    x: wtIdx.map(i => x[i]), y: wtIdx.map(i => y[i]),
-                    text: wtIdx.map(i => hoverText[i]), customdata: wtIdx.map(i => cellLines[i]),
-                    mode: 'markers', type: 'scattergl', name: `WT (n=${wtIdx.length})`,
-                    marker: { size: 4, color: '#d1d5db', opacity: 0.6 }, hoverinfo: 'text'
-                },
-                {
-                    x: mutIdx.map(i => x[i]), y: mutIdx.map(i => y[i]),
-                    text: mutIdx.map(i => hoverText[i]), customdata: mutIdx.map(i => cellLines[i]),
-                    mode: 'markers', type: 'scattergl', name: `${splitGene} mutated (n=${mutIdx.length})`,
-                    marker: { size: 5, color: '#ef4444', opacity: 0.8 }, hoverinfo: 'text'
-                }
-            ];
-        } else {
+        const buildCategoryTraces = (indices, showLegend) => {
             const catGroups = {};
-            for (let i = 0; i < cellLines.length; i++) {
+            indices.forEach(i => {
                 const cat = categories[i];
                 if (!catGroups[cat]) catGroups[cat] = [];
                 catGroups[cat].push(i);
-            }
+            });
             const sortedCats = Object.keys(catGroups).sort((a, b) => catGroups[b].length - catGroups[a].length);
-            const colors = [
-                '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-                '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
-                '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5',
-                '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5',
-                '#393b79', '#5254a3', '#6b6ecf', '#9c9ede', '#637939',
-                '#8ca252', '#b5cf6b', '#cedb9c', '#8c6d31', '#bd9e39'
-            ];
-            traces = sortedCats.map((cat, ci) => {
+            return sortedCats.map((cat, ci) => {
                 const idx = catGroups[cat];
                 return {
                     x: idx.map(i => x[i]), y: idx.map(i => y[i]),
-                    text: idx.map(i => hoverText[i]), customdata: idx.map(i => cellLines[i]),
+                    text: idx.map(i => makeHoverText(i)), customdata: idx.map(i => cellLines[i]),
                     mode: 'markers', type: 'scattergl', name: `${cat} (${idx.length})`,
-                    marker: { size: 4, color: colors[ci % colors.length], opacity: 0.7 }, hoverinfo: 'text'
+                    marker: { size: 6, color: colors[ci % colors.length], opacity: 0.85 },
+                    hoverinfo: 'text', showlegend: showLegend
                 };
             });
-        }
+        };
 
-        const dataTypeLabel = document.getElementById('clbUmapDataType').value === 'ge' ? 'Gene Effect' :
-                              document.getElementById('clbUmapDataType').value === 'expr' ? 'Expression' : 'GE + Expression';
-
-        const layout = {
-            title: { text: `UMAP \u2014 ${dataTypeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
+        const baseLayout = {
             xaxis: { title: 'UMAP 1', zeroline: false, showgrid: false },
-            yaxis: { title: 'UMAP 2', zeroline: false, showgrid: false },
+            yaxis: { title: 'UMAP 2', zeroline: false, showgrid: false, scaleanchor: 'x', scaleratio: 1 },
             hovermode: 'closest',
-            margin: { t: 40, r: 10, b: 40, l: 50 },
-            height: 500,
-            legend: { font: { size: 9 }, itemsizing: 'constant', tracegroupgap: 2, y: 0.5, yanchor: 'middle' },
-            dragmode: 'pan',
+            dragmode: 'lasso',
             paper_bgcolor: 'white',
             plot_bgcolor: '#fafafa'
         };
 
-        Plotly.newPlot(plotDiv, traces, layout, { responsive: true, displayModeBar: true, modeBarButtonsToAdd: ['select2d', 'lasso2d'], displaylogo: false });
-
-        plotDiv.on('plotly_selected', (eventData) => {
-            this._clbUmapSelectedPoints = new Set();
-            if (eventData && eventData.points) {
-                eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });
+        if (mutStatus && splitGene) {
+            // 3-panel layout: All | WT | Mutated
+            const wtIdx = [], mutIdx = [], allIdx = [];
+            for (let i = 0; i < cellLines.length; i++) {
+                allIdx.push(i);
+                if (mutStatus[i]) mutIdx.push(i); else wtIdx.push(i);
             }
-            document.getElementById('clbUmapSelectedCount').textContent =
-                this._clbUmapSelectedPoints.size > 0 ? `${this._clbUmapSelectedPoints.size} selected` : '';
-        });
 
-        plotDiv.on('plotly_deselect', () => {
-            this._clbUmapSelectedPoints = new Set();
-            document.getElementById('clbUmapSelectedCount').textContent = '';
-        });
+            // Shared axis range
+            const xPad = (Math.max(...x) - Math.min(...x)) * 0.05;
+            const yPad = (Math.max(...y) - Math.min(...y)) * 0.05;
+            const axRange = {
+                xMin: Math.min(...x) - xPad, xMax: Math.max(...x) + xPad,
+                yMin: Math.min(...y) - yPad, yMax: Math.max(...y) + yPad
+            };
+
+            plotDiv.innerHTML = '<div style="display:flex; gap:4px; flex-wrap:wrap;"><div id="umapAll" style="flex:1; min-width:280px;"></div><div id="umapWT" style="flex:1; min-width:280px;"></div><div id="umapMut" style="flex:1; min-width:280px;"></div></div>';
+
+            const panels = [
+                { id: 'umapAll', title: `All (n=${allIdx.length})`, indices: allIdx, showLegend: true },
+                { id: 'umapWT', title: `WT (n=${wtIdx.length})`, indices: wtIdx, showLegend: false },
+                { id: 'umapMut', title: `Mutated (n=${mutIdx.length})`, indices: mutIdx, showLegend: false }
+            ];
+
+            panels.forEach(panel => {
+                const traces = buildCategoryTraces(panel.indices, panel.showLegend);
+                const layout = {
+                    ...baseLayout,
+                    title: { text: panel.title, font: { size: 12 } },
+                    margin: { t: 35, r: 5, b: 35, l: 40 },
+                    height: 380,
+                    xaxis: { ...baseLayout.xaxis, range: [axRange.xMin, axRange.xMax] },
+                    yaxis: { ...baseLayout.yaxis, range: [axRange.yMin, axRange.yMax] },
+                    legend: panel.showLegend ? { font: { size: 8 }, itemsizing: 'constant', tracegroupgap: 1, y: 0.5, yanchor: 'middle' } : { visible: false }
+                };
+                const div = document.getElementById(panel.id);
+                Plotly.newPlot(div, traces, layout, { responsive: true, displayModeBar: false, displaylogo: false });
+                div.on('plotly_selected', (eventData) => {
+                    this._clbUmapSelectedPoints = new Set();
+                    if (eventData?.points) eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });
+                    document.getElementById('clbUmapSelectedCount').textContent = this._clbUmapSelectedPoints.size > 0 ? `${this._clbUmapSelectedPoints.size} selected` : '';
+                });
+                div.on('plotly_deselect', () => {
+                    this._clbUmapSelectedPoints = new Set();
+                    document.getElementById('clbUmapSelectedCount').textContent = '';
+                });
+            });
+        } else {
+            // Single plot, colored by tissue/subtype
+            const allIdx = cellLines.map((_, i) => i);
+            const traces = buildCategoryTraces(allIdx, true);
+            const layout = {
+                ...baseLayout,
+                title: { text: `UMAP \u2014 ${dataTypeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
+                margin: { t: 40, r: 10, b: 40, l: 50 },
+                height: 500,
+                legend: { font: { size: 9 }, itemsizing: 'constant', tracegroupgap: 2, y: 0.5, yanchor: 'middle' }
+            };
+            Plotly.newPlot(plotDiv, traces, layout, { responsive: true, displayModeBar: true, modeBarButtonsToAdd: ['select2d', 'lasso2d'], displaylogo: false });
+            plotDiv.on('plotly_selected', (eventData) => {
+                this._clbUmapSelectedPoints = new Set();
+                if (eventData?.points) eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });
+                document.getElementById('clbUmapSelectedCount').textContent = this._clbUmapSelectedPoints.size > 0 ? `${this._clbUmapSelectedPoints.size} selected` : '';
+            });
+            plotDiv.on('plotly_deselect', () => {
+                this._clbUmapSelectedPoints = new Set();
+                document.getElementById('clbUmapSelectedCount').textContent = '';
+            });
+        }
     }
 
     clbUmapSelectMode() {
-        Plotly.relayout(document.getElementById('clbUmapPlot'), { dragmode: 'lasso' });
+        // If 3-panel split, set lasso on all sub-plots
+        const umapAll = document.getElementById('umapAll');
+        if (umapAll) {
+            ['umapAll', 'umapWT', 'umapMut'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) Plotly.relayout(el, { dragmode: 'lasso' });
+            });
+        } else {
+            Plotly.relayout(document.getElementById('clbUmapPlot'), { dragmode: 'lasso' });
+        }
     }
 
     clbUmapCopySelected() {

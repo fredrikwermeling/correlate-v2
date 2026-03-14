@@ -1306,6 +1306,11 @@
                 <p><strong>dev-16 (2026-03-14)</strong></p>
                 <ul>
                     <li>Fix UMAP constructor error (umap-js CDN module export compatibility)</li>
+                    <li>UMAP: more condensed clusters (higher minDist/spread), bigger filled markers</li>
+                    <li>UMAP split by mutation: 3 panels (All / WT / Mutated) with shared axes</li>
+                    <li>UMAP split: searchable input+datalist for hotspot or translocation genes, sorted by count</li>
+                    <li>UMAP: subtype filter (appears when tissue selected)</li>
+                    <li>Default drag mode set to lasso for easier selection</li>
                 </ul>
                 <p><strong>dev-15 (2026-03-14)</strong></p>
                 <ul>
@@ -2909,13 +2914,21 @@
                 <select id="clbUmapTissueFilter" style="font-size:11px; padding:2px 4px;">
                     <option value="">All tissues</option>
                 </select>
+                <select id="clbUmapSubtypeFilter" style="font-size:11px; padding:2px 4px; display:none;">
+                    <option value="">All subtypes</option>
+                </select>
                 <button id="clbUmapRunBtn" class="btn btn-sm" style="font-size:11px; padding:3px 10px; background:#16a34a; color:white; border:none; border-radius:4px; cursor:pointer;">Run UMAP</button>
             </div>
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
                 <span style="font-size:10px; color:#6b7280;">Split by mutation:</span>
-                <select id="clbUmapSplitGene" style="font-size:10px; padding:2px 4px; width:140px;">
-                    <option value="">None</option>
+                <select id="clbUmapSplitSource" style="font-size:10px; padding:2px 4px;">
+                    <option value="hotspot">Hotspot</option>
+                    <option value="translocation">Translocation</option>
                 </select>
+                <input type="text" id="clbUmapSplitGene" list="clbUmapSplitGeneList" placeholder="Search gene..." style="font-size:10px; padding:2px 4px; width:140px;" autocomplete="off">
+                <datalist id="clbUmapSplitGeneList"></datalist>
+                <button id="clbUmapSplitBtn" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#6b7280; color:white; border:none; border-radius:3px; cursor:pointer;">Split</button>
+                <button id="clbUmapClearSplitBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; display:none;">Clear</button>
                 <span id="clbUmapSplitType" style="font-size:10px; color:#6b7280;"></span>
             </div>
             <div id="clbUmapPlot" style="min-height:50px;"></div>
