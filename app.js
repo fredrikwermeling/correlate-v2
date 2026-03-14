@@ -55,6 +55,11 @@ class CorrelationExplorer {
         // CLB sort direction (true = ascending, false = descending)
         this._clbSortAsc = true;
 
+        // Custom cell line filter (Set<string> of cell line IDs, or null)
+        this._customCellLineFilter = null;
+        this._customCellLineFilterGE = null; // separate for gene effect modal
+        this._customCellLineFilterCLB = null; // separate for CLB
+
         // Gene statistics (LFC, FDR)
         this.geneStats = null;
         this.statsFileData = null;
@@ -369,6 +374,9 @@ class CorrelationExplorer {
         if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
             filteredData = filteredData.filter(d =>
                 this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
+        }
+        if (this._customCellLineFilter) {
+            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
         }
         const filteredCellLines = new Set(filteredData.map(d => d.cellLineId));
 
@@ -1284,6 +1292,22 @@ class CorrelationExplorer {
         return this.geneEffects.subarray(start, start + this.nCellLines);
     }
 
+    /**
+     * Get expression value for a gene at a given GE cell-line index.
+     * Returns NaN if expression data is not loaded or the gene/cell line is missing.
+     */
+    getExpressionValueByGEIndex(gene, geCellLineIndex) {
+        if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata) return NaN;
+        const geneIdx = this.expressionGeneIndex?.get(gene.toUpperCase());
+        if (geneIdx === undefined) return NaN;
+        const exprCLIdx = this.expressionCellLineMap?.[geCellLineIndex];
+        if (exprCLIdx === undefined || exprCLIdx === -1) return NaN;
+        const offset = geneIdx * this.expressionMetadata.nCellLines + exprCLIdx;
+        const val = this.expressionData[offset];
+        if (isNaN(val)) return NaN;
+        return val;
+    }
+
     setupUI() {
         // Tab switching
         document.querySelectorAll('.nav-link').forEach(tab => {
@@ -1720,6 +1744,10 @@ class CorrelationExplorer {
         });
         document.getElementById('translocationFilterLevel')?.addEventListener('change', () => this.updateInspectPlot());
 
+        // Axis data type selectors (GE / Expression)
+        document.getElementById('xAxisDataType')?.addEventListener('change', () => this.updateInspectGenes());
+        document.getElementById('yAxisDataType')?.addEventListener('change', () => this.updateInspectGenes());
+
         document.getElementById('downloadScatterPNG').addEventListener('click', () => this.downloadScatterPNG());
         document.getElementById('downloadScatterSVG').addEventListener('click', () => this.downloadScatterSVG());
         document.getElementById('downloadScatterCSV').addEventListener('click', () => this.downloadScatterCSV());
@@ -1902,6 +1930,7 @@ class CorrelationExplorer {
             if (geSubEl) geSubEl.style.display = 'none';
             document.getElementById('geHotspotFilter').value = '';
             document.getElementById('geFusionFilter').value = '';
+            this.clearCustomCellLineFilterGE();
             // Clear analysis-level filters so inspect truly shows ALL cell lines
             if (this.mutationResults) {
                 this.mutationResults.lineageFilter = '';
@@ -4010,6 +4039,9 @@ class CorrelationExplorer {
                 const fusionLevel = inspFusionData[cellLine] || 0;
                 if (fusionLevel < 1) return;
             }
+
+            // Check custom cell line filter (GE modal)
+            if (this._customCellLineFilterGE && !this._customCellLineFilterGE.has(cellLine)) return;
 
             const ge = this.geneEffects[geneIdx * this.nCellLines + idx];
             if (isNaN(ge)) return;
@@ -7687,26 +7719,32 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // Set up currentInspect with the data needed for By tissue
         this._userLegendPosition = null;
         this._userTitlePosition = null;
+        const xTypeByTissue = document.getElementById('xAxisDataType')?.value || 'ge';
+        const yTypeByTissue = document.getElementById('yAxisDataType')?.value || 'ge';
         this.currentInspect = {
             gene1: c.gene1,
             gene2: c.gene2,
-            correlation: c.correlation
+            correlation: c.correlation,
+            xType: xTypeByTissue,
+            yType: yTypeByTissue
         };
 
-        // Get data for both genes
+        // Get data for both genes (respecting axis data type)
         const idx1 = this.geneIndex.get(c.gene1);
         const idx2 = this.geneIndex.get(c.gene2);
-        const data1 = this.getGeneData(idx1);
-        const data2 = this.getGeneData(idx2);
+        const geData1 = this.getGeneData(idx1);
+        const geData2 = this.getGeneData(idx2);
 
         // Prepare plot data
         const plotData = [];
         for (let i = 0; i < this.nCellLines; i++) {
-            if (!isNaN(data1[i]) && !isNaN(data2[i])) {
+            const xVal = xTypeByTissue === 'expr' ? this.getExpressionValueByGEIndex(c.gene1, i) : geData1[i];
+            const yVal = yTypeByTissue === 'expr' ? this.getExpressionValueByGEIndex(c.gene2, i) : geData2[i];
+            if (!isNaN(xVal) && !isNaN(yVal)) {
                 const cellLine = this.metadata.cellLines[i];
                 plotData.push({
-                    x: data1[i],
-                    y: data2[i],
+                    x: xVal,
+                    y: yVal,
                     cellLineId: cellLine,
                     cellLineName: this.getCellLineName(cellLine),
                     lineage: this.getCellLineLineage(cellLine)
@@ -7753,28 +7791,34 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this._userLegendPosition = null;
         this._userTitlePosition = null;
         this._userLabelPositions = new Map();
+        const xType = document.getElementById('xAxisDataType')?.value || 'ge';
+        const yType = document.getElementById('yAxisDataType')?.value || 'ge';
         this.currentInspect = {
             gene1: c.gene1,
             gene2: c.gene2,
-            correlation: c.correlation
+            correlation: c.correlation,
+            xType: xType,
+            yType: yType
         };
         this.clickedCells.clear();
         this.clearGates();
 
-        // Get data for both genes
+        // Get data for both genes (respecting axis data type)
         const idx1 = this.geneIndex.get(c.gene1);
         const idx2 = this.geneIndex.get(c.gene2);
-        const data1 = this.getGeneData(idx1);
-        const data2 = this.getGeneData(idx2);
+        const geData1 = this.getGeneData(idx1);
+        const geData2 = this.getGeneData(idx2);
 
         // Prepare plot data
         const plotData = [];
         for (let i = 0; i < this.nCellLines; i++) {
-            if (!isNaN(data1[i]) && !isNaN(data2[i])) {
+            const xVal = xType === 'expr' ? this.getExpressionValueByGEIndex(c.gene1, i) : geData1[i];
+            const yVal = yType === 'expr' ? this.getExpressionValueByGEIndex(c.gene2, i) : geData2[i];
+            if (!isNaN(xVal) && !isNaN(yVal)) {
                 const cellLine = this.metadata.cellLines[i];
                 plotData.push({
-                    x: data1[i],
-                    y: data2[i],
+                    x: xVal,
+                    y: yVal,
                     cellLineId: cellLine,
                     cellLineName: this.getCellLineName(cellLine),
                     lineage: this.getCellLineLineage(cellLine)
@@ -7919,8 +7963,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Calculate stats for ALL cells (unfiltered) for the title
         const allCellsStats = this.pearsonWithSlope(plotData.map(d => d.x), plotData.map(d => d.y));
+        const xLbl = xType === 'expr' ? 'Expr' : 'GE';
+        const yLbl = yType === 'expr' ? 'Expr' : 'GE';
+        const typeTag = (xType !== 'ge' || yType !== 'ge') ? ` [${xLbl}/${yLbl}]` : '';
         document.getElementById('inspectTitle').textContent =
-            `${c.gene1} vs ${c.gene2} | r=${this.formatNum(allCellsStats.correlation)}, slope=${this.formatNum(allCellsStats.slope)}, n=${plotData.length} (all cells)`;
+            `${c.gene1} vs ${c.gene2}${typeTag} | r=${this.formatNum(allCellsStats.correlation)}, slope=${this.formatNum(allCellsStats.slope)}, n=${plotData.length} (all cells)`;
 
         // Show modal and render plot
         document.getElementById('inspectModal').classList.add('active');
@@ -7966,6 +8013,110 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this.updateInspectPlot();
     }
 
+    // --- Custom Cell Line Filter ---
+    _buildCellLineNameToIdMap() {
+        if (this._cellLineNameToId) return this._cellLineNameToId;
+        this._cellLineNameToId = new Map();
+        if (!this.metadata?.cellLines) return this._cellLineNameToId;
+        for (const cl of this.metadata.cellLines) {
+            this._cellLineNameToId.set(cl.toUpperCase(), cl);
+            const stripped = this.cellLineMetadata?.strippedCellLineName?.[cl];
+            if (stripped) this._cellLineNameToId.set(stripped.toUpperCase(), cl);
+            const full = this.cellLineMetadata?.cellLineName?.[cl];
+            if (full) this._cellLineNameToId.set(full.toUpperCase(), cl);
+        }
+        return this._cellLineNameToId;
+    }
+
+    _parseCustomCellLineInput(textareaId) {
+        const el = document.getElementById(textareaId);
+        if (!el) return null;
+        const raw = el.value.trim();
+        if (!raw) return null;
+        const nameMap = this._buildCellLineNameToIdMap();
+        const entries = raw.split(/[\n,\t]+/).map(s => s.trim()).filter(s => s);
+        const matched = new Set();
+        for (const entry of entries) {
+            const key = entry.toUpperCase();
+            const id = nameMap.get(key);
+            if (id) matched.add(id);
+        }
+        return { matched, total: entries.length };
+    }
+
+    applyCustomCellLineFilter() {
+        const result = this._parseCustomCellLineInput('customCellLineFilter');
+        if (!result || result.matched.size === 0) {
+            this._customCellLineFilter = null;
+            const countEl = document.getElementById('customCLFilterCount');
+            if (countEl) countEl.textContent = result ? `0/${result.total} matched` : '';
+            return;
+        }
+        this._customCellLineFilter = result.matched;
+        const countEl = document.getElementById('customCLFilterCount');
+        if (countEl) countEl.textContent = `${result.matched.size}/${result.total} matched`;
+        this.updateInspectPlot();
+    }
+
+    clearCustomCellLineFilter() {
+        const el = document.getElementById('customCellLineFilter');
+        if (el) el.value = '';
+        this._customCellLineFilter = null;
+        const countEl = document.getElementById('customCLFilterCount');
+        if (countEl) countEl.textContent = '';
+        this.updateInspectPlot();
+    }
+
+    applyCustomCellLineFilterGE() {
+        const result = this._parseCustomCellLineInput('customCellLineFilterGE');
+        if (!result || result.matched.size === 0) {
+            this._customCellLineFilterGE = null;
+            const countEl = document.getElementById('customCLFilterCountGE');
+            if (countEl) countEl.textContent = result ? `0/${result.total} matched` : '';
+            return;
+        }
+        this._customCellLineFilterGE = result.matched;
+        const countEl = document.getElementById('customCLFilterCountGE');
+        if (countEl) countEl.textContent = `${result.matched.size}/${result.total} matched`;
+        if (this.currentGeneEffectGene) {
+            this.showGeneEffectDistribution(this.currentGeneEffectGene);
+        }
+    }
+
+    clearCustomCellLineFilterGE() {
+        const el = document.getElementById('customCellLineFilterGE');
+        if (el) el.value = '';
+        this._customCellLineFilterGE = null;
+        const countEl = document.getElementById('customCLFilterCountGE');
+        if (countEl) countEl.textContent = '';
+        if (this.currentGeneEffectGene) {
+            this.showGeneEffectDistribution(this.currentGeneEffectGene);
+        }
+    }
+
+    applyCustomCellLineFilterCLB() {
+        const result = this._parseCustomCellLineInput('customCellLineFilterCLB');
+        if (!result || result.matched.size === 0) {
+            this._customCellLineFilterCLB = null;
+            const countEl = document.getElementById('customCLFilterCountCLB');
+            if (countEl) countEl.textContent = result ? `0/${result.total} matched` : '';
+            return;
+        }
+        this._customCellLineFilterCLB = result.matched;
+        const countEl = document.getElementById('customCLFilterCountCLB');
+        if (countEl) countEl.textContent = `${result.matched.size}/${result.total} matched`;
+        this.renderCellLineList();
+    }
+
+    clearCustomCellLineFilterCLB() {
+        const el = document.getElementById('customCellLineFilterCLB');
+        if (el) el.value = '';
+        this._customCellLineFilterCLB = null;
+        const countEl = document.getElementById('customCLFilterCountCLB');
+        if (countEl) countEl.textContent = '';
+        this.renderCellLineList();
+    }
+
     resetAllInspectFilters() {
         // Reset cancer type and subtype filters
         document.getElementById('scatterCancerFilter').value = '';
@@ -7989,6 +8140,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Reset color-by
         document.getElementById('colorByCategory').value = '';
+
+        // Reset custom cell line filter
+        const customEl = document.getElementById('customCellLineFilter');
+        if (customEl) customEl.value = '';
+        this._customCellLineFilter = null;
+        const customCountEl = document.getElementById('customCLFilterCount');
+        if (customCountEl) customCountEl.textContent = '';
 
         this._styleActiveFilters();
         // Update the plot
@@ -8059,6 +8217,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 if (transFilterLevel === '1+2') return tLevel >= 1;
                 return true;
             });
+        }
+
+        // Apply custom cell line filter
+        if (this._customCellLineFilter) {
+            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
         }
 
         // Get mutation info for overlay (separate gene — hotspot or damaging)
@@ -8410,16 +8573,19 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const showZero = document.getElementById('showZeroLines')?.checked !== false;
 
+        const xTypeLabel = this.currentInspect?.xType === 'expr' ? 'Expression (log2 TPM+1)' : 'Gene Effect';
+        const yTypeLabel = this.currentInspect?.yType === 'expr' ? 'Expression (log2 TPM+1)' : 'Gene Effect';
+
         const layout = {
             xaxis: {
-                title: `${gene1} Gene Effect`,
+                title: `${gene1} ${xTypeLabel}`,
                 range: xRange,
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : '#ddd',
                 zerolinewidth: showZero ? 2 : 0
             },
             yaxis: {
-                title: `${gene2} Gene Effect`,
+                title: `${gene2} ${yTypeLabel}`,
                 range: yRange,
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : '#ddd',
@@ -8749,13 +8915,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             font: { size: 14 }
         };
 
+        const xTypeLbl3 = this.currentInspect?.xType === 'expr' ? 'Expr' : 'Effect';
+        const yTypeLbl3 = this.currentInspect?.yType === 'expr' ? 'Expr' : 'Effect';
+
         const layout = {
             grid: { rows: 1, columns: 3, pattern: 'independent' },
-            xaxis: { title: `${gene1} Effect`, range: xRange, domain: [0, 0.28] },
-            yaxis: { title: `${gene2} Effect`, range: yRange },
-            xaxis2: { title: `${gene1} Effect`, range: xRange, domain: [0.36, 0.64] },
+            xaxis: { title: `${gene1} ${xTypeLbl3}`, range: xRange, domain: [0, 0.28] },
+            yaxis: { title: `${gene2} ${yTypeLbl3}`, range: yRange },
+            xaxis2: { title: `${gene1} ${xTypeLbl3}`, range: xRange, domain: [0.36, 0.64] },
             yaxis2: { range: yRange, anchor: 'x2' },
-            xaxis3: { title: `${gene1} Effect`, range: xRange, domain: [0.72, 1] },
+            xaxis3: { title: `${gene1} ${xTypeLbl3}`, range: xRange, domain: [0.72, 1] },
             yaxis3: { range: yRange, anchor: 'x3' },
             annotations: [
                 titleAnnotation,
@@ -9146,6 +9315,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
         }
 
+        // Apply custom cell line filter
+        if (this._customCellLineFilter) {
+            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
+        }
+
         // Build filter description
         let filterParts = [];
         if (cancerFilter) {
@@ -9160,6 +9334,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                               mutFilterLevel === '1' ? '1 mut' :
                               mutFilterLevel === '2' ? '2 mut' : '1+2 mut';
             filterParts.push(`${mutFilterGene}: ${levelText}`);
+        }
+        if (this._customCellLineFilter) {
+            filterParts.push(`Custom: ${this._customCellLineFilter.size} CLs`);
         }
         const filterDesc = filterParts.length > 0 ? filterParts.join(' | ') : '';
 
@@ -9378,6 +9555,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                               transFilterLevel === '2' ? '2 fusions' : '1+2 fusions';
             filterParts.push(`${transFilterGene}: ${levelText}`);
         }
+
+        // Apply custom cell line filter
+        if (this._customCellLineFilter) {
+            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
+            filterParts.push(`Custom: ${this._customCellLineFilter.size} CLs`);
+        }
+
         const filterDesc = filterParts.length > 0 ? filterParts.join(' | ') : '';
 
         document.getElementById('scatterPlot').style.display = 'none';
@@ -9531,29 +9715,56 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this.setupSortableTable('compareTranslocationsTable');
     }
 
-    updateInspectGenes() {
+    async updateInspectGenes() {
         const gene1 = document.getElementById('inspectGeneX').value.trim().toUpperCase();
         const gene2 = document.getElementById('inspectGeneY').value.trim().toUpperCase();
+        const xType = document.getElementById('xAxisDataType')?.value || 'ge';
+        const yType = document.getElementById('yAxisDataType')?.value || 'ge';
 
         if (!gene1 || !gene2) {
             alert('Please enter both X and Y genes.');
             return;
         }
 
+        // Validate genes exist in GE data (required for cell line indexing)
         if (!this.geneIndex.has(gene1)) {
-            alert(`Gene "${gene1}" not found in the dataset.`);
+            alert(`Gene "${gene1}" not found in the gene effect dataset.`);
             return;
         }
         if (!this.geneIndex.has(gene2)) {
-            alert(`Gene "${gene2}" not found in the dataset.`);
+            alert(`Gene "${gene2}" not found in the gene effect dataset.`);
             return;
+        }
+
+        // If expression is needed, ensure data is loaded
+        if (xType === 'expr' || yType === 'expr') {
+            if (!this.expressionLoaded) {
+                try {
+                    await this.loadExpressionData();
+                } catch (e) {
+                    alert('Failed to load expression data: ' + e.message);
+                    return;
+                }
+            }
+            // Validate genes exist in expression data for the axes that need it
+            if (xType === 'expr' && !this.expressionGeneIndex?.has(gene1.toUpperCase())) {
+                alert(`Gene "${gene1}" not found in expression data.`);
+                return;
+            }
+            if (yType === 'expr' && !this.expressionGeneIndex?.has(gene2.toUpperCase())) {
+                alert(`Gene "${gene2}" not found in expression data.`);
+                return;
+            }
         }
 
         // Re-open inspect with the new genes
         this.openInspect({ gene1, gene2, correlation: null });
 
         // Update title
-        document.getElementById('inspectTitle').textContent = `Correlation: ${gene1} vs ${gene2}`;
+        const xLabel = xType === 'expr' ? 'Expr' : 'GE';
+        const yLabel = yType === 'expr' ? 'Expr' : 'GE';
+        const typeInfo = (xType !== 'ge' || yType !== 'ge') ? ` [${xLabel}/${yLabel}]` : '';
+        document.getElementById('inspectTitle').textContent = `Correlation: ${gene1} vs ${gene2}${typeInfo}`;
     }
 
     showCompareAllCancerTypes() {
@@ -9580,14 +9791,23 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
         }
 
+        // Apply custom cell line filter
+        if (this._customCellLineFilter) {
+            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
+        }
+
         // Build filter description
-        let filterDesc = '';
+        let filterParts = [];
         if (mutFilterGene && mutFilterLevel !== 'all') {
             const levelText = mutFilterLevel === '0' ? 'WT' :
                               mutFilterLevel === '1' ? '1 mut' :
                               mutFilterLevel === '2' ? '2 mut' : '1+2 mut';
-            filterDesc = `${mutFilterGene}: ${levelText}`;
+            filterParts.push(`${mutFilterGene}: ${levelText}`);
         }
+        if (this._customCellLineFilter) {
+            filterParts.push(`Custom: ${this._customCellLineFilter.size} CLs`);
+        }
+        const filterDesc = filterParts.join(' | ');
 
         // Show compare table
         document.getElementById('scatterPlot').style.display = 'none';
@@ -12732,8 +12952,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }];
             layout = {
                 title: { text: `${d.gene1} vs ${d.gene2} — ${group} (n=${pts.length}, r=${s.correlation.toFixed(3)})`, font: { size: 13 } },
-                xaxis: { title: `${d.gene1} (Gene Effect)` },
-                yaxis: { title: `${d.gene2} (Gene Effect)` },
+                xaxis: { title: `${d.gene1} (${this.currentInspect?.xType === 'expr' ? 'Expression' : 'Gene Effect'})` },
+                yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
                 margin: { t: 50, b: 50, l: 60, r: 30 },
                 showlegend: false,
                 paper_bgcolor: 'white',
@@ -12769,8 +12989,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             ];
             layout = {
                 title: { text: `${d.gene1} vs ${d.gene2} — ${group}<br><span style="font-size:11px">WT r=${isNaN(wtR.correlation) ? '-' : wtR.correlation.toFixed(3)}, Mut r=${isNaN(mutR.correlation) ? '-' : mutR.correlation.toFixed(3)}</span>`, font: { size: 13 } },
-                xaxis: { title: `${d.gene1} (Gene Effect)` },
-                yaxis: { title: `${d.gene2} (Gene Effect)` },
+                xaxis: { title: `${d.gene1} (${this.currentInspect?.xType === 'expr' ? 'Expression' : 'Gene Effect'})` },
+                yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
                 margin: { t: 60, b: 50, l: 60, r: 30 },
                 showlegend: true,
                 legend: { x: 0.02, y: 0.98, bgcolor: 'rgba(255,255,255,0.8)', font: { size: 10 } },
@@ -16296,6 +16516,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             document.getElementById('clbHotspotFilter').value = '';
             document.getElementById('clbTranslocationFilter').value = '';
             document.getElementById('clbSortGene').value = '';
+            this.clearCustomCellLineFilterCLB();
             this.renderCellLineList();
         });
 
@@ -16402,6 +16623,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             clearTimeout(this._clbGeneTooltipTimer);
             this.hideGeneTooltip();
         }, true);
+
+        // UMAP events
+        document.getElementById('clbUmapRunBtn').addEventListener('click', () => this.runCLBUmap());
+        document.getElementById('clbUmapSelectBtn').addEventListener('click', () => this.clbUmapSelectMode());
+        document.getElementById('clbUmapCopyBtn').addEventListener('click', () => this.clbUmapCopySelected());
     }
 
     openCellLineBrowser() {
@@ -16420,6 +16646,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this.renderCellLineList();
         this.updateClbSelectionCount();
         this.updateClbFilterCounts(this.metadata.cellLines);
+        this.populateUmapFilters();
+        document.getElementById('clbUmapPlot').innerHTML = '';
+        document.getElementById('clbUmapSelectionControls').style.display = 'none';
+        this._clbUmapData = null;
+        this._clbUmapSelectedPoints = new Set();
         document.getElementById('cellLineBrowserModal').style.display = 'flex';
     }
 
@@ -16448,6 +16679,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
             if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
             if (transMuts && !(transMuts[cl] >= 1)) return false;
+            if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) return false;
             if (search) {
                 const name = this.getCellLineName(cl).toLowerCase();
                 const lin = this.getCellLineLineage(cl).toLowerCase();
@@ -17316,6 +17548,298 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             img.onload = () => resolve(img);
             img.onerror = reject;
             img.src = dataUrl;
+        });
+    }
+
+    // ===== UMAP Dimensionality Reduction =====
+
+    populateUmapFilters() {
+        const tissueSelect = document.getElementById('clbUmapTissueFilter');
+        tissueSelect.innerHTML = '<option value="">All tissues</option>';
+        if (this.lineageCounts) {
+            Object.keys(this.lineageCounts).sort().forEach(tissue => {
+                const opt = document.createElement('option');
+                opt.value = tissue;
+                opt.textContent = `${tissue} (n=${this.lineageCounts[tissue]})`;
+                tissueSelect.appendChild(opt);
+            });
+        }
+
+        const splitSelect = document.getElementById('clbUmapSplitGene');
+        splitSelect.innerHTML = '<option value="">None</option>';
+        const geneSet = new Set();
+        if (this.mutations?.genes) this.mutations.genes.forEach(g => geneSet.add(g));
+        if (this.damagingMutations?.genes) this.damagingMutations.genes.forEach(g => geneSet.add(g));
+        if (this.translocations?.genes) this.translocations.genes.forEach(g => geneSet.add(g));
+        [...geneSet].sort().forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.textContent = g;
+            splitSelect.appendChild(opt);
+        });
+    }
+
+    async runCLBUmap() {
+        const dataType = document.getElementById('clbUmapDataType').value;
+        const colorBy = document.getElementById('clbUmapColorBy').value;
+        const tissueFilter = document.getElementById('clbUmapTissueFilter').value;
+        const splitGene = document.getElementById('clbUmapSplitGene').value;
+
+        if (typeof UMAP === 'undefined') {
+            document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">UMAP library not loaded. Please refresh the page.</div>';
+            return;
+        }
+
+        if ((dataType === 'expr' || dataType === 'both') && !this.expressionLoaded) {
+            document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">Loading expression data...</div>';
+            try { await this.loadExpressionData(); } catch (e) {
+                document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">Failed to load expression data.</div>';
+                return;
+            }
+        }
+
+        document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:40px;text-align:center;color:#6b7280;">Computing UMAP... (this may take 10\u201330 seconds)</div>';
+        await new Promise(r => setTimeout(r, 50));
+
+        try {
+            const allCellLines = this.metadata.cellLines;
+            const cellLineIndices = [];
+            for (let i = 0; i < allCellLines.length; i++) {
+                if (tissueFilter && this.getCellLineLineage(allCellLines[i]) !== tissueFilter) continue;
+                cellLineIndices.push(i);
+            }
+
+            if (cellLineIndices.length < 15) {
+                document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">Need at least 15 cell lines for UMAP (have ' + cellLineIndices.length + ').</div>';
+                return;
+            }
+
+            const nCL = cellLineIndices.length;
+            const N_TOP_GENES = 1000;
+            let matrix = [];
+
+            if (dataType === 'ge' || dataType === 'both') {
+                matrix = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'ge');
+            }
+            if (dataType === 'expr' || dataType === 'both') {
+                const exprFeatures = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'expr');
+                if (dataType === 'both' && matrix.length > 0) {
+                    for (let i = 0; i < nCL; i++) matrix[i] = matrix[i].concat(exprFeatures[i]);
+                } else {
+                    matrix = exprFeatures;
+                }
+            }
+
+            if (matrix.length === 0 || matrix[0].length === 0) {
+                document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">No valid features found for UMAP.</div>';
+                return;
+            }
+
+            const nNeighbors = Math.min(15, Math.floor(nCL / 3));
+            const umap = new UMAP({ nNeighbors: Math.max(5, nNeighbors), minDist: 0.1, nComponents: 2, spread: 1.0 });
+            const embedding = umap.fit(matrix);
+
+            const cellLines = cellLineIndices.map(i => allCellLines[i]);
+            const x = embedding.map(e => e[0]);
+            const y = embedding.map(e => e[1]);
+
+            const categories = cellLines.map(cl => {
+                if (colorBy === 'subtissue') return this.getCellLineSublineage(cl) || this.getCellLineLineage(cl) || 'Unknown';
+                return this.getCellLineLineage(cl) || 'Unknown';
+            });
+
+            let mutStatus = null;
+            if (splitGene) {
+                mutStatus = new Array(nCL).fill(false);
+                const hotspotMuts = this.mutations?.geneData?.[splitGene]?.mutations;
+                const damagingMuts = this.damagingMutations?.geneData?.[splitGene]?.mutations;
+                const transMuts = this.translocations?.geneData?.[splitGene]?.translocations;
+                for (let i = 0; i < nCL; i++) {
+                    const cl = cellLines[i];
+                    if ((hotspotMuts && hotspotMuts[cl] >= 1) || (damagingMuts && damagingMuts[cl] >= 1) || (transMuts && transMuts[cl] >= 1)) mutStatus[i] = true;
+                }
+                const nMut = mutStatus.filter(Boolean).length;
+                document.getElementById('clbUmapSplitType').textContent = `${splitGene}: ${nMut} mutated / ${nCL - nMut} WT`;
+            } else {
+                document.getElementById('clbUmapSplitType').textContent = '';
+            }
+
+            this._clbUmapData = { cellLines, cellLineIndices, embedding, x, y, categories, mutStatus };
+            this._clbUmapSelectedPoints = new Set();
+            this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene);
+            document.getElementById('clbUmapSelectionControls').style.display = 'flex';
+            document.getElementById('clbUmapSelectedCount').textContent = '';
+        } catch (err) {
+            console.error('UMAP error:', err);
+            document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">UMAP computation failed: ' + err.message + '</div>';
+        }
+    }
+
+    _buildVariableGeneMatrix(cellLineIndices, nTopGenes, type) {
+        const nCL = cellLineIndices.length;
+        let nGenes, getData;
+
+        if (type === 'ge') {
+            nGenes = this.metadata.nGenes;
+            getData = (geneIdx, clIdx) => {
+                const val = this.geneEffects[geneIdx * this.nCellLines + clIdx];
+                return isNaN(val) ? null : val;
+            };
+        } else {
+            if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata) return [];
+            nGenes = this.expressionMetadata.nGenes;
+            const nExprCL = this.expressionMetadata.nCellLines;
+            getData = (geneIdx, clIdx) => {
+                const exprIdx = this.expressionCellLineMap?.[clIdx];
+                if (exprIdx === undefined || exprIdx === -1) return null;
+                const val = this.expressionData[geneIdx * nExprCL + exprIdx];
+                return isNaN(val) ? null : val;
+            };
+        }
+
+        const sampleSize = Math.min(nCL, 100);
+        const sampleIndices = [];
+        if (sampleSize < nCL) {
+            const step = nCL / sampleSize;
+            for (let i = 0; i < sampleSize; i++) sampleIndices.push(cellLineIndices[Math.floor(i * step)]);
+        } else {
+            for (let i = 0; i < nCL; i++) sampleIndices.push(cellLineIndices[i]);
+        }
+
+        const variances = new Float32Array(nGenes);
+        for (let g = 0; g < nGenes; g++) {
+            let sum = 0, sumSq = 0, count = 0;
+            for (let s = 0; s < sampleIndices.length; s++) {
+                const val = getData(g, sampleIndices[s]);
+                if (val !== null) { sum += val; sumSq += val * val; count++; }
+            }
+            if (count > 1) { const mean = sum / count; variances[g] = (sumSq / count) - (mean * mean); }
+        }
+
+        const geneRanking = [];
+        for (let g = 0; g < nGenes; g++) {
+            if (variances[g] > 0) geneRanking.push({ idx: g, v: variances[g] });
+        }
+        geneRanking.sort((a, b) => b.v - a.v);
+        const topGenes = geneRanking.slice(0, nTopGenes).map(r => r.idx);
+
+        const matrix = [];
+        for (let i = 0; i < nCL; i++) {
+            const row = new Array(topGenes.length);
+            for (let j = 0; j < topGenes.length; j++) {
+                const val = getData(topGenes[j], cellLineIndices[i]);
+                row[j] = val !== null ? val : 0;
+            }
+            matrix.push(row);
+        }
+        return matrix;
+    }
+
+    _renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene) {
+        const plotDiv = document.getElementById('clbUmapPlot');
+
+        const hoverText = cellLines.map((cl, i) => {
+            const name = this.getCellLineName(cl);
+            const lineage = this.getCellLineLineage(cl);
+            const sub = this.getCellLineSublineage(cl);
+            let text = `${name}<br>${lineage}${sub ? ' \u00b7 ' + sub : ''}`;
+            if (mutStatus) text += `<br>${splitGene}: ${mutStatus[i] ? 'Mutated' : 'WT'}`;
+            return text;
+        });
+
+        let traces;
+
+        if (mutStatus && splitGene) {
+            const wtIdx = [], mutIdx = [];
+            for (let i = 0; i < cellLines.length; i++) {
+                if (mutStatus[i]) mutIdx.push(i); else wtIdx.push(i);
+            }
+            traces = [
+                {
+                    x: wtIdx.map(i => x[i]), y: wtIdx.map(i => y[i]),
+                    text: wtIdx.map(i => hoverText[i]), customdata: wtIdx.map(i => cellLines[i]),
+                    mode: 'markers', type: 'scattergl', name: `WT (n=${wtIdx.length})`,
+                    marker: { size: 4, color: '#d1d5db', opacity: 0.6 }, hoverinfo: 'text'
+                },
+                {
+                    x: mutIdx.map(i => x[i]), y: mutIdx.map(i => y[i]),
+                    text: mutIdx.map(i => hoverText[i]), customdata: mutIdx.map(i => cellLines[i]),
+                    mode: 'markers', type: 'scattergl', name: `${splitGene} mutated (n=${mutIdx.length})`,
+                    marker: { size: 5, color: '#ef4444', opacity: 0.8 }, hoverinfo: 'text'
+                }
+            ];
+        } else {
+            const catGroups = {};
+            for (let i = 0; i < cellLines.length; i++) {
+                const cat = categories[i];
+                if (!catGroups[cat]) catGroups[cat] = [];
+                catGroups[cat].push(i);
+            }
+            const sortedCats = Object.keys(catGroups).sort((a, b) => catGroups[b].length - catGroups[a].length);
+            const colors = [
+                '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+                '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5',
+                '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5',
+                '#393b79', '#5254a3', '#6b6ecf', '#9c9ede', '#637939',
+                '#8ca252', '#b5cf6b', '#cedb9c', '#8c6d31', '#bd9e39'
+            ];
+            traces = sortedCats.map((cat, ci) => {
+                const idx = catGroups[cat];
+                return {
+                    x: idx.map(i => x[i]), y: idx.map(i => y[i]),
+                    text: idx.map(i => hoverText[i]), customdata: idx.map(i => cellLines[i]),
+                    mode: 'markers', type: 'scattergl', name: `${cat} (${idx.length})`,
+                    marker: { size: 4, color: colors[ci % colors.length], opacity: 0.7 }, hoverinfo: 'text'
+                };
+            });
+        }
+
+        const dataTypeLabel = document.getElementById('clbUmapDataType').value === 'ge' ? 'Gene Effect' :
+                              document.getElementById('clbUmapDataType').value === 'expr' ? 'Expression' : 'GE + Expression';
+
+        const layout = {
+            title: { text: `UMAP \u2014 ${dataTypeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
+            xaxis: { title: 'UMAP 1', zeroline: false, showgrid: false },
+            yaxis: { title: 'UMAP 2', zeroline: false, showgrid: false },
+            hovermode: 'closest',
+            margin: { t: 40, r: 10, b: 40, l: 50 },
+            height: 500,
+            legend: { font: { size: 9 }, itemsizing: 'constant', tracegroupgap: 2, y: 0.5, yanchor: 'middle' },
+            dragmode: 'pan',
+            paper_bgcolor: 'white',
+            plot_bgcolor: '#fafafa'
+        };
+
+        Plotly.newPlot(plotDiv, traces, layout, { responsive: true, displayModeBar: true, modeBarButtonsToAdd: ['select2d', 'lasso2d'], displaylogo: false });
+
+        plotDiv.on('plotly_selected', (eventData) => {
+            this._clbUmapSelectedPoints = new Set();
+            if (eventData && eventData.points) {
+                eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });
+            }
+            document.getElementById('clbUmapSelectedCount').textContent =
+                this._clbUmapSelectedPoints.size > 0 ? `${this._clbUmapSelectedPoints.size} selected` : '';
+        });
+
+        plotDiv.on('plotly_deselect', () => {
+            this._clbUmapSelectedPoints = new Set();
+            document.getElementById('clbUmapSelectedCount').textContent = '';
+        });
+    }
+
+    clbUmapSelectMode() {
+        Plotly.relayout(document.getElementById('clbUmapPlot'), { dragmode: 'lasso' });
+    }
+
+    clbUmapCopySelected() {
+        if (!this._clbUmapSelectedPoints || this._clbUmapSelectedPoints.size === 0) {
+            this.showCopyNotification('No points selected. Use lasso or box select first.');
+            return;
+        }
+        const lines = [...this._clbUmapSelectedPoints].map(cl => this.getCellLineName(cl)).join('\n');
+        navigator.clipboard.writeText(lines).then(() => {
+            this.showCopyNotification(`Copied ${this._clbUmapSelectedPoints.size} cell line names`);
         });
     }
 }

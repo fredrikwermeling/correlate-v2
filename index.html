@@ -11,6 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/umap-js@1.4.0/lib/umap-js.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&display=swap');
 
@@ -1302,6 +1303,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>dev-15 (2026-03-14)</strong></p>
+                <ul>
+                    <li>UMAP visualization in Cell Line Browser (GE, Expression, or both; top 1000 variable genes)</li>
+                    <li>UMAP: color by tissue/subtype, split by mutation, lasso select + copy cell lines</li>
+                    <li>Custom cell line filter (paste IDs/names) in scatter, mutation inspect, and CLB</li>
+                    <li>GE vs Expression axis selectors in correlation scatter (plot GE on one axis, Expression on other)</li>
+                    <li>Logo centered with "extended version" subtitle</li>
+                </ul>
                 <p><strong>dev-14 (2026-03-14)</strong></p>
                 <ul>
                     <li>Export preview modal with adjustable graph settings (dimensions, fonts, marker size, scale, background)</li>
@@ -1373,7 +1382,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.14</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.15</a>
     </div>
 
     <div class="main-content">
@@ -1994,7 +2003,15 @@
                             <span class="control-label" style="margin-bottom: 2px;">Genes (X/Y)</span>
                             <div style="display: flex; gap: 4px; align-items: center;">
                                 <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="X gene">
+                                <select id="xAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;" title="X axis data type">
+                                    <option value="ge">GE</option>
+                                    <option value="expr">Expr</option>
+                                </select>
                                 <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="Y gene">
+                                <select id="yAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;" title="Y axis data type">
+                                    <option value="ge">GE</option>
+                                    <option value="expr">Expr</option>
+                                </select>
                                 <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px; white-space: nowrap;">Update</button>
                             </div>
                         </div>
@@ -2096,6 +2113,17 @@
                                 <option value="2">Only 2+</option>
                                 <option value="1+2">Fused (1+2)</option>
                             </select>
+                        </div>
+
+                        <!-- Custom Cell Lines Filter -->
+                        <div class="control-box-compact" id="customCellLineFilterBox" style="grid-column: span 2;">
+                            <span class="control-label">Custom Cell Lines</span>
+                            <textarea id="customCellLineFilter" placeholder="Paste cell line IDs or names (one per line, comma, or tab-separated)" style="font-size:10px; width:100%; height:40px; resize:vertical; border:1.5px solid #d1d5db; border-radius:6px; padding:4px; box-sizing:border-box;"></textarea>
+                            <div style="display:flex; gap:4px; margin-top:2px;">
+                                <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilter()" style="font-size:10px; flex:1;">Apply</button>
+                                <button class="btn btn-sm btn-outline" onclick="app.clearCustomCellLineFilter()" style="font-size:10px; flex:1;">Clear</button>
+                                <span id="customCLFilterCount" style="font-size:9px; color:#6b7280; align-self:center;"></span>
+                            </div>
                         </div>
 
                         <!-- Compare + Reset -->
@@ -2286,6 +2314,14 @@
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot">By Hotspot</button>
+                    </div>
+                    <!-- Row 3: Custom Cell Line Filter -->
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Custom CLs:</span>
+                        <textarea id="customCellLineFilterGE" placeholder="Paste cell line IDs or names..." style="font-size:10px; width:260px; height:32px; resize:vertical; border:1.5px solid #d1d5db; border-radius:6px; padding:4px;"></textarea>
+                        <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilterGE()" style="font-size:10px; padding:3px 8px;">Apply</button>
+                        <button class="btn btn-sm btn-outline" onclick="app.clearCustomCellLineFilterGE()" style="font-size:10px; padding:3px 8px;">Clear</button>
+                        <span id="customCLFilterCountGE" style="font-size:9px; color:#6b7280;"></span>
                     </div>
                 </div>
 
@@ -2822,6 +2858,14 @@
             <button id="clbExportFull" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);">Export Report</button>
           </div>
         </div>
+        <!-- Custom Cell Line Filter for CLB -->
+        <div style="padding: 4px 12px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+          <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Custom CLs:</span>
+          <textarea id="customCellLineFilterCLB" placeholder="Paste cell line IDs or names..." style="font-size:10px; width:260px; height:28px; resize:vertical; border:1.5px solid #d1d5db; border-radius:6px; padding:4px;"></textarea>
+          <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilterCLB()" style="font-size:10px; padding:3px 8px;">Apply</button>
+          <button class="btn btn-sm btn-outline" onclick="app.clearCustomCellLineFilterCLB()" style="font-size:10px; padding:3px 8px;">Clear</button>
+          <span id="customCLFilterCountCLB" style="font-size:9px; color:#6b7280;"></span>
+        </div>
         <!-- Content -->
         <div class="clb-content">
           <div class="clb-list-wrap" id="clbListContainer">
@@ -2845,6 +2889,39 @@
             </div>
           </div>
         </div>
+        <!-- UMAP Section -->
+        <div id="clbUmapSection" style="border-top:1px solid #e5e7eb; padding:10px 16px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <strong style="font-size:12px;">UMAP</strong>
+                <select id="clbUmapDataType" style="font-size:11px; padding:2px 4px;">
+                    <option value="ge">Gene Effect</option>
+                    <option value="expr">Expression</option>
+                    <option value="both">GE + Expression</option>
+                </select>
+                <select id="clbUmapColorBy" style="font-size:11px; padding:2px 4px;">
+                    <option value="tissue">Color by tissue</option>
+                    <option value="subtissue">Color by subtype</option>
+                </select>
+                <select id="clbUmapTissueFilter" style="font-size:11px; padding:2px 4px;">
+                    <option value="">All tissues</option>
+                </select>
+                <button id="clbUmapRunBtn" class="btn btn-sm" style="font-size:11px; padding:3px 10px; background:#16a34a; color:white; border:none; border-radius:4px; cursor:pointer;">Run UMAP</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+                <span style="font-size:10px; color:#6b7280;">Split by mutation:</span>
+                <select id="clbUmapSplitGene" style="font-size:10px; padding:2px 4px; width:140px;">
+                    <option value="">None</option>
+                </select>
+                <span id="clbUmapSplitType" style="font-size:10px; color:#6b7280;"></span>
+            </div>
+            <div id="clbUmapPlot" style="min-height:50px;"></div>
+            <div id="clbUmapSelectionControls" style="display:none; margin-top:6px; gap:6px; align-items:center; flex-wrap:wrap;">
+                <button id="clbUmapSelectBtn" class="btn btn-sm btn-outline" style="font-size:10px;">Lasso select</button>
+                <button id="clbUmapCopyBtn" class="btn btn-sm btn-outline" style="font-size:10px;">Copy selected</button>
+                <span id="clbUmapSelectedCount" style="font-size:10px; color:#6b7280;"></span>
+            </div>
+        </div>
+
         <div style="padding: 8px 16px; border-top: 1px solid var(--gray-200); font-size: 11px; color: var(--gray-500); text-align: center;">
           Data from <a href="https://depmap.org/" target="_blank" rel="noopener" style="color: var(--green-700);">DepMap</a> (Broad Institute). Please acknowledge DepMap when using this data in publications.
         </div>
