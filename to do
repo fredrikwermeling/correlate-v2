@@ -1,4 +1,6 @@
-
+- in cell line browser, allow for making umaps of cell lines based on GE and/or expression, include filters for tissue/subtissue, hotspot, fusion. allow for separat graphs separating by a hotspotmutation, fusion or damaging mutation.  the  cellines should be possible to select based on where in a cluster they are (either by seecting cluster1,2 etc or by using a gate. the selected cel llines should be possible to copy.
+- a custom cell line fitler should be added to every place where filters are used, where celline sto include could be paseted ( which match with the output, bit .csv or copy to clipboard from the umap above).
+- i want some whay to test gene expressions GE. could this be incldued in the correlate_scatter. ie allowing for looking at both GE and expression, also some sort of ranking feature showing if GE and expression correlate. Nt sure how to implement this 
 
 
 - in the double plot with gates and differences in the eg GE of a gene in the differnt gated groups, before the export png/svg, could an inspect windwo open where the graphs can be changed, eg size etc, so the user can mmek them uiniform before exporting the image? In general i want more control over the graphs, could more graph settings be added (and the changes should involve the exported .svg. png). look at how https://github.com/fredrikwermeling/Visualize solves some of these thigns.
