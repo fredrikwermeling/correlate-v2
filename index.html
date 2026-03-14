@@ -1289,8 +1289,82 @@
     </div>
 
     <!-- Logo Header -->
-    <div class="logo-header">
+    <div class="logo-header" style="position:relative;">
         <img src="web_data/correlate_logo.png" alt="Correlate - a Gene Effect Analysis Tool">
+        <span id="versionBadge" onclick="document.getElementById('changelogModal').style.display='flex'" style="position:absolute; bottom:2px; right:8px; font-size:10px; color:#9ca3af; cursor:pointer; font-family:monospace;" title="Click for changelog">dev-14</span>
+    </div>
+
+    <!-- Changelog Modal (development only) -->
+    <div id="changelogModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:3000; justify-content:center; align-items:center;">
+        <div style="background:white; max-width:600px; width:90%; max-height:80vh; overflow-y:auto; border-radius:8px; padding:20px; position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0;">Changelog (development)</h3>
+                <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
+            </div>
+            <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>dev-14 (2026-03-14)</strong></p>
+                <ul>
+                    <li>Export preview modal with adjustable graph settings (dimensions, fonts, marker size, scale, background)</li>
+                    <li>Color-by-tissue legend no longer cropped (max-height: 40vh)</li>
+                </ul>
+                <p><strong>dev-13</strong></p>
+                <ul>
+                    <li>Axis range: +/- buttons, "Reg. line" and "Zero lines" toggles on same row</li>
+                    <li>Gate A/B labels shown on scatter plot rectangles</li>
+                    <li>Gene plot margins standardized for export alignment</li>
+                    <li>"Diff GE" renamed to "Δ Gene Effect"</li>
+                </ul>
+                <p><strong>dev-12</strong></p>
+                <ul>
+                    <li>Export: separate PNG/SVG buttons, descriptive filenames</li>
+                    <li>Mutation bar chart: 4 stacked traces (WT/Mut for both gates)</li>
+                    <li>GE inspect gene plots square (300x300)</li>
+                    <li>P-value filter dropdown on gate comparison tabs</li>
+                    <li>Enrichr prompts for p-value threshold</li>
+                </ul>
+                <p><strong>dev-11</strong></p>
+                <ul>
+                    <li>Fix axis range "-" input, correlation line toggle label</li>
+                    <li>Gene search input in gate comparison tables</li>
+                    <li>Enrichr A/B buttons for mutations (relaxed filter)</li>
+                    <li>Hotspot filter counts update with tissue filter</li>
+                    <li>DepMap source files listed in info box</li>
+                    <li>GE inspect gates: draggable rectangles, both visible</li>
+                    <li>Enrichr buttons on GE inspect gate tabs</li>
+                </ul>
+                <p><strong>dev-10</strong></p>
+                <ul>
+                    <li>Draggable rectangle gates (replace select-based)</li>
+                    <li>Full gate comparison in mutation analysis inspect</li>
+                </ul>
+                <p><strong>dev-9</strong></p>
+                <ul>
+                    <li>Both hotspot AND damaging mutations in gate comparison (type badges)</li>
+                    <li>Expression comparison tab (on-demand loading)</li>
+                    <li>Clickable gene names → box/bar plots comparing Gate A vs B</li>
+                    <li>Enrichr fix (wrong element ID) + buttons on all tabs</li>
+                    <li>Axis range: remove inputmode=decimal</li>
+                    <li>Correlation line toggle checkbox</li>
+                </ul>
+                <p><strong>dev-8</strong></p>
+                <ul>
+                    <li>Gate A/B colored overlay markers on scatter (blue/red)</li>
+                    <li>Expression correlates available in regular scatter inspect</li>
+                </ul>
+                <p><strong>dev-7</strong></p>
+                <ul>
+                    <li>Gate comparison: sortable tables, Enrichr, subtissue, scroll fix</li>
+                    <li>Fix bone cancer bug (gates match filtered data)</li>
+                    <li>Gate A/B columns in scatter CSV download</li>
+                </ul>
+                <p><strong>dev-6 and earlier</strong></p>
+                <ul>
+                    <li>Damaging mutations integration (8926 genes)</li>
+                    <li>Gate comparison feature (tissue, mutations, differential GE)</li>
+                    <li>Scatter performance fix (limit dropdown options)</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <!-- Navigation Bar -->
