@@ -16969,66 +16969,183 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     async exportGateReport(format = 'png') {
         const scatterEl = document.getElementById('scatterPlot');
-        const genePlotEl = document.getElementById('gateGenePlot');
         if (!scatterEl || !scatterEl.data) return;
-
-        const plotH = 450;
-        const scatterW = 450;
-        const genePlotW = 450;
-        const imgFmt = format === 'svg' ? 'svg' : 'png';
-
-        // Read scatter plot margins to match gene plot data area
-        const scatterMargin = scatterEl._fullLayout?.margin || { t: 80, b: 60, l: 60, r: 30 };
-        const scatterDataUrl = await Plotly.toImage(scatterEl, { format: imgFmt, width: scatterW, height: plotH, scale: 2 });
-
-        let genePlotDataUrl = null;
-        if (genePlotEl && genePlotEl.data) {
-            // Temporarily match margins to scatter so data areas align
-            const origMargin = genePlotEl._fullLayout?.margin || {};
-            await Plotly.relayout(genePlotEl, { margin: { t: scatterMargin.t, b: scatterMargin.b, l: scatterMargin.l, r: scatterMargin.r } });
-            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: imgFmt, width: genePlotW, height: plotH, scale: 2 });
-            // Restore original margins
-            await Plotly.relayout(genePlotEl, { margin: { t: origMargin.t || 40, b: origMargin.b || 60, l: origMargin.l || 60, r: origMargin.r || 30 } });
-        }
-
-        const filters = this._gatherScatterFilters();
-        const filenameBase = this._buildGateReportFilename('gate_comparison');
-
-        if (format === 'svg') {
-            await this._composeGateReportSVG(scatterDataUrl, scatterW, plotH, genePlotDataUrl, genePlotW, plotH, filters, filenameBase);
-        } else {
-            await this._composeGateReportImage(scatterDataUrl, scatterW, plotH, genePlotDataUrl, genePlotW, plotH, filters, filenameBase);
-        }
+        this._exportContext = { type: 'scatter', format };
+        this.openExportPreview();
     }
 
     async exportGEGateReport(format = 'png') {
         const gePlotEl = document.getElementById('geneEffectPlot');
-        const genePlotEl = document.getElementById('geGateGenePlot');
         if (!gePlotEl || !gePlotEl.data) return;
+        this._exportContext = { type: 'ge', format };
+        this.openExportPreview();
+    }
 
-        const plotH = 450;
-        const mainW = 450;
-        const genePlotW = 450;
+    openExportPreview() {
+        const modal = document.getElementById('exportPreviewModal');
+        modal.style.display = 'block';
+        this.updateExportPreview();
+    }
+
+    _readExportSettings() {
+        return {
+            mainW: parseInt(document.getElementById('exportMainWidth').value) || 450,
+            mainH: parseInt(document.getElementById('exportMainHeight').value) || 450,
+            geneW: parseInt(document.getElementById('exportGeneWidth').value) || 450,
+            geneH: parseInt(document.getElementById('exportGeneHeight').value) || 450,
+            titleFont: parseInt(document.getElementById('exportTitleFont').value) || 14,
+            axisFont: parseInt(document.getElementById('exportAxisFont').value) || 12,
+            tickFont: parseInt(document.getElementById('exportTickFont').value) || 10,
+            markerSize: parseInt(document.getElementById('exportMarkerSize').value) || 8,
+            pngScale: parseInt(document.getElementById('exportPngScale').value) || 2,
+            bgColor: document.getElementById('exportBgColor').value || 'white',
+        };
+    }
+
+    _getExportPlotElements() {
+        const ctx = this._exportContext;
+        if (ctx.type === 'scatter') {
+            return {
+                mainEl: document.getElementById('scatterPlot'),
+                geneEl: document.getElementById('gateGenePlot'),
+                filters: this._gatherScatterFilters(),
+                filenameBase: this._buildGateReportFilename('gate_comparison'),
+            };
+        } else {
+            return {
+                mainEl: document.getElementById('geneEffectPlot'),
+                geneEl: document.getElementById('geGateGenePlot'),
+                filters: this._gatherGEFilters(),
+                filenameBase: this._buildGEGateReportFilename('ge_gate_comparison'),
+            };
+        }
+    }
+
+    async _renderExportPlotToImage(plotEl, width, height, settings, format) {
+        if (!plotEl || !plotEl.data) return null;
+
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = 'position:absolute;left:-9999px;top:0;';
+        document.body.appendChild(tempDiv);
+
+        try {
+            const data = JSON.parse(JSON.stringify(plotEl.data));
+            const layout = JSON.parse(JSON.stringify(plotEl.layout));
+
+            // Apply size overrides
+            layout.width = width;
+            layout.height = height;
+
+            // Apply font overrides
+            layout.title = layout.title || {};
+            if (typeof layout.title === 'string') {
+                layout.title = { text: layout.title };
+            }
+            layout.title.font = { ...(layout.title.font || {}), size: settings.titleFont };
+
+            layout.xaxis = layout.xaxis || {};
+            layout.xaxis.title = layout.xaxis.title || {};
+            if (typeof layout.xaxis.title === 'string') {
+                layout.xaxis.title = { text: layout.xaxis.title };
+            }
+            layout.xaxis.title.font = { ...(layout.xaxis.title.font || {}), size: settings.axisFont };
+            layout.xaxis.tickfont = { ...(layout.xaxis.tickfont || {}), size: settings.tickFont };
+
+            layout.yaxis = layout.yaxis || {};
+            layout.yaxis.title = layout.yaxis.title || {};
+            if (typeof layout.yaxis.title === 'string') {
+                layout.yaxis.title = { text: layout.yaxis.title };
+            }
+            layout.yaxis.title.font = { ...(layout.yaxis.title.font || {}), size: settings.axisFont };
+            layout.yaxis.tickfont = { ...(layout.yaxis.tickfont || {}), size: settings.tickFont };
+
+            // Apply background
+            layout.paper_bgcolor = settings.bgColor === 'transparent' ? 'rgba(0,0,0,0)' : 'white';
+            layout.plot_bgcolor = settings.bgColor === 'transparent' ? 'rgba(0,0,0,0)' : 'white';
+
+            // Apply marker size
+            data.forEach(trace => {
+                if (trace.marker) {
+                    trace.marker.size = settings.markerSize;
+                }
+            });
+
+            await Plotly.newPlot(tempDiv, data, layout, { staticPlot: true });
+            const imgUrl = await Plotly.toImage(tempDiv, {
+                format: format,
+                width: width,
+                height: height,
+                scale: format === 'png' ? settings.pngScale : 1
+            });
+            Plotly.purge(tempDiv);
+            return imgUrl;
+        } finally {
+            tempDiv.remove();
+        }
+    }
+
+    async updateExportPreview() {
+        const settings = this._readExportSettings();
+        this._exportSettings = settings;
+        const { mainEl, geneEl, filters, filenameBase } = this._getExportPlotElements();
+
+        const previewArea = document.getElementById('exportPreviewArea');
+        const filterArea = document.getElementById('exportPreviewFilters');
+        previewArea.innerHTML = '<div style="color:#6b7280;">Generating preview...</div>';
+
+        try {
+            // Get main plot margin for aligning gene plot
+            const mainMargin = mainEl._fullLayout?.margin || { t: 80, b: 60, l: 60, r: 30 };
+
+            // Render both plots as PNG previews
+            const mainImgUrl = await this._renderExportPlotToImage(mainEl, settings.mainW, settings.mainH, settings, 'png');
+
+            let geneImgUrl = null;
+            if (geneEl && geneEl.data) {
+                geneImgUrl = await this._renderExportPlotToImage(geneEl, settings.geneW, settings.geneH, settings, 'png');
+            }
+
+            previewArea.innerHTML = '';
+            if (mainImgUrl) {
+                const img1 = document.createElement('img');
+                img1.src = mainImgUrl;
+                img1.style.cssText = `max-width:45%; height:auto; display:inline-block; vertical-align:top; margin:4px;`;
+                previewArea.appendChild(img1);
+            }
+            if (geneImgUrl) {
+                const img2 = document.createElement('img');
+                img2.src = geneImgUrl;
+                img2.style.cssText = `max-width:45%; height:auto; display:inline-block; vertical-align:top; margin:4px;`;
+                previewArea.appendChild(img2);
+            }
+
+            // Show filters
+            filterArea.innerHTML = filters.map(f => `<div>${f}</div>`).join('');
+        } catch (err) {
+            previewArea.innerHTML = `<div style="color:red;">Error generating preview: ${err.message}</div>`;
+            console.error('Export preview error:', err);
+        }
+    }
+
+    async doExportFromPreview(format) {
+        const settings = this._exportSettings || this._readExportSettings();
+        const { mainEl, geneEl, filters, filenameBase } = this._getExportPlotElements();
         const imgFmt = format === 'svg' ? 'svg' : 'png';
 
-        const geMargin = gePlotEl._fullLayout?.margin || { t: 80, b: 60, l: 60, r: 30 };
-        const geDataUrl = await Plotly.toImage(gePlotEl, { format: imgFmt, width: mainW, height: plotH, scale: 2 });
+        // Get main plot margin for aligning gene plot
+        const mainMargin = mainEl._fullLayout?.margin || { t: 80, b: 60, l: 60, r: 30 };
+
+        const mainDataUrl = await this._renderExportPlotToImage(mainEl, settings.mainW, settings.mainH, settings, imgFmt);
 
         let genePlotDataUrl = null;
-        if (genePlotEl && genePlotEl.data) {
-            const origMargin = genePlotEl._fullLayout?.margin || {};
-            await Plotly.relayout(genePlotEl, { margin: { t: geMargin.t, b: geMargin.b, l: geMargin.l, r: geMargin.r } });
-            genePlotDataUrl = await Plotly.toImage(genePlotEl, { format: imgFmt, width: genePlotW, height: plotH, scale: 2 });
-            await Plotly.relayout(genePlotEl, { margin: { t: origMargin.t || 40, b: origMargin.b || 60, l: origMargin.l || 60, r: origMargin.r || 30 } });
+        if (geneEl && geneEl.data) {
+            genePlotDataUrl = await this._renderExportPlotToImage(geneEl, settings.geneW, settings.geneH, settings, imgFmt);
         }
 
-        const filters = this._gatherGEFilters();
-        const filenameBase = this._buildGEGateReportFilename('ge_gate_comparison');
-
         if (format === 'svg') {
-            await this._composeGateReportSVG(geDataUrl, mainW, plotH, genePlotDataUrl, genePlotW, plotH, filters, filenameBase);
+            await this._composeGateReportSVG(mainDataUrl, settings.mainW, settings.mainH, genePlotDataUrl, settings.geneW, settings.geneH, filters, filenameBase);
         } else {
-            await this._composeGateReportImage(geDataUrl, mainW, plotH, genePlotDataUrl, genePlotW, plotH, filters, filenameBase);
+            await this._composeGateReportImage(mainDataUrl, settings.mainW, settings.mainH, genePlotDataUrl, settings.geneW, settings.geneH, filters, filenameBase, settings.pngScale, settings.bgColor);
         }
     }
 
@@ -17078,8 +17195,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         return lines;
     }
 
-    async _composeGateReportImage(mainDataUrl, mainW, mainH, genePlotDataUrl, genePlotW, genePlotH, filterLines, filenameBase) {
-        const scale = 2;
+    async _composeGateReportImage(mainDataUrl, mainW, mainH, genePlotDataUrl, genePlotW, genePlotH, filterLines, filenameBase, pngScale, bgColor) {
+        const scale = pngScale || 2;
         const padding = 20;
         const textLineHeight = 18;
         const textFontSize = 13;
@@ -17107,8 +17224,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const ctx = canvas.getContext('2d');
         ctx.scale(scale, scale);
 
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, totalW, totalH);
+        if (bgColor === 'transparent') {
+            ctx.clearRect(0, 0, totalW, totalH);
+        } else {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, totalW, totalH);
+        }
 
         ctx.drawImage(mainImg, padding, padding, leftW, leftH);
 

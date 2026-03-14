@@ -2064,7 +2064,7 @@
                                 <option value="tissue">Color by tissue</option>
                                 <option value="subtype" id="colorBySubtypeOption" style="display: none;">Color by subtype</option>
                             </select>
-                            <div id="colorByLegend" style="display: none; margin-top: 4px; max-height: 150px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px;"></div>
+                            <div id="colorByLegend" style="display: none; margin-top: 4px; max-height: 40vh; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px;"></div>
                         </div>
 
                         <!-- Mutation Overlay -->
@@ -2774,6 +2774,85 @@
           Data from <a href="https://depmap.org/" target="_blank" rel="noopener" style="color: var(--green-700);">DepMap</a> (Broad Institute). Please acknowledge DepMap when using this data in publications.
         </div>
       </div>
+    </div>
+
+    <!-- Export Preview Modal -->
+    <div id="exportPreviewModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:2000; overflow-y:auto;">
+        <div style="background:white; margin:20px auto; max-width:1200px; border-radius:8px; padding:20px; position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0;">Export Preview</h3>
+                <button onclick="document.getElementById('exportPreviewModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
+            </div>
+
+            <!-- Settings row -->
+            <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; padding:10px; background:#f9fafb; border-radius:6px; border:1px solid #e5e7eb;">
+                <div>
+                    <label style="font-size:11px; color:#6b7280;">Main plot width</label>
+                    <input type="number" id="exportMainWidth" value="450" min="200" max="1000" step="10" style="width:70px; font-size:11px;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#6b7280;">Main plot height</label>
+                    <input type="number" id="exportMainHeight" value="450" min="200" max="1000" step="10" style="width:70px; font-size:11px;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#6b7280;">Gene plot width</label>
+                    <input type="number" id="exportGeneWidth" value="450" min="200" max="1000" step="10" style="width:70px; font-size:11px;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#6b7280;">Gene plot height</label>
+                    <input type="number" id="exportGeneHeight" value="450" min="200" max="1000" step="10" style="width:70px; font-size:11px;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#6b7280;">Title font</label>
+                    <input type="number" id="exportTitleFont" value="14" min="8" max="30" style="width:50px; font-size:11px;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#6b7280;">Axis font</label>
+                    <input type="number" id="exportAxisFont" value="12" min="6" max="24" style="width:50px; font-size:11px;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#6b7280;">Tick font</label>
+                    <input type="number" id="exportTickFont" value="10" min="6" max="20" style="width:50px; font-size:11px;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#6b7280;">Marker size</label>
+                    <input type="number" id="exportMarkerSize" value="8" min="2" max="20" style="width:50px; font-size:11px;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#6b7280;">PNG scale</label>
+                    <select id="exportPngScale" style="font-size:11px;">
+                        <option value="1">1x</option>
+                        <option value="2" selected>2x</option>
+                        <option value="3">3x</option>
+                        <option value="4">4x</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#6b7280;">Background</label>
+                    <select id="exportBgColor" style="font-size:11px;">
+                        <option value="white">White</option>
+                        <option value="transparent">Transparent</option>
+                    </select>
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                    <button onclick="app.updateExportPreview()" class="btn btn-sm btn-outline" style="font-size:11px; padding:3px 10px;">Update Preview</button>
+                </div>
+            </div>
+
+            <!-- Preview area -->
+            <div id="exportPreviewArea" style="text-align:center; border:1px solid #e5e7eb; border-radius:6px; padding:10px; background:#fafafa; min-height:300px; overflow:auto;">
+                <div style="color:#6b7280;">Generating preview...</div>
+            </div>
+
+            <!-- Filter text preview -->
+            <div id="exportPreviewFilters" style="margin-top:8px; font-size:12px; color:#374151; padding:8px; background:#f9fafb; border-radius:4px;"></div>
+
+            <!-- Export buttons -->
+            <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end;">
+                <button onclick="app.doExportFromPreview('png')" class="btn btn-sm" style="background:#16a34a;color:white;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;">Download PNG</button>
+                <button onclick="app.doExportFromPreview('svg')" class="btn btn-sm" style="background:#2563eb;color:white;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;">Download SVG</button>
+            </div>
+        </div>
     </div>
 
     <script src="app.js?v=20260224v1"></script>
