@@ -17636,7 +17636,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
 
             const nNeighbors = Math.min(15, Math.floor(nCL / 3));
-            const umap = new UMAP({ nNeighbors: Math.max(5, nNeighbors), minDist: 0.1, nComponents: 2, spread: 1.0 });
+            const UMAPClass = (typeof UMAP === 'function') ? UMAP : UMAP.UMAP;
+            const umap = new UMAPClass({ nNeighbors: Math.max(5, nNeighbors), minDist: 0.1, nComponents: 2, spread: 1.0 });
             const embedding = umap.fit(matrix);
 
             const cellLines = cellLineIndices.map(i => allCellLines[i]);
