@@ -19444,17 +19444,25 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const plotEl = document.getElementById(this._textSettingsPlotId);
         if (!plotEl?.layout) return;
 
-        const getVal = (id) => parseInt(document.getElementById(id)?.value) || null;
+        const getVal = (id) => { const v = parseInt(document.getElementById(id)?.value); return isNaN(v) ? null : v; };
 
+        const xStandoff = getVal('ts_xStandoff');
+        const yStandoff = getVal('ts_yStandoff');
         const updates = {
             'xaxis.title.font.size': getVal('ts_xlabel'),
             'yaxis.title.font.size': getVal('ts_ylabel'),
             'xaxis.tickfont.size': getVal('ts_xtick'),
             'yaxis.tickfont.size': getVal('ts_ytick'),
-            'legend.font.size': getVal('ts_legend'),
-            'xaxis.title.standoff': getVal('ts_xStandoff'),
-            'yaxis.title.standoff': getVal('ts_yStandoff')
+            'legend.font.size': getVal('ts_legend')
         };
+        if (xStandoff != null) {
+            updates['xaxis.title.standoff'] = xStandoff;
+            updates['xaxis.automargin'] = true;
+        }
+        if (yStandoff != null) {
+            updates['yaxis.title.standoff'] = yStandoff;
+            updates['yaxis.automargin'] = true;
+        }
 
         // Title: annotation or layout.title depending on plot type
         const titleSize = getVal('ts_title');
