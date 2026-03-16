@@ -1562,6 +1562,7 @@ class CorrelationExplorer {
 
         document.getElementById('downloadNetworkPNG').addEventListener('click', () => this.downloadNetworkPNG());
         document.getElementById('downloadNetworkSVG').addEventListener('click', () => this.downloadNetworkSVG());
+        document.getElementById('downloadFullPageSVG')?.addEventListener('click', () => this.downloadFullPageSVG());
         document.getElementById('downloadAllData').addEventListener('click', () => this.downloadAllData());
 
         // Color by stats controls (mutually exclusive with GE)
@@ -6437,6 +6438,163 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const a = document.createElement('a');
         a.href = url;
         a.download = 'correlation_network.svg';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    downloadFullPageSVG() {
+        if (!this.network || !this.networkData || !this.results) return;
+
+        const transparentBg = document.getElementById('exportNetworkTransparentBg')?.checked;
+        const pageWidth = 1200;
+        const networkWidth = 800;
+        const networkHeight = 600;
+        const tableWidth = pageWidth;
+        const padding = 30;
+        const rowHeight = 20;
+        const headerHeight = 28;
+        const fontSize = 11;
+
+        // Build network section (reuse logic from downloadNetworkSVG)
+        const positions = this.network.getPositions();
+        const scale = this.network.getScale();
+        const container = document.getElementById('networkPlot');
+        const cw = container.clientWidth, ch = container.clientHeight;
+        const scaleX = networkWidth / cw, scaleY = networkHeight / ch;
+        const scaleFactor = Math.min(scaleX, scaleY);
+
+        let networkSvg = '';
+        // Edges
+        this.networkData.edges.forEach(edge => {
+            const from = positions[edge.from], to = positions[edge.to];
+            if (!from || !to) return;
+            const domFrom = this.network.canvasToDOM({ x: from.x, y: from.y });
+            const domTo = this.network.canvasToDOM({ x: to.x, y: to.y });
+            const color = typeof edge.color === 'object' ? (edge.color?.color || '#3182ce') : (edge.color || '#3182ce');
+            const sw = (edge.width || 1) * scale * scaleFactor;
+            networkSvg += `<line x1="${domFrom.x * scaleFactor}" y1="${domFrom.y * scaleFactor}" x2="${domTo.x * scaleFactor}" y2="${domTo.y * scaleFactor}" stroke="${color}" stroke-width="${sw}" opacity="0.8"/>\n`;
+        });
+        // Nodes
+        this.networkData.nodes.forEach(node => {
+            const pos = positions[node.id];
+            if (!pos) return;
+            const dom = this.network.canvasToDOM({ x: pos.x, y: pos.y });
+            const px = dom.x * scaleFactor, py = dom.y * scaleFactor;
+            const r = (node.size || 25) * scale * scaleFactor;
+            const fs = (node.font?.size || 14) * scale * scaleFactor;
+            const bg = node.color?.background || '#5a9f4a';
+            networkSvg += `<circle cx="${px}" cy="${py}" r="${r}" fill="${bg}" stroke="white" stroke-width="${1.5 * scaleFactor}"/>\n`;
+            const lines = (node.label || node.id).split('\n');
+            lines.forEach((line, i) => {
+                networkSvg += `<text x="${px}" y="${py + r + 12 * scaleFactor + i * fs}" text-anchor="middle" style="font-family:Arial;font-size:${fs}px;fill:${node.font?.color || '#333'};">${this.escapeXml(line)}</text>\n`;
+            });
+        });
+
+        // Build correlation table
+        const corrBody = document.getElementById('correlationsBody');
+        const rows = corrBody ? Array.from(corrBody.querySelectorAll('tr')).filter(r => r.style.display !== 'none') : [];
+        const maxRows = Math.min(rows.length, 50);
+        const tableHeight = headerHeight + maxRows * rowHeight + 10;
+
+        const colWidths = [140, 140, 100, 80, 60, 80];
+        const colLabels = ['Gene 1', 'Gene 2', 'Correlation', 'Slope', 'N', 'Cluster'];
+
+        let tableSvg = '';
+        // Header
+        let cx = 0;
+        colLabels.forEach((label, i) => {
+            tableSvg += `<rect x="${cx}" y="0" width="${colWidths[i]}" height="${headerHeight}" fill="#f3f4f6" stroke="#e5e7eb"/>\n`;
+            tableSvg += `<text x="${cx + 6}" y="${headerHeight - 8}" style="font-family:Arial;font-size:${fontSize}px;font-weight:bold;fill:#374151;">${label}</text>\n`;
+            cx += colWidths[i];
+        });
+        // Rows
+        for (let r = 0; r < maxRows; r++) {
+            const cells = rows[r].querySelectorAll('td');
+            cx = 0;
+            const ry = headerHeight + r * rowHeight;
+            const bgFill = r % 2 === 0 ? 'white' : '#fafafa';
+            for (let c = 0; c < Math.min(cells.length, colWidths.length); c++) {
+                tableSvg += `<rect x="${cx}" y="${ry}" width="${colWidths[c]}" height="${rowHeight}" fill="${bgFill}" stroke="#f0f0f0"/>\n`;
+                let text = cells[c].textContent.trim().substring(0, 20);
+                // Color correlation values
+                let fillColor = '#333';
+                if (c === 2) {
+                    const val = parseFloat(text);
+                    if (!isNaN(val)) fillColor = val > 0 ? '#2563eb' : '#dc2626';
+                }
+                tableSvg += `<text x="${cx + 6}" y="${ry + rowHeight - 6}" style="font-family:Arial;font-size:${fontSize}px;fill:${fillColor};">${this.escapeXml(text)}</text>\n`;
+                cx += colWidths[c];
+            }
+        }
+        if (rows.length > maxRows) {
+            tableSvg += `<text x="6" y="${headerHeight + maxRows * rowHeight + rowHeight - 6}" style="font-family:Arial;font-size:${fontSize}px;fill:#6b7280;font-style:italic;">... and ${rows.length - maxRows} more rows</text>\n`;
+        }
+
+        // Build summary section
+        const summaryDiv = document.getElementById('tab-summary');
+        let summaryText = '';
+        if (summaryDiv) {
+            const items = summaryDiv.querySelectorAll('.stat-value, .stat-label, p, li');
+            const lines = [];
+            items.forEach(el => {
+                const t = el.textContent.trim();
+                if (t && t.length < 200) lines.push(t);
+            });
+            summaryText = lines.slice(0, 15).join('\n');
+        }
+        const summaryLines = summaryText.split('\n').filter(l => l.trim());
+        const summaryHeight = summaryLines.length * 18 + 40;
+
+        // Compose full SVG
+        const networkSectionHeight = networkHeight + 40;
+        const totalHeight = padding + 30 + networkSectionHeight + 30 + tableHeight + 30 + summaryHeight + padding;
+        const titleText = this.results?.inputGenes ? `Correlation Analysis: ${this.results.inputGenes.slice(0, 10).join(', ')}${this.results.inputGenes.length > 10 ? '...' : ''}` : 'Correlation Analysis';
+
+        let svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${pageWidth}" height="${totalHeight}" viewBox="0 0 ${pageWidth} ${totalHeight}">
+<style>
+  text { font-family: Arial, Helvetica, sans-serif; }
+</style>
+${transparentBg ? '' : `<rect width="100%" height="100%" fill="white"/>`}
+`;
+
+        let yOff = padding;
+
+        // Title
+        svg += `<text x="${pageWidth / 2}" y="${yOff + 20}" text-anchor="middle" style="font-size:18px;font-weight:bold;fill:#1f2937;">${this.escapeXml(titleText)}</text>\n`;
+        yOff += 40;
+
+        // Network section
+        svg += `<text x="${padding}" y="${yOff + 16}" style="font-size:14px;font-weight:bold;fill:#374151;">Network</text>\n`;
+        yOff += 24;
+        const networkOffsetX = (pageWidth - networkWidth) / 2;
+        svg += `<g transform="translate(${networkOffsetX},${yOff})">\n`;
+        svg += networkSvg;
+        svg += `</g>\n`;
+        yOff += networkHeight + 20;
+
+        // Correlation table section
+        svg += `<text x="${padding}" y="${yOff + 16}" style="font-size:14px;font-weight:bold;fill:#374151;">Correlations (${rows.length} pairs)</text>\n`;
+        yOff += 26;
+        svg += `<g transform="translate(${padding},${yOff})">\n`;
+        svg += tableSvg;
+        svg += `</g>\n`;
+        yOff += tableHeight + 20;
+
+        // Summary section
+        svg += `<text x="${padding}" y="${yOff + 16}" style="font-size:14px;font-weight:bold;fill:#374151;">Summary</text>\n`;
+        yOff += 30;
+        summaryLines.forEach((line, i) => {
+            svg += `<text x="${padding + 10}" y="${yOff + i * 18}" style="font-size:${fontSize}px;fill:#374151;">${this.escapeXml(line)}</text>\n`;
+        });
+
+        svg += '</svg>';
+
+        const blob = new Blob([svg], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'correlate_full_page.svg';
         a.click();
         URL.revokeObjectURL(url);
     }
