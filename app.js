@@ -53,6 +53,10 @@ class CorrelationExplorer {
         this._userXLabelPos = null;
         this._userYLabelPos = null;
         this._userLabelPositions = new Map();
+        // GE mutation inspect annotation positions
+        this._geUserTitlePos = null;
+        this._geUserXLabelPos = null;
+        this._geUserYLabelPos = null;
 
         // CLB sort direction (true = ascending, false = descending)
         this._clbSortAsc = true;
@@ -4263,25 +4267,49 @@ class CorrelationExplorer {
 
         const titleText = `${gene} Gene Effect by ${hotspotGene} ${statusLabel}`;
         const subtitleText = subtitle;
+        const xLabelText = `${gene} Gene Effect`;
+
+        const geTitleAnn = {
+            text: `<b>${titleText}</b><br><span style="font-size:10px;color:#666">${subtitleText}</span>`,
+            xref: 'paper', yref: 'paper',
+            x: this._geUserTitlePos ? this._geUserTitlePos.x : 0.5,
+            y: this._geUserTitlePos ? this._geUserTitlePos.y : 1.35,
+            xanchor: this._geUserTitlePos ? 'auto' : 'center',
+            yanchor: this._geUserTitlePos ? 'auto' : 'top',
+            showarrow: false,
+            font: { size: 13 },
+            _tsRole: 'title'
+        };
+        const geXLabelAnn = {
+            text: xLabelText,
+            xref: 'paper', yref: 'paper',
+            x: this._geUserXLabelPos ? this._geUserXLabelPos.x : 0.5,
+            y: this._geUserXLabelPos ? this._geUserXLabelPos.y : -0.08,
+            xanchor: this._geUserXLabelPos ? 'auto' : 'center',
+            yanchor: this._geUserXLabelPos ? 'auto' : 'top',
+            showarrow: false,
+            font: { size: 12 },
+            _tsRole: 'xlabel'
+        };
+        const geYLabelAnn = {
+            text: yAxisTitle,
+            xref: 'paper', yref: 'paper',
+            x: this._geUserYLabelPos ? this._geUserYLabelPos.x : -0.18,
+            y: this._geUserYLabelPos ? this._geUserYLabelPos.y : 0.5,
+            xanchor: this._geUserYLabelPos ? 'auto' : 'center',
+            yanchor: this._geUserYLabelPos ? 'auto' : 'middle',
+            showarrow: false,
+            font: { size: 12 },
+            textangle: -90,
+            _tsRole: 'ylabel'
+        };
 
         const layout = {
-            annotations: [{
-                text: `<b>${titleText}</b><br><span style="font-size:10px;color:#666">${subtitleText}</span>`,
-                xref: 'paper',
-                yref: 'paper',
-                x: 0.5,
-                y: 1.35,
-                xanchor: 'center',
-                yanchor: 'top',
-                showarrow: false,
-                font: { size: 13 }
-            }],
+            annotations: [geTitleAnn, geXLabelAnn, geYLabelAnn],
             xaxis: {
-                title: `${gene} Gene Effect`,
                 range: [xMin, xMax]
             },
             yaxis: {
-                title: yAxisTitle,
                 tickmode: 'array',
                 tickvals: [0, 1, 2],
                 ticktext: [`${tick0Label} (n=${data.wt.length})`, `${tick1Label} (n=${data.mut1.length})`, `${tick2Label} (n=${data.mut2.length})`],
@@ -4431,6 +4459,17 @@ class CorrelationExplorer {
             edits: { annotationPosition: true, legendPosition: true, shapePosition: true }
         }).then(plotEl => {
             plotEl.on('plotly_relayout', (relayoutData) => {
+                // Save dragged annotation positions by role
+                const plotAnns = plotEl.layout.annotations || [];
+                for (let ai = 0; ai < plotAnns.length; ai++) {
+                    const xKey = `annotations[${ai}].x`, yKey = `annotations[${ai}].y`;
+                    if (relayoutData[xKey] !== undefined && relayoutData[yKey] !== undefined) {
+                        const role = plotAnns[ai]._tsRole;
+                        if (role === 'title') this._geUserTitlePos = { x: relayoutData[xKey], y: relayoutData[yKey] };
+                        else if (role === 'xlabel') this._geUserXLabelPos = { x: relayoutData[xKey], y: relayoutData[yKey] };
+                        else if (role === 'ylabel') this._geUserYLabelPos = { x: relayoutData[xKey], y: relayoutData[yKey] };
+                    }
+                }
                 this._handleGEGateShapeRelayout(relayoutData);
             });
         });
