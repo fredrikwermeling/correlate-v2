@@ -1562,7 +1562,7 @@ class CorrelationExplorer {
 
         document.getElementById('downloadNetworkPNG').addEventListener('click', () => this.downloadNetworkPNG());
         document.getElementById('downloadNetworkSVG').addEventListener('click', () => this.downloadNetworkSVG());
-        document.getElementById('downloadFullPageSVG')?.addEventListener('click', () => this.downloadFullPageSVG());
+        document.getElementById('downloadFullPagePNG')?.addEventListener('click', () => this.downloadFullPagePNG());
         document.getElementById('downloadAllData').addEventListener('click', () => this.downloadAllData());
 
         // Color by stats controls (mutually exclusive with GE)
@@ -6442,196 +6442,42 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         URL.revokeObjectURL(url);
     }
 
-    downloadFullPageSVG() {
-        const esc = (s) => this.escapeXml(s);
-        const padding = 30;
-        const pageWidth = 900;
-        const colWidth = 400;
-        const gap = 40;
-        const lineH = 18;
-        const sectionGap = 24;
-        const fs = 12;
-        const fsBold = 13;
-        const headerFs = 15;
-
-        // ===== Collect current parameter state =====
-        const params = [];
-        const mode = document.querySelector('input[name="analysisMode"]:checked')?.value || 'analysis';
-        const modeLabels = { analysis: 'Analysis (within input genes)', design: 'Design (all genes)', mutation: 'Mutation Analysis', synonym: 'Synonym/Ortholog Lookup' };
-        params.push({ label: 'Analysis Mode', value: modeLabels[mode] || mode });
-
-        if (mode === 'analysis' || mode === 'design') {
-            params.push({ label: 'Correlation Cutoff', value: document.getElementById('cutoffValue')?.textContent || '0.50' });
-            params.push({ label: 'Min Slope', value: document.getElementById('slopeValue')?.textContent || '0.10' });
-        }
-        if (mode === 'mutation') {
-            const mutType = document.querySelector('input[name="mutAnalysisType"]:checked')?.value || 'hotspot';
-            const mutTypeLabels = { hotspot: 'Hotspot Mutation', translocation: 'Translocation/Fusion', damaging: 'Damaging Mutation' };
-            params.push({ label: 'Mutation Type', value: mutTypeLabels[mutType] || mutType });
-            if (mutType === 'hotspot') {
-                const gene = document.getElementById('mutationHotspotSelect')?.selectedOptions?.[0]?.textContent || '';
-                if (gene) params.push({ label: 'Hotspot Gene', value: gene });
-            } else if (mutType === 'translocation') {
-                const gene = document.getElementById('translocationHotspotSelect')?.value || '';
-                if (gene) params.push({ label: 'Fusion Gene', value: gene });
-            } else if (mutType === 'damaging') {
-                const gene = document.getElementById('damagingHotspotSelect')?.value || '';
-                if (gene) params.push({ label: 'Damaging Gene', value: gene });
-            }
-            const pVal = document.getElementById('pValueThreshold')?.value || '0.001';
-            params.push({ label: 'P-value Threshold', value: pVal });
-        }
-        params.push({ label: 'Min Cell Lines', value: document.getElementById('minCellLines')?.value || '50' });
-
-        const lineageFilter = document.getElementById('lineageFilter')?.value;
-        if (lineageFilter) params.push({ label: 'Lineage Filter', value: lineageFilter });
-        const subLineageFilter = document.getElementById('subLineageFilter')?.value;
-        if (subLineageFilter) params.push({ label: 'Subtype Filter', value: subLineageFilter });
-
-        // Excluded tissues
-        const excludedCheckboxes = document.querySelectorAll('#tissueExcludeList input[type="checkbox"]:checked');
-        if (excludedCheckboxes.length > 0) {
-            const excluded = Array.from(excludedCheckboxes).map(cb => cb.parentElement?.textContent?.trim()).filter(Boolean);
-            if (excluded.length > 0) params.push({ label: 'Excluded Tissues', value: excluded.join(', ') });
+    async downloadFullPagePNG() {
+        if (typeof html2canvas === 'undefined') {
+            alert('html2canvas library not loaded. Please refresh the page.');
+            return;
         }
 
-        // Hotspot/translocation filters in parameters
-        const paramHotspot = document.getElementById('paramHotspotGene')?.value;
-        if (paramHotspot) {
-            const level = document.getElementById('paramHotspotLevel')?.selectedOptions?.[0]?.textContent || '';
-            params.push({ label: 'Hotspot Filter', value: `${paramHotspot} — ${level}` });
-        }
+        const btn = document.getElementById('downloadFullPagePNG');
+        const origText = btn?.textContent;
+        if (btn) btn.textContent = 'Capturing...';
 
-        if (mode === 'design' && document.getElementById('designExpandNetwork')?.checked) {
-            params.push({ label: 'Expand Network', value: 'Yes' });
-        }
-
-        // ===== Collect input genes =====
-        const geneText = document.getElementById('geneTextarea')?.value || '';
-        const genes = geneText.split('\n').map(g => g.trim()).filter(Boolean);
-
-        // ===== Compute layout =====
-        const paramSectionH = 30 + params.length * lineH + 10;
-        const geneColumnCount = Math.ceil(genes.length / 30);
-        const genesPerCol = Math.min(genes.length, 30);
-        const geneSectionH = 30 + genesPerCol * lineH + 10;
-        const leftColH = paramSectionH + sectionGap + geneSectionH;
-
-        // Right column: correlation table if available
-        const corrBody = document.getElementById('correlationsBody');
-        const rows = corrBody ? Array.from(corrBody.querySelectorAll('tr')).filter(r => r.style.display !== 'none') : [];
-        const maxRows = Math.min(rows.length, 40);
-        const tableRowH = 17;
-        const tableHeaderH = 22;
-        const rightColH = rows.length > 0 ? 30 + tableHeaderH + maxRows * tableRowH + (rows.length > maxRows ? 20 : 0) : 0;
-
-        const contentH = Math.max(leftColH, rightColH);
-        const totalHeight = padding * 2 + 30 + contentH + 10;
-
-        let svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${pageWidth}" height="${totalHeight}" viewBox="0 0 ${pageWidth} ${totalHeight}">
-<style>
-  text { font-family: Arial, Helvetica, sans-serif; }
-  .title { font-size: 16px; font-weight: bold; fill: #1f2937; }
-  .section-title { font-size: ${headerFs}px; font-weight: bold; fill: #374151; }
-  .label { font-size: ${fsBold}px; font-weight: 600; fill: #374151; }
-  .value { font-size: ${fs}px; fill: #1f2937; }
-  .gene { font-size: ${fs}px; fill: #1f2937; font-family: 'Courier New', monospace; }
-  .subtle { font-size: 10px; fill: #6b7280; }
-</style>
-<rect width="100%" height="100%" fill="white"/>
-`;
-
-        let y = padding;
-
-        // Title
-        const titleGenes = genes.length > 0 ? genes.slice(0, 8).join(', ') + (genes.length > 8 ? ` ... (${genes.length} genes)` : '') : '';
-        const titleText = titleGenes ? `Correlate Analysis: ${titleGenes}` : 'Correlate Analysis';
-        svg += `<text x="${pageWidth / 2}" y="${y + 16}" text-anchor="middle" class="title">${esc(titleText)}</text>\n`;
-        y += 34;
-
-        // ===== Left column: Parameters =====
-        const leftX = padding;
-
-        // Parameters box
-        svg += `<rect x="${leftX}" y="${y}" width="${colWidth}" height="${paramSectionH}" rx="6" fill="#f9fafb" stroke="#e5e7eb"/>\n`;
-        svg += `<text x="${leftX + 12}" y="${y + 20}" class="section-title">1. Parameters</text>\n`;
-        let py = y + 36;
-        params.forEach(p => {
-            svg += `<text x="${leftX + 16}" y="${py}" class="label">${esc(p.label)}:</text>\n`;
-            svg += `<text x="${leftX + 160}" y="${py}" class="value">${esc(p.value)}</text>\n`;
-            py += lineH;
-        });
-
-        // Gene list box
-        const geneBoxY = y + paramSectionH + sectionGap;
-        svg += `<rect x="${leftX}" y="${geneBoxY}" width="${colWidth}" height="${geneSectionH}" rx="6" fill="#f9fafb" stroke="#e5e7eb"/>\n`;
-        svg += `<text x="${leftX + 12}" y="${geneBoxY + 20}" class="section-title">2. Input Genes (${genes.length})</text>\n`;
-        let gy = geneBoxY + 36;
-        const geneColWidth = geneColumnCount > 1 ? Math.floor((colWidth - 30) / Math.min(geneColumnCount, 4)) : colWidth;
-        for (let i = 0; i < Math.min(genes.length, 120); i++) {
-            const col = Math.floor(i / genesPerCol);
-            const row = i % genesPerCol;
-            if (col >= 4) break;
-            svg += `<text x="${leftX + 16 + col * geneColWidth}" y="${geneBoxY + 36 + row * lineH}" class="gene">${esc(genes[i])}</text>\n`;
-        }
-        if (genes.length > 120) {
-            svg += `<text x="${leftX + 16}" y="${geneBoxY + geneSectionH - 6}" class="subtle">... and ${genes.length - 120} more</text>\n`;
-        }
-
-        // ===== Right column: Correlation table (if available) =====
-        if (rows.length > 0) {
-            const rightX = leftX + colWidth + gap;
-            const tblW = pageWidth - rightX - padding;
-            svg += `<rect x="${rightX}" y="${y}" width="${tblW}" height="${30 + tableHeaderH + maxRows * tableRowH + (rows.length > maxRows ? 20 : 0)}" rx="6" fill="#f9fafb" stroke="#e5e7eb"/>\n`;
-            svg += `<text x="${rightX + 12}" y="${y + 20}" class="section-title">Correlations (${rows.length} pairs)</text>\n`;
-
-            const tblY = y + 30;
-            const cw = [tblW * 0.22, tblW * 0.22, tblW * 0.2, tblW * 0.16, tblW * 0.1, tblW * 0.1];
-            const colNames = ['Gene 1', 'Gene 2', 'Correlation', 'Slope', 'N', 'Cluster'];
-            let cx = rightX + 4;
-            colNames.forEach((name, i) => {
-                svg += `<text x="${cx + 4}" y="${tblY + 15}" style="font-size:10px;font-weight:bold;fill:#374151;">${name}</text>\n`;
-                cx += cw[i];
+        try {
+            const target = document.querySelector('.main-content') || document.body;
+            const canvas = await html2canvas(target, {
+                scale: 3,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                windowWidth: target.scrollWidth,
+                windowHeight: target.scrollHeight
             });
-            svg += `<line x1="${rightX + 4}" y1="${tblY + tableHeaderH - 2}" x2="${rightX + tblW - 4}" y2="${tblY + tableHeaderH - 2}" stroke="#d1d5db"/>\n`;
 
-            for (let r = 0; r < maxRows; r++) {
-                const cells = rows[r].querySelectorAll('td');
-                cx = rightX + 4;
-                const ry = tblY + tableHeaderH + r * tableRowH;
-                for (let c = 0; c < Math.min(cells.length, cw.length); c++) {
-                    let text = cells[c].textContent.trim().substring(0, 16);
-                    let color = '#1f2937';
-                    if (c === 2) {
-                        const val = parseFloat(text);
-                        if (!isNaN(val)) color = val > 0 ? '#2563eb' : '#dc2626';
-                    }
-                    svg += `<text x="${cx + 4}" y="${ry + 13}" style="font-size:10px;fill:${color};">${esc(text)}</text>\n`;
-                    cx += cw[c];
-                }
-                if (r < maxRows - 1) {
-                    svg += `<line x1="${rightX + 4}" y1="${ry + tableRowH}" x2="${rightX + tblW - 4}" y2="${ry + tableRowH}" stroke="#f0f0f0"/>\n`;
-                }
-            }
-            if (rows.length > maxRows) {
-                const ry = tblY + tableHeaderH + maxRows * tableRowH;
-                svg += `<text x="${rightX + 12}" y="${ry + 14}" class="subtle">... and ${rows.length - maxRows} more pairs</text>\n`;
-            }
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'correlate_screenshot.png';
+                a.click();
+                URL.revokeObjectURL(url);
+                if (btn) btn.textContent = origText;
+            }, 'image/png');
+        } catch (err) {
+            console.error('Screenshot failed:', err);
+            alert('Screenshot capture failed. See console for details.');
+            if (btn) btn.textContent = origText;
         }
-
-        // Footer
-        svg += `<text x="${pageWidth / 2}" y="${totalHeight - 8}" text-anchor="middle" class="subtle">Generated by Correlate v2 — Data: DepMap 25Q3</text>\n`;
-
-        svg += '</svg>';
-
-        const blob = new Blob([svg], { type: 'image/svg+xml' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'correlate_full_page.svg';
-        a.click();
-        URL.revokeObjectURL(url);
     }
 
     escapeXml(str) {
