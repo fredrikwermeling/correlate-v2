@@ -1,5 +1,5 @@
 - in umap, # of mutations in cells line. also ,not only square gates, also indiacte cells in gate with color and with letter A or B like in the scatter correlate version.
-
+- in umap cancer cells gate analysis also allow for enricher.
 
 - allow for exporting data for umap to visualize format. 
 
