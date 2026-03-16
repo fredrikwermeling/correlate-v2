@@ -4911,7 +4911,7 @@ class CorrelationExplorer {
                 from: c.gene1,
                 to: c.gene2,
                 width: width,
-                color: c.correlation > 0 ? '#3182ce' : '#e53e3e',
+                color: { color: c.correlation > 0 ? '#3182ce' : '#e53e3e', highlight: c.correlation > 0 ? '#3182ce' : '#e53e3e', hover: c.correlation > 0 ? '#3182ce' : '#e53e3e', inherit: false },
                 title: `r = ${c.correlation.toFixed(3)}`,
                 correlation: c.correlation
             });

@@ -1304,11 +1304,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>dev-19.5 (2026-03-16)</strong></p>
+                <p><strong>dev-19.6 (2026-03-16)</strong></p>
                 <ul>
                     <li>Screenshot PNG: high-resolution (3x) page capture using html2canvas for publication-quality export</li>
                     <li>Screenshot now includes nav-bar (logo + links) at top</li>
                     <li>Fix: network edge thickness legend now matches actual edge widths (was using wrong multiplier)</li>
+                    <li>Fix: network edges always blue/red (no vis.js purple highlight/hover override)</li>
                 </ul>
                 <p><strong>dev-19.2 (2026-03-16)</strong></p>
                 <ul>
@@ -1429,7 +1430,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.19.5</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.19.6</a>
     </div>
 
     <div class="main-content">
