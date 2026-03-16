@@ -13786,10 +13786,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const boxHeight = numEntries > 25 ? 18 : numEntries > 15 ? 22 : 28;
         const chartHeight = Math.max(350, numEntries * boxHeight + 80);
 
+        const geTissueTitle = `${gene} by ${groupBySubtype ? 'Disease Subtype' : 'Cancer Type'}`;
         const layout = {
-            title: { text: `${gene} by ${groupBySubtype ? 'Disease Subtype' : 'Cancer Type'}`, font: { size: 13 } },
+            annotations: [
+                { text: `<b>${geTissueTitle}</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                { text: 'Gene Effect', xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
+            ],
             xaxis: {
-                title: 'Gene Effect',
                 zeroline: true,
                 zerolinecolor: '#374151',
                 zerolinewidth: 2
@@ -13805,7 +13808,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             plot_bgcolor: 'white'
         };
 
-        Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true });
+        Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true, edits: { annotationPosition: true } });
 
         // Highlight cell line if requested (from CLB gene link or cell line search)
         const highlightCl = this._geHighlightCellLine;
@@ -14030,9 +14033,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const chartHeight = Math.max(400, numEntries * boxHeight + 100);
 
         const layout = {
-            title: { text: `${gene} Gene Effect by Hotspot Mutation`, font: { size: 13 } },
+            annotations: [
+                { text: `<b>${gene} Gene Effect by Hotspot Mutation</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                { text: 'Gene Effect', xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
+            ],
             xaxis: {
-                title: 'Gene Effect',
                 zeroline: true,
                 zerolinecolor: '#374151',
                 zerolinewidth: 2
@@ -14054,7 +14059,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             plot_bgcolor: 'white'
         };
 
-        Plotly.newPlot('geneEffectHotspotPlot', traces, layout, { responsive: true });
+        Plotly.newPlot('geneEffectHotspotPlot', traces, layout, { responsive: true, edits: { annotationPosition: true, legendPosition: true } });
 
         // Store stats for table (without cell data)
         const tableStats = hotspotStats.map(s => ({
