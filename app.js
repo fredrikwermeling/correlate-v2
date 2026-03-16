@@ -14506,8 +14506,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (!this.currentGeneEffect) return;
         const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
         const plotEl = document.getElementById(plotId);
+        // Use scrollHeight to capture full content including overflow
         const chartWidth = plotEl?._fullLayout?.width || 800;
-        const chartHeight = plotEl?._fullLayout?.height || (this.geDetailedView ? 650 : 550);
+        const chartHeight = Math.max(plotEl?.scrollHeight || 0, plotEl?._fullLayout?.height || 0, this.geDetailedView ? 650 : 550) + 40;
         Plotly.downloadImage(plotId, {
             format: 'png',
             width: chartWidth,
@@ -14523,7 +14524,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
         const plotEl = document.getElementById(plotId);
         const chartWidth = plotEl?._fullLayout?.width || 800;
-        const chartHeight = plotEl?._fullLayout?.height || (this.geDetailedView ? 650 : 550);
+        const chartHeight = Math.max(plotEl?.scrollHeight || 0, plotEl?._fullLayout?.height || 0, this.geDetailedView ? 650 : 550) + 40;
         Plotly.downloadImage(plotId, {
             format: 'svg',
             width: chartWidth,
