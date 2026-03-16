@@ -50,6 +50,8 @@ class CorrelationExplorer {
         this._gateOverlayTraceCount = 0;
         this._userLegendPosition = null;
         this._userTitlePosition = null;
+        this._userXLabelPos = null;
+        this._userYLabelPos = null;
         this._userLabelPositions = new Map();
 
         // CLB sort direction (true = ascending, false = descending)
@@ -7761,6 +7763,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // Set up currentInspect with the data needed for By tissue
         this._userLegendPosition = null;
         this._userTitlePosition = null;
+        this._userXLabelPos = null;
+        this._userYLabelPos = null;
         const xTypeByTissue = document.getElementById('xAxisDataType')?.value || 'ge';
         const yTypeByTissue = document.getElementById('yAxisDataType')?.value || 'ge';
         this.currentInspect = {
@@ -7832,6 +7836,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // c is now the correlation object directly
         this._userLegendPosition = null;
         this._userTitlePosition = null;
+        this._userXLabelPos = null;
+        this._userYLabelPos = null;
         this._userLabelPositions = new Map();
         const xType = document.getElementById('xAxisDataType')?.value || 'ge';
         const yType = document.getElementById('yAxisDataType')?.value || 'ge';
@@ -8584,7 +8590,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             titleLines.push(`<span style="font-size:10px;color:#666;">${filterDesc}</span>`);
         }
         titleLines.push(`<span style="font-size:10px;">n=${filteredData.length}, r=${allStats.correlation.toFixed(3)}, slope=${allStats.slope.toFixed(3)}</span>`);
-        titleLines.push(`<span style="font-size:10px;">mean(X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)}) med(X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})</span>`);
+        titleLines.push(`<span style="font-size:10px;">mean (X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)}) median (X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})</span>`);
 
         if (hotspotMode === 'color' && hotspotGene) {
             titleLines.push(`<span style="font-size:10px;"><b>${hotspotGene}:</b> WT n=${wt.length} r=${wtStats.correlation.toFixed(3)} | 1mut n=${mut1.length} r=${mut1Stats.correlation.toFixed(3)} | 2mut n=${mut2.length} r=${mut2Stats.correlation.toFixed(3)}</span>`);
@@ -8607,9 +8613,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             yanchor: this._userTitlePosition ? 'auto' : 'bottom',
             text: titleText,
             showarrow: false,
-            font: { size: 14 }
+            font: { size: 14 },
+            _tsRole: 'title'
         };
-        const annotations = [titleAnnotation, ...highlightAnnotations];
 
         // Calculate margin based on title lines
         const topMargin = 80 + (titleLines.length * 18);
@@ -8619,16 +8625,43 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const xTypeLabel = this.currentInspect?.xType === 'expr' ? 'Expression (log2 TPM+1)' : 'Gene Effect';
         const yTypeLabel = this.currentInspect?.yType === 'expr' ? 'Expression (log2 TPM+1)' : 'Gene Effect';
 
+        // Axis labels as draggable annotations instead of axis titles
+        const xLabelText = `${gene1} ${xTypeLabel}`;
+        const yLabelText = `${gene2} ${yTypeLabel}`;
+        const xLabelAnnotation = {
+            x: this._userXLabelPos ? this._userXLabelPos.x : 0.5,
+            y: this._userXLabelPos ? this._userXLabelPos.y : -0.08,
+            xref: 'paper', yref: 'paper',
+            xanchor: this._userXLabelPos ? 'auto' : 'center',
+            yanchor: this._userXLabelPos ? 'auto' : 'top',
+            text: xLabelText,
+            showarrow: false,
+            font: { size: 12 },
+            _tsRole: 'xlabel'
+        };
+        const yLabelAnnotation = {
+            x: this._userYLabelPos ? this._userYLabelPos.x : -0.06,
+            y: this._userYLabelPos ? this._userYLabelPos.y : 0.5,
+            xref: 'paper', yref: 'paper',
+            xanchor: this._userYLabelPos ? 'auto' : 'center',
+            yanchor: this._userYLabelPos ? 'auto' : 'middle',
+            text: yLabelText,
+            showarrow: false,
+            font: { size: 12 },
+            textangle: -90,
+            _tsRole: 'ylabel'
+        };
+
+        const annotations = [titleAnnotation, xLabelAnnotation, yLabelAnnotation, ...highlightAnnotations];
+
         const layout = {
             xaxis: {
-                title: `${gene1} ${xTypeLabel}`,
                 range: xRange,
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : '#ddd',
                 zerolinewidth: showZero ? 2 : 0
             },
             yaxis: {
-                title: `${gene2} ${yTypeLabel}`,
                 range: yRange,
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : '#ddd',
@@ -8709,15 +8742,21 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                         y: relayoutData['legend.y']
                     };
                 }
-                if (relayoutData['annotations[0].x'] !== undefined && relayoutData['annotations[0].y'] !== undefined) {
-                    this._userTitlePosition = {
-                        x: relayoutData['annotations[0].x'],
-                        y: relayoutData['annotations[0].y']
-                    };
+                // Save dragged annotation positions by role
+                const plotAnns = plotEl.layout.annotations || [];
+                for (let ai = 0; ai < plotAnns.length; ai++) {
+                    const xKey = `annotations[${ai}].x`, yKey = `annotations[${ai}].y`;
+                    if (relayoutData[xKey] !== undefined && relayoutData[yKey] !== undefined) {
+                        const role = plotAnns[ai]._tsRole;
+                        if (role === 'title') this._userTitlePosition = { x: relayoutData[xKey], y: relayoutData[yKey] };
+                        else if (role === 'xlabel') this._userXLabelPos = { x: relayoutData[xKey], y: relayoutData[yKey] };
+                        else if (role === 'ylabel') this._userYLabelPos = { x: relayoutData[xKey], y: relayoutData[yKey] };
+                    }
                 }
-                // Capture dragged cell label positions (annotations[1+])
+                // Capture dragged cell label positions (highlight annotations after title/xlabel/ylabel)
+                const hlOffset = plotAnns.filter(a => a._tsRole).length;
                 for (let i = 0; i < highlightData.length; i++) {
-                    const idx = i + 1; // offset by 1 for title annotation
+                    const idx = i + hlOffset;
                     const axKey = `annotations[${idx}].ax`;
                     const ayKey = `annotations[${idx}].ay`;
                     if (relayoutData[axKey] !== undefined || relayoutData[ayKey] !== undefined) {
@@ -19266,10 +19305,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const layout = plotEl.layout;
 
-        // Detect if title is in annotations (scatter) or layout.title (gene effect)
-        const ann0 = layout.annotations?.[0];
-        const usesAnnotationTitle = ann0 && !ann0._gateAnnotation && ann0.xref === 'paper';
-        const titleSize = usesAnnotationTitle ? (ann0.font?.size || 14) : (layout.title?.font?.size || 14);
+        // Detect if title/labels are annotation-based (scatter) or layout-based (gene effect)
+        const anns = layout.annotations || [];
+        const titleAnn = anns.find(a => a._tsRole === 'title');
+        const xLabelAnn = anns.find(a => a._tsRole === 'xlabel');
+        const yLabelAnn = anns.find(a => a._tsRole === 'ylabel');
+        const ann0 = titleAnn || anns[0];
+        const usesAnnotationTitle = !!titleAnn || (ann0 && !ann0._gateAnnotation && ann0.xref === 'paper');
+        const titleSize = usesAnnotationTitle ? (ann0?.font?.size || 14) : (layout.title?.font?.size || 14);
 
         // Extract plain text from HTML annotation text
         const stripHtml = (html) => html ? html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() : '';
@@ -19291,12 +19334,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             titleText = typeof layout.title === 'string' ? layout.title : (layout.title?.text || '');
         }
 
-        const xLabel = typeof layout.xaxis?.title === 'string' ? layout.xaxis.title : (layout.xaxis?.title?.text || '');
-        const yLabel = typeof layout.yaxis?.title === 'string' ? layout.yaxis.title : (layout.yaxis?.title?.text || '');
-        const xLabelSize = layout.xaxis?.title?.font?.size || 12;
-        const yLabelSize = layout.yaxis?.title?.font?.size || 12;
-        const xStandoff = layout.xaxis?.title?.standoff ?? 15;
-        const yStandoff = layout.yaxis?.title?.standoff ?? 15;
+        const xLabel = xLabelAnn ? (xLabelAnn.text || '') : (typeof layout.xaxis?.title === 'string' ? layout.xaxis.title : (layout.xaxis?.title?.text || ''));
+        const yLabel = yLabelAnn ? (yLabelAnn.text || '') : (typeof layout.yaxis?.title === 'string' ? layout.yaxis.title : (layout.yaxis?.title?.text || ''));
+        const xLabelSize = xLabelAnn ? (xLabelAnn.font?.size || 12) : (layout.xaxis?.title?.font?.size || 12);
+        const yLabelSize = yLabelAnn ? (yLabelAnn.font?.size || 12) : (layout.yaxis?.title?.font?.size || 12);
         const xTickSize = layout.xaxis?.tickfont?.size || 10;
         const yTickSize = layout.yaxis?.tickfont?.size || 10;
         const legendSize = layout.legend?.font?.size || 10;
@@ -19354,14 +19395,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             ${sizeRow('Y Tick', 'ts_ytick', yTickSize, 6, 30, null, true)}
             ${sizeRow('Legend', 'ts_legend', legendSize, 6, 30, 'ts_legendVis', this._tsVisible.legend)}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
-            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Label Position (offset from axis)</div>
-            ${sizeRow('X Label', 'ts_xStandoff', xStandoff, 0, 80, null, true)}
-            ${sizeRow('Y Label', 'ts_yStandoff', yStandoff, 0, 80, null, true)}
-            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Markers</div>
             ${sizeRow('Size', 'ts_marker', markerSize, 1, 40, null, true)}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
-            <div style="font-size:10px;color:#9ca3af;">Tip: drag title/annotations directly on plot</div>
+            <div style="font-size:10px;color:#9ca3af;">Drag title, axis labels, and annotations on plot to reposition.<br>Click an annotation, then use arrow keys to nudge (Shift = larger steps).</div>
         `;
         panel.style.display = 'block';
 
@@ -19392,21 +19429,39 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this._tsApply();
     }
 
+    _tsFindAnn(plotEl, role) {
+        const anns = plotEl.layout?.annotations || [];
+        return anns.findIndex(a => a._tsRole === role);
+    }
+
     _tsToggle(checkboxId) {
         const plotEl = document.getElementById(this._textSettingsPlotId);
         if (!plotEl?.layout) return;
         const checked = document.getElementById(checkboxId)?.checked;
 
         if (checkboxId === 'ts_titleVis') {
-            if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
+            const idx = this._tsFindAnn(plotEl, 'title');
+            if (idx >= 0) {
+                Plotly.relayout(plotEl, { [`annotations[${idx}].visible`]: checked });
+            } else if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
                 Plotly.relayout(plotEl, { 'annotations[0].visible': checked });
             } else {
                 Plotly.relayout(plotEl, { 'title.text': checked ? (this._tsOriginal.titleText || ' ') : '' });
             }
         } else if (checkboxId === 'ts_xLabelVis') {
-            Plotly.relayout(plotEl, { 'xaxis.title.text': checked ? this._tsOriginal.xLabel : '' });
+            const idx = this._tsFindAnn(plotEl, 'xlabel');
+            if (idx >= 0) {
+                Plotly.relayout(plotEl, { [`annotations[${idx}].visible`]: checked });
+            } else {
+                Plotly.relayout(plotEl, { 'xaxis.title.text': checked ? this._tsOriginal.xLabel : '' });
+            }
         } else if (checkboxId === 'ts_yLabelVis') {
-            Plotly.relayout(plotEl, { 'yaxis.title.text': checked ? this._tsOriginal.yLabel : '' });
+            const idx = this._tsFindAnn(plotEl, 'ylabel');
+            if (idx >= 0) {
+                Plotly.relayout(plotEl, { [`annotations[${idx}].visible`]: checked });
+            } else {
+                Plotly.relayout(plotEl, { 'yaxis.title.text': checked ? this._tsOriginal.yLabel : '' });
+            }
         } else if (checkboxId === 'ts_legendVis') {
             Plotly.relayout(plotEl, { showlegend: checked });
         }
@@ -19421,13 +19476,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const xLabel = document.getElementById('ts_xLabelText')?.value || '';
         const yLabel = document.getElementById('ts_yLabelText')?.value || '';
 
-        const updates = {
-            'xaxis.title.text': xLabel,
-            'yaxis.title.text': yLabel
-        };
+        const updates = {};
 
-        if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
-            // Rebuild annotation HTML: <b>title</b><br><span...>subtitle</span>
+        // Title
+        const titleIdx = this._tsFindAnn(plotEl, 'title');
+        if (titleIdx >= 0) {
+            const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
+            let html = `<b>${titleText}</b>`;
+            if (subtitleEl) {
+                html += `<br><span style="font-size:${subSize}px;color:#666">${subtitleEl.value}</span>`;
+            }
+            updates[`annotations[${titleIdx}].text`] = html;
+        } else if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
             const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
             let html = `<b>${titleText}</b>`;
             if (subtitleEl) {
@@ -19436,6 +19496,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             updates['annotations[0].text'] = html;
         } else {
             updates['title.text'] = titleText;
+        }
+
+        // X/Y axis labels — annotation-based or native
+        const xIdx = this._tsFindAnn(plotEl, 'xlabel');
+        if (xIdx >= 0) {
+            updates[`annotations[${xIdx}].text`] = xLabel;
+        } else {
+            updates['xaxis.title.text'] = xLabel;
+        }
+        const yIdx = this._tsFindAnn(plotEl, 'ylabel');
+        if (yIdx >= 0) {
+            updates[`annotations[${yIdx}].text`] = yLabel;
+        } else {
+            updates['yaxis.title.text'] = yLabel;
         }
 
         Plotly.relayout(plotEl, updates);
@@ -19450,34 +19524,49 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const xStandoff = getVal('ts_xStandoff');
         const yStandoff = getVal('ts_yStandoff');
         const updates = {
-            'xaxis.title.font.size': getVal('ts_xlabel'),
-            'yaxis.title.font.size': getVal('ts_ylabel'),
             'xaxis.tickfont.size': getVal('ts_xtick'),
             'yaxis.tickfont.size': getVal('ts_ytick'),
             'legend.font.size': getVal('ts_legend')
         };
-        if (xStandoff != null) {
-            updates['xaxis.title.standoff'] = xStandoff;
-            updates['xaxis.automargin'] = true;
-        }
-        if (yStandoff != null) {
-            updates['yaxis.title.standoff'] = yStandoff;
-            updates['yaxis.automargin'] = true;
-        }
 
-        // Title: annotation or layout.title depending on plot type
+        // Find annotation indices by role
+        const anns = plotEl.layout.annotations || [];
+        const titleIdx = anns.findIndex(a => a._tsRole === 'title');
+        const xLabelIdx = anns.findIndex(a => a._tsRole === 'xlabel');
+        const yLabelIdx = anns.findIndex(a => a._tsRole === 'ylabel');
+
         const titleSize = getVal('ts_title');
-        if (this._tsOriginal?.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
-            updates['annotations[0].font.size'] = titleSize;
+        if (titleIdx >= 0) {
+            updates[`annotations[${titleIdx}].font.size`] = titleSize;
             // Subtitle size — rebuild annotation HTML with new size
             const subtitleSize = getVal('ts_subtitle');
             if (subtitleSize) {
-                const ann = plotEl.layout.annotations[0];
-                const raw = ann.text || '';
-                updates['annotations[0].text'] = raw.replace(/font-size:\s*\d+px/, `font-size:${subtitleSize}px`);
+                const raw = anns[titleIdx].text || '';
+                updates[`annotations[${titleIdx}].text`] = raw.replace(/font-size:\s*\d+px/g, `font-size:${subtitleSize}px`);
+            }
+        } else if (this._tsOriginal?.usesAnnotationTitle && anns.length > 0) {
+            updates['annotations[0].font.size'] = titleSize;
+            const subtitleSize = getVal('ts_subtitle');
+            if (subtitleSize) {
+                const raw = anns[0].text || '';
+                updates['annotations[0].text'] = raw.replace(/font-size:\s*\d+px/g, `font-size:${subtitleSize}px`);
             }
         } else {
             updates['title.font.size'] = titleSize;
+        }
+
+        // Axis labels — annotation-based or native
+        const xLabelSize = getVal('ts_xlabel');
+        const yLabelSize = getVal('ts_ylabel');
+        if (xLabelIdx >= 0) {
+            if (xLabelSize) updates[`annotations[${xLabelIdx}].font.size`] = xLabelSize;
+        } else {
+            if (xLabelSize) updates['xaxis.title.font.size'] = xLabelSize;
+        }
+        if (yLabelIdx >= 0) {
+            if (yLabelSize) updates[`annotations[${yLabelIdx}].font.size`] = yLabelSize;
+        } else {
+            if (yLabelSize) updates['yaxis.title.font.size'] = yLabelSize;
         }
 
         Plotly.relayout(plotEl, updates);
