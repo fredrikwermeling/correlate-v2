@@ -1012,7 +1012,7 @@
         .clb-toolbar .btn-sm { font-size: 11px; padding: 4px 10px; }
         .clb-content {
             display: flex;
-            flex: 1;
+            min-height: 300px;
             overflow: hidden;
         }
         .clb-list-wrap {
@@ -1303,10 +1303,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>dev-17.1 (2026-03-16)</strong></p>
+                <p><strong>dev-17.2 (2026-03-16)</strong></p>
                 <ul>
-                    <li>Marker size slider (range 2–14, live update, works on single and split views)</li>
-                    <li>Gate comparison panel auto-scrolls into view after Compare</li>
+                    <li>Fix CLB modal scrolling: UMAP section and gate comparison now scrollable</li>
+                    <li>Marker size slider (range 2–14, live update)</li>
                 </ul>
                 <p><strong>dev-17 (2026-03-16)</strong></p>
                 <ul>
@@ -1403,7 +1403,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.17.1</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.17.2</a>
     </div>
 
     <div class="main-content">
@@ -2887,7 +2887,8 @@
           <button class="btn btn-sm btn-outline" onclick="app.clearCustomCellLineFilterCLB()" style="font-size:10px; padding:3px 8px;">Clear</button>
           <span id="customCLFilterCountCLB" style="font-size:9px; color:#6b7280;"></span>
         </div>
-        <!-- Content -->
+        <!-- Content (scrollable wrapper for list + UMAP) -->
+        <div id="clbScrollableBody" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; min-height:0;">
         <div class="clb-content">
           <div class="clb-list-wrap" id="clbListContainer">
             <div class="clb-list" id="clbList"></div>
@@ -2985,6 +2986,7 @@
         <div style="padding: 8px 16px; border-top: 1px solid var(--gray-200); font-size: 11px; color: var(--gray-500); text-align: center;">
           Data from <a href="https://depmap.org/" target="_blank" rel="noopener" style="color: var(--green-700);">DepMap</a> (Broad Institute). Please acknowledge DepMap when using this data in publications.
         </div>
+        </div><!-- /clbScrollableBody -->
       </div>
     </div>
 
