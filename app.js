@@ -16657,6 +16657,21 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this._umapGateSortCol = null;
         this._umapGateSortAsc = true;
         this._umapGatePvalueFilter = '';
+
+        // Marker size slider
+        document.getElementById('clbUmapMarkerSize').addEventListener('input', (e) => {
+            const size = parseInt(e.target.value);
+            const plotDiv = document.getElementById('clbUmapPlot');
+            // Update all traces in main plot or sub-plots
+            const targets = document.getElementById('umapAll') ? ['umapAll', 'umapWT', 'umapMut'] : [plotDiv.id || 'clbUmapPlot'];
+            targets.forEach(id => {
+                const el = document.getElementById(id) || plotDiv;
+                if (el?.data) {
+                    const update = { 'marker.size': Array(el.data.length).fill(size) };
+                    Plotly.restyle(el, update);
+                }
+            });
+        });
     }
 
     openCellLineBrowser() {
@@ -17706,6 +17721,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbUmapTissueFilter').value = '';
         document.getElementById('clbUmapSubtypeFilter').value = '';
         document.getElementById('clbUmapSubtypeFilter').style.display = 'none';
+        document.getElementById('clbUmapMarkerSize').value = '6';
         this.clearUmapGates();
     }
 
@@ -18437,6 +18453,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             '#8ca252', '#b5cf6b', '#cedb9c', '#8c6d31', '#bd9e39'
         ];
 
+        const markerSize = parseInt(document.getElementById('clbUmapMarkerSize')?.value) || 6;
+
         const makeHoverText = (idx) => {
             const cl = cellLines[idx];
             const name = this.getCellLineName(cl);
@@ -18461,7 +18479,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     x: idx.map(i => x[i]), y: idx.map(i => y[i]),
                     text: idx.map(i => makeHoverText(i)), customdata: idx.map(i => cellLines[i]),
                     mode: 'markers', type: 'scattergl', name: `${cat} (${idx.length})`,
-                    marker: { size: 6, color: colors[ci % colors.length], opacity: 0.85 },
+                    marker: { size: markerSize, color: colors[ci % colors.length], opacity: 0.85 },
                     hoverinfo: 'text', showlegend: showLegend
                 };
             });
