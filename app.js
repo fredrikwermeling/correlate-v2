@@ -19276,12 +19276,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // Get title text — for annotations it's HTML with <b> and <br>
         let titleText = '';
         let subtitleText = '';
+        let subtitleSize = 10;
         if (usesAnnotationTitle) {
             const raw = ann0.text || '';
             // Split on <br> — first part is title (strip <b>), rest is subtitle
             const parts = raw.split(/<br\s*\/?>/i);
             titleText = stripHtml(parts[0]);
             subtitleText = parts.slice(1).map(stripHtml).join(' | ');
+            // Extract subtitle font-size from inline style
+            const sizeMatch = raw.match(/font-size:\s*(\d+)px/);
+            if (sizeMatch) subtitleSize = parseInt(sizeMatch[1]);
         } else {
             titleText = typeof layout.title === 'string' ? layout.title : (layout.title?.text || '');
         }
@@ -19290,6 +19294,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const yLabel = typeof layout.yaxis?.title === 'string' ? layout.yaxis.title : (layout.yaxis?.title?.text || '');
         const xLabelSize = layout.xaxis?.title?.font?.size || 12;
         const yLabelSize = layout.yaxis?.title?.font?.size || 12;
+        const xStandoff = layout.xaxis?.title?.standoff ?? 15;
+        const yStandoff = layout.yaxis?.title?.standoff ?? 15;
         const xTickSize = layout.xaxis?.tickfont?.size || 10;
         const yTickSize = layout.yaxis?.tickfont?.size || 10;
         const legendSize = layout.legend?.font?.size || 10;
@@ -19304,7 +19310,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             legend: hasLegend
         };
         // Store original texts for restore
-        this._tsOriginal = { titleText, subtitleText, xLabel, yLabel, usesAnnotationTitle };
+        this._tsOriginal = { titleText, subtitleText, subtitleSize, xLabel, yLabel, usesAnnotationTitle };
 
         const sizeRow = (label, id, val, min, max, toggleId, visible) => `
             <div style="display:flex; align-items:center; margin-bottom:5px; gap:4px;">
@@ -19340,11 +19346,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Font Sizes &amp; Visibility</div>
             ${sizeRow('Title', 'ts_title', titleSize, 6, 48, 'ts_titleVis', this._tsVisible.title)}
+            ${subtitleText ? sizeRow('Subtitle', 'ts_subtitle', subtitleSize, 6, 30, null, true) : ''}
             ${sizeRow('X Label', 'ts_xlabel', xLabelSize, 6, 36, 'ts_xLabelVis', this._tsVisible.xLabel)}
             ${sizeRow('Y Label', 'ts_ylabel', yLabelSize, 6, 36, 'ts_yLabelVis', this._tsVisible.yLabel)}
             ${sizeRow('X Tick', 'ts_xtick', xTickSize, 6, 30, null, true)}
             ${sizeRow('Y Tick', 'ts_ytick', yTickSize, 6, 30, null, true)}
             ${sizeRow('Legend', 'ts_legend', legendSize, 6, 30, 'ts_legendVis', this._tsVisible.legend)}
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Label Position (offset from axis)</div>
+            ${sizeRow('X Label', 'ts_xStandoff', xStandoff, 0, 80, null, true)}
+            ${sizeRow('Y Label', 'ts_yStandoff', yStandoff, 0, 80, null, true)}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Markers</div>
             ${sizeRow('Size', 'ts_marker', markerSize, 1, 40, null, true)}
@@ -19370,7 +19381,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     }
 
     _tsScaleAll(direction) {
-        const ids = ['ts_title', 'ts_xlabel', 'ts_ylabel', 'ts_xtick', 'ts_ytick', 'ts_legend', 'ts_marker'];
+        const ids = ['ts_title', 'ts_subtitle', 'ts_xlabel', 'ts_ylabel', 'ts_xtick', 'ts_ytick', 'ts_legend', 'ts_marker'];
         ids.forEach(id => {
             const inp = document.getElementById(id);
             if (!inp) return;
@@ -19416,9 +19427,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
             // Rebuild annotation HTML: <b>title</b><br><span...>subtitle</span>
+            const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
             let html = `<b>${titleText}</b>`;
             if (subtitleEl) {
-                html += `<br><span style="font-size:10px;color:#666">${subtitleEl.value}</span>`;
+                html += `<br><span style="font-size:${subSize}px;color:#666">${subtitleEl.value}</span>`;
             }
             updates['annotations[0].text'] = html;
         } else {
@@ -19439,13 +19451,22 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             'yaxis.title.font.size': getVal('ts_ylabel'),
             'xaxis.tickfont.size': getVal('ts_xtick'),
             'yaxis.tickfont.size': getVal('ts_ytick'),
-            'legend.font.size': getVal('ts_legend')
+            'legend.font.size': getVal('ts_legend'),
+            'xaxis.title.standoff': getVal('ts_xStandoff'),
+            'yaxis.title.standoff': getVal('ts_yStandoff')
         };
 
         // Title: annotation or layout.title depending on plot type
         const titleSize = getVal('ts_title');
         if (this._tsOriginal?.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
             updates['annotations[0].font.size'] = titleSize;
+            // Subtitle size — rebuild annotation HTML with new size
+            const subtitleSize = getVal('ts_subtitle');
+            if (subtitleSize) {
+                const ann = plotEl.layout.annotations[0];
+                const raw = ann.text || '';
+                updates['annotations[0].text'] = raw.replace(/font-size:\s*\d+px/, `font-size:${subtitleSize}px`);
+            }
         } else {
             updates['title.font.size'] = titleSize;
         }
