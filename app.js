@@ -6453,7 +6453,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (btn) btn.textContent = 'Capturing...';
 
         try {
-            const target = document.querySelector('.main-content') || document.body;
+            const target = document.body;
             const canvas = await html2canvas(target, {
                 scale: 3,
                 useCORS: true,
