@@ -16518,6 +16518,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             document.getElementById('clbSortGene').value = '';
             this.clearCustomCellLineFilterCLB();
             this.renderCellLineList();
+            // Reset UMAP
+            this._resetUmap();
         });
 
         document.getElementById('clbTopN').addEventListener('change', () => {
@@ -17661,6 +17663,22 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this._clbUmapData.splitSource = source;
         const colorBy = document.getElementById('clbUmapColorBy').value;
         this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, gene);
+    }
+
+    _resetUmap() {
+        this._clbUmapData = null;
+        this._clbUmapSelectedPoints = new Set();
+        document.getElementById('clbUmapPlot').innerHTML = '';
+        document.getElementById('clbUmapSelectionControls').style.display = 'none';
+        document.getElementById('clbUmapSelectedCount').textContent = '';
+        document.getElementById('clbUmapSplitGene').value = '';
+        document.getElementById('clbUmapSplitType').textContent = '';
+        document.getElementById('clbUmapClearSplitBtn').style.display = 'none';
+        document.getElementById('clbUmapDataType').value = 'ge';
+        document.getElementById('clbUmapColorBy').value = 'tissue';
+        document.getElementById('clbUmapTissueFilter').value = '';
+        document.getElementById('clbUmapSubtypeFilter').value = '';
+        document.getElementById('clbUmapSubtypeFilter').style.display = 'none';
     }
 
     _clearUmapSplit() {
