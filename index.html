@@ -1303,10 +1303,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>dev-17.1 (2026-03-16)</strong></p>
+                <ul>
+                    <li>Marker size slider (range 2–14, live update, works on single and split views)</li>
+                    <li>Gate comparison panel auto-scrolls into view after Compare</li>
+                </ul>
                 <p><strong>dev-17 (2026-03-16)</strong></p>
                 <ul>
                     <li>UMAP gate comparison: draw Gate A/B rectangles, compare tissue, mutations, Δ GE, expression</li>
-                    <li>UMAP from Gate A: recompute UMAP using only Gate A cell lines (min 15)</li>
+                    <li>UMAP from Gate A: full UMAP recalculation using only Gate A cell lines (min 15)</li>
                     <li>Gate tables with sortable columns, gene search, p-value filter</li>
                     <li>Reset button clears all UMAP state including gates</li>
                 </ul>
@@ -1398,7 +1403,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.17</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.17.1</a>
     </div>
 
     <div class="main-content">
