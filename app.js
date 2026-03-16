@@ -18098,7 +18098,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 const badge = m.type === 'hotspot'
                     ? '<span style="background:#f59e0b;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
                     : '<span style="background:#8b5cf6;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
-                html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;">${m.gene}</td>
+                html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation();app.showUmapGateGenePlot('${m.gene}','mutation')">${m.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;">${badge}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.mutA}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.pctA.toFixed(1)}</td>
@@ -18138,7 +18138,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             filtered.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
                 const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
-                html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;">${d.gene}</td>
+                html += `<tr style="cursor:pointer;" onclick="app.showUmapGateGenePlot('${d.gene}','ge')"><td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(3)}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${d.diff > 0 ? '+' : ''}${d.diff.toFixed(3)}</td>
@@ -18179,7 +18179,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             filtered.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
                 const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
-                html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;">${d.gene}</td>
+                html += `<tr style="cursor:pointer;" onclick="app.showUmapGateGenePlot('${d.gene}','expression')"><td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(2)}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(2)}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${d.diff > 0 ? '+' : ''}${d.diff.toFixed(2)}</td>
@@ -18213,6 +18213,94 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const gene = row.cells?.[0]?.textContent?.toLowerCase() || '';
             row.style.display = gene.includes(lTerm) ? '' : 'none';
         });
+    }
+
+    showUmapGateGenePlot(gene, type) {
+        const plotDiv = document.getElementById('clbUmapGateGenePlot');
+        if (!plotDiv || !this._umapGateA?.length || !this._umapGateB?.length) return;
+
+        const gateAIds = new Set(this._umapGateA);
+        const gateBIds = new Set(this._umapGateB);
+
+        if (type === 'mutation') {
+            let mutData = this.mutations?.geneData?.[gene]?.mutations || this.damagingMutations?.geneData?.[gene]?.mutations;
+            if (!mutData) { plotDiv.innerHTML = `<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">No mutation data for ${gene}</div>`; return; }
+            const mutA = this._umapGateA.filter(cl => (mutData[cl] || 0) > 0).length;
+            const mutB = this._umapGateB.filter(cl => (mutData[cl] || 0) > 0).length;
+            const nA = this._umapGateA.length, nB = this._umapGateB.length;
+            const pctMutA = mutA / nA * 100, pctMutB = mutB / nB * 100;
+            const traces = [
+                { x: ['Gate A'], y: [pctMutA], name: 'Mutated', type: 'bar', marker: { color: '#2563eb' },
+                  text: [`${mutA}/${nA} (${pctMutA.toFixed(1)}%)`], textposition: pctMutA > 10 ? 'inside' : 'outside', textfont: { color: pctMutA > 10 ? 'white' : '#2563eb', size: 10 } },
+                { x: ['Gate A'], y: [100 - pctMutA], name: 'WT', type: 'bar', marker: { color: 'rgba(37,99,235,0.2)' },
+                  text: [`${nA - mutA} WT`], textposition: 'inside', textfont: { color: '#2563eb', size: 10 } },
+                { x: ['Gate B'], y: [pctMutB], name: 'Mutated', type: 'bar', marker: { color: '#dc2626' }, showlegend: false,
+                  text: [`${mutB}/${nB} (${pctMutB.toFixed(1)}%)`], textposition: pctMutB > 10 ? 'inside' : 'outside', textfont: { color: pctMutB > 10 ? 'white' : '#dc2626', size: 10 } },
+                { x: ['Gate B'], y: [100 - pctMutB], name: 'WT', type: 'bar', marker: { color: 'rgba(220,38,38,0.2)' }, showlegend: false,
+                  text: [`${nB - mutB} WT`], textposition: 'inside', textfont: { color: '#dc2626', size: 10 } }
+            ];
+            Plotly.newPlot(plotDiv, traces, {
+                title: { text: `${gene} — Mutation Frequency`, font: { size: 13 } },
+                barmode: 'stack', yaxis: { title: '% of cells', range: [0, 105] },
+                width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 },
+                showlegend: true, legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 9 } }
+            }, { displayModeBar: false, responsive: true });
+
+        } else if (type === 'ge') {
+            const geneIdx = this.geneIndex.get(gene.toUpperCase());
+            if (geneIdx === undefined) { plotDiv.innerHTML = `<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">Gene not found: ${gene}</div>`; return; }
+            const valsA = [], namesA = [], valsB = [], namesB = [];
+            for (let j = 0; j < this.nCellLines; j++) {
+                const val = this.geneEffects[geneIdx * this.nCellLines + j];
+                if (isNaN(val)) continue;
+                const cl = this.metadata.cellLines[j];
+                if (gateAIds.has(cl)) { valsA.push(val); namesA.push(this.getCellLineName(cl)); }
+                else if (gateBIds.has(cl)) { valsB.push(val); namesB.push(this.getCellLineName(cl)); }
+            }
+            const meanA = valsA.length ? valsA.reduce((a, b) => a + b, 0) / valsA.length : 0;
+            const meanB = valsB.length ? valsB.reduce((a, b) => a + b, 0) / valsB.length : 0;
+            Plotly.newPlot(plotDiv, [
+                { y: valsA, x: valsA.map(() => 'Gate A'), type: 'box', name: `Gate A (n=${valsA.length})`, marker: { color: '#2563eb' },
+                  boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true, text: namesA, hovertemplate: '%{text}<br>GE: %{y:.3f}<extra></extra>' },
+                { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' },
+                  boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true, text: namesB, hovertemplate: '%{text}<br>GE: %{y:.3f}<extra></extra>' }
+            ], {
+                title: { text: `${gene} — Gene Effect (Δ=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
+                yaxis: { title: 'Gene Effect (CERES)' }, width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 }, showlegend: false
+            }, { displayModeBar: false, responsive: true });
+
+        } else if (type === 'expression') {
+            if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata) {
+                plotDiv.innerHTML = '<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">Expression data not loaded</div>'; return;
+            }
+            const exprGeneIdx = this.expressionGeneIndex.get(gene.toUpperCase());
+            if (exprGeneIdx === undefined) { plotDiv.innerHTML = `<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">Gene not in expression data: ${gene}</div>`; return; }
+            const nExprCL = this.expressionMetadata.nCellLines;
+            const exprCLIndex = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, idx) => exprCLIndex.set(cl, idx));
+            const valsA = [], namesA = [], valsB = [], namesB = [];
+            for (const cl of this._umapGateA) {
+                const ei = exprCLIndex.get(cl);
+                if (ei !== undefined) { const v = this.expressionData[exprGeneIdx * nExprCL + ei]; if (!isNaN(v)) { valsA.push(v); namesA.push(this.getCellLineName(cl)); } }
+            }
+            for (const cl of this._umapGateB) {
+                const ei = exprCLIndex.get(cl);
+                if (ei !== undefined) { const v = this.expressionData[exprGeneIdx * nExprCL + ei]; if (!isNaN(v)) { valsB.push(v); namesB.push(this.getCellLineName(cl)); } }
+            }
+            const meanA = valsA.length ? valsA.reduce((a, b) => a + b, 0) / valsA.length : 0;
+            const meanB = valsB.length ? valsB.reduce((a, b) => a + b, 0) / valsB.length : 0;
+            Plotly.newPlot(plotDiv, [
+                { y: valsA, x: valsA.map(() => 'Gate A'), type: 'box', name: `Gate A (n=${valsA.length})`, marker: { color: '#2563eb' },
+                  boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true, text: namesA, hovertemplate: '%{text}<br>Expr: %{y:.2f}<extra></extra>' },
+                { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' },
+                  boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true, text: namesB, hovertemplate: '%{text}<br>Expr: %{y:.2f}<extra></extra>' }
+            ], {
+                title: { text: `${gene} — Expression (Δ=${(meanA - meanB).toFixed(2)})`, font: { size: 13 } },
+                yaxis: { title: 'Expression (log2 TPM+1)' }, width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 }, showlegend: false
+            }, { displayModeBar: false, responsive: true });
+        }
+
+        plotDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     async umapFromGateA() {
