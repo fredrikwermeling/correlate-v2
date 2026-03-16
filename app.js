@@ -8583,7 +8583,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (filterDesc) {
             titleLines.push(`<span style="font-size:10px;color:#666;">${filterDesc}</span>`);
         }
-        titleLines.push(`<span style="font-size:10px;">n=${filteredData.length}, r=${allStats.correlation.toFixed(3)}, slope=${allStats.slope.toFixed(3)} | mean(${meanX.toFixed(2)}, ${meanY.toFixed(2)}) med(${medianX.toFixed(2)}, ${medianY.toFixed(2)})</span>`);
+        titleLines.push(`<span style="font-size:10px;">n=${filteredData.length}, r=${allStats.correlation.toFixed(3)}, slope=${allStats.slope.toFixed(3)}</span>`);
+        titleLines.push(`<span style="font-size:10px;">mean(X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)}) med(X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})</span>`);
 
         if (hotspotMode === 'color' && hotspotGene) {
             titleLines.push(`<span style="font-size:10px;"><b>${hotspotGene}:</b> WT n=${wt.length} r=${wtStats.correlation.toFixed(3)} | 1mut n=${mut1.length} r=${mut1Stats.correlation.toFixed(3)} | 2mut n=${mut2.length} r=${mut2Stats.correlation.toFixed(3)}</span>`);
