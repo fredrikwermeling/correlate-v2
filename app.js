@@ -19264,45 +19264,168 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (!plotEl?.layout) { body.innerHTML = '<div style="color:#6b7280;">No plot to configure.</div>'; panel.style.display = 'block'; return; }
 
         const layout = plotEl.layout;
-        const titleSize = layout.title?.font?.size || 14;
+
+        // Detect if title is in annotations (scatter) or layout.title (gene effect)
+        const ann0 = layout.annotations?.[0];
+        const usesAnnotationTitle = ann0 && !ann0._gateAnnotation && ann0.xref === 'paper';
+        const titleSize = usesAnnotationTitle ? (ann0.font?.size || 14) : (layout.title?.font?.size || 14);
+
+        // Extract plain text from HTML annotation text
+        const stripHtml = (html) => html ? html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() : '';
+
+        // Get title text — for annotations it's HTML with <b> and <br>
+        let titleText = '';
+        let subtitleText = '';
+        if (usesAnnotationTitle) {
+            const raw = ann0.text || '';
+            // Split on <br> — first part is title (strip <b>), rest is subtitle
+            const parts = raw.split(/<br\s*\/?>/i);
+            titleText = stripHtml(parts[0]);
+            subtitleText = parts.slice(1).map(stripHtml).join(' | ');
+        } else {
+            titleText = typeof layout.title === 'string' ? layout.title : (layout.title?.text || '');
+        }
+
+        const xLabel = typeof layout.xaxis?.title === 'string' ? layout.xaxis.title : (layout.xaxis?.title?.text || '');
+        const yLabel = typeof layout.yaxis?.title === 'string' ? layout.yaxis.title : (layout.yaxis?.title?.text || '');
         const xLabelSize = layout.xaxis?.title?.font?.size || 12;
         const yLabelSize = layout.yaxis?.title?.font?.size || 12;
         const xTickSize = layout.xaxis?.tickfont?.size || 10;
         const yTickSize = layout.yaxis?.tickfont?.size || 10;
         const legendSize = layout.legend?.font?.size || 10;
         const markerSize = plotEl.data?.[0]?.marker?.size || 8;
+        const hasLegend = layout.showlegend !== false && plotEl.data?.some(t => t.showlegend !== false && t.name);
 
-        const row = (label, id, val, min, max) => `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <span style="color:#374151;">${label}</span>
-                <div style="display:flex; align-items:center; gap:4px;">
-                    <button onclick="app._tsStep('${id}',-1)" style="width:22px;height:22px;border:1px solid #d1d5db;background:#f9fafb;border-radius:4px 0 0 4px;cursor:pointer;font-size:14px;">−</button>
-                    <input type="number" id="${id}" value="${val}" min="${min}" max="${max}" style="width:42px;text-align:center;border:1px solid #d1d5db;border-left:none;border-right:none;font-size:11px;padding:2px;" oninput="app._tsApply()">
-                    <button onclick="app._tsStep('${id}',1)" style="width:22px;height:22px;border:1px solid #d1d5db;background:#f9fafb;border-radius:0 4px 4px 0;cursor:pointer;font-size:14px;">+</button>
+        // Track visibility states
+        this._tsVisible = {
+            title: ann0?.visible !== false && (usesAnnotationTitle || !!titleText),
+            xLabel: !!xLabel,
+            yLabel: !!yLabel,
+            legend: hasLegend
+        };
+        // Store original texts for restore
+        this._tsOriginal = { titleText, subtitleText, xLabel, yLabel, usesAnnotationTitle };
+
+        const sizeRow = (label, id, val, min, max, toggleId, visible) => `
+            <div style="display:flex; align-items:center; margin-bottom:5px; gap:4px;">
+                ${toggleId ? `<input type="checkbox" id="${toggleId}" ${visible ? 'checked' : ''} onchange="app._tsToggle('${toggleId}')" style="margin:0;">` : '<span style="width:15px;"></span>'}
+                <span style="color:#374151;flex:1;min-width:55px;font-size:11px;">${label}</span>
+                <div style="display:flex; align-items:center;">
+                    <button onclick="app._tsStep('${id}',-1)" style="width:20px;height:20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:4px 0 0 4px;cursor:pointer;font-size:12px;line-height:1;">−</button>
+                    <input type="number" id="${id}" value="${val}" min="${min}" max="${max}" style="width:36px;text-align:center;border:1px solid #d1d5db;border-left:none;border-right:none;font-size:10px;padding:1px;" oninput="app._tsApply()">
+                    <button onclick="app._tsStep('${id}',1)" style="width:20px;height:20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:0 4px 4px 0;cursor:pointer;font-size:12px;line-height:1;">+</button>
                 </div>
             </div>`;
 
+        const textRow = (label, id, val) => `
+            <div style="margin-bottom:5px;">
+                <label style="font-size:10px;color:#6b7280;">${label}</label>
+                <input type="text" id="${id}" value="${this._escapeAttr(val)}" style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:3px 6px;font-size:11px;margin-top:1px;box-sizing:border-box;" oninput="app._tsApplyText()">
+            </div>`;
+
         body.innerHTML = `
-            <div style="font-weight:600;margin-bottom:8px;color:#1f2937;font-size:11px;">Font Sizes</div>
-            ${row('Title', 'ts_title', titleSize, 6, 36)}
-            ${row('X Axis Label', 'ts_xlabel', xLabelSize, 6, 30)}
-            ${row('Y Axis Label', 'ts_ylabel', yLabelSize, 6, 30)}
-            ${row('X Tick', 'ts_xtick', xTickSize, 6, 24)}
-            ${row('Y Tick', 'ts_ytick', yTickSize, 6, 24)}
-            ${row('Legend', 'ts_legend', legendSize, 6, 24)}
-            <div style="border-top:1px solid #e5e7eb;margin:8px 0;"></div>
-            <div style="font-weight:600;margin-bottom:8px;color:#1f2937;font-size:11px;">Markers</div>
-            ${row('Marker Size', 'ts_marker', markerSize, 2, 30)}
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-weight:600;color:#1f2937;font-size:11px;">Scale All</span>
+                <div style="display:flex;align-items:center;gap:2px;">
+                    <button onclick="app._tsScaleAll(-1)" style="width:24px;height:22px;border:1px solid #d1d5db;background:#f0fdf4;border-radius:4px 0 0 4px;cursor:pointer;font-size:13px;font-weight:bold;">−</button>
+                    <button onclick="app._tsScaleAll(1)" style="width:24px;height:22px;border:1px solid #d1d5db;background:#f0fdf4;border-radius:0 4px 4px 0;cursor:pointer;font-size:13px;font-weight:bold;">+</button>
+                </div>
+            </div>
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Text Content</div>
+            ${textRow('Title', 'ts_titleText', titleText)}
+            ${subtitleText ? textRow('Subtitle', 'ts_subtitleText', subtitleText) : ''}
+            ${textRow('X Axis', 'ts_xLabelText', xLabel)}
+            ${textRow('Y Axis', 'ts_yLabelText', yLabel)}
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Font Sizes &amp; Visibility</div>
+            ${sizeRow('Title', 'ts_title', titleSize, 6, 48, 'ts_titleVis', this._tsVisible.title)}
+            ${sizeRow('X Label', 'ts_xlabel', xLabelSize, 6, 36, 'ts_xLabelVis', this._tsVisible.xLabel)}
+            ${sizeRow('Y Label', 'ts_ylabel', yLabelSize, 6, 36, 'ts_yLabelVis', this._tsVisible.yLabel)}
+            ${sizeRow('X Tick', 'ts_xtick', xTickSize, 6, 30, null, true)}
+            ${sizeRow('Y Tick', 'ts_ytick', yTickSize, 6, 30, null, true)}
+            ${sizeRow('Legend', 'ts_legend', legendSize, 6, 30, 'ts_legendVis', this._tsVisible.legend)}
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Markers</div>
+            ${sizeRow('Size', 'ts_marker', markerSize, 1, 40, null, true)}
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-size:10px;color:#9ca3af;">Tip: drag title/annotations directly on plot</div>
         `;
         panel.style.display = 'block';
+
+        // Setup arrow key listener for selected annotation
+        this._tsSetupArrowKeys(plotEl);
+    }
+
+    _escapeAttr(s) {
+        return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     _tsStep(inputId, direction) {
         const inp = document.getElementById(inputId);
         if (!inp) return;
         const cur = parseInt(inp.value) || 10;
-        inp.value = Math.max(parseInt(inp.min) || 2, Math.min(parseInt(inp.max) || 48, cur + direction));
+        inp.value = Math.max(parseInt(inp.min) || 1, Math.min(parseInt(inp.max) || 48, cur + direction));
         this._tsApply();
+    }
+
+    _tsScaleAll(direction) {
+        const ids = ['ts_title', 'ts_xlabel', 'ts_ylabel', 'ts_xtick', 'ts_ytick', 'ts_legend', 'ts_marker'];
+        ids.forEach(id => {
+            const inp = document.getElementById(id);
+            if (!inp) return;
+            const cur = parseInt(inp.value) || 10;
+            inp.value = Math.max(parseInt(inp.min) || 1, Math.min(parseInt(inp.max) || 48, cur + direction));
+        });
+        this._tsApply();
+    }
+
+    _tsToggle(checkboxId) {
+        const plotEl = document.getElementById(this._textSettingsPlotId);
+        if (!plotEl?.layout) return;
+        const checked = document.getElementById(checkboxId)?.checked;
+
+        if (checkboxId === 'ts_titleVis') {
+            if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
+                Plotly.relayout(plotEl, { 'annotations[0].visible': checked });
+            } else {
+                Plotly.relayout(plotEl, { 'title.text': checked ? (this._tsOriginal.titleText || ' ') : '' });
+            }
+        } else if (checkboxId === 'ts_xLabelVis') {
+            Plotly.relayout(plotEl, { 'xaxis.title.text': checked ? this._tsOriginal.xLabel : '' });
+        } else if (checkboxId === 'ts_yLabelVis') {
+            Plotly.relayout(plotEl, { 'yaxis.title.text': checked ? this._tsOriginal.yLabel : '' });
+        } else if (checkboxId === 'ts_legendVis') {
+            Plotly.relayout(plotEl, { showlegend: checked });
+        }
+    }
+
+    _tsApplyText() {
+        const plotEl = document.getElementById(this._textSettingsPlotId);
+        if (!plotEl?.layout) return;
+
+        const titleText = document.getElementById('ts_titleText')?.value || '';
+        const subtitleEl = document.getElementById('ts_subtitleText');
+        const xLabel = document.getElementById('ts_xLabelText')?.value || '';
+        const yLabel = document.getElementById('ts_yLabelText')?.value || '';
+
+        const updates = {
+            'xaxis.title.text': xLabel,
+            'yaxis.title.text': yLabel
+        };
+
+        if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
+            // Rebuild annotation HTML: <b>title</b><br><span...>subtitle</span>
+            let html = `<b>${titleText}</b>`;
+            if (subtitleEl) {
+                html += `<br><span style="font-size:10px;color:#666">${subtitleEl.value}</span>`;
+            }
+            updates['annotations[0].text'] = html;
+        } else {
+            updates['title.text'] = titleText;
+        }
+
+        Plotly.relayout(plotEl, updates);
     }
 
     _tsApply() {
@@ -19311,24 +19434,71 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const getVal = (id) => parseInt(document.getElementById(id)?.value) || null;
 
-        Plotly.relayout(plotEl, {
-            'title.font.size': getVal('ts_title'),
+        const updates = {
             'xaxis.title.font.size': getVal('ts_xlabel'),
             'yaxis.title.font.size': getVal('ts_ylabel'),
             'xaxis.tickfont.size': getVal('ts_xtick'),
             'yaxis.tickfont.size': getVal('ts_ytick'),
             'legend.font.size': getVal('ts_legend')
-        });
+        };
+
+        // Title: annotation or layout.title depending on plot type
+        const titleSize = getVal('ts_title');
+        if (this._tsOriginal?.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
+            updates['annotations[0].font.size'] = titleSize;
+        } else {
+            updates['title.font.size'] = titleSize;
+        }
+
+        Plotly.relayout(plotEl, updates);
 
         const markerSize = getVal('ts_marker');
         if (markerSize && plotEl.data) {
-            const updates = {};
+            const indices = [];
             for (let i = 0; i < plotEl.data.length; i++) {
-                if (plotEl.data[i]?.marker) updates[i] = { 'marker.size': markerSize };
+                if (plotEl.data[i]?.marker) indices.push(i);
             }
-            const indices = Object.keys(updates).map(Number);
             if (indices.length > 0) Plotly.restyle(plotEl, { 'marker.size': markerSize }, indices);
         }
+    }
+
+    _tsSetupArrowKeys(plotEl) {
+        // Allow arrow keys to nudge annotations when plot is focused
+        if (this._tsArrowHandler) {
+            document.removeEventListener('keydown', this._tsArrowHandler);
+        }
+        this._tsSelectedAnnotation = null;
+
+        // Listen for annotation clicks to select one
+        plotEl.removeAllListeners?.('plotly_clickannotation');
+        plotEl.on('plotly_clickannotation', (ev) => {
+            this._tsSelectedAnnotation = ev.index;
+            // Brief visual feedback
+            const el = plotEl.querySelector('.annotation[data-index="' + ev.index + '"]');
+            if (el) { el.style.outline = '2px solid #3b82f6'; setTimeout(() => el.style.outline = '', 1500); }
+        });
+
+        this._tsArrowHandler = (e) => {
+            if (this._tsSelectedAnnotation == null) return;
+            const idx = this._tsSelectedAnnotation;
+            const ann = plotEl.layout.annotations?.[idx];
+            if (!ann || ann.xref !== 'paper') return;
+
+            const step = e.shiftKey ? 0.01 : 0.005;
+            let dx = 0, dy = 0;
+            if (e.key === 'ArrowLeft') dx = -step;
+            else if (e.key === 'ArrowRight') dx = step;
+            else if (e.key === 'ArrowUp') dy = step;
+            else if (e.key === 'ArrowDown') dy = -step;
+            else return;
+
+            e.preventDefault();
+            const upd = {};
+            upd[`annotations[${idx}].x`] = (ann.x || 0.5) + dx;
+            upd[`annotations[${idx}].y`] = (ann.y || 1.0) + dy;
+            Plotly.relayout(plotEl, upd);
+        };
+        document.addEventListener('keydown', this._tsArrowHandler);
     }
 
     _initTextSettingsDrag() {
