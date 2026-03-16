@@ -17972,11 +17972,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         document.getElementById('clbUmapGateStatus').textContent = `Comparison complete. Gate A: ${nA}, Gate B: ${nB}`;
         document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
-        document.getElementById('clbUmapGatePanel').style.display = '';
+        const gatePanel = document.getElementById('clbUmapGatePanel');
+        gatePanel.style.display = '';
         document.getElementById('clbUmapGateTitle').textContent = `Gate A (${nA}) vs Gate B (${nB})`;
         document.querySelectorAll('.umap-gate-tab').forEach(t => t.classList.remove('active'));
         document.querySelector('[data-umap-gate-tab="tissue"]').classList.add('active');
         this.renderUmapGateTab('tissue');
+        // Scroll panel into view
+        setTimeout(() => gatePanel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     }
 
     renderUmapGateTab(tab) {
