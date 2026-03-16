@@ -16630,6 +16630,33 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbUmapRunBtn').addEventListener('click', () => this.runCLBUmap());
         document.getElementById('clbUmapSelectBtn').addEventListener('click', () => this.clbUmapSelectMode());
         document.getElementById('clbUmapCopyBtn').addEventListener('click', () => this.clbUmapCopySelected());
+
+        // UMAP gate events
+        document.getElementById('clbUmapSetGateA').addEventListener('click', () => this.startUmapGateSelection('A'));
+        document.getElementById('clbUmapSetGateB').addEventListener('click', () => this.startUmapGateSelection('B'));
+        document.getElementById('clbUmapCompareGates').addEventListener('click', () => this.compareUmapGates());
+        document.getElementById('clbUmapClearGates').addEventListener('click', () => this.clearUmapGates());
+        document.getElementById('clbUmapUmapFromGate').addEventListener('click', () => this.umapFromGateA());
+        document.querySelectorAll('.umap-gate-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.umap-gate-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.renderUmapGateTab(tab.dataset.umapGateTab);
+            });
+        });
+
+        // UMAP gate state
+        this._umapGateA = null;
+        this._umapGateB = null;
+        this._umapGateSelecting = null;
+        this._umapGateAShape = null;
+        this._umapGateBShape = null;
+        this._umapGateAShapeIndex = null;
+        this._umapGateBShapeIndex = null;
+        this._umapGateCompareResults = null;
+        this._umapGateSortCol = null;
+        this._umapGateSortAsc = true;
+        this._umapGatePvalueFilter = '';
     }
 
     openCellLineBrowser() {
@@ -17679,6 +17706,559 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbUmapTissueFilter').value = '';
         document.getElementById('clbUmapSubtypeFilter').value = '';
         document.getElementById('clbUmapSubtypeFilter').style.display = 'none';
+        this.clearUmapGates();
+    }
+
+    // ===== UMAP Gate Comparison =====
+
+    startUmapGateSelection(gate) {
+        if (!this._clbUmapData) return;
+        this._umapGateSelecting = gate;
+        const plotDiv = document.getElementById('clbUmapPlot');
+
+        const status = document.getElementById('clbUmapGateStatus');
+        status.textContent = `Draw Gate ${gate} rectangle on plot`;
+        status.style.color = gate === 'A' ? '#2563eb' : '#dc2626';
+
+        Plotly.relayout(plotDiv, {
+            dragmode: 'drawrect',
+            newshape: {
+                line: { color: gate === 'A' ? '#2563eb' : '#dc2626', width: 2 },
+                fillcolor: gate === 'A' ? 'rgba(37,99,235,0.1)' : 'rgba(220,38,38,0.1)',
+                opacity: 1
+            }
+        });
+    }
+
+    _handleUmapGateShapeRelayout(relayoutData) {
+        const keys = Object.keys(relayoutData);
+        const hasShapeKeys = keys.some(k => k.startsWith('shapes'));
+        if (!hasShapeKeys) return;
+
+        const plotDiv = document.getElementById('clbUmapPlot');
+        if (!plotDiv?.layout) return;
+        const currentShapes = (plotDiv.layout.shapes || []).slice();
+
+        if (this._umapGateSelecting && currentShapes.length > 0) {
+            const newShape = currentShapes[currentShapes.length - 1];
+            const gate = this._umapGateSelecting;
+            const { x0, x1, y0, y1 } = newShape;
+            const cells = this._computeUmapGateCells(x0, x1, y0, y1);
+
+            if (gate === 'A') {
+                if (this._umapGateAShapeIndex != null && this._umapGateAShapeIndex !== currentShapes.length - 1) {
+                    currentShapes.splice(this._umapGateAShapeIndex, 1);
+                    if (this._umapGateBShapeIndex != null && this._umapGateBShapeIndex > this._umapGateAShapeIndex) this._umapGateBShapeIndex--;
+                }
+                this._umapGateAShapeIndex = currentShapes.length - 1;
+                this._umapGateAShape = { x0, x1, y0, y1 };
+                this._umapGateA = cells;
+                currentShapes[this._umapGateAShapeIndex] = {
+                    ...currentShapes[this._umapGateAShapeIndex],
+                    line: { color: '#2563eb', width: 2 }, fillcolor: 'rgba(37,99,235,0.1)', opacity: 1, editable: true
+                };
+                document.getElementById('clbUmapSetGateA').textContent = `Gate A (n=${cells.length})`;
+                document.getElementById('clbUmapSetGateB').disabled = false;
+                document.getElementById('clbUmapClearGates').style.display = '';
+                document.getElementById('clbUmapUmapFromGate').style.display = cells.length >= 15 ? '' : 'none';
+                document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
+                document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
+            } else {
+                if (this._umapGateBShapeIndex != null && this._umapGateBShapeIndex !== currentShapes.length - 1) {
+                    currentShapes.splice(this._umapGateBShapeIndex, 1);
+                    if (this._umapGateAShapeIndex != null && this._umapGateAShapeIndex > this._umapGateBShapeIndex) this._umapGateAShapeIndex--;
+                }
+                this._umapGateBShapeIndex = currentShapes.length - 1;
+                this._umapGateBShape = { x0, x1, y0, y1 };
+                this._umapGateB = cells;
+                currentShapes[this._umapGateBShapeIndex] = {
+                    ...currentShapes[this._umapGateBShapeIndex],
+                    line: { color: '#dc2626', width: 2 }, fillcolor: 'rgba(220,38,38,0.1)', opacity: 1, editable: true
+                };
+                document.getElementById('clbUmapSetGateB').textContent = `Gate B (n=${cells.length})`;
+                document.getElementById('clbUmapCompareGates').style.display = '';
+                document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${this._umapGateA?.length || 0}, Gate B: ${cells.length}. Click Compare.`;
+                document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
+            }
+            this._umapGateSelecting = null;
+            Plotly.relayout(plotDiv, { shapes: currentShapes, dragmode: 'lasso' });
+            return;
+        }
+
+        // Handle editing of existing shapes
+        let gateAUpdated = false, gateBUpdated = false;
+        for (const key of keys) {
+            const match = key.match(/^shapes\[(\d+)\]\.(x0|x1|y0|y1)$/);
+            if (match) {
+                const idx = parseInt(match[1]), coord = match[2];
+                if (idx === this._umapGateAShapeIndex && this._umapGateAShape) { this._umapGateAShape[coord] = relayoutData[key]; gateAUpdated = true; }
+                else if (idx === this._umapGateBShapeIndex && this._umapGateBShape) { this._umapGateBShape[coord] = relayoutData[key]; gateBUpdated = true; }
+            }
+        }
+        if (gateAUpdated && this._umapGateAShape) {
+            const { x0, x1, y0, y1 } = this._umapGateAShape;
+            this._umapGateA = this._computeUmapGateCells(x0, x1, y0, y1);
+            document.getElementById('clbUmapSetGateA').textContent = `Gate A (n=${this._umapGateA.length})`;
+            document.getElementById('clbUmapUmapFromGate').style.display = this._umapGateA.length >= 15 ? '' : 'none';
+        }
+        if (gateBUpdated && this._umapGateBShape) {
+            const { x0, x1, y0, y1 } = this._umapGateBShape;
+            this._umapGateB = this._computeUmapGateCells(x0, x1, y0, y1);
+            document.getElementById('clbUmapSetGateB').textContent = `Gate B (n=${this._umapGateB.length})`;
+        }
+        if ((gateAUpdated || gateBUpdated) && this._umapGateA) {
+            const msg = this._umapGateB
+                ? `Gate A: ${this._umapGateA.length}, Gate B: ${this._umapGateB.length}. Click Compare to refresh.`
+                : `Gate A: ${this._umapGateA.length} cells. Now set Gate B.`;
+            document.getElementById('clbUmapGateStatus').textContent = msg;
+        }
+    }
+
+    _computeUmapGateCells(x0, x1, y0, y1) {
+        if (!this._clbUmapData) return [];
+        const { cellLines, x, y } = this._clbUmapData;
+        const xMin = Math.min(x0, x1), xMax = Math.max(x0, x1);
+        const yMin = Math.min(y0, y1), yMax = Math.max(y0, y1);
+        const cells = [];
+        for (let i = 0; i < cellLines.length; i++) {
+            if (x[i] >= xMin && x[i] <= xMax && y[i] >= yMin && y[i] <= yMax) {
+                cells.push(cellLines[i]);
+            }
+        }
+        return cells;
+    }
+
+    clearUmapGates() {
+        this._umapGateA = null;
+        this._umapGateB = null;
+        this._umapGateSelecting = null;
+        this._umapGateAShape = null;
+        this._umapGateBShape = null;
+        this._umapGateAShapeIndex = null;
+        this._umapGateBShapeIndex = null;
+        this._umapGateCompareResults = null;
+
+        document.getElementById('clbUmapSetGateA').textContent = 'Set Gate A';
+        document.getElementById('clbUmapSetGateB').textContent = 'Set Gate B';
+        document.getElementById('clbUmapSetGateB').disabled = true;
+        document.getElementById('clbUmapCompareGates').style.display = 'none';
+        document.getElementById('clbUmapClearGates').style.display = 'none';
+        document.getElementById('clbUmapUmapFromGate').style.display = 'none';
+        document.getElementById('clbUmapGateStatus').textContent = '';
+        document.getElementById('clbUmapGatePanel').style.display = 'none';
+
+        // Remove shapes from plot
+        const plotDiv = document.getElementById('clbUmapPlot');
+        if (plotDiv?.layout) Plotly.relayout(plotDiv, { shapes: [], dragmode: 'lasso' });
+    }
+
+    async compareUmapGates() {
+        if (!this._umapGateA?.length || !this._umapGateB?.length) return;
+
+        const gateAIds = new Set(this._umapGateA);
+        const gateBIds = new Set(this._umapGateB);
+        const nA = this._umapGateA.length;
+        const nB = this._umapGateB.length;
+
+        document.getElementById('clbUmapGateASummary').textContent = `${nA} cell lines`;
+        document.getElementById('clbUmapGateBSummary').textContent = `${nB} cell lines`;
+        document.getElementById('clbUmapGateStatus').textContent = 'Computing comparison...';
+
+        await new Promise(r => setTimeout(r, 10));
+
+        // 1. Tissue enrichment
+        const tissueA = {}, tissueB = {};
+        this._umapGateA.forEach(cl => { const t = this.getCellLineLineage(cl) || 'Unknown'; tissueA[t] = (tissueA[t] || 0) + 1; });
+        this._umapGateB.forEach(cl => { const t = this.getCellLineLineage(cl) || 'Unknown'; tissueB[t] = (tissueB[t] || 0) + 1; });
+        const allTissues = [...new Set([...Object.keys(tissueA), ...Object.keys(tissueB)])].sort();
+        const tissueStats = allTissues.map(t => ({
+            tissue: t, nA: tissueA[t] || 0, pctA: (tissueA[t] || 0) / nA * 100,
+            nB: tissueB[t] || 0, pctB: (tissueB[t] || 0) / nB * 100
+        }));
+        tissueStats.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
+
+        // 1b. Subtissue enrichment
+        const subtissueA = {}, subtissueB = {};
+        this._umapGateA.forEach(cl => { const st = this.getCellLineSublineage(cl) || this.getCellLineLineage(cl) || 'Unknown'; subtissueA[st] = (subtissueA[st] || 0) + 1; });
+        this._umapGateB.forEach(cl => { const st = this.getCellLineSublineage(cl) || this.getCellLineLineage(cl) || 'Unknown'; subtissueB[st] = (subtissueB[st] || 0) + 1; });
+        const allSubtissues = [...new Set([...Object.keys(subtissueA), ...Object.keys(subtissueB)])].sort();
+        const subtissueStats = allSubtissues.map(st => ({
+            tissue: st, nA: subtissueA[st] || 0, pctA: (subtissueA[st] || 0) / nA * 100,
+            nB: subtissueB[st] || 0, pctB: (subtissueB[st] || 0) / nB * 100
+        }));
+        subtissueStats.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
+
+        // 2. Mutation enrichment
+        const mutStats = [];
+        const mutSources = [];
+        if (this.mutations?.genes) this.mutations.genes.forEach(g => mutSources.push({ gene: g, source: this.mutations, type: 'hotspot' }));
+        if (this.damagingMutations?.genes) {
+            const hsSet = new Set(this.mutations?.genes || []);
+            this.damagingMutations.genes.forEach(g => { if (!hsSet.has(g)) mutSources.push({ gene: g, source: this.damagingMutations, type: 'damaging' }); });
+        }
+        mutSources.forEach(({ gene, source, type }) => {
+            const mutData = source.geneData?.[gene]?.mutations || {};
+            const mutA = this._umapGateA.filter(cl => (mutData[cl] || 0) > 0).length;
+            const mutB = this._umapGateB.filter(cl => (mutData[cl] || 0) > 0).length;
+            const pctA = mutA / nA * 100, pctB = mutB / nB * 100;
+            const a = mutA, b = mutB, c = nA - mutA, d2 = nB - mutB;
+            const n = a + b + c + d2;
+            const chi2 = n > 0 ? Math.pow(a * d2 - b * c, 2) * n / ((a + b) * (c + d2) * (a + c) * (b + d2) || 1) : 0;
+            const pValue = Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
+            if (mutA > 0 || mutB > 0) mutStats.push({ gene, mutA, mutB, pctA, pctB, diff: pctA - pctB, pValue, type });
+        });
+        mutStats.sort((a, b) => a.pValue - b.pValue);
+
+        // 3. Differential gene effect
+        document.getElementById('clbUmapGateStatus').textContent = 'Computing differential gene effects...';
+        await new Promise(r => setTimeout(r, 0));
+        const diffGE = [];
+        const geneNames = [...this.geneIndex.keys()];
+        for (let i = 0; i < geneNames.length; i++) {
+            const gene = geneNames[i];
+            const geneIdx = this.geneIndex.get(gene);
+            const geneData = this.getGeneData(geneIdx);
+            const valsA = [], valsB = [];
+            for (let j = 0; j < this.nCellLines; j++) {
+                if (isNaN(geneData[j])) continue;
+                const cl = this.metadata.cellLines[j];
+                if (gateAIds.has(cl)) valsA.push(geneData[j]);
+                else if (gateBIds.has(cl)) valsB.push(geneData[j]);
+            }
+            if (valsA.length >= 2 && valsB.length >= 2) {
+                const meanA = valsA.reduce((a, b) => a + b, 0) / valsA.length;
+                const meanB = valsB.reduce((a, b) => a + b, 0) / valsB.length;
+                const tTest = this.welchTTest(valsA, valsB);
+                diffGE.push({ gene, meanA, meanB, diff: meanA - meanB, pValue: tTest.p, nA: valsA.length, nB: valsB.length });
+            }
+            if (i % 500 === 0 && i > 0) await new Promise(r => setTimeout(r, 0));
+        }
+        diffGE.sort((a, b) => a.pValue - b.pValue);
+
+        // 4. Differential expression
+        const diffExpr = [];
+        if (this.expressionLoaded && this.expressionData && this.expressionMetadata) {
+            document.getElementById('clbUmapGateStatus').textContent = 'Computing differential expression...';
+            await new Promise(r => setTimeout(r, 0));
+            const nExprCL = this.expressionMetadata.nCellLines;
+            const exprGeneNames = this.expressionMetadata.genes;
+            const exprCLIndex = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, idx) => exprCLIndex.set(cl, idx));
+            for (let gi = 0; gi < exprGeneNames.length; gi++) {
+                const eValsA = [], eValsB = [];
+                for (const cl of this._umapGateA) {
+                    const ei = exprCLIndex.get(cl);
+                    if (ei !== undefined) { const v = this.expressionData[gi * nExprCL + ei]; if (!isNaN(v)) eValsA.push(v); }
+                }
+                for (const cl of this._umapGateB) {
+                    const ei = exprCLIndex.get(cl);
+                    if (ei !== undefined) { const v = this.expressionData[gi * nExprCL + ei]; if (!isNaN(v)) eValsB.push(v); }
+                }
+                if (eValsA.length >= 2 && eValsB.length >= 2) {
+                    const meanA = eValsA.reduce((a, b) => a + b, 0) / eValsA.length;
+                    const meanB = eValsB.reduce((a, b) => a + b, 0) / eValsB.length;
+                    const tTest = this.welchTTest(eValsA, eValsB);
+                    diffExpr.push({ gene: exprGeneNames[gi], meanA, meanB, diff: meanA - meanB, pValue: tTest.p, nA: eValsA.length, nB: eValsB.length });
+                }
+                if (gi % 1000 === 0 && gi > 0) await new Promise(r => setTimeout(r, 0));
+            }
+            diffExpr.sort((a, b) => a.pValue - b.pValue);
+        }
+
+        this._umapGateCompareResults = { tissueStats, subtissueStats, mutStats, diffGE, diffExpr };
+        this._umapGateSortCol = null;
+        this._umapGateSortAsc = true;
+        this._umapGatePvalueFilter = '';
+
+        document.getElementById('clbUmapGateStatus').textContent = `Comparison complete. Gate A: ${nA}, Gate B: ${nB}`;
+        document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
+        document.getElementById('clbUmapGatePanel').style.display = '';
+        document.getElementById('clbUmapGateTitle').textContent = `Gate A (${nA}) vs Gate B (${nB})`;
+        document.querySelectorAll('.umap-gate-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector('[data-umap-gate-tab="tissue"]').classList.add('active');
+        this.renderUmapGateTab('tissue');
+    }
+
+    renderUmapGateTab(tab) {
+        const r = this._umapGateCompareResults;
+        if (!r) return;
+        const container = document.getElementById('clbUmapGateContent');
+        this._currentUmapGateTab = tab;
+
+        const sortIcon = (col) => {
+            if (this._umapGateSortCol !== col) return ' <span style="opacity:0.3;">↕</span>';
+            return this._umapGateSortAsc ? ' ▲' : ' ▼';
+        };
+        const thStyle = 'padding:5px;cursor:pointer;user-select:none;white-space:nowrap;';
+        const sortFn = (col) => `app.sortUmapGateTable('${col}')`;
+
+        if (tab === 'tissue') {
+            if (!this._umapGateSortCol) { this._umapGateSortCol = 'absDelta'; this._umapGateSortAsc = false; }
+            const data = [...r.tissueStats];
+            this._sortUmapGateData(data, {
+                tissue: d => d.tissue.toLowerCase(), nA: d => d.nA, pctA: d => d.pctA,
+                nB: d => d.nB, pctB: d => d.pctB, delta: d => d.pctA - d.pctB, absDelta: d => Math.abs(d.pctA - d.pctB)
+            });
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="${thStyle}text-align:left;" onclick="${sortFn('tissue')}">Tissue${sortIcon('tissue')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('nA')}">Gate A${sortIcon('nA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('pctA')}">%A${sortIcon('pctA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('nB')}">Gate B${sortIcon('nB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('pctB')}">%B${sortIcon('pctB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('absDelta')}">|Δ%|${sortIcon('absDelta')}</th>
+                </tr></thead><tbody>`;
+            data.forEach(t => {
+                const delta = t.pctA - t.pctB;
+                const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
+                html += `<tr>
+                    <td style="padding:4px;border-bottom:1px solid #eee;">${t.tissue}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.nA}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.pctA.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.nB}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.pctB.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            if (r.subtissueStats?.length > 0) {
+                const subData = [...r.subtissueStats];
+                subData.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
+                html += `<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;">
+                    <div style="font-size:11px;font-weight:600;margin-bottom:6px;color:#374151;">Subtissue</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                    <thead><tr style="background:#f3f4f6;"><th style="padding:5px;text-align:left;">Subtype</th><th style="padding:5px;text-align:center;">Gate A</th><th style="padding:5px;text-align:center;">%A</th><th style="padding:5px;text-align:center;">Gate B</th><th style="padding:5px;text-align:center;">%B</th><th style="padding:5px;text-align:center;">|Δ%|</th></tr></thead><tbody>`;
+                subData.forEach(t => {
+                    const delta = t.pctA - t.pctB;
+                    const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
+                    html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;">${t.tissue}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.nA}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.pctA.toFixed(1)}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.nB}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.pctB.toFixed(1)}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td></tr>`;
+                });
+                html += '</tbody></table></div>';
+            }
+            container.innerHTML = html;
+
+        } else if (tab === 'mutations') {
+            if (r.mutStats.length === 0) { container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">No mutation data available</div>'; return; }
+            if (!this._umapGateSortCol) { this._umapGateSortCol = 'pValue'; this._umapGateSortAsc = true; }
+            const data = [...r.mutStats];
+            this._sortUmapGateData(data, {
+                gene: d => d.gene.toLowerCase(), type: d => d.type, mutA: d => d.mutA, pctA: d => d.pctA,
+                mutB: d => d.mutB, pctB: d => d.pctB, delta: d => d.pctA - d.pctB, pValue: d => d.pValue
+            });
+            const pf = this._umapGatePvalueFilter || '';
+            let html = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                <input type="text" id="umapGateGeneSearch" placeholder="Search gene..." oninput="app.filterUmapGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
+                <select onchange="app._umapGatePvalueFilter=this.value;app.renderUmapGateTab(app._currentUmapGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
+                    <option value=""${pf === '' ? ' selected' : ''}>All p-values</option>
+                    <option value="0.05"${pf === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
+                    <option value="0.01"${pf === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
+                    <option value="0.001"${pf === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
+                </select>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="${thStyle}text-align:left;" onclick="${sortFn('gene')}">Gene${sortIcon('gene')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('type')}">Type${sortIcon('type')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('mutA')}">Mut A${sortIcon('mutA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('pctA')}">%A${sortIcon('pctA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('mutB')}">Mut B${sortIcon('mutB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('pctB')}">%B${sortIcon('pctB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('delta')}">Δ%${sortIcon('delta')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('pValue')}">p-value${sortIcon('pValue')}</th>
+                </tr></thead><tbody>`;
+            const filtered = pf ? data.filter(m => m.pValue < parseFloat(pf)) : data;
+            filtered.slice(0, 100).forEach(m => {
+                const delta = m.pctA - m.pctB;
+                const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
+                const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
+                const badge = m.type === 'hotspot'
+                    ? '<span style="background:#f59e0b;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
+                    : '<span style="background:#8b5cf6;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
+                html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;">${m.gene}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;">${badge}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.mutA}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.pctA.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${m.mutB}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${m.pctB.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${m.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+        } else if (tab === 'diffge') {
+            if (!this._umapGateSortCol) { this._umapGateSortCol = 'diff'; this._umapGateSortAsc = true; }
+            const data = [...r.diffGE];
+            this._sortUmapGateData(data, {
+                gene: d => d.gene.toLowerCase(), meanA: d => d.meanA, meanB: d => d.meanB, diff: d => d.diff, pValue: d => d.pValue
+            });
+            const pf = this._umapGatePvalueFilter || '';
+            let html = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                <input type="text" id="umapGateGeneSearch" placeholder="Search gene..." oninput="app.filterUmapGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
+                <select onchange="app._umapGatePvalueFilter=this.value;app.renderUmapGateTab(app._currentUmapGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
+                    <option value=""${pf === '' ? ' selected' : ''}>All p-values</option>
+                    <option value="0.05"${pf === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
+                    <option value="0.01"${pf === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
+                    <option value="0.001"${pf === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
+                </select>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="${thStyle}text-align:left;" onclick="${sortFn('gene')}">Gene${sortIcon('gene')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('meanA')}">Mean A${sortIcon('meanA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('meanB')}">Mean B${sortIcon('meanB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('diff')}">Δ GE${sortIcon('diff')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('pValue')}">p-value${sortIcon('pValue')}</th>
+                </tr></thead><tbody>`;
+            const filtered = pf ? data.filter(d => d.pValue < parseFloat(pf)) : data;
+            filtered.slice(0, 100).forEach(d => {
+                const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
+                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;">${d.gene}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${d.diff > 0 ? '+' : ''}${d.diff.toFixed(3)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${d.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+        } else if (tab === 'expression') {
+            if (!r.diffExpr || r.diffExpr.length === 0) {
+                container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">Expression data not loaded or not available.</div>';
+                return;
+            }
+            if (!this._umapGateSortCol) { this._umapGateSortCol = 'diff'; this._umapGateSortAsc = true; }
+            const data = [...r.diffExpr];
+            this._sortUmapGateData(data, {
+                gene: d => d.gene.toLowerCase(), meanA: d => d.meanA, meanB: d => d.meanB, diff: d => d.diff, pValue: d => d.pValue
+            });
+            const pf = this._umapGatePvalueFilter || '';
+            let html = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                <input type="text" id="umapGateGeneSearch" placeholder="Search gene..." oninput="app.filterUmapGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
+                <select onchange="app._umapGatePvalueFilter=this.value;app.renderUmapGateTab(app._currentUmapGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
+                    <option value=""${pf === '' ? ' selected' : ''}>All p-values</option>
+                    <option value="0.05"${pf === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
+                    <option value="0.01"${pf === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
+                    <option value="0.001"${pf === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
+                </select>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="${thStyle}text-align:left;" onclick="${sortFn('gene')}">Gene${sortIcon('gene')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('meanA')}">Mean A${sortIcon('meanA')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('meanB')}">Mean B${sortIcon('meanB')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('diff')}">Δ Expr${sortIcon('diff')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('pValue')}">p-value${sortIcon('pValue')}</th>
+                </tr></thead><tbody>`;
+            const filtered = pf ? data.filter(d => d.pValue < parseFloat(pf)) : data;
+            filtered.slice(0, 100).forEach(d => {
+                const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
+                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;">${d.gene}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(2)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(2)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${d.diff > 0 ? '+' : ''}${d.diff.toFixed(2)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${d.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+    }
+
+    _sortUmapGateData(data, accessors) {
+        const col = this._umapGateSortCol;
+        const asc = this._umapGateSortAsc;
+        if (!col || !accessors[col]) return;
+        const fn = accessors[col];
+        data.sort((a, b) => { const va = fn(a), vb = fn(b); return asc ? (va < vb ? -1 : va > vb ? 1 : 0) : (va > vb ? -1 : va < vb ? 1 : 0); });
+    }
+
+    sortUmapGateTable(col) {
+        if (this._umapGateSortCol === col) this._umapGateSortAsc = !this._umapGateSortAsc;
+        else { this._umapGateSortCol = col; this._umapGateSortAsc = true; }
+        this.renderUmapGateTab(this._currentUmapGateTab);
+    }
+
+    filterUmapGateGeneTable(term) {
+        const container = document.getElementById('clbUmapGateContent');
+        if (!container) return;
+        const rows = container.querySelectorAll('tbody tr');
+        const lTerm = term.toLowerCase();
+        rows.forEach(row => {
+            const gene = row.cells?.[0]?.textContent?.toLowerCase() || '';
+            row.style.display = gene.includes(lTerm) ? '' : 'none';
+        });
+    }
+
+    async umapFromGateA() {
+        if (!this._umapGateA || this._umapGateA.length < 15) {
+            document.getElementById('clbUmapGateStatus').textContent = 'Gate A needs at least 15 cell lines for UMAP.';
+            return;
+        }
+
+        const gateACells = new Set(this._umapGateA);
+        const dataType = document.getElementById('clbUmapDataType').value;
+        const colorBy = document.getElementById('clbUmapColorBy').value;
+
+        if ((dataType === 'expr' || dataType === 'both') && !this.expressionLoaded) {
+            try { await this.loadExpressionData(); } catch (e) { return; }
+        }
+
+        document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:40px;text-align:center;color:#6b7280;">Computing UMAP from Gate A cells...</div>';
+        this.clearUmapGates();
+        await new Promise(r => setTimeout(r, 50));
+
+        try {
+            const allCellLines = this.metadata.cellLines;
+            const cellLineIndices = [];
+            for (let i = 0; i < allCellLines.length; i++) {
+                if (gateACells.has(allCellLines[i])) cellLineIndices.push(i);
+            }
+
+            const nCL = cellLineIndices.length;
+            const N_TOP_GENES = 1000;
+            let matrix = [];
+            if (dataType === 'ge' || dataType === 'both') matrix = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'ge');
+            if (dataType === 'expr' || dataType === 'both') {
+                const exprFeatures = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'expr');
+                if (dataType === 'both' && matrix.length > 0) { for (let i = 0; i < nCL; i++) matrix[i] = matrix[i].concat(exprFeatures[i]); }
+                else matrix = exprFeatures;
+            }
+
+            if (matrix.length === 0 || matrix[0].length === 0) {
+                document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">No valid features.</div>';
+                return;
+            }
+
+            const nNeighbors = Math.min(15, Math.floor(nCL / 3));
+            const UMAPClass = (typeof UMAP === 'function') ? UMAP : UMAP.UMAP;
+            const umap = new UMAPClass({ nNeighbors: Math.max(5, nNeighbors), minDist: 0.3, nComponents: 2, spread: 1.5 });
+            const embedding = umap.fit(matrix);
+
+            const cellLines = cellLineIndices.map(i => allCellLines[i]);
+            const x = embedding.map(e => e[0]);
+            const y = embedding.map(e => e[1]);
+            const categories = cellLines.map(cl => {
+                if (colorBy === 'subtissue') return this.getCellLineSublineage(cl) || this.getCellLineLineage(cl) || 'Unknown';
+                return this.getCellLineLineage(cl) || 'Unknown';
+            });
+
+            this._clbUmapData = { cellLines, cellLineIndices, embedding, x, y, categories, mutStatus: null, splitGene: null };
+            this._clbUmapSelectedPoints = new Set();
+            this._renderUmapPlot(x, y, cellLines, categories, null, colorBy, null);
+            document.getElementById('clbUmapSelectionControls').style.display = 'flex';
+            document.getElementById('clbUmapGateStatus').textContent = `UMAP from Gate A (${nCL} cell lines)`;
+            document.getElementById('clbUmapGateStatus').style.color = '#7c3aed';
+        } catch (err) {
+            console.error('UMAP from Gate A error:', err);
+            document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">UMAP failed: ' + err.message + '</div>';
+        }
     }
 
     _clearUmapSplit() {
@@ -17961,6 +18541,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 this._clbUmapSelectedPoints = new Set();
                 document.getElementById('clbUmapSelectedCount').textContent = '';
             });
+            plotDiv.on('plotly_relayout', (data) => this._handleUmapGateShapeRelayout(data));
         }
     }
 

@@ -1303,6 +1303,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>dev-17 (2026-03-16)</strong></p>
+                <ul>
+                    <li>UMAP gate comparison: draw Gate A/B rectangles, compare tissue, mutations, Δ GE, expression</li>
+                    <li>UMAP from Gate A: recompute UMAP using only Gate A cell lines (min 15)</li>
+                    <li>Gate tables with sortable columns, gene search, p-value filter</li>
+                    <li>Reset button clears all UMAP state including gates</li>
+                </ul>
                 <p><strong>dev-16 (2026-03-14)</strong></p>
                 <ul>
                     <li>Fix UMAP constructor error (umap-js CDN module export compatibility)</li>
@@ -1391,7 +1398,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.16</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.17</a>
     </div>
 
     <div class="main-content">
@@ -2931,11 +2938,40 @@
                 <button id="clbUmapClearSplitBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; display:none;">Clear</button>
                 <span id="clbUmapSplitType" style="font-size:10px; color:#6b7280;"></span>
             </div>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+                <span class="control-label" style="font-size:10px; margin-bottom:0;">Gate Compare</span>
+                <button id="clbUmapSetGateA" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#2563eb; color:white;">Set Gate A</button>
+                <button id="clbUmapSetGateB" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#dc2626; color:white;" disabled>Set Gate B</button>
+                <button id="clbUmapCompareGates" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#16a34a; color:white; display:none;">Compare</button>
+                <button id="clbUmapUmapFromGate" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#7c3aed; color:white; display:none;" title="Run new UMAP using only Gate A cell lines">UMAP from Gate A</button>
+                <button id="clbUmapClearGates" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; display:none;">Clear Gates</button>
+                <span id="clbUmapGateStatus" style="font-size:9px; color:#6b7280;"></span>
+            </div>
             <div id="clbUmapPlot" style="min-height:50px;"></div>
             <div id="clbUmapSelectionControls" style="display:none; margin-top:6px; gap:6px; align-items:center; flex-wrap:wrap;">
                 <button id="clbUmapSelectBtn" class="btn btn-sm btn-outline" style="font-size:10px;">Lasso select</button>
                 <button id="clbUmapCopyBtn" class="btn btn-sm btn-outline" style="font-size:10px;">Copy selected</button>
                 <span id="clbUmapSelectedCount" style="font-size:10px; color:#6b7280;"></span>
+            </div>
+            <!-- UMAP Gate Comparison Results -->
+            <div id="clbUmapGatePanel" style="display:none; margin-top:10px; border:2px solid #5a9f4a; border-radius:8px; overflow:hidden;">
+                <div style="background:#5a9f4a; color:white; padding:6px 12px; font-size:12px; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+                    <span>UMAP Gate Comparison: <span id="clbUmapGateTitle"></span></span>
+                    <button onclick="document.getElementById('clbUmapGatePanel').style.display='none'" style="background:none;border:none;color:white;font-size:16px;cursor:pointer;">&times;</button>
+                </div>
+                <div style="padding:12px;">
+                    <div style="display:flex; gap:16px; margin-bottom:10px; font-size:11px;">
+                        <div><span style="display:inline-block;width:10px;height:10px;background:#2563eb;border-radius:2px;margin-right:3px;vertical-align:middle;"></span><strong>Gate A:</strong> <span id="clbUmapGateASummary">-</span></div>
+                        <div><span style="display:inline-block;width:10px;height:10px;background:#dc2626;border-radius:2px;margin-right:3px;vertical-align:middle;"></span><strong>Gate B:</strong> <span id="clbUmapGateBSummary">-</span></div>
+                    </div>
+                    <div style="display:flex; gap:4px; margin-bottom:8px; border-bottom:1px solid #e5e7eb; padding-bottom:6px;">
+                        <button class="btn btn-sm umap-gate-tab active" data-umap-gate-tab="tissue" style="font-size:10px; padding:2px 8px;">Tissue</button>
+                        <button class="btn btn-sm umap-gate-tab" data-umap-gate-tab="mutations" style="font-size:10px; padding:2px 8px;">Mutations</button>
+                        <button class="btn btn-sm umap-gate-tab" data-umap-gate-tab="diffge" style="font-size:10px; padding:2px 8px;">Δ Gene Effect</button>
+                        <button class="btn btn-sm umap-gate-tab" data-umap-gate-tab="expression" style="font-size:10px; padding:2px 8px;">Expression</button>
+                    </div>
+                    <div id="clbUmapGateContent" style="max-height:400px; overflow-y:auto; overscroll-behavior:contain;"></div>
+                </div>
             </div>
         </div>
 
