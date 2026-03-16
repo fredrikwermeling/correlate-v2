@@ -1750,6 +1750,9 @@ class CorrelationExplorer {
 
         document.getElementById('downloadScatterPNG').addEventListener('click', () => this.downloadScatterPNG());
         document.getElementById('downloadScatterSVG').addEventListener('click', () => this.downloadScatterSVG());
+        document.getElementById('scatterTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('scatterPlot'));
+        document.getElementById('geTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('geneEffectPlot'));
+        this._initTextSettingsDrag();
         document.getElementById('downloadScatterCSV').addEventListener('click', () => this.downloadScatterCSV());
         document.getElementById('downloadTissuePNG').addEventListener('click', () => this.downloadTissueChartPNG());
         document.getElementById('downloadTissueSVG').addEventListener('click', () => this.downloadTissueChartSVG());
@@ -17734,21 +17737,41 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     startUmapGateSelection(gate) {
         if (!this._clbUmapData) return;
+
+        // If there are already lasso/box-selected points, assign them immediately
+        if (this._clbUmapSelectedPoints && this._clbUmapSelectedPoints.size >= 2) {
+            this._assignUmapGate(gate, [...this._clbUmapSelectedPoints]);
+            this._clbUmapSelectedPoints = new Set();
+            document.getElementById('clbUmapSelectedCount').textContent = '';
+            return;
+        }
+
+        // Otherwise, set flag and switch to lasso mode for next selection
         this._umapGateSelecting = gate;
-        const plotDiv = document.getElementById('clbUmapPlot');
-
         const status = document.getElementById('clbUmapGateStatus');
-        status.textContent = `Draw Gate ${gate} rectangle on plot`;
+        status.textContent = `Lasso/box-select cells for Gate ${gate}`;
         status.style.color = gate === 'A' ? '#2563eb' : '#dc2626';
+        const plotDiv = document.getElementById('clbUmapPlot');
+        Plotly.relayout(plotDiv, { dragmode: 'lasso' });
+    }
 
-        Plotly.relayout(plotDiv, {
-            dragmode: 'drawrect',
-            newshape: {
-                line: { color: gate === 'A' ? '#2563eb' : '#dc2626', width: 2 },
-                fillcolor: gate === 'A' ? 'rgba(37,99,235,0.1)' : 'rgba(220,38,38,0.1)',
-                opacity: 1
-            }
-        });
+    _assignUmapGate(gate, cells) {
+        if (gate === 'A') {
+            this._umapGateA = cells;
+            document.getElementById('clbUmapSetGateA').textContent = `Gate A (n=${cells.length})`;
+            document.getElementById('clbUmapSetGateB').disabled = false;
+            document.getElementById('clbUmapClearGates').style.display = '';
+            document.getElementById('clbUmapUmapFromGate').style.display = cells.length >= 15 ? '' : 'none';
+            document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
+            document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
+        } else {
+            this._umapGateB = cells;
+            document.getElementById('clbUmapSetGateB').textContent = `Gate B (n=${cells.length})`;
+            document.getElementById('clbUmapCompareGates').style.display = '';
+            document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${this._umapGateA?.length || 0}, Gate B: ${cells.length}. Click Compare.`;
+            document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
+        }
+        this._updateUmapGateOverlay();
     }
 
     _handleUmapGateShapeRelayout(relayoutData) {
@@ -17868,9 +17891,82 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbUmapGateStatus').textContent = '';
         document.getElementById('clbUmapGatePanel').style.display = 'none';
 
-        // Remove shapes from plot
+        // Remove shapes and gate overlays from plot
         const plotDiv = document.getElementById('clbUmapPlot');
-        if (plotDiv?.layout) Plotly.relayout(plotDiv, { shapes: [], dragmode: 'lasso' });
+        if (plotDiv?.data) {
+            const removeIdx = [];
+            for (let i = plotDiv.data.length - 1; i >= 0; i--) {
+                if (plotDiv.data[i]._gateOverlay) removeIdx.push(i);
+            }
+            if (removeIdx.length > 0) Plotly.deleteTraces(plotDiv, removeIdx);
+        }
+        if (plotDiv?.layout) Plotly.relayout(plotDiv, { shapes: [], annotations: [], dragmode: 'lasso' });
+    }
+
+    _checkUmapGateSelection() {
+        if (!this._umapGateSelecting || !this._clbUmapSelectedPoints || this._clbUmapSelectedPoints.size === 0) return;
+        const gate = this._umapGateSelecting;
+        this._umapGateSelecting = null;
+        const cells = [...this._clbUmapSelectedPoints];
+        this._clbUmapSelectedPoints = new Set();
+        document.getElementById('clbUmapSelectedCount').textContent = '';
+        this._assignUmapGate(gate, cells);
+    }
+
+    _updateUmapGateOverlay() {
+        const plotDiv = document.getElementById('clbUmapPlot');
+        if (!plotDiv?.data || !this._clbUmapData) return;
+
+        const { cellLines, x, y } = this._clbUmapData;
+        const clToIdx = new Map(cellLines.map((cl, i) => [cl, i]));
+
+        // Remove existing gate overlay traces
+        const removeIdx = [];
+        for (let i = plotDiv.data.length - 1; i >= 0; i--) {
+            if (plotDiv.data[i]._gateOverlay) removeIdx.push(i);
+        }
+        if (removeIdx.length > 0) Plotly.deleteTraces(plotDiv, removeIdx);
+
+        const newTraces = [];
+        const annotations = (plotDiv.layout.annotations || []).filter(a => !a._gateAnnotation);
+        const markerSize = parseInt(document.getElementById('clbUmapMarkerSize')?.value) || 6;
+
+        if (this._umapGateA?.length > 0) {
+            const gateIdx = this._umapGateA.map(cl => clToIdx.get(cl)).filter(i => i !== undefined);
+            let cx = 0, cy = 0;
+            gateIdx.forEach(i => { cx += x[i]; cy += y[i]; });
+            cx /= gateIdx.length; cy /= gateIdx.length;
+
+            newTraces.push({
+                x: gateIdx.map(i => x[i]), y: gateIdx.map(i => y[i]),
+                text: gateIdx.map(i => `${this.getCellLineName(cellLines[i])} [Gate A]`),
+                customdata: gateIdx.map(i => cellLines[i]),
+                mode: 'markers', type: 'scattergl', name: `Gate A (${gateIdx.length})`,
+                marker: { size: markerSize + 4, color: '#2563eb', opacity: 0.9, line: { color: '#1e40af', width: 2 } },
+                hoverinfo: 'text', _gateOverlay: true
+            });
+            annotations.push({ x: cx, y: cy, text: '<b>A</b>', showarrow: false, font: { size: 16, color: '#2563eb' }, _gateAnnotation: true });
+        }
+
+        if (this._umapGateB?.length > 0) {
+            const gateIdx = this._umapGateB.map(cl => clToIdx.get(cl)).filter(i => i !== undefined);
+            let cx = 0, cy = 0;
+            gateIdx.forEach(i => { cx += x[i]; cy += y[i]; });
+            cx /= gateIdx.length; cy /= gateIdx.length;
+
+            newTraces.push({
+                x: gateIdx.map(i => x[i]), y: gateIdx.map(i => y[i]),
+                text: gateIdx.map(i => `${this.getCellLineName(cellLines[i])} [Gate B]`),
+                customdata: gateIdx.map(i => cellLines[i]),
+                mode: 'markers', type: 'scattergl', name: `Gate B (${gateIdx.length})`,
+                marker: { size: markerSize + 4, color: '#dc2626', opacity: 0.9, line: { color: '#991b1b', width: 2 } },
+                hoverinfo: 'text', _gateOverlay: true
+            });
+            annotations.push({ x: cx, y: cy, text: '<b>B</b>', showarrow: false, font: { size: 16, color: '#dc2626' }, _gateAnnotation: true });
+        }
+
+        if (newTraces.length > 0) Plotly.addTraces(plotDiv, newTraces);
+        Plotly.relayout(plotDiv, { annotations, dragmode: 'lasso' });
     }
 
     async compareUmapGates() {
@@ -18113,6 +18209,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${m.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td></tr>`;
             });
             html += '</tbody></table>';
+            html += `<div style="margin-top:8px;display:flex;gap:6px;">
+                <button onclick="app.enrichrUmapGate('mutations','A')" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;">Enrichr A \u2197</button>
+                <button onclick="app.enrichrUmapGate('mutations','B')" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;">Enrichr B \u2197</button>
+            </div>`;
             container.innerHTML = html;
 
         } else if (tab === 'diffge') {
@@ -18150,6 +18250,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${d.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td></tr>`;
             });
             html += '</tbody></table>';
+            html += `<div style="margin-top:8px;"><button onclick="app.enrichrUmapGate('diffge')" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;">Enrichr Top Diff GE \u2197</button></div>`;
             container.innerHTML = html;
 
         } else if (tab === 'expression') {
@@ -18191,6 +18292,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${d.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td></tr>`;
             });
             html += '</tbody></table>';
+            html += `<div style="margin-top:8px;"><button onclick="app.enrichrUmapGate('expression')" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;">Enrichr Top Diff Expr \u2197</button></div>`;
             container.innerHTML = html;
         }
     }
@@ -18218,6 +18320,27 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const gene = row.cells?.[0]?.textContent?.toLowerCase() || '';
             row.style.display = gene.includes(lTerm) ? '' : 'none';
         });
+    }
+
+    enrichrUmapGate(type, gate) {
+        const r = this._umapGateCompareResults;
+        if (!r) return;
+        let genes = [];
+
+        if (type === 'mutations' && gate) {
+            // Top mutated genes enriched in the specified gate
+            const data = [...r.mutStats].sort((a, b) => a.pValue - b.pValue);
+            genes = data.filter(m => gate === 'A' ? m.pctA > m.pctB : m.pctB > m.pctA)
+                .slice(0, 100).map(m => m.gene);
+        } else if (type === 'diffge') {
+            // Top depleted genes (most negative diff = more essential in Gate A)
+            genes = [...r.diffGE].sort((a, b) => a.diff - b.diff).slice(0, 100).map(d => d.gene);
+        } else if (type === 'expression') {
+            genes = [...r.diffExpr].sort((a, b) => a.pValue - b.pValue).slice(0, 100).map(d => d.gene);
+        }
+
+        if (genes.length === 0) { alert('No genes to submit.'); return; }
+        this.submitToEnrichr(genes);
     }
 
     showUmapGateGenePlot(gene, type) {
@@ -18750,6 +18873,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const markerSize = parseInt(document.getElementById('clbUmapMarkerSize')?.value) || 6;
 
+        // Precompute mutation counts per cell line for hover
+        const mutCounts = {};
+        if (this.mutations?.genes) {
+            for (const cl of cellLines) {
+                let count = 0;
+                for (const gene of this.mutations.genes) {
+                    if (this.mutations.geneData[gene]?.mutations?.[cl]) count++;
+                }
+                if (count > 0) mutCounts[cl] = count;
+            }
+        }
+
         const makeHoverText = (idx) => {
             const cl = cellLines[idx];
             const name = this.getCellLineName(cl);
@@ -18757,6 +18892,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const sub = this.getCellLineSublineage(cl);
             let text = `${name}<br>${lineage}${sub ? ' \u00b7 ' + sub : ''}`;
             if (mutStatus && splitGene) text += `<br>${splitGene}: ${mutStatus[idx] ? 'Mutated' : 'WT'}`;
+            if (mutCounts[cl]) text += `<br>Hotspot mutations: ${mutCounts[cl]}`;
             return text;
         };
 
@@ -18831,6 +18967,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     this._clbUmapSelectedPoints = new Set();
                     if (eventData?.points) eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });
                     document.getElementById('clbUmapSelectedCount').textContent = this._clbUmapSelectedPoints.size > 0 ? `${this._clbUmapSelectedPoints.size} selected` : '';
+                    this._checkUmapGateSelection();
                 });
                 div.on('plotly_deselect', () => {
                     this._clbUmapSelectedPoints = new Set();
@@ -18853,6 +18990,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 this._clbUmapSelectedPoints = new Set();
                 if (eventData?.points) eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });
                 document.getElementById('clbUmapSelectedCount').textContent = this._clbUmapSelectedPoints.size > 0 ? `${this._clbUmapSelectedPoints.size} selected` : '';
+                this._checkUmapGateSelection();
             });
             plotDiv.on('plotly_deselect', () => {
                 this._clbUmapSelectedPoints = new Set();
@@ -19075,6 +19213,110 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbUmapColorGene').value = gene;
         document.getElementById('clbUmapColorGeneType').value = 'ge';
         this.applyUmapGeneColor();
+    }
+
+    // ===== Text Settings Panel =====
+    openTextSettings(plotDivId) {
+        const panel = document.getElementById('textSettingsPanel');
+        const body = document.getElementById('textSettingsBody');
+        this._textSettingsPlotId = plotDivId;
+
+        const plotEl = document.getElementById(plotDivId);
+        if (!plotEl?.layout) { body.innerHTML = '<div style="color:#6b7280;">No plot to configure.</div>'; panel.style.display = 'block'; return; }
+
+        const layout = plotEl.layout;
+        const titleSize = layout.title?.font?.size || 14;
+        const xLabelSize = layout.xaxis?.title?.font?.size || 12;
+        const yLabelSize = layout.yaxis?.title?.font?.size || 12;
+        const xTickSize = layout.xaxis?.tickfont?.size || 10;
+        const yTickSize = layout.yaxis?.tickfont?.size || 10;
+        const legendSize = layout.legend?.font?.size || 10;
+        const markerSize = plotEl.data?.[0]?.marker?.size || 8;
+
+        const row = (label, id, val, min, max) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="color:#374151;">${label}</span>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <button onclick="app._tsStep('${id}',-1)" style="width:22px;height:22px;border:1px solid #d1d5db;background:#f9fafb;border-radius:4px 0 0 4px;cursor:pointer;font-size:14px;">−</button>
+                    <input type="number" id="${id}" value="${val}" min="${min}" max="${max}" style="width:42px;text-align:center;border:1px solid #d1d5db;border-left:none;border-right:none;font-size:11px;padding:2px;" oninput="app._tsApply()">
+                    <button onclick="app._tsStep('${id}',1)" style="width:22px;height:22px;border:1px solid #d1d5db;background:#f9fafb;border-radius:0 4px 4px 0;cursor:pointer;font-size:14px;">+</button>
+                </div>
+            </div>`;
+
+        body.innerHTML = `
+            <div style="font-weight:600;margin-bottom:8px;color:#1f2937;font-size:11px;">Font Sizes</div>
+            ${row('Title', 'ts_title', titleSize, 6, 36)}
+            ${row('X Axis Label', 'ts_xlabel', xLabelSize, 6, 30)}
+            ${row('Y Axis Label', 'ts_ylabel', yLabelSize, 6, 30)}
+            ${row('X Tick', 'ts_xtick', xTickSize, 6, 24)}
+            ${row('Y Tick', 'ts_ytick', yTickSize, 6, 24)}
+            ${row('Legend', 'ts_legend', legendSize, 6, 24)}
+            <div style="border-top:1px solid #e5e7eb;margin:8px 0;"></div>
+            <div style="font-weight:600;margin-bottom:8px;color:#1f2937;font-size:11px;">Markers</div>
+            ${row('Marker Size', 'ts_marker', markerSize, 2, 30)}
+        `;
+        panel.style.display = 'block';
+    }
+
+    _tsStep(inputId, direction) {
+        const inp = document.getElementById(inputId);
+        if (!inp) return;
+        const cur = parseInt(inp.value) || 10;
+        inp.value = Math.max(parseInt(inp.min) || 2, Math.min(parseInt(inp.max) || 48, cur + direction));
+        this._tsApply();
+    }
+
+    _tsApply() {
+        const plotEl = document.getElementById(this._textSettingsPlotId);
+        if (!plotEl?.layout) return;
+
+        const getVal = (id) => parseInt(document.getElementById(id)?.value) || null;
+
+        Plotly.relayout(plotEl, {
+            'title.font.size': getVal('ts_title'),
+            'xaxis.title.font.size': getVal('ts_xlabel'),
+            'yaxis.title.font.size': getVal('ts_ylabel'),
+            'xaxis.tickfont.size': getVal('ts_xtick'),
+            'yaxis.tickfont.size': getVal('ts_ytick'),
+            'legend.font.size': getVal('ts_legend')
+        });
+
+        const markerSize = getVal('ts_marker');
+        if (markerSize && plotEl.data) {
+            const updates = {};
+            for (let i = 0; i < plotEl.data.length; i++) {
+                if (plotEl.data[i]?.marker) updates[i] = { 'marker.size': markerSize };
+            }
+            const indices = Object.keys(updates).map(Number);
+            if (indices.length > 0) Plotly.restyle(plotEl, { 'marker.size': markerSize }, indices);
+        }
+    }
+
+    _initTextSettingsDrag() {
+        const panel = document.getElementById('textSettingsPanel');
+        const handle = document.getElementById('textSettingsDragHandle');
+        if (!panel || !handle) return;
+        let dragging = false, ox, oy;
+        handle.addEventListener('mousedown', (e) => {
+            dragging = true;
+            ox = e.clientX - panel.getBoundingClientRect().left;
+            oy = e.clientY - panel.getBoundingClientRect().top;
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            panel.style.left = (e.clientX - ox) + 'px';
+            panel.style.top = (e.clientY - oy) + 'px';
+            panel.style.right = 'auto';
+        });
+        document.addEventListener('mouseup', () => { dragging = false; });
+    }
+
+    // ===== SVG Export for visible plots =====
+    exportCurrentPlotSVG(plotDivId) {
+        const plotEl = document.getElementById(plotDivId);
+        if (!plotEl?.data) return;
+        Plotly.downloadImage(plotEl, { format: 'svg', filename: plotDivId + '_export' });
     }
 }
 
