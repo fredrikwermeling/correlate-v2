@@ -19442,6 +19442,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Markers</div>
             ${sizeRow('Size', 'ts_marker', markerSize, 1, 40, null, true)}
+            ${this._tsHasBoxTraces(plotEl) ? `
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Box Color Scheme</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <button onclick="app._tsColorScheme('essential')" class="ts-color-btn" title="Red/Gray/Green by mean GE" style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:linear-gradient(90deg,#dc2626 33%,#9ca3af 33%,#9ca3af 66%,#22c55e 66%);">Essential</button>
+                <button onclick="app._tsColorScheme('bw')" class="ts-color-btn" title="Black & white" style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#e5e7eb;">B&W</button>
+                <button onclick="app._tsColorScheme('blue')" class="ts-color-btn" title="Blue gradient by mean GE" style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:linear-gradient(90deg,#1e40af,#93c5fd);">Blue</button>
+                <button onclick="app._tsColorScheme('redblue')" class="ts-color-btn" title="Red-Blue diverging" style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:linear-gradient(90deg,#dc2626,#f5f5f5 50%,#2563eb);">Red-Blue</button>
+                <button onclick="app._tsColorScheme('viridis')" class="ts-color-btn" title="Viridis continuous" style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:linear-gradient(90deg,#440154,#31688e,#35b779,#fde725);">Viridis</button>
+                <button onclick="app._tsColorScheme('steelblue')" class="ts-color-btn" title="Uniform steelblue" style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#4682b4;color:white;">Uniform</button>
+            </div>
+            ` : ''}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-size:10px;color:#9ca3af;">Drag title, axis labels, and annotations on plot to reposition.<br>Click an annotation, then use arrow keys to nudge (Shift = larger steps).</div>
         `;
@@ -19453,6 +19465,102 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     _escapeAttr(s) {
         return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    _tsHasBoxTraces(plotEl) {
+        return plotEl.data?.some(t => t.type === 'box');
+    }
+
+    _tsColorScheme(scheme) {
+        const plotEl = document.getElementById(this._textSettingsPlotId);
+        if (!plotEl?.data) return;
+
+        // Get stats for mean-based schemes
+        const stats = this.currentGEStats || [];
+        const means = plotEl.data.map((t, i) => stats[i]?.mean ?? 0);
+        const minMean = Math.min(...means);
+        const maxMean = Math.max(...means);
+        const range = Math.max(Math.abs(minMean), Math.abs(maxMean)) || 1;
+
+        const markerColors = [];
+        const fillColors = [];
+        const lineColors = [];
+
+        for (let i = 0; i < plotEl.data.length; i++) {
+            if (plotEl.data[i].type !== 'box') continue;
+            const mean = means[i];
+            const t = (mean - minMean) / (maxMean - minMean || 1); // 0..1 normalized
+
+            let mc, fc, lc;
+            switch (scheme) {
+                case 'essential':
+                    mc = mean < -0.5 ? 'rgba(220,38,38,0.6)' : mean > 0 ? 'rgba(34,197,94,0.5)' : 'rgba(107,114,128,0.5)';
+                    fc = mean < -0.5 ? 'rgba(220,38,38,0.2)' : mean > 0 ? 'rgba(34,197,94,0.15)' : 'rgba(156,163,175,0.2)';
+                    lc = (stats[i]?.pValue ?? 1) < 0.05 ? '#1f2937' : '#9ca3af';
+                    break;
+                case 'bw':
+                    mc = 'rgba(80,80,80,0.5)';
+                    fc = 'rgba(200,200,200,0.3)';
+                    lc = '#374151';
+                    break;
+                case 'blue': {
+                    // Darker blue = more negative (essential)
+                    const bInt = Math.round(255 - (1 - t) * 200);
+                    mc = `rgba(30,64,${bInt},0.6)`;
+                    fc = `rgba(30,64,${bInt},0.2)`;
+                    lc = '#1e3a5f';
+                    break;
+                }
+                case 'redblue': {
+                    // Red for negative, blue for positive, white at zero
+                    const frac = (mean + range) / (2 * range); // 0=most negative, 1=most positive
+                    const r = Math.round(220 * (1 - frac));
+                    const b = Math.round(220 * frac);
+                    const g = Math.round(80 * (1 - Math.abs(frac - 0.5) * 2));
+                    mc = `rgba(${r},${g},${b},0.6)`;
+                    fc = `rgba(${r},${g},${b},0.2)`;
+                    lc = '#374151';
+                    break;
+                }
+                case 'viridis': {
+                    // Approximate viridis: purple → teal → yellow
+                    const vColors = [
+                        [68,1,84], [59,82,139], [33,145,140], [94,201,98], [253,231,37]
+                    ];
+                    const idx = Math.min(Math.floor(t * 4), 3);
+                    const frac = (t * 4) - idx;
+                    const c0 = vColors[idx], c1 = vColors[idx + 1];
+                    const r = Math.round(c0[0] + (c1[0] - c0[0]) * frac);
+                    const g = Math.round(c0[1] + (c1[1] - c0[1]) * frac);
+                    const b = Math.round(c0[2] + (c1[2] - c0[2]) * frac);
+                    mc = `rgba(${r},${g},${b},0.7)`;
+                    fc = `rgba(${r},${g},${b},0.25)`;
+                    lc = `rgb(${r},${g},${b})`;
+                    break;
+                }
+                case 'steelblue':
+                    mc = 'rgba(70,130,180,0.6)';
+                    fc = 'rgba(70,130,180,0.2)';
+                    lc = '#2c5f8a';
+                    break;
+            }
+            markerColors.push(mc);
+            fillColors.push(fc);
+            lineColors.push(lc);
+        }
+
+        // Apply via restyle
+        const boxIndices = [];
+        for (let i = 0; i < plotEl.data.length; i++) {
+            if (plotEl.data[i].type === 'box') boxIndices.push(i);
+        }
+        for (let j = 0; j < boxIndices.length; j++) {
+            Plotly.restyle(plotEl, {
+                'marker.color': markerColors[j],
+                fillcolor: fillColors[j],
+                'line.color': lineColors[j]
+            }, [boxIndices[j]]);
+        }
     }
 
     _tsStep(inputId, direction) {
