@@ -1,4 +1,7 @@
-allow for exporting data for umap to visualize format. 
+- in umap, # of mutations in cells line. also ,not only square gates, also indiacte cells in gate with color and with letter A or B like in the scatter correlate version.
+
+
+- allow for exporting data for umap to visualize format. 
 
 - in cell line browser, allow for making umaps of cell lines based on GE and/or expression, include filters for tissue/subtissue, hotspot, fusion. allow for separat graphs separating by a hotspotmutation, fusion or damaging mutation.  the  cellines should be possible to select based on where in a cluster they are (either by seecting cluster1,2 etc or by using a gate. the selected cel llines should be possible to copy.
 - a custom cell line fitler should be added to every place where filters are used, where celline sto include could be paseted ( which match with the output, bit .csv or copy to clipboard from the umap above).
