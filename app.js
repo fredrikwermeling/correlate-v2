@@ -13762,7 +13762,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         stats.sort((a, b) => a.mean - b.mean);
         this.currentGEStats = stats;
 
-        // Create box plot traces for each group
+        // Create box plot traces for each group (default: B&W)
         const traces = stats.map((s, idx) => ({
             type: 'box',
             name: `${s.group} (n=${s.n})`,
@@ -13772,36 +13772,37 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             jitter: 0.3,
             pointpos: 0,
             marker: {
-                color: s.mean < -0.5 ? 'rgba(220, 38, 38, 0.6)' : s.mean > 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(107, 114, 128, 0.5)',
-                size: 4
+                color: 'rgba(80,80,80,0.5)',
+                size: 5
             },
-            line: { color: s.pValue < 0.05 ? '#1f2937' : '#9ca3af' },
-            fillcolor: s.mean < -0.5 ? 'rgba(220, 38, 38, 0.2)' : s.mean > 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(156, 163, 175, 0.2)',
+            line: { color: '#374151' },
+            fillcolor: 'rgba(200,200,200,0.3)',
             hovertemplate: '<b>%{text}</b><br>Gene Effect: %{x:.3f}<extra></extra>'
         }));
 
         // Calculate dynamic sizing
         const numEntries = stats.length;
-        const tickFontSize = numEntries > 25 ? 7 : numEntries > 15 ? 8 : 9;
-        const boxHeight = numEntries > 25 ? 18 : numEntries > 15 ? 22 : 28;
-        const chartHeight = Math.max(350, numEntries * boxHeight + 80);
+        const tickFontSize = numEntries > 25 ? 12 : numEntries > 15 ? 13 : 14;
+        const boxHeight = numEntries > 25 ? 22 : numEntries > 15 ? 26 : 32;
+        const chartHeight = Math.max(400, numEntries * boxHeight + 100);
 
         const geTissueTitle = `${gene} by ${groupBySubtype ? 'Disease Subtype' : 'Cancer Type'}`;
         const layout = {
             annotations: [
-                { text: `<b>${geTissueTitle}</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
-                { text: 'Gene Effect', xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
+                { text: `<b>${geTissueTitle}</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 19 }, _tsRole: 'title' },
+                { text: 'Gene Effect', xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 17 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
                 zeroline: true,
                 zerolinecolor: '#374151',
-                zerolinewidth: 2
+                zerolinewidth: 2,
+                tickfont: { size: 15 }
             },
             yaxis: {
                 automargin: true,
                 tickfont: { size: tickFontSize }
             },
-            margin: { t: 40, b: 50, l: 10, r: 30 },
+            margin: { t: 50, b: 60, l: 10, r: 30 },
             height: chartHeight,
             showlegend: false,
             paper_bgcolor: 'white',
@@ -14525,11 +14526,69 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const plotEl = document.getElementById(plotId);
         const chartWidth = plotEl?._fullLayout?.width || 800;
         const chartHeight = Math.max(plotEl?.scrollHeight || 0, plotEl?._fullLayout?.height || 0, this.geDetailedView ? 650 : 550) + 40;
-        Plotly.downloadImage(plotId, {
+        const filename = `gene_effect_${this.currentGeneEffect.gene}_by_${this.currentGEView}`;
+
+        // Use toImage + post-process to expand viewBox and remove clipPaths that crop content
+        Plotly.toImage(plotEl, {
             format: 'svg',
             width: chartWidth,
-            height: chartHeight,
-            filename: `gene_effect_${this.currentGeneEffect.gene}_by_${this.currentGEView}`
+            height: chartHeight
+        }).then(svgDataUrl => {
+            let svgString;
+            if (svgDataUrl.indexOf('base64,') > -1) {
+                svgString = atob(svgDataUrl.split('base64,')[1]);
+            } else {
+                svgString = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
+            }
+
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
+            const svgEl = svgDoc.documentElement;
+
+            // Measure true bounding box by temporarily removing clipPaths
+            const measurer = document.createElement('div');
+            measurer.style.cssText = 'position:absolute;left:-99999px;top:-99999px;';
+            document.body.appendChild(measurer);
+            const measureSvg = svgEl.cloneNode(true);
+            measureSvg.style.overflow = 'visible';
+            measureSvg.querySelectorAll('[clip-path]').forEach(el => el.removeAttribute('clip-path'));
+            measurer.appendChild(measureSvg);
+
+            try {
+                const bbox = measureSvg.getBBox();
+                const pad = 10;
+                const newX = Math.min(0, bbox.x - pad);
+                const newY = Math.min(0, bbox.y - pad);
+                const newW = Math.max(chartWidth, bbox.x + bbox.width + pad) - newX;
+                const newH = Math.max(chartHeight, bbox.y + bbox.height + pad) - newY;
+                svgEl.setAttribute('viewBox', `${newX} ${newY} ${newW} ${newH}`);
+                svgEl.setAttribute('width', newW);
+                svgEl.setAttribute('height', newH);
+            } catch (e) {
+                // fallback: just use original dimensions
+            }
+            document.body.removeChild(measurer);
+
+            // Remove clipPaths on the plot area that crop y-axis labels
+            svgEl.querySelectorAll('clipPath').forEach(cp => {
+                const rect = cp.querySelector('rect');
+                if (rect && parseFloat(rect.getAttribute('x') || 0) === 0 && parseFloat(rect.getAttribute('y') || 0) === 0) {
+                    // This is likely the main plot clip — expand it
+                    rect.setAttribute('x', -500);
+                    rect.setAttribute('width', parseFloat(rect.getAttribute('width') || 0) + 600);
+                    rect.setAttribute('y', -50);
+                    rect.setAttribute('height', parseFloat(rect.getAttribute('height') || 0) + 100);
+                }
+            });
+
+            const finalSvg = new XMLSerializer().serializeToString(svgEl);
+            const blob = new Blob([finalSvg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename + '.svg';
+            a.click();
+            URL.revokeObjectURL(url);
         });
     }
 
