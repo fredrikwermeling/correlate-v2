@@ -6443,150 +6443,185 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     }
 
     downloadFullPageSVG() {
-        if (!this.network || !this.networkData || !this.results) return;
-
-        const transparentBg = document.getElementById('exportNetworkTransparentBg')?.checked;
-        const pageWidth = 1200;
-        const networkWidth = 800;
-        const networkHeight = 600;
-        const tableWidth = pageWidth;
+        const esc = (s) => this.escapeXml(s);
         const padding = 30;
-        const rowHeight = 20;
-        const headerHeight = 28;
-        const fontSize = 11;
+        const pageWidth = 900;
+        const colWidth = 400;
+        const gap = 40;
+        const lineH = 18;
+        const sectionGap = 24;
+        const fs = 12;
+        const fsBold = 13;
+        const headerFs = 15;
 
-        // Build network section (reuse logic from downloadNetworkSVG)
-        const positions = this.network.getPositions();
-        const scale = this.network.getScale();
-        const container = document.getElementById('networkPlot');
-        const cw = container.clientWidth, ch = container.clientHeight;
-        const scaleX = networkWidth / cw, scaleY = networkHeight / ch;
-        const scaleFactor = Math.min(scaleX, scaleY);
+        // ===== Collect current parameter state =====
+        const params = [];
+        const mode = document.querySelector('input[name="analysisMode"]:checked')?.value || 'analysis';
+        const modeLabels = { analysis: 'Analysis (within input genes)', design: 'Design (all genes)', mutation: 'Mutation Analysis', synonym: 'Synonym/Ortholog Lookup' };
+        params.push({ label: 'Analysis Mode', value: modeLabels[mode] || mode });
 
-        let networkSvg = '';
-        // Edges
-        this.networkData.edges.forEach(edge => {
-            const from = positions[edge.from], to = positions[edge.to];
-            if (!from || !to) return;
-            const domFrom = this.network.canvasToDOM({ x: from.x, y: from.y });
-            const domTo = this.network.canvasToDOM({ x: to.x, y: to.y });
-            const color = typeof edge.color === 'object' ? (edge.color?.color || '#3182ce') : (edge.color || '#3182ce');
-            const sw = (edge.width || 1) * scale * scaleFactor;
-            networkSvg += `<line x1="${domFrom.x * scaleFactor}" y1="${domFrom.y * scaleFactor}" x2="${domTo.x * scaleFactor}" y2="${domTo.y * scaleFactor}" stroke="${color}" stroke-width="${sw}" opacity="0.8"/>\n`;
-        });
-        // Nodes
-        this.networkData.nodes.forEach(node => {
-            const pos = positions[node.id];
-            if (!pos) return;
-            const dom = this.network.canvasToDOM({ x: pos.x, y: pos.y });
-            const px = dom.x * scaleFactor, py = dom.y * scaleFactor;
-            const r = (node.size || 25) * scale * scaleFactor;
-            const fs = (node.font?.size || 14) * scale * scaleFactor;
-            const bg = node.color?.background || '#5a9f4a';
-            networkSvg += `<circle cx="${px}" cy="${py}" r="${r}" fill="${bg}" stroke="white" stroke-width="${1.5 * scaleFactor}"/>\n`;
-            const lines = (node.label || node.id).split('\n');
-            lines.forEach((line, i) => {
-                networkSvg += `<text x="${px}" y="${py + r + 12 * scaleFactor + i * fs}" text-anchor="middle" style="font-family:Arial;font-size:${fs}px;fill:${node.font?.color || '#333'};">${this.escapeXml(line)}</text>\n`;
-            });
-        });
+        if (mode === 'analysis' || mode === 'design') {
+            params.push({ label: 'Correlation Cutoff', value: document.getElementById('cutoffValue')?.textContent || '0.50' });
+            params.push({ label: 'Min Slope', value: document.getElementById('slopeValue')?.textContent || '0.10' });
+        }
+        if (mode === 'mutation') {
+            const mutType = document.querySelector('input[name="mutAnalysisType"]:checked')?.value || 'hotspot';
+            const mutTypeLabels = { hotspot: 'Hotspot Mutation', translocation: 'Translocation/Fusion', damaging: 'Damaging Mutation' };
+            params.push({ label: 'Mutation Type', value: mutTypeLabels[mutType] || mutType });
+            if (mutType === 'hotspot') {
+                const gene = document.getElementById('mutationHotspotSelect')?.selectedOptions?.[0]?.textContent || '';
+                if (gene) params.push({ label: 'Hotspot Gene', value: gene });
+            } else if (mutType === 'translocation') {
+                const gene = document.getElementById('translocationHotspotSelect')?.value || '';
+                if (gene) params.push({ label: 'Fusion Gene', value: gene });
+            } else if (mutType === 'damaging') {
+                const gene = document.getElementById('damagingHotspotSelect')?.value || '';
+                if (gene) params.push({ label: 'Damaging Gene', value: gene });
+            }
+            const pVal = document.getElementById('pValueThreshold')?.value || '0.001';
+            params.push({ label: 'P-value Threshold', value: pVal });
+        }
+        params.push({ label: 'Min Cell Lines', value: document.getElementById('minCellLines')?.value || '50' });
 
-        // Build correlation table
+        const lineageFilter = document.getElementById('lineageFilter')?.value;
+        if (lineageFilter) params.push({ label: 'Lineage Filter', value: lineageFilter });
+        const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+        if (subLineageFilter) params.push({ label: 'Subtype Filter', value: subLineageFilter });
+
+        // Excluded tissues
+        const excludedCheckboxes = document.querySelectorAll('#tissueExcludeList input[type="checkbox"]:checked');
+        if (excludedCheckboxes.length > 0) {
+            const excluded = Array.from(excludedCheckboxes).map(cb => cb.parentElement?.textContent?.trim()).filter(Boolean);
+            if (excluded.length > 0) params.push({ label: 'Excluded Tissues', value: excluded.join(', ') });
+        }
+
+        // Hotspot/translocation filters in parameters
+        const paramHotspot = document.getElementById('paramHotspotGene')?.value;
+        if (paramHotspot) {
+            const level = document.getElementById('paramHotspotLevel')?.selectedOptions?.[0]?.textContent || '';
+            params.push({ label: 'Hotspot Filter', value: `${paramHotspot} — ${level}` });
+        }
+
+        if (mode === 'design' && document.getElementById('designExpandNetwork')?.checked) {
+            params.push({ label: 'Expand Network', value: 'Yes' });
+        }
+
+        // ===== Collect input genes =====
+        const geneText = document.getElementById('geneTextarea')?.value || '';
+        const genes = geneText.split('\n').map(g => g.trim()).filter(Boolean);
+
+        // ===== Compute layout =====
+        const paramSectionH = 30 + params.length * lineH + 10;
+        const geneColumnCount = Math.ceil(genes.length / 30);
+        const genesPerCol = Math.min(genes.length, 30);
+        const geneSectionH = 30 + genesPerCol * lineH + 10;
+        const leftColH = paramSectionH + sectionGap + geneSectionH;
+
+        // Right column: correlation table if available
         const corrBody = document.getElementById('correlationsBody');
         const rows = corrBody ? Array.from(corrBody.querySelectorAll('tr')).filter(r => r.style.display !== 'none') : [];
-        const maxRows = Math.min(rows.length, 50);
-        const tableHeight = headerHeight + maxRows * rowHeight + 10;
+        const maxRows = Math.min(rows.length, 40);
+        const tableRowH = 17;
+        const tableHeaderH = 22;
+        const rightColH = rows.length > 0 ? 30 + tableHeaderH + maxRows * tableRowH + (rows.length > maxRows ? 20 : 0) : 0;
 
-        const colWidths = [140, 140, 100, 80, 60, 80];
-        const colLabels = ['Gene 1', 'Gene 2', 'Correlation', 'Slope', 'N', 'Cluster'];
-
-        let tableSvg = '';
-        // Header
-        let cx = 0;
-        colLabels.forEach((label, i) => {
-            tableSvg += `<rect x="${cx}" y="0" width="${colWidths[i]}" height="${headerHeight}" fill="#f3f4f6" stroke="#e5e7eb"/>\n`;
-            tableSvg += `<text x="${cx + 6}" y="${headerHeight - 8}" style="font-family:Arial;font-size:${fontSize}px;font-weight:bold;fill:#374151;">${label}</text>\n`;
-            cx += colWidths[i];
-        });
-        // Rows
-        for (let r = 0; r < maxRows; r++) {
-            const cells = rows[r].querySelectorAll('td');
-            cx = 0;
-            const ry = headerHeight + r * rowHeight;
-            const bgFill = r % 2 === 0 ? 'white' : '#fafafa';
-            for (let c = 0; c < Math.min(cells.length, colWidths.length); c++) {
-                tableSvg += `<rect x="${cx}" y="${ry}" width="${colWidths[c]}" height="${rowHeight}" fill="${bgFill}" stroke="#f0f0f0"/>\n`;
-                let text = cells[c].textContent.trim().substring(0, 20);
-                // Color correlation values
-                let fillColor = '#333';
-                if (c === 2) {
-                    const val = parseFloat(text);
-                    if (!isNaN(val)) fillColor = val > 0 ? '#2563eb' : '#dc2626';
-                }
-                tableSvg += `<text x="${cx + 6}" y="${ry + rowHeight - 6}" style="font-family:Arial;font-size:${fontSize}px;fill:${fillColor};">${this.escapeXml(text)}</text>\n`;
-                cx += colWidths[c];
-            }
-        }
-        if (rows.length > maxRows) {
-            tableSvg += `<text x="6" y="${headerHeight + maxRows * rowHeight + rowHeight - 6}" style="font-family:Arial;font-size:${fontSize}px;fill:#6b7280;font-style:italic;">... and ${rows.length - maxRows} more rows</text>\n`;
-        }
-
-        // Build summary section
-        const summaryDiv = document.getElementById('tab-summary');
-        let summaryText = '';
-        if (summaryDiv) {
-            const items = summaryDiv.querySelectorAll('.stat-value, .stat-label, p, li');
-            const lines = [];
-            items.forEach(el => {
-                const t = el.textContent.trim();
-                if (t && t.length < 200) lines.push(t);
-            });
-            summaryText = lines.slice(0, 15).join('\n');
-        }
-        const summaryLines = summaryText.split('\n').filter(l => l.trim());
-        const summaryHeight = summaryLines.length * 18 + 40;
-
-        // Compose full SVG
-        const networkSectionHeight = networkHeight + 40;
-        const totalHeight = padding + 30 + networkSectionHeight + 30 + tableHeight + 30 + summaryHeight + padding;
-        const titleText = this.results?.inputGenes ? `Correlation Analysis: ${this.results.inputGenes.slice(0, 10).join(', ')}${this.results.inputGenes.length > 10 ? '...' : ''}` : 'Correlation Analysis';
+        const contentH = Math.max(leftColH, rightColH);
+        const totalHeight = padding * 2 + 30 + contentH + 10;
 
         let svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${pageWidth}" height="${totalHeight}" viewBox="0 0 ${pageWidth} ${totalHeight}">
 <style>
   text { font-family: Arial, Helvetica, sans-serif; }
+  .title { font-size: 16px; font-weight: bold; fill: #1f2937; }
+  .section-title { font-size: ${headerFs}px; font-weight: bold; fill: #374151; }
+  .label { font-size: ${fsBold}px; font-weight: 600; fill: #374151; }
+  .value { font-size: ${fs}px; fill: #1f2937; }
+  .gene { font-size: ${fs}px; fill: #1f2937; font-family: 'Courier New', monospace; }
+  .subtle { font-size: 10px; fill: #6b7280; }
 </style>
-${transparentBg ? '' : `<rect width="100%" height="100%" fill="white"/>`}
+<rect width="100%" height="100%" fill="white"/>
 `;
 
-        let yOff = padding;
+        let y = padding;
 
         // Title
-        svg += `<text x="${pageWidth / 2}" y="${yOff + 20}" text-anchor="middle" style="font-size:18px;font-weight:bold;fill:#1f2937;">${this.escapeXml(titleText)}</text>\n`;
-        yOff += 40;
+        const titleGenes = genes.length > 0 ? genes.slice(0, 8).join(', ') + (genes.length > 8 ? ` ... (${genes.length} genes)` : '') : '';
+        const titleText = titleGenes ? `Correlate Analysis: ${titleGenes}` : 'Correlate Analysis';
+        svg += `<text x="${pageWidth / 2}" y="${y + 16}" text-anchor="middle" class="title">${esc(titleText)}</text>\n`;
+        y += 34;
 
-        // Network section
-        svg += `<text x="${padding}" y="${yOff + 16}" style="font-size:14px;font-weight:bold;fill:#374151;">Network</text>\n`;
-        yOff += 24;
-        const networkOffsetX = (pageWidth - networkWidth) / 2;
-        svg += `<g transform="translate(${networkOffsetX},${yOff})">\n`;
-        svg += networkSvg;
-        svg += `</g>\n`;
-        yOff += networkHeight + 20;
+        // ===== Left column: Parameters =====
+        const leftX = padding;
 
-        // Correlation table section
-        svg += `<text x="${padding}" y="${yOff + 16}" style="font-size:14px;font-weight:bold;fill:#374151;">Correlations (${rows.length} pairs)</text>\n`;
-        yOff += 26;
-        svg += `<g transform="translate(${padding},${yOff})">\n`;
-        svg += tableSvg;
-        svg += `</g>\n`;
-        yOff += tableHeight + 20;
-
-        // Summary section
-        svg += `<text x="${padding}" y="${yOff + 16}" style="font-size:14px;font-weight:bold;fill:#374151;">Summary</text>\n`;
-        yOff += 30;
-        summaryLines.forEach((line, i) => {
-            svg += `<text x="${padding + 10}" y="${yOff + i * 18}" style="font-size:${fontSize}px;fill:#374151;">${this.escapeXml(line)}</text>\n`;
+        // Parameters box
+        svg += `<rect x="${leftX}" y="${y}" width="${colWidth}" height="${paramSectionH}" rx="6" fill="#f9fafb" stroke="#e5e7eb"/>\n`;
+        svg += `<text x="${leftX + 12}" y="${y + 20}" class="section-title">1. Parameters</text>\n`;
+        let py = y + 36;
+        params.forEach(p => {
+            svg += `<text x="${leftX + 16}" y="${py}" class="label">${esc(p.label)}:</text>\n`;
+            svg += `<text x="${leftX + 160}" y="${py}" class="value">${esc(p.value)}</text>\n`;
+            py += lineH;
         });
+
+        // Gene list box
+        const geneBoxY = y + paramSectionH + sectionGap;
+        svg += `<rect x="${leftX}" y="${geneBoxY}" width="${colWidth}" height="${geneSectionH}" rx="6" fill="#f9fafb" stroke="#e5e7eb"/>\n`;
+        svg += `<text x="${leftX + 12}" y="${geneBoxY + 20}" class="section-title">2. Input Genes (${genes.length})</text>\n`;
+        let gy = geneBoxY + 36;
+        const geneColWidth = geneColumnCount > 1 ? Math.floor((colWidth - 30) / Math.min(geneColumnCount, 4)) : colWidth;
+        for (let i = 0; i < Math.min(genes.length, 120); i++) {
+            const col = Math.floor(i / genesPerCol);
+            const row = i % genesPerCol;
+            if (col >= 4) break;
+            svg += `<text x="${leftX + 16 + col * geneColWidth}" y="${geneBoxY + 36 + row * lineH}" class="gene">${esc(genes[i])}</text>\n`;
+        }
+        if (genes.length > 120) {
+            svg += `<text x="${leftX + 16}" y="${geneBoxY + geneSectionH - 6}" class="subtle">... and ${genes.length - 120} more</text>\n`;
+        }
+
+        // ===== Right column: Correlation table (if available) =====
+        if (rows.length > 0) {
+            const rightX = leftX + colWidth + gap;
+            const tblW = pageWidth - rightX - padding;
+            svg += `<rect x="${rightX}" y="${y}" width="${tblW}" height="${30 + tableHeaderH + maxRows * tableRowH + (rows.length > maxRows ? 20 : 0)}" rx="6" fill="#f9fafb" stroke="#e5e7eb"/>\n`;
+            svg += `<text x="${rightX + 12}" y="${y + 20}" class="section-title">Correlations (${rows.length} pairs)</text>\n`;
+
+            const tblY = y + 30;
+            const cw = [tblW * 0.22, tblW * 0.22, tblW * 0.2, tblW * 0.16, tblW * 0.1, tblW * 0.1];
+            const colNames = ['Gene 1', 'Gene 2', 'Correlation', 'Slope', 'N', 'Cluster'];
+            let cx = rightX + 4;
+            colNames.forEach((name, i) => {
+                svg += `<text x="${cx + 4}" y="${tblY + 15}" style="font-size:10px;font-weight:bold;fill:#374151;">${name}</text>\n`;
+                cx += cw[i];
+            });
+            svg += `<line x1="${rightX + 4}" y1="${tblY + tableHeaderH - 2}" x2="${rightX + tblW - 4}" y2="${tblY + tableHeaderH - 2}" stroke="#d1d5db"/>\n`;
+
+            for (let r = 0; r < maxRows; r++) {
+                const cells = rows[r].querySelectorAll('td');
+                cx = rightX + 4;
+                const ry = tblY + tableHeaderH + r * tableRowH;
+                for (let c = 0; c < Math.min(cells.length, cw.length); c++) {
+                    let text = cells[c].textContent.trim().substring(0, 16);
+                    let color = '#1f2937';
+                    if (c === 2) {
+                        const val = parseFloat(text);
+                        if (!isNaN(val)) color = val > 0 ? '#2563eb' : '#dc2626';
+                    }
+                    svg += `<text x="${cx + 4}" y="${ry + 13}" style="font-size:10px;fill:${color};">${esc(text)}</text>\n`;
+                    cx += cw[c];
+                }
+                if (r < maxRows - 1) {
+                    svg += `<line x1="${rightX + 4}" y1="${ry + tableRowH}" x2="${rightX + tblW - 4}" y2="${ry + tableRowH}" stroke="#f0f0f0"/>\n`;
+                }
+            }
+            if (rows.length > maxRows) {
+                const ry = tblY + tableHeaderH + maxRows * tableRowH;
+                svg += `<text x="${rightX + 12}" y="${ry + 14}" class="subtle">... and ${rows.length - maxRows} more pairs</text>\n`;
+            }
+        }
+
+        // Footer
+        svg += `<text x="${pageWidth / 2}" y="${totalHeight - 8}" text-anchor="middle" class="subtle">Generated by Correlate v2 — Data: DepMap 25Q3</text>\n`;
 
         svg += '</svg>';
 
