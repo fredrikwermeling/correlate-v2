@@ -16631,6 +16631,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbUmapSelectBtn').addEventListener('click', () => this.clbUmapSelectMode());
         document.getElementById('clbUmapCopyBtn').addEventListener('click', () => this.clbUmapCopySelected());
 
+        // Gene color overlay + top genes
+        document.getElementById('clbUmapColorGeneBtn').addEventListener('click', () => this.applyUmapGeneColor());
+        document.getElementById('clbUmapColorGeneClear').addEventListener('click', () => this.clearUmapGeneColor());
+        document.getElementById('clbUmapTopGenesBtn').addEventListener('click', () => this.toggleUmapTopGenes());
+
         // UMAP gate events
         document.getElementById('clbUmapSetGateA').addEventListener('click', () => this.startUmapGateSelection('A'));
         document.getElementById('clbUmapSetGateB').addEventListener('click', () => this.startUmapGateSelection('B'));
@@ -18310,6 +18315,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         const gateACells = new Set(this._umapGateA);
+        const method = document.getElementById('clbUmapMethod').value;
         const dataType = document.getElementById('clbUmapDataType').value;
         const colorBy = document.getElementById('clbUmapColorBy').value;
 
@@ -18317,7 +18323,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             try { await this.loadExpressionData(); } catch (e) { return; }
         }
 
-        document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:40px;text-align:center;color:#6b7280;">Computing UMAP from Gate A cells...</div>';
+        const methodLabel = method === 'pca' ? 'PCA' : 'UMAP';
+        document.getElementById('clbUmapPlot').innerHTML = `<div style="padding:40px;text-align:center;color:#6b7280;">Computing ${methodLabel} from Gate A cells...</div>`;
         this.clearUmapGates();
         await new Promise(r => setTimeout(r, 50));
 
@@ -18331,11 +18338,22 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const nCL = cellLineIndices.length;
             const N_TOP_GENES = 1000;
             let matrix = [];
-            if (dataType === 'ge' || dataType === 'both') matrix = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'ge');
+            let geneNames = [];
+
+            if (dataType === 'ge' || dataType === 'both') {
+                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'ge', true);
+                matrix = result.matrix;
+                geneNames = result.geneNames;
+            }
             if (dataType === 'expr' || dataType === 'both') {
-                const exprFeatures = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'expr');
-                if (dataType === 'both' && matrix.length > 0) { for (let i = 0; i < nCL; i++) matrix[i] = matrix[i].concat(exprFeatures[i]); }
-                else matrix = exprFeatures;
+                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'expr', true);
+                if (dataType === 'both' && matrix.length > 0) {
+                    for (let i = 0; i < nCL; i++) matrix[i] = matrix[i].concat(result.matrix[i]);
+                    geneNames = geneNames.concat(result.geneNames);
+                } else {
+                    matrix = result.matrix;
+                    geneNames = result.geneNames;
+                }
             }
 
             if (matrix.length === 0 || matrix[0].length === 0) {
@@ -18343,25 +18361,49 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 return;
             }
 
-            const nNeighbors = Math.min(15, Math.floor(nCL / 3));
-            const UMAPClass = (typeof UMAP === 'function') ? UMAP : UMAP.UMAP;
-            const umap = new UMAPClass({ nNeighbors: Math.max(5, nNeighbors), minDist: 0.3, nComponents: 2, spread: 1.5 });
-            const embedding = umap.fit(matrix);
+            let x, y, axisLabels, pcaLoadings = null;
+
+            if (method === 'pca') {
+                const pca = this._computePCA(matrix);
+                x = pca.scores.map(s => s[0]);
+                y = pca.scores.map(s => s[1]);
+                axisLabels = [`PC1 (${(pca.explained[0] * 100).toFixed(1)}%)`, `PC2 (${(pca.explained[1] * 100).toFixed(1)}%)`];
+                pcaLoadings = { pc1: [], pc2: [] };
+                for (let g = 0; g < geneNames.length; g++) {
+                    pcaLoadings.pc1.push({ gene: geneNames[g], loading: pca.loadings[g][0] });
+                    pcaLoadings.pc2.push({ gene: geneNames[g], loading: pca.loadings[g][1] });
+                }
+                pcaLoadings.pc1.sort((a, b) => Math.abs(b.loading) - Math.abs(a.loading));
+                pcaLoadings.pc2.sort((a, b) => Math.abs(b.loading) - Math.abs(a.loading));
+            } else {
+                const nNeighbors = Math.min(15, Math.floor(nCL / 3));
+                const UMAPClass = (typeof UMAP === 'function') ? UMAP : UMAP.UMAP;
+                const umap = new UMAPClass({ nNeighbors: Math.max(5, nNeighbors), minDist: 0.3, nComponents: 2, spread: 1.5 });
+                const embedding = umap.fit(matrix);
+                x = embedding.map(e => e[0]);
+                y = embedding.map(e => e[1]);
+                axisLabels = ['UMAP 1', 'UMAP 2'];
+            }
 
             const cellLines = cellLineIndices.map(i => allCellLines[i]);
-            const x = embedding.map(e => e[0]);
-            const y = embedding.map(e => e[1]);
             const categories = cellLines.map(cl => {
                 if (colorBy === 'subtissue') return this.getCellLineSublineage(cl) || this.getCellLineLineage(cl) || 'Unknown';
                 return this.getCellLineLineage(cl) || 'Unknown';
             });
 
-            this._clbUmapData = { cellLines, cellLineIndices, embedding, x, y, categories, mutStatus: null, splitGene: null };
+            this._clbUmapData = { cellLines, cellLineIndices, x, y, categories, matrix, geneNames,
+                mutStatus: null, splitGene: null, method, axisLabels, pcaLoadings };
             this._clbUmapSelectedPoints = new Set();
             this._renderUmapPlot(x, y, cellLines, categories, null, colorBy, null);
             document.getElementById('clbUmapSelectionControls').style.display = 'flex';
-            document.getElementById('clbUmapGateStatus').textContent = `UMAP from Gate A (${nCL} cell lines)`;
+            document.getElementById('clbUmapGateStatus').textContent = `${methodLabel} from Gate A (${nCL} cell lines)`;
             document.getElementById('clbUmapGateStatus').style.color = '#7c3aed';
+
+            if (pcaLoadings) {
+                document.getElementById('clbUmapLoadingsLabel').style.display = 'inline';
+                const top5 = pcaLoadings.pc1.slice(0, 5).map(l => l.gene).join(', ');
+                document.getElementById('clbUmapLoadingsLabel').textContent = `Top PC1 loadings: ${top5}`;
+            }
         } catch (err) {
             console.error('UMAP from Gate A error:', err);
             document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">UMAP failed: ' + err.message + '</div>';
@@ -18381,12 +18423,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     }
 
     async runCLBUmap() {
+        const method = document.getElementById('clbUmapMethod').value;
         const dataType = document.getElementById('clbUmapDataType').value;
         const colorBy = document.getElementById('clbUmapColorBy').value;
         const tissueFilter = document.getElementById('clbUmapTissueFilter').value;
         const subtypeFilter = document.getElementById('clbUmapSubtypeFilter').value;
 
-        if (typeof UMAP === 'undefined') {
+        if (method === 'umap' && typeof UMAP === 'undefined') {
             document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">UMAP library not loaded. Please refresh the page.</div>';
             return;
         }
@@ -18399,7 +18442,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
         }
 
-        document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:40px;text-align:center;color:#6b7280;">Computing UMAP... (this may take 10\u201330 seconds)</div>';
+        const methodLabel = method === 'pca' ? 'PCA' : 'UMAP';
+        document.getElementById('clbUmapPlot').innerHTML = `<div style="padding:40px;text-align:center;color:#6b7280;">Computing ${methodLabel}...</div>`;
         await new Promise(r => setTimeout(r, 50));
 
         try {
@@ -18413,73 +18457,231 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
 
             if (cellLineIndices.length < 15) {
-                document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">Need at least 15 cell lines for UMAP (have ' + cellLineIndices.length + ').</div>';
+                document.getElementById('clbUmapPlot').innerHTML = `<div style="padding:20px;text-align:center;color:#ef4444;">Need at least 15 cell lines (have ${cellLineIndices.length}).</div>`;
                 return;
             }
 
             const nCL = cellLineIndices.length;
             const N_TOP_GENES = 1000;
             let matrix = [];
+            let geneNames = [];
 
             if (dataType === 'ge' || dataType === 'both') {
-                matrix = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'ge');
+                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'ge', true);
+                matrix = result.matrix;
+                geneNames = result.geneNames;
             }
             if (dataType === 'expr' || dataType === 'both') {
-                const exprFeatures = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'expr');
+                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'expr', true);
                 if (dataType === 'both' && matrix.length > 0) {
-                    for (let i = 0; i < nCL; i++) matrix[i] = matrix[i].concat(exprFeatures[i]);
+                    for (let i = 0; i < nCL; i++) matrix[i] = matrix[i].concat(result.matrix[i]);
+                    geneNames = geneNames.concat(result.geneNames);
                 } else {
-                    matrix = exprFeatures;
+                    matrix = result.matrix;
+                    geneNames = result.geneNames;
                 }
             }
 
             if (matrix.length === 0 || matrix[0].length === 0) {
-                document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">No valid features found for UMAP.</div>';
+                document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">No valid features found.</div>';
                 return;
             }
 
-            const nNeighbors = Math.min(15, Math.floor(nCL / 3));
-            const UMAPClass = (typeof UMAP === 'function') ? UMAP : UMAP.UMAP;
-            const umap = new UMAPClass({ nNeighbors: Math.max(5, nNeighbors), minDist: 0.3, nComponents: 2, spread: 1.5 });
-            const embedding = umap.fit(matrix);
+            let x, y, axisLabels, pcaLoadings = null;
+
+            if (method === 'pca') {
+                const pca = this._computePCA(matrix);
+                x = pca.scores.map(s => s[0]);
+                y = pca.scores.map(s => s[1]);
+                axisLabels = [`PC1 (${(pca.explained[0] * 100).toFixed(1)}%)`, `PC2 (${(pca.explained[1] * 100).toFixed(1)}%)`];
+                pcaLoadings = { pc1: [], pc2: [] };
+                for (let g = 0; g < geneNames.length; g++) {
+                    pcaLoadings.pc1.push({ gene: geneNames[g], loading: pca.loadings[g][0] });
+                    pcaLoadings.pc2.push({ gene: geneNames[g], loading: pca.loadings[g][1] });
+                }
+                pcaLoadings.pc1.sort((a, b) => Math.abs(b.loading) - Math.abs(a.loading));
+                pcaLoadings.pc2.sort((a, b) => Math.abs(b.loading) - Math.abs(a.loading));
+            } else {
+                const nNeighbors = Math.min(15, Math.floor(nCL / 3));
+                const UMAPClass = (typeof UMAP === 'function') ? UMAP : UMAP.UMAP;
+                const umap = new UMAPClass({ nNeighbors: Math.max(5, nNeighbors), minDist: 0.3, nComponents: 2, spread: 1.5 });
+                const embedding = umap.fit(matrix);
+                x = embedding.map(e => e[0]);
+                y = embedding.map(e => e[1]);
+                axisLabels = ['UMAP 1', 'UMAP 2'];
+            }
 
             const cellLines = cellLineIndices.map(i => allCellLines[i]);
-            const x = embedding.map(e => e[0]);
-            const y = embedding.map(e => e[1]);
-
             const categories = cellLines.map(cl => {
                 if (colorBy === 'subtissue') return this.getCellLineSublineage(cl) || this.getCellLineLineage(cl) || 'Unknown';
                 return this.getCellLineLineage(cl) || 'Unknown';
             });
 
-            // Clear any previous split
+            // Clear previous state
             document.getElementById('clbUmapSplitType').textContent = '';
             document.getElementById('clbUmapClearSplitBtn').style.display = 'none';
+            document.getElementById('clbUmapTopGenesPanel').style.display = 'none';
+            document.getElementById('clbUmapColorGeneClear').style.display = 'none';
+            document.getElementById('clbUmapColorGeneStatus').textContent = '';
+            document.getElementById('clbUmapLoadingsLabel').style.display = 'none';
 
-            this._clbUmapData = { cellLines, cellLineIndices, embedding, x, y, categories, mutStatus: null, splitGene: null };
+            this._clbUmapData = { cellLines, cellLineIndices, x, y, categories, matrix, geneNames,
+                mutStatus: null, splitGene: null, method, axisLabels, pcaLoadings };
             this._clbUmapSelectedPoints = new Set();
             this._renderUmapPlot(x, y, cellLines, categories, null, colorBy, null);
             document.getElementById('clbUmapSelectionControls').style.display = 'flex';
             document.getElementById('clbUmapSelectedCount').textContent = '';
+
+            // Show loadings label for PCA
+            if (pcaLoadings) {
+                document.getElementById('clbUmapLoadingsLabel').style.display = '';
+                document.getElementById('clbUmapLoadingsLabel').textContent = 'PCA: click "Top Genes" for loadings';
+            }
         } catch (err) {
-            console.error('UMAP error:', err);
-            document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">UMAP computation failed: ' + err.message + '</div>';
+            console.error(`${method} error:`, err);
+            document.getElementById('clbUmapPlot').innerHTML = `<div style="padding:20px;text-align:center;color:#ef4444;">Computation failed: ${err.message}</div>`;
         }
     }
 
-    _buildVariableGeneMatrix(cellLineIndices, nTopGenes, type) {
+    _computePCA(matrix) {
+        const n = matrix.length;
+        const p = matrix[0].length;
+        // Center the data
+        const means = new Float64Array(p);
+        for (let j = 0; j < p; j++) {
+            let s = 0;
+            for (let i = 0; i < n; i++) s += matrix[i][j];
+            means[j] = s / n;
+        }
+        const centered = matrix.map(row => row.map((v, j) => v - means[j]));
+
+        // Compute covariance matrix (p x p) — use subset if p is large
+        // For efficiency with large p, compute n x n Gram matrix instead
+        if (p > n) {
+            // Gram matrix approach: C = X * X^T / (n-1), eigenvectors of C give scores
+            const gram = Array.from({ length: n }, () => new Float64Array(n));
+            for (let i = 0; i < n; i++) {
+                for (let j = i; j < n; j++) {
+                    let dot = 0;
+                    for (let k = 0; k < p; k++) dot += centered[i][k] * centered[j][k];
+                    gram[i][j] = dot / (n - 1);
+                    gram[j][i] = gram[i][j];
+                }
+            }
+            const { eigenvalues, eigenvectors } = this._powerIteration(gram, 2);
+            const totalVar = eigenvalues.reduce((a, b) => a + Math.abs(b), 0) || 1;
+            // Scores are already the eigenvectors scaled by sqrt(eigenvalue)
+            const scores = eigenvectors.map((ev, k) => {
+                const scale = Math.sqrt(Math.abs(eigenvalues[k]));
+                return ev.map(v => v * scale);
+            });
+            // Transpose scores: from [2][n] to [n][2]
+            const scoresT = Array.from({ length: n }, (_, i) => [scores[0][i], scores[1][i]]);
+            // Compute loadings: L = X^T * V / sqrt(eigenvalue * (n-1))
+            const loadings = Array.from({ length: p }, () => [0, 0]);
+            for (let k = 0; k < 2; k++) {
+                const sqrtEig = Math.sqrt(Math.abs(eigenvalues[k]) * (n - 1)) || 1;
+                for (let j = 0; j < p; j++) {
+                    let s = 0;
+                    for (let i = 0; i < n; i++) s += centered[i][j] * eigenvectors[k][i];
+                    loadings[j][k] = s / sqrtEig;
+                }
+            }
+            const sumEig = eigenvalues[0] + eigenvalues[1] + (totalVar - eigenvalues[0] - eigenvalues[1]);
+            return { scores: scoresT, loadings, explained: [eigenvalues[0] / sumEig, eigenvalues[1] / sumEig] };
+        } else {
+            // Standard covariance approach for small p
+            const cov = Array.from({ length: p }, () => new Float64Array(p));
+            for (let j1 = 0; j1 < p; j1++) {
+                for (let j2 = j1; j2 < p; j2++) {
+                    let s = 0;
+                    for (let i = 0; i < n; i++) s += centered[i][j1] * centered[i][j2];
+                    cov[j1][j2] = s / (n - 1);
+                    cov[j2][j1] = cov[j1][j2];
+                }
+            }
+            const { eigenvalues, eigenvectors } = this._powerIteration(cov, 2);
+            const totalVar = eigenvalues.reduce((a, b) => a + Math.abs(b), 0) || 1;
+            const scores = Array.from({ length: n }, (_, i) => {
+                return [0, 1].map(k => {
+                    let s = 0;
+                    for (let j = 0; j < p; j++) s += centered[i][j] * eigenvectors[k][j];
+                    return s;
+                });
+            });
+            const loadings = Array.from({ length: p }, (_, j) => [eigenvectors[0][j], eigenvectors[1][j]]);
+            return { scores, loadings, explained: [eigenvalues[0] / totalVar, eigenvalues[1] / totalVar] };
+        }
+    }
+
+    _powerIteration(mat, nComponents) {
+        const n = mat.length;
+        const eigenvalues = [];
+        const eigenvectors = [];
+        const A = mat.map(row => [...row]);
+
+        for (let k = 0; k < nComponents; k++) {
+            let v = new Float64Array(n);
+            for (let i = 0; i < n; i++) v[i] = Math.random() - 0.5;
+            // Normalize
+            let norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0));
+            for (let i = 0; i < n; i++) v[i] /= norm;
+
+            for (let iter = 0; iter < 200; iter++) {
+                const Av = new Float64Array(n);
+                for (let i = 0; i < n; i++) {
+                    let s = 0;
+                    for (let j = 0; j < n; j++) s += A[i][j] * v[j];
+                    Av[i] = s;
+                }
+                norm = Math.sqrt(Av.reduce((s, x) => s + x * x, 0));
+                if (norm === 0) break;
+                const vNew = Av.map(x => x / norm);
+                // Check convergence
+                let diff = 0;
+                for (let i = 0; i < n; i++) diff += (vNew[i] - v[i]) ** 2;
+                v = vNew;
+                if (diff < 1e-10) break;
+            }
+
+            const eigenvalue = (() => {
+                const Av = new Float64Array(n);
+                for (let i = 0; i < n; i++) {
+                    let s = 0;
+                    for (let j = 0; j < n; j++) s += A[i][j] * v[j];
+                    Av[i] = s;
+                }
+                return Av.reduce((s, x, i) => s + x * v[i], 0);
+            })();
+
+            eigenvalues.push(eigenvalue);
+            eigenvectors.push([...v]);
+
+            // Deflate: A = A - eigenvalue * v * v^T
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    A[i][j] -= eigenvalue * v[i] * v[j];
+                }
+            }
+        }
+        return { eigenvalues, eigenvectors };
+    }
+
+    _buildVariableGeneMatrix(cellLineIndices, nTopGenes, type, returnGeneNames = false) {
         const nCL = cellLineIndices.length;
-        let nGenes, getData;
+        let nGenes, getData, allGeneNames;
 
         if (type === 'ge') {
             nGenes = this.metadata.nGenes;
+            allGeneNames = this.metadata.genes;
             getData = (geneIdx, clIdx) => {
                 const val = this.geneEffects[geneIdx * this.nCellLines + clIdx];
                 return isNaN(val) ? null : val;
             };
         } else {
-            if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata) return [];
+            if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata) return returnGeneNames ? { matrix: [], geneNames: [] } : [];
             nGenes = this.expressionMetadata.nGenes;
+            allGeneNames = this.expressionMetadata.genes;
             const nExprCL = this.expressionMetadata.nCellLines;
             getData = (geneIdx, clIdx) => {
                 const exprIdx = this.expressionCellLineMap?.[clIdx];
@@ -18523,6 +18725,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 row[j] = val !== null ? val : 0;
             }
             matrix.push(row);
+        }
+
+        if (returnGeneNames) {
+            const geneNames = topGenes.map(idx => allGeneNames[idx]);
+            return { matrix, geneNames };
         }
         return matrix;
     }
@@ -18573,9 +18780,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
         };
 
+        const axLabels = this._clbUmapData?.axisLabels || ['UMAP 1', 'UMAP 2'];
         const baseLayout = {
-            xaxis: { title: 'UMAP 1', zeroline: false, showgrid: false },
-            yaxis: { title: 'UMAP 2', zeroline: false, showgrid: false, scaleanchor: 'x', scaleratio: 1 },
+            xaxis: { title: axLabels[0], zeroline: false, showgrid: false },
+            yaxis: { title: axLabels[1], zeroline: false, showgrid: false, scaleanchor: 'x', scaleratio: 1 },
             hovermode: 'closest',
             dragmode: 'lasso',
             paper_bgcolor: 'white',
@@ -18635,7 +18843,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const traces = buildCategoryTraces(allIdx, true);
             const layout = {
                 ...baseLayout,
-                title: { text: `UMAP \u2014 ${dataTypeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
+                title: { text: `${this._clbUmapData?.method === 'pca' ? 'PCA' : 'UMAP'} \u2014 ${dataTypeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
                 margin: { t: 40, r: 10, b: 40, l: 50 },
                 height: 500,
                 legend: { font: { size: 9 }, itemsizing: 'constant', tracegroupgap: 2, y: 0.5, yanchor: 'middle' }
@@ -18676,6 +18884,197 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         navigator.clipboard.writeText(lines).then(() => {
             this.showCopyNotification(`Copied ${this._clbUmapSelectedPoints.size} cell line names`);
         });
+    }
+
+    applyUmapGeneColor() {
+        if (!this._clbUmapData) return;
+        const gene = document.getElementById('clbUmapColorGene').value.trim().toUpperCase();
+        const colorType = document.getElementById('clbUmapColorGeneType').value; // 'ge' or 'expr'
+        const statusEl = document.getElementById('clbUmapColorGeneStatus');
+        if (!gene) { statusEl.textContent = 'Enter a gene name.'; return; }
+
+        const { cellLines, x, y } = this._clbUmapData;
+        const values = [];
+        let hasData = false;
+
+        if (colorType === 'ge') {
+            const geneIdx = this.geneIndex.get(gene);
+            if (geneIdx === undefined) { statusEl.textContent = `Gene "${gene}" not found in GE data.`; return; }
+            for (const cl of cellLines) {
+                const clIdx = this.metadata.cellLines.indexOf(cl);
+                if (clIdx === -1) { values.push(null); continue; }
+                const val = this.geneEffects[geneIdx * this.nCellLines + clIdx];
+                values.push(isNaN(val) ? null : val);
+                if (!isNaN(val)) hasData = true;
+            }
+        } else {
+            if (!this.expressionLoaded) { statusEl.textContent = 'Expression data not loaded.'; return; }
+            const geneIdx = this.expressionGeneIndex?.get(gene);
+            if (geneIdx === undefined) { statusEl.textContent = `Gene "${gene}" not found in expression data.`; return; }
+            const nExprCL = this.expressionMetadata.nCellLines;
+            for (const cl of cellLines) {
+                const clIdx = this.metadata.cellLines.indexOf(cl);
+                if (clIdx === -1) { values.push(null); continue; }
+                const exprIdx = this.expressionCellLineMap?.[clIdx];
+                if (exprIdx === undefined || exprIdx === -1) { values.push(null); continue; }
+                const val = this.expressionData[geneIdx * nExprCL + exprIdx];
+                values.push(isNaN(val) ? null : val);
+                if (!isNaN(val)) hasData = true;
+            }
+        }
+
+        if (!hasData) { statusEl.textContent = `No data for "${gene}".`; return; }
+
+        // Build single-trace colored by gene value
+        const validVals = values.filter(v => v !== null);
+        const vMin = Math.min(...validVals);
+        const vMax = Math.max(...validVals);
+        const plotDiv = document.getElementById('clbUmapPlot');
+
+        const hoverTexts = cellLines.map((cl, i) => {
+            const name = this.getCellLineName(cl);
+            const lineage = this.getCellLineLineage(cl);
+            const valStr = values[i] !== null ? values[i].toFixed(3) : 'N/A';
+            return `${name}<br>${lineage}<br>${gene} ${colorType === 'ge' ? 'GE' : 'Expr'}: ${valStr}`;
+        });
+
+        const colors = values.map(v => v !== null ? v : vMin);
+        const axLabels = this._clbUmapData.axisLabels || ['UMAP 1', 'UMAP 2'];
+        const methodLabel = this._clbUmapData.method === 'pca' ? 'PCA' : 'UMAP';
+        const typeLabel = colorType === 'ge' ? 'Gene Effect' : 'Expression';
+
+        const trace = {
+            x, y, text: hoverTexts, customdata: cellLines.map(cl => cl),
+            mode: 'markers', type: 'scattergl',
+            marker: {
+                size: parseInt(document.getElementById('clbUmapMarkerSize')?.value) || 6,
+                color: colors, colorscale: [[0, '#2166ac'], [0.5, '#f7f7f7'], [1, '#b2182b']],
+                cmin: vMin, cmax: vMax, opacity: 0.85,
+                colorbar: { title: `${gene}<br>${typeLabel}`, thickness: 15, len: 0.6 }
+            },
+            hoverinfo: 'text', showlegend: false
+        };
+
+        const layout = {
+            xaxis: { title: axLabels[0], zeroline: false, showgrid: false },
+            yaxis: { title: axLabels[1], zeroline: false, showgrid: false, scaleanchor: 'x', scaleratio: 1 },
+            title: { text: `${methodLabel} — ${gene} ${typeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
+            margin: { t: 40, r: 80, b: 40, l: 50 }, height: 500,
+            hovermode: 'closest', dragmode: 'lasso',
+            paper_bgcolor: 'white', plot_bgcolor: '#fafafa'
+        };
+
+        Plotly.newPlot(plotDiv, [trace], layout, { responsive: true, displayModeBar: true, displaylogo: false });
+        plotDiv.on('plotly_selected', (eventData) => {
+            this._clbUmapSelectedPoints = new Set();
+            if (eventData?.points) eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });
+            document.getElementById('clbUmapSelectedCount').textContent = this._clbUmapSelectedPoints.size > 0 ? `${this._clbUmapSelectedPoints.size} selected` : '';
+        });
+        plotDiv.on('plotly_relayout', (data) => this._handleUmapGateShapeRelayout(data));
+
+        statusEl.textContent = `Colored by ${gene} (${typeLabel})`;
+        statusEl.style.color = '#7c3aed';
+        document.getElementById('clbUmapColorGeneClear').style.display = 'inline';
+    }
+
+    clearUmapGeneColor() {
+        if (!this._clbUmapData) return;
+        document.getElementById('clbUmapColorGeneStatus').textContent = '';
+        document.getElementById('clbUmapColorGeneClear').style.display = 'none';
+        const { x, y, cellLines, categories, mutStatus, splitGene } = this._clbUmapData;
+        const colorBy = document.getElementById('clbUmapColorBy').value;
+        this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene);
+    }
+
+    toggleUmapTopGenes() {
+        const panel = document.getElementById('clbUmapTopGenesPanel');
+        if (!this._clbUmapData) return;
+
+        if (panel.style.display !== 'none') {
+            panel.style.display = 'none';
+            return;
+        }
+
+        const { x, y, cellLines, geneNames, matrix, method, pcaLoadings } = this._clbUmapData;
+        if (!cellLines || cellLines.length === 0) return;
+
+        let html = '';
+
+        // For PCA, show loadings directly
+        if (method === 'pca' && pcaLoadings) {
+            html += '<div style="margin-bottom:8px;font-weight:600;font-size:12px;">Top PCA Loadings</div>';
+            html += '<div style="display:flex;gap:16px;flex-wrap:wrap;">';
+            ['pc1', 'pc2'].forEach((pc, pcIdx) => {
+                const top10 = pcaLoadings[pc].slice(0, 10);
+                html += `<div><div style="font-weight:500;font-size:11px;margin-bottom:4px;">${pc.toUpperCase()}</div>`;
+                html += '<table style="font-size:11px;border-collapse:collapse;">';
+                html += '<tr style="border-bottom:1px solid #e5e7eb;"><th style="text-align:left;padding:1px 8px;">Gene</th><th style="text-align:right;padding:1px 8px;">Loading</th></tr>';
+                top10.forEach(l => {
+                    const color = l.loading > 0 ? '#b91c1c' : '#1d4ed8';
+                    html += `<tr><td style="padding:1px 8px;">${l.gene}</td><td style="text-align:right;padding:1px 8px;color:${color};">${l.loading.toFixed(4)}</td></tr>`;
+                });
+                html += '</table></div>';
+            });
+            html += '</div>';
+        }
+
+        // Correlation of each gene with UMAP/PCA coordinates
+        if (geneNames && matrix && matrix.length > 0) {
+            const nCL = cellLines.length;
+            const nGenes = geneNames.length;
+            const correlations = [];
+
+            // Precompute means
+            let xMean = 0, yMean = 0;
+            for (let i = 0; i < nCL; i++) { xMean += x[i]; yMean += y[i]; }
+            xMean /= nCL; yMean /= nCL;
+            let xVar = 0, yVar = 0;
+            for (let i = 0; i < nCL; i++) { xVar += (x[i] - xMean) ** 2; yVar += (y[i] - yMean) ** 2; }
+            const xStd = Math.sqrt(xVar);
+            const yStd = Math.sqrt(yVar);
+
+            for (let g = 0; g < nGenes; g++) {
+                let gMean = 0, count = 0;
+                for (let i = 0; i < nCL; i++) { gMean += matrix[i][g]; count++; }
+                gMean /= count;
+                let gVar = 0, covX = 0, covY = 0;
+                for (let i = 0; i < nCL; i++) {
+                    const dg = matrix[i][g] - gMean;
+                    gVar += dg * dg;
+                    covX += dg * (x[i] - xMean);
+                    covY += dg * (y[i] - yMean);
+                }
+                const gStd = Math.sqrt(gVar);
+                if (gStd === 0) continue;
+                const rX = covX / (gStd * xStd);
+                const rY = covY / (gStd * yStd);
+                const rCombined = Math.sqrt(rX * rX + rY * rY);
+                correlations.push({ gene: geneNames[g], rX, rY, rCombined });
+            }
+
+            correlations.sort((a, b) => b.rCombined - a.rCombined);
+            const top10 = correlations.slice(0, 10);
+
+            const axLabels = this._clbUmapData.axisLabels || ['Dim 1', 'Dim 2'];
+            html += '<div style="margin-top:8px;font-weight:600;font-size:12px;">Top Genes Correlated with Coordinates</div>';
+            html += '<table style="font-size:11px;border-collapse:collapse;margin-top:4px;">';
+            html += `<tr style="border-bottom:1px solid #e5e7eb;"><th style="text-align:left;padding:1px 8px;">Gene</th><th style="text-align:right;padding:1px 8px;">r(${axLabels[0].split(' ')[0]})</th><th style="text-align:right;padding:1px 8px;">r(${axLabels[1].split(' ')[0]})</th><th style="text-align:right;padding:1px 8px;">|r| combined</th></tr>`;
+            top10.forEach(c => {
+                const colorX = c.rX > 0 ? '#b91c1c' : '#1d4ed8';
+                const colorY = c.rY > 0 ? '#b91c1c' : '#1d4ed8';
+                html += `<tr style="cursor:pointer;" onclick="app.applyUmapGeneColor_fromTop('${c.gene}')"><td style="padding:1px 8px;text-decoration:underline;color:#4f46e5;">${c.gene}</td><td style="text-align:right;padding:1px 8px;color:${colorX};">${c.rX.toFixed(3)}</td><td style="text-align:right;padding:1px 8px;color:${colorY};">${c.rY.toFixed(3)}</td><td style="text-align:right;padding:1px 8px;">${c.rCombined.toFixed(3)}</td></tr>`;
+            });
+            html += '</table>';
+        }
+
+        panel.innerHTML = html || '<div style="font-size:11px;color:#6b7280;">No gene data available. Run with GE data type.</div>';
+        panel.style.display = 'block';
+    }
+
+    applyUmapGeneColor_fromTop(gene) {
+        document.getElementById('clbUmapColorGene').value = gene;
+        document.getElementById('clbUmapColorGeneType').value = 'ge';
+        this.applyUmapGeneColor();
     }
 }
 

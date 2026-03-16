@@ -1303,6 +1303,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>dev-18 (2026-03-16)</strong></p>
+                <ul>
+                    <li>PCA as alternative dimension reduction method (with variance explained %, top loadings)</li>
+                    <li>Gene color gradient overlay: color UMAP/PCA dots by any gene's GE or expression value (blue-white-red)</li>
+                    <li>Top genes panel: shows genes most correlated with UMAP/PCA coordinates, clickable to apply color</li>
+                    <li>UMAP from Gate A now supports PCA method and stores gene names for top genes analysis</li>
+                </ul>
                 <p><strong>dev-17.3 (2026-03-16)</strong></p>
                 <ul>
                     <li>Clickable genes in UMAP gate comparison: mutation bar chart, GE box plot, expression box plot</li>
@@ -1404,7 +1411,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.17.3</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.18</a>
     </div>
 
     <div class="main-content">
@@ -2915,7 +2922,11 @@
         <!-- UMAP Section -->
         <div id="clbUmapSection" style="border-top:1px solid #e5e7eb; padding:10px 16px;">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-                <strong style="font-size:12px;">UMAP</strong>
+                <strong style="font-size:12px;">Dim. Reduction</strong>
+                <select id="clbUmapMethod" style="font-size:11px; padding:2px 4px;">
+                    <option value="umap">UMAP</option>
+                    <option value="pca">PCA</option>
+                </select>
                 <select id="clbUmapDataType" style="font-size:11px; padding:2px 4px;">
                     <option value="ge">Gene Effect</option>
                     <option value="expr">Expression</option>
@@ -2935,6 +2946,21 @@
                 <span style="font-size:10px; color:#6b7280; margin-left:4px;">Size:</span>
                 <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="6" style="width:60px; vertical-align:middle;" title="Marker size">
             </div>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+                <span style="font-size:10px; color:#6b7280;">Color by gene:</span>
+                <input type="text" id="clbUmapColorGene" placeholder="Gene symbol..." style="font-size:10px; padding:2px 4px; width:110px;" autocomplete="off">
+                <select id="clbUmapColorGeneType" style="font-size:10px; padding:2px 4px;">
+                    <option value="ge">GE</option>
+                    <option value="expr">Expression</option>
+                </select>
+                <button id="clbUmapColorGeneBtn" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#6b7280; color:white; border:none; border-radius:3px; cursor:pointer;">Apply</button>
+                <button id="clbUmapColorGeneClear" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; display:none;">Clear</button>
+                <span id="clbUmapColorGeneStatus" style="font-size:9px; color:#6b7280;"></span>
+                <span style="margin-left:8px; font-size:10px; color:#6b7280;">|</span>
+                <button id="clbUmapTopGenesBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px;" title="Show top genes correlated with axes">Top Genes</button>
+                <span id="clbUmapLoadingsLabel" style="font-size:9px; color:#6b7280; display:none;"></span>
+            </div>
+            <div id="clbUmapTopGenesPanel" style="display:none; margin-bottom:8px; padding:6px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; font-size:10px;"></div>
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
                 <span style="font-size:10px; color:#6b7280;">Split by mutation:</span>
                 <select id="clbUmapSplitSource" style="font-size:10px; padding:2px 4px;">
