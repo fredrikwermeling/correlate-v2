@@ -5978,7 +5978,7 @@ Results:
         const cutoff = this.results?.cutoff || 0.5;
 
         // Min correlation
-        ctx.lineWidth = Math.max(2, 2 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
+        ctx.lineWidth = Math.max(1, 1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
         ctx.moveTo(legendX, legendY + 22);
         ctx.lineTo(legendX + 35, legendY + 22);
@@ -5987,7 +5987,7 @@ Results:
         ctx.fillText(`r = ${legendVals.minCorr.toFixed(2)}`, legendX + 42, legendY + 27);
 
         // Mid correlation
-        ctx.lineWidth = Math.max(2, 2 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
+        ctx.lineWidth = Math.max(1, 1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
         ctx.moveTo(legendX, legendY + 48);
         ctx.lineTo(legendX + 35, legendY + 48);
@@ -5995,7 +5995,7 @@ Results:
         ctx.fillText(`r = ${legendVals.midCorr.toFixed(2)}`, legendX + 42, legendY + 53);
 
         // Max correlation
-        ctx.lineWidth = Math.max(2, 2 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
+        ctx.lineWidth = Math.max(1, 1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
         ctx.moveTo(legendX, legendY + 74);
         ctx.lineTo(legendX + 35, legendY + 74);
@@ -6314,9 +6314,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Edge Thickness:</text>\n`;
 
-        const width1 = Math.max(2, 2 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
-        const width2 = Math.max(2, 2 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
-        const width3 = Math.max(2, 2 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
+        const width1 = Math.max(1, 1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        const width2 = Math.max(1, 1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        const width3 = Math.max(1, 1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
 
         svg += `  <line x1="${legendX}" y1="${legendY + 22}" x2="${legendX + 35}" y2="${legendY + 22}" stroke="#666" stroke-width="${width1}"/>\n`;
         svg += `  <text x="${legendX + 42}" y="${legendY + 27}" class="legend-text">r = ${legendVals.minCorr.toFixed(2)}</text>\n`;
@@ -7289,7 +7289,7 @@ Results:
         const cutoff = this.results?.cutoff || 0.5;
 
         // Min correlation
-        ctx.lineWidth = Math.max(2, 2 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
+        ctx.lineWidth = Math.max(1, 1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
         ctx.moveTo(legendX, legendY + 22);
         ctx.lineTo(legendX + 35, legendY + 22);
@@ -7298,7 +7298,7 @@ Results:
         ctx.fillText(`r = ${legendVals.minCorr.toFixed(2)}`, legendX + 42, legendY + 27);
 
         // Mid correlation
-        ctx.lineWidth = Math.max(2, 2 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
+        ctx.lineWidth = Math.max(1, 1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
         ctx.moveTo(legendX, legendY + 48);
         ctx.lineTo(legendX + 35, legendY + 48);
@@ -7306,7 +7306,7 @@ Results:
         ctx.fillText(`r = ${legendVals.midCorr.toFixed(2)}`, legendX + 42, legendY + 53);
 
         // Max correlation
-        ctx.lineWidth = Math.max(2, 2 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
+        ctx.lineWidth = Math.max(1, 1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
         ctx.moveTo(legendX, legendY + 74);
         ctx.lineTo(legendX + 35, legendY + 74);
@@ -7613,9 +7613,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Edge Thickness:</text>\n`;
 
-        const width1 = Math.max(2, 2 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
-        const width2 = Math.max(2, 2 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
-        const width3 = Math.max(2, 2 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 4));
+        const width1 = Math.max(1, 1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        const width2 = Math.max(1, 1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        const width3 = Math.max(1, 1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
 
         svg += `  <line x1="${legendX}" y1="${legendY + 22}" x2="${legendX + 35}" y2="${legendY + 22}" stroke="#666" stroke-width="${width1}"/>\n`;
         svg += `  <text x="${legendX + 42}" y="${legendY + 27}" class="legend-text">r = ${legendVals.minCorr.toFixed(2)}</text>\n`;
