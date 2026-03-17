@@ -1304,8 +1304,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>dev-23.3 (2026-03-17)</strong></p>
+                <p><strong>dev-23.4 (2026-03-17)</strong></p>
                 <ul>
+                    <li>Top Genes popout: opens beside plot (not overlapping), draggable via header</li>
+                    <li>Plot W/H controls: set width and height from input fields</li>
+                    <li>Export matches screen: PNG/SVG use actual layout dimensions</li>
                     <li>Fix missing data: impute with gene mean instead of 0, skip genes with &gt;30% missing</li>
                     <li>Top Genes: floating popout, click gene to color plot, data type matches analysis</li>
                     <li>PCA loadings: draggable biplot inset box instead of cluttered overlay arrows</li>
@@ -1462,7 +1465,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.23.3</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.23.4</a>
     </div>
 
     <div class="main-content">
@@ -3011,6 +3014,10 @@
                 <select id="clbUmapCompY" style="font-size:10px; padding:2px 4px;"></select>
                 <span style="font-size:10px; color:#6b7280; margin-left:4px;">Size:</span>
                 <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="6" style="width:50px; vertical-align:middle;" title="Marker size">
+                <span style="font-size:10px; color:#6b7280; margin-left:4px;">W:</span>
+                <input type="number" id="clbUmapPlotWidth" value="580" min="300" max="1200" step="20" style="font-size:10px; width:48px; padding:1px 3px;" title="Plot width">
+                <span style="font-size:10px; color:#6b7280;">H:</span>
+                <input type="number" id="clbUmapPlotHeight" value="480" min="250" max="1000" step="20" style="font-size:10px; width:48px; padding:1px 3px;" title="Plot height">
                 <span style="font-size:10px; color:#d1d5db;">|</span>
                 <button id="clbUmapPngBtn" class="btn btn-sm btn-secondary" style="font-size:10px; padding:2px 8px;" title="Export as PNG">PNG</button>
                 <button id="clbUmapSvgBtn" class="btn btn-sm btn-secondary" style="font-size:10px; padding:2px 8px;" title="Export as SVG">SVG</button>
@@ -3034,8 +3041,8 @@
                 <button id="clbUmapTopGenesBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px;" title="Show top genes correlated with axes">Top Genes</button>
                 <span id="clbUmapLoadingsLabel" style="font-size:9px; color:#6b7280; display:none;"></span>
             </div>
-            <div id="clbUmapTopGenesPanel" style="display:none; position:absolute; z-index:1000; width:420px; max-height:480px; overflow-y:auto; padding:8px 12px; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15); font-size:10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div id="clbUmapTopGenesPanel" style="display:none; position:fixed; z-index:1000; width:380px; max-height:500px; overflow-y:auto; padding:8px 12px; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15); font-size:10px; cursor:default;">
+                <div id="clbUmapTopGenesDragHandle" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; cursor:move; user-select:none;">
                     <strong style="font-size:12px;">Top Genes</strong>
                     <button onclick="document.getElementById('clbUmapTopGenesPanel').style.display='none'" style="background:none;border:none;font-size:16px;cursor:pointer;color:#6b7280;line-height:1;">&times;</button>
                 </div>

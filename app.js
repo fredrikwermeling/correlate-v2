@@ -16826,6 +16826,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbUmapPngBtn').addEventListener('click', () => this._exportUmapPlot('png'));
         document.getElementById('clbUmapSvgBtn').addEventListener('click', () => this._exportUmapPlot('svg'));
         document.getElementById('clbUmapAaBtn').addEventListener('click', () => this.openTextSettings('clbUmapPlot'));
+        // Width/Height inputs
+        document.getElementById('clbUmapPlotWidth').addEventListener('change', () => this._resizeUmapPlot());
+        document.getElementById('clbUmapPlotHeight').addEventListener('change', () => this._resizeUmapPlot());
         // Method change → update button text
         document.getElementById('clbUmapMethod').addEventListener('change', () => {
             const m = document.getElementById('clbUmapMethod').value;
@@ -19132,11 +19135,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     _exportUmapPlot(format) {
         const plotDiv = document.getElementById('clbUmapPlot');
-        if (!plotDiv?.data) return;
+        if (!plotDiv?.layout) return;
         const method = this._clbUmapData?.method === 'pca' ? 'PCA' : 'UMAP';
         const filename = `${method}_plot`;
+        // Use actual layout dimensions so export matches screen
+        const w = plotDiv.layout.width || plotDiv.offsetWidth;
+        const h = plotDiv.layout.height || plotDiv.offsetHeight;
         if (format === 'png') {
-            Plotly.toImage(plotDiv, { format: 'png', width: plotDiv.offsetWidth * 2, height: plotDiv.offsetHeight * 2, scale: 2 })
+            Plotly.toImage(plotDiv, { format: 'png', width: w * 2, height: h * 2, scale: 2 })
                 .then(url => {
                     const a = document.createElement('a');
                     a.href = url;
@@ -19144,7 +19150,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     a.click();
                 });
         } else {
-            Plotly.toImage(plotDiv, { format: 'svg', width: plotDiv.offsetWidth, height: plotDiv.offsetHeight })
+            Plotly.toImage(plotDiv, { format: 'svg', width: w, height: h })
                 .then(url => {
                     const a = document.createElement('a');
                     a.href = url;
@@ -19152,6 +19158,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     a.click();
                 });
         }
+    }
+
+    _resizeUmapPlot() {
+        const plotDiv = document.getElementById('clbUmapPlot');
+        if (!plotDiv?.layout) return;
+        const w = parseInt(document.getElementById('clbUmapPlotWidth').value) || 580;
+        const h = parseInt(document.getElementById('clbUmapPlotHeight').value) || 480;
+        Plotly.relayout(plotDiv, { width: w, height: h });
+    }
+
+    _getUmapPlotDimensions() {
+        const w = parseInt(document.getElementById('clbUmapPlotWidth')?.value) || 580;
+        const h = parseInt(document.getElementById('clbUmapPlotHeight')?.value) || 480;
+        return { width: w, height: h };
     }
 
     _populateComponentSelectors(nComponents, prefix, explained) {
@@ -19436,11 +19456,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             // Single plot, colored by tissue/subtype
             const allIdx = cellLines.map((_, i) => i);
             const traces = buildCategoryTraces(allIdx, true);
+            const dims = this._getUmapPlotDimensions();
             const layout = {
                 ...baseLayout,
                 title: { text: `${this._clbUmapData?.method === 'pca' ? 'PCA' : 'UMAP'} \u2014 ${dataTypeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
                 margin: { t: 35, r: 10, b: 40, l: 50 },
-                height: 480, width: 580,
+                height: dims.height, width: dims.width,
                 legend: { font: { size: 9 }, itemsizing: 'constant', tracegroupgap: 2, y: 0.5, yanchor: 'middle' }
             };
             Plotly.newPlot(plotDiv, traces, layout, { responsive: true, displayModeBar: true, modeBarButtonsToAdd: ['select2d', 'lasso2d'], displaylogo: false });
@@ -19556,7 +19577,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             xaxis: { title: axLabels[0], zeroline: false, showgrid: false },
             yaxis: { title: axLabels[1], zeroline: false, showgrid: false, scaleanchor: 'x', scaleratio: 1 },
             title: { text: `${methodLabel} — ${gene} ${typeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
-            margin: { t: 35, r: 80, b: 40, l: 50 }, height: 480, width: 580,
+            margin: { t: 35, r: 80, b: 40, l: 50 }, height: this._getUmapPlotDimensions().height, width: this._getUmapPlotDimensions().width,
             hovermode: 'closest', dragmode: 'lasso',
             paper_bgcolor: 'white', plot_bgcolor: '#fafafa'
         };
@@ -19677,14 +19698,39 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const content = document.getElementById('clbUmapTopGenesContent');
         content.innerHTML = html || '<div style="font-size:11px;color:#6b7280;">No gene data available. Run with GE data type.</div>';
 
-        // Position popout near the Top Genes button
-        const btn = document.getElementById('clbUmapTopGenesBtn');
-        const rect = btn.getBoundingClientRect();
-        const section = document.getElementById('clbUmapSection');
-        const sectionRect = section.getBoundingClientRect();
-        panel.style.left = Math.max(0, rect.left - sectionRect.left) + 'px';
-        panel.style.top = (rect.bottom - sectionRect.top + 4) + 'px';
+        // Position popout to the right of the plot area (not overlapping)
+        const plotDiv = document.getElementById('clbUmapPlot');
+        const plotRect = plotDiv.getBoundingClientRect();
+        let leftPos = plotRect.right + 8;
+        let topPos = plotRect.top;
+        // If it would go off-screen, position to the left of the plot
+        if (leftPos + 390 > window.innerWidth) {
+            leftPos = Math.max(8, plotRect.left - 390);
+        }
+        // Clamp top
+        topPos = Math.max(8, Math.min(topPos, window.innerHeight - 500));
+        panel.style.left = leftPos + 'px';
+        panel.style.top = topPos + 'px';
         panel.style.display = 'block';
+
+        // Make draggable via header (only attach once)
+        if (!panel._dragAttached) {
+            panel._dragAttached = true;
+            const handle = document.getElementById('clbUmapTopGenesDragHandle');
+            let dragging = false, startX, startY, origLeft, origTop;
+            handle.addEventListener('mousedown', (e) => {
+                dragging = true;
+                startX = e.clientX; startY = e.clientY;
+                origLeft = panel.offsetLeft; origTop = panel.offsetTop;
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!dragging) return;
+                panel.style.left = (origLeft + e.clientX - startX) + 'px';
+                panel.style.top = (origTop + e.clientY - startY) + 'px';
+            });
+            document.addEventListener('mouseup', () => { dragging = false; });
+        }
     }
 
     applyUmapGeneColor_fromTop(gene) {
