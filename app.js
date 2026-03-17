@@ -1323,6 +1323,9 @@ class CorrelationExplorer {
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 tab.classList.add('active');
                 document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+                // Close Aa text settings panel on tab switch
+                const tsPanel = document.getElementById('textSettingsPanel');
+                if (tsPanel) tsPanel.style.display = 'none';
             });
         });
 
@@ -5034,13 +5037,13 @@ class CorrelationExplorer {
                 id: gene,
                 label: label,
                 size: nodeSize,
-                font: { size: fontSize, color: '#333' },
+                font: { size: fontSize, color: this._netLabelColor || '#333', scaling: { min: fontSize, max: fontSize } },
                 color: {
-                    background: this.results.mode === 'design' ?
-                        (isInput ? '#5a9f4a' : '#a8d89a') : '#5a9f4a',
+                    background: this._netNodeColor || (this.results.mode === 'design' ?
+                        (isInput ? '#5a9f4a' : '#a8d89a') : '#5a9f4a'),
                     border: '#ffffff'
                 },
-                borderWidth: 2,
+                borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
                 title: titleLines.join('\n'),
                 isSynonym: isSynonym,
                 originalName: originalName
@@ -5072,9 +5075,9 @@ class CorrelationExplorer {
                         id: gene,
                         label: label,
                         size: nodeSize,
-                        font: { size: fontSize, color: '#999' },
+                        font: { size: fontSize, color: this._netLabelColor || '#999', scaling: { min: fontSize, max: fontSize } },
                         color: { background: '#d1d5db', border: '#9ca3af' },
-                        borderWidth: 2,
+                        borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
                         borderWidthSelected: 3,
                         title: titleLines.join('\n'),
                         isSynonym: isSynonym,
@@ -5472,11 +5475,26 @@ class CorrelationExplorer {
         const legendTitleSize = this._netLegendTitleSize || 13;
         const legendLabelSize = this._netLegendLabelSize || 11;
 
+        const colorRow = (label, id, val) => `
+            <div style="display:flex; align-items:center; margin-bottom:5px; gap:4px;">
+                <span style="width:15px;"></span>
+                <span style="color:#374151;flex:1;min-width:55px;font-size:11px;">${label}</span>
+                <input type="color" id="${id}" value="${val}" style="width:28px;height:22px;border:1px solid #d1d5db;border-radius:4px;padding:0;cursor:pointer;" oninput="app._netTsApply()">
+            </div>`;
+
+        // Get current colors
+        const labelColor = this._netLabelColor || '#333333';
+        const nodeColor = this._netNodeColor || '#5a9f4a';
+
         body.innerHTML = `
-            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Network Text Sizes</div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Text Sizes</div>
             ${sizeRow('Node Label', 'net_ts_fontSize', fontSize, 6, 48)}
             ${sizeRow('Legend Title', 'net_ts_legendTitle', legendTitleSize, 6, 30)}
             ${sizeRow('Legend Label', 'net_ts_legendLabel', legendLabelSize, 6, 30)}
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Colors</div>
+            ${colorRow('Label', 'net_ts_labelColor', labelColor)}
+            ${colorRow('Node', 'net_ts_nodeColor', nodeColor)}
         `;
 
         panel.style.display = 'block';
@@ -5492,6 +5510,12 @@ class CorrelationExplorer {
     _netTsApply() {
         if (!this.network || !this.networkData) return;
         const fontSize = parseInt(document.getElementById('net_ts_fontSize')?.value) || 16;
+        const labelColor = document.getElementById('net_ts_labelColor')?.value || '#333333';
+        const nodeColor = document.getElementById('net_ts_nodeColor')?.value || '#5a9f4a';
+
+        // Store colors for network rebuild
+        this._netLabelColor = labelColor;
+        this._netNodeColor = nodeColor;
 
         // Sync the slider
         const slider = document.getElementById('netFontSize');
@@ -5500,7 +5524,15 @@ class CorrelationExplorer {
         // Update all nodes
         const nodeUpdates = [];
         this.networkData.nodes.forEach(node => {
-            nodeUpdates.push({ id: node.id, font: { size: fontSize, color: '#333', scaling: { min: fontSize, max: fontSize } } });
+            const update = {
+                id: node.id,
+                font: { size: fontSize, color: labelColor, scaling: { min: fontSize, max: fontSize } }
+            };
+            // Only recolor non-uncorrelated nodes (uncorrelated are gray)
+            if (node.color?.background !== '#d1d5db') {
+                update.color = { ...node.color, background: nodeColor };
+            }
+            nodeUpdates.push(update);
         });
         this.networkData.nodes.update(nodeUpdates);
 
@@ -8199,6 +8231,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     closeInspectModal() {
         document.getElementById('inspectModal').classList.remove('active');
         this.currentInspect = null;
+        const tsPanel = document.getElementById('textSettingsPanel');
+        if (tsPanel) tsPanel.style.display = 'none';
     }
 
     resetInspectAxes() {
