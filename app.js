@@ -5037,7 +5037,7 @@ class CorrelationExplorer {
                 id: gene,
                 label: label,
                 size: nodeSize,
-                font: { size: fontSize, color: this._netLabelColor || '#333', face: this._netFontFamily || 'Arial, sans-serif', scaling: { min: fontSize, max: fontSize } },
+                font: { size: fontSize, color: this._netLabelColor || '#333', face: this._netFontFamily || 'Arial, sans-serif' },
                 color: {
                     background: this._netNodeColor || (this.results.mode === 'design' ?
                         (isInput ? '#5a9f4a' : '#a8d89a') : '#5a9f4a'),
@@ -5075,7 +5075,7 @@ class CorrelationExplorer {
                         id: gene,
                         label: label,
                         size: nodeSize,
-                        font: { size: fontSize, color: this._netLabelColor || '#999', face: this._netFontFamily || 'Arial, sans-serif', scaling: { min: fontSize, max: fontSize } },
+                        font: { size: fontSize, color: this._netLabelColor || '#999', face: this._netFontFamily || 'Arial, sans-serif' },
                         color: { background: '#d1d5db', border: '#000000' },
                         borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
                         borderWidthSelected: 3,
@@ -5104,12 +5104,12 @@ class CorrelationExplorer {
                 shape: 'dot',
                 scaling: {
                     min: 10,
-                    max: 60
+                    max: 60,
+                    label: { enabled: false }
                 },
                 font: {
                     size: fontSize,
-                    color: '#333',
-                    scaling: { min: fontSize, max: fontSize }
+                    color: '#333'
                 }
             },
             edges: {
@@ -5431,7 +5431,7 @@ class CorrelationExplorer {
             nodeUpdates.push({
                 id: node.id,
                 size: nodeSize,
-                font: { size: fontSize, color: this._netLabelColor || '#333', face: this._netFontFamily || 'Arial, sans-serif', scaling: { min: fontSize, max: fontSize } }
+                font: { size: fontSize, color: this._netLabelColor || '#333', face: this._netFontFamily || 'Arial, sans-serif' }
             });
         });
         this.networkData.nodes.update(nodeUpdates);
@@ -5558,7 +5558,7 @@ class CorrelationExplorer {
         this.networkData.nodes.forEach(node => {
             const update = {
                 id: node.id,
-                font: { size: fontSize, color: labelColor, face: fontFamily, scaling: { min: fontSize, max: fontSize } }
+                font: { size: fontSize, color: labelColor, face: fontFamily }
             };
             if (node.color?.background !== '#d1d5db') {
                 update.color = { ...node.color, background: nodeColor };
