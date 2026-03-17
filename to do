@@ -1,3 +1,4 @@
+- would it be possible to export images svg png so they coudl contain some meta data, and allow for being opened again in the app? this would facilitate making small cahnges to an image, not having to remake them.
 - In the network, when I cahnge the font size, it seems to scale based on how many many nodes there are in the network. I want font size to be the same everywhere in app, so eg 15 = 15. 
 - when I change the text in eg subtitles in the text settings the row division is abolished. eg if the subtitles are in 3 rows and I remove something, they beocme 1 row.
 - allow in cell browser to export GE and expression data for selected cell lines. Now there is such feature for GE and allwoin g to compare several cell lines. this is a differnt .csv export. also make tthe names of the exports more self explanatory. also include columns for damaging, hotspot translaocations. ie rows has genes, at least 5 columns with expression, GE, hotspo, damaging ´, translocations. 
