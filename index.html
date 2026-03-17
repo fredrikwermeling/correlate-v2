@@ -1308,6 +1308,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.24.6 (2026-03-17)</strong></p>
+                <ul>
+                    <li>CLB export: clearer button names (GE Matrix, Cell Line Report, Full Data Export) with tooltips</li>
+                    <li>Full Data Export: auto-loads expression data if not yet available</li>
+                    <li>Expression data preloads in background 2s after app startup</li>
+                </ul>
                 <p><strong>v.24.5 (2026-03-17)</strong></p>
                 <ul>
                     <li>Network: font size now absolute — stays exactly as set regardless of rebuild/toggle</li>
@@ -1494,7 +1500,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.24.5</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.24.6</a>
     </div>
 
     <div class="main-content">
@@ -2985,9 +2991,9 @@
           <div style="margin-left:auto; display:flex; gap:6px;">
             <button id="clbSelectVisible" class="btn btn-outline btn-sm">Select Visible</button>
             <button id="clbDeselectAll" class="btn btn-outline btn-sm">Deselect All</button>
-            <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);">Export CSV</button>
-            <button id="clbExportFull" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);">Export Report</button>
-            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="Gene × cell line matrix with GE, Expression, Hotspot, Damaging, Translocation">Comprehensive</button>
+            <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="Gene Effect matrix for selected cell lines (genes × cell lines)">GE Matrix</button>
+            <button id="clbExportFull" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="Cell line metadata, mutations, top depleted/enriched genes, z-scores">Cell Line Report</button>
+            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="All data per cell line: GE, Expression, Hotspot, Damaging, Translocation (genes × cell lines)">Full Data Export</button>
           </div>
         </div>
         <!-- Custom Cell Line Filter for CLB -->

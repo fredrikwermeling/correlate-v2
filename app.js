@@ -121,6 +121,14 @@ class CorrelationExplorer {
             await this.loadData();
             this.setupUI();
             this.hideLoading();
+            // Preload expression data in the background (non-blocking)
+            setTimeout(() => {
+                if (!this.expressionLoaded) {
+                    this.loadExpressionData().catch(e => {
+                        console.warn('Background expression preload failed:', e.message);
+                    });
+                }
+            }, 2000);
         } catch (error) {
             console.error('Initialization error:', error);
             this.updateLoadingText('Error loading data: ' + error.message);
@@ -17764,7 +17772,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbSelectionCount').textContent = `${this._clbSelectedCellLines.size} selected`;
     }
 
-    exportCellLineBrowserCSV(mode) {
+    async exportCellLineBrowserCSV(mode) {
         if (this._clbSelectedCellLines.size === 0) {
             alert('Select at least one cell line to export.');
             return;
@@ -17886,6 +17894,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
             this.downloadFile(lines.join('\n'), `correlate_report${namePart}.csv`, 'text/csv');
         } else if (mode === 'comprehensive') {
+            // Ensure expression data is loaded
+            if (!this.expressionLoaded) {
+                try { await this.loadExpressionData(); }
+                catch (e) { alert('Failed to load expression data: ' + e.message); return; }
+            }
             // Gene × cell line matrix with GE, Expression, Hotspot, Damaging, Translocation
             const headerParts = ['Gene'];
             for (const name of clNames) {
