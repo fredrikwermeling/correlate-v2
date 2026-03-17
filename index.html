@@ -1865,6 +1865,12 @@
                                 <button class="btn btn-secondary" id="togglePhysics">Lock</button>
                                 <button class="btn btn-secondary" id="changeLayout">Layout</button>
                             </div>
+                            <div class="button-group-horizontal" style="margin-bottom: 4px;">
+                                <button class="btn btn-secondary" id="networkAaBtn" style="font-family: Georgia, serif; font-style: italic;">Aa</button>
+                                <label style="font-size: 10px; display: flex; align-items: center; gap: 3px; cursor: pointer;">
+                                    <input type="checkbox" id="networkNodeBorder" checked> Node border
+                                </label>
+                            </div>
                             <p class="help-text" id="networkHelpText" style="font-size: 9px; margin-bottom: 6px;">Double-click node for Gene Effect, edge for Correlation</p>
                             <div id="selectedNodesList" style="display: none; font-size: 9px; margin-bottom: 6px; padding: 4px; background: #dbeafe; border-radius: 3px;">
                                 <span style="font-weight: 600;">Selected:</span> <span id="selectedNodesText"></span>
@@ -2096,12 +2102,12 @@
                         <div class="control-box-compact" style="padding: 4px 8px;">
                             <span class="control-label" style="margin-bottom: 2px;">Genes (X/Y)</span>
                             <div style="display: flex; gap: 4px; align-items: center;">
-                                <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="X gene">
+                                <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; min-width: 100px; font-size: 12px; padding: 3px 8px;" placeholder="X gene">
                                 <select id="xAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;" title="X axis data type">
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
                                 </select>
-                                <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; font-size: 11px; padding: 2px 6px;" placeholder="Y gene">
+                                <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; min-width: 100px; font-size: 12px; padding: 3px 8px;" placeholder="Y gene">
                                 <select id="yAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;" title="Y axis data type">
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
@@ -2338,6 +2344,9 @@
                     <label style="cursor: pointer;"><input type="checkbox" id="exportTransparentBg"> Transparent bg</label>
                 </span>
                 <button class="btn btn-outline" id="downloadScatterCSV">Download CSV</button>
+                <label class="btn btn-outline" style="cursor:pointer; font-size:12px;" title="Open a Correlate SVG to restore settings">
+                    Open SVG <input type="file" id="restoreFromSvgInput" accept=".svg" style="display:none;">
+                </label>
                 <button class="btn btn-outline" id="downloadTissuePNG" style="display: none;">Download Chart PNG</button>
                 <button class="btn btn-outline" id="downloadTissueSVG" style="display: none;">Download Chart SVG</button>
                 <button class="btn btn-outline" id="downloadTissueCSV" style="display: none;">Download Table CSV</button>
@@ -2956,6 +2965,7 @@
             <button id="clbDeselectAll" class="btn btn-outline btn-sm">Deselect All</button>
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);">Export CSV</button>
             <button id="clbExportFull" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);">Export Report</button>
+            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="Gene × cell line matrix with GE, Expression, Hotspot, Damaging, Translocation">Comprehensive</button>
           </div>
         </div>
         <!-- Custom Cell Line Filter for CLB -->
@@ -2987,8 +2997,29 @@
                 <label style="font-size:11px; color:var(--gray-500);">genes per list</label>
               </div>
               <div id="clbDetailGeneLists"></div>
+              <div style="margin-top:8px; border-top:1px solid #e5e7eb; padding-top:8px;">
+                <button id="clbExprVsGEBtn" class="btn btn-outline btn-sm" style="font-size:10px; color:var(--green-700); border-color:var(--green-400); width:100%;">Expression vs Gene Effect</button>
+              </div>
             </div>
           </div>
+        </div>
+        <!-- Expression vs GE Section (hidden by default) -->
+        <div id="exprVsGESection" style="display:none; border-top:1px solid #e5e7eb; padding:10px 16px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <strong style="font-size:12px;">Expression vs Gene Effect</strong>
+                <span id="exprVsGECellLine" style="font-size:11px; color:var(--gray-500);"></span>
+                <button id="exprVsGEClose" class="btn btn-sm btn-outline" style="margin-left:auto; font-size:10px; padding:2px 6px;">Close</button>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
+                <label style="font-size:10px; color:var(--gray-500);">Filter tissue:</label>
+                <select id="exprVsGETissueFilter" style="font-size:10px; padding:2px 4px;">
+                    <option value="">All</option>
+                </select>
+                <label style="font-size:10px; color:var(--gray-500);">Search gene:</label>
+                <input type="text" id="exprVsGEGeneSearch" placeholder="Gene..." style="font-size:10px; padding:2px 6px; width:80px; border:1px solid #d1d5db; border-radius:4px;">
+            </div>
+            <div id="exprVsGEPlot" style="width:100%;"></div>
+            <div id="exprVsGETable" style="max-height:300px; overflow-y:auto; font-size:10px; margin-top:6px;"></div>
         </div>
         <!-- UMAP Section -->
         <div id="clbUmapSection" style="border-top:1px solid #e5e7eb; padding:10px 16px; position:relative;">

@@ -1541,6 +1541,8 @@ class CorrelationExplorer {
             document.getElementById('edgeWidthBubble').textContent = e.target.value;
             this.updateNetworkStyle();
         });
+        document.getElementById('networkAaBtn')?.addEventListener('click', () => this.openNetworkTextSettings());
+        document.getElementById('networkNodeBorder')?.addEventListener('change', (e) => this.toggleNetworkBorder(e.target.checked));
         document.getElementById('fitNetwork').addEventListener('click', () => {
             if (this.network) this.network.fit();
         });
@@ -1761,6 +1763,10 @@ class CorrelationExplorer {
         document.getElementById('geTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('geneEffectPlot'));
         this._initTextSettingsDrag();
         document.getElementById('downloadScatterCSV').addEventListener('click', () => this.downloadScatterCSV());
+        document.getElementById('restoreFromSvgInput')?.addEventListener('change', (e) => {
+            if (e.target.files[0]) this.restoreFromSvg(e.target.files[0]);
+            e.target.value = '';
+        });
         document.getElementById('downloadTissuePNG').addEventListener('click', () => this.downloadTissueChartPNG());
         document.getElementById('downloadTissueSVG').addEventListener('click', () => this.downloadTissueChartSVG());
         document.getElementById('downloadTissueCSV').addEventListener('click', () => this.downloadTissueTableCSV());
@@ -4575,6 +4581,7 @@ class CorrelationExplorer {
 
             const a = document.createElement('a');
             if (format === 'svg') {
+                svgString = this.sanitizeSvgForIllustrator(svgString);
                 const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
                 a.href = URL.createObjectURL(blob);
                 a.download = `${filename}.svg`;
@@ -5098,7 +5105,8 @@ class CorrelationExplorer {
                 },
                 font: {
                     size: fontSize,
-                    color: '#333'
+                    color: '#333',
+                    scaling: { min: fontSize, max: fontSize }
                 }
             },
             edges: {
@@ -5420,7 +5428,7 @@ class CorrelationExplorer {
             nodeUpdates.push({
                 id: node.id,
                 size: nodeSize,
-                font: { size: fontSize, color: '#333' }
+                font: { size: fontSize, color: '#333', scaling: { min: fontSize, max: fontSize } }
             });
         });
         this.networkData.nodes.update(nodeUpdates);
@@ -5439,6 +5447,89 @@ class CorrelationExplorer {
 
         // Update legend for edge thickness
         this.updateEdgeLegend(edgeWidthBase, cutoff);
+    }
+
+    openNetworkTextSettings() {
+        const panel = document.getElementById('textSettingsPanel');
+        const body = document.getElementById('textSettingsBody');
+        this._textSettingsPlotId = '__network__';
+
+        const fontSize = parseInt(document.getElementById('netFontSize').value) || 16;
+
+        const sizeRow = (label, id, val, min, max) => `
+            <div style="display:flex; align-items:center; margin-bottom:5px; gap:4px;">
+                <span style="width:15px;"></span>
+                <span style="color:#374151;flex:1;min-width:55px;font-size:11px;">${label}</span>
+                <div style="display:flex; align-items:center;">
+                    <button onclick="app._netTsStep('${id}',-1)" style="width:20px;height:20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:4px 0 0 4px;cursor:pointer;font-size:12px;line-height:1;">−</button>
+                    <input type="number" id="${id}" value="${val}" min="${min}" max="${max}" style="width:36px;text-align:center;border:1px solid #d1d5db;border-left:none;border-right:none;font-size:10px;padding:1px;" oninput="app._netTsApply()">
+                    <button onclick="app._netTsStep('${id}',1)" style="width:20px;height:20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:0 4px 4px 0;cursor:pointer;font-size:12px;line-height:1;">+</button>
+                </div>
+            </div>`;
+
+        // Get current legend font sizes from DOM
+        const legendEl = document.getElementById('networkLegend');
+        const legendTitleSize = this._netLegendTitleSize || 13;
+        const legendLabelSize = this._netLegendLabelSize || 11;
+
+        body.innerHTML = `
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Network Text Sizes</div>
+            ${sizeRow('Node Label', 'net_ts_fontSize', fontSize, 6, 48)}
+            ${sizeRow('Legend Title', 'net_ts_legendTitle', legendTitleSize, 6, 30)}
+            ${sizeRow('Legend Label', 'net_ts_legendLabel', legendLabelSize, 6, 30)}
+        `;
+
+        panel.style.display = 'block';
+    }
+
+    _netTsStep(id, dir) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = Math.max(parseInt(el.min) || 1, Math.min(parseInt(el.max) || 99, (parseInt(el.value) || 0) + dir));
+        this._netTsApply();
+    }
+
+    _netTsApply() {
+        if (!this.network || !this.networkData) return;
+        const fontSize = parseInt(document.getElementById('net_ts_fontSize')?.value) || 16;
+
+        // Sync the slider
+        const slider = document.getElementById('netFontSize');
+        if (slider) { slider.value = fontSize; document.getElementById('fontSizeBubble').textContent = fontSize; }
+
+        // Update all nodes
+        const nodeUpdates = [];
+        this.networkData.nodes.forEach(node => {
+            nodeUpdates.push({ id: node.id, font: { size: fontSize, color: '#333', scaling: { min: fontSize, max: fontSize } } });
+        });
+        this.networkData.nodes.update(nodeUpdates);
+
+        // Update legend sizes
+        const legendTitleSize = parseInt(document.getElementById('net_ts_legendTitle')?.value) || 13;
+        const legendLabelSize = parseInt(document.getElementById('net_ts_legendLabel')?.value) || 11;
+        this._netLegendTitleSize = legendTitleSize;
+        this._netLegendLabelSize = legendLabelSize;
+
+        const legendEl = document.getElementById('networkLegend');
+        if (legendEl) {
+            legendEl.querySelectorAll('.legend-title, legend-header').forEach(el => el.style.fontSize = legendTitleSize + 'px');
+            legendEl.querySelectorAll('.legend-label, .legend-item span, .legend-item-label').forEach(el => el.style.fontSize = legendLabelSize + 'px');
+            // Fallback: style direct children
+            const titleEl = legendEl.querySelector('div > b, div > strong, [style*="font-weight"]');
+            if (titleEl) titleEl.style.fontSize = legendTitleSize + 'px';
+        }
+    }
+
+    toggleNetworkBorder(showBorder) {
+        if (!this.network || !this.networkData) return;
+        const borderWidth = showBorder ? 2 : 0;
+        const nodeUpdates = [];
+        this.networkData.nodes.forEach(node => {
+            nodeUpdates.push({ id: node.id, borderWidth: borderWidth });
+        });
+        this.networkData.nodes.update(nodeUpdates);
+        // Also update the network options for new nodes
+        this.network.setOptions({ nodes: { borderWidth: borderWidth } });
     }
 
     updateEdgeLegend(edgeWidthBase, cutoff) {
@@ -6335,13 +6426,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (pos) {
                 const bgColor = node.color?.background || '#5a9f4a';
                 const nodeRadius = (node.size || 25) * scale;
-                const nodeFontSize = (node.font?.size || 16) * scale;
-                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="white" stroke-width="${2 * scale}"/>\n`;
+                const nodeFontSize = node.font?.size || 16;
+                const borderW = node.borderWidth != null ? node.borderWidth : 2;
+                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? 'white' : 'none'}" stroke-width="${borderW * scale}"/>\n`;
 
                 // Handle multi-line labels
                 const labelLines = (node.label || node.id).split('\n');
                 labelLines.forEach((line, i) => {
-                    const yOffset = pos.y + nodeRadius + 14 * scale + (i * nodeFontSize);
+                    const yOffset = pos.y + nodeRadius + 14 + (i * nodeFontSize);
                     svg += `  <text x="${pos.x}" y="${yOffset}" text-anchor="middle" style="font-family: Arial; font-size: ${nodeFontSize}px; fill: ${node.font?.color || '#333'};">${this.escapeXml(line)}</text>\n`;
                 });
             }
@@ -6497,6 +6589,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         svg += '</svg>';
+
+        // Sanitize for Illustrator compatibility
+        svg = this.sanitizeSvgForIllustrator(svg);
 
         // Download
         const blob = new Blob([svg], { type: 'image/svg+xml' });
@@ -7636,13 +7731,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (pos) {
                 const bgColor = node.color?.background || '#5a9f4a';
                 const nodeRadius = (node.size || 25) * scale;
-                const nodeFontSize = (node.font?.size || 16) * scale;
-                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="white" stroke-width="${2 * scale}"/>\n`;
+                const nodeFontSize = node.font?.size || 16;
+                const borderW = node.borderWidth != null ? node.borderWidth : 2;
+                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? 'white' : 'none'}" stroke-width="${borderW * scale}"/>\n`;
 
                 // Handle multi-line labels
                 const labelLines = (node.label || node.id).split('\n');
                 labelLines.forEach((line, i) => {
-                    const yOffset = pos.y + nodeRadius + 14 * scale + (i * nodeFontSize);
+                    const yOffset = pos.y + nodeRadius + 14 + (i * nodeFontSize);
                     svg += `  <text x="${pos.x}" y="${yOffset}" text-anchor="middle" style="font-family: Arial; font-size: ${nodeFontSize}px; fill: ${node.font?.color || '#333'};">${this.escapeXml(line)}</text>\n`;
                 });
             }
@@ -8677,7 +8773,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             yanchor: this._userTitlePosition ? 'auto' : 'bottom',
             text: titleText,
             showarrow: false,
-            font: { size: 14 },
+            font: { size: this._savedScatterTextSettings?.titleFontSize || 14 },
             _tsRole: 'title'
         };
 
@@ -8700,7 +8796,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             yanchor: this._userXLabelPos ? 'auto' : 'top',
             text: xLabelText,
             showarrow: false,
-            font: { size: 12 },
+            font: { size: this._savedScatterTextSettings?.xLabelFontSize || 12 },
             _tsRole: 'xlabel'
         };
         const yLabelAnnotation = {
@@ -8711,7 +8807,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             yanchor: this._userYLabelPos ? 'auto' : 'middle',
             text: yLabelText,
             showarrow: false,
-            font: { size: 12 },
+            font: { size: this._savedScatterTextSettings?.yLabelFontSize || 12 },
             textangle: -90,
             _tsRole: 'ylabel'
         };
@@ -8762,6 +8858,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             plot_bgcolor: '#fafafa'
         };
 
+        // Apply saved text settings (from gene update)
+        const sts = this._savedScatterTextSettings;
+        if (sts) {
+            layout.xaxis.tickfont = { size: sts.xTickSize };
+            layout.yaxis.tickfont = { size: sts.yTickSize };
+            layout.legend.font = { size: sts.legendSize };
+            if (sts.fontFamily) layout.font = { family: sts.fontFamily };
+        }
+
         // Apply user-dragged legend position if available
         if (this._userLegendPosition) {
             layout.legend.x = this._userLegendPosition.x;
@@ -8791,6 +8896,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         layout.height = plotAreaH + m.t + m.b;
         plotContainer.style.width = layout.width + 'px';
         plotContainer.style.height = layout.height + 'px';
+
+        // Apply saved marker size from text settings
+        if (sts?.markerSize) {
+            traces.forEach(t => { if (t.marker && t.mode?.includes('markers')) t.marker.size = sts.markerSize; });
+        }
 
         Plotly.newPlot('scatterPlot', traces, layout, {
             responsive: false,
@@ -8863,6 +8973,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 const legend = document.getElementById('colorByLegend');
                 if (legend) legend.style.display = 'none';
             }
+
+            // Clear saved text settings after applying (one-shot from updateInspectGenes)
+            this._savedScatterTextSettings = null;
         });
     }
 
@@ -9901,6 +10014,26 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 alert(`Gene "${gene2}" not found in expression data.`);
                 return;
             }
+        }
+
+        // Save current text settings before re-opening
+        const plotEl = document.getElementById('scatterPlot');
+        if (plotEl?.layout) {
+            const lay = plotEl.layout;
+            const anns = lay.annotations || [];
+            const titleAnn = anns.find(a => a._tsRole === 'title');
+            const xAnn = anns.find(a => a._tsRole === 'xlabel');
+            const yAnn = anns.find(a => a._tsRole === 'ylabel');
+            this._savedScatterTextSettings = {
+                titleFontSize: titleAnn?.font?.size || 14,
+                xLabelFontSize: xAnn?.font?.size || 12,
+                yLabelFontSize: yAnn?.font?.size || 12,
+                xTickSize: lay.xaxis?.tickfont?.size || 10,
+                yTickSize: lay.yaxis?.tickfont?.size || 10,
+                legendSize: lay.legend?.font?.size || 10,
+                markerSize: plotEl.data?.[0]?.marker?.size || 8,
+                fontFamily: lay.font?.family || null
+            };
         }
 
         // Re-open inspect with the new genes
@@ -12294,6 +12427,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const a = document.createElement('a');
         if (format === 'svg') {
+            // Embed app state for re-opening
+            const state = this.captureAppState();
+            const stateJson = JSON.stringify(state);
+            svgString = svgString.replace('</svg>', `<metadata><correlate-state>${stateJson}</correlate-state></metadata></svg>`);
+            svgString = this.sanitizeSvgForIllustrator(svgString);
             const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
             a.href = URL.createObjectURL(blob);
             a.download = filename + '.svg';
@@ -12328,12 +12466,194 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
     }
 
+    sanitizeSvgForIllustrator(svgStr) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgStr, 'image/svg+xml');
+        const svgEl = doc.documentElement;
+
+        // Add XML declaration will be done at serialization
+        // Remove <style> blocks — inline all styles instead
+        doc.querySelectorAll('style').forEach(styleEl => {
+            // Parse CSS rules and inline them on matching elements
+            const rules = [];
+            try {
+                const sheet = new CSSStyleSheet();
+                sheet.replaceSync(styleEl.textContent);
+                for (const rule of sheet.cssRules) {
+                    if (rule.selectorText) rules.push(rule);
+                }
+            } catch (e) {
+                // Fallback: just remove the style block
+            }
+            for (const rule of rules) {
+                try {
+                    const els = doc.querySelectorAll(rule.selectorText);
+                    els.forEach(el => {
+                        for (let i = 0; i < rule.style.length; i++) {
+                            const prop = rule.style[i];
+                            // Don't override existing inline styles
+                            if (!el.style.getPropertyValue(prop)) {
+                                el.style.setProperty(prop, rule.style.getPropertyValue(prop));
+                            }
+                        }
+                    });
+                } catch (e) { /* skip invalid selectors */ }
+            }
+            styleEl.remove();
+        });
+
+        // Convert rgb() to hex, fix font-size
+        const allEls = doc.querySelectorAll('*');
+        const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+        const rgbRe = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/g;
+
+        allEls.forEach(el => {
+            // Convert rgb in style attributes to hex
+            const style = el.getAttribute('style');
+            if (style) {
+                const replaced = style.replace(rgbRe, (_, r, g, b) => rgbToHex(r, g, b));
+                if (replaced !== style) el.setAttribute('style', replaced);
+            }
+            // Convert rgb in fill/stroke attributes
+            ['fill', 'stroke', 'color', 'stop-color'].forEach(attr => {
+                const val = el.getAttribute(attr);
+                if (val) {
+                    const replaced = val.replace(rgbRe, (_, r, g, b) => rgbToHex(r, g, b));
+                    if (replaced !== val) el.setAttribute(attr, replaced);
+                }
+            });
+
+            // font-size: remove "px" suffix for Illustrator compatibility
+            const fs = el.style.fontSize;
+            if (fs && fs.endsWith('px')) {
+                el.style.fontSize = parseFloat(fs).toString();
+            }
+            const fsAttr = el.getAttribute('font-size');
+            if (fsAttr && fsAttr.endsWith('px')) {
+                el.setAttribute('font-size', parseFloat(fsAttr).toString());
+            }
+        });
+
+        // Remove problematic clip-paths that Illustrator doesn't handle well
+        doc.querySelectorAll('[clip-path]').forEach(el => {
+            const cp = el.getAttribute('clip-path');
+            if (cp && (cp.includes('legend') || cp.includes('scrollbox'))) {
+                el.removeAttribute('clip-path');
+            }
+        });
+
+        let result = new XMLSerializer().serializeToString(svgEl);
+        // Add XML declaration
+        result = '<?xml version="1.0" encoding="UTF-8"?>\n' + result;
+        return result;
+    }
+
     downloadScatterPNG() {
         this._exportScatterChart('png');
     }
 
     downloadScatterSVG() {
         this._exportScatterChart('svg');
+    }
+
+    captureAppState() {
+        const plotEl = document.getElementById('scatterPlot');
+        const lay = plotEl?.layout;
+        const anns = lay?.annotations || [];
+        const titleAnn = anns.find(a => a._tsRole === 'title');
+        const xAnn = anns.find(a => a._tsRole === 'xlabel');
+        const yAnn = anns.find(a => a._tsRole === 'ylabel');
+
+        return {
+            version: 1,
+            gene1: this.currentInspect?.gene1,
+            gene2: this.currentInspect?.gene2,
+            xType: this.currentInspect?.xType || 'ge',
+            yType: this.currentInspect?.yType || 'ge',
+            xRange: [document.getElementById('scatterXmin')?.value, document.getElementById('scatterXmax')?.value],
+            yRange: [document.getElementById('scatterYmin')?.value, document.getElementById('scatterYmax')?.value],
+            plotWidth: document.getElementById('plotWidth')?.value,
+            plotHeight: document.getElementById('plotHeight')?.value,
+            hotspotGene: document.getElementById('hotspotGene')?.value,
+            hotspotMode: document.getElementById('hotspotMode')?.value,
+            transGene: document.getElementById('translocationGene')?.value,
+            transMode: document.getElementById('translocationMode')?.value,
+            cancerFilter: document.getElementById('scatterCancerFilter')?.value,
+            searchTerms: document.getElementById('cellLineSearch')?.value,
+            mutFilterGene: document.getElementById('mutationFilterGene')?.value,
+            mutFilterLevel: document.getElementById('mutationFilterLevel')?.value,
+            colorBy: document.getElementById('colorBySelect')?.value,
+            textSettings: {
+                titleFontSize: titleAnn?.font?.size,
+                xLabelFontSize: xAnn?.font?.size,
+                yLabelFontSize: yAnn?.font?.size,
+                xTickSize: lay?.xaxis?.tickfont?.size,
+                yTickSize: lay?.yaxis?.tickfont?.size,
+                legendSize: lay?.legend?.font?.size,
+                markerSize: plotEl?.data?.[0]?.marker?.size,
+                fontFamily: lay?.font?.family
+            },
+            showZeroLines: document.getElementById('showZeroLines')?.checked,
+            showCorrelationLine: document.getElementById('showCorrelationLine')?.checked
+        };
+    }
+
+    async restoreFromSvg(file) {
+        const text = await file.text();
+        const match = text.match(/<correlate-state>([\s\S]*?)<\/correlate-state>/);
+        if (!match) { alert('No Correlate state found in this SVG file.'); return; }
+
+        let state;
+        try { state = JSON.parse(match[1]); } catch (e) { alert('Invalid state data in SVG.'); return; }
+
+        if (!state.gene1 || !state.gene2) { alert('Missing gene information in state.'); return; }
+
+        // Set axis data types
+        const xTypeEl = document.getElementById('xAxisDataType');
+        const yTypeEl = document.getElementById('yAxisDataType');
+        if (xTypeEl) xTypeEl.value = state.xType || 'ge';
+        if (yTypeEl) yTypeEl.value = state.yType || 'ge';
+
+        // Load expression data if needed
+        if ((state.xType === 'expr' || state.yType === 'expr') && !this.expressionLoaded) {
+            try { await this.loadExpressionData(); } catch (e) { alert('Failed to load expression data.'); return; }
+        }
+
+        // Open inspect with the genes
+        this.openInspect({ gene1: state.gene1, gene2: state.gene2, correlation: null });
+
+        // Restore settings after a short delay to let the plot render
+        setTimeout(() => {
+            // Axis ranges
+            if (state.xRange) {
+                document.getElementById('scatterXmin').value = state.xRange[0];
+                document.getElementById('scatterXmax').value = state.xRange[1];
+            }
+            if (state.yRange) {
+                document.getElementById('scatterYmin').value = state.yRange[0];
+                document.getElementById('scatterYmax').value = state.yRange[1];
+            }
+            // Plot size
+            if (state.plotWidth) document.getElementById('plotWidth').value = state.plotWidth;
+            if (state.plotHeight) document.getElementById('plotHeight').value = state.plotHeight;
+            // Filters
+            if (state.hotspotGene) document.getElementById('hotspotGene').value = state.hotspotGene;
+            if (state.hotspotMode) document.getElementById('hotspotMode').value = state.hotspotMode;
+            if (state.transGene) document.getElementById('translocationGene').value = state.transGene;
+            if (state.transMode) document.getElementById('translocationMode').value = state.transMode;
+            if (state.cancerFilter) document.getElementById('scatterCancerFilter').value = state.cancerFilter;
+            if (state.searchTerms) document.getElementById('cellLineSearch').value = state.searchTerms;
+            if (state.mutFilterGene) document.getElementById('mutationFilterGene').value = state.mutFilterGene;
+            if (state.mutFilterLevel) document.getElementById('mutationFilterLevel').value = state.mutFilterLevel;
+            if (state.showZeroLines != null) document.getElementById('showZeroLines').checked = state.showZeroLines;
+            if (state.showCorrelationLine != null) document.getElementById('showCorrelationLine').checked = state.showCorrelationLine;
+
+            // Save text settings for the re-render
+            if (state.textSettings) this._savedScatterTextSettings = state.textSettings;
+
+            // Re-render with all settings
+            this.updateInspectPlot();
+        }, 300);
     }
 
     showByTissueModal() {
@@ -14606,7 +14926,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 }
             });
 
-            const finalSvg = new XMLSerializer().serializeToString(svgEl);
+            let finalSvg = new XMLSerializer().serializeToString(svgEl);
+            finalSvg = this.sanitizeSvgForIllustrator(finalSvg);
             const blob = new Blob([finalSvg], { type: 'image/svg+xml' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -16795,6 +17116,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         document.getElementById('clbExportMinimal').addEventListener('click', () => this.exportCellLineBrowserCSV('minimal'));
         document.getElementById('clbExportFull').addEventListener('click', () => this.exportCellLineBrowserCSV('full'));
+        document.getElementById('clbExportComprehensive')?.addEventListener('click', () => this.exportCellLineBrowserCSV('comprehensive'));
+        document.getElementById('clbExprVsGEBtn')?.addEventListener('click', () => this.showExprVsGEPlot());
+        document.getElementById('exprVsGEClose')?.addEventListener('click', () => { document.getElementById('exprVsGESection').style.display = 'none'; });
+        document.getElementById('exprVsGEGeneSearch')?.addEventListener('input', () => this.filterExprVsGETable());
+        document.getElementById('exprVsGETissueFilter')?.addEventListener('change', () => this.filterExprVsGETable());
 
         // Gene tooltips on gene links in detail panel
         const geneLists = document.getElementById('clbDetailGeneLists');
@@ -17356,8 +17682,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 }
                 lines.push(row.join(','));
             }
-            this.downloadFile(lines.join('\n'), `correlate${namePart}.csv`, 'text/csv');
-        } else {
+            this.downloadFile(lines.join('\n'), `correlate_GE_matrix${namePart}.csv`, 'text/csv');
+        } else if (mode === 'full') {
             // Report: cell line info + gene lists
             const N = parseInt(document.getElementById('clbTopN').value) || 10;
             const filteredCls = this._clbVisibleCellLines;
@@ -17451,7 +17777,195 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
 
             this.downloadFile(lines.join('\n'), `correlate_report${namePart}.csv`, 'text/csv');
+        } else if (mode === 'comprehensive') {
+            // Gene × cell line matrix with GE, Expression, Hotspot, Damaging, Translocation
+            const headerParts = ['Gene'];
+            for (const name of clNames) {
+                const n = name.replace(/,/g, '');
+                headerParts.push(`${n}_GE`, `${n}_Expr`, `${n}_Hotspot`, `${n}_Damaging`, `${n}_Translocation`);
+            }
+            const lines = [headerParts.join(',')];
+
+            for (let g = 0; g < this.nGenes; g++) {
+                const geneName = this.geneNames[g];
+                const row = [geneName];
+                for (let c = 0; c < clIndices.length; c++) {
+                    const ci = clIndices[c];
+                    const clId = this.metadata.cellLines[ci];
+                    // Gene effect
+                    const ge = this.geneEffects[g * this.nCellLines + ci];
+                    row.push((!isNaN(ge) && ge !== -999) ? ge.toFixed(4) : '');
+                    // Expression
+                    let expr = '';
+                    if (this.expressionLoaded) {
+                        const eIdx = this.expressionGeneIndex?.get(geneName.toUpperCase());
+                        if (eIdx !== undefined) {
+                            const eVal = this.getExpressionValueByGEIndex(geneName, ci);
+                            if (!isNaN(eVal)) expr = eVal.toFixed(4);
+                        }
+                    }
+                    row.push(expr);
+                    // Hotspot mutation (0/1/2)
+                    const hotspot = this.mutations?.geneData?.[geneName]?.mutations?.[clId] || 0;
+                    row.push(hotspot);
+                    // Damaging mutation (0/1)
+                    const damaging = this.damagingMutations?.geneData?.[geneName]?.mutations?.[clId] ? 1 : 0;
+                    row.push(damaging);
+                    // Translocation (0/1/2)
+                    const trans = this.translocations?.geneData?.[geneName]?.translocations?.[clId] || 0;
+                    row.push(trans);
+                }
+                lines.push(row.join(','));
+            }
+
+            // Footer with citation
+            lines.push('');
+            lines.push('# Data source: DepMap 25Q1 (https://depmap.org/)');
+            lines.push('# Tsherniak A et al. Defining a Cancer Dependency Map. Cell. 2017.');
+            this.downloadFile(lines.join('\n'), `correlate_comprehensive${namePart}.csv`, 'text/csv');
         }
+    }
+
+    async showExprVsGEPlot() {
+        const cellLineId = this._clbInspectedCellLine;
+        if (!cellLineId) { alert('Select a cell line first.'); return; }
+
+        // Ensure expression data is loaded
+        if (!this.expressionLoaded) {
+            try { await this.loadExpressionData(); } catch (e) { alert('Failed to load expression data: ' + e.message); return; }
+        }
+
+        const clIdx = this.metadata.cellLines.indexOf(cellLineId);
+        if (clIdx < 0) return;
+        const clName = this.getCellLineName(cellLineId);
+
+        // Build data: X=expression, Y=gene effect for all genes
+        const data = [];
+        for (let g = 0; g < this.nGenes; g++) {
+            const ge = this.geneEffects[g * this.nCellLines + clIdx];
+            if (isNaN(ge) || ge === -999) continue;
+            const geneName = this.geneNames[g];
+            const expr = this.getExpressionValueByGEIndex(geneName, clIdx);
+            if (isNaN(expr)) continue;
+            data.push({ gene: geneName, expr, ge, delta: ge - expr });
+        }
+
+        this._exprVsGEData = data;
+        this._exprVsGECellLine = cellLineId;
+        document.getElementById('exprVsGECellLine').textContent = clName;
+        document.getElementById('exprVsGESection').style.display = '';
+
+        // Render scatter plot
+        const traces = [{
+            x: data.map(d => d.expr),
+            y: data.map(d => d.ge),
+            mode: 'markers',
+            type: 'scatter',
+            text: data.map(d => d.gene),
+            hovertemplate: '%{text}<br>Expr: %{x:.2f}<br>GE: %{y:.3f}<extra></extra>',
+            marker: { color: '#3b82f6', size: 5, opacity: 0.5 },
+            showlegend: false
+        }];
+
+        const layout = {
+            xaxis: { title: 'Expression (log2 TPM+1)', titlefont: { size: 11 }, tickfont: { size: 9 } },
+            yaxis: { title: 'Gene Effect', titlefont: { size: 11 }, tickfont: { size: 9 } },
+            title: { text: `${clName}: Expression vs Gene Effect`, font: { size: 13 } },
+            margin: { t: 40, r: 20, b: 50, l: 50 },
+            width: 500, height: 400,
+            hovermode: 'closest',
+            plot_bgcolor: '#fafafa'
+        };
+
+        Plotly.newPlot('exprVsGEPlot', traces, layout, { responsive: false }).then(plotEl => {
+            plotEl.on('plotly_click', (eventData) => {
+                if (eventData.points.length > 0) {
+                    const gene = eventData.points[0].text;
+                    this._highlightExprVsGEGene(gene);
+                }
+            });
+        });
+
+        // Render table
+        this.filterExprVsGETable();
+    }
+
+    filterExprVsGETable() {
+        const data = this._exprVsGEData;
+        if (!data) return;
+
+        const search = (document.getElementById('exprVsGEGeneSearch')?.value || '').toUpperCase().trim();
+        let filtered = data;
+        if (search) {
+            filtered = data.filter(d => d.gene.toUpperCase().includes(search));
+        }
+
+        // Sort by GE ascending (most depleted first)
+        filtered = [...filtered].sort((a, b) => a.ge - b.ge);
+
+        // Limit to top 200 rows for performance
+        const show = filtered.slice(0, 200);
+
+        let html = `<table style="width:100%; border-collapse:collapse; font-size:10px;">
+            <thead><tr style="background:#f3f4f6; position:sticky; top:0;">
+                <th style="padding:2px 4px; text-align:left;">Gene</th>
+                <th style="padding:2px 4px; text-align:right;">Expr</th>
+                <th style="padding:2px 4px; text-align:right;">GE</th>
+                <th style="padding:2px 4px; text-align:right;">Delta</th>
+            </tr></thead><tbody>`;
+
+        show.forEach(d => {
+            const geColor = d.ge < -0.5 ? '#dc2626' : (d.ge > 0.5 ? '#16a34a' : '#374151');
+            html += `<tr class="exprVsGERow" data-gene="${d.gene}" style="cursor:pointer; border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">
+                <td style="padding:2px 4px;">${d.gene}</td>
+                <td style="padding:2px 4px; text-align:right;">${d.expr.toFixed(2)}</td>
+                <td style="padding:2px 4px; text-align:right; color:${geColor};">${d.ge.toFixed(3)}</td>
+                <td style="padding:2px 4px; text-align:right;">${d.delta.toFixed(3)}</td>
+            </tr>`;
+        });
+        html += `</tbody></table>`;
+        if (filtered.length > 200) html += `<div style="font-size:9px;color:#999;text-align:center;margin-top:4px;">Showing 200 of ${filtered.length} genes. Use search to filter.</div>`;
+
+        document.getElementById('exprVsGETable').innerHTML = html;
+
+        // Add click handlers to table rows
+        document.querySelectorAll('.exprVsGERow').forEach(row => {
+            row.addEventListener('click', () => {
+                this._highlightExprVsGEGene(row.dataset.gene);
+            });
+        });
+    }
+
+    _highlightExprVsGEGene(gene) {
+        const data = this._exprVsGEData;
+        if (!data) return;
+        const d = data.find(dd => dd.gene === gene);
+        if (!d) return;
+
+        const plotEl = document.getElementById('exprVsGEPlot');
+        if (!plotEl?.data) return;
+
+        // Update or add highlight trace
+        const highlightTrace = {
+            x: [d.expr], y: [d.ge],
+            mode: 'markers+text',
+            type: 'scatter',
+            text: [gene],
+            textposition: 'top center',
+            textfont: { size: 10, color: '#000' },
+            marker: { color: '#f59e0b', size: 12, line: { color: '#000', width: 2 } },
+            showlegend: false
+        };
+
+        if (plotEl.data.length > 1) {
+            Plotly.deleteTraces('exprVsGEPlot', 1);
+        }
+        Plotly.addTraces('exprVsGEPlot', highlightTrace);
+
+        // Highlight table row
+        document.querySelectorAll('.exprVsGERow').forEach(row => {
+            row.style.background = row.dataset.gene === gene ? '#fef3c7' : '';
+        });
     }
 
     _buildGateReportFilename(prefix) {
@@ -17809,6 +18323,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         });
 
         svgContent += '\n</svg>';
+        svgContent = this.sanitizeSvgForIllustrator(svgContent);
 
         const blob = new Blob([svgContent], { type: 'image/svg+xml' });
         const link = document.createElement('a');
@@ -19177,10 +19692,17 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         } else {
             Plotly.toImage(plotDiv, { format: 'svg', width: w, height: h })
                 .then(url => {
+                    let svgStr;
+                    if (url.indexOf('base64,') > -1) svgStr = atob(url.split('base64,')[1]);
+                    else svgStr = decodeURIComponent(url.split(',').slice(1).join(','));
+                    svgStr = this.sanitizeSvgForIllustrator(svgStr);
+                    const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
                     const a = document.createElement('a');
-                    a.href = url;
+                    a.href = URL.createObjectURL(blob);
                     a.download = `${filename}.svg`;
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                 });
         }
     }
@@ -19799,7 +20321,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             // Split on <br> — first part is title (strip <b>), rest is subtitle
             const parts = raw.split(/<br\s*\/?>/i);
             titleText = stripHtml(parts[0]);
-            subtitleText = parts.slice(1).map(stripHtml).join(' | ');
+            subtitleText = parts.slice(1).map(stripHtml).join('\n');
             // Extract subtitle font-size from inline style
             const sizeMatch = raw.match(/font-size:\s*(\d+)px/);
             if (sizeMatch) subtitleSize = parseInt(sizeMatch[1]);
@@ -19838,7 +20360,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 </div>
             </div>`;
 
-        const textRow = (label, id, val) => `
+        const textRow = (label, id, val, useTextarea = false) => useTextarea ? `
+            <div style="margin-bottom:5px;">
+                <label style="font-size:10px;color:#6b7280;">${label}</label>
+                <textarea id="${id}" rows="3" style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:3px 6px;font-size:11px;margin-top:1px;box-sizing:border-box;resize:vertical;" oninput="app._tsApplyText()">${this._escapeAttr(val)}</textarea>
+            </div>` : `
             <div style="margin-bottom:5px;">
                 <label style="font-size:10px;color:#6b7280;">${label}</label>
                 <input type="text" id="${id}" value="${this._escapeAttr(val)}" style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:3px 6px;font-size:11px;margin-top:1px;box-sizing:border-box;" oninput="app._tsApplyText()">
@@ -19870,7 +20396,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Text Content</div>
             ${textRow('Title', 'ts_titleText', titleText)}
-            ${subtitleText ? textRow('Subtitle', 'ts_subtitleText', subtitleText) : ''}
+            ${subtitleText ? textRow('Subtitle', 'ts_subtitleText', subtitleText, true) : ''}
             ${textRow('X Axis', 'ts_xLabelText', xLabel)}
             ${textRow('Y Axis', 'ts_yLabelText', yLabel)}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
@@ -20104,14 +20630,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
             let html = `<b>${titleText}</b>`;
             if (subtitleEl) {
-                html += `<br><span style="font-size:${subSize}px;color:#666">${subtitleEl.value}</span>`;
+                const lines = subtitleEl.value.split('\n').filter(l => l.trim());
+                lines.forEach(line => { html += `<br><span style="font-size:${subSize}px;color:#666">${line}</span>`; });
             }
             updates[`annotations[${titleIdx}].text`] = html;
         } else if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
             const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
             let html = `<b>${titleText}</b>`;
             if (subtitleEl) {
-                html += `<br><span style="font-size:${subSize}px;color:#666">${subtitleEl.value}</span>`;
+                const lines = subtitleEl.value.split('\n').filter(l => l.trim());
+                lines.forEach(line => { html += `<br><span style="font-size:${subSize}px;color:#666">${line}</span>`; });
             }
             updates['annotations[0].text'] = html;
         } else {
