@@ -6,6 +6,33 @@
 - when making any changes to a graph, eg shich gene is shown on x or y axis, make sure that the app doesnt change the settigns for the text eg font size etc. now it jumps to a deafult setting.
 - in correlate_scatter, the box in the upper left corner for cahnging gene names (GE or expression) is too small, i cant see what i write. It needs to be bigger.
 - in teh network, allow for Aa settings. also allow for toggling on/off a thin line around the differnt nodes.
+-  The Correlate app exports SVGs (both network graphs and Plotly-based scatter plots) that render correctly in Chrome but have problems when opened in Adobe Illustrator: garbled text, incorrect stroke widths, and wrong colors. I need the SVG exports to be Illustrator-compatible. Please update the SVG export functions with these changes:
+For the network graph SVG export:
+
+Use explicit inline style attributes on every element, no CSS classes or <style> blocks
+Set all font properties directly on each <text> element: font-family="Arial, Helvetica, sans-serif", font-size="14" (as a number, not "14px")
+Use absolute stroke widths as numbers, not px units (e.g. stroke-width="2" not stroke-width="2px")
+Use hex colors (#333333) instead of named colors or rgb() notation
+Remove any CSS <style> blocks from the SVG, move everything to inline attributes
+Make sure the <svg> root has xmlns="http://www.w3.org/2000/svg" and the XML declaration <?xml version="1.0" encoding="UTF-8"?>
+
+For the Plotly-based scatter plot SVG export:
+
+After Plotly generates the SVG, post-process it to: convert all rgb(r, g, b) color values to hex, convert all CSS classes to inline styles, remove <defs> clip paths that Illustrator handles poorly, and simplify the nested group structure where possible
+Or alternatively, bypass Plotly's SVG export and generate a clean SVG manually from the scatter plot data using simple <circle>, <line>, and <text> elements with explicit inline attributes
+
+General rules for Illustrator-compatible SVGs:
+
+No CSS classes, no <style> blocks
+All styling as inline attributes
+Font sizes as plain numbers (no "px" suffix)
+Colors as hex values
+Stroke widths as plain numbers
+Keep the SVG structure as flat as possible (minimize nested <g> groups)
+Include <?xml version="1.0" encoding="UTF-8"?> declaration
+
+
+
 
 - allow for exporting data for umap to visualize format? Probably too complicated.
 
