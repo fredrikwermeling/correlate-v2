@@ -10082,7 +10082,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // If expression is needed, ensure data is loaded
         if (xType === 'expr' || yType === 'expr') {
             if (!this.expressionLoaded) {
-                // Show loading overlay on scatter plot
+                // Show loading overlay on scatter plot with progress updates
                 const plotEl = document.getElementById('scatterPlot');
                 let overlay = document.getElementById('scatterLoadingOverlay');
                 if (!overlay) {
@@ -10092,15 +10092,25 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     plotEl.style.position = 'relative';
                     plotEl.appendChild(overlay);
                 }
-                overlay.innerHTML = '<div style="text-align:center;"><div style="margin-bottom:8px;">Loading expression data (51 MB)...</div><div style="width:120px;height:4px;background:#e5e7eb;border-radius:2px;margin:0 auto;overflow:hidden;"><div style="width:40%;height:100%;background:#3b82f6;border-radius:2px;animation:pulse 1.5s ease-in-out infinite;"></div></div></div>';
+                overlay.innerHTML = '<div style="text-align:center;"><div id="scatterLoadingText" style="margin-bottom:8px;">Loading expression data...</div><div style="width:120px;height:4px;background:#e5e7eb;border-radius:2px;margin:0 auto;overflow:hidden;"><div style="width:40%;height:100%;background:#3b82f6;border-radius:2px;animation:pulse 1.5s ease-in-out infinite;"></div></div></div>';
                 overlay.style.display = 'flex';
+                // Mirror progress updates from loadExpressionData to our overlay
+                const origTextEl = document.getElementById('exprDataLoadingText');
+                const scatterTextEl = document.getElementById('scatterLoadingText');
+                let observer;
+                if (origTextEl && scatterTextEl) {
+                    observer = new MutationObserver(() => { scatterTextEl.textContent = origTextEl.textContent; });
+                    observer.observe(origTextEl, { childList: true, characterData: true, subtree: true });
+                }
                 try {
                     await this.loadExpressionData();
                 } catch (e) {
                     overlay.style.display = 'none';
+                    observer?.disconnect();
                     alert('Failed to load expression data: ' + e.message);
                     return;
                 }
+                observer?.disconnect();
                 overlay.style.display = 'none';
             }
             // Validate genes exist in expression data for the axes that need it
