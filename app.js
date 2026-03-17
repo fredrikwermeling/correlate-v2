@@ -3721,15 +3721,15 @@ class CorrelationExplorer {
         // Only show het/hom columns for non-damaging mutations (damaging is binary)
         if (!isD) {
             cols.push(
-                { col: 'n_2', label: `N (${mutLbl} 2${isT ? '+' : ''})`, style: 'border-left: 2px solid #dc2626;' },
-                { col: 'mean_2', label: `Mean GE (${mutLbl} 2${isT ? '+' : ''})`, style: '' },
-                { col: 'diff_2', label: 'Δ GE (2v0)', style: '' },
-                { col: 'p_2', label: 'p-value (2v0)', style: '' }
+                { col: 'n_2', label: `N (${mutLbl} 2${isT ? '+' : ''})`, style: 'border-left: 2px solid #dc2626;', cls: 'mut2-col' },
+                { col: 'mean_2', label: `Mean GE (${mutLbl} 2${isT ? '+' : ''})`, style: '', cls: 'mut2-col' },
+                { col: 'diff_2', label: 'Δ GE (2v0)', style: '', cls: 'mut2-col' },
+                { col: 'p_2', label: 'p-value (2v0)', style: '', cls: 'mut2-col' }
             );
         }
         let headerHTML = '<tr><th></th>';
         cols.forEach(c => {
-            headerHTML += `<th ${sortClick} data-col="${c.col}" ${tip} style="${thStyle} ${c.style}"${sortAttr(c.col)}>${c.label}${arrow(c.col)}</th>`;
+            headerHTML += `<th ${sortClick} data-col="${c.col}" ${tip} class="${c.cls || ''}" style="${thStyle} ${c.style}"${sortAttr(c.col)}>${c.label}${arrow(c.col)}</th>`;
         });
         if (hasFusion) {
             const fusionCols = [
@@ -3763,10 +3763,10 @@ class CorrelationExplorer {
             `;
             if (!isD) {
                 html += `
-                <td style="border-left: 2px solid #dc2626;">${r.n_2}</td>
-                <td>${isNaN(r.mean_2) ? '-' : r.mean_2.toFixed(2)}</td>
-                <td class="${r.diff_2 < 0 ? 'negative' : 'positive'}">${isNaN(r.diff_2) ? '-' : r.diff_2.toFixed(2)}</td>
-                <td>${this.formatPValue(r.p_2)}</td>
+                <td class="mut2-col" style="border-left: 2px solid #dc2626;">${r.n_2}</td>
+                <td class="mut2-col">${isNaN(r.mean_2) ? '-' : r.mean_2.toFixed(2)}</td>
+                <td class="mut2-col ${r.diff_2 < 0 ? 'negative' : 'positive'}">${isNaN(r.diff_2) ? '-' : r.diff_2.toFixed(2)}</td>
+                <td class="mut2-col">${this.formatPValue(r.p_2)}</td>
                 `;
             }
             if (hasFusion) {
@@ -3824,8 +3824,26 @@ class CorrelationExplorer {
         // Store for sorting
         this.mutationTableData = results;
 
+        // Show/hide mut2 column toggle (only for non-damaging)
+        const mut2Toggle = document.getElementById('mut2ColToggle');
+        if (mut2Toggle) {
+            mut2Toggle.style.display = !isD ? '' : 'none';
+            // Default: hide mut2 columns unless user toggled them on
+            const showMut2 = document.getElementById('showMut2Cols');
+            if (showMut2 && !showMut2.checked) {
+                document.querySelectorAll('#mutationTable .mut2-col').forEach(el => el.style.display = 'none');
+            }
+        }
+
         // Attach gene tooltips
         this.attachGeneTooltips(tbody);
+    }
+
+    toggleMut2Columns() {
+        const show = document.getElementById('showMut2Cols')?.checked;
+        document.querySelectorAll('#mutationTable .mut2-col').forEach(el => {
+            el.style.display = show ? '' : 'none';
+        });
     }
 
     filterMutationTable(query) {
@@ -4304,10 +4322,14 @@ class CorrelationExplorer {
             _tsRole: 'ylabel'
         };
 
+        const showZero = document.getElementById('geShowZeroLine')?.checked !== false;
         const layout = {
             annotations: [geTitleAnn, geXLabelAnn, geYLabelAnn],
             xaxis: {
-                range: [xMin, xMax]
+                range: [xMin, xMax],
+                zeroline: showZero,
+                zerolinecolor: showZero ? '#000' : 'transparent',
+                zerolinewidth: showZero ? 2 : 0
             },
             yaxis: {
                 tickmode: 'array',
@@ -4423,6 +4445,9 @@ class CorrelationExplorer {
 
         // Mark this as mutation analysis view
         this.geneEffectViewMode = 'mutation';
+
+        // Show zero line control
+        document.getElementById('geZeroLineControl').style.display = '';
 
         // Show mutation inspect controls, hide non-mutation view buttons
         document.getElementById('geHotspotFilter').style.display = '';
