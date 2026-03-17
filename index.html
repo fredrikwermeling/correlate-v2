@@ -1304,6 +1304,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>dev-23 (2026-03-16)</strong></p>
+                <ul>
+                    <li>UMAP/PCA overhaul: clean layout, Run Analysis button, complete Reset button</li>
+                    <li>PCA: compute 5 components, axis selector (PC1 vs PC3, etc.), loadings arrows on plot</li>
+                    <li>UMAP: 3D computation, dimension selector (UMAP 1 vs UMAP 3, etc.)</li>
+                    <li>Fix lingering gates/splits/graphs on re-run</li>
+                </ul>
                 <p><strong>dev-22 (2026-03-16)</strong></p>
                 <ul>
                     <li>Aa: box color scheme selector — Essential (red/gray/green), B&W, Blue gradient, Red-Blue diverging, Viridis, Uniform steelblue</li>
@@ -1446,7 +1453,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.22.1</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.23</a>
     </div>
 
     <div class="main-content">
@@ -2959,7 +2966,8 @@
         </div>
         <!-- UMAP Section -->
         <div id="clbUmapSection" style="border-top:1px solid #e5e7eb; padding:10px 16px;">
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+            <!-- Row 1: Method, Data, Filters, Run, Reset -->
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
                 <strong style="font-size:12px;">Dim. Reduction</strong>
                 <select id="clbUmapMethod" style="font-size:11px; padding:2px 4px;">
                     <option value="umap">UMAP</option>
@@ -2980,11 +2988,23 @@
                 <select id="clbUmapSubtypeFilter" style="font-size:11px; padding:2px 4px; display:none;">
                     <option value="">All subtypes</option>
                 </select>
-                <button id="clbUmapRunBtn" class="btn btn-sm" style="font-size:11px; padding:3px 10px; background:#16a34a; color:white; border:none; border-radius:4px; cursor:pointer;">Run UMAP</button>
-                <span style="font-size:10px; color:#6b7280; margin-left:4px;">Size:</span>
-                <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="6" style="width:60px; vertical-align:middle;" title="Marker size">
+                <button id="clbUmapRunBtn" class="btn btn-sm" style="font-size:11px; padding:3px 10px; background:#16a34a; color:white; border:none; border-radius:4px; cursor:pointer;">Run Analysis</button>
+                <button id="clbUmapResetBtn" class="btn btn-sm" style="font-size:11px; padding:3px 10px; background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer;" title="Clear everything and start fresh">Reset</button>
             </div>
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+            <!-- Row 2: Component selectors, Size, Loadings -->
+            <div id="clbUmapComponentRow" style="display:none; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+                <span style="font-size:10px; color:#6b7280;">Axes:</span>
+                <select id="clbUmapCompX" style="font-size:10px; padding:2px 4px;"></select>
+                <span style="font-size:10px; color:#6b7280;">vs</span>
+                <select id="clbUmapCompY" style="font-size:10px; padding:2px 4px;"></select>
+                <span style="font-size:10px; color:#6b7280; margin-left:6px;">Size:</span>
+                <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="6" style="width:60px; vertical-align:middle;" title="Marker size">
+                <label id="clbUmapLoadingsToggle" style="display:none; font-size:10px; color:#6b7280; margin-left:6px; cursor:pointer;">
+                    <input type="checkbox" id="clbUmapShowLoadings" style="vertical-align:middle;"> Loadings arrows
+                </label>
+            </div>
+            <!-- Row 3: Color by gene, Top Genes -->
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
                 <span style="font-size:10px; color:#6b7280;">Color by gene:</span>
                 <input type="text" id="clbUmapColorGene" placeholder="Gene symbol..." style="font-size:10px; padding:2px 4px; width:110px;" autocomplete="off">
                 <select id="clbUmapColorGeneType" style="font-size:10px; padding:2px 4px;">
@@ -2994,12 +3014,13 @@
                 <button id="clbUmapColorGeneBtn" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#6b7280; color:white; border:none; border-radius:3px; cursor:pointer;">Apply</button>
                 <button id="clbUmapColorGeneClear" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; display:none;">Clear</button>
                 <span id="clbUmapColorGeneStatus" style="font-size:9px; color:#6b7280;"></span>
-                <span style="margin-left:8px; font-size:10px; color:#6b7280;">|</span>
+                <span style="font-size:10px; color:#d1d5db;">|</span>
                 <button id="clbUmapTopGenesBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px;" title="Show top genes correlated with axes">Top Genes</button>
                 <span id="clbUmapLoadingsLabel" style="font-size:9px; color:#6b7280; display:none;"></span>
             </div>
-            <div id="clbUmapTopGenesPanel" style="display:none; margin-bottom:8px; padding:6px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; font-size:10px;"></div>
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+            <div id="clbUmapTopGenesPanel" style="display:none; margin-bottom:6px; padding:6px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; font-size:10px;"></div>
+            <!-- Row 4: Split by mutation -->
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
                 <span style="font-size:10px; color:#6b7280;">Split by mutation:</span>
                 <select id="clbUmapSplitSource" style="font-size:10px; padding:2px 4px;">
                     <option value="hotspot">Hotspot</option>
@@ -3011,12 +3032,13 @@
                 <button id="clbUmapClearSplitBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; display:none;">Clear</button>
                 <span id="clbUmapSplitType" style="font-size:10px; color:#6b7280;"></span>
             </div>
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+            <!-- Row 5: Gate Compare -->
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
                 <span class="control-label" style="font-size:10px; margin-bottom:0;">Gate Compare</span>
                 <button id="clbUmapSetGateA" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#2563eb; color:white;">Set Gate A</button>
                 <button id="clbUmapSetGateB" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#dc2626; color:white;" disabled>Set Gate B</button>
                 <button id="clbUmapCompareGates" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#16a34a; color:white; display:none;">Compare</button>
-                <button id="clbUmapUmapFromGate" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#7c3aed; color:white; display:none;" title="Run new UMAP using only Gate A cell lines">UMAP from Gate A</button>
+                <button id="clbUmapUmapFromGate" class="btn btn-sm" style="font-size:10px; padding:2px 8px; background:#7c3aed; color:white; display:none;" title="Run new analysis using only Gate A cell lines">From Gate A</button>
                 <button id="clbUmapClearGates" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; display:none;">Clear Gates</button>
                 <span id="clbUmapGateStatus" style="font-size:9px; color:#6b7280;"></span>
             </div>
