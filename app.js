@@ -19819,6 +19819,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 <input type="text" id="${id}" value="${this._escapeAttr(val)}" style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:3px 6px;font-size:11px;margin-top:1px;box-sizing:border-box;" oninput="app._tsApplyText()">
             </div>`;
 
+        // Detect current font from layout
+        const currentFont = layout.font?.family || layout.title?.font?.family || 'Open Sans, sans-serif';
+
         body.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                 <span style="font-weight:600;color:#1f2937;font-size:11px;">Scale All</span>
@@ -19826,6 +19829,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     <button onclick="app._tsScaleAll(-1)" style="width:24px;height:22px;border:1px solid #d1d5db;background:#f0fdf4;border-radius:4px 0 0 4px;cursor:pointer;font-size:13px;font-weight:bold;">−</button>
                     <button onclick="app._tsScaleAll(1)" style="width:24px;height:22px;border:1px solid #d1d5db;background:#f0fdf4;border-radius:0 4px 4px 0;cursor:pointer;font-size:13px;font-weight:bold;">+</button>
                 </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <span style="font-weight:600;color:#1f2937;font-size:11px;">Font</span>
+                <select id="ts_fontFamily" onchange="app._tsApplyFont()" style="flex:1;font-size:11px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;">
+                    <option value="Open Sans, sans-serif" ${currentFont.includes('Open Sans') ? 'selected' : ''} style="font-family:'Open Sans',sans-serif;">Open Sans</option>
+                    <option value="Arial, Helvetica, sans-serif" ${currentFont.includes('Arial') ? 'selected' : ''} style="font-family:Arial,sans-serif;">Arial</option>
+                    <option value="Helvetica, Arial, sans-serif" ${currentFont.includes('Helvetica') && !currentFont.includes('Arial,') ? 'selected' : ''} style="font-family:Helvetica,sans-serif;">Helvetica</option>
+                    <option value="Georgia, serif" ${currentFont.includes('Georgia') ? 'selected' : ''} style="font-family:Georgia,serif;">Georgia</option>
+                    <option value="Times New Roman, serif" ${currentFont.includes('Times') ? 'selected' : ''} style="font-family:'Times New Roman',serif;">Times New Roman</option>
+                    <option value="Roboto Mono, monospace" ${currentFont.includes('Roboto Mono') ? 'selected' : ''} style="font-family:'Roboto Mono',monospace;">Roboto Mono</option>
+                    <option value="Courier New, monospace" ${currentFont.includes('Courier') ? 'selected' : ''} style="font-family:'Courier New',monospace;">Courier New</option>
+                </select>
             </div>
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Text Content</div>
@@ -19983,6 +19998,30 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             inp.value = Math.max(parseInt(inp.min) || 1, Math.min(parseInt(inp.max) || 48, cur + direction));
         });
         this._tsApply();
+    }
+
+    _tsApplyFont() {
+        const plotEl = document.getElementById(this._textSettingsPlotId);
+        if (!plotEl?.layout) return;
+        const family = document.getElementById('ts_fontFamily')?.value || 'Open Sans, sans-serif';
+
+        const updates = {
+            'font.family': family,
+            'title.font.family': family,
+            'xaxis.title.font.family': family,
+            'yaxis.title.font.family': family,
+            'xaxis.tickfont.family': family,
+            'yaxis.tickfont.family': family,
+            'legend.font.family': family
+        };
+
+        // Also apply to annotations
+        const anns = plotEl.layout.annotations || [];
+        for (let i = 0; i < anns.length; i++) {
+            updates[`annotations[${i}].font.family`] = family;
+        }
+
+        Plotly.relayout(plotEl, updates);
     }
 
     _tsFindAnn(plotEl, role) {
