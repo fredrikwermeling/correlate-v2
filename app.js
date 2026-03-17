@@ -17279,7 +17279,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbExprVsGEBtn')?.addEventListener('click', () => this.showExprVsGEPlot());
         document.getElementById('exprVsGEClose')?.addEventListener('click', () => { document.getElementById('exprVsGESection').style.display = 'none'; });
         document.getElementById('exprVsGEGeneSearch')?.addEventListener('input', () => this.filterExprVsGETable());
-        document.getElementById('exprVsGETissueFilter')?.addEventListener('change', () => this.filterExprVsGETable());
+        document.getElementById('exprVsGEAaBtn')?.addEventListener('click', () => this.openTextSettings('exprVsGEPlot'));
 
         // Gene tooltips on gene links in detail panel
         const geneLists = document.getElementById('clbDetailGeneLists');
@@ -17990,8 +17990,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
     }
 
-    async showExprVsGEPlot() {
-        const cellLineId = this._clbInspectedCellLine;
+    async showExprVsGEPlot(cellLineId) {
+        // Accept explicit cell line ID or fall back to inspected one
+        cellLineId = cellLineId || this._clbInspectedCellLine;
         if (!cellLineId) { alert('Select a cell line first.'); return; }
 
         // Ensure expression data is loaded
@@ -18016,10 +18017,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         this._exprVsGEData = data;
         this._exprVsGECellLine = cellLineId;
+        this._exprVsGESortCol = 'ge';
+        this._exprVsGESortAsc = true;
         document.getElementById('exprVsGECellLine').textContent = clName;
         document.getElementById('exprVsGESection').style.display = '';
 
-        // Render scatter plot
+        // Render scatter with annotation-based draggable titles
         const traces = [{
             x: data.map(d => d.expr),
             y: data.map(d => d.ge),
@@ -18031,17 +18034,43 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             showlegend: false
         }];
 
+        const titleAnnotation = {
+            x: 0.5, y: 1.0, xref: 'paper', yref: 'paper',
+            xanchor: 'center', yanchor: 'bottom',
+            text: `<b>${clName}: Expression vs Gene Effect</b>`,
+            showarrow: false,
+            font: { size: 15 },
+            _tsRole: 'title'
+        };
+        const xLabelAnnotation = {
+            x: 0.5, y: -0.10, xref: 'paper', yref: 'paper',
+            xanchor: 'center', yanchor: 'top',
+            text: 'Expression (log2 TPM+1)',
+            showarrow: false, font: { size: 13 },
+            _tsRole: 'xlabel'
+        };
+        const yLabelAnnotation = {
+            x: -0.12, y: 0.5, xref: 'paper', yref: 'paper',
+            xanchor: 'center', yanchor: 'middle',
+            text: 'Gene Effect', textangle: -90,
+            showarrow: false, font: { size: 13 },
+            _tsRole: 'ylabel'
+        };
+
         const layout = {
-            xaxis: { title: 'Expression (log2 TPM+1)', titlefont: { size: 11 }, tickfont: { size: 9 } },
-            yaxis: { title: 'Gene Effect', titlefont: { size: 11 }, tickfont: { size: 9 } },
-            title: { text: `${clName}: Expression vs Gene Effect`, font: { size: 13 } },
-            margin: { t: 40, r: 20, b: 50, l: 50 },
-            width: 500, height: 400,
+            xaxis: { tickfont: { size: 11 } },
+            yaxis: { tickfont: { size: 11 } },
+            annotations: [titleAnnotation, xLabelAnnotation, yLabelAnnotation],
+            margin: { t: 50, r: 20, b: 55, l: 65, autoexpand: false },
+            width: 500, height: 420,
             hovermode: 'closest',
             plot_bgcolor: '#fafafa'
         };
 
-        Plotly.newPlot('exprVsGEPlot', traces, layout, { responsive: false }).then(plotEl => {
+        Plotly.newPlot('exprVsGEPlot', traces, layout, {
+            responsive: false, displayModeBar: false, displaylogo: false,
+            edits: { annotationPosition: true }
+        }).then(plotEl => {
             plotEl.on('plotly_click', (eventData) => {
                 if (eventData.points.length > 0) {
                     const gene = eventData.points[0].text;
@@ -18051,6 +18080,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         });
 
         // Render table
+        this.filterExprVsGETable();
+    }
+
+    sortExprVsGETable(col) {
+        if (this._exprVsGESortCol === col) {
+            this._exprVsGESortAsc = !this._exprVsGESortAsc;
+        } else {
+            this._exprVsGESortCol = col;
+            this._exprVsGESortAsc = col === 'gene'; // alphabetical asc for gene, else asc (low first)
+        }
         this.filterExprVsGETable();
     }
 
@@ -18064,18 +18103,26 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             filtered = data.filter(d => d.gene.toUpperCase().includes(search));
         }
 
-        // Sort by GE ascending (most depleted first)
-        filtered = [...filtered].sort((a, b) => a.ge - b.ge);
+        // Sort by selected column
+        const col = this._exprVsGESortCol || 'ge';
+        const asc = this._exprVsGESortAsc ?? true;
+        filtered = [...filtered].sort((a, b) => {
+            const va = col === 'gene' ? a.gene : a[col];
+            const vb = col === 'gene' ? b.gene : b[col];
+            if (col === 'gene') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+            return asc ? va - vb : vb - va;
+        });
 
-        // Limit to top 200 rows for performance
         const show = filtered.slice(0, 200);
+        const arrow = (c) => this._exprVsGESortCol === c ? (this._exprVsGESortAsc ? ' ▲' : ' ▼') : '';
+        const thStyle = 'padding:2px 4px; cursor:pointer; user-select:none; white-space:nowrap;';
 
         let html = `<table style="width:100%; border-collapse:collapse; font-size:10px;">
             <thead><tr style="background:#f3f4f6; position:sticky; top:0;">
-                <th style="padding:2px 4px; text-align:left;">Gene</th>
-                <th style="padding:2px 4px; text-align:right;">Expr</th>
-                <th style="padding:2px 4px; text-align:right;">GE</th>
-                <th style="padding:2px 4px; text-align:right;">Delta</th>
+                <th style="${thStyle} text-align:left;" onclick="app.sortExprVsGETable('gene')">Gene${arrow('gene')}</th>
+                <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('expr')">Expr${arrow('expr')}</th>
+                <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('ge')">GE${arrow('ge')}</th>
+                <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('delta')">Delta${arrow('delta')}</th>
             </tr></thead><tbody>`;
 
         show.forEach(d => {
@@ -18092,7 +18139,6 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         document.getElementById('exprVsGETable').innerHTML = html;
 
-        // Add click handlers to table rows
         document.querySelectorAll('.exprVsGERow').forEach(row => {
             row.addEventListener('click', () => {
                 this._highlightExprVsGEGene(row.dataset.gene);
@@ -20168,14 +20214,42 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const allIdx = cellLines.map((_, i) => i);
             const traces = buildCategoryTraces(allIdx, true);
             const dims = this._getUmapPlotDimensions();
+            const method = this._clbUmapData?.method === 'pca' ? 'PCA' : 'UMAP';
+            const titleText = `${method} \u2014 ${dataTypeLabel} (${cellLines.length} cell lines)`;
+            const umapTitleAnn = {
+                x: 0.5, y: 1.0, xref: 'paper', yref: 'paper',
+                xanchor: 'center', yanchor: 'bottom',
+                text: `<b>${titleText}</b>`,
+                showarrow: false, font: { size: 15 },
+                _tsRole: 'title'
+            };
+            const umapXAnn = {
+                x: 0.5, y: -0.08, xref: 'paper', yref: 'paper',
+                xanchor: 'center', yanchor: 'top',
+                text: axLabels[0], showarrow: false, font: { size: 13 },
+                _tsRole: 'xlabel'
+            };
+            const umapYAnn = {
+                x: -0.08, y: 0.5, xref: 'paper', yref: 'paper',
+                xanchor: 'center', yanchor: 'middle',
+                text: axLabels[1], textangle: -90,
+                showarrow: false, font: { size: 13 },
+                _tsRole: 'ylabel'
+            };
             const layout = {
                 ...baseLayout,
-                title: { text: `${this._clbUmapData?.method === 'pca' ? 'PCA' : 'UMAP'} \u2014 ${dataTypeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
-                margin: { t: 35, r: 10, b: 40, l: 50 },
+                xaxis: { ...baseLayout.xaxis, title: undefined },
+                yaxis: { ...baseLayout.yaxis, title: undefined },
+                annotations: [umapTitleAnn, umapXAnn, umapYAnn],
+                margin: { t: 50, r: 10, b: 50, l: 60, autoexpand: false },
                 height: dims.height, width: dims.width,
                 legend: { font: { size: 9 }, itemsizing: 'constant', tracegroupgap: 2, y: 0.5, yanchor: 'middle' }
             };
-            Plotly.newPlot(plotDiv, traces, layout, { responsive: true, displayModeBar: true, modeBarButtonsToAdd: ['select2d', 'lasso2d'], displaylogo: false });
+            Plotly.newPlot(plotDiv, traces, layout, {
+                responsive: true, displayModeBar: true,
+                modeBarButtonsToAdd: ['select2d', 'lasso2d'], displaylogo: false,
+                edits: { annotationPosition: true }
+            });
             this._addLoadingsArrows(plotDiv);
             plotDiv.on('plotly_selected', (eventData) => {
                 this._clbUmapSelectedPoints = new Set();
@@ -20284,16 +20358,34 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             hoverinfo: 'text', showlegend: false
         };
 
+        const geneColorTitleAnn = {
+            x: 0.5, y: 1.0, xref: 'paper', yref: 'paper',
+            xanchor: 'center', yanchor: 'bottom',
+            text: `<b>${methodLabel} \u2014 ${gene} ${typeLabel} (${cellLines.length} cell lines)</b>`,
+            showarrow: false, font: { size: 15 }, _tsRole: 'title'
+        };
+        const geneColorXAnn = {
+            x: 0.5, y: -0.08, xref: 'paper', yref: 'paper',
+            xanchor: 'center', yanchor: 'top',
+            text: axLabels[0], showarrow: false, font: { size: 13 }, _tsRole: 'xlabel'
+        };
+        const geneColorYAnn = {
+            x: -0.08, y: 0.5, xref: 'paper', yref: 'paper',
+            xanchor: 'center', yanchor: 'middle',
+            text: axLabels[1], textangle: -90,
+            showarrow: false, font: { size: 13 }, _tsRole: 'ylabel'
+        };
         const layout = {
-            xaxis: { title: axLabels[0], zeroline: false, showgrid: false },
-            yaxis: { title: axLabels[1], zeroline: false, showgrid: false, scaleanchor: 'x', scaleratio: 1 },
-            title: { text: `${methodLabel} — ${gene} ${typeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
-            margin: { t: 35, r: 80, b: 40, l: 50 }, height: this._getUmapPlotDimensions().height, width: this._getUmapPlotDimensions().width,
+            xaxis: { zeroline: false, showgrid: false },
+            yaxis: { zeroline: false, showgrid: false, scaleanchor: 'x', scaleratio: 1 },
+            annotations: [geneColorTitleAnn, geneColorXAnn, geneColorYAnn],
+            margin: { t: 50, r: 80, b: 50, l: 60, autoexpand: false },
+            height: this._getUmapPlotDimensions().height, width: this._getUmapPlotDimensions().width,
             hovermode: 'closest', dragmode: 'lasso',
             paper_bgcolor: 'white', plot_bgcolor: '#fafafa'
         };
 
-        Plotly.newPlot(plotDiv, [trace], layout, { responsive: true, displayModeBar: true, displaylogo: false });
+        Plotly.newPlot(plotDiv, [trace], layout, { responsive: true, displayModeBar: true, displaylogo: false, edits: { annotationPosition: true } });
         plotDiv.on('plotly_selected', (eventData) => {
             this._clbUmapSelectedPoints = new Set();
             if (eventData?.points) eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });

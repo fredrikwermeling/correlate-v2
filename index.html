@@ -1313,6 +1313,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.25.2 (2026-03-17)</strong></p>
+                <ul>
+                    <li>Expr vs GE: moved higher in cell line panel, Aa text settings, draggable titles, sortable table columns</li>
+                    <li>UMAP/PCA: annotation-based draggable title and labels, title no longer overlaps modebar</li>
+                    <li>All annotation-based plots now center title over graph area</li>
+                </ul>
                 <p><strong>v.25.1 (2026-03-17)</strong></p>
                 <ul>
                     <li>New default font sizes: Title 25, Subtitle 15, Labels 20, Ticks 17, Legend 17, Markers 10</li>
@@ -1521,7 +1527,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.25.1</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.25.2</a>
     </div>
 
     <div class="main-content">
@@ -3048,10 +3054,10 @@
                 </select>
                 <label style="font-size:11px; color:var(--gray-500);">genes per list</label>
               </div>
-              <div id="clbDetailGeneLists"></div>
               <div style="margin-top:8px; border-top:1px solid #e5e7eb; padding-top:8px;">
                 <button id="clbExprVsGEBtn" class="btn btn-outline btn-sm" style="font-size:10px; color:var(--green-700); border-color:var(--green-400); width:100%;">Expression vs Gene Effect</button>
               </div>
+              <div id="clbDetailGeneLists"></div>
             </div>
           </div>
         </div>
@@ -3060,13 +3066,10 @@
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                 <strong style="font-size:12px;">Expression vs Gene Effect</strong>
                 <span id="exprVsGECellLine" style="font-size:11px; color:var(--gray-500);"></span>
+                <button id="exprVsGEAaBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; font-family:Georgia,serif; font-style:italic;" title="Text & layout settings">Aa</button>
                 <button id="exprVsGEClose" class="btn btn-sm btn-outline" style="margin-left:auto; font-size:10px; padding:2px 6px;">Close</button>
             </div>
             <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
-                <label style="font-size:10px; color:var(--gray-500);">Filter tissue:</label>
-                <select id="exprVsGETissueFilter" style="font-size:10px; padding:2px 4px;">
-                    <option value="">All</option>
-                </select>
                 <label style="font-size:10px; color:var(--gray-500);">Search gene:</label>
                 <input type="text" id="exprVsGEGeneSearch" placeholder="Gene..." style="font-size:10px; padding:2px 6px; width:80px; border:1px solid #d1d5db; border-radius:4px;">
             </div>
