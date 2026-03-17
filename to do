@@ -1,9 +1,9 @@
 - in umap, # of mutations in cells line. also ,not only square gates, also indiacte cells in gate with color and with letter A or B like in the scatter correlate version.
 - in umap cancer cells gate analysis also allow for enricher.
-- in correlate scatter plot, the box for gene name in x and y axis (with possoibility to cahnge the GE or expression)
+- in correlate scatter plot, the box for gene name in x and y axis (with possibility to change the GE or expression)
 - output the first page as svg as a button.
-- make it possible to change the size of legends font text font size etc for corellation scatter plot, for gene effect plots, and for mutational analysis inspect. lern from visualize https://github.com/fredrikwermeling/Visualize with the Aa and wheel settings.   
-
+- make it possible to change the size of legend font, text font size, etc., for correlation scatter plot, for gene effect plots, and for mutational analysis inspection, and for network and the linked legends. lern from visualize https://github.com/fredrikwermeling/Visualize with the Aa and wheel settings.   
+- The size of edge thicknesses in the network does not correlate to the size of the legend. 
 
 - allow for exporting data for umap to visualize format?
 
