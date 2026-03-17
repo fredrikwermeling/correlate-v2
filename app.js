@@ -5157,6 +5157,27 @@ class CorrelationExplorer {
             banner.className = 'network-filter-banner';
             banner.textContent = filterText;
             container.appendChild(banner);
+
+            // Make banner draggable
+            let dragOffsetX = 0, dragOffsetY = 0, isDragging = false;
+            banner.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                const rect = banner.getBoundingClientRect();
+                dragOffsetX = e.clientX - rect.left;
+                dragOffsetY = e.clientY - rect.top;
+                // Remove centering transform once dragging starts
+                banner.style.transform = 'none';
+                banner.style.left = rect.left - container.getBoundingClientRect().left + 'px';
+                banner.style.top = rect.top - container.getBoundingClientRect().top + 'px';
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const containerRect = container.getBoundingClientRect();
+                banner.style.left = (e.clientX - containerRect.left - dragOffsetX) + 'px';
+                banner.style.top = (e.clientY - containerRect.top - dragOffsetY) + 'px';
+            });
+            document.addEventListener('mouseup', () => { isDragging = false; });
         }
 
         this.hiddenNodes = [];

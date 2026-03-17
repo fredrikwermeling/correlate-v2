@@ -670,7 +670,8 @@
             font-size: 10px;
             color: #374151;
             white-space: nowrap;
-            pointer-events: none;
+            cursor: move;
+            user-select: none;
         }
 
         /* New horizontal grid layout for network controls */
@@ -1308,6 +1309,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.24.7 (2026-03-17)</strong></p>
+                <ul>
+                    <li>Network filter banner is now draggable — click and drag to reposition</li>
+                </ul>
                 <p><strong>v.24.6 (2026-03-17)</strong></p>
                 <ul>
                     <li>CLB export: clearer button names (GE Matrix, Cell Line Report, Full Data Export) with tooltips</li>
@@ -1500,7 +1505,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.24.6</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.24.7</a>
     </div>
 
     <div class="main-content">
