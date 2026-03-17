@@ -9998,12 +9998,26 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // If expression is needed, ensure data is loaded
         if (xType === 'expr' || yType === 'expr') {
             if (!this.expressionLoaded) {
+                // Show loading overlay on scatter plot
+                const plotEl = document.getElementById('scatterPlot');
+                let overlay = document.getElementById('scatterLoadingOverlay');
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.id = 'scatterLoadingOverlay';
+                    overlay.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;z-index:10;font-size:13px;color:#374151;';
+                    plotEl.style.position = 'relative';
+                    plotEl.appendChild(overlay);
+                }
+                overlay.innerHTML = '<div style="text-align:center;"><div style="margin-bottom:8px;">Loading expression data (51 MB)...</div><div style="width:120px;height:4px;background:#e5e7eb;border-radius:2px;margin:0 auto;overflow:hidden;"><div style="width:40%;height:100%;background:#3b82f6;border-radius:2px;animation:pulse 1.5s ease-in-out infinite;"></div></div></div>';
+                overlay.style.display = 'flex';
                 try {
                     await this.loadExpressionData();
                 } catch (e) {
+                    overlay.style.display = 'none';
                     alert('Failed to load expression data: ' + e.message);
                     return;
                 }
+                overlay.style.display = 'none';
             }
             // Validate genes exist in expression data for the axes that need it
             if (xType === 'expr' && !this.expressionGeneIndex?.has(gene1.toUpperCase())) {
