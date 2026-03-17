@@ -5037,11 +5037,11 @@ class CorrelationExplorer {
                 id: gene,
                 label: label,
                 size: nodeSize,
-                font: { size: fontSize, color: this._netLabelColor || '#333', scaling: { min: fontSize, max: fontSize } },
+                font: { size: fontSize, color: this._netLabelColor || '#333', face: this._netFontFamily || 'Arial, sans-serif', scaling: { min: fontSize, max: fontSize } },
                 color: {
                     background: this._netNodeColor || (this.results.mode === 'design' ?
                         (isInput ? '#5a9f4a' : '#a8d89a') : '#5a9f4a'),
-                    border: '#ffffff'
+                    border: '#000000'
                 },
                 borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
                 title: titleLines.join('\n'),
@@ -5075,8 +5075,8 @@ class CorrelationExplorer {
                         id: gene,
                         label: label,
                         size: nodeSize,
-                        font: { size: fontSize, color: this._netLabelColor || '#999', scaling: { min: fontSize, max: fontSize } },
-                        color: { background: '#d1d5db', border: '#9ca3af' },
+                        font: { size: fontSize, color: this._netLabelColor || '#999', face: this._netFontFamily || 'Arial, sans-serif', scaling: { min: fontSize, max: fontSize } },
+                        color: { background: '#d1d5db', border: '#000000' },
                         borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
                         borderWidthSelected: 3,
                         title: titleLines.join('\n'),
@@ -5431,7 +5431,7 @@ class CorrelationExplorer {
             nodeUpdates.push({
                 id: node.id,
                 size: nodeSize,
-                font: { size: fontSize, color: '#333', scaling: { min: fontSize, max: fontSize } }
+                font: { size: fontSize, color: this._netLabelColor || '#333', face: this._netFontFamily || 'Arial, sans-serif', scaling: { min: fontSize, max: fontSize } }
             });
         });
         this.networkData.nodes.update(nodeUpdates);
@@ -5457,8 +5457,6 @@ class CorrelationExplorer {
         const body = document.getElementById('textSettingsBody');
         this._textSettingsPlotId = '__network__';
 
-        const fontSize = parseInt(document.getElementById('netFontSize').value) || 16;
-
         const sizeRow = (label, id, val, min, max) => `
             <div style="display:flex; align-items:center; margin-bottom:5px; gap:4px;">
                 <span style="width:15px;"></span>
@@ -5470,11 +5468,6 @@ class CorrelationExplorer {
                 </div>
             </div>`;
 
-        // Get current legend font sizes from DOM
-        const legendEl = document.getElementById('networkLegend');
-        const legendTitleSize = this._netLegendTitleSize || 13;
-        const legendLabelSize = this._netLegendLabelSize || 11;
-
         const colorRow = (label, id, val) => `
             <div style="display:flex; align-items:center; margin-bottom:5px; gap:4px;">
                 <span style="width:15px;"></span>
@@ -5482,19 +5475,56 @@ class CorrelationExplorer {
                 <input type="color" id="${id}" value="${val}" style="width:28px;height:22px;border:1px solid #d1d5db;border-radius:4px;padding:0;cursor:pointer;" oninput="app._netTsApply()">
             </div>`;
 
-        // Get current colors
+        // Current values
+        const legendEl = document.getElementById('networkLegend');
+        const currentFont = this._netFontFamily || 'Arial, sans-serif';
+        const legendFontSize = this._netLegendFontSize || 11;
+        const legendColor = this._netLegendColor || '#374151';
+        const bannerFontSize = this._netBannerFontSize || 10;
+        const bannerColor = this._netBannerColor || '#374151';
         const labelColor = this._netLabelColor || '#333333';
         const nodeColor = this._netNodeColor || '#5a9f4a';
 
+        // Read current legend text from DOM
+        const legendSections = legendEl?.querySelectorAll('.legend-section') || [];
+        let legendTexts = [];
+        legendSections.forEach(sec => {
+            const strong = sec.querySelector('strong');
+            if (strong) legendTexts.push(strong.textContent.replace(/:$/, ''));
+        });
+
+        // Read filter banner text
+        const banner = document.querySelector('.network-filter-banner');
+        const bannerText = banner?.textContent || '';
+
         body.innerHTML = `
-            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Text Sizes</div>
-            ${sizeRow('Node Label', 'net_ts_fontSize', fontSize, 6, 48)}
-            ${sizeRow('Legend Title', 'net_ts_legendTitle', legendTitleSize, 6, 30)}
-            ${sizeRow('Legend Label', 'net_ts_legendLabel', legendLabelSize, 6, 30)}
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <span style="font-weight:600;color:#1f2937;font-size:11px;">Font</span>
+                <select id="net_ts_font" onchange="app._netTsApply()" style="flex:1;font-size:11px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;">
+                    <option value="Arial, sans-serif" ${currentFont.includes('Arial') ? 'selected' : ''}>Arial</option>
+                    <option value="Helvetica, Arial, sans-serif" ${currentFont.includes('Helvetica') && !currentFont.startsWith('Arial') ? 'selected' : ''}>Helvetica</option>
+                    <option value="Open Sans, sans-serif" ${currentFont.includes('Open Sans') ? 'selected' : ''}>Open Sans</option>
+                    <option value="Georgia, serif" ${currentFont.includes('Georgia') ? 'selected' : ''}>Georgia</option>
+                    <option value="Times New Roman, serif" ${currentFont.includes('Times') ? 'selected' : ''}>Times New Roman</option>
+                    <option value="Courier New, monospace" ${currentFont.includes('Courier') ? 'selected' : ''}>Courier New</option>
+                </select>
+            </div>
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Legend</div>
+            ${sizeRow('Font Size', 'net_ts_legendSize', legendFontSize, 6, 30)}
+            ${colorRow('Text Color', 'net_ts_legendColor', legendColor)}
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Filter Banner</div>
+            ${sizeRow('Font Size', 'net_ts_bannerSize', bannerFontSize, 6, 24)}
+            ${colorRow('Text Color', 'net_ts_bannerColor', bannerColor)}
+            ${bannerText ? `<div style="margin-bottom:5px;">
+                <label style="font-size:10px;color:#6b7280;">Banner Text</label>
+                <input type="text" id="net_ts_bannerText" value="${this._escapeAttr(bannerText)}" style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:3px 6px;font-size:11px;margin-top:1px;box-sizing:border-box;" oninput="app._netTsApply()">
+            </div>` : ''}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Colors</div>
-            ${colorRow('Label', 'net_ts_labelColor', labelColor)}
-            ${colorRow('Node', 'net_ts_nodeColor', nodeColor)}
+            ${colorRow('Node Label', 'net_ts_labelColor', labelColor)}
+            ${colorRow('Node Fill', 'net_ts_nodeColor', nodeColor)}
         `;
 
         panel.style.display = 'block';
@@ -5509,26 +5539,27 @@ class CorrelationExplorer {
 
     _netTsApply() {
         if (!this.network || !this.networkData) return;
-        const fontSize = parseInt(document.getElementById('net_ts_fontSize')?.value) || 16;
+
+        // Font family
+        const fontFamily = document.getElementById('net_ts_font')?.value || 'Arial, sans-serif';
+        this._netFontFamily = fontFamily;
+
+        // Node label color
         const labelColor = document.getElementById('net_ts_labelColor')?.value || '#333333';
         const nodeColor = document.getElementById('net_ts_nodeColor')?.value || '#5a9f4a';
-
-        // Store colors for network rebuild
         this._netLabelColor = labelColor;
         this._netNodeColor = nodeColor;
 
-        // Sync the slider
-        const slider = document.getElementById('netFontSize');
-        if (slider) { slider.value = fontSize; document.getElementById('fontSizeBubble').textContent = fontSize; }
+        // Sync node font from slider (slider still controls node label size)
+        const fontSize = parseInt(document.getElementById('netFontSize').value) || 16;
 
         // Update all nodes
         const nodeUpdates = [];
         this.networkData.nodes.forEach(node => {
             const update = {
                 id: node.id,
-                font: { size: fontSize, color: labelColor, scaling: { min: fontSize, max: fontSize } }
+                font: { size: fontSize, color: labelColor, face: fontFamily, scaling: { min: fontSize, max: fontSize } }
             };
-            // Only recolor non-uncorrelated nodes (uncorrelated are gray)
             if (node.color?.background !== '#d1d5db') {
                 update.color = { ...node.color, background: nodeColor };
             }
@@ -5536,19 +5567,38 @@ class CorrelationExplorer {
         });
         this.networkData.nodes.update(nodeUpdates);
 
-        // Update legend sizes
-        const legendTitleSize = parseInt(document.getElementById('net_ts_legendTitle')?.value) || 13;
-        const legendLabelSize = parseInt(document.getElementById('net_ts_legendLabel')?.value) || 11;
-        this._netLegendTitleSize = legendTitleSize;
-        this._netLegendLabelSize = legendLabelSize;
+        // Legend styling
+        const legendFontSize = parseInt(document.getElementById('net_ts_legendSize')?.value) || 11;
+        const legendColor = document.getElementById('net_ts_legendColor')?.value || '#374151';
+        this._netLegendFontSize = legendFontSize;
+        this._netLegendColor = legendColor;
 
         const legendEl = document.getElementById('networkLegend');
         if (legendEl) {
-            legendEl.querySelectorAll('.legend-title, legend-header').forEach(el => el.style.fontSize = legendTitleSize + 'px');
-            legendEl.querySelectorAll('.legend-label, .legend-item span, .legend-item-label').forEach(el => el.style.fontSize = legendLabelSize + 'px');
-            // Fallback: style direct children
-            const titleEl = legendEl.querySelector('div > b, div > strong, [style*="font-weight"]');
-            if (titleEl) titleEl.style.fontSize = legendTitleSize + 'px';
+            legendEl.style.fontSize = legendFontSize + 'px';
+            legendEl.style.color = legendColor;
+            legendEl.style.fontFamily = fontFamily;
+            // Apply to all text within legend
+            legendEl.querySelectorAll('strong, div, span').forEach(el => {
+                el.style.fontSize = legendFontSize + 'px';
+                el.style.color = legendColor;
+                el.style.fontFamily = fontFamily;
+            });
+        }
+
+        // Filter banner styling
+        const bannerFontSize = parseInt(document.getElementById('net_ts_bannerSize')?.value) || 10;
+        const bannerColor = document.getElementById('net_ts_bannerColor')?.value || '#374151';
+        this._netBannerFontSize = bannerFontSize;
+        this._netBannerColor = bannerColor;
+
+        const banner = document.querySelector('.network-filter-banner');
+        if (banner) {
+            banner.style.fontSize = bannerFontSize + 'px';
+            banner.style.color = bannerColor;
+            banner.style.fontFamily = fontFamily;
+            const bannerText = document.getElementById('net_ts_bannerText')?.value;
+            if (bannerText !== undefined) banner.textContent = bannerText;
         }
     }
 
@@ -6460,7 +6510,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 const nodeRadius = (node.size || 25) * scale;
                 const nodeFontSize = node.font?.size || 16;
                 const borderW = node.borderWidth != null ? node.borderWidth : 2;
-                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? 'white' : 'none'}" stroke-width="${borderW * scale}"/>\n`;
+                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? '#000' : 'none'}" stroke-width="${borderW * scale}"/>\n`;
 
                 // Handle multi-line labels
                 const labelLines = (node.label || node.id).split('\n');
@@ -7765,7 +7815,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 const nodeRadius = (node.size || 25) * scale;
                 const nodeFontSize = node.font?.size || 16;
                 const borderW = node.borderWidth != null ? node.borderWidth : 2;
-                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? 'white' : 'none'}" stroke-width="${borderW * scale}"/>\n`;
+                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? '#000' : 'none'}" stroke-width="${borderW * scale}"/>\n`;
 
                 // Handle multi-line labels
                 const labelLines = (node.label || node.id).split('\n');
