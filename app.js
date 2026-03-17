@@ -5492,7 +5492,7 @@ class CorrelationExplorer {
                 <span style="color:#374151;flex:1;min-width:55px;font-size:11px;">${label}</span>
                 <div style="display:flex; align-items:center;">
                     <button onclick="app._netTsStep('${id}',-1)" style="width:20px;height:20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:4px 0 0 4px;cursor:pointer;font-size:12px;line-height:1;">−</button>
-                    <input type="number" id="${id}" value="${val}" min="${min}" max="${max}" style="width:36px;text-align:center;border:1px solid #d1d5db;border-left:none;border-right:none;font-size:10px;padding:1px;" oninput="app._netTsApply()">
+                    <input type="number" id="${id}" value="${val}" min="${min}" max="${max}" style="width:36px;text-align:center;border:1px solid #d1d5db;border-left:none;border-right:none;font-size:10px;padding:1px;-moz-appearance:textfield;appearance:textfield;" oninput="app._netTsApply()">
                     <button onclick="app._netTsStep('${id}',1)" style="width:20px;height:20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:0 4px 4px 0;cursor:pointer;font-size:12px;line-height:1;">+</button>
                 </div>
             </div>`;
@@ -8673,7 +8673,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 type: 'scatter',
                 text: wt.map(d => `${d.cellLineName}<br>${d.lineage}<br>WT`),
                 hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                marker: { color: '#9ca3af', size: 8, opacity: 0.6 },
+                marker: { color: '#9ca3af', size: 10, opacity: 0.6 },
                 name: `WT (n=${wt.length}, ${wtPct}%)`
             });
 
@@ -8697,7 +8697,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 type: 'scatter',
                 text: mut2.map(d => `${d.cellLineName}<br>${d.lineage}<br>2 mutations`),
                 hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                marker: { color: '#dc2626', size: 11, opacity: 0.8 },
+                marker: { color: '#dc2626', size: 10, opacity: 0.8 },
                 name: `2 mut (n=${mut2.length}, ${mut2Pct}%)`
             });
         } else if (transOverlayMode === 'color' && transOverlayGene) {
@@ -8722,7 +8722,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 mode: 'markers', type: 'scatter',
                 text: tWT.map(d => makeTransHover(d, 'No fusion')),
                 hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                marker: { color: '#9ca3af', size: 8, opacity: 0.6 },
+                marker: { color: '#9ca3af', size: 10, opacity: 0.6 },
                 name: `No fusion (n=${tWT.length}, ${tWTPct}%)`
             });
             traces.push({
@@ -8738,7 +8738,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 mode: 'markers', type: 'scatter',
                 text: t2.map(d => makeTransHover(d, '2+ fusion partners')),
                 hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                marker: { color: '#dc2626', size: 11, opacity: 0.8 },
+                marker: { color: '#dc2626', size: 10, opacity: 0.8 },
                 name: `2+ partners (n=${t2.length}, ${t2Pct}%)`
             });
         } else if (colorByCategory === 'tissue' || colorByCategory === 'subtype') {
@@ -8768,7 +8768,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     type: 'scatter',
                     text: catData.map(d => `${d.cellLineName}<br>${cat}`),
                     hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                    marker: { color: color, size: 8, opacity: 0.8 },
+                    marker: { color: color, size: 10, opacity: 0.8 },
                     name: `${cat} (${catData.length})`,
                     legendgroup: cat,
                     showlegend: true
@@ -8783,7 +8783,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 type: 'scatter',
                 text: filteredData.map(d => `${d.cellLineName}<br>${d.lineage}`),
                 hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                marker: { color: '#3b82f6', size: 8, opacity: 0.7 },
+                marker: { color: '#3b82f6', size: 10, opacity: 0.7 },
                 name: 'Cell lines',
                 showlegend: false
             });
@@ -8860,8 +8860,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Build title - condensed to avoid overlapping with data
         const sts = this._savedScatterTextSettings;
-        const titleFontSize = sts?.titleFontSize || 14;
-        const subSize = sts?.subtitleSize || 10;
+        const titleFontSize = sts?.titleFontSize || 25;
+        const subSize = sts?.subtitleSize || 15;
         let titleLines = [`<span style="font-size:${titleFontSize}px"><b>${gene1} vs ${gene2}</b></span>`];
         if (filterDesc) {
             titleLines.push(`<span style="font-size:${subSize}px;color:#666;">${filterDesc}</span>`);
@@ -8913,7 +8913,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             yanchor: this._userXLabelPos ? 'auto' : 'top',
             text: xLabelText,
             showarrow: false,
-            font: { size: sts?.xLabelFontSize || 12 },
+            font: { size: sts?.xLabelFontSize || 20 },
             _tsRole: 'xlabel'
         };
         const yLabelAnnotation = {
@@ -8924,7 +8924,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             yanchor: this._userYLabelPos ? 'auto' : 'middle',
             text: yLabelText,
             showarrow: false,
-            font: { size: sts?.yLabelFontSize || 12 },
+            font: { size: sts?.yLabelFontSize || 20 },
             textangle: -90,
             _tsRole: 'ylabel'
         };
@@ -8936,13 +8936,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 range: xRange,
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : '#ddd',
-                zerolinewidth: showZero ? 2 : 0
+                zerolinewidth: showZero ? 2 : 0,
+                tickfont: { size: 17 }
             },
             yaxis: {
                 range: yRange,
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : '#ddd',
-                zerolinewidth: showZero ? 2 : 0
+                zerolinewidth: showZero ? 2 : 0,
+                tickfont: { size: 17 }
             },
             hovermode: 'closest',
             margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 240 : 30, b: colorByCategory ? 100 : 60, l: 80, autoexpand: false },
@@ -8956,7 +8958,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                font: { size: 10 },
+                font: { size: 17 },
                 tracegroupgap: 0,
                 entrywidth: 120,
                 entrywidthmode: 'pixels'
@@ -8968,8 +8970,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 bgcolor: 'rgba(255,255,255,0.85)',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 } },
-                font: { size: 11 }
+                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 17 } },
+                font: { size: 17 }
             },
             annotations: annotations,
             plot_bgcolor: '#fafafa'
@@ -10181,14 +10183,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const titleSizeMatch = annText.match(/^<span style="font-size:(\d+)px">/);
             const subSizeMatch = annText.match(/<br><span style="font-size:(\d+)px/);
             this._savedScatterTextSettings = {
-                titleFontSize: titleSizeMatch ? parseInt(titleSizeMatch[1]) : (titleAnn?.font?.size || 14),
-                subtitleSize: subSizeMatch ? parseInt(subSizeMatch[1]) : 10,
-                xLabelFontSize: xAnn?.font?.size || 12,
-                yLabelFontSize: yAnn?.font?.size || 12,
-                xTickSize: lay.xaxis?.tickfont?.size || 10,
-                yTickSize: lay.yaxis?.tickfont?.size || 10,
-                legendSize: lay.legend?.font?.size || 10,
-                markerSize: plotEl.data?.[0]?.marker?.size || 8,
+                titleFontSize: titleSizeMatch ? parseInt(titleSizeMatch[1]) : (titleAnn?.font?.size || 25),
+                subtitleSize: subSizeMatch ? parseInt(subSizeMatch[1]) : 15,
+                xLabelFontSize: xAnn?.font?.size || 20,
+                yLabelFontSize: yAnn?.font?.size || 20,
+                xTickSize: lay.xaxis?.tickfont?.size || 17,
+                yTickSize: lay.yaxis?.tickfont?.size || 17,
+                legendSize: lay.legend?.font?.size || 17,
+                markerSize: plotEl.data?.[0]?.marker?.size || 10,
                 fontFamily: lay.font?.family || null
             };
         }
@@ -20484,15 +20486,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // Get title text — for annotations it's HTML with <b> and <br>
         let titleText = '';
         let subtitleText = '';
-        let subtitleSize = 10;
+        let subtitleSize = 15;
         if (usesAnnotationTitle) {
             const raw = ann0.text || '';
             // Split on <br> — first part is title (strip <b>), rest is subtitle
             const parts = raw.split(/<br\s*\/?>/i);
             titleText = stripHtml(parts[0]);
             subtitleText = parts.slice(1).map(stripHtml).join('\n');
-            // Extract subtitle font-size from inline style
-            const sizeMatch = raw.match(/font-size:\s*(\d+)px/);
+            // Extract subtitle font-size from subtitle parts (skip title inline span)
+            const subtitleHtml = parts.slice(1).join('<br>');
+            const sizeMatch = subtitleHtml.match(/font-size:\s*(\d+)px/);
             if (sizeMatch) subtitleSize = parseInt(sizeMatch[1]);
         } else {
             titleText = typeof layout.title === 'string' ? layout.title : (layout.title?.text || '');
@@ -20500,12 +20503,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const xLabel = xLabelAnn ? (xLabelAnn.text || '') : (typeof layout.xaxis?.title === 'string' ? layout.xaxis.title : (layout.xaxis?.title?.text || ''));
         const yLabel = yLabelAnn ? (yLabelAnn.text || '') : (typeof layout.yaxis?.title === 'string' ? layout.yaxis.title : (layout.yaxis?.title?.text || ''));
-        const xLabelSize = xLabelAnn ? (xLabelAnn.font?.size || 12) : (layout.xaxis?.title?.font?.size || 12);
-        const yLabelSize = yLabelAnn ? (yLabelAnn.font?.size || 12) : (layout.yaxis?.title?.font?.size || 12);
-        const xTickSize = layout.xaxis?.tickfont?.size || 10;
-        const yTickSize = layout.yaxis?.tickfont?.size || 10;
-        const legendSize = layout.legend?.font?.size || 10;
-        const markerSize = plotEl.data?.[0]?.marker?.size || 8;
+        const xLabelSize = xLabelAnn ? (xLabelAnn.font?.size || 20) : (layout.xaxis?.title?.font?.size || 12);
+        const yLabelSize = yLabelAnn ? (yLabelAnn.font?.size || 20) : (layout.yaxis?.title?.font?.size || 12);
+        const xTickSize = layout.xaxis?.tickfont?.size || 17;
+        const yTickSize = layout.yaxis?.tickfont?.size || 17;
+        const legendSize = layout.legend?.font?.size || 17;
+        const markerSize = plotEl.data?.[0]?.marker?.size || 10;
         const hasLegend = layout.showlegend !== false && plotEl.data?.some(t => t.showlegend !== false && t.name);
 
         // Track visibility states
@@ -20524,7 +20527,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 <span style="color:#374151;flex:1;min-width:55px;font-size:11px;">${label}</span>
                 <div style="display:flex; align-items:center;">
                     <button onclick="app._tsStep('${id}',-1)" style="width:20px;height:20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:4px 0 0 4px;cursor:pointer;font-size:12px;line-height:1;">−</button>
-                    <input type="number" id="${id}" value="${val}" min="${min}" max="${max}" style="width:36px;text-align:center;border:1px solid #d1d5db;border-left:none;border-right:none;font-size:10px;padding:1px;" oninput="app._tsApply()">
+                    <input type="number" id="${id}" value="${val}" min="${min}" max="${max}" style="width:36px;text-align:center;border:1px solid #d1d5db;border-left:none;border-right:none;font-size:10px;padding:1px;-moz-appearance:textfield;appearance:textfield;" oninput="app._tsApply()">
                     <button onclick="app._tsStep('${id}',1)" style="width:20px;height:20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:0 4px 4px 0;cursor:pointer;font-size:12px;line-height:1;">+</button>
                 </div>
             </div>`;
@@ -20910,13 +20913,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (this._textSettingsPlotId === 'scatterPlot') {
             this._savedScatterTextSettings = {
                 titleFontSize: titleSize,
-                subtitleSize: subtitleSize || this._tsOriginal?.subtitleSize || 10,
-                xLabelFontSize: getVal('ts_xlabel') || 12,
-                yLabelFontSize: getVal('ts_ylabel') || 12,
-                xTickSize: getVal('ts_xtick') || 10,
-                yTickSize: getVal('ts_ytick') || 10,
-                legendSize: getVal('ts_legend') || 10,
-                markerSize: markerSize || 8,
+                subtitleSize: subtitleSize || this._tsOriginal?.subtitleSize || 15,
+                xLabelFontSize: getVal('ts_xlabel') || 20,
+                yLabelFontSize: getVal('ts_ylabel') || 20,
+                xTickSize: getVal('ts_xtick') || 17,
+                yTickSize: getVal('ts_ytick') || 17,
+                legendSize: getVal('ts_legend') || 17,
+                markerSize: markerSize || 10,
                 fontFamily: plotEl.layout?.font?.family || null
             };
         }

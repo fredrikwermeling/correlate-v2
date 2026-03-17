@@ -16,6 +16,10 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&display=swap');
 
+        /* Hide native number input spinners — use custom −/+ buttons */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
         :root {
             --green-900: #2d5a27;
             --green-800: #3a7333;
@@ -1309,6 +1313,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.25.1 (2026-03-17)</strong></p>
+                <ul>
+                    <li>New default font sizes: Title 25, Subtitle 15, Labels 20, Ticks 17, Legend 17, Markers 10</li>
+                    <li>Number inputs: removed native up/down arrows, only custom −/+ buttons</li>
+                </ul>
                 <p><strong>v.25.0 (2026-03-17)</strong></p>
                 <ul>
                     <li>Scatter text settings now persist across GE↔Expression switches</li>
@@ -1512,7 +1521,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.25.0</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.25.1</a>
     </div>
 
     <div class="main-content">
