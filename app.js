@@ -16822,6 +16822,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbUmapCompY').addEventListener('change', () => this._onComponentChange());
         // Loadings arrow toggle
         document.getElementById('clbUmapShowLoadings').addEventListener('change', () => this._onComponentChange());
+        // Export buttons
+        document.getElementById('clbUmapPngBtn').addEventListener('click', () => this._exportUmapPlot('png'));
+        document.getElementById('clbUmapSvgBtn').addEventListener('click', () => this._exportUmapPlot('svg'));
+        document.getElementById('clbUmapAaBtn').addEventListener('click', () => this.openTextSettings('clbUmapPlot'));
         // Method change → update button text
         document.getElementById('clbUmapMethod').addEventListener('change', () => {
             const m = document.getElementById('clbUmapMethod').value;
@@ -19097,6 +19101,30 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         return matrix;
     }
 
+    _exportUmapPlot(format) {
+        const plotDiv = document.getElementById('clbUmapPlot');
+        if (!plotDiv?.data) return;
+        const method = this._clbUmapData?.method === 'pca' ? 'PCA' : 'UMAP';
+        const filename = `${method}_plot`;
+        if (format === 'png') {
+            Plotly.toImage(plotDiv, { format: 'png', width: plotDiv.offsetWidth * 2, height: plotDiv.offsetHeight * 2, scale: 2 })
+                .then(url => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${filename}.png`;
+                    a.click();
+                });
+        } else {
+            Plotly.toImage(plotDiv, { format: 'svg', width: plotDiv.offsetWidth, height: plotDiv.offsetHeight })
+                .then(url => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${filename}.svg`;
+                    a.click();
+                });
+        }
+    }
+
     _populateComponentSelectors(nComponents, prefix, explained) {
         const selX = document.getElementById('clbUmapCompX');
         const selY = document.getElementById('clbUmapCompY');
@@ -19156,6 +19184,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     }
 
     _addLoadingsArrows(plotDiv) {
+        // Remove old inset if exists
+        const oldInset = plotDiv.parentElement?.querySelector('.loadings-inset');
+        if (oldInset) oldInset.remove();
+
         if (!this._clbUmapData || this._clbUmapData.method !== 'pca') return;
         if (!this._clbUmapAllLoadings || !this._clbUmapData.geneNames) return;
         const showLoadings = document.getElementById('clbUmapShowLoadings')?.checked;
@@ -19163,11 +19195,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const compX = parseInt(document.getElementById('clbUmapCompX').value) || 0;
         const compY = parseInt(document.getElementById('clbUmapCompY').value) || 1;
-        const loadings = this._clbUmapAllLoadings; // [p][nc]
+        const loadings = this._clbUmapAllLoadings;
         const geneNames = this._clbUmapData.geneNames;
-        const { x, y } = this._clbUmapData;
 
-        // Compute magnitude for each gene in the selected PC plane
+        // Top 8 genes by loading magnitude in selected PC plane
         const mags = geneNames.map((g, i) => ({
             gene: g,
             lx: loadings[i][compX],
@@ -19178,38 +19209,81 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const top = mags.slice(0, 8);
         if (top.length === 0) return;
 
-        // Scale arrows to fit within ~25% of data range
-        const xRange = Math.max(...x) - Math.min(...x);
-        const yRange = Math.max(...y) - Math.min(...y);
+        const boxSize = 140;
+        const cx = boxSize / 2, cy = boxSize / 2;
         const maxMag = top[0].mag || 1;
-        const scale = Math.min(xRange, yRange) * 0.25 / maxMag;
+        const scale = (boxSize * 0.35) / maxMag;
 
-        // Center of data
-        const cx = x.reduce((a, b) => a + b, 0) / x.length;
-        const cy = y.reduce((a, b) => a + b, 0) / y.length;
+        // Build SVG inset
+        let svg = `<svg width="${boxSize}" height="${boxSize}" xmlns="http://www.w3.org/2000/svg" style="font-family:Arial,sans-serif;">`;
+        svg += `<rect width="${boxSize}" height="${boxSize}" fill="white" fill-opacity="0.92" stroke="#d1d5db" rx="4"/>`;
+        // Crosshairs
+        svg += `<line x1="${cx}" y1="4" x2="${cx}" y2="${boxSize - 4}" stroke="#e5e7eb" stroke-width="0.5"/>`;
+        svg += `<line x1="4" y1="${cy}" x2="${boxSize - 4}" y2="${cy}" stroke="#e5e7eb" stroke-width="0.5"/>`;
+        svg += `<defs><marker id="lah" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,1 L10,5 L0,9 z" fill="#b91c1c"/></marker></defs>`;
 
-        const annotations = top.map(t => ({
-            x: cx + t.lx * scale,
-            y: cy + t.ly * scale,
-            ax: cx,
-            ay: cy,
-            xref: 'x',
-            yref: 'y',
-            axref: 'x',
-            ayref: 'y',
-            text: t.gene,
-            font: { size: 10, color: '#b91c1c' },
-            arrowcolor: '#b91c1c',
-            arrowsize: 1.2,
-            arrowwidth: 1.5,
-            arrowhead: 2,
-            showarrow: true,
-            standoff: 4,
-            _isLoading: true
-        }));
+        // Arrows + labels
+        const labels = [];
+        top.forEach(t => {
+            const ex = cx + t.lx * scale;
+            const ey = cy - t.ly * scale; // SVG y is flipped
+            if (Math.abs(t.lx * scale) < 1 && Math.abs(t.ly * scale) < 1) return;
+            svg += `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="#b91c1c" stroke-width="1.2" marker-end="url(#lah)"/>`;
+            // Label position: extend slightly past arrow tip
+            const dist = Math.sqrt((ex - cx) ** 2 + (ey - cy) ** 2) || 1;
+            const lx = ex + (ex - cx) / dist * 6;
+            const ly = ey + (ey - cy) / dist * 6;
+            const anchor = lx > cx ? 'start' : 'end';
+            labels.push({ gene: t.gene, x: lx, y: ly, anchor });
+        });
 
-        const existingAnns = plotDiv.layout?.annotations || [];
-        Plotly.relayout(plotDiv, { annotations: [...existingAnns, ...annotations] });
+        // Simple vertical collision resolution
+        labels.sort((a, b) => a.y - b.y);
+        for (let i = 1; i < labels.length; i++) {
+            if (labels[i].y - labels[i - 1].y < 9) {
+                labels[i].y = labels[i - 1].y + 9;
+            }
+        }
+
+        labels.forEach(l => {
+            const clampX = Math.max(4, Math.min(boxSize - 4, l.x));
+            const clampY = Math.max(10, Math.min(boxSize - 4, l.y));
+            svg += `<text x="${clampX}" y="${clampY}" text-anchor="${l.anchor}" style="font-size:8px;fill:#374151;" stroke="white" stroke-width="2.5" paint-order="stroke">${l.gene}</text>`;
+        });
+
+        // Axis labels
+        const axX = this._clbUmapData.axisLabels?.[0]?.split('(')[0].trim() || `PC${compX + 1}`;
+        const axY = this._clbUmapData.axisLabels?.[1]?.split('(')[0].trim() || `PC${compY + 1}`;
+        svg += `<text x="${boxSize - 4}" y="${cy - 3}" text-anchor="end" style="font-size:7px;fill:#9ca3af;">${axX}</text>`;
+        svg += `<text x="${cx + 3}" y="10" text-anchor="start" style="font-size:7px;fill:#9ca3af;">${axY}</text>`;
+        svg += '</svg>';
+
+        // Create overlay div
+        const div = document.createElement('div');
+        div.className = 'loadings-inset';
+        div.style.cssText = 'position:absolute;top:50px;right:16px;z-index:10;cursor:move;opacity:0.95;';
+        div.innerHTML = svg;
+        div.title = 'PCA loadings biplot — drag to move';
+
+        // Make draggable
+        let dragging = false, startX, startY, origLeft, origTop;
+        div.addEventListener('mousedown', (e) => {
+            dragging = true;
+            startX = e.clientX; startY = e.clientY;
+            origLeft = div.offsetLeft; origTop = div.offsetTop;
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            div.style.left = (origLeft + e.clientX - startX) + 'px';
+            div.style.top = (origTop + e.clientY - startY) + 'px';
+            div.style.right = 'auto';
+        });
+        document.addEventListener('mouseup', () => { dragging = false; });
+
+        // Place relative to plot container
+        plotDiv.style.position = 'relative';
+        plotDiv.appendChild(div);
     }
 
     _renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene) {
@@ -19336,8 +19410,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const layout = {
                 ...baseLayout,
                 title: { text: `${this._clbUmapData?.method === 'pca' ? 'PCA' : 'UMAP'} \u2014 ${dataTypeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
-                margin: { t: 40, r: 10, b: 40, l: 50 },
-                height: 500,
+                margin: { t: 35, r: 10, b: 40, l: 50 },
+                height: 480, width: 580,
                 legend: { font: { size: 9 }, itemsizing: 'constant', tracegroupgap: 2, y: 0.5, yanchor: 'middle' }
             };
             Plotly.newPlot(plotDiv, traces, layout, { responsive: true, displayModeBar: true, modeBarButtonsToAdd: ['select2d', 'lasso2d'], displaylogo: false });
@@ -19453,7 +19527,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             xaxis: { title: axLabels[0], zeroline: false, showgrid: false },
             yaxis: { title: axLabels[1], zeroline: false, showgrid: false, scaleanchor: 'x', scaleratio: 1 },
             title: { text: `${methodLabel} — ${gene} ${typeLabel} (${cellLines.length} cell lines)`, font: { size: 13 } },
-            margin: { t: 40, r: 80, b: 40, l: 50 }, height: 500,
+            margin: { t: 35, r: 80, b: 40, l: 50 }, height: 480, width: 580,
             hovermode: 'closest', dragmode: 'lasso',
             paper_bgcolor: 'white', plot_bgcolor: '#fafafa'
         };

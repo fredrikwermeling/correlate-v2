@@ -1304,6 +1304,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>dev-23.2 (2026-03-17)</strong></p>
+                <ul>
+                    <li>Top Genes: floating popout, click gene to color plot, data type matches analysis</li>
+                    <li>PCA loadings: draggable biplot inset box instead of cluttered overlay arrows</li>
+                    <li>Layout: split controls into two rows to prevent wrapping with long tissue names</li>
+                    <li>Export: PNG and SVG buttons, Aa text settings for UMAP/PCA plots</li>
+                    <li>Squarer default graph (580x480), condensed layout</li>
+                </ul>
                 <p><strong>dev-23 (2026-03-16)</strong></p>
                 <ul>
                     <li>UMAP/PCA overhaul: clean layout, Run Analysis button, complete Reset button</li>
@@ -1453,7 +1461,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.23</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.23.2</a>
     </div>
 
     <div class="main-content">
@@ -2966,8 +2974,8 @@
         </div>
         <!-- UMAP Section -->
         <div id="clbUmapSection" style="border-top:1px solid #e5e7eb; padding:10px 16px; position:relative;">
-            <!-- Row 1: Method, Data, Filters, Run, Reset -->
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+            <!-- Row 1a: Method, Data, Color -->
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
                 <strong style="font-size:12px;">Dim. Reduction</strong>
                 <select id="clbUmapMethod" style="font-size:11px; padding:2px 4px;">
                     <option value="umap">UMAP</option>
@@ -2982,25 +2990,32 @@
                     <option value="tissue">Color by tissue</option>
                     <option value="subtissue">Color by subtype</option>
                 </select>
-                <select id="clbUmapTissueFilter" style="font-size:11px; padding:2px 4px;">
+            </div>
+            <!-- Row 1b: Filters + Run/Reset (always on same line) -->
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+                <select id="clbUmapTissueFilter" style="font-size:11px; padding:2px 4px; max-width:180px;">
                     <option value="">All tissues</option>
                 </select>
-                <select id="clbUmapSubtypeFilter" style="font-size:11px; padding:2px 4px; display:none;">
+                <select id="clbUmapSubtypeFilter" style="font-size:11px; padding:2px 4px; max-width:200px; display:none;">
                     <option value="">All subtypes</option>
                 </select>
                 <button id="clbUmapRunBtn" class="btn btn-sm" style="font-size:11px; padding:3px 10px; background:#16a34a; color:white; border:none; border-radius:4px; cursor:pointer;">Run Analysis</button>
                 <button id="clbUmapResetBtn" class="btn btn-sm" style="font-size:11px; padding:3px 10px; background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer;" title="Clear everything and start fresh">Reset</button>
             </div>
-            <!-- Row 2: Component selectors, Size, Loadings -->
+            <!-- Row 2: Component selectors, Size, Export, Aa -->
             <div id="clbUmapComponentRow" style="display:none; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
                 <span style="font-size:10px; color:#6b7280;">Axes:</span>
                 <select id="clbUmapCompX" style="font-size:10px; padding:2px 4px;"></select>
                 <span style="font-size:10px; color:#6b7280;">vs</span>
                 <select id="clbUmapCompY" style="font-size:10px; padding:2px 4px;"></select>
-                <span style="font-size:10px; color:#6b7280; margin-left:6px;">Size:</span>
-                <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="6" style="width:60px; vertical-align:middle;" title="Marker size">
-                <label id="clbUmapLoadingsToggle" style="display:none; font-size:10px; color:#6b7280; margin-left:6px; cursor:pointer;">
-                    <input type="checkbox" id="clbUmapShowLoadings" style="vertical-align:middle;"> Loadings arrows
+                <span style="font-size:10px; color:#6b7280; margin-left:4px;">Size:</span>
+                <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="6" style="width:50px; vertical-align:middle;" title="Marker size">
+                <span style="font-size:10px; color:#d1d5db;">|</span>
+                <button id="clbUmapPngBtn" class="btn btn-sm btn-secondary" style="font-size:10px; padding:2px 8px;" title="Export as PNG">PNG</button>
+                <button id="clbUmapSvgBtn" class="btn btn-sm btn-secondary" style="font-size:10px; padding:2px 8px;" title="Export as SVG">SVG</button>
+                <button id="clbUmapAaBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px;" title="Text & layout settings">Aa</button>
+                <label id="clbUmapLoadingsToggle" style="display:none; font-size:10px; color:#6b7280; margin-left:4px; cursor:pointer;">
+                    <input type="checkbox" id="clbUmapShowLoadings" style="vertical-align:middle;"> Loadings
                 </label>
             </div>
             <!-- Row 3: Color by gene, Top Genes -->
