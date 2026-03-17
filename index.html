@@ -1313,6 +1313,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.25.4 (2026-03-17)</strong></p>
+                <ul>
+                    <li>Expr vs GE: replaced Expr/GE ratio with dependency Score (Expr × −GE) — handles zero expression, default sort by score descending</li>
+                    <li>Open button: moved next to Cell Lines, accepts both SVG and PNG exports</li>
+                    <li>All exports (SVG/PNG) now embed Correlate metadata (app, version, graph type, date, genes)</li>
+                    <li>PNG exports embed metadata in tEXt chunks for restore support</li>
+                    <li>Tissue/expression/correlation analysis exports upgraded to SVG-first pipeline with Illustrator sanitization</li>
+                </ul>
                 <p><strong>v.25.3 (2026-03-17)</strong></p>
                 <ul>
                     <li>Expr vs GE: moved higher in cell line panel, Aa text settings, draggable titles, sortable table columns</li>
@@ -1527,10 +1535,10 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <label style="margin-left:auto; cursor:pointer; font-size:11px; background:#f0fdf4; padding:2px 10px; border-radius:10px; color:var(--green-700); border:1px solid var(--green-400);" title="Open a Correlate SVG to restore settings">
-            Open SVG <input type="file" id="restoreFromSvgInputMain" accept=".svg" style="display:none;">
+        <label style="margin-left:auto; cursor:pointer; font-size:11px; background:#f0fdf4; padding:2px 10px; border-radius:10px; color:var(--green-700); border:1px solid var(--green-400);" title="Open a Correlate export (SVG/PNG) to restore settings">
+            Open <input type="file" id="restoreFromSvgInputMain" accept=".svg,.png" style="display:none;">
         </label>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.25.3</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.25.4</a>
     </div>
 
     <div class="main-content">
@@ -1559,6 +1567,9 @@
                     <div style="display:flex; gap:6px; margin-top:10px;">
                         <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="flex:1;">Reset App</button>
                         <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="flex:1; color:var(--green-700); border-color:var(--green-400);">Cell Lines</button>
+                        <label class="btn btn-outline btn-sm" style="flex:0; cursor:pointer; font-size:11px; color:var(--green-700); border-color:var(--green-400); white-space:nowrap;" title="Open a Correlate export (SVG/PNG) to restore settings">
+                            Open <input type="file" id="restoreFromExportInput" accept=".svg,.png" style="display:none;">
+                        </label>
                     </div>
                 </div>
             </div>
@@ -2405,8 +2416,8 @@
                     <label style="cursor: pointer;"><input type="checkbox" id="exportTransparentBg"> Transparent bg</label>
                 </span>
                 <button class="btn btn-outline" id="downloadScatterCSV">Download CSV</button>
-                <label class="btn btn-outline" style="cursor:pointer; font-size:12px;" title="Open a Correlate SVG to restore settings">
-                    Open SVG <input type="file" id="restoreFromSvgInput" accept=".svg" style="display:none;">
+                <label class="btn btn-outline" style="cursor:pointer; font-size:12px;" title="Open a Correlate export (SVG/PNG) to restore settings">
+                    Open <input type="file" id="restoreFromSvgInput" accept=".svg,.png" style="display:none;">
                 </label>
                 <button class="btn btn-outline" id="downloadTissuePNG" style="display: none;">Download Chart PNG</button>
                 <button class="btn btn-outline" id="downloadTissueSVG" style="display: none;">Download Chart SVG</button>

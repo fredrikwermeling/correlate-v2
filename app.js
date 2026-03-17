@@ -1775,11 +1775,15 @@ class CorrelationExplorer {
         this._initTextSettingsDrag();
         document.getElementById('downloadScatterCSV').addEventListener('click', () => this.downloadScatterCSV());
         document.getElementById('restoreFromSvgInput')?.addEventListener('change', (e) => {
-            if (e.target.files[0]) this.restoreFromSvg(e.target.files[0]);
+            if (e.target.files[0]) this.restoreFromExport(e.target.files[0]);
             e.target.value = '';
         });
         document.getElementById('restoreFromSvgInputMain')?.addEventListener('change', (e) => {
-            if (e.target.files[0]) this.restoreFromSvg(e.target.files[0]);
+            if (e.target.files[0]) this.restoreFromExport(e.target.files[0]);
+            e.target.value = '';
+        });
+        document.getElementById('restoreFromExportInput')?.addEventListener('change', (e) => {
+            if (e.target.files[0]) this.restoreFromExport(e.target.files[0]);
             e.target.value = '';
         });
         document.getElementById('downloadTissuePNG').addEventListener('click', () => this.downloadTissueChartPNG());
@@ -4596,8 +4600,15 @@ class CorrelationExplorer {
 
             svgString = new XMLSerializer().serializeToString(svgEl);
 
+            const meta = this._buildExportMetadata('mutation_inspect', {
+                gene: this.currentGeneEffectGene,
+                hotspotGene: this.mutationResults?.hotspotGene
+            });
+            const metaJson = JSON.stringify(meta);
+
             const a = document.createElement('a');
             if (format === 'svg') {
+                svgString = svgString.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
                 svgString = this.sanitizeSvgForIllustrator(svgString);
                 const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
                 a.href = URL.createObjectURL(blob);
@@ -4610,7 +4621,7 @@ class CorrelationExplorer {
                 const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
                 const svgUrl = URL.createObjectURL(svgBlob);
                 const img = new Image();
-                img.onload = () => {
+                img.onload = async () => {
                     const scale = 4;
                     const canvas = document.createElement('canvas');
                     canvas.width = img.naturalWidth * scale;
@@ -4621,11 +4632,17 @@ class CorrelationExplorer {
                     ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
                     ctx.drawImage(img, 0, 0);
                     URL.revokeObjectURL(svgUrl);
-                    a.href = canvas.toDataURL('image/png');
+                    const pngDataUrl = canvas.toDataURL('image/png');
+                    const pngResp = await fetch(pngDataUrl);
+                    const pngBuf = await pngResp.arrayBuffer();
+                    const pngWithMeta = this._addPngTextChunk(pngBuf, 'correlate-meta', metaJson);
+                    const blob = new Blob([pngWithMeta], { type: 'image/png' });
+                    a.href = URL.createObjectURL(blob);
                     a.download = `${filename}.png`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
+                    URL.revokeObjectURL(a.href);
                 };
                 img.src = svgUrl;
             }
@@ -6463,12 +6480,23 @@ Results:
             ctx.fillText('* = synonym/orthologue used', legendX, legendY + 25);
         }
 
-        // Create download link
+        // Embed metadata and create download link
+        const meta = this._buildExportMetadata('network', {
+            genes: this.results?.genes?.length,
+            cutoff: this.results?.cutoff
+        });
         const dataURL = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = dataURL;
-        a.download = 'correlation_network.png';
-        a.click();
+        fetch(dataURL).then(r => r.arrayBuffer()).then(buf => {
+            const pngWithMeta = this._addPngTextChunk(buf, 'correlate-meta', JSON.stringify(meta));
+            const blob = new Blob([pngWithMeta], { type: 'image/png' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'correlation_network.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        });
     }
 
     downloadNetworkSVG() {
@@ -6705,6 +6733,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             svg += `  <text x="${legendX}" y="${legendY + 25}" class="legend-text">* = synonym/orthologue used</text>\n`;
         }
 
+        // Embed metadata
+        const meta = this._buildExportMetadata('network', {
+            genes: this.results?.genes?.length,
+            cutoff: this.results?.cutoff
+        });
+        svg += `<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata>`;
         svg += '</svg>';
 
         // Sanitize for Illustrator compatibility
@@ -12590,12 +12624,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
         svgString = new XMLSerializer().serializeToString(svgDoc.documentElement);
 
+        const state = this.captureAppState();
+        const stateJson = JSON.stringify(state);
+        const meta = this._buildExportMetadata('scatter', { gene1: this.currentInspect?.gene1, gene2: this.currentInspect?.gene2 });
+        const metaJson = JSON.stringify(meta);
+
         const a = document.createElement('a');
         if (format === 'svg') {
-            // Embed app state for re-opening
-            const state = this.captureAppState();
-            const stateJson = JSON.stringify(state);
-            svgString = svgString.replace('</svg>', `<metadata><correlate-state>${stateJson}</correlate-state></metadata></svg>`);
+            // Embed app state + metadata for re-opening
+            svgString = svgString.replace('</svg>', `<metadata><correlate-state>${stateJson}</correlate-state><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
             svgString = this.sanitizeSvgForIllustrator(svgString);
             const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
             a.href = URL.createObjectURL(blob);
@@ -12608,7 +12645,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
             const svgUrl = URL.createObjectURL(svgBlob);
             const img = new Image();
-            img.onload = () => {
+            img.onload = async () => {
                 const scale = 4;
                 const canvas = document.createElement('canvas');
                 canvas.width = img.naturalWidth * scale;
@@ -12621,11 +12658,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 }
                 ctx.drawImage(img, 0, 0);
                 URL.revokeObjectURL(svgUrl);
-                a.href = canvas.toDataURL('image/png');
+                // Embed state metadata in PNG tEXt chunk
+                const pngDataUrl = canvas.toDataURL('image/png');
+                const pngResp = await fetch(pngDataUrl);
+                const pngBuf = await pngResp.arrayBuffer();
+                const pngWithMeta = this._addPngTextChunk(pngBuf, 'correlate-state', stateJson);
+                const blob = new Blob([pngWithMeta], { type: 'image/png' });
+                a.href = URL.createObjectURL(blob);
                 a.download = filename + '.png';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
             };
             img.src = svgUrl;
         }
@@ -12770,6 +12814,27 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         };
     }
 
+    async restoreFromExport(file) {
+        if (file.name.toLowerCase().endsWith('.png')) {
+            return this.restoreFromPng(file);
+        }
+        return this.restoreFromSvg(file);
+    }
+
+    async restoreFromPng(file) {
+        const buf = await file.arrayBuffer();
+        const stateJson = this._readPngTextChunk(buf, 'correlate-state');
+        if (!stateJson) { alert('No Correlate state found in this PNG file.'); return; }
+
+        let state;
+        try { state = JSON.parse(stateJson); } catch (e) { alert('Invalid state data in PNG.'); return; }
+
+        if (!state.gene1 || !state.gene2) { alert('Missing gene information in state.'); return; }
+
+        // Delegate to same restore logic as SVG
+        return this._restoreFromState(state);
+    }
+
     async restoreFromSvg(file) {
         const text = await file.text();
         const match = text.match(/<correlate-state>([\s\S]*?)<\/correlate-state>/);
@@ -12778,6 +12843,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         let state;
         try { state = JSON.parse(match[1]); } catch (e) { alert('Invalid state data in SVG.'); return; }
 
+        return this._restoreFromState(state);
+    }
+
+    async _restoreFromState(state) {
         if (!state.gene1 || !state.gene2) { alert('Missing gene information in state.'); return; }
 
         // Set axis data types
@@ -12837,6 +12906,92 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             // Re-render with all settings
             this.updateInspectPlot();
         }, 300);
+    }
+
+    // --- PNG metadata: read/write tEXt chunks ---
+
+    _readPngTextChunk(arrayBuffer, keyword) {
+        const view = new DataView(arrayBuffer);
+        // PNG signature = 8 bytes, then chunks
+        let offset = 8;
+        while (offset < view.byteLength) {
+            const length = view.getUint32(offset);
+            const typeBytes = new Uint8Array(arrayBuffer, offset + 4, 4);
+            const type = String.fromCharCode(...typeBytes);
+            if (type === 'tEXt') {
+                const data = new Uint8Array(arrayBuffer, offset + 8, length);
+                const nullIdx = data.indexOf(0);
+                if (nullIdx > 0) {
+                    const key = new TextDecoder().decode(data.slice(0, nullIdx));
+                    if (key === keyword) {
+                        return new TextDecoder().decode(data.slice(nullIdx + 1));
+                    }
+                }
+            }
+            if (type === 'IEND') break;
+            offset += 12 + length; // 4 len + 4 type + data + 4 crc
+        }
+        return null;
+    }
+
+    _addPngTextChunk(pngArrayBuffer, keyword, text) {
+        const keyBytes = new TextEncoder().encode(keyword);
+        const textBytes = new TextEncoder().encode(text);
+        const chunkDataLen = keyBytes.length + 1 + textBytes.length; // key + null + text
+        const chunkData = new Uint8Array(chunkDataLen);
+        chunkData.set(keyBytes, 0);
+        chunkData[keyBytes.length] = 0; // null separator
+        chunkData.set(textBytes, keyBytes.length + 1);
+
+        // Build tEXt chunk: length(4) + 'tEXt'(4) + data + crc(4)
+        const typeBytes = new Uint8Array([0x74, 0x45, 0x58, 0x74]); // tEXt
+        const crcInput = new Uint8Array(4 + chunkDataLen);
+        crcInput.set(typeBytes, 0);
+        crcInput.set(chunkData, 4);
+        const crc = this._crc32(crcInput);
+
+        const chunk = new Uint8Array(12 + chunkDataLen);
+        new DataView(chunk.buffer).setUint32(0, chunkDataLen);
+        chunk.set(typeBytes, 4);
+        chunk.set(chunkData, 8);
+        new DataView(chunk.buffer).setUint32(8 + chunkDataLen, crc);
+
+        // Insert before IEND (last 12 bytes of a valid PNG)
+        const src = new Uint8Array(pngArrayBuffer);
+        const result = new Uint8Array(src.length + chunk.length);
+        result.set(src.slice(0, src.length - 12), 0);
+        result.set(chunk, src.length - 12);
+        result.set(src.slice(src.length - 12), src.length - 12 + chunk.length);
+        return result.buffer;
+    }
+
+    _crc32(data) {
+        if (!this._crc32Table) {
+            const table = new Uint32Array(256);
+            for (let n = 0; n < 256; n++) {
+                let c = n;
+                for (let k = 0; k < 8; k++) {
+                    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                table[n] = c;
+            }
+            this._crc32Table = table;
+        }
+        let crc = 0xFFFFFFFF;
+        for (let i = 0; i < data.length; i++) {
+            crc = this._crc32Table[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+        }
+        return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    _buildExportMetadata(graphType, extra = {}) {
+        return {
+            app: 'Correlate',
+            version: document.getElementById('versionBadge')?.textContent || '',
+            graphType,
+            date: new Date().toISOString(),
+            ...extra
+        };
     }
 
     showByTissueModal() {
@@ -13663,27 +13818,64 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         });
     }
 
-    downloadCorrAnalysisChart(format) {
+    async downloadCorrAnalysisChart(format) {
         const plotId = this._caView === 'tissue' ? 'corrAnalysisTissuePlot' : 'corrAnalysisHotspotPlot';
         const plotEl = document.getElementById(plotId);
         if (!plotEl || !plotEl.data) return;
 
         const d = this._corrAnalysisData;
         const filename = `correlation_${d.gene1}_vs_${d.gene2}_by_${this._caView}`;
+        const meta = this._buildExportMetadata('correlation_analysis', {
+            gene1: d.gene1, gene2: d.gene2, view: this._caView
+        });
+        const metaJson = JSON.stringify(meta);
+        const w = plotEl.offsetWidth;
+        const h = plotEl.offsetHeight;
 
-        Plotly.toImage(plotEl, {
-            format: format === 'png' ? 'png' : 'svg',
-            width: plotEl.offsetWidth,
-            height: plotEl.offsetHeight,
-            scale: format === 'png' ? 4 : 1
-        }).then(url => {
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${filename}.${format}`;
+        const svgDataUrl = await Plotly.toImage(plotEl, { format: 'svg', width: w, height: h });
+        let svgStr;
+        if (svgDataUrl.indexOf('base64,') > -1) svgStr = atob(svgDataUrl.split('base64,')[1]);
+        else svgStr = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
+
+        const a = document.createElement('a');
+        if (format === 'svg') {
+            svgStr = svgStr.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
+            svgStr = this.sanitizeSvgForIllustrator(svgStr);
+            const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+            a.href = URL.createObjectURL(blob);
+            a.download = `${filename}.svg`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-        });
+        } else {
+            const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+            const img = new Image();
+            img.onload = async () => {
+                const scale = 4;
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth * scale;
+                canvas.height = img.naturalHeight * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(scale, scale);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(svgUrl);
+                const pngDataUrl = canvas.toDataURL('image/png');
+                const pngResp = await fetch(pngDataUrl);
+                const pngBuf = await pngResp.arrayBuffer();
+                const pngWithMeta = this._addPngTextChunk(pngBuf, 'correlate-meta', metaJson);
+                const blob = new Blob([pngWithMeta], { type: 'image/png' });
+                a.href = URL.createObjectURL(blob);
+                a.download = `${filename}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            };
+            img.src = svgUrl;
+        }
     }
 
     downloadCorrAnalysisCSV() {
@@ -13958,29 +14150,71 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     }
 
     downloadTissueChartPNG() {
-        if (!this.currentInspect) return;
-        const chartEl = document.getElementById('byTissueChart');
-        if (!chartEl) return;
-
-        Plotly.downloadImage(chartEl, {
-            format: 'png',
-            width: 800,
-            height: Math.max(400, (this.currentTissueStats?.length || 10) * 25 + 100),
-            filename: `by_tissue_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}`
-        });
+        this._exportTissueChart('png');
     }
 
     downloadTissueChartSVG() {
+        this._exportTissueChart('svg');
+    }
+
+    async _exportTissueChart(format) {
         if (!this.currentInspect) return;
         const chartEl = document.getElementById('byTissueChart');
         if (!chartEl) return;
 
-        Plotly.downloadImage(chartEl, {
-            format: 'svg',
-            width: 800,
-            height: Math.max(400, (this.currentTissueStats?.length || 10) * 25 + 100),
-            filename: `by_tissue_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}`
+        const filename = `by_tissue_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}`;
+        const w = 800;
+        const h = Math.max(400, (this.currentTissueStats?.length || 10) * 25 + 100);
+        const meta = this._buildExportMetadata('tissue_chart', {
+            gene1: this.currentInspect.gene1,
+            gene2: this.currentInspect.gene2
         });
+        const metaJson = JSON.stringify(meta);
+
+        const svgDataUrl = await Plotly.toImage(chartEl, { format: 'svg', width: w, height: h });
+        let svgStr;
+        if (svgDataUrl.indexOf('base64,') > -1) svgStr = atob(svgDataUrl.split('base64,')[1]);
+        else svgStr = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
+
+        const a = document.createElement('a');
+        if (format === 'svg') {
+            svgStr = svgStr.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
+            svgStr = this.sanitizeSvgForIllustrator(svgStr);
+            const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+            a.href = URL.createObjectURL(blob);
+            a.download = `${filename}.svg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+            const img = new Image();
+            img.onload = async () => {
+                const scale = 4;
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth * scale;
+                canvas.height = img.naturalHeight * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(scale, scale);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(svgUrl);
+                const pngDataUrl = canvas.toDataURL('image/png');
+                const pngResp = await fetch(pngDataUrl);
+                const pngBuf = await pngResp.arrayBuffer();
+                const pngWithMeta = this._addPngTextChunk(pngBuf, 'correlate-meta', metaJson);
+                const blob = new Blob([pngWithMeta], { type: 'image/png' });
+                a.href = URL.createObjectURL(blob);
+                a.download = `${filename}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            };
+            img.src = svgUrl;
+        }
     }
 
     downloadTissueTableCSV() {
@@ -15029,21 +15263,53 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         });
     }
 
-    downloadGeneEffectChartPNG() {
+    async downloadGeneEffectChartPNG() {
         // Mutation inspect mode handled by downloadGeneEffectPNG
         if (this.geneEffectViewMode === 'mutation') return;
         if (!this.currentGeneEffect) return;
         const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
         const plotEl = document.getElementById(plotId);
-        // Use scrollHeight to capture full content including overflow
         const chartWidth = plotEl?._fullLayout?.width || 800;
         const chartHeight = Math.max(plotEl?.scrollHeight || 0, plotEl?._fullLayout?.height || 0, this.geDetailedView ? 650 : 550) + 40;
-        Plotly.downloadImage(plotId, {
-            format: 'png',
-            width: chartWidth,
-            height: chartHeight,
-            filename: `gene_effect_${this.currentGeneEffect.gene}_by_${this.currentGEView}`
+        const filename = `gene_effect_${this.currentGeneEffect.gene}_by_${this.currentGEView}`;
+        const meta = this._buildExportMetadata('gene_effect', {
+            gene: this.currentGeneEffect.gene, view: this.currentGEView
         });
+        const metaJson = JSON.stringify(meta);
+
+        const svgDataUrl = await Plotly.toImage(plotEl, { format: 'svg', width: chartWidth, height: chartHeight });
+        let svgStr;
+        if (svgDataUrl.indexOf('base64,') > -1) svgStr = atob(svgDataUrl.split('base64,')[1]);
+        else svgStr = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
+
+        const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+        const svgUrl = URL.createObjectURL(svgBlob);
+        const img = new Image();
+        img.onload = async () => {
+            const scale = 4;
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth * scale;
+            canvas.height = img.naturalHeight * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(svgUrl);
+            const pngDataUrl = canvas.toDataURL('image/png');
+            const pngResp = await fetch(pngDataUrl);
+            const pngBuf = await pngResp.arrayBuffer();
+            const pngWithMeta = this._addPngTextChunk(pngBuf, 'correlate-meta', metaJson);
+            const blob = new Blob([pngWithMeta], { type: 'image/png' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${filename}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        };
+        img.src = svgUrl;
     }
 
     downloadGeneEffectChartSVG() {
@@ -15110,6 +15376,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
 
             let finalSvg = new XMLSerializer().serializeToString(svgEl);
+            const meta = this._buildExportMetadata('gene_effect', {
+                gene: this.currentGeneEffect?.gene, view: this.currentGEView
+            });
+            finalSvg = finalSvg.replace('</svg>', `<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata></svg>`);
             finalSvg = this.sanitizeSvgForIllustrator(finalSvg);
             const blob = new Blob([finalSvg], { type: 'image/svg+xml' });
             const url = URL.createObjectURL(blob);
@@ -16473,13 +16743,62 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (allTissueEl) allTissueEl.checked = false;
     }
 
-    downloadExprCorrelateScatter(format) {
+    async downloadExprCorrelateScatter(format) {
         const plotEl = document.getElementById('exprCorrelateScatterPlot');
         if (!plotEl || !plotEl.data) return;
         const gene = this._currentExprScatterGene || 'expression';
         const ctx = this._exprCorrelateContext;
         const filename = `expr_correlate_${gene}_vs_${ctx?.targetGene || 'target'}`;
-        Plotly.downloadImage(plotEl, { format, width: 1000, height: 600, filename });
+        const meta = this._buildExportMetadata('expr_correlate', {
+            gene, targetGene: ctx?.targetGene, hotspotGene: ctx?.hotspotGene
+        });
+        const metaJson = JSON.stringify(meta);
+        const w = 1000, h = 600;
+
+        const svgDataUrl = await Plotly.toImage(plotEl, { format: 'svg', width: w, height: h });
+        let svgStr;
+        if (svgDataUrl.indexOf('base64,') > -1) svgStr = atob(svgDataUrl.split('base64,')[1]);
+        else svgStr = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
+
+        const a = document.createElement('a');
+        if (format === 'svg') {
+            svgStr = svgStr.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
+            svgStr = this.sanitizeSvgForIllustrator(svgStr);
+            const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+            a.href = URL.createObjectURL(blob);
+            a.download = `${filename}.svg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+            const img = new Image();
+            img.onload = async () => {
+                const scale = 4;
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth * scale;
+                canvas.height = img.naturalHeight * scale;
+                const ctx2 = canvas.getContext('2d');
+                ctx2.scale(scale, scale);
+                ctx2.fillStyle = 'white';
+                ctx2.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
+                ctx2.drawImage(img, 0, 0);
+                URL.revokeObjectURL(svgUrl);
+                const pngDataUrl = canvas.toDataURL('image/png');
+                const pngResp = await fetch(pngDataUrl);
+                const pngBuf = await pngResp.arrayBuffer();
+                const pngWithMeta = this._addPngTextChunk(pngBuf, 'correlate-meta', metaJson);
+                const blob = new Blob([pngWithMeta], { type: 'image/png' });
+                a.href = URL.createObjectURL(blob);
+                a.download = `${filename}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            };
+            img.src = svgUrl;
+        }
     }
 
     downloadExpressionCorrelatesCSV() {
@@ -18037,13 +18356,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const geneName = this.geneNames[g];
             const expr = this.getExpressionValueByGEIndex(geneName, clIdx);
             if (isNaN(expr)) continue;
-            data.push({ gene: geneName, expr, ge, ratio: ge !== 0 ? expr / ge : NaN });
+            data.push({ gene: geneName, expr, ge, score: expr * (-ge) });
         }
 
         this._exprVsGEData = data;
         this._exprVsGECellLine = cellLineId;
-        this._exprVsGESortCol = 'ge';
-        this._exprVsGESortAsc = true;
+        this._exprVsGESortCol = 'score';
+        this._exprVsGESortAsc = false;
         document.getElementById('exprVsGECellLine').textContent = clName;
         document.getElementById('exprVsGESection').style.display = '';
 
@@ -18113,7 +18432,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             this._exprVsGESortAsc = !this._exprVsGESortAsc;
         } else {
             this._exprVsGESortCol = col;
-            this._exprVsGESortAsc = col === 'gene'; // alphabetical asc for gene, else asc (low first)
+            this._exprVsGESortAsc = col === 'gene'; // alphabetical asc for gene, numeric asc for others (score starts desc via default)
         }
         this.filterExprVsGETable();
     }
@@ -18129,8 +18448,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
 
         // Sort by selected column
-        const col = this._exprVsGESortCol || 'ge';
-        const asc = this._exprVsGESortAsc ?? true;
+        const col = this._exprVsGESortCol || 'score';
+        const asc = this._exprVsGESortAsc ?? false;
         filtered = [...filtered].sort((a, b) => {
             const va = col === 'gene' ? a.gene : a[col];
             const vb = col === 'gene' ? b.gene : b[col];
@@ -18147,7 +18466,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 <th style="${thStyle} text-align:left;" onclick="app.sortExprVsGETable('gene')">Gene${arrow('gene')}</th>
                 <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('expr')">Expr${arrow('expr')}</th>
                 <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('ge')">GE${arrow('ge')}</th>
-                <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('ratio')">Expr/GE${arrow('ratio')}</th>
+                <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('score')" title="Expr × (−GE): high = expressed & essential">Score${arrow('score')}</th>
             </tr></thead><tbody>`;
 
         show.forEach(d => {
@@ -18156,7 +18475,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 <td style="padding:2px 4px;">${d.gene}</td>
                 <td style="padding:2px 4px; text-align:right;">${d.expr.toFixed(2)}</td>
                 <td style="padding:2px 4px; text-align:right; color:${geColor};">${d.ge.toFixed(3)}</td>
-                <td style="padding:2px 4px; text-align:right;">${isNaN(d.ratio) ? '-' : d.ratio.toFixed(2)}</td>
+                <td style="padding:2px 4px; text-align:right;">${d.score.toFixed(2)}</td>
             </tr>`;
         });
         html += `</tbody></table>`;
@@ -18240,15 +18559,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (agg.n < 2) continue; // require at least 2 cell lines
             const expr = agg.exprSum / agg.n;
             const ge = agg.geSum / agg.n;
-            data.push({ gene, expr, ge, ratio: ge !== 0 ? expr / ge : NaN });
+            data.push({ gene, expr, ge, score: expr * (-ge) });
         }
 
         if (data.length === 0) { alert('No overlapping expression/GE data found.'); return; }
 
         this._exprVsGEData = data;
         this._exprVsGECellLine = null;
-        this._exprVsGESortCol = 'ge';
-        this._exprVsGESortAsc = true;
+        this._exprVsGESortCol = 'score';
+        this._exprVsGESortAsc = false;
         const label = cellLineIds.length === this.metadata.cellLines.length ? 'All cell lines' :
             `${cellLineIds.length} cell lines (mean)`;
         document.getElementById('exprVsGECellLine').textContent = label;
@@ -18613,12 +18932,22 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             ctx.fillText(line, padding, textY + i * textLineHeight + textFontSize);
         });
 
+        const meta = this._buildExportMetadata('gate_report', {
+            gene1: this.currentInspect?.gene1,
+            gene2: this.currentInspect?.gene2
+        });
+        const pngDataUrl = canvas.toDataURL('image/png');
+        const pngResp = await fetch(pngDataUrl);
+        const pngBuf = await pngResp.arrayBuffer();
+        const pngWithMeta = this._addPngTextChunk(pngBuf, 'correlate-meta', JSON.stringify(meta));
+        const blob = new Blob([pngWithMeta], { type: 'image/png' });
         const link = document.createElement('a');
         link.download = `${filenameBase}.png`;
-        link.href = canvas.toDataURL('image/png');
+        link.href = URL.createObjectURL(blob);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
     }
 
     async _composeGateReportSVG(mainSvgStr, mainW, mainH, genePlotSvgStr, genePlotW, genePlotH, filterLines, filenameBase) {
@@ -18667,6 +18996,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             svgContent += `\n<text x="${padding}" y="${textY + i * textLineHeight + textFontSize}" font-family="Open Sans, sans-serif" font-size="${textFontSize}" fill="#374151">${escaped}</text>`;
         });
 
+        const meta = this._buildExportMetadata('gate_report', {
+            gene1: this.currentInspect?.gene1,
+            gene2: this.currentInspect?.gene2
+        });
+        svgContent += `\n<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata>`;
         svgContent += '\n</svg>';
         svgContent = this.sanitizeSvgForIllustrator(svgContent);
 
@@ -20022,17 +20356,28 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const plotDiv = document.getElementById('clbUmapPlot');
         if (!plotDiv?.layout) return;
         const method = this._clbUmapData?.method === 'pca' ? 'PCA' : 'UMAP';
+        const dataType = document.getElementById('clbUmapDataType')?.value || '';
+        const colorBy = document.getElementById('clbUmapColorBy')?.value || '';
         const filename = `${method}_plot`;
+        const meta = this._buildExportMetadata(method.toLowerCase(), { dataType, colorBy });
+        const metaJson = JSON.stringify(meta);
         // Use actual layout dimensions so export matches screen
         const w = plotDiv.layout.width || plotDiv.offsetWidth;
         const h = plotDiv.layout.height || plotDiv.offsetHeight;
         if (format === 'png') {
             Plotly.toImage(plotDiv, { format: 'png', width: w * 2, height: h * 2, scale: 2 })
-                .then(url => {
+                .then(async url => {
+                    const resp = await fetch(url);
+                    const buf = await resp.arrayBuffer();
+                    const bufMeta = this._addPngTextChunk(buf, 'correlate-meta', metaJson);
+                    const blob = new Blob([bufMeta], { type: 'image/png' });
                     const a = document.createElement('a');
-                    a.href = url;
+                    a.href = URL.createObjectURL(blob);
                     a.download = `${filename}.png`;
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(a.href);
                 });
         } else {
             Plotly.toImage(plotDiv, { format: 'svg', width: w, height: h })
@@ -20040,6 +20385,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                     let svgStr;
                     if (url.indexOf('base64,') > -1) svgStr = atob(url.split('base64,')[1]);
                     else svgStr = decodeURIComponent(url.split(',').slice(1).join(','));
+                    svgStr = svgStr.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
                     svgStr = this.sanitizeSvgForIllustrator(svgStr);
                     const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
                     const a = document.createElement('a');
