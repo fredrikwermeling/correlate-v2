@@ -8310,6 +8310,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     closeInspectModal() {
         document.getElementById('inspectModal').classList.remove('active');
         this.currentInspect = null;
+        this._savedScatterTextSettings = null;
         const tsPanel = document.getElementById('textSettingsPanel');
         if (tsPanel) tsPanel.style.display = 'none';
     }
@@ -8858,21 +8859,24 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const medianY = this.median(filteredData.map(d => d.y));
 
         // Build title - condensed to avoid overlapping with data
-        let titleLines = [`<b>${gene1} vs ${gene2}</b>`];
+        const sts = this._savedScatterTextSettings;
+        const titleFontSize = sts?.titleFontSize || 14;
+        const subSize = sts?.subtitleSize || 10;
+        let titleLines = [`<span style="font-size:${titleFontSize}px"><b>${gene1} vs ${gene2}</b></span>`];
         if (filterDesc) {
-            titleLines.push(`<span style="font-size:10px;color:#666;">${filterDesc}</span>`);
+            titleLines.push(`<span style="font-size:${subSize}px;color:#666;">${filterDesc}</span>`);
         }
-        titleLines.push(`<span style="font-size:10px;">n=${filteredData.length}, r=${allStats.correlation.toFixed(3)}, slope=${allStats.slope.toFixed(3)}</span>`);
-        titleLines.push(`<span style="font-size:10px;">mean (X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)}) median (X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})</span>`);
+        titleLines.push(`<span style="font-size:${subSize}px;">n=${filteredData.length}, r=${allStats.correlation.toFixed(3)}, slope=${allStats.slope.toFixed(3)}</span>`);
+        titleLines.push(`<span style="font-size:${subSize}px;">mean (X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)}) median (X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})</span>`);
 
         if (hotspotMode === 'color' && hotspotGene) {
-            titleLines.push(`<span style="font-size:10px;"><b>${hotspotGene}:</b> WT n=${wt.length} r=${wtStats.correlation.toFixed(3)} | 1mut n=${mut1.length} r=${mut1Stats.correlation.toFixed(3)} | 2mut n=${mut2.length} r=${mut2Stats.correlation.toFixed(3)}</span>`);
+            titleLines.push(`<span style="font-size:${subSize}px;"><b>${hotspotGene}:</b> WT n=${wt.length} r=${wtStats.correlation.toFixed(3)} | 1mut n=${mut1.length} r=${mut1Stats.correlation.toFixed(3)} | 2mut n=${mut2.length} r=${mut2Stats.correlation.toFixed(3)}</span>`);
         } else if (transOverlayMode === 'color' && transOverlayGene) {
             const tWT = filteredData.filter(d => d.translocationLevel === 0);
             const tFused = filteredData.filter(d => d.translocationLevel >= 1);
             const tWTStats = this.pearsonWithSlope(tWT.map(d => d.x), tWT.map(d => d.y));
             const tFusedStats = this.pearsonWithSlope(tFused.map(d => d.x), tFused.map(d => d.y));
-            titleLines.push(`<span style="font-size:10px;">${transOverlayGene}: No fusion n=${tWT.length} r=${tWTStats.correlation.toFixed(3)} | Fused n=${tFused.length} r=${tFusedStats.correlation.toFixed(3)}</span>`);
+            titleLines.push(`<span style="font-size:${subSize}px;">${transOverlayGene}: No fusion n=${tWT.length} r=${tWTStats.correlation.toFixed(3)} | Fused n=${tFused.length} r=${tFusedStats.correlation.toFixed(3)}</span>`);
         }
 
         const titleText = titleLines.join('<br>');
@@ -8886,12 +8890,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             yanchor: this._userTitlePosition ? 'auto' : 'bottom',
             text: titleText,
             showarrow: false,
-            font: { size: this._savedScatterTextSettings?.titleFontSize || 14 },
+            font: { size: Math.round(subSize * 0.85) },
             _tsRole: 'title'
         };
 
-        // Calculate margin based on title lines
-        const topMargin = 80 + (titleLines.length * 18);
+        // Calculate margin based on title lines — spacing scales with subtitle font size
+        const topMargin = 80 + (titleLines.length * Math.max(subSize * 1.2, 14));
 
         const showZero = document.getElementById('showZeroLines')?.checked !== false;
 
@@ -8909,18 +8913,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             yanchor: this._userXLabelPos ? 'auto' : 'top',
             text: xLabelText,
             showarrow: false,
-            font: { size: this._savedScatterTextSettings?.xLabelFontSize || 12 },
+            font: { size: sts?.xLabelFontSize || 12 },
             _tsRole: 'xlabel'
         };
         const yLabelAnnotation = {
-            x: this._userYLabelPos ? this._userYLabelPos.x : -0.06,
+            x: this._userYLabelPos ? this._userYLabelPos.x : -0.12,
             y: this._userYLabelPos ? this._userYLabelPos.y : 0.5,
             xref: 'paper', yref: 'paper',
             xanchor: this._userYLabelPos ? 'auto' : 'center',
             yanchor: this._userYLabelPos ? 'auto' : 'middle',
             text: yLabelText,
             showarrow: false,
-            font: { size: this._savedScatterTextSettings?.yLabelFontSize || 12 },
+            font: { size: sts?.yLabelFontSize || 12 },
             textangle: -90,
             _tsRole: 'ylabel'
         };
@@ -8941,7 +8945,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 zerolinewidth: showZero ? 2 : 0
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 240 : 30, b: colorByCategory ? 100 : 60, l: 60, autoexpand: false },
+            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 240 : 30, b: colorByCategory ? 100 : 60, l: 80, autoexpand: false },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: colorByCategory ? {
                 orientation: 'h',
@@ -8972,12 +8976,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         };
 
         // Apply saved text settings (from gene update)
-        const sts = this._savedScatterTextSettings;
         if (sts) {
             layout.xaxis.tickfont = { size: sts.xTickSize };
             layout.yaxis.tickfont = { size: sts.yTickSize };
             layout.legend.font = { size: sts.legendSize };
             if (sts.fontFamily) layout.font = { family: sts.fontFamily };
+            if (sts.markerSize) {
+                traces.forEach(t => { if (t.marker) t.marker.size = sts.markerSize; });
+            }
         }
 
         // Apply user-dragged legend position if available
@@ -9087,9 +9093,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 if (legend) legend.style.display = 'none';
             }
 
-            // Clear saved text settings after applying (one-shot from updateInspectGenes)
-            this._savedScatterTextSettings = null;
+            // Keep saved text settings persistent — cleared when inspect modal closes
         });
+    }
+
+    applyScatterDotColor(color) {
+        const plotEl = document.getElementById('scatterPlot');
+        if (!plotEl?.data) return;
+        const indices = [];
+        for (let i = 0; i < plotEl.data.length; i++) {
+            if (plotEl.data[i]?.marker && plotEl.data[i].mode === 'markers') indices.push(i);
+        }
+        if (indices.length > 0) Plotly.restyle(plotEl, { 'marker.color': color }, indices);
     }
 
     renderThreePanelPlot(filteredData, gene1, gene2, hotspotGene, searchTerms, fontSize, filterDesc = '', isFusion = false, colorByCategory = '') {
@@ -10161,8 +10176,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const titleAnn = anns.find(a => a._tsRole === 'title');
             const xAnn = anns.find(a => a._tsRole === 'xlabel');
             const yAnn = anns.find(a => a._tsRole === 'ylabel');
+            // Extract title and subtitle sizes from annotation HTML
+            const annText = titleAnn?.text || '';
+            const titleSizeMatch = annText.match(/^<span style="font-size:(\d+)px">/);
+            const subSizeMatch = annText.match(/<br><span style="font-size:(\d+)px/);
             this._savedScatterTextSettings = {
-                titleFontSize: titleAnn?.font?.size || 14,
+                titleFontSize: titleSizeMatch ? parseInt(titleSizeMatch[1]) : (titleAnn?.font?.size || 14),
+                subtitleSize: subSizeMatch ? parseInt(subSizeMatch[1]) : 10,
                 xLabelFontSize: xAnn?.font?.size || 12,
                 yLabelFontSize: yAnn?.font?.size || 12,
                 xTickSize: lay.xaxis?.tickfont?.size || 10,
@@ -20449,7 +20469,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const yLabelAnn = anns.find(a => a._tsRole === 'ylabel');
         const ann0 = titleAnn || anns[0];
         const usesAnnotationTitle = !!titleAnn || (ann0 && !ann0._gateAnnotation && ann0.xref === 'paper');
-        const titleSize = usesAnnotationTitle ? (ann0?.font?.size || 14) : (layout.title?.font?.size || 14);
+        // For annotation-based titles, the real title size is in the inline span, not annotation font.size
+        let titleSize;
+        if (usesAnnotationTitle) {
+            const titleSizeMatch = (ann0?.text || '').match(/^<span style="font-size:(\d+)px">/);
+            titleSize = titleSizeMatch ? parseInt(titleSizeMatch[1]) : (ann0?.font?.size || 14);
+        } else {
+            titleSize = layout.title?.font?.size || 14;
+        }
 
         // Extract plain text from HTML annotation text
         const stripHtml = (html) => html ? html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() : '';
@@ -20766,24 +20793,27 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const updates = {};
 
-        // Title
+        // Title — wrap in inline font-size span; annotation font.size controls line spacing
         const titleIdx = this._tsFindAnn(plotEl, 'title');
+        const titleSizeVal = parseInt(document.getElementById('ts_title')?.value) || 14;
         if (titleIdx >= 0) {
             const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
-            let html = `<b>${titleText}</b>`;
+            let html = `<span style="font-size:${titleSizeVal}px"><b>${titleText}</b></span>`;
             if (subtitleEl) {
                 const lines = subtitleEl.value.split('\n').filter(l => l.trim());
                 lines.forEach(line => { html += `<br><span style="font-size:${subSize}px;color:#666">${line}</span>`; });
             }
             updates[`annotations[${titleIdx}].text`] = html;
+            updates[`annotations[${titleIdx}].font.size`] = Math.round(subSize * 0.85);
         } else if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
             const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
-            let html = `<b>${titleText}</b>`;
+            let html = `<span style="font-size:${titleSizeVal}px"><b>${titleText}</b></span>`;
             if (subtitleEl) {
                 const lines = subtitleEl.value.split('\n').filter(l => l.trim());
                 lines.forEach(line => { html += `<br><span style="font-size:${subSize}px;color:#666">${line}</span>`; });
             }
             updates['annotations[0].text'] = html;
+            updates['annotations[0].font.size'] = Math.round(subSize * 0.85);
         } else {
             updates['title.text'] = titleText;
         }
@@ -20826,21 +20856,27 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const yLabelIdx = anns.findIndex(a => a._tsRole === 'ylabel');
 
         const titleSize = getVal('ts_title');
+        const subtitleSize = getVal('ts_subtitle');
         if (titleIdx >= 0) {
-            updates[`annotations[${titleIdx}].font.size`] = titleSize;
-            // Subtitle size — rebuild annotation HTML with new size
-            const subtitleSize = getVal('ts_subtitle');
-            if (subtitleSize) {
-                const raw = anns[titleIdx].text || '';
-                updates[`annotations[${titleIdx}].text`] = raw.replace(/font-size:\s*\d+px/g, `font-size:${subtitleSize}px`);
-            }
+            // Annotation font.size controls <br> line spacing — set to subtitle-based
+            if (subtitleSize) updates[`annotations[${titleIdx}].font.size`] = Math.round(subtitleSize * 0.85);
+            // Update inline font sizes: first match = title, rest = subtitle
+            const raw = anns[titleIdx].text || '';
+            let isFirst = true;
+            const updatedText = raw.replace(/font-size:\s*\d+px/g, (match) => {
+                if (isFirst) { isFirst = false; return `font-size:${titleSize}px`; }
+                return subtitleSize ? `font-size:${subtitleSize}px` : match;
+            });
+            if (updatedText !== raw) updates[`annotations[${titleIdx}].text`] = updatedText;
         } else if (this._tsOriginal?.usesAnnotationTitle && anns.length > 0) {
-            updates['annotations[0].font.size'] = titleSize;
-            const subtitleSize = getVal('ts_subtitle');
-            if (subtitleSize) {
-                const raw = anns[0].text || '';
-                updates['annotations[0].text'] = raw.replace(/font-size:\s*\d+px/g, `font-size:${subtitleSize}px`);
-            }
+            if (subtitleSize) updates['annotations[0].font.size'] = Math.round(subtitleSize * 0.85);
+            const raw = anns[0].text || '';
+            let isFirst = true;
+            const updatedText = raw.replace(/font-size:\s*\d+px/g, (match) => {
+                if (isFirst) { isFirst = false; return `font-size:${titleSize}px`; }
+                return subtitleSize ? `font-size:${subtitleSize}px` : match;
+            });
+            if (updatedText !== raw) updates['annotations[0].text'] = updatedText;
         } else {
             updates['title.font.size'] = titleSize;
         }
@@ -20868,6 +20904,21 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 if (plotEl.data[i]?.marker) indices.push(i);
             }
             if (indices.length > 0) Plotly.restyle(plotEl, { 'marker.size': markerSize }, indices);
+        }
+
+        // Persist settings so they survive GE↔Expression switches
+        if (this._textSettingsPlotId === 'scatterPlot') {
+            this._savedScatterTextSettings = {
+                titleFontSize: titleSize,
+                subtitleSize: subtitleSize || this._tsOriginal?.subtitleSize || 10,
+                xLabelFontSize: getVal('ts_xlabel') || 12,
+                yLabelFontSize: getVal('ts_ylabel') || 12,
+                xTickSize: getVal('ts_xtick') || 10,
+                yTickSize: getVal('ts_ytick') || 10,
+                legendSize: getVal('ts_legend') || 10,
+                markerSize: markerSize || 8,
+                fontFamily: plotEl.layout?.font?.family || null
+            };
         }
     }
 
