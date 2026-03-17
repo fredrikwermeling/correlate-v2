@@ -1,3 +1,9 @@
+- allow in cell browser to export GE and expression data for selected cell lines. also include columns for damaging, hotspot translaocations. ie rows has genes, at least 5 columns with expression, GE, hotspo, damaging ´, translocations. 
+- make correlation plot of expression vs GE effect for a selected cell line. make a table with filters (tissue, sub tissue, hotspot mutations , translocationm) that identifies genes with the delta of expression and GE, the idea being to find how gene expression and correspnding efect of KO is. Clicking a gene in such a table could highlight it in the correlation plot.
+
+- allow for exporting data for umap to visualize format?
+
+
 - in umap, # of mutations in cells line. also ,not only square gates, also indiacte cells in gate with color and with letter A or B like in the scatter correlate version.
 - in umap cancer cells gate analysis also allow for enricher.
 - in correlate scatter plot, the box for gene name in x and y axis (with possibility to change the GE or expression)
