@@ -19492,24 +19492,29 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const { x, y, cellLines, geneNames, matrix, method, pcaLoadings } = this._clbUmapData;
         if (!cellLines || cellLines.length === 0) return;
 
-        let html = '';
+        // Determine the data type used for analysis
+        const analysisDataType = document.getElementById('clbUmapDataType').value; // 'ge', 'expr', or 'both'
+        const dataTypeLabel = analysisDataType === 'ge' ? 'Gene Effect' :
+                              analysisDataType === 'expr' ? 'Expression' : 'GE + Expression';
+
+        let html = `<div style="font-size:9px;color:#9ca3af;margin-bottom:6px;">Click gene to color plot (${dataTypeLabel})</div>`;
 
         // For PCA, show loadings for the currently selected components
         if (method === 'pca' && pcaLoadings) {
             const compX = parseInt(document.getElementById('clbUmapCompX').value) || 0;
             const compY = parseInt(document.getElementById('clbUmapCompY').value) || 1;
             const pcKeys = [`pc${compX + 1}`, `pc${compY + 1}`];
-            html += '<div style="margin-bottom:8px;font-weight:600;font-size:12px;">Top PCA Loadings</div>';
-            html += '<div style="display:flex;gap:16px;flex-wrap:wrap;">';
+            html += '<div style="font-weight:600;font-size:11px;margin-bottom:4px;">PCA Loadings</div>';
+            html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;">';
             pcKeys.forEach(pc => {
                 if (!pcaLoadings[pc]) return;
                 const top10 = pcaLoadings[pc].slice(0, 10);
-                html += `<div><div style="font-weight:500;font-size:11px;margin-bottom:4px;">${pc.toUpperCase()}</div>`;
+                html += `<div><div style="font-weight:500;font-size:10px;margin-bottom:3px;color:#6b7280;">${pc.toUpperCase()}</div>`;
                 html += '<table style="font-size:11px;border-collapse:collapse;">';
-                html += '<tr style="border-bottom:1px solid #e5e7eb;"><th style="text-align:left;padding:1px 8px;">Gene</th><th style="text-align:right;padding:1px 8px;">Loading</th></tr>';
+                html += '<tr style="border-bottom:1px solid #e5e7eb;"><th style="text-align:left;padding:1px 6px;">Gene</th><th style="text-align:right;padding:1px 6px;">Loading</th></tr>';
                 top10.forEach(l => {
                     const color = l.loading > 0 ? '#b91c1c' : '#1d4ed8';
-                    html += `<tr><td style="padding:1px 8px;">${l.gene}</td><td style="text-align:right;padding:1px 8px;color:${color};">${l.loading.toFixed(4)}</td></tr>`;
+                    html += `<tr style="cursor:pointer;" onclick="app.applyUmapGeneColor_fromTop('${l.gene}')"><td style="padding:1px 6px;text-decoration:underline;color:#4f46e5;">${l.gene}</td><td style="text-align:right;padding:1px 6px;color:${color};">${l.loading.toFixed(4)}</td></tr>`;
                 });
                 html += '</table></div>';
             });
@@ -19522,7 +19527,6 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const nGenes = geneNames.length;
             const correlations = [];
 
-            // Precompute means
             let xMean = 0, yMean = 0;
             for (let i = 0; i < nCL; i++) { xMean += x[i]; yMean += y[i]; }
             xMean /= nCL; yMean /= nCL;
@@ -19554,26 +19558,38 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const top10 = correlations.slice(0, 10);
 
             const axLabels = this._clbUmapData.axisLabels || ['Dim 1', 'Dim 2'];
-            html += '<div style="margin-top:8px;font-weight:600;font-size:12px;">Top Genes Correlated with Coordinates</div>';
-            html += '<table style="font-size:11px;border-collapse:collapse;margin-top:4px;">';
+            html += '<div style="font-weight:600;font-size:11px;margin-bottom:4px;">Correlated with Coordinates</div>';
+            html += '<table style="font-size:11px;border-collapse:collapse;">';
             const axL0 = axLabels[0].split('(')[0].trim();
             const axL1 = axLabels[1].split('(')[0].trim();
-            html += `<tr style="border-bottom:1px solid #e5e7eb;"><th style="text-align:left;padding:1px 8px;">Gene</th><th style="text-align:right;padding:1px 8px;">r(${axL0})</th><th style="text-align:right;padding:1px 8px;">r(${axL1})</th><th style="text-align:right;padding:1px 8px;">|r| combined</th></tr>`;
+            html += `<tr style="border-bottom:1px solid #e5e7eb;"><th style="text-align:left;padding:1px 6px;">Gene</th><th style="text-align:right;padding:1px 6px;">r(${axL0})</th><th style="text-align:right;padding:1px 6px;">r(${axL1})</th><th style="text-align:right;padding:1px 6px;">|r|</th></tr>`;
             top10.forEach(c => {
                 const colorX = c.rX > 0 ? '#b91c1c' : '#1d4ed8';
                 const colorY = c.rY > 0 ? '#b91c1c' : '#1d4ed8';
-                html += `<tr style="cursor:pointer;" onclick="app.applyUmapGeneColor_fromTop('${c.gene}')"><td style="padding:1px 8px;text-decoration:underline;color:#4f46e5;">${c.gene}</td><td style="text-align:right;padding:1px 8px;color:${colorX};">${c.rX.toFixed(3)}</td><td style="text-align:right;padding:1px 8px;color:${colorY};">${c.rY.toFixed(3)}</td><td style="text-align:right;padding:1px 8px;">${c.rCombined.toFixed(3)}</td></tr>`;
+                html += `<tr style="cursor:pointer;" onclick="app.applyUmapGeneColor_fromTop('${c.gene}')"><td style="padding:1px 6px;text-decoration:underline;color:#4f46e5;">${c.gene}</td><td style="text-align:right;padding:1px 6px;color:${colorX};">${c.rX.toFixed(3)}</td><td style="text-align:right;padding:1px 6px;color:${colorY};">${c.rY.toFixed(3)}</td><td style="text-align:right;padding:1px 6px;">${c.rCombined.toFixed(3)}</td></tr>`;
             });
             html += '</table>';
         }
 
-        panel.innerHTML = html || '<div style="font-size:11px;color:#6b7280;">No gene data available. Run with GE data type.</div>';
+        const content = document.getElementById('clbUmapTopGenesContent');
+        content.innerHTML = html || '<div style="font-size:11px;color:#6b7280;">No gene data available. Run with GE data type.</div>';
+
+        // Position popout near the Top Genes button
+        const btn = document.getElementById('clbUmapTopGenesBtn');
+        const rect = btn.getBoundingClientRect();
+        const section = document.getElementById('clbUmapSection');
+        const sectionRect = section.getBoundingClientRect();
+        panel.style.left = Math.max(0, rect.left - sectionRect.left) + 'px';
+        panel.style.top = (rect.bottom - sectionRect.top + 4) + 'px';
         panel.style.display = 'block';
     }
 
     applyUmapGeneColor_fromTop(gene) {
+        // Use the data type that matches the analysis
+        const analysisDataType = document.getElementById('clbUmapDataType').value;
         document.getElementById('clbUmapColorGene').value = gene;
-        document.getElementById('clbUmapColorGeneType').value = 'ge';
+        // For 'both', prefer GE; for 'expr' use expression; for 'ge' use GE
+        document.getElementById('clbUmapColorGeneType').value = analysisDataType === 'expr' ? 'expr' : 'ge';
         this.applyUmapGeneColor();
     }
 

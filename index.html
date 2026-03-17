@@ -2965,7 +2965,7 @@
           </div>
         </div>
         <!-- UMAP Section -->
-        <div id="clbUmapSection" style="border-top:1px solid #e5e7eb; padding:10px 16px;">
+        <div id="clbUmapSection" style="border-top:1px solid #e5e7eb; padding:10px 16px; position:relative;">
             <!-- Row 1: Method, Data, Filters, Run, Reset -->
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
                 <strong style="font-size:12px;">Dim. Reduction</strong>
@@ -3018,7 +3018,13 @@
                 <button id="clbUmapTopGenesBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px;" title="Show top genes correlated with axes">Top Genes</button>
                 <span id="clbUmapLoadingsLabel" style="font-size:9px; color:#6b7280; display:none;"></span>
             </div>
-            <div id="clbUmapTopGenesPanel" style="display:none; margin-bottom:6px; padding:6px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; font-size:10px;"></div>
+            <div id="clbUmapTopGenesPanel" style="display:none; position:absolute; z-index:1000; width:420px; max-height:480px; overflow-y:auto; padding:8px 12px; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15); font-size:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <strong style="font-size:12px;">Top Genes</strong>
+                    <button onclick="document.getElementById('clbUmapTopGenesPanel').style.display='none'" style="background:none;border:none;font-size:16px;cursor:pointer;color:#6b7280;line-height:1;">&times;</button>
+                </div>
+                <div id="clbUmapTopGenesContent"></div>
+            </div>
             <!-- Row 4: Split by mutation -->
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
                 <span style="font-size:10px; color:#6b7280;">Split by mutation:</span>
