@@ -5,6 +5,7 @@
 - make correlation plot of expression vs GE effect for a selected cell line. make a table with filters (tissue, sub tissue, hotspot mutations , translocationm) that identifies genes with the delta of expression and GE, the idea being to find how gene expression and correspnding efect of KO is. Clicking a gene in such a table could highlight it in the correlation plot.
 - when making any changes to a graph, eg shich gene is shown on x or y axis, make sure that the app doesnt change the settigns for the text eg font size etc. now it jumps to a deafult setting.
 - in correlate_scatter, the box in the upper left corner for cahnging gene names (GE or expression) is too small, i cant see what i write. It needs to be bigger.
+- in teh network, allow for Aa settings. also allow for toggling on/off a thin line around the differnt nodes.
 
 - allow for exporting data for umap to visualize format? Probably too complicated.
 
