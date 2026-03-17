@@ -1313,7 +1313,7 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.25.2 (2026-03-17)</strong></p>
+                <p><strong>v.25.3 (2026-03-17)</strong></p>
                 <ul>
                     <li>Expr vs GE: moved higher in cell line panel, Aa text settings, draggable titles, sortable table columns</li>
                     <li>UMAP/PCA: annotation-based draggable title and labels, title no longer overlaps modebar</li>
@@ -1527,7 +1527,10 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.25.2</a>
+        <label style="margin-left:auto; cursor:pointer; font-size:11px; background:#f0fdf4; padding:2px 10px; border-radius:10px; color:var(--green-700); border:1px solid var(--green-400);" title="Open a Correlate SVG to restore settings">
+            Open SVG <input type="file" id="restoreFromSvgInputMain" accept=".svg" style="display:none;">
+        </label>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.25.3</a>
     </div>
 
     <div class="main-content">
@@ -1921,7 +1924,7 @@
                                 <button class="btn btn-secondary" id="changeLayout">Layout</button>
                             </div>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
-                                <button class="btn btn-secondary" id="networkAaBtn" style="font-family: Georgia, serif; font-style: italic;">Aa</button>
+                                <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;">Aa</button>
                                 <label style="font-size: 10px; display: flex; align-items: center; gap: 3px; cursor: pointer;">
                                     <input type="checkbox" id="networkNodeBorder" checked> Node border
                                 </label>
@@ -3024,6 +3027,7 @@
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="Gene Effect matrix for selected cell lines (genes × cell lines)">GE Matrix</button>
             <button id="clbExportFull" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="Cell line metadata, mutations, top depleted/enriched genes, z-scores">Cell Line Report</button>
             <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="All data per cell line: GE, Expression, Hotspot, Damaging, Translocation (genes × cell lines)">Full Data Export</button>
+            <button id="clbExprVsGEAll" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#a78bfa;" title="Expression vs Gene Effect for all or selected cell lines">Expr vs GE</button>
           </div>
         </div>
         <!-- Custom Cell Line Filter for CLB -->
@@ -3066,7 +3070,7 @@
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                 <strong style="font-size:12px;">Expression vs Gene Effect</strong>
                 <span id="exprVsGECellLine" style="font-size:11px; color:var(--gray-500);"></span>
-                <button id="exprVsGEAaBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; font-family:Georgia,serif; font-style:italic;" title="Text & layout settings">Aa</button>
+                <button id="exprVsGEAaBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; font-weight:700;" title="Text & layout settings">Aa</button>
                 <button id="exprVsGEClose" class="btn btn-sm btn-outline" style="margin-left:auto; font-size:10px; padding:2px 6px;">Close</button>
             </div>
             <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
@@ -3078,9 +3082,12 @@
         </div>
         <!-- UMAP Section -->
         <div id="clbUmapSection" style="border-top:1px solid #e5e7eb; padding:10px 16px; position:relative;">
-            <!-- Row 1a: Method, Data, Color -->
+            <!-- Section Title -->
+            <div style="margin-bottom:6px;">
+                <strong style="font-size:12px;">Dimensionality Reduction</strong>
+            </div>
+            <!-- Row 1: Method, Data, Color -->
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
-                <strong style="font-size:12px;">Dim. Reduction</strong>
                 <select id="clbUmapMethod" style="font-size:11px; padding:2px 4px;">
                     <option value="umap">UMAP</option>
                     <option value="pca">PCA</option>
@@ -3095,7 +3102,7 @@
                     <option value="subtissue">Color by subtype</option>
                 </select>
             </div>
-            <!-- Row 1b: Filters + Run/Reset (always on same line) -->
+            <!-- Row 2: Filters + Run/Reset -->
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
                 <select id="clbUmapTissueFilter" style="font-size:11px; padding:2px 4px; max-width:180px;">
                     <option value="">All tissues</option>

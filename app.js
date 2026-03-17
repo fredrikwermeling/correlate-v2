@@ -1778,6 +1778,10 @@ class CorrelationExplorer {
             if (e.target.files[0]) this.restoreFromSvg(e.target.files[0]);
             e.target.value = '';
         });
+        document.getElementById('restoreFromSvgInputMain')?.addEventListener('change', (e) => {
+            if (e.target.files[0]) this.restoreFromSvg(e.target.files[0]);
+            e.target.value = '';
+        });
         document.getElementById('downloadTissuePNG').addEventListener('click', () => this.downloadTissueChartPNG());
         document.getElementById('downloadTissueSVG').addEventListener('click', () => this.downloadTissueChartSVG());
         document.getElementById('downloadTissueCSV').addEventListener('click', () => this.downloadTissueTableCSV());
@@ -4305,14 +4309,14 @@ class CorrelationExplorer {
         const xLabelText = `${gene} Gene Effect`;
 
         const geTitleAnn = {
-            text: `<b>${titleText}</b><br><span style="font-size:10px;color:#666">${subtitleText}</span>`,
+            text: `<span style="font-size:25px"><b>${titleText}</b></span><br><span style="font-size:15px;color:#666">${subtitleText}</span>`,
             xref: 'paper', yref: 'paper',
             x: this._geUserTitlePos ? this._geUserTitlePos.x : 0.5,
             y: this._geUserTitlePos ? this._geUserTitlePos.y : 1.35,
             xanchor: this._geUserTitlePos ? 'auto' : 'center',
             yanchor: this._geUserTitlePos ? 'auto' : 'top',
             showarrow: false,
-            font: { size: 13 },
+            font: { size: Math.round(15 * 0.85) },
             _tsRole: 'title'
         };
         const geXLabelAnn = {
@@ -4323,7 +4327,7 @@ class CorrelationExplorer {
             xanchor: this._geUserXLabelPos ? 'auto' : 'center',
             yanchor: this._geUserXLabelPos ? 'auto' : 'top',
             showarrow: false,
-            font: { size: 12 },
+            font: { size: 20 },
             _tsRole: 'xlabel'
         };
         const geYLabelAnn = {
@@ -4334,7 +4338,7 @@ class CorrelationExplorer {
             xanchor: this._geUserYLabelPos ? 'auto' : 'center',
             yanchor: this._geUserYLabelPos ? 'auto' : 'middle',
             showarrow: false,
-            font: { size: 12 },
+            font: { size: 20 },
             textangle: -90,
             _tsRole: 'ylabel'
         };
@@ -4346,13 +4350,15 @@ class CorrelationExplorer {
                 range: [xMin, xMax],
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : 'transparent',
-                zerolinewidth: showZero ? 2 : 0
+                zerolinewidth: showZero ? 2 : 0,
+                tickfont: { size: 17 }
             },
             yaxis: {
                 tickmode: 'array',
                 tickvals: [0, 1, 2],
                 ticktext: [`${tick0Label} (n=${data.wt.length})`, `${tick1Label} (n=${data.mut1.length})`, `${tick2Label} (n=${data.mut2.length})`],
-                range: [-0.5, 2.5]
+                range: [-0.5, 2.5],
+                tickfont: { size: 17 }
             },
             showlegend: false,
             margin: { t: 160, r: 30, b: 50, l: 130 },
@@ -8937,14 +8943,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : '#ddd',
                 zerolinewidth: showZero ? 2 : 0,
-                tickfont: { size: 17 }
+                tickfont: { size: sts?.xTickSize || 17 }
             },
             yaxis: {
                 range: yRange,
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : '#ddd',
                 zerolinewidth: showZero ? 2 : 0,
-                tickfont: { size: 17 }
+                tickfont: { size: sts?.yTickSize || 17 }
             },
             hovermode: 'closest',
             margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 240 : 30, b: colorByCategory ? 100 : 60, l: 80, autoexpand: false },
@@ -12742,16 +12748,23 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             mutFilterGene: document.getElementById('mutationFilterGene')?.value,
             mutFilterLevel: document.getElementById('mutationFilterLevel')?.value,
             colorBy: document.getElementById('colorBySelect')?.value,
-            textSettings: {
-                titleFontSize: titleAnn?.font?.size,
-                xLabelFontSize: xAnn?.font?.size,
-                yLabelFontSize: yAnn?.font?.size,
-                xTickSize: lay?.xaxis?.tickfont?.size,
-                yTickSize: lay?.yaxis?.tickfont?.size,
-                legendSize: lay?.legend?.font?.size,
-                markerSize: plotEl?.data?.[0]?.marker?.size,
-                fontFamily: lay?.font?.family
-            },
+            textSettings: (() => {
+                // Extract title size from inline span (annotation font.size is subtitle-based)
+                const annText = titleAnn?.text || '';
+                const titleSizeMatch = annText.match(/^<span style="font-size:(\d+)px">/);
+                const subSizeMatch = annText.match(/<br><span style="font-size:(\d+)px/);
+                return {
+                    titleFontSize: titleSizeMatch ? parseInt(titleSizeMatch[1]) : (titleAnn?.font?.size || 25),
+                    subtitleSize: subSizeMatch ? parseInt(subSizeMatch[1]) : 15,
+                    xLabelFontSize: xAnn?.font?.size,
+                    yLabelFontSize: yAnn?.font?.size,
+                    xTickSize: lay?.xaxis?.tickfont?.size,
+                    yTickSize: lay?.yaxis?.tickfont?.size,
+                    legendSize: lay?.legend?.font?.size,
+                    markerSize: plotEl?.data?.[0]?.marker?.size,
+                    fontFamily: lay?.font?.family
+                };
+            })(),
             showZeroLines: document.getElementById('showZeroLines')?.checked,
             showCorrelationLine: document.getElementById('showCorrelationLine')?.checked
         };
@@ -12804,11 +12817,22 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (state.searchTerms) document.getElementById('cellLineSearch').value = state.searchTerms;
             if (state.mutFilterGene) document.getElementById('mutationFilterGene').value = state.mutFilterGene;
             if (state.mutFilterLevel) document.getElementById('mutationFilterLevel').value = state.mutFilterLevel;
+            if (state.colorBy) {
+                const colorByEl = document.getElementById('colorBySelect');
+                if (colorByEl) colorByEl.value = state.colorBy;
+            }
             if (state.showZeroLines != null) document.getElementById('showZeroLines').checked = state.showZeroLines;
             if (state.showCorrelationLine != null) document.getElementById('showCorrelationLine').checked = state.showCorrelationLine;
 
-            // Save text settings for the re-render
-            if (state.textSettings) this._savedScatterTextSettings = state.textSettings;
+            // Save text settings for the re-render — ensure compatibility with old SVGs
+            if (state.textSettings) {
+                // Old SVGs may have titleFontSize from annotation font.size (small); fix up
+                if (state.textSettings.titleFontSize && state.textSettings.titleFontSize < 20 && !state.textSettings.subtitleSize) {
+                    state.textSettings.titleFontSize = 25;
+                    state.textSettings.subtitleSize = 15;
+                }
+                this._savedScatterTextSettings = state.textSettings;
+            }
 
             // Re-render with all settings
             this.updateInspectPlot();
@@ -17276,6 +17300,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.getElementById('clbExportMinimal').addEventListener('click', () => this.exportCellLineBrowserCSV('minimal'));
         document.getElementById('clbExportFull').addEventListener('click', () => this.exportCellLineBrowserCSV('full'));
         document.getElementById('clbExportComprehensive')?.addEventListener('click', () => this.exportCellLineBrowserCSV('comprehensive'));
+        document.getElementById('clbExprVsGEAll')?.addEventListener('click', () => this.showExprVsGEAllPlot());
         document.getElementById('clbExprVsGEBtn')?.addEventListener('click', () => this.showExprVsGEPlot());
         document.getElementById('exprVsGEClose')?.addEventListener('click', () => { document.getElementById('exprVsGESection').style.display = 'none'; });
         document.getElementById('exprVsGEGeneSearch')?.addEventListener('input', () => this.filterExprVsGETable());
@@ -18012,7 +18037,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const geneName = this.geneNames[g];
             const expr = this.getExpressionValueByGEIndex(geneName, clIdx);
             if (isNaN(expr)) continue;
-            data.push({ gene: geneName, expr, ge, delta: ge - expr });
+            data.push({ gene: geneName, expr, ge, ratio: ge !== 0 ? expr / ge : NaN });
         }
 
         this._exprVsGEData = data;
@@ -18037,31 +18062,31 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const titleAnnotation = {
             x: 0.5, y: 1.0, xref: 'paper', yref: 'paper',
             xanchor: 'center', yanchor: 'bottom',
-            text: `<b>${clName}: Expression vs Gene Effect</b>`,
+            text: `<span style="font-size:25px"><b>${clName}: Expression vs Gene Effect</b></span><br><span style="font-size:15px;color:#666">${data.length} genes</span>`,
             showarrow: false,
-            font: { size: 15 },
+            font: { size: Math.round(15 * 0.85) },
             _tsRole: 'title'
         };
         const xLabelAnnotation = {
             x: 0.5, y: -0.10, xref: 'paper', yref: 'paper',
             xanchor: 'center', yanchor: 'top',
             text: 'Expression (log2 TPM+1)',
-            showarrow: false, font: { size: 13 },
+            showarrow: false, font: { size: 20 },
             _tsRole: 'xlabel'
         };
         const yLabelAnnotation = {
             x: -0.12, y: 0.5, xref: 'paper', yref: 'paper',
             xanchor: 'center', yanchor: 'middle',
             text: 'Gene Effect', textangle: -90,
-            showarrow: false, font: { size: 13 },
+            showarrow: false, font: { size: 20 },
             _tsRole: 'ylabel'
         };
 
         const layout = {
-            xaxis: { tickfont: { size: 11 } },
-            yaxis: { tickfont: { size: 11 } },
+            xaxis: { tickfont: { size: 17 } },
+            yaxis: { tickfont: { size: 17 } },
             annotations: [titleAnnotation, xLabelAnnotation, yLabelAnnotation],
-            margin: { t: 50, r: 20, b: 55, l: 65, autoexpand: false },
+            margin: { t: 80, r: 20, b: 55, l: 65, autoexpand: false },
             width: 500, height: 420,
             hovermode: 'closest',
             plot_bgcolor: '#fafafa'
@@ -18122,7 +18147,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 <th style="${thStyle} text-align:left;" onclick="app.sortExprVsGETable('gene')">Gene${arrow('gene')}</th>
                 <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('expr')">Expr${arrow('expr')}</th>
                 <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('ge')">GE${arrow('ge')}</th>
-                <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('delta')">Delta${arrow('delta')}</th>
+                <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('ratio')">Expr/GE${arrow('ratio')}</th>
             </tr></thead><tbody>`;
 
         show.forEach(d => {
@@ -18131,7 +18156,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 <td style="padding:2px 4px;">${d.gene}</td>
                 <td style="padding:2px 4px; text-align:right;">${d.expr.toFixed(2)}</td>
                 <td style="padding:2px 4px; text-align:right; color:${geColor};">${d.ge.toFixed(3)}</td>
-                <td style="padding:2px 4px; text-align:right;">${d.delta.toFixed(3)}</td>
+                <td style="padding:2px 4px; text-align:right;">${isNaN(d.ratio) ? '-' : d.ratio.toFixed(2)}</td>
             </tr>`;
         });
         html += `</tbody></table>`;
@@ -18176,6 +18201,116 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         document.querySelectorAll('.exprVsGERow').forEach(row => {
             row.style.background = row.dataset.gene === gene ? '#fef3c7' : '';
         });
+    }
+
+    async showExprVsGEAllPlot() {
+        // Use selected cell lines, or all visible if none selected
+        let cellLineIds = [...this._clbSelectedCellLines];
+        if (cellLineIds.length === 0) {
+            cellLineIds = this._clbVisibleCellLines ? [...this._clbVisibleCellLines] : [...this.metadata.cellLines];
+        }
+        if (cellLineIds.length === 0) { alert('No cell lines available.'); return; }
+
+        // Ensure expression data is loaded
+        if (!this.expressionLoaded) {
+            try { await this.loadExpressionData(); } catch (e) { alert('Failed to load expression data: ' + e.message); return; }
+        }
+
+        // Build per-gene mean expression and mean GE across selected cell lines
+        const geneAgg = new Map(); // geneName -> { exprSum, geSum, n }
+        for (const clId of cellLineIds) {
+            const clIdx = this.metadata.cellLines.indexOf(clId);
+            if (clIdx < 0) continue;
+            for (let g = 0; g < this.nGenes; g++) {
+                const ge = this.geneEffects[g * this.nCellLines + clIdx];
+                if (isNaN(ge) || ge === -999) continue;
+                const geneName = this.geneNames[g];
+                const expr = this.getExpressionValueByGEIndex(geneName, clIdx);
+                if (isNaN(expr)) continue;
+                if (!geneAgg.has(geneName)) geneAgg.set(geneName, { exprSum: 0, geSum: 0, n: 0 });
+                const agg = geneAgg.get(geneName);
+                agg.exprSum += expr;
+                agg.geSum += ge;
+                agg.n++;
+            }
+        }
+
+        const data = [];
+        for (const [gene, agg] of geneAgg) {
+            if (agg.n < 2) continue; // require at least 2 cell lines
+            const expr = agg.exprSum / agg.n;
+            const ge = agg.geSum / agg.n;
+            data.push({ gene, expr, ge, ratio: ge !== 0 ? expr / ge : NaN });
+        }
+
+        if (data.length === 0) { alert('No overlapping expression/GE data found.'); return; }
+
+        this._exprVsGEData = data;
+        this._exprVsGECellLine = null;
+        this._exprVsGESortCol = 'ge';
+        this._exprVsGESortAsc = true;
+        const label = cellLineIds.length === this.metadata.cellLines.length ? 'All cell lines' :
+            `${cellLineIds.length} cell lines (mean)`;
+        document.getElementById('exprVsGECellLine').textContent = label;
+        document.getElementById('exprVsGESection').style.display = '';
+
+        const traces = [{
+            x: data.map(d => d.expr),
+            y: data.map(d => d.ge),
+            mode: 'markers',
+            type: 'scatter',
+            text: data.map(d => d.gene),
+            hovertemplate: '%{text}<br>Mean Expr: %{x:.2f}<br>Mean GE: %{y:.3f}<extra></extra>',
+            marker: { color: '#7c3aed', size: 5, opacity: 0.5 },
+            showlegend: false
+        }];
+
+        const titleAnnotation = {
+            x: 0.5, y: 1.0, xref: 'paper', yref: 'paper',
+            xanchor: 'center', yanchor: 'bottom',
+            text: `<span style="font-size:25px"><b>Mean Expression vs Gene Effect</b></span><br><span style="font-size:15px;color:#666">${label} · ${data.length} genes</span>`,
+            showarrow: false,
+            font: { size: Math.round(15 * 0.85) },
+            _tsRole: 'title'
+        };
+        const xLabelAnnotation = {
+            x: 0.5, y: -0.10, xref: 'paper', yref: 'paper',
+            xanchor: 'center', yanchor: 'top',
+            text: 'Mean Expression (log2 TPM+1)',
+            showarrow: false, font: { size: 20 },
+            _tsRole: 'xlabel'
+        };
+        const yLabelAnnotation = {
+            x: -0.12, y: 0.5, xref: 'paper', yref: 'paper',
+            xanchor: 'center', yanchor: 'middle',
+            text: 'Mean Gene Effect', textangle: -90,
+            showarrow: false, font: { size: 20 },
+            _tsRole: 'ylabel'
+        };
+
+        const layout = {
+            xaxis: { tickfont: { size: 17 } },
+            yaxis: { tickfont: { size: 17 } },
+            annotations: [titleAnnotation, xLabelAnnotation, yLabelAnnotation],
+            margin: { t: 80, r: 20, b: 55, l: 65, autoexpand: false },
+            width: 500, height: 420,
+            hovermode: 'closest',
+            plot_bgcolor: '#fafafa'
+        };
+
+        Plotly.newPlot('exprVsGEPlot', traces, layout, {
+            responsive: false, displayModeBar: false, displaylogo: false,
+            edits: { annotationPosition: true }
+        }).then(plotEl => {
+            plotEl.on('plotly_click', (eventData) => {
+                if (eventData.points.length > 0) {
+                    const gene = eventData.points[0].text;
+                    this._highlightExprVsGEGene(gene);
+                }
+            });
+        });
+
+        this.filterExprVsGETable();
     }
 
     _buildGateReportFilename(prefix) {
