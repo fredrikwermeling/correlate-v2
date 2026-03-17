@@ -19084,18 +19084,47 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         geneRanking.sort((a, b) => b.v - a.v);
         const topGenes = geneRanking.slice(0, nTopGenes).map(r => r.idx);
 
-        const matrix = [];
+        // Build raw matrix, track missing values per gene
+        const rawMatrix = [];
         for (let i = 0; i < nCL; i++) {
             const row = new Array(topGenes.length);
             for (let j = 0; j < topGenes.length; j++) {
-                const val = getData(topGenes[j], cellLineIndices[i]);
-                row[j] = val !== null ? val : 0;
+                row[j] = getData(topGenes[j], cellLineIndices[i]);
+            }
+            rawMatrix.push(row);
+        }
+
+        // Compute column means (ignoring nulls) and filter out genes with >30% missing
+        const colMeans = new Array(topGenes.length);
+        const keepGene = new Array(topGenes.length);
+        for (let j = 0; j < topGenes.length; j++) {
+            let sum = 0, count = 0;
+            for (let i = 0; i < nCL; i++) {
+                if (rawMatrix[i][j] !== null) { sum += rawMatrix[i][j]; count++; }
+            }
+            const missingFrac = 1 - count / nCL;
+            keepGene[j] = missingFrac <= 0.3 && count > 0;
+            colMeans[j] = count > 0 ? sum / count : 0;
+        }
+
+        // Filter to kept genes and impute missing with column mean
+        const keptIndices = [];
+        for (let j = 0; j < topGenes.length; j++) {
+            if (keepGene[j]) keptIndices.push(j);
+        }
+
+        const matrix = [];
+        for (let i = 0; i < nCL; i++) {
+            const row = new Array(keptIndices.length);
+            for (let k = 0; k < keptIndices.length; k++) {
+                const j = keptIndices[k];
+                row[k] = rawMatrix[i][j] !== null ? rawMatrix[i][j] : colMeans[j];
             }
             matrix.push(row);
         }
 
         if (returnGeneNames) {
-            const geneNames = topGenes.map(idx => allGeneNames[idx]);
+            const geneNames = keptIndices.map(j => allGeneNames[topGenes[j]]);
             return { matrix, geneNames };
         }
         return matrix;
