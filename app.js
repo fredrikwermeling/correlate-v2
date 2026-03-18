@@ -6482,8 +6482,10 @@ Results:
 
         // Embed metadata and create download link
         const meta = this._buildExportMetadata('network', {
-            genes: this.results?.genes?.length,
-            cutoff: this.results?.cutoff
+            geneList: this.getGeneList(),
+            mode: this.results?.mode,
+            cutoff: this.results?.cutoff,
+            nCellLines: this.results?.nCellLines
         });
         const dataURL = canvas.toDataURL('image/png');
         fetch(dataURL).then(r => r.arrayBuffer()).then(buf => {
@@ -6735,8 +6737,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Embed metadata
         const meta = this._buildExportMetadata('network', {
-            genes: this.results?.genes?.length,
-            cutoff: this.results?.cutoff
+            geneList: this.getGeneList(),
+            mode: this.results?.mode,
+            cutoff: this.results?.cutoff,
+            nCellLines: this.results?.nCellLines
         });
         svg += `<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata>`;
         svg += '</svg>';
@@ -12860,11 +12864,35 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     }
 
     _handleExportMeta(meta) {
-        // For exports that have gene info, try to open inspect
+        // Scatter-like exports with gene pair → restore inspect view
         if (meta.gene1 && meta.gene2) {
             return this._restoreFromState(meta);
         }
-        // For other graph types, show info and offer to navigate
+
+        // Network exports → restore gene list, mode, cutoff and re-run
+        if (meta.graphType === 'network' && meta.geneList && meta.geneList.length > 0) {
+            document.getElementById('geneTextarea').value = meta.geneList.join('\n');
+            if (meta.mode) {
+                const radio = document.querySelector(`input[name="analysisMode"][value="${meta.mode}"]`);
+                if (radio) radio.checked = true;
+            }
+            if (meta.cutoff != null) {
+                document.getElementById('correlationCutoff').value = meta.cutoff;
+                // Update the displayed value label if it exists
+                const label = document.getElementById('correlationCutoff')?.nextElementSibling;
+                if (label) label.textContent = meta.cutoff;
+            }
+            this.runAnalysis();
+            return;
+        }
+
+        // Gene effect exports → open gene effect modal
+        if ((meta.graphType === 'gene_effect' || meta.graphType === 'mutation_inspect') && meta.gene) {
+            this.openGeneEffectModal(meta.gene, meta.view || 'tissue');
+            return;
+        }
+
+        // Fallback: show what we know about the file
         const graphLabels = {
             'network': 'Correlation Network',
             'tissue_chart': 'By-Tissue Chart',
@@ -12880,16 +12908,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const label = graphLabels[meta.graphType] || meta.graphType || 'Unknown';
         const details = [];
         if (meta.gene) details.push(`Gene: ${meta.gene}`);
-        if (meta.gene1 && !meta.gene2) details.push(`Gene: ${meta.gene1}`);
         if (meta.hotspotGene) details.push(`Hotspot: ${meta.hotspotGene}`);
         if (meta.targetGene) details.push(`Target: ${meta.targetGene}`);
         if (meta.view) details.push(`View: ${meta.view}`);
         if (meta.dataType) details.push(`Data: ${meta.dataType}`);
-        if (meta.genes) details.push(`${meta.genes} genes`);
+        if (meta.geneList) details.push(`Genes: ${meta.geneList.join(', ')}`);
         if (meta.cutoff) details.push(`Cutoff: ${meta.cutoff}`);
         if (meta.date) details.push(`Exported: ${meta.date.slice(0, 10)}`);
         const info = details.length ? '\n' + details.join('\n') : '';
-        alert(`Correlate export: ${label}${info}\n\nFull restore is only supported for scatter plot exports.`);
+        alert(`Correlate export: ${label}${info}\n\nRestore not yet supported for this graph type.`);
     }
 
     async _restoreFromState(state) {
