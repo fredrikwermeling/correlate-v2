@@ -1314,6 +1314,31 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.25.9 (2026-03-18)</strong></p>
+                <ul>
+                    <li>Fix SVG dimensions for Inkscape — width/height now match viewBox, removed empty style and class from root element</li>
+                </ul>
+                <p><strong>v.25.8 (2026-03-18)</strong></p>
+                <ul>
+                    <li>Reset all filters before restoring from SVG/PNG — prevents filter bleed-through</li>
+                    <li>Mutation inspect exports now open GE modal in hotspot view (not tissue)</li>
+                    <li>PCA/UMAP exports show info message directing to Dimensionality Reduction panel</li>
+                </ul>
+                <p><strong>v.25.7 (2026-03-18)</strong></p>
+                <ul>
+                    <li>New "Outline text" checkbox for SVG exports — converts text to paths via opentype.js for Illustrator/Inkscape compatibility</li>
+                    <li>Supports Open Sans, Arial, Helvetica, Georgia, Times New Roman, Roboto Mono, Courier New</li>
+                </ul>
+                <p><strong>v.25.6 (2026-03-18)</strong></p>
+                <ul>
+                    <li>Open button now restores network exports (gene list, mode, cutoff → re-runs analysis)</li>
+                    <li>Gene effect exports open GE modal, scatter-like exports restore inspect view</li>
+                </ul>
+                <p><strong>v.25.5 (2026-03-18)</strong></p>
+                <ul>
+                    <li>Open button handles all export types — detects graph type from embedded metadata</li>
+                    <li>Accepts both SVG and PNG files from any graph type</li>
+                </ul>
                 <p><strong>v.25.4 (2026-03-17)</strong></p>
                 <ul>
                     <li>Expr vs GE: replaced Expr/GE ratio with dependency Score (Expr × −GE) — handles zero expression, default sort by score descending</li>
@@ -1539,7 +1564,7 @@
         <label style="margin-left:auto; cursor:pointer; font-size:11px; background:#f0fdf4; padding:2px 10px; border-radius:10px; color:var(--green-700); border:1px solid var(--green-400);" title="Open a Correlate export (SVG/PNG) to restore settings">
             Open <input type="file" id="restoreFromSvgInputMain" accept=".svg,.png" style="display:none;">
         </label>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.25.9</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.26.0</a>
     </div>
 
     <div class="main-content">
