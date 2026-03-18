@@ -12756,16 +12756,29 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         });
 
         // Fix SVG root element for Inkscape/Illustrator compatibility
-        // 1. Set width/height in mm (matching viewBox) so Inkscape opens at correct size
-        //    Inkscape uses 96dpi: 1px = 25.4/96 mm ≈ 0.2646mm
+        // 1. Set width/height in pt so Inkscape opens at a reasonable physical size
+        //    1 SVG px = 1pt gives ~33% larger rendering (1pt = 1/72", 1px = 1/96")
+        //    Cap at 280mm wide so it fits on A4 with margins
         // 2. Remove empty style attribute and Plotly class
         const vb = svgEl.getAttribute('viewBox');
         if (vb) {
             const parts = vb.trim().split(/\s+/).map(Number);
             if (parts.length === 4) {
-                const pxToMm = 25.4 / 96;
-                svgEl.setAttribute('width', (parts[2] * pxToMm).toFixed(2) + 'mm');
-                svgEl.setAttribute('height', (parts[3] * pxToMm).toFixed(2) + 'mm');
+                const vbW = parts[2];
+                const vbH = parts[3];
+                const maxMm = 280; // max width in mm (A4 = 210, but allow some overflow for wide plots)
+                const ptW = vbW; // 1 viewBox unit = 1pt
+                const ptH = vbH;
+                const mmW = ptW / 72 * 25.4;
+                // If wider than max, scale down proportionally
+                if (mmW > maxMm) {
+                    const scale = maxMm / mmW;
+                    svgEl.setAttribute('width', (ptW * scale).toFixed(1) + 'pt');
+                    svgEl.setAttribute('height', (ptH * scale).toFixed(1) + 'pt');
+                } else {
+                    svgEl.setAttribute('width', ptW + 'pt');
+                    svgEl.setAttribute('height', ptH + 'pt');
+                }
             }
         }
         svgEl.removeAttribute('class');
@@ -13250,10 +13263,32 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             return;
         }
 
-        // Mutation inspect exports → open gene effect modal with hotspot view
-        if (meta.graphType === 'mutation_inspect' && meta.gene) {
-            // Open GE modal in hotspot view so user sees mutation-related data
-            this.openGeneEffectModal(meta.gene, 'hotspot');
+        // Mutation inspect exports → run mutation analysis then open gene inspect
+        if (meta.graphType === 'mutation_inspect' && meta.gene && meta.hotspotGene) {
+            // Set mutation analysis mode and hotspot gene, then run
+            const mutRadio = document.querySelector('input[name="analysisMode"][value="mutation"]');
+            if (mutRadio) mutRadio.checked = true;
+            // Set hotspot gene in the appropriate selector
+            const hotspotSelect = document.getElementById('mutationHotspotSelect');
+            if (hotspotSelect) hotspotSelect.value = meta.hotspotGene;
+            // Switch to mutation tab
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            const mutTab = document.querySelector('[data-tab="mutation"]');
+            if (mutTab) mutTab.classList.add('active');
+            const mutContent = document.getElementById('tab-mutation');
+            if (mutContent) mutContent.classList.add('active');
+            // Run mutation analysis, then open gene inspect after results load
+            this.runAnalysis();
+            // Wait for results and open the gene inspect
+            const waitForResults = () => {
+                if (this.mutationResults && this.mutationResults.hotspotGene === meta.hotspotGene) {
+                    this.showGeneEffectDistribution(meta.gene);
+                } else {
+                    setTimeout(waitForResults, 200);
+                }
+            };
+            setTimeout(waitForResults, 300);
             return;
         }
 

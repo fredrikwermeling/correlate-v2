@@ -1314,10 +1314,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.26.1 (2026-03-18)</strong></p>
+                <p><strong>v.26.2 (2026-03-18)</strong></p>
                 <ul>
-                    <li>SVG dimensions now in mm for correct physical size in Inkscape/Illustrator</li>
-                    <li>Fix outlined text: properly inherit font-size/weight from ancestor tspans (title now exports correctly)</li>
+                    <li>SVG dimensions in pt for larger display in Inkscape/Illustrator (~33% bigger than px)</li>
+                    <li>Mutation inspect SVG now restores correctly: runs mutation analysis then opens gene inspect</li>
+                    <li>Fix outlined text: properly inherit font-size/weight from ancestor tspans</li>
                     <li>Handle dy="1.3em" units in multi-line text (subtitle positioning)</li>
                 </ul>
                 <p><strong>v.25.9 (2026-03-18)</strong></p>
@@ -1570,7 +1571,7 @@
         <label style="margin-left:auto; cursor:pointer; font-size:11px; background:#f0fdf4; padding:2px 10px; border-radius:10px; color:var(--green-700); border:1px solid var(--green-400);" title="Open a Correlate export (SVG/PNG) to restore settings">
             Open <input type="file" id="restoreFromSvgInputMain" accept=".svg,.png" style="display:none;">
         </label>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.26.1</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.26.2</a>
     </div>
 
     <div class="main-content">
