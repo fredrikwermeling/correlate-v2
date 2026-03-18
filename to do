@@ -1,3 +1,10 @@
+Better long-term fix in your correlate app: Another item for Claude Code. The SVG lines probably use absolute stroke-width values. Add this to your prompt:
+When generating SVGs for export, add vector-effect="non-scaling-stroke" to line/path elements if you want strokes to stay consistent, OR (preferred for Inkscape compatibility) make sure all stroke-widths are set as proportional values and include the attribute style="vector-effect: none" on the root SVG so that Inkscape scales strokes with transforms. Also, avoid using SVG transform="scale()" on groups. Instead, set actual coordinate values so that when the user scales in Inkscape, everything behaves predictably.
+The encoding issue you're seeing (the garbled text like "ÝÜOOîß" instead of gene names) is a separate problem. That's a character encoding mismatch in the SVG, likely UTF-8 vs Latin-1. Add this for Claude Code too:
+Make sure the downloaded SVG file includes <?xml version="1.0" encoding="UTF-8"?> at the top, and that the text content is properly encoded as UTF-8 when generating the SVG blob for download.
+
+
+
 - would it be possible to export images svg png so they coudl contain some meta data, and allow for being opened again in the app? this would facilitate making small cahnges to an image, not having to remake them.
 - In the network, when I cahnge the font size, it seems to scale based on how many many nodes there are in the network. I want font size to be the same everywhere in app, so eg 15 = 15. 
 - when I change the text in eg subtitles in the text settings the row division is abolished. eg if the subtitles are in 3 rows and I remove something, they beocme 1 row.
