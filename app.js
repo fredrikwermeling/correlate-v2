@@ -4565,7 +4565,7 @@ class CorrelationExplorer {
             // Decode SVG
             let svgString;
             if (svgDataUrl.indexOf('base64,') > -1) {
-                svgString = this._decodeBase64Utf8(svgDataUrl.split('base64,')[1]);
+                svgString = atob(svgDataUrl.split('base64,')[1]);
             } else {
                 svgString = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
             }
@@ -6758,7 +6758,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         svg = await this._finalizeSvgForExport(svg);
 
         // Download
-        const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+        const blob = new Blob([svg], { type: 'image/svg+xml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -12583,7 +12583,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // Decode SVG
         let svgString;
         if (svgDataUrl.indexOf('base64,') > -1) {
-            svgString = this._decodeBase64Utf8(svgDataUrl.split('base64,')[1]);
+            svgString = atob(svgDataUrl.split('base64,')[1]);
         } else {
             svgString = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
         }
@@ -12720,11 +12720,6 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 break;
             }
         }
-    }
-
-    _decodeBase64Utf8(base64) {
-        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-        return new TextDecoder('utf-8').decode(bytes);
     }
 
     sanitizeSvgForIllustrator(svgStr) {
@@ -14434,7 +14429,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const svgDataUrl = await Plotly.toImage(plotEl, { format: 'svg', width: w, height: h });
         let svgStr;
-        if (svgDataUrl.indexOf('base64,') > -1) svgStr = this._decodeBase64Utf8(svgDataUrl.split('base64,')[1]);
+        if (svgDataUrl.indexOf('base64,') > -1) svgStr = atob(svgDataUrl.split('base64,')[1]);
         else svgStr = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
 
         const a = document.createElement('a');
@@ -14773,7 +14768,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const svgDataUrl = await Plotly.toImage(chartEl, { format: 'svg', width: w, height: h });
         let svgStr;
-        if (svgDataUrl.indexOf('base64,') > -1) svgStr = this._decodeBase64Utf8(svgDataUrl.split('base64,')[1]);
+        if (svgDataUrl.indexOf('base64,') > -1) svgStr = atob(svgDataUrl.split('base64,')[1]);
         else svgStr = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
 
         const a = document.createElement('a');
@@ -15879,7 +15874,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const svgDataUrl = await Plotly.toImage(plotEl, { format: 'svg', width: chartWidth, height: chartHeight });
         let svgStr;
-        if (svgDataUrl.indexOf('base64,') > -1) svgStr = this._decodeBase64Utf8(svgDataUrl.split('base64,')[1]);
+        if (svgDataUrl.indexOf('base64,') > -1) svgStr = atob(svgDataUrl.split('base64,')[1]);
         else svgStr = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
 
         const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
@@ -15930,7 +15925,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }).then(async svgDataUrl => {
             let svgString;
             if (svgDataUrl.indexOf('base64,') > -1) {
-                svgString = this._decodeBase64Utf8(svgDataUrl.split('base64,')[1]);
+                svgString = atob(svgDataUrl.split('base64,')[1]);
             } else {
                 svgString = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
             }
@@ -15981,7 +15976,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
             finalSvg = finalSvg.replace('</svg>', `<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata></svg>`);
             finalSvg = await this._finalizeSvgForExport(finalSvg);
-            const blob = new Blob([finalSvg], { type: 'image/svg+xml;charset=utf-8' });
+            const blob = new Blob([finalSvg], { type: 'image/svg+xml' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -17357,7 +17352,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const svgDataUrl = await Plotly.toImage(plotEl, { format: 'svg', width: w, height: h });
         let svgStr;
-        if (svgDataUrl.indexOf('base64,') > -1) svgStr = this._decodeBase64Utf8(svgDataUrl.split('base64,')[1]);
+        if (svgDataUrl.indexOf('base64,') > -1) svgStr = atob(svgDataUrl.split('base64,')[1]);
         else svgStr = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
 
         const a = document.createElement('a');
@@ -19572,7 +19567,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (svgStr.startsWith('data:image/svg+xml,')) {
                 decoded = decodeURIComponent(svgStr.replace('data:image/svg+xml,', ''));
             } else if (svgStr.startsWith('data:image/svg+xml;base64,')) {
-                decoded = this._decodeBase64Utf8(svgStr.replace('data:image/svg+xml;base64,', ''));
+                decoded = atob(svgStr.replace('data:image/svg+xml;base64,', ''));
             }
             return decoded;
         };
@@ -19604,7 +19599,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         svgContent += '\n</svg>';
         svgContent = await this._finalizeSvgForExport(svgContent);
 
-        const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
         const link = document.createElement('a');
         link.download = `${filenameBase}.svg`;
         link.href = URL.createObjectURL(blob);
@@ -20983,7 +20978,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             Plotly.toImage(plotDiv, { format: 'svg', width: w, height: h })
                 .then(async url => {
                     let svgStr;
-                    if (url.indexOf('base64,') > -1) svgStr = this._decodeBase64Utf8(url.split('base64,')[1]);
+                    if (url.indexOf('base64,') > -1) svgStr = atob(url.split('base64,')[1]);
                     else svgStr = decodeURIComponent(url.split(',').slice(1).join(','));
                     svgStr = svgStr.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
                     svgStr = await this._finalizeSvgForExport(svgStr);
