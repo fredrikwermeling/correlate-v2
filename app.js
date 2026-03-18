@@ -12755,6 +12755,21 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
         });
 
+        // Fix SVG root element for Inkscape/Illustrator compatibility
+        // 1. Ensure width/height match viewBox and have no units (SVG default = px)
+        // 2. Remove empty style attribute and Plotly class
+        const vb = svgEl.getAttribute('viewBox');
+        if (vb) {
+            const parts = vb.trim().split(/\s+/).map(Number);
+            if (parts.length === 4) {
+                svgEl.setAttribute('width', String(parts[2]));
+                svgEl.setAttribute('height', String(parts[3]));
+            }
+        }
+        svgEl.removeAttribute('class');
+        const rootStyle = svgEl.getAttribute('style');
+        if (!rootStyle || rootStyle.trim() === '') svgEl.removeAttribute('style');
+
         let result = new XMLSerializer().serializeToString(svgEl);
         // Add XML declaration
         result = '<?xml version="1.0" encoding="UTF-8"?>\n' + result;
