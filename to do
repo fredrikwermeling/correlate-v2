@@ -2,6 +2,23 @@ Better long-term fix in your correlate app: Another item for Claude Code. The SV
 When generating SVGs for export, add vector-effect="non-scaling-stroke" to line/path elements if you want strokes to stay consistent, OR (preferred for Inkscape compatibility) make sure all stroke-widths are set as proportional values and include the attribute style="vector-effect: none" on the root SVG so that Inkscape scales strokes with transforms. Also, avoid using SVG transform="scale()" on groups. Instead, set actual coordinate values so that when the user scales in Inkscape, everything behaves predictably.
 The encoding issue you're seeing (the garbled text like "ÝÜOOîß" instead of gene names) is a separate problem. That's a character encoding mismatch in the SVG, likely UTF-8 vs Latin-1. Add this for Claude Code too:
 Make sure the downloaded SVG file includes <?xml version="1.0" encoding="UTF-8"?> at the top, and that the text content is properly encoded as UTF-8 when generating the SVG blob for download.
+SVG export improvements for correlate.cmm.se
+Fix these issues with the SVG download/export so that the files work properly in both Adobe Illustrator and Inkscape:
+
+Encoding: Add <?xml version="1.0" encoding="UTF-8"?> as the first line of the exported SVG. Make sure all text content is properly UTF-8 encoded in the SVG blob. Currently gene names display as garbled characters (mojibake) when opened in Illustrator.
+SVG dimensions: Set explicit width and height attributes on the root <svg> element that match the viewBox (e.g., if viewBox is "0 0 800 600", set width="800" height="600"). Currently files open tiny in Inkscape.
+Stroke scaling: Make sure stroke-widths on lines and edges use values that scale proportionally when the user resizes in Illustrator/Inkscape. Avoid using transform="scale()" on groups. Instead, compute actual coordinate values so scaling behaves predictably.
+Optional: Add an "Export SVG (outlined text)" button that creates a second download option where all <text> elements are converted to <path> elements using opentype.js (CDN: https://cdn.jsdelivr.net/npm/opentype.js). This ensures fonts render correctly regardless of what's installed. Keep the normal SVG download with editable text as the default.
+
+Apply these fixes to all SVG exports in the app (scatter plots, network graphs, box plots, etc.)
+
+
+Fixes 1-3 are quick and will immediately make your life easier in both Illustrator and Inkscape. Fix 4 is the nice-to-have that solves the font reflow problem we hit earlier. You could do 1-3 first and add 4 later if needed.
+
+
+
+
+
 
 
 
