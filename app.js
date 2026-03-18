@@ -12823,27 +12823,73 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     async restoreFromPng(file) {
         const buf = await file.arrayBuffer();
+        // Try full state first (scatter exports)
         const stateJson = this._readPngTextChunk(buf, 'correlate-state');
-        if (!stateJson) { alert('No Correlate state found in this PNG file.'); return; }
-
-        let state;
-        try { state = JSON.parse(stateJson); } catch (e) { alert('Invalid state data in PNG.'); return; }
-
-        if (!state.gene1 || !state.gene2) { alert('Missing gene information in state.'); return; }
-
-        // Delegate to same restore logic as SVG
-        return this._restoreFromState(state);
+        if (stateJson) {
+            let state;
+            try { state = JSON.parse(stateJson); } catch (e) { alert('Invalid state data in PNG.'); return; }
+            return this._restoreFromState(state);
+        }
+        // Fall back to metadata (all other exports)
+        const metaJson = this._readPngTextChunk(buf, 'correlate-meta');
+        if (metaJson) {
+            let meta;
+            try { meta = JSON.parse(metaJson); } catch (e) { alert('Invalid metadata in PNG.'); return; }
+            return this._handleExportMeta(meta);
+        }
+        alert('No Correlate data found in this PNG file.');
     }
 
     async restoreFromSvg(file) {
         const text = await file.text();
-        const match = text.match(/<correlate-state>([\s\S]*?)<\/correlate-state>/);
-        if (!match) { alert('No Correlate state found in this SVG file.'); return; }
+        // Try full state first (scatter exports)
+        const stateMatch = text.match(/<correlate-state>([\s\S]*?)<\/correlate-state>/);
+        if (stateMatch) {
+            let state;
+            try { state = JSON.parse(stateMatch[1]); } catch (e) { alert('Invalid state data in SVG.'); return; }
+            return this._restoreFromState(state);
+        }
+        // Fall back to metadata (all other exports)
+        const metaMatch = text.match(/<correlate-meta>([\s\S]*?)<\/correlate-meta>/);
+        if (metaMatch) {
+            let meta;
+            try { meta = JSON.parse(metaMatch[1]); } catch (e) { alert('Invalid metadata in SVG.'); return; }
+            return this._handleExportMeta(meta);
+        }
+        alert('No Correlate data found in this file.');
+    }
 
-        let state;
-        try { state = JSON.parse(match[1]); } catch (e) { alert('Invalid state data in SVG.'); return; }
-
-        return this._restoreFromState(state);
+    _handleExportMeta(meta) {
+        // For exports that have gene info, try to open inspect
+        if (meta.gene1 && meta.gene2) {
+            return this._restoreFromState(meta);
+        }
+        // For other graph types, show info and offer to navigate
+        const graphLabels = {
+            'network': 'Correlation Network',
+            'tissue_chart': 'By-Tissue Chart',
+            'gene_effect': 'Gene Effect Chart',
+            'mutation_inspect': 'Mutation Inspect',
+            'umap': 'UMAP Plot',
+            'pca': 'PCA Plot',
+            'correlation_analysis': 'Correlation Analysis',
+            'expr_correlate': 'Expression Correlate',
+            'gate_report': 'Gate Report',
+            'scatter': 'Scatter Plot'
+        };
+        const label = graphLabels[meta.graphType] || meta.graphType || 'Unknown';
+        const details = [];
+        if (meta.gene) details.push(`Gene: ${meta.gene}`);
+        if (meta.gene1 && !meta.gene2) details.push(`Gene: ${meta.gene1}`);
+        if (meta.hotspotGene) details.push(`Hotspot: ${meta.hotspotGene}`);
+        if (meta.targetGene) details.push(`Target: ${meta.targetGene}`);
+        if (meta.view) details.push(`View: ${meta.view}`);
+        if (meta.dataType) details.push(`Data: ${meta.dataType}`);
+        if (meta.genes) details.push(`${meta.genes} genes`);
+        if (meta.cutoff) details.push(`Cutoff: ${meta.cutoff}`);
+        if (meta.date) details.push(`Exported: ${meta.date.slice(0, 10)}`);
+        const info = details.length ? '\n' + details.join('\n') : '';
+        alert(`Correlate export: ${label}${info}\n\nFull restore is only supported for scatter plot exports.`);
     }
 
     async _restoreFromState(state) {
