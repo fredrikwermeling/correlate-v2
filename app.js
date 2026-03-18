@@ -13161,7 +13161,33 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         alert('No Correlate data found in this file.');
     }
 
+    _resetForRestore() {
+        // Reset parameter filters so they don't bleed into restored view
+        const resetEl = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        resetEl('lineageFilter', '');
+        resetEl('subLineageFilter', '');
+        resetEl('paramHotspotGene', '');
+        resetEl('paramHotspotLevel', 'all');
+        resetEl('paramTranslocationGene', '');
+        resetEl('paramTranslocationLevel', 'all');
+        resetEl('scatterCancerFilter', '');
+        resetEl('cellLineSearch', '');
+        resetEl('hotspotGene', '');
+        resetEl('hotspotMode', 'none');
+        resetEl('translocationGene', '');
+        resetEl('translocationMode', 'none');
+        resetEl('mutationFilterGene', '');
+        resetEl('mutationFilterLevel', 'all');
+        resetEl('colorBySelect', '');
+        const zeroCb = document.getElementById('showZeroLines');
+        if (zeroCb) zeroCb.checked = true;
+        const corrCb = document.getElementById('showCorrelationLine');
+        if (corrCb) corrCb.checked = true;
+    }
+
     _handleExportMeta(meta) {
+        this._resetForRestore();
+
         // Scatter-like exports with gene pair → restore inspect view
         if (meta.gene1 && meta.gene2) {
             return this._restoreFromState(meta);
@@ -13176,7 +13202,6 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }
             if (meta.cutoff != null) {
                 document.getElementById('correlationCutoff').value = meta.cutoff;
-                // Update the displayed value label if it exists
                 const label = document.getElementById('correlationCutoff')?.nextElementSibling;
                 if (label) label.textContent = meta.cutoff;
             }
@@ -13184,13 +13209,31 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             return;
         }
 
+        // Mutation inspect exports → open gene effect modal with hotspot view
+        if (meta.graphType === 'mutation_inspect' && meta.gene) {
+            // Open GE modal in hotspot view so user sees mutation-related data
+            this.openGeneEffectModal(meta.gene, 'hotspot');
+            return;
+        }
+
         // Gene effect exports → open gene effect modal
-        if ((meta.graphType === 'gene_effect' || meta.graphType === 'mutation_inspect') && meta.gene) {
+        if (meta.graphType === 'gene_effect' && meta.gene) {
             this.openGeneEffectModal(meta.gene, meta.view || 'tissue');
             return;
         }
 
-        // Fallback: show what we know about the file
+        // UMAP/PCA — show info (requires computation that can't be serialized)
+        if (meta.graphType === 'umap' || meta.graphType === 'pca') {
+            const method = meta.graphType.toUpperCase();
+            const details = [];
+            if (meta.dataType) details.push(`Data: ${meta.dataType}`);
+            if (meta.colorBy) details.push(`Color: ${meta.colorBy}`);
+            if (meta.date) details.push(`Exported: ${meta.date.slice(0, 10)}`);
+            alert(`${method} plot\n${details.join('\n')}\n\n${method} requires re-computation. Use the Dimensionality Reduction panel in the Cell Line Browser to recreate.`);
+            return;
+        }
+
+        // Fallback
         const graphLabels = {
             'network': 'Correlation Network',
             'tissue_chart': 'By-Tissue Chart',
@@ -13219,6 +13262,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     async _restoreFromState(state) {
         if (!state.gene1 || !state.gene2) { alert('Missing gene information in state.'); return; }
+        this._resetForRestore();
 
         // Set axis data types
         const xTypeEl = document.getElementById('xAxisDataType');
