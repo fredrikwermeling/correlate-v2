@@ -1314,14 +1314,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.26.4 (2026-03-18)</strong></p>
+                <p><strong>v.26.5 (2026-03-18)</strong></p>
                 <ul>
-                    <li>Default graph font changed to Arial for universal Inkscape/Illustrator compatibility</li>
-                    <li>Flatten nested Plotly tspans in SVG export — title text no longer splits into separate blocks when editing in Inkscape</li>
-                    <li>All exports restore their specific view when opened</li>
-                    <li>Correlation analysis → reopens modal; Expression correlate → opens scatter inspect</li>
-                    <li>Mutation inspect metadata includes isTranslocation/isDamaging for correct restore</li>
-                    <li>SVG dimensions in pt for larger display in Inkscape/Illustrator</li>
+                    <li>Deep SVG cleanup: strip all Plotly class/data- attributes, clipPaths, empty groups, cursor/white-space CSS</li>
+                    <li>Exported SVGs are now clean, minimal, and work correctly in both Illustrator and Inkscape</li>
+                    <li>Removed "Open" from nav bar (remains in sidebar and inspect footer)</li>
+                    <li>Default graph font: Arial; tspan flattening for editable titles</li>
+                    <li>All export types restore their specific view when opened</li>
                 </ul>
                 <p><strong>v.25.9 (2026-03-18)</strong></p>
                 <ul>
@@ -1570,10 +1569,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <label style="margin-left:auto; cursor:pointer; font-size:11px; background:#f0fdf4; padding:2px 10px; border-radius:10px; color:var(--green-700); border:1px solid var(--green-400);" title="Open a Correlate export (SVG/PNG) to restore settings">
-            Open <input type="file" id="restoreFromSvgInputMain" accept=".svg,.png" style="display:none;">
-        </label>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.26.4</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.26.5</a>
     </div>
 
     <div class="main-content">

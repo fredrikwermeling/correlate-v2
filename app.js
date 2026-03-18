@@ -1789,10 +1789,6 @@ class CorrelationExplorer {
             if (e.target.files[0]) this.restoreFromExport(e.target.files[0]);
             e.target.value = '';
         });
-        document.getElementById('restoreFromSvgInputMain')?.addEventListener('change', (e) => {
-            if (e.target.files[0]) this.restoreFromExport(e.target.files[0]);
-            e.target.value = '';
-        });
         document.getElementById('restoreFromExportInput')?.addEventListener('change', (e) => {
             if (e.target.files[0]) this.restoreFromExport(e.target.files[0]);
             e.target.value = '';
@@ -12762,17 +12758,26 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             styleEl.remove();
         });
 
-        // Convert rgb() to hex, fix font-size
+        // Clean all elements: convert colors, fix fonts, strip Plotly artifacts
         const allEls = doc.querySelectorAll('*');
         const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
         const rgbRe = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/g;
 
         allEls.forEach(el => {
             // Convert rgb in style attributes to hex
-            const style = el.getAttribute('style');
+            let style = el.getAttribute('style');
             if (style) {
-                const replaced = style.replace(rgbRe, (_, r, g, b) => rgbToHex(r, g, b));
-                if (replaced !== style) el.setAttribute('style', replaced);
+                style = style.replace(rgbRe, (_, r, g, b) => rgbToHex(r, g, b));
+                // Strip Plotly CSS cruft that confuses Illustrator
+                style = style.replace(/white-space:\s*pre;?\s*/gi, '');
+                style = style.replace(/cursor:\s*[^;]+;?\s*/gi, '');
+                style = style.replace(/pointer-events:\s*[^;]+;?\s*/gi, '');
+                style = style.replace(/;\s*;/g, ';').replace(/^\s*;\s*/, '').replace(/;\s*$/, '');
+                if (style.trim()) {
+                    el.setAttribute('style', style);
+                } else {
+                    el.removeAttribute('style');
+                }
             }
             // Convert rgb in fill/stroke attributes
             ['fill', 'stroke', 'color', 'stop-color'].forEach(attr => {
@@ -12784,7 +12789,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
 
             // font-size: remove "px" suffix for Illustrator compatibility
-            const fs = el.style.fontSize;
+            const fs = el.style?.fontSize;
             if (fs && fs.endsWith('px')) {
                 el.style.fontSize = parseFloat(fs).toString();
             }
@@ -12792,15 +12797,28 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (fsAttr && fsAttr.endsWith('px')) {
                 el.setAttribute('font-size', parseFloat(fsAttr).toString());
             }
+
+            // Strip Plotly-specific class and data- attributes
+            el.removeAttribute('class');
+            [...el.attributes].forEach(attr => {
+                if (attr.name.startsWith('data-')) el.removeAttribute(attr.name);
+            });
         });
 
-        // Remove problematic clip-paths that Illustrator doesn't handle well
-        doc.querySelectorAll('[clip-path]').forEach(el => {
-            const cp = el.getAttribute('clip-path');
-            if (cp && (cp.includes('legend') || cp.includes('scrollbox'))) {
-                el.removeAttribute('clip-path');
-            }
-        });
+        // Remove all clip-paths — they cause issues in both Illustrator and Inkscape
+        doc.querySelectorAll('[clip-path]').forEach(el => el.removeAttribute('clip-path'));
+        doc.querySelectorAll('clipPath').forEach(el => el.remove());
+
+        // Remove empty <defs> and empty <g> groups left by Plotly
+        doc.querySelectorAll('defs').forEach(d => { if (!d.children.length) d.remove(); });
+        // Recursive: remove empty <g> elements (bottom-up)
+        let removed = true;
+        while (removed) {
+            removed = false;
+            doc.querySelectorAll('g').forEach(g => {
+                if (!g.children.length && !g.textContent.trim()) { g.remove(); removed = true; }
+            });
+        }
 
         // Flatten deeply nested Plotly tspans for Inkscape/Illustrator text editing
         // Plotly creates: <tspan class="line"><tspan style="font-size:25px"><tspan style="font-weight:bold">text</tspan></tspan></tspan>
