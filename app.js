@@ -6,6 +6,17 @@
  * Based on: https://github.com/fredrikwermeling/correlation-app
  */
 
+// Override Plotly default font: use Arial (universally available in Inkscape/Illustrator)
+(function() {
+    const _origNewPlot = Plotly.newPlot;
+    Plotly.newPlot = function(div, data, layout, config) {
+        layout = layout || {};
+        if (!layout.font) layout.font = {};
+        if (!layout.font.family) layout.font.family = 'Arial, Helvetica, sans-serif';
+        return _origNewPlot.call(this, div, data, layout, config);
+    };
+})();
+
 class CorrelationExplorer {
     static CATEGORY_COLORS = [
         '#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4',
@@ -12595,7 +12606,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             legendTexts.forEach(t => {
                 const fs = t.style.fontSize || '11px';
                 const x = parseFloat(t.getAttribute('x')) || 0;
-                mctx.font = `${fs} "Open Sans", verdana, arial, sans-serif`;
+                mctx.font = `${fs} "Arial", "Helvetica", sans-serif`;
                 const right = x + mctx.measureText(t.textContent).width;
                 if (right > maxRight) maxRight = right;
             });
@@ -12681,6 +12692,40 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
     }
 
+    _flattenTspan(tspan) {
+        // Recursively flatten nested tspans: collapse style attributes upward
+        // If a tspan has exactly one child tspan (and no text siblings), merge them
+        while (true) {
+            const children = [...tspan.childNodes];
+            const childTspans = children.filter(c => c.nodeType === 1 && c.tagName === 'tspan');
+            const textNodes = children.filter(c => c.nodeType === 3 && c.textContent.trim());
+            // Only flatten if there's exactly one child tspan and no direct text
+            if (childTspans.length === 1 && textNodes.length === 0) {
+                const child = childTspans[0];
+                // Merge child's style into parent
+                const childStyle = child.getAttribute('style') || '';
+                if (childStyle) {
+                    const parentStyle = tspan.getAttribute('style') || '';
+                    tspan.setAttribute('style', parentStyle ? parentStyle.replace(/;?\s*$/, '; ') + childStyle : childStyle);
+                }
+                // Copy child's attributes (except style which we merged)
+                for (const attr of child.attributes) {
+                    if (attr.name !== 'style' && !tspan.hasAttribute(attr.name)) {
+                        tspan.setAttribute(attr.name, attr.value);
+                    }
+                }
+                // Replace child tspan with its contents
+                while (child.firstChild) {
+                    tspan.insertBefore(child.firstChild, child);
+                }
+                child.remove();
+                // Continue loop to flatten further nested levels
+            } else {
+                break;
+            }
+        }
+    }
+
     sanitizeSvgForIllustrator(svgStr) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(svgStr, 'image/svg+xml');
@@ -12755,6 +12800,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (cp && (cp.includes('legend') || cp.includes('scrollbox'))) {
                 el.removeAttribute('clip-path');
             }
+        });
+
+        // Flatten deeply nested Plotly tspans for Inkscape/Illustrator text editing
+        // Plotly creates: <tspan class="line"><tspan style="font-size:25px"><tspan style="font-weight:bold">text</tspan></tspan></tspan>
+        // Flatten to: <tspan class="line" style="font-size:25px;font-weight:bold">text</tspan>
+        doc.querySelectorAll('text').forEach(textEl => {
+            const topTspans = textEl.querySelectorAll(':scope > tspan');
+            topTspans.forEach(topTs => {
+                this._flattenTspan(topTs);
+            });
         });
 
         // Fix SVG root element for Inkscape/Illustrator compatibility
@@ -19449,7 +19504,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         const textY = padding + plotsHeight + padding;
         ctx.fillStyle = '#374151';
-        ctx.font = `${textFontSize}px "Open Sans", sans-serif`;
+        ctx.font = `${textFontSize}px "Arial", "Helvetica", sans-serif`;
         filterLines.forEach((line, i) => {
             ctx.fillText(line, padding, textY + i * textLineHeight + textFontSize);
         });
@@ -21638,7 +21693,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             </div>`;
 
         // Detect current font from layout
-        const currentFont = layout.font?.family || layout.title?.font?.family || 'Open Sans, sans-serif';
+        const currentFont = layout.font?.family || layout.title?.font?.family || 'Arial, Helvetica, sans-serif';
 
         body.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -21651,8 +21706,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
                 <span style="font-weight:600;color:#1f2937;font-size:11px;">Font</span>
                 <select id="ts_fontFamily" onchange="app._tsApplyFont()" style="flex:1;font-size:11px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;">
-                    <option value="Open Sans, sans-serif" ${currentFont.includes('Open Sans') ? 'selected' : ''} style="font-family:'Open Sans',sans-serif;">Open Sans</option>
                     <option value="Arial, Helvetica, sans-serif" ${currentFont.includes('Arial') ? 'selected' : ''} style="font-family:Arial,sans-serif;">Arial</option>
+                    <option value="Open Sans, sans-serif" ${currentFont.includes('Open Sans') ? 'selected' : ''} style="font-family:'Open Sans',sans-serif;">Open Sans</option>
                     <option value="Helvetica, Arial, sans-serif" ${currentFont.includes('Helvetica') && !currentFont.includes('Arial,') ? 'selected' : ''} style="font-family:Helvetica,sans-serif;">Helvetica</option>
                     <option value="Georgia, serif" ${currentFont.includes('Georgia') ? 'selected' : ''} style="font-family:Georgia,serif;">Georgia</option>
                     <option value="Times New Roman, serif" ${currentFont.includes('Times') ? 'selected' : ''} style="font-family:'Times New Roman',serif;">Times New Roman</option>
@@ -21821,7 +21876,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     _tsApplyFont() {
         const plotEl = document.getElementById(this._textSettingsPlotId);
         if (!plotEl?.layout) return;
-        const family = document.getElementById('ts_fontFamily')?.value || 'Open Sans, sans-serif';
+        const family = document.getElementById('ts_fontFamily')?.value || 'Arial, Helvetica, sans-serif';
 
         const updates = {
             'font.family': family,

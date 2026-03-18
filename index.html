@@ -1314,14 +1314,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.26.3 (2026-03-18)</strong></p>
+                <p><strong>v.26.4 (2026-03-18)</strong></p>
                 <ul>
-                    <li>All exports now restore their specific view when opened (not just scatter)</li>
-                    <li>Correlation analysis → reopens modal with gene pair and tissue/hotspot view</li>
-                    <li>Expression correlate → opens scatter inspect with the gene pair</li>
-                    <li>Mutation inspect metadata now includes isTranslocation/isDamaging for correct sub-type restore</li>
+                    <li>Default graph font changed to Arial for universal Inkscape/Illustrator compatibility</li>
+                    <li>Flatten nested Plotly tspans in SVG export — title text no longer splits into separate blocks when editing in Inkscape</li>
+                    <li>All exports restore their specific view when opened</li>
+                    <li>Correlation analysis → reopens modal; Expression correlate → opens scatter inspect</li>
+                    <li>Mutation inspect metadata includes isTranslocation/isDamaging for correct restore</li>
                     <li>SVG dimensions in pt for larger display in Inkscape/Illustrator</li>
-                    <li>Fix outlined text: inherit font-size/weight from ancestor tspans, em→px conversion</li>
                 </ul>
                 <p><strong>v.25.9 (2026-03-18)</strong></p>
                 <ul>
@@ -1573,7 +1573,7 @@
         <label style="margin-left:auto; cursor:pointer; font-size:11px; background:#f0fdf4; padding:2px 10px; border-radius:10px; color:var(--green-700); border:1px solid var(--green-400);" title="Open a Correlate export (SVG/PNG) to restore settings">
             Open <input type="file" id="restoreFromSvgInputMain" accept=".svg,.png" style="display:none;">
         </label>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.26.3</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.26.4</a>
     </div>
 
     <div class="main-content">
