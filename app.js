@@ -4554,7 +4554,7 @@ class CorrelationExplorer {
             format: 'svg',
             width: exportWidth,
             height: exportHeight
-        }).then(svgDataUrl => {
+        }).then(async svgDataUrl => {
             // Decode SVG
             let svgString;
             if (svgDataUrl.indexOf('base64,') > -1) {
@@ -4609,7 +4609,7 @@ class CorrelationExplorer {
             const a = document.createElement('a');
             if (format === 'svg') {
                 svgString = svgString.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
-                svgString = this.sanitizeSvgForIllustrator(svgString);
+                svgString = await this._finalizeSvgForExport(svgString);
                 const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
                 a.href = URL.createObjectURL(blob);
                 a.download = `${filename}.svg`;
@@ -6501,7 +6501,7 @@ Results:
         });
     }
 
-    downloadNetworkSVG() {
+    async downloadNetworkSVG() {
         if (!this.network || !this.networkData) return;
 
         const transparentBg = document.getElementById('exportNetworkTransparentBg')?.checked;
@@ -6745,8 +6745,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         svg += `<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata>`;
         svg += '</svg>';
 
-        // Sanitize for Illustrator compatibility
-        svg = this.sanitizeSvgForIllustrator(svg);
+        // Sanitize for Illustrator compatibility + optional text outlining
+        svg = await this._finalizeSvgForExport(svg);
 
         // Download
         const blob = new Blob([svg], { type: 'image/svg+xml' });
@@ -12637,7 +12637,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (format === 'svg') {
             // Embed app state + metadata for re-opening
             svgString = svgString.replace('</svg>', `<metadata><correlate-state>${stateJson}</correlate-state><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
-            svgString = this.sanitizeSvgForIllustrator(svgString);
+            svgString = await this._finalizeSvgForExport(svgString);
             const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
             a.href = URL.createObjectURL(blob);
             a.download = filename + '.svg';
@@ -12759,6 +12759,304 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // Add XML declaration
         result = '<?xml version="1.0" encoding="UTF-8"?>\n' + result;
         return result;
+    }
+
+    // --- Text-to-path outlining for SVG exports ---
+
+    // Font URL mapping: font-family → { weight → TTF URL }
+    // Uses Google Fonts GitHub repo via jsDelivr for web fonts,
+    // Arimo as metric-compatible replacement for Arial/Helvetica
+    _fontUrlMap = {
+        'open sans': {
+            300: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/opensans/static/OpenSans-Light.ttf',
+            400: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/opensans/static/OpenSans-Regular.ttf',
+            600: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/opensans/static/OpenSans-SemiBold.ttf',
+            700: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/opensans/static/OpenSans-Bold.ttf',
+        },
+        'arial': {
+            400: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/arimo/static/Arimo-Regular.ttf',
+            700: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/arimo/static/Arimo-Bold.ttf',
+        },
+        'helvetica': {
+            400: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/arimo/static/Arimo-Regular.ttf',
+            700: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/arimo/static/Arimo-Bold.ttf',
+        },
+        'georgia': {
+            400: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/tinos/static/Tinos-Regular.ttf',
+            700: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/tinos/static/Tinos-Bold.ttf',
+        },
+        'times new roman': {
+            400: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/tinos/static/Tinos-Regular.ttf',
+            700: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/tinos/static/Tinos-Bold.ttf',
+        },
+        'roboto mono': {
+            400: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/robotomono/static/RobotoMono-Regular.ttf',
+            500: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/robotomono/static/RobotoMono-Medium.ttf',
+            700: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/robotomono/static/RobotoMono-Bold.ttf',
+        },
+        'courier new': {
+            400: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/courierprime/static/CourierPrime-Regular.ttf',
+            700: 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/courierprime/static/CourierPrime-Bold.ttf',
+        },
+    };
+    _fontCache = new Map(); // key: "family|weight" → opentype.Font
+
+    async _loadFont(family, weight) {
+        // Normalize family name
+        const familyLower = (family || 'open sans').split(',')[0].trim().replace(/['"]/g, '').toLowerCase();
+        const w = this._normalizeWeight(weight);
+        const cacheKey = `${familyLower}|${w}`;
+        if (this._fontCache.has(cacheKey)) return this._fontCache.get(cacheKey);
+
+        const familyMap = this._fontUrlMap[familyLower];
+        if (!familyMap) return null;
+
+        // Find closest available weight
+        const available = Object.keys(familyMap).map(Number).sort((a, b) => a - b);
+        let bestWeight = available.reduce((best, cur) =>
+            Math.abs(cur - w) < Math.abs(best - w) ? cur : best, available[0]);
+        const url = familyMap[bestWeight];
+        if (!url) return null;
+
+        try {
+            const font = await new Promise((resolve, reject) => {
+                opentype.load(url, (err, font) => err ? reject(err) : resolve(font));
+            });
+            this._fontCache.set(cacheKey, font);
+            return font;
+        } catch (e) {
+            console.warn(`Failed to load font ${familyLower} ${w}:`, e);
+            return null;
+        }
+    }
+
+    _normalizeWeight(weight) {
+        if (!weight) return 400;
+        const w = typeof weight === 'string' ? weight.trim().toLowerCase() : weight;
+        const map = { normal: 400, bold: 700, lighter: 300, bolder: 700 };
+        return map[w] || parseInt(w) || 400;
+    }
+
+    _parseFontFamily(style) {
+        // Extract font-family from inline style string or computed style
+        const match = style?.match(/font-family:\s*([^;]+)/i);
+        if (!match) return 'open sans';
+        return match[1].split(',')[0].trim().replace(/['"]/g, '');
+    }
+
+    _parseFontWeight(style) {
+        const match = style?.match(/font-weight:\s*([^;]+)/i);
+        return match ? match[1].trim() : 'normal';
+    }
+
+    _parseFontSize(style, attr) {
+        // Check inline style first, then attribute
+        const styleMatch = style?.match(/font-size:\s*([\d.]+)/i);
+        if (styleMatch) return parseFloat(styleMatch[1]);
+        if (attr) return parseFloat(attr);
+        return 12;
+    }
+
+    async _outlineSvgText(svgStr) {
+        if (typeof opentype === 'undefined') {
+            console.warn('opentype.js not loaded, skipping text outlining');
+            return svgStr;
+        }
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgStr, 'image/svg+xml');
+        const svgEl = doc.documentElement;
+        const ns = 'http://www.w3.org/2000/svg';
+
+        // Collect all text elements
+        const textEls = [...svgEl.querySelectorAll('text')];
+        if (textEls.length === 0) return svgStr;
+
+        // Pre-load all needed fonts
+        const fontKeys = new Set();
+        for (const textEl of textEls) {
+            const style = textEl.getAttribute('style') || '';
+            this._collectFontKeys(textEl, style, fontKeys);
+        }
+        await Promise.all([...fontKeys].map(k => {
+            const [fam, w] = k.split('|');
+            return this._loadFont(fam, parseInt(w));
+        }));
+
+        // Convert each text element
+        for (const textEl of textEls) {
+            const g = doc.createElementNS(ns, 'g');
+
+            // Copy transform from text element
+            const transform = textEl.getAttribute('transform');
+            if (transform) g.setAttribute('transform', transform);
+
+            // Copy class for potential styling
+            const cls = textEl.getAttribute('class');
+            if (cls) g.setAttribute('class', cls);
+
+            const tspans = textEl.querySelectorAll('tspan');
+            if (tspans.length > 0) {
+                // Handle tspan children (multi-line text, mixed styles)
+                await this._convertTspans(doc, g, textEl, tspans);
+            } else {
+                // Simple text element
+                await this._convertSimpleText(doc, g, textEl);
+            }
+
+            // Replace text element with group
+            textEl.parentNode.replaceChild(g, textEl);
+        }
+
+        return new XMLSerializer().serializeToString(svgEl);
+    }
+
+    _collectFontKeys(textEl, style, fontKeys) {
+        const family = this._parseFontFamily(style);
+        const weight = this._normalizeWeight(this._parseFontWeight(style));
+        fontKeys.add(`${family.toLowerCase()}|${weight}`);
+        // Also check tspan children for different styles
+        textEl.querySelectorAll('tspan').forEach(ts => {
+            const tsStyle = ts.getAttribute('style') || '';
+            if (tsStyle) {
+                const fam = this._parseFontFamily(tsStyle) || family;
+                const w = this._normalizeWeight(this._parseFontWeight(tsStyle)) || weight;
+                fontKeys.add(`${fam.toLowerCase()}|${w}`);
+            }
+        });
+    }
+
+    async _convertSimpleText(doc, g, textEl) {
+        const ns = 'http://www.w3.org/2000/svg';
+        const style = textEl.getAttribute('style') || '';
+        const text = textEl.textContent;
+        if (!text.trim()) return;
+
+        const family = this._parseFontFamily(style);
+        const weight = this._parseFontWeight(style);
+        const fontSize = this._parseFontSize(style, textEl.getAttribute('font-size'));
+        const fill = this._extractFill(textEl, style);
+        const opacity = this._extractOpacity(style);
+        const textAnchor = textEl.getAttribute('text-anchor') || 'start';
+        const x = parseFloat(textEl.getAttribute('x')) || 0;
+        const y = parseFloat(textEl.getAttribute('y')) || 0;
+
+        const font = await this._loadFont(family, weight);
+        if (!font) {
+            // Can't load font — keep original text element as fallback
+            const clone = textEl.cloneNode(true);
+            clone.removeAttribute('transform');
+            g.appendChild(clone);
+            return;
+        }
+
+        const path = font.getPath(text, 0, 0, fontSize);
+        const bb = path.getBoundingBox();
+        const textWidth = bb.x2 - bb.x1;
+
+        // Adjust for text-anchor
+        let dx = x;
+        if (textAnchor === 'middle') dx = x - textWidth / 2 - bb.x1;
+        else if (textAnchor === 'end') dx = x - textWidth - bb.x1;
+        else dx = x - bb.x1;
+
+        const pathEl = doc.createElementNS(ns, 'path');
+        pathEl.setAttribute('d', path.toPathData(4));
+        pathEl.setAttribute('transform', `translate(${dx},${y})`);
+        if (fill) pathEl.setAttribute('fill', fill);
+        if (opacity && opacity !== '1') pathEl.setAttribute('opacity', opacity);
+        g.appendChild(pathEl);
+    }
+
+    async _convertTspans(doc, g, textEl, tspans) {
+        const ns = 'http://www.w3.org/2000/svg';
+        const parentStyle = textEl.getAttribute('style') || '';
+        const parentFamily = this._parseFontFamily(parentStyle);
+        const parentWeight = this._parseFontWeight(parentStyle);
+        const parentFontSize = this._parseFontSize(parentStyle, textEl.getAttribute('font-size'));
+        const parentFill = this._extractFill(textEl, parentStyle);
+        const parentAnchor = textEl.getAttribute('text-anchor') || 'start';
+
+        // Process leaf tspan elements (deepest ones that contain actual text)
+        const leafTspans = this._getLeafTspans(tspans);
+
+        for (const ts of leafTspans) {
+            const text = ts.textContent;
+            if (!text.trim()) continue;
+
+            const tsStyle = ts.getAttribute('style') || '';
+            // Inherit from parent, override with tspan-specific styles
+            const family = this._parseFontFamily(tsStyle) || parentFamily;
+            const weight = this._parseFontWeight(tsStyle) || parentWeight;
+            const fontSize = this._parseFontSize(tsStyle, ts.getAttribute('font-size')) || parentFontSize;
+            const fill = this._extractFill(ts, tsStyle) || parentFill;
+            const x = parseFloat(ts.getAttribute('x')) ?? parseFloat(textEl.getAttribute('x')) ?? 0;
+            const y = parseFloat(ts.getAttribute('y')) ?? parseFloat(textEl.getAttribute('y')) ?? 0;
+            const dy = parseFloat(ts.getAttribute('dy')) || 0;
+
+            const font = await this._loadFont(family, weight);
+            if (!font) {
+                // Fallback: create a text element
+                const fallback = doc.createElementNS(ns, 'text');
+                fallback.textContent = text;
+                fallback.setAttribute('x', x);
+                fallback.setAttribute('y', y + dy);
+                if (tsStyle) fallback.setAttribute('style', tsStyle);
+                if (parentAnchor) fallback.setAttribute('text-anchor', parentAnchor);
+                g.appendChild(fallback);
+                continue;
+            }
+
+            const path = font.getPath(text, 0, 0, fontSize);
+            const bb = path.getBoundingBox();
+            const textWidth = bb.x2 - bb.x1;
+
+            let dx = x;
+            if (parentAnchor === 'middle') dx = x - textWidth / 2 - bb.x1;
+            else if (parentAnchor === 'end') dx = x - textWidth - bb.x1;
+            else dx = x - bb.x1;
+
+            const finalY = y + dy;
+            const pathEl = doc.createElementNS(ns, 'path');
+            pathEl.setAttribute('d', path.toPathData(4));
+            pathEl.setAttribute('transform', `translate(${dx},${finalY})`);
+            if (fill) pathEl.setAttribute('fill', fill);
+            g.appendChild(pathEl);
+        }
+    }
+
+    _getLeafTspans(tspans) {
+        // Get tspans that contain actual text (not just wrapper tspans)
+        const leaves = [];
+        for (const ts of tspans) {
+            const childTspans = ts.querySelectorAll('tspan');
+            if (childTspans.length === 0) {
+                leaves.push(ts);
+            }
+        }
+        // If no leaf tspans found, use all tspans
+        return leaves.length > 0 ? leaves : [...tspans];
+    }
+
+    _extractFill(el, style) {
+        const styleMatch = style?.match(/(?:^|;\s*)fill:\s*([^;]+)/i);
+        if (styleMatch) return styleMatch[1].trim();
+        return el.getAttribute('fill') || null;
+    }
+
+    _extractOpacity(style) {
+        const match = style?.match(/opacity:\s*([^;]+)/i);
+        return match ? match[1].trim() : null;
+    }
+
+    _shouldOutlineText() {
+        return document.querySelector('.outlineTextCheckbox')?.checked || false;
+    }
+
+    async _finalizeSvgForExport(svgStr) {
+        svgStr = this.sanitizeSvgForIllustrator(svgStr);
+        if (this._shouldOutlineText()) svgStr = await this._outlineSvgText(svgStr);
+        return svgStr;
     }
 
     downloadScatterPNG() {
@@ -13913,7 +14211,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const a = document.createElement('a');
         if (format === 'svg') {
             svgStr = svgStr.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
-            svgStr = this.sanitizeSvgForIllustrator(svgStr);
+            svgStr = await this._finalizeSvgForExport(svgStr);
             const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
             a.href = URL.createObjectURL(blob);
             a.download = `${filename}.svg`;
@@ -14252,7 +14550,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const a = document.createElement('a');
         if (format === 'svg') {
             svgStr = svgStr.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
-            svgStr = this.sanitizeSvgForIllustrator(svgStr);
+            svgStr = await this._finalizeSvgForExport(svgStr);
             const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
             a.href = URL.createObjectURL(blob);
             a.download = `${filename}.svg`;
@@ -15400,7 +15698,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             format: 'svg',
             width: chartWidth,
             height: chartHeight
-        }).then(svgDataUrl => {
+        }).then(async svgDataUrl => {
             let svgString;
             if (svgDataUrl.indexOf('base64,') > -1) {
                 svgString = atob(svgDataUrl.split('base64,')[1]);
@@ -15453,7 +15751,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 gene: this.currentGeneEffect?.gene, view: this.currentGEView
             });
             finalSvg = finalSvg.replace('</svg>', `<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata></svg>`);
-            finalSvg = this.sanitizeSvgForIllustrator(finalSvg);
+            finalSvg = await this._finalizeSvgForExport(finalSvg);
             const blob = new Blob([finalSvg], { type: 'image/svg+xml' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -16836,7 +17134,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const a = document.createElement('a');
         if (format === 'svg') {
             svgStr = svgStr.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
-            svgStr = this.sanitizeSvgForIllustrator(svgStr);
+            svgStr = await this._finalizeSvgForExport(svgStr);
             const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
             a.href = URL.createObjectURL(blob);
             a.download = `${filename}.svg`;
@@ -19075,7 +19373,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         });
         svgContent += `\n<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata>`;
         svgContent += '\n</svg>';
-        svgContent = this.sanitizeSvgForIllustrator(svgContent);
+        svgContent = await this._finalizeSvgForExport(svgContent);
 
         const blob = new Blob([svgContent], { type: 'image/svg+xml' });
         const link = document.createElement('a');
@@ -20454,12 +20752,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 });
         } else {
             Plotly.toImage(plotDiv, { format: 'svg', width: w, height: h })
-                .then(url => {
+                .then(async url => {
                     let svgStr;
                     if (url.indexOf('base64,') > -1) svgStr = atob(url.split('base64,')[1]);
                     else svgStr = decodeURIComponent(url.split(',').slice(1).join(','));
                     svgStr = svgStr.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
-                    svgStr = this.sanitizeSvgForIllustrator(svgStr);
+                    svgStr = await this._finalizeSvgForExport(svgStr);
                     const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
