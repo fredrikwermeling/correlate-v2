@@ -12756,14 +12756,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         });
 
         // Fix SVG root element for Inkscape/Illustrator compatibility
-        // 1. Ensure width/height match viewBox and have no units (SVG default = px)
+        // 1. Set width/height in mm (matching viewBox) so Inkscape opens at correct size
+        //    Inkscape uses 96dpi: 1px = 25.4/96 mm ≈ 0.2646mm
         // 2. Remove empty style attribute and Plotly class
         const vb = svgEl.getAttribute('viewBox');
         if (vb) {
             const parts = vb.trim().split(/\s+/).map(Number);
             if (parts.length === 4) {
-                svgEl.setAttribute('width', String(parts[2]));
-                svgEl.setAttribute('height', String(parts[3]));
+                const pxToMm = 25.4 / 96;
+                svgEl.setAttribute('width', (parts[2] * pxToMm).toFixed(2) + 'mm');
+                svgEl.setAttribute('height', (parts[3] * pxToMm).toFixed(2) + 'mm');
             }
         }
         svgEl.removeAttribute('class');
@@ -12930,15 +12932,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const family = this._parseFontFamily(style);
         const weight = this._normalizeWeight(this._parseFontWeight(style));
         fontKeys.add(`${family.toLowerCase()}|${weight}`);
-        // Also check tspan children for different styles
-        textEl.querySelectorAll('tspan').forEach(ts => {
-            const tsStyle = ts.getAttribute('style') || '';
-            if (tsStyle) {
-                const fam = this._parseFontFamily(tsStyle) || family;
-                const w = this._normalizeWeight(this._parseFontWeight(tsStyle)) || weight;
-                fontKeys.add(`${fam.toLowerCase()}|${w}`);
-            }
-        });
+        // Walk all tspans, accumulating inherited styles
+        const walkForKeys = (el, inhFamily, inhWeight) => {
+            const s = el.getAttribute('style') || '';
+            const fam = this._parseFontFamily(s) || inhFamily;
+            const wRaw = this._parseFontWeight(s);
+            const w = (wRaw && wRaw !== 'normal') ? this._normalizeWeight(wRaw) : inhWeight;
+            fontKeys.add(`${fam.toLowerCase()}|${w}`);
+            el.querySelectorAll(':scope > tspan').forEach(child => walkForKeys(child, fam, w));
+        };
+        textEl.querySelectorAll(':scope > tspan').forEach(ts => walkForKeys(ts, family, weight));
     }
 
     async _convertSimpleText(doc, g, textEl) {
@@ -12992,31 +12995,22 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const parentFill = this._extractFill(textEl, parentStyle);
         const parentAnchor = textEl.getAttribute('text-anchor') || 'start';
 
-        // Process leaf tspan elements (deepest ones that contain actual text)
-        const leafTspans = this._getLeafTspans(tspans);
+        // Collect leaf tspans with inherited styles from ancestor chain
+        const leaves = this._getLeafTspansWithInheritedStyles(textEl, parentFamily, parentWeight, parentFontSize, parentFill);
 
-        for (const ts of leafTspans) {
+        for (const leaf of leaves) {
+            const { el: ts, family, weight, fontSize, fill, x, y, dyPx } = leaf;
             const text = ts.textContent;
             if (!text.trim()) continue;
 
-            const tsStyle = ts.getAttribute('style') || '';
-            // Inherit from parent, override with tspan-specific styles
-            const family = this._parseFontFamily(tsStyle) || parentFamily;
-            const weight = this._parseFontWeight(tsStyle) || parentWeight;
-            const fontSize = this._parseFontSize(tsStyle, ts.getAttribute('font-size')) || parentFontSize;
-            const fill = this._extractFill(ts, tsStyle) || parentFill;
-            const x = parseFloat(ts.getAttribute('x')) ?? parseFloat(textEl.getAttribute('x')) ?? 0;
-            const y = parseFloat(ts.getAttribute('y')) ?? parseFloat(textEl.getAttribute('y')) ?? 0;
-            const dy = parseFloat(ts.getAttribute('dy')) || 0;
-
             const font = await this._loadFont(family, weight);
             if (!font) {
-                // Fallback: create a text element
                 const fallback = doc.createElementNS(ns, 'text');
                 fallback.textContent = text;
                 fallback.setAttribute('x', x);
-                fallback.setAttribute('y', y + dy);
-                if (tsStyle) fallback.setAttribute('style', tsStyle);
+                fallback.setAttribute('y', y + dyPx);
+                fallback.setAttribute('style', `font-family:${family};font-size:${fontSize}px;font-weight:${weight}`);
+                if (fill) fallback.setAttribute('fill', fill);
                 if (parentAnchor) fallback.setAttribute('text-anchor', parentAnchor);
                 g.appendChild(fallback);
                 continue;
@@ -13031,7 +13025,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             else if (parentAnchor === 'end') dx = x - textWidth - bb.x1;
             else dx = x - bb.x1;
 
-            const finalY = y + dy;
+            const finalY = y + dyPx;
             const pathEl = doc.createElementNS(ns, 'path');
             pathEl.setAttribute('d', path.toPathData(4));
             pathEl.setAttribute('transform', `translate(${dx},${finalY})`);
@@ -13040,17 +13034,49 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         }
     }
 
-    _getLeafTspans(tspans) {
-        // Get tspans that contain actual text (not just wrapper tspans)
-        const leaves = [];
-        for (const ts of tspans) {
-            const childTspans = ts.querySelectorAll('tspan');
-            if (childTspans.length === 0) {
-                leaves.push(ts);
+    _getLeafTspansWithInheritedStyles(textEl, defFamily, defWeight, defFontSize, defFill) {
+        const results = [];
+        const baseX = parseFloat(textEl.getAttribute('x')) || 0;
+        const baseY = parseFloat(textEl.getAttribute('y')) || 0;
+
+        const walk = (el, inheritedFamily, inheritedWeight, inheritedFontSize, inheritedFill, accDyPx) => {
+            const style = el.getAttribute('style') || '';
+            // Override inherited values with this element's own styles
+            const family = this._parseFontFamily(style) || inheritedFamily;
+            const weightRaw = this._parseFontWeight(style);
+            const weight = (weightRaw && weightRaw !== 'normal') ? weightRaw : inheritedWeight;
+            const fsMatch = style.match(/font-size:\s*([\d.]+)/i);
+            const fontSize = fsMatch ? parseFloat(fsMatch[1]) : inheritedFontSize;
+            const fill = this._extractFill(el, style) || inheritedFill;
+
+            // Accumulate dy (can be in em or px)
+            const dyAttr = el.getAttribute('dy');
+            let dyPx = accDyPx;
+            if (dyAttr) {
+                if (dyAttr.endsWith('em')) {
+                    dyPx += parseFloat(dyAttr) * fontSize;
+                } else {
+                    dyPx += parseFloat(dyAttr) || 0;
+                }
             }
-        }
-        // If no leaf tspans found, use all tspans
-        return leaves.length > 0 ? leaves : [...tspans];
+
+            // Get x/y from this element or inherit
+            const x = el.hasAttribute('x') ? parseFloat(el.getAttribute('x')) : baseX;
+            const y = el.hasAttribute('y') ? parseFloat(el.getAttribute('y')) : baseY;
+
+            const childTspans = el.querySelectorAll(':scope > tspan');
+            if (childTspans.length === 0 && el.textContent.trim()) {
+                // Leaf node with text
+                results.push({ el, family, weight, fontSize, fill, x, y, dyPx });
+            } else {
+                childTspans.forEach(child => walk(child, family, weight, fontSize, fill, dyPx));
+            }
+        };
+
+        // Start walking from direct tspan children of the text element
+        const topTspans = textEl.querySelectorAll(':scope > tspan');
+        topTspans.forEach(ts => walk(ts, defFamily, defWeight, defFontSize, defFill, 0));
+        return results;
     }
 
     _extractFill(el, style) {
