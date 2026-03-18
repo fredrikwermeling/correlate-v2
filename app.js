@@ -4602,7 +4602,9 @@ class CorrelationExplorer {
 
             const meta = this._buildExportMetadata('mutation_inspect', {
                 gene: this.currentGeneEffectGene,
-                hotspotGene: this.mutationResults?.hotspotGene
+                hotspotGene: this.mutationResults?.hotspotGene,
+                isTranslocation: this.mutationResults?.isTranslocation || false,
+                isDamaging: this.mutationResults?.isDamaging || false
             });
             const metaJson = JSON.stringify(meta);
 
@@ -13268,9 +13270,23 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             // Set mutation analysis mode and hotspot gene, then run
             const mutRadio = document.querySelector('input[name="analysisMode"][value="mutation"]');
             if (mutRadio) mutRadio.checked = true;
-            // Set hotspot gene in the appropriate selector
-            const hotspotSelect = document.getElementById('mutationHotspotSelect');
-            if (hotspotSelect) hotspotSelect.value = meta.hotspotGene;
+            // Set mutation sub-type (hotspot/damaging/translocation)
+            if (meta.isTranslocation) {
+                const radio = document.querySelector('input[name="mutAnalysisType"][value="translocation"]');
+                if (radio) radio.checked = true;
+                const sel = document.getElementById('translocationHotspotSelect');
+                if (sel) sel.value = meta.hotspotGene;
+            } else if (meta.isDamaging) {
+                const radio = document.querySelector('input[name="mutAnalysisType"][value="damaging"]');
+                if (radio) radio.checked = true;
+                const sel = document.getElementById('damagingHotspotSelect');
+                if (sel) sel.value = meta.hotspotGene;
+            } else {
+                const radio = document.querySelector('input[name="mutAnalysisType"][value="hotspot"]');
+                if (radio) radio.checked = true;
+                const sel = document.getElementById('mutationHotspotSelect');
+                if (sel) sel.value = meta.hotspotGene;
+            }
             // Switch to mutation tab
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -13295,6 +13311,21 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         // Gene effect exports → open gene effect modal
         if (meta.graphType === 'gene_effect' && meta.gene) {
             this.openGeneEffectModal(meta.gene, meta.view || 'tissue');
+            return;
+        }
+
+        // Correlation analysis → open correlation analysis modal
+        if (meta.graphType === 'correlation_analysis' && meta.gene1 && meta.gene2) {
+            this.openCorrelationAnalysisModal(meta.gene1, meta.gene2, meta.view || 'tissue');
+            return;
+        }
+
+        // Expression correlate → open scatter inspect with the gene pair
+        if (meta.graphType === 'expr_correlate' && meta.targetGene) {
+            // Best we can do: open the target gene pair as a scatter
+            if (meta.gene && meta.targetGene) {
+                this.openInspect({ gene1: meta.targetGene, gene2: meta.gene, correlation: null });
+            }
             return;
         }
 
