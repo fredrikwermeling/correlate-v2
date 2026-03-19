@@ -951,6 +951,26 @@ class CorrelationExplorer {
         return Object.values(tissueMap).sort((a, b) => b.nMut - a.nMut);
     }
 
+    getTissueBreakdownForDamaging(gene) {
+        if (!this.damagingMutations?.geneData?.[gene] || !this.cellLineMetadata?.lineage) return [];
+        const mutations = this.damagingMutations.geneData[gene].mutations;
+        const cellLines = this.metadata.cellLines;
+        const tissueMap = {};
+
+        cellLines.forEach(cl => {
+            const lineage = this.cellLineMetadata.lineage[cl];
+            if (!lineage) return;
+            if (!tissueMap[lineage]) tissueMap[lineage] = { lineage, nMut: 0, nWT: 0 };
+            if (mutations[cl] && mutations[cl] > 0) {
+                tissueMap[lineage].nMut++;
+            } else {
+                tissueMap[lineage].nWT++;
+            }
+        });
+
+        return Object.values(tissueMap).sort((a, b) => b.nMut - a.nMut);
+    }
+
     getTissueBreakdownForTranslocation(gene) {
         if (!this.translocations?.geneData?.[gene] || !this.cellLineMetadata?.lineage) return [];
         const translocations = this.translocations.geneData[gene].translocations;
@@ -974,25 +994,30 @@ class CorrelationExplorer {
     showTissueBreakdownPopup(type) {
         this.hideTissueBreakdownPopup();
         const isTransloc = type === 'translocation';
+        const isDamaging = type === 'damaging';
         const gene = isTransloc
             ? document.getElementById('translocationHotspotSelect').value
-            : document.getElementById('mutationHotspotSelect').value;
+            : isDamaging
+                ? document.getElementById('damagingHotspotSelect').value
+                : document.getElementById('mutationHotspotSelect').value;
         if (!gene) return;
 
         const breakdown = isTransloc
             ? this.getTissueBreakdownForTranslocation(gene)
-            : this.getTissueBreakdownForHotspot(gene);
+            : isDamaging
+                ? this.getTissueBreakdownForDamaging(gene)
+                : this.getTissueBreakdownForHotspot(gene);
         if (breakdown.length === 0) return;
 
         const currentLineage = document.getElementById('lineageFilter').value;
-        const mutLabel = isTransloc ? 'Fused' : 'Mut';
+        const mutLabel = isTransloc ? 'Fused' : isDamaging ? 'Dmg' : 'Mut';
 
         const popup = document.createElement('div');
         popup.id = 'tissueBreakdownPopup';
         popup.style.cssText = 'position: fixed; z-index: 10000; background: white; border: 1px solid #d1d5db; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 0; min-width: 340px; max-width: 420px; display: flex; flex-direction: column;';
 
         // Position near the button, clamped to viewport
-        const btn = document.getElementById(isTransloc ? 'translocationTissueBreakdownBtn' : 'tissueBreakdownBtn');
+        const btn = document.getElementById(isTransloc ? 'translocationTissueBreakdownBtn' : isDamaging ? 'damagingTissueBreakdownBtn' : 'tissueBreakdownBtn');
         const rect = btn.getBoundingClientRect();
         const vw = window.innerWidth;
         const vh = window.innerHeight;
@@ -1113,7 +1138,7 @@ class CorrelationExplorer {
         setTimeout(() => {
             this._tbOutsideHandler = (e) => {
                 const p = document.getElementById('tissueBreakdownPopup');
-                if (p && !p.contains(e.target) && e.target.id !== 'tissueBreakdownBtn' && e.target.id !== 'translocationTissueBreakdownBtn') {
+                if (p && !p.contains(e.target) && e.target.id !== 'tissueBreakdownBtn' && e.target.id !== 'translocationTissueBreakdownBtn' && e.target.id !== 'damagingTissueBreakdownBtn') {
                     this.hideTissueBreakdownPopup();
                 }
             };
@@ -1485,6 +1510,14 @@ class CorrelationExplorer {
             const btn = document.getElementById('translocationTissueBreakdownBtn');
             const val = document.getElementById('translocationHotspotSelect').value.trim();
             if (btn) btn.style.display = (val && this.translocations?.geneData?.[val]) ? 'inline-block' : 'none';
+        });
+
+        // Tissue breakdown button (damaging mutations)
+        document.getElementById('damagingTissueBreakdownBtn')?.addEventListener('click', () => this.showTissueBreakdownPopup('damaging'));
+        document.getElementById('damagingHotspotSelect')?.addEventListener('input', () => {
+            const btn = document.getElementById('damagingTissueBreakdownBtn');
+            const val = document.getElementById('damagingHotspotSelect').value.trim();
+            if (btn) btn.style.display = (val && this.damagingMutations?.geneData?.[val]) ? 'inline-block' : 'none';
         });
 
         // General tissue breakdown button (for lineage filter area)
