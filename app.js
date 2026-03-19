@@ -4611,7 +4611,9 @@ class CorrelationExplorer {
                 gene: this.currentGeneEffectGene,
                 hotspotGene: this.mutationResults?.hotspotGene,
                 isTranslocation: this.mutationResults?.isTranslocation || false,
-                isDamaging: this.mutationResults?.isDamaging || false
+                isDamaging: this.mutationResults?.isDamaging || false,
+                lineageFilter: this.mutationResults?.lineageFilter || '',
+                subLineageFilter: this.mutationResults?.subLineageFilter || ''
             });
             const metaJson = JSON.stringify(meta);
 
@@ -13022,36 +13024,41 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Mutation inspect exports → run mutation analysis then open gene inspect
         if (meta.graphType === 'mutation_inspect' && meta.gene && meta.hotspotGene) {
-            // Set mutation analysis mode and hotspot gene, then run
+            // Set mutation analysis mode
             const mutRadio = document.querySelector('input[name="analysisMode"][value="mutation"]');
             if (mutRadio) mutRadio.checked = true;
-            // Set mutation sub-type (hotspot/damaging/translocation)
-            if (meta.isTranslocation) {
-                const radio = document.querySelector('input[name="mutAnalysisType"][value="translocation"]');
-                if (radio) radio.checked = true;
-                const sel = document.getElementById('translocationHotspotSelect');
-                if (sel) sel.value = meta.hotspotGene;
-            } else if (meta.isDamaging) {
-                const radio = document.querySelector('input[name="mutAnalysisType"][value="damaging"]');
-                if (radio) radio.checked = true;
-                const sel = document.getElementById('damagingHotspotSelect');
-                if (sel) sel.value = meta.hotspotGene;
-            } else {
-                const radio = document.querySelector('input[name="mutAnalysisType"][value="hotspot"]');
-                if (radio) radio.checked = true;
-                const sel = document.getElementById('mutationHotspotSelect');
-                if (sel) sel.value = meta.hotspotGene;
-            }
-            // Switch to mutation tab
+            // Switch to mutation tab so UI is visible
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             const mutTab = document.querySelector('[data-tab="mutation"]');
             if (mutTab) mutTab.classList.add('active');
             const mutContent = document.getElementById('tab-mutation');
             if (mutContent) mutContent.classList.add('active');
+            // Set mutation sub-type and populate selector before setting value
+            if (meta.isTranslocation) {
+                const radio = document.querySelector('input[name="mutAnalysisType"][value="translocation"]');
+                if (radio) { radio.checked = true; this.updateMutationAnalysisType?.(); }
+                const sel = document.getElementById('translocationHotspotSelect');
+                if (sel) sel.value = meta.hotspotGene;
+            } else if (meta.isDamaging) {
+                const radio = document.querySelector('input[name="mutAnalysisType"][value="damaging"]');
+                if (radio) { radio.checked = true; this.updateMutationAnalysisType?.(); }
+                const sel = document.getElementById('damagingHotspotSelect');
+                if (sel) sel.value = meta.hotspotGene;
+            } else {
+                const radio = document.querySelector('input[name="mutAnalysisType"][value="hotspot"]');
+                if (radio) { radio.checked = true; this.updateMutationAnalysisType?.(); }
+                // Populate hotspot selector so the value can be set
+                this.populateMutationHotspotSelector?.();
+                const sel = document.getElementById('mutationHotspotSelect');
+                if (sel) sel.value = meta.hotspotGene;
+            }
+            // Restore tissue filter if stored
+            if (meta.lineageFilter) {
+                document.getElementById('lineageFilter').value = meta.lineageFilter;
+            }
             // Run mutation analysis, then open gene inspect after results load
             this.runAnalysis();
-            // Wait for results and open the gene inspect
             const waitForResults = () => {
                 if (this.mutationResults && this.mutationResults.hotspotGene === meta.hotspotGene) {
                     this.showGeneEffectDistribution(meta.gene);
