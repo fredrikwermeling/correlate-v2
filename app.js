@@ -746,8 +746,10 @@ class CorrelationExplorer {
         document.getElementById('correlationParams').style.display = hideParams ? 'none' : 'block';
         document.getElementById('slopeParams').style.display = hideParams ? 'none' : 'block';
 
-        // Hide min cell lines and filters for synonym mode
+        // Hide min cell lines, filters, exclude tissues, and find synonyms button for synonym mode
         document.getElementById('minCellLinesGroup').style.display = isSynonymMode ? 'none' : 'block';
+        document.getElementById('tissueExcludeGroup').style.display = isSynonymMode ? 'none' : '';
+        if (isSynonymMode) document.getElementById('findSynonyms').style.display = 'none';
         if (isSynonymMode) {
             document.getElementById('lineageFilterGroup').style.display = 'none';
             document.getElementById('subLineageFilterGroup').style.display = 'none';
@@ -1375,10 +1377,19 @@ class CorrelationExplorer {
 
         // Load test genes (20 genes)
         document.getElementById('loadTestGenes').addEventListener('click', () => {
-            const testGenes = ['TP53', 'BRCA1', 'BRCA2', 'MYC', 'KRAS', 'EGFR', 'PTEN',
-                'RB1', 'APC', 'CDKN2A', 'NOTCH1', 'PIK3CA', 'BRAF',
-                'ATM', 'ERBB2', 'CDK4', 'MDM2', 'NRAS', 'TSC1', 'TSC2',
-                'BCR', 'ABL1'];
+            const mode = document.querySelector('input[name="analysisMode"]:checked')?.value;
+            let testGenes;
+            if (mode === 'synonym') {
+                // Mix of mouse orthologs, old aliases, and valid human genes to demo synonym lookup
+                testGenes = ['Trp53', 'Brca1', 'ERBB2', 'p21', 'Rb1', 'PTEN',
+                    'Myc', 'Kras', 'Braf', 'Akt1', 'Bcl2', 'mTOR',
+                    'CD8a', 'Foxp3', 'PD-1', 'PD-L1', 'CTLA4'];
+            } else {
+                testGenes = ['TP53', 'BRCA1', 'BRCA2', 'MYC', 'KRAS', 'EGFR', 'PTEN',
+                    'RB1', 'APC', 'CDKN2A', 'NOTCH1', 'PIK3CA', 'BRAF',
+                    'ATM', 'ERBB2', 'CDK4', 'MDM2', 'NRAS', 'TSC1', 'TSC2',
+                    'BCR', 'ABL1'];
+            }
             document.getElementById('geneTextarea').value = testGenes.join('\n');
             this.updateGeneCount();
         });
