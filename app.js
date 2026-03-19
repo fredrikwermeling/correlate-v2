@@ -3758,7 +3758,7 @@ class CorrelationExplorer {
             { col: 'mean_wt', label: `Mean GE (${wtLabel})`, style: '' },
             { col: 'n_mut', label: `N (${mutLbl}${isD ? '' : ' 1+2'})`, style: 'border-left: 2px solid #f97316;' },
             { col: 'mean_mut', label: `Mean GE (${mutLbl}${isD ? '' : ' 1+2'})`, style: '' },
-            { col: 'diff_mut', label: 'Δ GE', style: '' },
+            { col: 'diff_mut', label: 'Δ GE', style: 'border-left: 2px solid #d1d5db;' },
             { col: 'p_mut', label: 'p-value', style: '' },
         ];
         // Only show het/hom columns for non-damaging mutations (damaging is binary)
@@ -3766,7 +3766,7 @@ class CorrelationExplorer {
             cols.push(
                 { col: 'n_2', label: `N (${mutLbl} 2${isT ? '+' : ''})`, style: 'border-left: 2px solid #dc2626;', cls: 'mut2-col' },
                 { col: 'mean_2', label: `Mean GE (${mutLbl} 2${isT ? '+' : ''})`, style: '', cls: 'mut2-col' },
-                { col: 'diff_2', label: 'Δ GE (2v0)', style: '', cls: 'mut2-col' },
+                { col: 'diff_2', label: 'Δ GE (2v0)', style: 'border-left: 2px solid #d1d5db;', cls: 'mut2-col' },
                 { col: 'p_2', label: 'p-value (2v0)', style: '', cls: 'mut2-col' }
             );
         }
@@ -3778,7 +3778,7 @@ class CorrelationExplorer {
             const fusionCols = [
                 { col: 'n_fused', label: 'N (Fused)', style: 'border-left: 2px solid #8b5cf6;' },
                 { col: 'mean_fused', label: 'Mean GE (F)', style: '' },
-                { col: 'diff_fused', label: 'Δ GE (F)', style: '' },
+                { col: 'diff_fused', label: 'Δ GE (F)', style: 'border-left: 2px solid #d1d5db;' },
                 { col: 'p_fused', label: 'p (F)', style: '' }
             ];
             fusionCols.forEach(c => {
