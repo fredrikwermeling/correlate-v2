@@ -1273,7 +1273,7 @@ class CorrelationExplorer {
         html += `<button onclick="document.getElementById('oncoprintPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
         html += `<div style="padding:6px 10px; overflow:auto; flex:1;">`;
-        html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#16a34a;">■</span> include · <span style="color:#dc2626;">■</span> exclude · <span style="display:inline-block;width:8px;height:8px;background:#3b82f6;vertical-align:middle;"></span> 1 mut · <span style="display:inline-block;width:8px;height:8px;background:#1e40af;vertical-align:middle;"></span> 2+ mut · <span style="display:inline-block;width:8px;height:8px;background:#f3f4f6;border:1px solid #d1d5db;vertical-align:middle;"></span> WT</div>`;
+        html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#16a34a;">■</span> include · <span style="color:#dc2626;">■</span> exclude · <span style="display:inline-block;width:8px;height:8px;background:#3b82f6;vertical-align:middle;"></span> 1 mut · <span style="display:inline-block;width:8px;height:8px;background:#1e40af;vertical-align:middle;"></span> 2 mut · <span style="display:inline-block;width:8px;height:8px;background:#f3f4f6;border:1px solid #d1d5db;vertical-align:middle;"></span> WT</div>`;
         html += `<canvas id="oncoprintCanvas" width="${totalW}" height="${totalH}" style="cursor:pointer;"></canvas>`;
         html += `<div id="oncoprintStatus" style="font-size:10px; margin-top:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"></div>`;
         html += `</div>`; // close inner padding div
