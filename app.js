@@ -1913,6 +1913,9 @@ class CorrelationExplorer {
         document.querySelectorAll('.enrichrBtn').forEach(btn => {
             btn.addEventListener('click', () => this.openEnrichr(btn.dataset.source));
         });
+        document.getElementById('mutEnrichrBtn')?.addEventListener('click', () => {
+            this.openEnrichr('mutations');
+        });
         document.getElementById('enrichrCloseBtn')?.addEventListener('click', () => {
             document.getElementById('enrichrModal').style.display = 'none';
         });
@@ -17790,6 +17793,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         };
         const config = tableMap[source];
         if (!config) return [];
+
+        // For mutations, apply the enrichr filter dropdown
+        if (source === 'mutations' && this.mutationResults) {
+            return this._getFilteredMutationGenes();
+        }
+
         const tbody = document.getElementById(config.bodyId);
         if (!tbody) return [];
         tbody.querySelectorAll('tr').forEach(row => {
@@ -17803,6 +17812,25 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
         });
         return [...geneSet];
+    }
+
+    _getFilteredMutationGenes() {
+        const filter = document.getElementById('mutEnrichrFilter')?.value || 'all';
+        const mr = this.mutationResults;
+        if (!mr) return [];
+        const pThreshold = mr.pThreshold || 0.05;
+        const results = mr.significantResults || [];
+
+        return results.filter(r => {
+            switch (filter) {
+                case 'p_mut':    return r.p_mut < pThreshold;
+                case 'p_2':      return r.p_2 < pThreshold;
+                case 'p_2v1':    return r.p_2v1 < pThreshold;
+                case 'diff_neg': return r.p_mut < pThreshold && r.diff_mut < 0;
+                case 'diff_pos': return r.p_mut < pThreshold && r.diff_mut > 0;
+                default:         return true; // 'all' — already filtered by significance
+            }
+        }).map(r => r.gene);
     }
 
     async openEnrichr(source) {
