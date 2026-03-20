@@ -1313,6 +1313,52 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.27.6 (2026-03-20)</strong></p>
+                <ul>
+                    <li>Cascading filters: all selectors reflect active lineage/sublineage, sorted by count descending</li>
+                    <li>Hotspot/damaging/translocation selectors hide genes with 0 mutations in filtered set</li>
+                </ul>
+                <p><strong>v.27.5 (2026-03-20)</strong></p>
+                <ul>
+                    <li>Cell line browser gene click applies active parameter filters (lineage, hotspot, fusion)</li>
+                    <li>Mutation analysis: new Δ GE (2v1) and p(2v1) columns — 2-mutation vs 1-mutation comparison</li>
+                </ul>
+                <p><strong>v.27.4 (2026-03-20)</strong></p>
+                <ul>
+                    <li>Warn when mutation analysis skips genes due to min cell lines threshold</li>
+                </ul>
+                <p><strong>v.27.3 (2026-03-20)</strong></p>
+                <ul>
+                    <li>Lower min cell lines by 50%: default 25 (was 50), mutation mode 5 (was 10)</li>
+                </ul>
+                <p><strong>v.27.2 (2026-03-20)</strong></p>
+                <ul>
+                    <li>Bold and Italic toggle buttons in Aa text settings for title, subtitle, axis labels</li>
+                </ul>
+                <p><strong>v.27.1 (2026-03-20)</strong></p>
+                <ul>
+                    <li>Tissues breakdown button for damaging mutations (matching hotspot/translocation)</li>
+                    <li>Subtle line separator before Δ GE columns in mutation table</li>
+                </ul>
+                <p><strong>v.26.9 (2026-03-19)</strong></p>
+                <ul>
+                    <li>Synonym mode: test genes loads mouse orthologs/aliases (Trp53, p21, PD-1, etc.)</li>
+                    <li>Hide Exclude Tissues and Find Synonyms button in synonym mode</li>
+                </ul>
+                <p><strong>v.26.8 (2026-03-19)</strong></p>
+                <ul>
+                    <li>Full visual settings stored in export metadata for network, mutation inspect, gene effect</li>
+                    <li>Network restore applies fontSize, nodeSize, edgeWidth, color settings</li>
+                </ul>
+                <p><strong>v.26.7 (2026-03-19)</strong></p>
+                <ul>
+                    <li>Fix mutation inspect restore: populate hotspot selector before setting value</li>
+                    <li>Store lineage filter in mutation inspect metadata</li>
+                </ul>
+                <p><strong>v.26.6 (2026-03-19)</strong></p>
+                <ul>
+                    <li>Remove Outline text feature (opentype.js) — Arial font and tspan flattening solve the problem</li>
+                </ul>
                 <p><strong>v.26.5 (2026-03-18)</strong></p>
                 <ul>
                     <li>Deep SVG cleanup: strip all Plotly class/data- attributes, clipPaths, empty groups, cursor/white-space CSS</li>
@@ -1568,7 +1614,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.27.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.27.7</a>
     </div>
 
     <div class="main-content">
