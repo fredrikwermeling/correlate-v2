@@ -1245,12 +1245,14 @@ class CorrelationExplorer {
         // Build the oncoprint grid
         const cellW = Math.max(3, Math.min(8, Math.floor(500 / sortedCLs.length)));
         const cellH = 14;
-        const labelW = 80;
-        const indicatorW = 12;
+        const labelW = 72;
+        const boxW = 11; // each checkbox
+        const boxGap = 2;
+        const boxAreaW = boxW * 2 + boxGap + 4; // two boxes + gap + padding
         const gridW = sortedCLs.length * cellW;
         const gridH = topGenes.length * cellH;
         const countW = 30;
-        const totalW = indicatorW + labelW + gridW + countW;
+        const totalW = boxAreaW + labelW + gridW + countW;
         const footerH = 50;
         const totalH = gridH + footerH;
 
@@ -1271,7 +1273,7 @@ class CorrelationExplorer {
         html += `<span style="font-size:10px; color:#6b7280;">${sortedCLs.length} CLs${lineageFilter ? ' · ' + lineageFilter : ''}${filteredCLs.length > maxCLs ? ` (${maxCLs}/${filteredCLs.length})` : ''}</span>`;
         html += `<button onclick="document.getElementById('oncoprintPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
-        html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;">Click gene name to cycle: none → <span style="color:#16a34a;">● Mut</span> → <span style="color:#dc2626;">● WT</span> → none. Click grid to set as hotspot.</div>`;
+        html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#16a34a;">■</span> = require Mutated, <span style="color:#dc2626;">■</span> = require WT. Click boxes to toggle. Click grid to set as hotspot.</div>`;
         html += `<canvas id="oncoprintCanvas" width="${totalW}" height="${totalH}" style="cursor:pointer;"></canvas>`;
         html += `<div id="oncoprintStatus" style="font-size:10px; margin-top:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"></div>`;
         popup.innerHTML = html;
@@ -1290,36 +1292,39 @@ class CorrelationExplorer {
                 const y = rowIdx * cellH;
                 const isSelected = g.gene === currentHotspot;
                 const filterState = self._oncoprintFilters[g.gene] || 'none';
+                const bx1 = 2; // first box x
+                const bx2 = 2 + boxW + boxGap; // second box x
+                const by = y + 2;
+                const bh = cellH - 4;
 
-                // Filter indicator
-                if (filterState === 'mut') {
-                    ctx.fillStyle = '#16a34a';
-                    ctx.beginPath();
-                    ctx.arc(indicatorW / 2, y + cellH / 2, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (filterState === 'wt') {
-                    ctx.fillStyle = '#dc2626';
-                    ctx.beginPath();
-                    ctx.arc(indicatorW / 2, y + cellH / 2, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+                // Mut box (green if active)
+                ctx.fillStyle = filterState === 'mut' ? '#16a34a' : '#e5e7eb';
+                ctx.fillRect(bx1, by, boxW, bh);
+                ctx.strokeStyle = '#9ca3af';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(bx1, by, boxW, bh);
+
+                // WT box (red if active)
+                ctx.fillStyle = filterState === 'wt' ? '#dc2626' : '#e5e7eb';
+                ctx.fillRect(bx2, by, boxW, bh);
+                ctx.strokeRect(bx2, by, boxW, bh);
 
                 // Gene label
                 ctx.fillStyle = isSelected ? '#7c3aed' : filterState !== 'none' ? '#111827' : '#374151';
                 ctx.font = (isSelected || filterState !== 'none') ? 'bold 10px Arial' : '10px Arial';
                 ctx.textAlign = 'right';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(g.gene, indicatorW + labelW - 4, y + cellH / 2);
+                ctx.fillText(g.gene, boxAreaW + labelW - 4, y + cellH / 2);
 
                 // Count
                 ctx.fillStyle = '#9ca3af';
                 ctx.font = '8px Arial';
                 ctx.textAlign = 'left';
-                ctx.fillText(`${g.n}`, indicatorW + labelW + gridW + 2, y + cellH / 2);
+                ctx.fillText(`${g.n}`, boxAreaW + labelW + gridW + 2, y + cellH / 2);
 
                 // Grid cells
                 sortedCLs.forEach((cl, colIdx) => {
-                    const x = indicatorW + labelW + colIdx * cellW;
+                    const x = boxAreaW + labelW + colIdx * cellW;
                     const mutLevel = g.muts[cl] || 0;
                     if (mutLevel > 0) {
                         ctx.fillStyle = mutLevel >= 2 ? '#1e40af' : '#3b82f6';
@@ -1366,14 +1371,26 @@ class CorrelationExplorer {
             if (rowIdx < 0 || rowIdx >= topGenes.length) return;
 
             const gene = topGenes[rowIdx].gene;
+            const bx1 = 2;
+            const bx2 = 2 + boxW + boxGap;
 
-            if (x < indicatorW + labelW) {
-                // Clicked gene label area — cycle filter state
+            if (x >= bx1 && x <= bx1 + boxW) {
+                // Clicked Mut box — toggle mut filter
                 const current = this._oncoprintFilters[gene] || 'none';
-                const next = current === 'none' ? 'mut' : current === 'mut' ? 'wt' : 'none';
-                if (next === 'none') delete this._oncoprintFilters[gene];
-                else this._oncoprintFilters[gene] = next;
+                if (current === 'mut') delete this._oncoprintFilters[gene];
+                else this._oncoprintFilters[gene] = 'mut';
                 drawOncoprint();
+            } else if (x >= bx2 && x <= bx2 + boxW) {
+                // Clicked WT box — toggle wt filter
+                const current = this._oncoprintFilters[gene] || 'none';
+                if (current === 'wt') delete this._oncoprintFilters[gene];
+                else this._oncoprintFilters[gene] = 'wt';
+                drawOncoprint();
+            } else if (x < boxAreaW + labelW) {
+                // Clicked gene label — set as hotspot
+                document.getElementById('mutationHotspotSelect').value = gene;
+                document.getElementById('tissueBreakdownBtn').style.display = 'inline-block';
+                this.showOncoprint();
             } else {
                 // Clicked grid area — set as hotspot filter
                 document.getElementById('mutationHotspotSelect').value = gene;
@@ -1388,12 +1405,17 @@ class CorrelationExplorer {
             const y = e.clientY - canvasRect.top;
             const x = e.clientX - canvasRect.left;
             const rowIdx = Math.floor(y / cellH);
-            const colIdx = Math.floor((x - indicatorW - labelW) / cellW);
             if (rowIdx >= 0 && rowIdx < topGenes.length) {
                 canvas.style.cursor = 'pointer';
-                if (x < indicatorW + labelW) {
-                    const state = this._oncoprintFilters[topGenes[rowIdx].gene] || 'none';
-                    canvas.title = `${topGenes[rowIdx].gene} (${topGenes[rowIdx].n} mut) — click to ${state === 'none' ? 'require Mut' : state === 'mut' ? 'require WT' : 'clear filter'}`;
+                const bx1 = 2, bx2 = 2 + boxW + boxGap;
+                if (x >= bx1 && x <= bx1 + boxW) {
+                    const st = this._oncoprintFilters[topGenes[rowIdx].gene];
+                    canvas.title = `${topGenes[rowIdx].gene} — ${st === 'mut' ? 'remove Mut filter' : 'require Mutated'}`;
+                } else if (x >= bx2 && x <= bx2 + boxW) {
+                    const st = this._oncoprintFilters[topGenes[rowIdx].gene];
+                    canvas.title = `${topGenes[rowIdx].gene} — ${st === 'wt' ? 'remove WT filter' : 'require WT'}`;
+                } else if (x < boxAreaW + labelW) {
+                    canvas.title = `${topGenes[rowIdx].gene} (${topGenes[rowIdx].n} mut) — click to set as hotspot`;
                 } else if (colIdx >= 0 && colIdx < sortedCLs.length) {
                     canvas.title = `${topGenes[rowIdx].gene} · ${this.getCellLineName(sortedCLs[colIdx])} · ${topGenes[rowIdx].muts[sortedCLs[colIdx]] > 0 ? 'Mutated' : 'WT'}`;
                 } else {
