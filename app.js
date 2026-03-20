@@ -3907,6 +3907,8 @@ class CorrelationExplorer {
                 <td class="mut2-col">${isNaN(r.mean_2) ? '-' : r.mean_2.toFixed(2)}</td>
                 <td class="mut2-col ${r.diff_2 < 0 ? 'negative' : 'positive'}">${isNaN(r.diff_2) ? '-' : r.diff_2.toFixed(2)}</td>
                 <td class="mut2-col">${this.formatPValue(r.p_2)}</td>
+                <td class="mut2-col ${r.diff_2v1 < 0 ? 'negative' : 'positive'}" style="border-left: 2px solid #d1d5db;">${isNaN(r.diff_2v1) ? '-' : r.diff_2v1.toFixed(2)}</td>
+                <td class="mut2-col">${isNaN(r.diff_2v1) ? '-' : this.formatPValue(r.p_2v1)}</td>
                 `;
             }
             if (hasFusion) {
