@@ -1246,9 +1246,8 @@ class CorrelationExplorer {
         const cellW = Math.max(3, Math.min(8, Math.floor(500 / sortedCLs.length)));
         const cellH = 14;
         const labelW = 72;
-        const boxW = 11; // each checkbox
-        const boxGap = 2;
-        const boxAreaW = boxW * 2 + boxGap + 4; // two boxes + gap + padding
+        const boxW = 11;
+        const boxAreaW = boxW + 4; // single exclude box + padding
         const gridW = sortedCLs.length * cellW;
         const gridH = topGenes.length * cellH;
         const countW = 30;
@@ -1273,11 +1272,19 @@ class CorrelationExplorer {
         html += `<span style="font-size:10px; color:#6b7280;">${sortedCLs.length} CLs${lineageFilter ? ' · ' + lineageFilter : ''}${filteredCLs.length > maxCLs ? ` (${maxCLs}/${filteredCLs.length})` : ''}</span>`;
         html += `<button onclick="document.getElementById('oncoprintPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
-        html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#16a34a;">■</span> = require Mutated, <span style="color:#dc2626;">■</span> = require WT. Click boxes to toggle. Click grid to set as hotspot.</div>`;
+        html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#dc2626;">■</span> = exclude mutated cells. Click box to toggle. Click gene name or grid to set as hotspot.</div>`;
         html += `<canvas id="oncoprintCanvas" width="${totalW}" height="${totalH}" style="cursor:pointer;"></canvas>`;
         html += `<div id="oncoprintStatus" style="font-size:10px; margin-top:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"></div>`;
+        html += `<div style="display:flex; gap:4px; margin-top:6px; border-top:1px solid #e5e7eb; padding-top:6px;">`;
+        html += `<button onclick="app._oncoprintExport('svg')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">SVG</button>`;
+        html += `<button onclick="app._oncoprintExport('png')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">PNG</button>`;
+        html += `<button onclick="app._oncoprintExport('csv')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">CSV</button>`;
+        html += `</div>`;
         popup.innerHTML = html;
         document.body.appendChild(popup);
+
+        // Store data for export
+        this._oncoprintData = { topGenes, sortedCLs, cellW, cellH, boxAreaW, labelW, boxW };
 
         const self = this;
         const canvas = document.getElementById('oncoprintCanvas');
@@ -1291,27 +1298,30 @@ class CorrelationExplorer {
             topGenes.forEach((g, rowIdx) => {
                 const y = rowIdx * cellH;
                 const isSelected = g.gene === currentHotspot;
-                const filterState = self._oncoprintFilters[g.gene] || 'none';
-                const bx1 = 2; // first box x
-                const bx2 = 2 + boxW + boxGap; // second box x
+                const isExcluded = self._oncoprintFilters[g.gene] === 'wt';
+                const bx = 2;
                 const by = y + 2;
                 const bh = cellH - 4;
 
-                // Mut box (green if active)
-                ctx.fillStyle = filterState === 'mut' ? '#16a34a' : '#e5e7eb';
-                ctx.fillRect(bx1, by, boxW, bh);
+                // Exclude box (red if active, gray if not)
+                ctx.fillStyle = isExcluded ? '#dc2626' : '#e5e7eb';
+                ctx.fillRect(bx, by, boxW, bh);
                 ctx.strokeStyle = '#9ca3af';
                 ctx.lineWidth = 0.5;
-                ctx.strokeRect(bx1, by, boxW, bh);
-
-                // WT box (red if active)
-                ctx.fillStyle = filterState === 'wt' ? '#dc2626' : '#e5e7eb';
-                ctx.fillRect(bx2, by, boxW, bh);
-                ctx.strokeRect(bx2, by, boxW, bh);
+                ctx.strokeRect(bx, by, boxW, bh);
+                if (isExcluded) {
+                    // Draw X in the box
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(bx + 2, by + 2); ctx.lineTo(bx + boxW - 2, by + bh - 2);
+                    ctx.moveTo(bx + boxW - 2, by + 2); ctx.lineTo(bx + 2, by + bh - 2);
+                    ctx.stroke();
+                }
 
                 // Gene label
-                ctx.fillStyle = isSelected ? '#7c3aed' : filterState !== 'none' ? '#111827' : '#374151';
-                ctx.font = (isSelected || filterState !== 'none') ? 'bold 10px Arial' : '10px Arial';
+                ctx.fillStyle = isSelected ? '#7c3aed' : isExcluded ? '#dc2626' : '#374151';
+                ctx.font = (isSelected || isExcluded) ? 'bold 10px Arial' : '10px Arial';
                 ctx.textAlign = 'right';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(g.gene, boxAreaW + labelW - 4, y + cellH / 2);
@@ -1336,27 +1346,25 @@ class CorrelationExplorer {
             });
 
             // Update status bar
-            const activeFilters = Object.entries(self._oncoprintFilters).filter(([, v]) => v !== 'none');
+            const excludedGenes = Object.entries(self._oncoprintFilters).filter(([, v]) => v === 'wt');
             const statusEl = document.getElementById('oncoprintStatus');
-            if (activeFilters.length === 0) {
-                statusEl.innerHTML = '<span style="color:#9ca3af;">No gene filters active</span>';
+            if (excludedGenes.length === 0) {
+                statusEl.innerHTML = '<span style="color:#9ca3af;">No exclusions active. Click red box to exclude mutated cells for a gene.</span>';
             } else {
-                // Count matching cell lines
+                // Count matching cell lines (not mutated in any excluded gene)
                 let matchCount = 0;
                 for (const cl of filteredCLs) {
-                    let matches = true;
-                    for (const [gene, state] of activeFilters) {
+                    let passes = true;
+                    for (const [gene] of excludedGenes) {
                         const muts = self.mutations.geneData[gene]?.mutations;
-                        const isMut = muts && muts[cl] > 0;
-                        if (state === 'mut' && !isMut) { matches = false; break; }
-                        if (state === 'wt' && isMut) { matches = false; break; }
+                        if (muts && muts[cl] > 0) { passes = false; break; }
                     }
-                    if (matches) matchCount++;
+                    if (passes) matchCount++;
                 }
-                const tags = activeFilters.map(([gene, state]) =>
-                    `<span style="display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:10px;font-size:10px;background:${state === 'mut' ? '#dcfce7' : '#fef2f2'};color:${state === 'mut' ? '#16a34a' : '#dc2626'};border:1px solid ${state === 'mut' ? '#86efac' : '#fecaca'};">${gene} ${state === 'mut' ? 'Mut' : 'WT'}<button onclick="app._oncoprintClearGene('${gene}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:#999;padding:0 0 0 2px;">×</button></span>`
+                const tags = excludedGenes.map(([gene]) =>
+                    `<span style="display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:10px;font-size:10px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">excl. ${gene}<button onclick="app._oncoprintClearGene('${gene}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:#999;padding:0 0 0 2px;">×</button></span>`
                 ).join('');
-                statusEl.innerHTML = `${tags} <span style="color:#6b7280;">${matchCount} CLs match</span> <button onclick="app._oncoprintApplyFilters()" style="padding:2px 8px;font-size:10px;background:#5a9f4a;color:white;border:none;border-radius:4px;cursor:pointer;">Apply</button> <button onclick="app._oncoprintClearAll()" style="padding:2px 8px;font-size:10px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;">Clear</button>`;
+                statusEl.innerHTML = `${tags} <span style="color:#6b7280;">${matchCount}/${filteredCLs.length} CLs remain</span> <button onclick="app._oncoprintApplyFilters()" style="padding:2px 8px;font-size:10px;background:#5a9f4a;color:white;border:none;border-radius:4px;cursor:pointer;">Apply</button> <button onclick="app._oncoprintClearAll()" style="padding:2px 8px;font-size:10px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;">Clear</button>`;
             }
         };
 
@@ -1371,19 +1379,11 @@ class CorrelationExplorer {
             if (rowIdx < 0 || rowIdx >= topGenes.length) return;
 
             const gene = topGenes[rowIdx].gene;
-            const bx1 = 2;
-            const bx2 = 2 + boxW + boxGap;
+            const bx = 2;
 
-            if (x >= bx1 && x <= bx1 + boxW) {
-                // Clicked Mut box — toggle mut filter
-                const current = this._oncoprintFilters[gene] || 'none';
-                if (current === 'mut') delete this._oncoprintFilters[gene];
-                else this._oncoprintFilters[gene] = 'mut';
-                drawOncoprint();
-            } else if (x >= bx2 && x <= bx2 + boxW) {
-                // Clicked WT box — toggle wt filter
-                const current = this._oncoprintFilters[gene] || 'none';
-                if (current === 'wt') delete this._oncoprintFilters[gene];
+            if (x >= bx && x <= bx + boxW) {
+                // Clicked exclude box — toggle
+                if (this._oncoprintFilters[gene] === 'wt') delete this._oncoprintFilters[gene];
                 else this._oncoprintFilters[gene] = 'wt';
                 drawOncoprint();
             } else if (x < boxAreaW + labelW) {
@@ -1407,13 +1407,10 @@ class CorrelationExplorer {
             const rowIdx = Math.floor(y / cellH);
             if (rowIdx >= 0 && rowIdx < topGenes.length) {
                 canvas.style.cursor = 'pointer';
-                const bx1 = 2, bx2 = 2 + boxW + boxGap;
-                if (x >= bx1 && x <= bx1 + boxW) {
-                    const st = this._oncoprintFilters[topGenes[rowIdx].gene];
-                    canvas.title = `${topGenes[rowIdx].gene} — ${st === 'mut' ? 'remove Mut filter' : 'require Mutated'}`;
-                } else if (x >= bx2 && x <= bx2 + boxW) {
-                    const st = this._oncoprintFilters[topGenes[rowIdx].gene];
-                    canvas.title = `${topGenes[rowIdx].gene} — ${st === 'wt' ? 'remove WT filter' : 'require WT'}`;
+                const bx = 2;
+                if (x >= bx && x <= bx + boxW) {
+                    const isExcl = this._oncoprintFilters[topGenes[rowIdx].gene] === 'wt';
+                    canvas.title = `${topGenes[rowIdx].gene} — ${isExcl ? 'remove exclusion' : 'exclude mutated cells'}`;
                 } else if (x < boxAreaW + labelW) {
                     canvas.title = `${topGenes[rowIdx].gene} (${topGenes[rowIdx].n} mut) — click to set as hotspot`;
                 } else if (colIdx >= 0 && colIdx < sortedCLs.length) {
@@ -1454,31 +1451,88 @@ class CorrelationExplorer {
     }
 
     _oncoprintApplyFilters() {
-        // Apply oncoprint multi-gene filters as additional parameter filters
-        // For now: set the first 'mut' gene as the hotspot, and add others as additional filters
-        const filters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
-        if (filters.length === 0) return;
+        // Apply exclusions: set first excluded gene as param hotspot filter with "Only WT"
+        const excluded = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v === 'wt');
+        if (excluded.length === 0) return;
 
-        // Set first mutated gene as hotspot selector
-        const mutGenes = filters.filter(([, v]) => v === 'mut');
-        const wtGenes = filters.filter(([, v]) => v === 'wt');
+        // Set first excluded gene as the parameter hotspot filter (Only WT)
+        document.getElementById('paramHotspotGene').value = excluded[0][0];
+        document.getElementById('paramHotspotLevel').value = '0'; // Only WT
 
-        if (mutGenes.length > 0) {
-            document.getElementById('mutationHotspotSelect').value = mutGenes[0][0];
-            document.getElementById('tissueBreakdownBtn').style.display = 'inline-block';
+        // If mutation mode is active, re-run analysis
+        const mode = document.querySelector('input[name="analysisMode"]:checked')?.value;
+        if (mode === 'mutation') {
+            this.runAnalysis();
         }
-
-        // Set additional hotspot filter for second gene if available
-        if (mutGenes.length > 1 || wtGenes.length > 0) {
-            const additionalGene = mutGenes.length > 1 ? mutGenes[1][0] : wtGenes[0][0];
-            const additionalLevel = mutGenes.length > 1 ? '1+2' : '0';
-            document.getElementById('paramHotspotGene').value = additionalGene;
-            document.getElementById('paramHotspotLevel').value = additionalLevel;
-        }
-
-        // Run the analysis
-        this.runAnalysis();
         document.getElementById('oncoprintPopup')?.remove();
+    }
+
+    _oncoprintExport(format) {
+        const canvas = document.getElementById('oncoprintCanvas');
+        if (!canvas) return;
+
+        if (format === 'csv') {
+            // Export as CSV: genes × cell lines mutation matrix
+            const data = this._oncoprintData;
+            if (!data) return;
+            let csv = 'Gene,' + data.sortedCLs.map(cl => this.getCellLineName(cl)).join(',') + '\n';
+            data.topGenes.forEach(g => {
+                csv += g.gene + ',' + data.sortedCLs.map(cl => g.muts[cl] || 0).join(',') + '\n';
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'oncoprint.csv';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        } else if (format === 'png') {
+            const scale = 4;
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = canvas.width * scale;
+            exportCanvas.height = canvas.height * scale;
+            const ctx = exportCanvas.getContext('2d');
+            ctx.scale(scale, scale);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(canvas, 0, 0);
+            const a = document.createElement('a');
+            a.href = exportCanvas.toDataURL('image/png');
+            a.download = 'oncoprint.png';
+            a.click();
+        } else {
+            // SVG export — redraw to SVG
+            const w = canvas.width, h = canvas.height;
+            let svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n`;
+            svg += `<rect width="${w}" height="${h}" fill="white"/>\n`;
+            // Re-render as SVG elements from stored data
+            const data = this._oncoprintData;
+            if (data) {
+                const { topGenes: tg, sortedCLs: cls, cellW, cellH: cH, boxAreaW: baw, labelW: lw, boxW: bw } = data;
+                tg.forEach((g, rowIdx) => {
+                    const y = rowIdx * cH;
+                    const isExcl = this._oncoprintFilters[g.gene] === 'wt';
+                    // Exclude box
+                    svg += `<rect x="2" y="${y + 2}" width="${bw}" height="${cH - 4}" fill="${isExcl ? '#dc2626' : '#e5e7eb'}" stroke="#9ca3af" stroke-width="0.5"/>\n`;
+                    // Gene label
+                    svg += `<text x="${baw + lw - 4}" y="${y + cH / 2}" text-anchor="end" dominant-baseline="central" font-family="Arial" font-size="10" fill="${isExcl ? '#dc2626' : '#374151'}" ${isExcl ? 'font-weight="bold"' : ''}>${g.gene}</text>\n`;
+                    // Count
+                    svg += `<text x="${baw + lw + cls.length * cellW + 2}" y="${y + cH / 2}" font-family="Arial" font-size="8" fill="#9ca3af" dominant-baseline="central">${g.n}</text>\n`;
+                    // Grid
+                    cls.forEach((cl, colIdx) => {
+                        const x = baw + lw + colIdx * cellW;
+                        const mutLevel = g.muts[cl] || 0;
+                        svg += `<rect x="${x}" y="${y + 1}" width="${cellW - 1}" height="${cH - 2}" fill="${mutLevel >= 2 ? '#1e40af' : mutLevel > 0 ? '#3b82f6' : '#f3f4f6'}"/>\n`;
+                    });
+                });
+            }
+            svg += '</svg>';
+            const blob = new Blob([svg], { type: 'image/svg+xml' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'oncoprint.svg';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
     }
 
     updateTBSelectionCount() {
