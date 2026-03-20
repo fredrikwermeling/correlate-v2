@@ -1614,7 +1614,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.28.8</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.28.9</a>
     </div>
 
     <div class="main-content">
@@ -1718,7 +1718,6 @@
                                     <option value="">Select hotspot gene...</option>
                                 </select>
                                 <button id="tissueBreakdownBtn" type="button" style="display: none; padding: 4px 10px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this mutation">Tissues</button>
-                                <button id="oncoprintBtn" type="button" style="display: none; padding: 4px 10px; font-size: 12px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show oncoprint of top hotspot mutations">Oncoprint</button>
                             </div>
                         </div>
                         <div id="translocationAnalysisControls" style="display: none;">
@@ -1775,7 +1774,10 @@
                     </div>
 
                     <div class="form-group" id="paramHotspotFilterGroup" style="display: none;">
-                        <label class="form-label">Hotspot Mutation Filter:</label>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <label class="form-label" style="margin-bottom:0;">Hotspot Mutation Filter:</label>
+                            <button id="oncoprintBtn" type="button" style="padding: 2px 8px; font-size: 10px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show oncoprint of top hotspot mutations">Oncoprint</button>
+                        </div>
                         <select id="paramHotspotGene" class="form-control" style="margin-bottom: 4px;">
                             <option value="">No filter</option>
                         </select>

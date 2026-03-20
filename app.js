@@ -1378,7 +1378,6 @@ class CorrelationExplorer {
                 // Clicked grid area — set as hotspot filter
                 document.getElementById('mutationHotspotSelect').value = gene;
                 document.getElementById('tissueBreakdownBtn').style.display = 'inline-block';
-                document.getElementById('oncoprintBtn').style.display = 'inline-block';
                 this.showOncoprint();
             }
         });
@@ -1445,7 +1444,6 @@ class CorrelationExplorer {
         if (mutGenes.length > 0) {
             document.getElementById('mutationHotspotSelect').value = mutGenes[0][0];
             document.getElementById('tissueBreakdownBtn').style.display = 'inline-block';
-            document.getElementById('oncoprintBtn').style.display = 'inline-block';
         }
 
         // Set additional hotspot filter for second gene if available
@@ -1803,7 +1801,6 @@ class CorrelationExplorer {
         document.getElementById('mutationHotspotSelect').addEventListener('change', () => {
             const hasVal = document.getElementById('mutationHotspotSelect').value;
             document.getElementById('tissueBreakdownBtn').style.display = hasVal ? 'inline-block' : 'none';
-            document.getElementById('oncoprintBtn').style.display = hasVal ? 'inline-block' : 'none';
         });
 
         // Tissue breakdown button (translocations)
