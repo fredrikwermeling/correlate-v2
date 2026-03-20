@@ -3047,7 +3047,7 @@ class CorrelationExplorer {
                     : this.calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel, mutDataSource);
 
                 // Filter by p-value threshold
-                const significantResults = analysisResult.results.filter(r => r.p_mut < pThreshold || r.p_2 < pThreshold || (r.p_fused !== undefined && r.p_fused < pThreshold));
+                const significantResults = analysisResult.results.filter(r => r.p_mut < pThreshold || r.p_2 < pThreshold || r.p_2v1 < pThreshold || (r.p_fused !== undefined && r.p_fused < pThreshold));
 
                 // Sort by Δ GE (1+2 vs 0) ascending — most negative first
                 significantResults.sort((a, b) => (a.diff_mut || 0) - (b.diff_mut || 0));
@@ -3418,6 +3418,7 @@ class CorrelationExplorer {
 
             // Get gene effect values for each group
             const wtEffects = this.getGeneEffectsForCells(geneIdx, wtCellIndices);
+            const mut1Effects = this.getGeneEffectsForCells(geneIdx, mut1CellIndices);
             const mutAllEffects = this.getGeneEffectsForCells(geneIdx, mutAllCellIndices);
             const mut2Effects = this.getGeneEffectsForCells(geneIdx, mut2CellIndices);
 
@@ -3443,6 +3444,19 @@ class CorrelationExplorer {
                 p_2 = tTest_2.p;
             }
 
+            // Calculate statistics for 2 vs 1 (dose-response)
+            let n_1 = mut1Effects.length;
+            let mean_1 = NaN;
+            let diff_2v1 = NaN;
+            let p_2v1 = 1;
+
+            if (mut1Effects.length >= 3 && mut2Effects.length >= 3) {
+                mean_1 = this.mean(mut1Effects);
+                diff_2v1 = this.mean(mut2Effects) - mean_1;
+                const tTest_2v1 = this.welchTTest(mut1Effects, mut2Effects);
+                p_2v1 = tTest_2v1.p;
+            }
+
             // Calculate fusion statistics (if hotspot gene has translocation data)
             let n_fused = 0, mean_fused = NaN, diff_fused = NaN, p_fused = 1, n_wt_fusion = 0;
             if (hasFusionData) {
@@ -3463,6 +3477,8 @@ class CorrelationExplorer {
                 gene,
                 n_wt: wtEffects.length,
                 mean_wt: wtMean,
+                n_1,
+                mean_1,
                 n_mut: mutAllEffects.length,
                 mean_mut: mutMean,
                 diff_mut,
@@ -3471,6 +3487,8 @@ class CorrelationExplorer {
                 mean_2,
                 diff_2,
                 p_2,
+                diff_2v1,
+                p_2v1,
                 n_fused,
                 mean_fused,
                 diff_fused,
@@ -3813,7 +3831,9 @@ class CorrelationExplorer {
                 { col: 'n_2', label: `N (${mutLbl} 2${isT ? '+' : ''})`, style: 'border-left: 2px solid #dc2626;', cls: 'mut2-col' },
                 { col: 'mean_2', label: `Mean GE (${mutLbl} 2${isT ? '+' : ''})`, style: '', cls: 'mut2-col' },
                 { col: 'diff_2', label: 'Δ GE (2v0)', style: 'border-left: 2px solid #d1d5db;', cls: 'mut2-col' },
-                { col: 'p_2', label: 'p-value (2v0)', style: '', cls: 'mut2-col' }
+                { col: 'p_2', label: 'p-value (2v0)', style: '', cls: 'mut2-col' },
+                { col: 'diff_2v1', label: 'Δ GE (2v1)', style: 'border-left: 2px solid #d1d5db;', cls: 'mut2-col' },
+                { col: 'p_2v1', label: 'p (2v1)', style: '', cls: 'mut2-col' }
             );
         }
         let headerHTML = '<tr><th></th>';
@@ -5980,7 +6000,11 @@ class CorrelationExplorer {
 
         // Add event listeners to buttons
         tbody.querySelectorAll('.gene-effect-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.openGeneEffectModal(btn.dataset.gene, 'tissue'));
+            btn.addEventListener('click', () => {
+                this.openGeneEffectModal(btn.dataset.gene, 'tissue');
+                // Apply active parameter filters to the GE modal
+                this._applyParamFiltersToGEModal();
+            });
         });
 
         // Attach gene tooltips
@@ -14864,6 +14888,39 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 row.style.display = term === '' || text.includes(term) ? '' : 'none';
             }
         });
+    }
+
+    _applyParamFiltersToGEModal() {
+        // Carry parameter section filters into the GE modal
+        // Lineage filter → GE tissue filter
+        const lineage = document.getElementById('lineageFilter')?.value;
+        if (lineage) {
+            const geTissue = document.getElementById('geTissueFilter');
+            if (geTissue) {
+                geTissue.value = lineage;
+                this.updateGeSubtypeFilter?.();
+                // Also carry sublineage
+                const subLineage = document.getElementById('subLineageFilter')?.value;
+                if (subLineage) {
+                    const geSub = document.getElementById('geSubtypeFilter');
+                    if (geSub) geSub.value = subLineage;
+                }
+            }
+        }
+        // Hotspot mutation filter → GE hotspot filter
+        const paramHotspot = document.getElementById('paramHotspotGene')?.value;
+        if (paramHotspot) {
+            const geHotspot = document.getElementById('geHotspotFilter');
+            if (geHotspot) geHotspot.value = paramHotspot;
+        }
+        // Translocation filter → GE fusion filter
+        const paramTrans = document.getElementById('paramTranslocationGene')?.value;
+        if (paramTrans) {
+            const geFusion = document.getElementById('geFusionFilter');
+            if (geFusion) geFusion.value = paramTrans;
+        }
+        // Re-render with the applied filters
+        this.switchGeneEffectView(this.currentGEView || 'tissue');
     }
 
     showGeneEffectAnalysis(gene, view = 'tissue') {
