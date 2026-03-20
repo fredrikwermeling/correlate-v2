@@ -282,7 +282,7 @@ class CorrelationExplorer {
             const total = this.metadata.cellLines.length;
             select.innerHTML = `<option value="">All lineages (n=${total})</option>`;
 
-            Object.keys(lineageCounts).sort().forEach(lineage => {
+            Object.keys(lineageCounts).sort((a, b) => lineageCounts[b] - lineageCounts[a]).forEach(lineage => {
                 const option = document.createElement('option');
                 option.value = lineage;
                 option.textContent = `${lineage} (n=${lineageCounts[lineage]})`;
@@ -330,7 +330,7 @@ class CorrelationExplorer {
             const lineageCount = this.lineageCounts[lineage];
             subSelect.innerHTML = `<option value="">All subtypes (n=${lineageCount})</option>`;
 
-            Object.keys(subLineages).sort().forEach(sub => {
+            Object.keys(subLineages).sort((a, b) => subLineages[b] - subLineages[a]).forEach(sub => {
                 const option = document.createElement('option');
                 option.value = sub;
                 option.textContent = `${sub} (n=${subLineages[sub]})`;
