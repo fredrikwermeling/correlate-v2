@@ -1304,8 +1304,9 @@ class CorrelationExplorer {
             document.addEventListener('mouseup', onUp);
         });
 
-        // Store data for export
+        // Store data and context for export and live updates
         this._oncoprintData = { topGenes, sortedCLs, cellW, cellH, boxAreaW, labelW, boxW, boxGap };
+        this._oncoprintContext = context;
 
         const self = this;
         const canvas = document.getElementById('oncoprintCanvas');
@@ -1419,11 +1420,13 @@ class CorrelationExplorer {
                 // Clicked include box — toggle mut
                 if (this._oncoprintFilters[gene] === 'mut') delete this._oncoprintFilters[gene];
                 else this._oncoprintFilters[gene] = 'mut';
+                this._oncoprintSyncFilters();
                 drawOncoprint();
             } else if (x >= bx2 && x <= bx2 + boxW) {
                 // Clicked exclude box — toggle wt
                 if (this._oncoprintFilters[gene] === 'wt') delete this._oncoprintFilters[gene];
                 else this._oncoprintFilters[gene] = 'wt';
+                this._oncoprintSyncFilters();
                 drawOncoprint();
             } else if (x < boxAreaW + labelW) {
                 // Clicked gene label — set as hotspot
@@ -1482,14 +1485,26 @@ class CorrelationExplorer {
         }, 100);
     }
 
+    _oncoprintSyncFilters() {
+        // Sync active filters from the oncoprint checkboxes and update CLB if open
+        const filters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
+        this._activeOncoprintFilters = filters.length > 0 ? filters.map(([gene, state]) => ({ gene, state })) : null;
+        // Live-update CLB if oncoprint was opened from CLB
+        if (this._oncoprintContext === 'clb') {
+            this.renderCellLineList();
+        }
+    }
+
     _oncoprintClearGene(gene) {
         delete this._oncoprintFilters[gene];
-        this.showOncoprint();
+        this._oncoprintSyncFilters();
+        this.showOncoprint(this._oncoprintContext);
     }
 
     _oncoprintClearAll() {
         this._oncoprintFilters = {};
-        this.showOncoprint();
+        this._oncoprintSyncFilters();
+        this.showOncoprint(this._oncoprintContext);
     }
 
     _oncoprintApplyFilters() {
@@ -18819,6 +18834,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
             if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
             if (transMuts && !(transMuts[cl] >= 1)) return false;
+            if (!this._cellLinePassesOncoprintFilters(cl)) return false;
             if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) return false;
             if (search) {
                 const name = this.getCellLineName(cl).toLowerCase();
