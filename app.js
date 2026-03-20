@@ -15018,10 +15018,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             });
         });
 
+        // Lower min group size when mutation/fusion filters are active (small groups expected)
+        const hasActiveFilter = document.getElementById('geHotspotFilter')?.value || document.getElementById('geFusionFilter')?.value;
+        const minGroupSize = hasActiveFilter ? 1 : 3;
+
         // Calculate stats for each group including p-value vs all cells
         const stats = [];
         Object.entries(groupedData).forEach(([groupName, cellData]) => {
-            if (cellData.length >= 3) {
+            if (cellData.length >= minGroupSize) {
                 const effects = cellData.map(c => c.geneEffect);
                 const mean = effects.reduce((a, b) => a + b, 0) / effects.length;
                 const sd = Math.sqrt(effects.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / effects.length);
