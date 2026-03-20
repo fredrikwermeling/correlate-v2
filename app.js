@@ -1192,6 +1192,167 @@ class CorrelationExplorer {
         }
     }
 
+    showOncoprint() {
+        // Remove any existing oncoprint popup
+        document.getElementById('oncoprintPopup')?.remove();
+
+        if (!this.mutations?.geneData) return;
+
+        const lineageFilter = document.getElementById('lineageFilter').value;
+        const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+        const cellLines = this.metadata.cellLines;
+
+        // Filter cell lines by active lineage/sublineage
+        const filteredCLs = cellLines.filter(cl => {
+            if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
+            if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+            return true;
+        });
+
+        // Cap cell lines for performance
+        const maxCLs = 100;
+        const clsToShow = filteredCLs.slice(0, maxCLs);
+
+        // Get top N hotspot genes by mutation count in filtered cell lines
+        const maxGenes = 25;
+        const geneCounts = [];
+        for (const gene of Object.keys(this.mutations.geneData)) {
+            const muts = this.mutations.geneData[gene].mutations;
+            let n = 0;
+            for (const cl of clsToShow) {
+                if (muts[cl] && muts[cl] > 0) n++;
+            }
+            if (n > 0) geneCounts.push({ gene, n, muts });
+        }
+        geneCounts.sort((a, b) => b.n - a.n);
+        const topGenes = geneCounts.slice(0, maxGenes);
+        if (topGenes.length === 0) return;
+
+        // Sort cell lines: by number of mutations across top genes (most mutated first)
+        const clMutCounts = new Map();
+        for (const cl of clsToShow) {
+            let count = 0;
+            for (const { muts } of topGenes) {
+                if (muts[cl] > 0) count++;
+            }
+            clMutCounts.set(cl, count);
+        }
+        const sortedCLs = [...clsToShow].sort((a, b) => clMutCounts.get(b) - clMutCounts.get(a));
+
+        // Build the oncoprint grid
+        const cellW = Math.max(3, Math.min(8, Math.floor(500 / sortedCLs.length)));
+        const cellH = 14;
+        const labelW = 70;
+        const gridW = sortedCLs.length * cellW;
+        const gridH = topGenes.length * cellH;
+        const totalW = labelW + gridW + 10;
+        const totalH = gridH + 40;
+
+        const popup = document.createElement('div');
+        popup.id = 'oncoprintPopup';
+        popup.style.cssText = `position:fixed; z-index:10000; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15); padding:10px; display:flex; flex-direction:column; max-width:90vw; max-height:80vh; overflow:auto;`;
+
+        // Position near the button
+        const btn = document.getElementById('oncoprintBtn');
+        const rect = btn.getBoundingClientRect();
+        popup.style.left = Math.min(rect.left, window.innerWidth - totalW - 20) + 'px';
+        popup.style.top = Math.min(rect.bottom + 6, window.innerHeight - totalH - 20) + 'px';
+
+        const currentHotspot = document.getElementById('mutationHotspotSelect').value;
+
+        let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">`;
+        html += `<span style="font-weight:600; font-size:12px;">Oncoprint — Top ${topGenes.length} hotspot genes</span>`;
+        html += `<span style="font-size:10px; color:#6b7280;">${sortedCLs.length} cell lines${lineageFilter ? ' · ' + lineageFilter : ''}${filteredCLs.length > maxCLs ? ` (showing ${maxCLs} of ${filteredCLs.length})` : ''}</span>`;
+        html += `<button onclick="document.getElementById('oncoprintPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
+        html += `</div>`;
+
+        // Canvas-based oncoprint for performance
+        html += `<canvas id="oncoprintCanvas" width="${totalW}" height="${totalH}" style="cursor:pointer;"></canvas>`;
+        popup.innerHTML = html;
+        document.body.appendChild(popup);
+
+        // Draw on canvas
+        const canvas = document.getElementById('oncoprintCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f9fafb';
+        ctx.fillRect(0, 0, totalW, totalH);
+
+        // Draw gene labels and grid rows
+        topGenes.forEach((g, rowIdx) => {
+            const y = rowIdx * cellH;
+            const isSelected = g.gene === currentHotspot;
+
+            // Gene label
+            ctx.fillStyle = isSelected ? '#7c3aed' : '#374151';
+            ctx.font = isSelected ? 'bold 10px Arial' : '10px Arial';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(g.gene, labelW - 4, y + cellH / 2);
+
+            // Count label
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '8px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${g.n}`, labelW + gridW + 2, y + cellH / 2);
+
+            // Grid cells
+            sortedCLs.forEach((cl, colIdx) => {
+                const x = labelW + colIdx * cellW;
+                const mutLevel = g.muts[cl] || 0;
+                if (mutLevel > 0) {
+                    ctx.fillStyle = mutLevel >= 2 ? '#1e40af' : '#3b82f6';
+                    ctx.fillRect(x, y + 1, cellW - 1, cellH - 2);
+                } else {
+                    ctx.fillStyle = '#f3f4f6';
+                    ctx.fillRect(x, y + 1, cellW - 1, cellH - 2);
+                }
+            });
+        });
+
+        // Click handler — click a gene row to set it as hotspot filter
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const rowIdx = Math.floor(y / cellH);
+            if (rowIdx >= 0 && rowIdx < topGenes.length) {
+                const gene = topGenes[rowIdx].gene;
+                document.getElementById('mutationHotspotSelect').value = gene;
+                document.getElementById('tissueBreakdownBtn').style.display = 'inline-block';
+                document.getElementById('oncoprintBtn').style.display = 'inline-block';
+                // Re-render with highlight
+                this.showOncoprint();
+            }
+        });
+
+        // Hover — show tooltip
+        canvas.addEventListener('mousemove', (e) => {
+            const canvasRect = canvas.getBoundingClientRect();
+            const y = e.clientY - canvasRect.top;
+            const x = e.clientX - canvasRect.left;
+            const rowIdx = Math.floor(y / cellH);
+            const colIdx = Math.floor((x - labelW) / cellW);
+            canvas.style.cursor = (rowIdx >= 0 && rowIdx < topGenes.length && x >= 0) ? 'pointer' : 'default';
+            canvas.title = (rowIdx >= 0 && rowIdx < topGenes.length && colIdx >= 0 && colIdx < sortedCLs.length)
+                ? `${topGenes[rowIdx].gene} · ${this.getCellLineName(sortedCLs[colIdx])} · ${topGenes[rowIdx].muts[sortedCLs[colIdx]] > 0 ? 'Mutated' : 'WT'}`
+                : (rowIdx >= 0 && rowIdx < topGenes.length) ? `${topGenes[rowIdx].gene} (${topGenes[rowIdx].n} mutated) — click to select` : '';
+        });
+
+        // Close on Escape
+        const escHandler = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('keydown', escHandler); } };
+        document.addEventListener('keydown', escHandler);
+
+        // Close on click outside
+        setTimeout(() => {
+            const outsideHandler = (e) => {
+                if (!popup.contains(e.target) && e.target.id !== 'oncoprintBtn') {
+                    popup.remove();
+                    document.removeEventListener('mousedown', outsideHandler);
+                }
+            };
+            document.addEventListener('mousedown', outsideHandler);
+        }, 100);
+    }
+
     updateTBSelectionCount() {
         const popup = document.getElementById('tissueBreakdownPopup');
         if (!popup) return;
@@ -1530,9 +1691,11 @@ class CorrelationExplorer {
 
         // Tissue breakdown button (mutations)
         document.getElementById('tissueBreakdownBtn').addEventListener('click', () => this.showTissueBreakdownPopup('mutation'));
+        document.getElementById('oncoprintBtn').addEventListener('click', () => this.showOncoprint());
         document.getElementById('mutationHotspotSelect').addEventListener('change', () => {
-            const btn = document.getElementById('tissueBreakdownBtn');
-            btn.style.display = document.getElementById('mutationHotspotSelect').value ? 'inline-block' : 'none';
+            const hasVal = document.getElementById('mutationHotspotSelect').value;
+            document.getElementById('tissueBreakdownBtn').style.display = hasVal ? 'inline-block' : 'none';
+            document.getElementById('oncoprintBtn').style.display = hasVal ? 'inline-block' : 'none';
         });
 
         // Tissue breakdown button (translocations)
