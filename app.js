@@ -1258,31 +1258,48 @@ class CorrelationExplorer {
 
         const popup = document.createElement('div');
         popup.id = 'oncoprintPopup';
-        popup.style.cssText = `position:fixed; z-index:10000; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15); padding:10px; display:flex; flex-direction:column; max-width:90vw; max-height:80vh; overflow:auto;`;
+        popup.style.cssText = `position:fixed; z-index:10000; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15); display:flex; flex-direction:column; max-width:90vw; max-height:85vh;`;
 
-        // Position near the button
-        const btn = document.getElementById('oncoprintBtn');
-        const bRect = btn.getBoundingClientRect();
-        popup.style.left = Math.min(bRect.left, window.innerWidth - totalW - 40) + 'px';
-        popup.style.top = Math.min(bRect.bottom + 6, window.innerHeight - totalH - 40) + 'px';
+        // Position: top-right area, high up
+        popup.style.right = '20px';
+        popup.style.top = '20px';
 
         const currentHotspot = document.getElementById('mutationHotspotSelect').value;
 
-        let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">`;
+        // Draggable header
+        let html = `<div id="oncoprintDragHandle" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
         html += `<span style="font-weight:600; font-size:12px;">Oncoprint — Top ${topGenes.length} hotspot genes</span>`;
         html += `<span style="font-size:10px; color:#6b7280;">${sortedCLs.length} CLs${lineageFilter ? ' · ' + lineageFilter : ''}${filteredCLs.length > maxCLs ? ` (${maxCLs}/${filteredCLs.length})` : ''}</span>`;
         html += `<button onclick="document.getElementById('oncoprintPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
+        html += `<div style="padding:6px 10px; overflow:auto; flex:1;">`;
         html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#16a34a;">■</span> include mutated · <span style="color:#dc2626;">■</span> exclude mutated · Click gene name or grid = set as hotspot</div>`;
         html += `<canvas id="oncoprintCanvas" width="${totalW}" height="${totalH}" style="cursor:pointer;"></canvas>`;
         html += `<div id="oncoprintStatus" style="font-size:10px; margin-top:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"></div>`;
-        html += `<div style="display:flex; gap:4px; margin-top:6px; border-top:1px solid #e5e7eb; padding-top:6px;">`;
+        html += `</div>`; // close inner padding div
+        html += `<div style="display:flex; gap:4px; padding:6px 10px; border-top:1px solid #e5e7eb;">`;
         html += `<button onclick="app._oncoprintExport('svg')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">SVG</button>`;
         html += `<button onclick="app._oncoprintExport('png')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">PNG</button>`;
         html += `<button onclick="app._oncoprintExport('csv')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">CSV</button>`;
         html += `</div>`;
         popup.innerHTML = html;
         document.body.appendChild(popup);
+
+        // Make draggable
+        const dragHandle = document.getElementById('oncoprintDragHandle');
+        let dragX, dragY;
+        dragHandle.addEventListener('mousedown', (e) => {
+            dragX = e.clientX - popup.offsetLeft;
+            dragY = e.clientY - popup.offsetTop;
+            popup.style.right = 'auto';
+            const onMove = (e2) => {
+                popup.style.left = (e2.clientX - dragX) + 'px';
+                popup.style.top = (e2.clientY - dragY) + 'px';
+            };
+            const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
 
         // Store data for export
         this._oncoprintData = { topGenes, sortedCLs, cellW, cellH, boxAreaW, labelW, boxW, boxGap };
@@ -1476,6 +1493,9 @@ class CorrelationExplorer {
         const filters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
         if (filters.length === 0) return;
 
+        // Store active oncoprint filters for use in mutation analysis and inspect
+        this._activeOncoprintFilters = filters.map(([gene, state]) => ({ gene, state }));
+
         const mutGenes = filters.filter(([, v]) => v === 'mut');
         const wtGenes = filters.filter(([, v]) => v === 'wt');
 
@@ -1485,13 +1505,13 @@ class CorrelationExplorer {
             document.getElementById('tissueBreakdownBtn').style.display = 'inline-block';
         }
 
-        // Set first exclude (or second include) as param hotspot filter
+        // Set first exclude/include as param hotspot filter (for single-gene compat)
         if (wtGenes.length > 0) {
             document.getElementById('paramHotspotGene').value = wtGenes[0][0];
-            document.getElementById('paramHotspotLevel').value = '0'; // Only WT
+            document.getElementById('paramHotspotLevel').value = '0';
         } else if (mutGenes.length > 1) {
             document.getElementById('paramHotspotGene').value = mutGenes[1][0];
-            document.getElementById('paramHotspotLevel').value = '1+2'; // Only mutated
+            document.getElementById('paramHotspotLevel').value = '1+2';
         }
 
         // Run analysis if in mutation mode
@@ -1500,6 +1520,18 @@ class CorrelationExplorer {
             this.runAnalysis();
         }
         document.getElementById('oncoprintPopup')?.remove();
+    }
+
+    // Check if a cell line passes all active oncoprint filters
+    _cellLinePassesOncoprintFilters(cellLine) {
+        if (!this._activeOncoprintFilters || this._activeOncoprintFilters.length === 0) return true;
+        for (const { gene, state } of this._activeOncoprintFilters) {
+            const muts = this.mutations?.geneData?.[gene]?.mutations;
+            const isMut = muts && muts[cellLine] > 0;
+            if (state === 'mut' && !isMut) return false;
+            if (state === 'wt' && isMut) return false;
+        }
+        return true;
     }
 
     _oncoprintExport(format) {
@@ -3789,6 +3821,9 @@ class CorrelationExplorer {
                 if (additionalTransLevel === '1+2' && tLevel < 1) return;
             }
 
+            // Check oncoprint multi-gene filters
+            if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
+
             const mutLevel = mutationData.mutations[cellLine] || 0;
             if (mutLevel === 0) {
                 wtCellIndices.push(idx);
@@ -3964,6 +3999,9 @@ class CorrelationExplorer {
                 if (additionalTransLevel === '2' && tLevel < 2) return;
                 if (additionalTransLevel === '1+2' && tLevel < 1) return;
             }
+
+            // Check oncoprint multi-gene filters
+            if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
 
             const transLevel = transData.translocations[cellLine] || 0;
             if (transLevel === 0) {
@@ -4597,6 +4635,9 @@ class CorrelationExplorer {
 
             // Check custom cell line filter (GE modal)
             if (this._customCellLineFilterGE && !this._customCellLineFilterGE.has(cellLine)) return;
+
+            // Check oncoprint multi-gene filters
+            if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
 
             const ge = this.geneEffects[geneIdx * this.nCellLines + idx];
             if (isNaN(ge)) return;
