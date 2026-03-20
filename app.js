@@ -14924,7 +14924,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     }
 
     _applyParamFiltersToGEModal() {
-        // Carry parameter section filters into the GE modal
+        // Carry active filters (from parameter section OR cell line browser) into the GE modal
         // Lineage filter → GE tissue filter
         const lineage = document.getElementById('lineageFilter')?.value;
         if (lineage) {
@@ -14932,7 +14932,6 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (geTissue) {
                 geTissue.value = lineage;
                 this.updateGeSubtypeFilter?.();
-                // Also carry sublineage
                 const subLineage = document.getElementById('subLineageFilter')?.value;
                 if (subLineage) {
                     const geSub = document.getElementById('geSubtypeFilter');
@@ -14940,17 +14939,21 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 }
             }
         }
-        // Hotspot mutation filter → GE hotspot filter
+        // Hotspot mutation filter — check param section first, then CLB filter
         const paramHotspot = document.getElementById('paramHotspotGene')?.value;
-        if (paramHotspot) {
+        const clbHotspot = document.getElementById('clbHotspotFilter')?.value;
+        const hotspot = paramHotspot || clbHotspot;
+        if (hotspot) {
             const geHotspot = document.getElementById('geHotspotFilter');
-            if (geHotspot) geHotspot.value = paramHotspot;
+            if (geHotspot) geHotspot.value = hotspot;
         }
-        // Translocation filter → GE fusion filter
+        // Translocation filter — check param section first, then CLB filter
         const paramTrans = document.getElementById('paramTranslocationGene')?.value;
-        if (paramTrans) {
+        const clbTrans = document.getElementById('clbTranslocationFilter')?.value;
+        const trans = paramTrans || clbTrans;
+        if (trans) {
             const geFusion = document.getElementById('geFusionFilter');
-            if (geFusion) geFusion.value = paramTrans;
+            if (geFusion) geFusion.value = trans;
         }
         // Re-render with the applied filters
         this.switchGeneEffectView(this.currentGEView || 'tissue');
@@ -18477,19 +18480,24 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             if (this.mutations?.geneData) {
                 const grp = document.createElement('optgroup');
                 grp.label = 'Hotspot';
-                Object.keys(this.mutations.geneData).sort().forEach(gene => {
+                // Count and sort by mutation count descending
+                const geneCounts = [];
+                for (const gene of Object.keys(this.mutations.geneData)) {
                     const muts = this.mutations.geneData[gene].mutations;
                     let n = 0;
                     for (const [cl, v] of Object.entries(muts)) {
                         if (v > 0 && hotspotBaseSet.has(cl)) n++;
                     }
-                    if (n === 0) return;
+                    if (n > 0) geneCounts.push({ gene, n });
+                }
+                geneCounts.sort((a, b) => b.n - a.n);
+                for (const { gene, n } of geneCounts) {
                     const opt = document.createElement('option');
                     opt.value = gene;
                     opt.textContent = `${gene} (n=${n})`;
                     if (gene === hotspotVal) opt.selected = true;
                     grp.appendChild(opt);
-                });
+                }
                 hotspotSelect.appendChild(grp);
             }
         }
@@ -18501,6 +18509,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const transSelect = document.getElementById('clbTranslocationFilter');
             const transVal = transSelect.value;
             transSelect.innerHTML = '<option value="">Translocation</option>';
+            const transCounts = [];
             this._fusionGeneCounts.forEach(({ gene }) => {
                 const td = this.translocations.geneData[gene]?.translocations;
                 if (!td) return;
@@ -18508,13 +18517,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 for (const [cl, v] of Object.entries(td)) {
                     if (v >= 1 && transBaseSet.has(cl)) n++;
                 }
-                if (n === 0) return;
+                if (n > 0) transCounts.push({ gene, n });
+            });
+            transCounts.sort((a, b) => b.n - a.n);
+            for (const { gene, n } of transCounts) {
                 const opt = document.createElement('option');
                 opt.value = gene;
                 opt.textContent = `${gene} (n=${n})`;
                 if (gene === transVal) opt.selected = true;
                 transSelect.appendChild(opt);
-            });
+            }
         }
     }
 
