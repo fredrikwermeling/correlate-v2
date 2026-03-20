@@ -18114,8 +18114,18 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             this.renderCellLineList();
         });
         document.getElementById('clbSubtypeFilter').addEventListener('change', () => this.renderCellLineList());
-        document.getElementById('clbHotspotFilter').addEventListener('change', () => this.renderCellLineList());
-        document.getElementById('clbTranslocationFilter').addEventListener('change', () => this.renderCellLineList());
+        // Hotspot/translocation filters are now <input> + <datalist> — trigger on change and input
+        const clbHotspotInput = document.getElementById('clbHotspotFilter');
+        clbHotspotInput.addEventListener('change', () => this.renderCellLineList());
+        clbHotspotInput.addEventListener('input', () => {
+            // Clear filter if input is empty
+            if (!clbHotspotInput.value) this.renderCellLineList();
+        });
+        const clbTransInput = document.getElementById('clbTranslocationFilter');
+        clbTransInput.addEventListener('change', () => this.renderCellLineList());
+        clbTransInput.addEventListener('input', () => {
+            if (!clbTransInput.value) this.renderCellLineList();
+        });
 
         let clbGeneTimer;
         document.getElementById('clbSortGene').addEventListener('input', () => {
@@ -18543,13 +18553,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (this.mutations?.geneData || this.damagingMutations?.geneData) {
             const hotspotBase = getBaseSet('hotspot');
             const hotspotBaseSet = new Set(hotspotBase);
-            const hotspotSelect = document.getElementById('clbHotspotFilter');
-            const hotspotVal = hotspotSelect.value;
-            hotspotSelect.innerHTML = '<option value="">Mutation filter</option>';
+            const hotspotInput = document.getElementById('clbHotspotFilter');
+            const hotspotList = document.getElementById('clbHotspotList');
+            const hotspotVal = hotspotInput.value;
+            let hotspotHtml = '';
             if (this.mutations?.geneData) {
-                const grp = document.createElement('optgroup');
-                grp.label = 'Hotspot';
-                // Count and sort by mutation count descending
                 const geneCounts = [];
                 for (const gene of Object.keys(this.mutations.geneData)) {
                     const muts = this.mutations.geneData[gene].mutations;
@@ -18561,23 +18569,20 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 }
                 geneCounts.sort((a, b) => b.n - a.n);
                 for (const { gene, n } of geneCounts) {
-                    const opt = document.createElement('option');
-                    opt.value = gene;
-                    opt.textContent = `${gene} (n=${n})`;
-                    if (gene === hotspotVal) opt.selected = true;
-                    grp.appendChild(opt);
+                    hotspotHtml += `<option value="${gene}">${gene} (n=${n})</option>`;
                 }
-                hotspotSelect.appendChild(grp);
             }
+            hotspotList.innerHTML = hotspotHtml;
+            hotspotInput.value = hotspotVal;
         }
 
         // Update translocation filter counts
         if (this._fusionGeneCounts && this.translocations?.geneData) {
             const transBase = getBaseSet('translocation');
             const transBaseSet = new Set(transBase);
-            const transSelect = document.getElementById('clbTranslocationFilter');
-            const transVal = transSelect.value;
-            transSelect.innerHTML = '<option value="">Translocation</option>';
+            const transInput = document.getElementById('clbTranslocationFilter');
+            const transList = document.getElementById('clbTranslocationList');
+            const transVal = transInput.value;
             const transCounts = [];
             this._fusionGeneCounts.forEach(({ gene }) => {
                 const td = this.translocations.geneData[gene]?.translocations;
@@ -18589,13 +18594,12 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 if (n > 0) transCounts.push({ gene, n });
             });
             transCounts.sort((a, b) => b.n - a.n);
+            let transHtml = '';
             for (const { gene, n } of transCounts) {
-                const opt = document.createElement('option');
-                opt.value = gene;
-                opt.textContent = `${gene} (n=${n})`;
-                if (gene === transVal) opt.selected = true;
-                transSelect.appendChild(opt);
+                transHtml += `<option value="${gene}">${gene} (n=${n})</option>`;
             }
+            transList.innerHTML = transHtml;
+            transInput.value = transVal;
         }
     }
 
