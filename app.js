@@ -1192,22 +1192,25 @@ class CorrelationExplorer {
         }
     }
 
-    showOncoprint() {
+    showOncoprint(context) {
         // Remove any existing oncoprint popup
         document.getElementById('oncoprintPopup')?.remove();
 
         if (!this.mutations?.geneData) return;
 
-        const lineageFilter = document.getElementById('lineageFilter').value;
-        const subLineageFilter = document.getElementById('subLineageFilter')?.value;
-        const cellLines = this.metadata.cellLines;
-
-        // Filter cell lines by active lineage/sublineage
-        const filteredCLs = cellLines.filter(cl => {
-            if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
-            if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
-            return true;
-        });
+        let filteredCLs;
+        if (context === 'clb' && this._clbVisibleCellLines) {
+            // Use cell line browser's currently visible cell lines
+            filteredCLs = [...this._clbVisibleCellLines];
+        } else {
+            const lineageFilter = document.getElementById('lineageFilter').value;
+            const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+            filteredCLs = this.metadata.cellLines.filter(cl => {
+                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
+                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                return true;
+            });
+        }
 
         // Cap cell lines for performance
         const maxCLs = 100;
@@ -3343,6 +3346,9 @@ class CorrelationExplorer {
                 if (transLevel === '2' && tLevel < 2) return;
                 if (transLevel === '1+2' && tLevel < 1) return;
             }
+
+            // Check oncoprint multi-gene filters
+            if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
 
             indices.push(idx);
         });
@@ -18565,6 +18571,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             document.getElementById('clbSortDir').innerHTML = this._clbSortAsc ? '&#x25B2;' : '&#x25BC;';
             this.renderCellLineList();
         });
+
+        document.getElementById('clbOncoprintBtn').addEventListener('click', () => this.showOncoprint('clb'));
 
         document.getElementById('clbResetFilters').addEventListener('click', () => {
             document.getElementById('clbSearch').value = '';
