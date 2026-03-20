@@ -16082,7 +16082,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         ];
         const numericColKeys = [
             'n_wt', 'mean_wt', 'n_mut', 'mean_mut', 'diff_mut', 'p_mut',
-            'n_2', 'mean_2', 'diff_2', 'p_2'
+            'n_2', 'mean_2', 'diff_2', 'p_2', 'diff_2v1', 'p_2v1',
+            'n_fused', 'mean_fused', 'diff_fused', 'p_fused'
         ];
 
         headers.forEach((th, idx) => {
@@ -17822,8 +17823,39 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const mr = this.mutationResults;
         if (!mr) return [];
         const pThreshold = mr.pThreshold || 0.05;
-        const results = mr.significantResults || [];
 
+        // "filtered" — use visible rows from table (respects column filters)
+        if (filter === 'filtered') {
+            const geneSet = new Set();
+            const tbody = document.getElementById('mutationTableBody');
+            if (tbody) {
+                tbody.querySelectorAll('tr').forEach(row => {
+                    if (row.style.display === 'none') return;
+                    const cell = row.cells[1];
+                    if (cell) geneSet.add(cell.textContent.trim());
+                });
+            }
+            return [...geneSet];
+        }
+
+        // Get sorted results (respects current table sort order)
+        const sortCol = this._mutTableSortCol || 'diff_mut';
+        const sortDir = this._mutTableSortDir || 'asc';
+        let results = [...(mr.significantResults || [])];
+        results.sort((a, b) => {
+            const va = a[sortCol] ?? 0;
+            const vb = b[sortCol] ?? 0;
+            if (sortCol === 'gene') return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+            return sortDir === 'asc' ? va - vb : vb - va;
+        });
+
+        // Top-N based on current sort
+        const topMatch = filter.match(/^top(\d+)$/);
+        if (topMatch) {
+            return results.slice(0, parseInt(topMatch[1])).map(r => r.gene);
+        }
+
+        // Filter by specific comparison
         return results.filter(r => {
             switch (filter) {
                 case 'p_mut':    return r.p_mut < pThreshold;
@@ -17831,7 +17863,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 case 'p_2v1':    return r.p_2v1 < pThreshold;
                 case 'diff_neg': return r.p_mut < pThreshold && r.diff_mut < 0;
                 case 'diff_pos': return r.p_mut < pThreshold && r.diff_mut > 0;
-                default:         return true; // 'all' — already filtered by significance
+                default:         return true;
             }
         }).map(r => r.gene);
     }
