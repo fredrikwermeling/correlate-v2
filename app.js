@@ -374,7 +374,7 @@ class CorrelationExplorer {
             }
         });
 
-        const subtypes = Object.keys(subtypeCounts).sort();
+        const subtypes = Object.keys(subtypeCounts).sort((a, b) => subtypeCounts[b] - subtypeCounts[a]);
         if (subtypes.length > 1) {
             const lineageCount = this.currentInspect.data.filter(d => d.lineage === lineage).length;
             subSelect.innerHTML = `<option value="">All subtypes (n=${lineageCount})</option>`;
@@ -500,7 +500,7 @@ class CorrelationExplorer {
             }
         });
 
-        const subtypes = Object.keys(subtypeCounts).sort();
+        const subtypes = Object.keys(subtypeCounts).sort((a, b) => subtypeCounts[b] - subtypeCounts[a]);
         if (subtypes.length > 1) {
             subSelect.innerHTML = `<option value="">All subtypes (n=${lineageTotal})</option>`;
             subtypes.forEach(sub => {
@@ -8356,7 +8356,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 lineageCounts[d.lineage] = (lineageCounts[d.lineage] || 0) + 1;
             }
         });
-        const lineages = Object.keys(lineageCounts).sort();
+        const lineages = Object.keys(lineageCounts).sort((a, b) => lineageCounts[b] - lineageCounts[a]);
         if (lineages.length > 0) {
             cancerFilter.innerHTML = `<option value="">All tissues (n=${plotData.length})</option>`;
             lineages.forEach(l => {
@@ -14452,7 +14452,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 lineageCounts[d.lineage] = (lineageCounts[d.lineage] || 0) + 1;
             }
         });
-        const lineages = Object.keys(lineageCounts).sort();
+        const lineages = Object.keys(lineageCounts).sort((a, b) => lineageCounts[b] - lineageCounts[a]);
         if (lineages.length > 0) {
             cancerFilter.innerHTML = `<option value="">All tissues (n=${data.length})</option>`;
             lineages.forEach(l => {
@@ -14777,12 +14777,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const tissueFilter = document.getElementById('geTissueFilter');
         if (tissueFilter) {
             const currentValue = tissueFilter.value;
-            const lineages = [...new Set(this.currentGeneEffect.data.map(d => d.lineage).filter(Boolean))].sort();
+            const geLinCounts = {};
+            this.currentGeneEffect.data.forEach(d => { if (d.lineage) geLinCounts[d.lineage] = (geLinCounts[d.lineage] || 0) + 1; });
+            const lineages = Object.keys(geLinCounts).sort((a, b) => geLinCounts[b] - geLinCounts[a]);
             tissueFilter.innerHTML = '<option value="">All tissues</option>';
             lineages.forEach(l => {
                 const opt = document.createElement('option');
                 opt.value = l;
-                opt.textContent = l;
+                opt.textContent = `${l} (n=${geLinCounts[l]})`;
                 tissueFilter.appendChild(opt);
             });
             tissueFilter.value = currentValue || '';
@@ -18464,7 +18466,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const lin = this.getCellLineLineage(cl);
             tissueCounts[lin] = (tissueCounts[lin] || 0) + 1;
         });
-        Object.keys(tissueCounts).sort().forEach(lin => {
+        Object.keys(tissueCounts).sort((a, b) => tissueCounts[b] - tissueCounts[a]).forEach(lin => {
             const opt = document.createElement('option');
             opt.value = lin;
             opt.textContent = `${lin} (n=${tissueCounts[lin]})`;
@@ -18485,7 +18487,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 }
             });
             subSelect.innerHTML = '<option value="">All subtypes</option>';
-            Object.keys(subCounts).sort().forEach(sub => {
+            Object.keys(subCounts).sort((a, b) => subCounts[b] - subCounts[a]).forEach(sub => {
                 const opt = document.createElement('option');
                 opt.value = sub;
                 opt.textContent = `${sub} (n=${subCounts[sub]})`;
@@ -19589,7 +19591,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const tissueSelect = document.getElementById('clbUmapTissueFilter');
         tissueSelect.innerHTML = '<option value="">All tissues</option>';
         if (this.lineageCounts) {
-            Object.keys(this.lineageCounts).sort().forEach(tissue => {
+            Object.keys(this.lineageCounts).sort((a, b) => this.lineageCounts[b] - this.lineageCounts[a]).forEach(tissue => {
                 const opt = document.createElement('option');
                 opt.value = tissue;
                 opt.textContent = `${tissue} (n=${this.lineageCounts[tissue]})`;
@@ -19626,7 +19628,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 subtypeCounts[sub] = (subtypeCounts[sub] || 0) + 1;
             }
         }
-        Object.keys(subtypeCounts).sort().forEach(sub => {
+        Object.keys(subtypeCounts).sort((a, b) => subtypeCounts[b] - subtypeCounts[a]).forEach(sub => {
             const opt = document.createElement('option');
             opt.value = sub;
             opt.textContent = `${sub} (n=${subtypeCounts[sub]})`;
