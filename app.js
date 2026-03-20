@@ -290,8 +290,11 @@ class CorrelationExplorer {
             });
             document.getElementById('lineageFilterGroup').style.display = 'block';
 
-            // Update sub-lineage when lineage changes
-            select.addEventListener('change', () => this.updateSubLineageFilter());
+            // Update sub-lineage and cascade all dependent selectors when lineage changes
+            select.addEventListener('change', () => {
+                this.updateSubLineageFilter();
+                this._refreshFilteredSelectors();
+            });
         }
 
         // Also populate parameter hotspot filter
@@ -338,7 +341,7 @@ class CorrelationExplorer {
             // Add listener for sub-lineage changes (only add once)
             if (!subSelect.hasAttribute('data-listener-attached')) {
                 subSelect.addEventListener('change', () => {
-                    this.updateHotspotCountsForCurrentFilters();
+                    this._refreshFilteredSelectors();
                 });
                 subSelect.setAttribute('data-listener-attached', 'true');
             }
@@ -514,16 +517,22 @@ class CorrelationExplorer {
         if (this.mutations?.geneData) {
             this.updateParamHotspotGeneCounts();
 
-            // Also update mutation mode selector if in mutation mode
+            // Also update mutation mode selectors if in mutation mode
             const isMutationMode = document.querySelector('input[name="analysisMode"]:checked')?.value === 'mutation';
             if (isMutationMode) {
                 this.populateMutationHotspotSelector();
                 this.populateTranslocationHotspotSelector();
+                if (this.damagingMutations?.geneData) this._populateDamagingMutationList();
             }
         }
         if (this.translocations?.geneData) {
             this.updateParamTranslocationGeneCounts();
         }
+    }
+
+    _refreshFilteredSelectors() {
+        // Called when lineage/sublineage changes — refresh all dependent selectors
+        this.updateHotspotCountsForCurrentFilters();
     }
 
     populateParamHotspotFilter() {
@@ -540,40 +549,39 @@ class CorrelationExplorer {
     }
 
     updateParamHotspotGeneCounts() {
-        const genes = Object.keys(this.mutations.geneData).sort();
         const select = document.getElementById('paramHotspotGene');
         const cellLines = this.metadata.cellLines;
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
         const currentValue = select.value;
 
-        select.innerHTML = '<option value="">No filter</option>';
-        genes.forEach(gene => {
-            // Count mutations for this gene (respecting lineage filter)
+        const filteredCLs = (lineageFilter || subLineageFilter)
+            ? cellLines.filter(cl => {
+                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
+                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                return true;
+            }) : cellLines;
+
+        const geneCounts = [];
+        for (const gene of Object.keys(this.mutations.geneData)) {
             const mutations = this.mutations.geneData[gene].mutations;
             let nMut = 0;
-            cellLines.forEach(cl => {
-                // Apply lineage filter
-                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) {
-                    return;
-                }
-                // Apply sub-lineage filter
-                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) {
-                    return;
-                }
+            for (const cl of filteredCLs) {
                 if (mutations[cl] && mutations[cl] > 0) nMut++;
-            });
+            }
+            if (nMut > 0) geneCounts.push({ gene, count: nMut });
+        }
+        geneCounts.sort((a, b) => b.count - a.count);
 
+        select.innerHTML = '<option value="">No filter</option>';
+        for (const { gene, count } of geneCounts) {
             const option = document.createElement('option');
             option.value = gene;
-            option.textContent = `${gene} (n=${nMut} mutated)`;
+            option.textContent = `${gene} (n=${count} mutated)`;
             select.appendChild(option);
-        });
-
-        // Restore selection if it was set
-        if (currentValue) {
-            select.value = currentValue;
         }
+
+        if (currentValue) select.value = currentValue;
 
         // Also update level counts
         this.updateParamHotspotLevelCounts();
@@ -834,11 +842,32 @@ class CorrelationExplorer {
 
     _populateDamagingMutationList() {
         const datalist = document.getElementById('damagingHotspotList');
-        if (!datalist || datalist.children.length > 0) return;
-        const genes = this.damagingMutations.genes; // already sorted by count desc
+        if (!datalist || !this.damagingMutations?.geneData) return;
+
+        const lineageFilter = document.getElementById('lineageFilter').value;
+        const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+        const cellLines = this.metadata.cellLines;
+
+        const filteredCLs = (lineageFilter || subLineageFilter)
+            ? cellLines.filter(cl => {
+                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
+                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                return true;
+            }) : cellLines;
+
+        const geneCounts = [];
+        for (const gene of Object.keys(this.damagingMutations.geneData)) {
+            const mutations = this.damagingMutations.geneData[gene].mutations;
+            let nMut = 0;
+            for (const cl of filteredCLs) {
+                if (mutations[cl] && mutations[cl] > 0) nMut++;
+            }
+            if (nMut > 0) geneCounts.push({ gene, count: nMut });
+        }
+        geneCounts.sort((a, b) => b.count - a.count);
+
         let html = '';
-        for (const gene of genes) {
-            const count = this.damagingMutations.geneCounts[gene];
+        for (const { gene, count } of geneCounts) {
             html += `<option value="${gene}">${gene} (${count} mutated)</option>`;
         }
         datalist.innerHTML = html;
@@ -852,36 +881,38 @@ class CorrelationExplorer {
 
         if (!this.mutations || !this.mutations.geneData) return;
 
-        const genes = Object.keys(this.mutations.geneData).sort();
+        const genes = Object.keys(this.mutations.geneData);
         const cellLines = this.metadata.cellLines;
 
-        select.innerHTML = '<option value="">Select hotspot gene...</option>';
-        genes.forEach(gene => {
+        // Build filtered cell line list
+        const filteredCLs = (lineageFilter || subLineageFilter)
+            ? cellLines.filter(cl => {
+                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
+                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                return true;
+            }) : cellLines;
+
+        // Count mutations per gene, skip genes with 0
+        const geneCounts = [];
+        for (const gene of genes) {
             const mutations = this.mutations.geneData[gene].mutations;
             let nMut = 0;
-
-            cellLines.forEach(cl => {
-                // Apply lineage filter
-                if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) {
-                    return;
-                }
-                // Apply sub-lineage filter
-                if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) {
-                    return;
-                }
+            for (const cl of filteredCLs) {
                 if (mutations[cl] && mutations[cl] > 0) nMut++;
-            });
+            }
+            if (nMut > 0) geneCounts.push({ gene, count: nMut });
+        }
+        geneCounts.sort((a, b) => b.count - a.count);
 
+        select.innerHTML = '<option value="">Select hotspot gene...</option>';
+        geneCounts.forEach(({ gene, count }) => {
             const option = document.createElement('option');
             option.value = gene;
-            option.textContent = `${gene} (${nMut} mutated cells)`;
+            option.textContent = `${gene} (${count} mutated)`;
             select.appendChild(option);
         });
 
-        // Restore selection if it was set
-        if (currentValue) {
-            select.value = currentValue;
-        }
+        if (currentValue) select.value = currentValue;
     }
 
     populateTranslocationHotspotSelector() {
