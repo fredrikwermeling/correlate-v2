@@ -15377,6 +15377,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     openGeneEffectFromNetwork(gene) {
         this.openGeneEffectModal(gene, 'tissue');
+        this._applyParamFiltersToGEModal();
     }
 
     renderGETable(stats, mode) {
@@ -18146,6 +18147,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 const gene = link.dataset.gene;
                 this._geHighlightCellLine = this._clbInspectedCellLine;
                 this.openGeneEffectModal(gene, 'tissue');
+                this._applyParamFiltersToGEModal();
                 return;
             }
             const enrichrBtn = e.target.closest('.clb-enrichr-btn');
@@ -18202,6 +18204,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             e.preventDefault();
             this._geHighlightCellLine = this._clbInspectedCellLine;
             this.openGeneEffectModal(link.dataset.gene, 'tissue');
+            this._applyParamFiltersToGEModal();
         });
 
         // Gene tooltips on mutation/fusion gene names in top section
