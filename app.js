@@ -15894,21 +15894,24 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 }
             }
         }
-        // Hotspot mutation filter — check param section first, then CLB filter
-        const paramHotspot = document.getElementById('paramHotspotGene')?.value;
-        const clbHotspot = document.getElementById('clbHotspotFilter')?.value;
-        const hotspot = paramHotspot || clbHotspot;
-        if (hotspot) {
-            const geHotspot = document.getElementById('geHotspotFilter');
-            if (geHotspot) geHotspot.value = hotspot;
-        }
-        // Translocation filter — check param section first, then CLB filter
-        const paramTrans = document.getElementById('paramTranslocationGene')?.value;
-        const clbTrans = document.getElementById('clbTranslocationFilter')?.value;
-        const trans = paramTrans || clbTrans;
-        if (trans) {
-            const geFusion = document.getElementById('geFusionFilter');
-            if (geFusion) geFusion.value = trans;
+        // Hotspot/translocation — skip if oncoprint handles multi-gene filtering
+        if (!this._activeOncoprintFilters || this._activeOncoprintFilters.length === 0) {
+            // Hotspot mutation filter — check param section first, then CLB filter
+            const paramHotspot = document.getElementById('paramHotspotGene')?.value;
+            const clbHotspot = document.getElementById('clbHotspotFilter')?.value;
+            const hotspot = paramHotspot || clbHotspot;
+            if (hotspot) {
+                const geHotspot = document.getElementById('geHotspotFilter');
+                if (geHotspot) geHotspot.value = hotspot;
+            }
+            // Translocation filter — check param section first, then CLB filter
+            const paramTrans = document.getElementById('paramTranslocationGene')?.value;
+            const clbTrans = document.getElementById('clbTranslocationFilter')?.value;
+            const trans = paramTrans || clbTrans;
+            if (trans) {
+                const geFusion = document.getElementById('geFusionFilter');
+                if (geFusion) geFusion.value = trans;
+            }
         }
         // Show oncoprint filter label in GE modal
         this._updateGeOncoprintLabel();
