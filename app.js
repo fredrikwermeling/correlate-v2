@@ -4957,15 +4957,31 @@ class CorrelationExplorer {
         if (mr.subLineageFilter) {
             csv += `# Subtype filter: ${mr.subLineageFilter}\n`;
         }
+        // Collect all mutation filters
+        const allMutFilters = [];
         if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-            csv += `# Additional hotspot filter: ${mr.additionalHotspot} = ${mr.additionalHotspotLevel}\n`;
+            const ll = { '0': 'WT', '1': 'Mut', '2': 'Mut', '1+2': 'Mut' };
+            allMutFilters.push(`${mr.additionalHotspot} ${ll[mr.additionalHotspotLevel] || mr.additionalHotspotLevel}`);
+        }
+        if (this._activeOncoprintFilters) {
+            const shown = new Set([mr.hotspotGene, mr.additionalHotspot].filter(Boolean));
+            for (const f of this._activeOncoprintFilters) {
+                if (!shown.has(f.gene)) {
+                    allMutFilters.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`);
+                    shown.add(f.gene);
+                }
+            }
+        }
+        if (allMutFilters.length > 0) {
+            csv += `# Mutation filter: ${allMutFilters.join(', ')}\n`;
         }
         csv += `# Date: ${new Date().toISOString().slice(0, 10)}\n`;
         csv += '#\n';
 
         const hasFusion = mr.hasFusionData && mr.isTranslocation;
         let headers = ['Gene', 'N_WT', 'Mean_GE_WT', 'N_1+2', 'Mean_GE_1+2', 'Delta_GE', 'pValue_1+2_vs_0',
-                        'N_2', 'Mean_GE_2', 'Delta_GE_2vs0', 'pValue_2_vs_0'];
+                        'N_2', 'Mean_GE_2', 'Delta_GE_2vs0', 'pValue_2_vs_0',
+                        'Delta_GE_2vs1', 'pValue_2_vs_1'];
         if (hasFusion) {
             headers.push('N_Fused', 'Mean_GE_Fused', 'Delta_GE_Fused', 'pValue_Fused');
         }
@@ -4983,7 +4999,9 @@ class CorrelationExplorer {
                 r.n_2,
                 isNaN(r.mean_2) ? '' : r.mean_2.toFixed(2),
                 isNaN(r.diff_2) ? '' : r.diff_2.toFixed(2),
-                this.formatPValue(r.p_2)
+                this.formatPValue(r.p_2),
+                isNaN(r.diff_2v1) ? '' : r.diff_2v1.toFixed(2),
+                isNaN(r.diff_2v1) ? '' : this.formatPValue(r.p_2v1)
             ];
             if (hasFusion) {
                 row.push(
@@ -5624,7 +5642,8 @@ class CorrelationExplorer {
                 lineageFilter: this.mutationResults?.lineageFilter || '',
                 subLineageFilter: this.mutationResults?.subLineageFilter || '',
                 textSettings: this._capturePlotTextSettings('geneEffectPlot'),
-                geChartWidthRatio: this.geChartWidthRatio || 1.0
+                geChartWidthRatio: this.geChartWidthRatio || 1.0,
+                oncoprintFilters: this._activeOncoprintFilters || null
             });
             const metaJson = JSON.stringify(meta);
 
@@ -7524,7 +7543,8 @@ Results:
             mode: this.results?.mode,
             cutoff: this.results?.cutoff,
             nCellLines: this.results?.nCellLines,
-            networkSettings: this._captureNetworkSettings()
+            networkSettings: this._captureNetworkSettings(),
+            oncoprintFilters: this._activeOncoprintFilters || null
         });
         const dataURL = canvas.toDataURL('image/png');
         fetch(dataURL).then(r => r.arrayBuffer()).then(buf => {
@@ -7780,7 +7800,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             mode: this.results?.mode,
             cutoff: this.results?.cutoff,
             nCellLines: this.results?.nCellLines,
-            networkSettings: this._captureNetworkSettings()
+            networkSettings: this._captureNetworkSettings(),
+            oncoprintFilters: this._activeOncoprintFilters || null
         });
         svg += `<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata>`;
         svg += '</svg>';
@@ -13954,7 +13975,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 };
             })(),
             showZeroLines: document.getElementById('showZeroLines')?.checked,
-            showCorrelationLine: document.getElementById('showCorrelationLine')?.checked
+            showCorrelationLine: document.getElementById('showCorrelationLine')?.checked,
+            oncoprintFilters: this._activeOncoprintFilters || null
         };
     }
 
@@ -14079,6 +14101,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
                 const tbg = document.getElementById('exportNetworkTransparentBg');
                 if (tbg) tbg.checked = ns.transparentBg || false;
             }
+            // Restore oncoprint filters
+            if (meta.oncoprintFilters && meta.oncoprintFilters.length > 0) {
+                this._activeOncoprintFilters = meta.oncoprintFilters;
+                this._oncoprintFilters = {};
+                for (const f of meta.oncoprintFilters) this._oncoprintFilters[f.gene] = f.state;
+                this._oncoprintSyncFilters?.();
+            }
             this.runAnalysis();
             return;
         }
@@ -14200,6 +14229,16 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     async _restoreFromState(state) {
         if (!state.gene1 || !state.gene2) { alert('Missing gene information in state.'); return; }
         this._resetForRestore();
+
+        // Restore oncoprint multi-gene filters if saved
+        if (state.oncoprintFilters && state.oncoprintFilters.length > 0) {
+            this._activeOncoprintFilters = state.oncoprintFilters;
+            this._oncoprintFilters = {};
+            for (const f of state.oncoprintFilters) {
+                this._oncoprintFilters[f.gene] = f.state;
+            }
+            this._oncoprintSyncFilters?.();
+        }
 
         // Set axis data types
         const xTypeEl = document.getElementById('xAxisDataType');
