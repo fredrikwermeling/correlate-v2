@@ -1614,7 +1614,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.31.7</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.31.8</a>
     </div>
 
     <div class="main-content">
@@ -3124,12 +3124,14 @@
           <input type="text" id="clbSearch" placeholder="Search cell lines...">
           <select id="clbTissueFilter"><option value="">All tissues</option></select>
           <select id="clbSubtypeFilter" style="display:none;"><option value="">All subtypes</option></select>
-          <input type="text" id="clbHotspotFilter" list="clbHotspotList" placeholder="Mutation filter" autocomplete="off" style="width:140px;">
-          <datalist id="clbHotspotList"></datalist>
-          <input type="text" id="clbTranslocationFilter" list="clbTranslocationList" placeholder="Translocation" autocomplete="off" style="width:140px;">
+          <span style="display:inline-flex; align-items:center; gap:2px; border:1px solid #d1d5db; border-radius:5px; padding:1px;">
+            <input type="text" id="clbHotspotFilter" list="clbHotspotList" placeholder="Hotspot filter" autocomplete="off" style="width:120px; border:none; font-size:12px; padding:4px 6px;">
+            <datalist id="clbHotspotList"></datalist>
+            <button id="clbOncoprintBtn" type="button" style="padding:3px 6px; font-size:9px; background:#5a9f4a; color:white; border:none; border-radius:3px; cursor:pointer; white-space:nowrap;" title="Show oncoprint of hotspot mutations for filtered cell lines">Oncoprint</button>
+          </span>
+          <input type="text" id="clbTranslocationFilter" list="clbTranslocationList" placeholder="Fusion filter" autocomplete="off" style="width:120px;">
           <datalist id="clbTranslocationList"></datalist>
-          <button id="clbOncoprintBtn" type="button" style="padding:3px 8px; font-size:10px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer; white-space:nowrap;" title="Show oncoprint of hotspot mutations for filtered cell lines">Oncoprint</button>
-          <input type="text" id="clbSortGene" placeholder="Sort by gene..." style="width:120px;">
+          <input type="text" id="clbSortGene" placeholder="Sort by GE for gene..." style="width:140px;" title="Enter a gene name to sort cell lines by their gene effect for that gene">
           <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="padding:4px 6px; font-size:10px; display:none;">&#x25B2;</button>
           <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Reset all filters">Reset</button>
           <span id="clbSelectionCount" class="clb-selection-count">0 selected</span>
@@ -3139,7 +3141,7 @@
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="Gene Effect matrix for selected cell lines (genes × cell lines)">GE Matrix</button>
             <button id="clbExportFull" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="Cell line metadata, mutations, top depleted/enriched genes, z-scores">Cell Line Report</button>
             <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="All data per cell line: GE, Expression, Hotspot, Damaging, Translocation (genes × cell lines)">Full Data Export</button>
-            <button id="clbExprVsGEAll" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#a78bfa;" title="Expression vs Gene Effect for all or selected cell lines">Expr vs GE</button>
+            <button id="clbExprVsGEAll" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="Expression vs Gene Effect for all or selected cell lines">Expr vs GE</button>
           </div>
         </div>
         <!-- Custom Cell Line Filter for CLB -->
