@@ -19840,10 +19840,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             : `_${clNames.length}cl`;
 
         if (mode === 'minimal') {
-            // Gene x cell line GE matrix
-            const headerParts = ['Gene'];
+            // Gene x cell line Gene Effect matrix
+            const headerParts = ['Gene_Effect'];
             clNames.forEach(n => headerParts.push(n.replace(/,/g, '')));
-            const lines = [headerParts.join(',')];
+            const lines = [`# Gene Effect (CRISPR DepMap) matrix for ${clNames.length} selected cell lines`, `# Source: DepMap 25Q3 CRISPRGeneEffect`, `# Date: ${new Date().toISOString().slice(0, 10)}`, headerParts.join(',')];
             for (let g = 0; g < this.nGenes; g++) {
                 const row = [this.geneNames[g]];
                 for (let c = 0; c < clIndices.length; c++) {
