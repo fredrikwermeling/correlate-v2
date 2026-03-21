@@ -1614,7 +1614,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.30.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.30.7</a>
     </div>
 
     <div class="main-content">
@@ -1738,14 +1738,15 @@
                         </div>
                     </div>
 
-                    <div class="form-group" id="minCellLinesGroup">
-                        <label class="form-label">Min Cell Lines:</label>
-                        <input type="number" id="minCellLines" class="form-control" value="25" min="3" max="500" style="width: 80px;">
-                    </div>
-
-                    <div class="form-group" id="pValueThresholdGroup" style="display: none;">
-                        <label class="form-label">P-value Threshold:</label>
-                        <input type="text" inputmode="decimal" id="pValueThreshold" class="form-control" value="0.001" style="width: 80px;">
+                    <div style="display:flex; gap:8px;" id="minCellLinesPvalRow">
+                        <div class="form-group" id="minCellLinesGroup" style="flex:1;">
+                            <label class="form-label" style="font-size:11px; margin-bottom:2px;">Min Cell Lines:</label>
+                            <input type="number" id="minCellLines" class="form-control" value="25" min="3" max="500" style="width:100%; font-size:12px; padding:3px 6px;">
+                        </div>
+                        <div class="form-group" id="pValueThresholdGroup" style="display:none; flex:1;">
+                            <label class="form-label" style="font-size:11px; margin-bottom:2px;">P-value:</label>
+                            <input type="text" inputmode="decimal" id="pValueThreshold" class="form-control" value="0.001" style="width:100%; font-size:12px; padding:3px 6px;">
+                        </div>
                     </div>
 
                     <div class="form-group" id="lineageFilterGroup" style="display: none;">
