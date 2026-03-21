@@ -1409,9 +1409,9 @@ class CorrelationExplorer {
                     const subTotal = counts.nMut + counts.nWT;
                     const subPct = subTotal > 0 ? (counts.nMut / subTotal * 100).toFixed(1) : '0.0';
                     const subBarW = maxMut > 0 ? (counts.nMut / maxMut * 100) : 0;
-                    html += `<tr class="tb-sub-row" data-parent="${t.lineage}" style="display:none; cursor:pointer; background:#fafafa;">
-                        <td style="padding: 2px 8px;"></td>
-                        <td style="padding: 2px 4px 2px 20px; font-size:11px; color:#6b7280;">${sub}</td>
+                    html += `<tr class="tb-sub-row" data-parent="${t.lineage}" data-subtype="${sub}" style="display:none; cursor:pointer; background:#fafafa;" onmouseenter="this.style.background='#f0f0f0'" onmouseleave="this.style.background='#fafafa'">
+                        <td style="padding: 2px 8px 2px 16px;"><input type="checkbox" class="tb-sub-check" value="${sub}" data-parent="${t.lineage}"></td>
+                        <td style="padding: 2px 4px 2px 8px; font-size:11px; color:#6b7280;">${sub}</td>
                         <td style="padding: 2px 6px; text-align: right; color: #dc2626; font-size:11px;">${counts.nMut}</td>
                         <td style="padding: 2px 6px; text-align: right; color: #6b7280; font-size:11px;">${counts.nWT}</td>
                         <td style="padding: 2px 8px;"><div style="background: #fee2e2; border-radius: 2px; height: 8px; width: 100%;"><div style="background: #f87171; border-radius: 2px; height: 8px; width: ${subBarW}%;"></div></div></td>
@@ -1457,14 +1457,28 @@ class CorrelationExplorer {
             });
         });
 
-        // Checkbox change
+        // Checkbox change (tissue)
         popup.querySelectorAll('.tb-check').forEach(cb => {
+            cb.addEventListener('change', () => this.updateTBSelectionCount());
+        });
+
+        // Sub-tissue row click
+        popup.querySelectorAll('.tb-sub-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (e.target.type === 'checkbox') return;
+                const cb = row.querySelector('.tb-sub-check');
+                cb.checked = !cb.checked;
+                this.updateTBSelectionCount();
+            });
+        });
+        popup.querySelectorAll('.tb-sub-check').forEach(cb => {
             cb.addEventListener('change', () => this.updateTBSelectionCount());
         });
 
         // Select all
         document.getElementById('tbSelectAll').addEventListener('change', (e) => {
             popup.querySelectorAll('.tb-check').forEach(cb => { cb.checked = e.target.checked; });
+            popup.querySelectorAll('.tb-sub-check').forEach(cb => { cb.checked = false; }); // clear sub-selections
             this.updateTBSelectionCount();
         });
 
@@ -1480,8 +1494,12 @@ class CorrelationExplorer {
 
         // Apply button
         document.getElementById('tbApplyBtn').addEventListener('click', () => {
-            const selected = [...popup.querySelectorAll('.tb-check:checked')].map(cb => cb.value);
-            this.applyTissueBreakdownSelection(selected);
+            const selectedTissues = [...popup.querySelectorAll('.tb-check:checked')].map(cb => cb.value);
+            const selectedSubtypes = [...popup.querySelectorAll('.tb-sub-check:checked')].map(cb => ({
+                subtype: cb.value,
+                parent: cb.dataset.parent
+            }));
+            this.applyTissueBreakdownSelection(selectedTissues, selectedSubtypes);
             this.hideTissueBreakdownPopup();
         });
 
@@ -1985,12 +2003,16 @@ class CorrelationExplorer {
     updateTBSelectionCount() {
         const popup = document.getElementById('tissueBreakdownPopup');
         if (!popup) return;
-        const count = popup.querySelectorAll('.tb-check:checked').length;
+        const tissueCount = popup.querySelectorAll('.tb-check:checked').length;
+        const subCount = popup.querySelectorAll('.tb-sub-check:checked').length;
         const label = document.getElementById('tbSelectionCount');
-        if (label) label.textContent = count === 0 ? '0 selected' : `${count} selected`;
+        const parts = [];
+        if (tissueCount > 0) parts.push(`${tissueCount} tissue${tissueCount > 1 ? 's' : ''}`);
+        if (subCount > 0) parts.push(`${subCount} subtype${subCount > 1 ? 's' : ''}`);
+        if (label) label.textContent = parts.length === 0 ? '0 selected' : parts.join(', ');
     }
 
-    applyTissueBreakdownSelection(selectedTissues) {
+    applyTissueBreakdownSelection(selectedTissues, selectedSubtypes = []) {
         const lineageSelect = document.getElementById('lineageFilter');
         const lineageGroup = document.getElementById('lineageFilterGroup');
         const selectedSet = new Set(selectedTissues);
@@ -2051,8 +2073,49 @@ class CorrelationExplorer {
             }
         }
 
+        // Handle sub-tissue selection: if subtypes selected, set lineage + sublineage
+        if (selectedSubtypes.length > 0) {
+            // Group by parent tissue
+            const parents = [...new Set(selectedSubtypes.map(s => s.parent))];
+            if (parents.length === 1 && (selectedTissues.length === 0 || (selectedTissues.length === 1 && selectedTissues[0] === parents[0]))) {
+                // Single parent tissue with subtype selection
+                lineageSelect.value = parents[0];
+                lineageSelect.disabled = false;
+                lineageSelect.style.opacity = '';
+                this.excludedTissues = new Set();
+                // Set sublineage filter after updateSubLineageFilter populates it
+                this._pendingSubtypeSelection = selectedSubtypes.map(s => s.subtype);
+            }
+            // Show override label
+            const subtypeNames = selectedSubtypes.map(s => s.subtype);
+            let overrideLabel = lineageGroup?.querySelector('.tb-override-label');
+            if (!overrideLabel && lineageGroup) {
+                overrideLabel = document.createElement('div');
+                overrideLabel.className = 'tb-override-label';
+                overrideLabel.style.cssText = 'font-size: 11px; color: #5a9f4a; margin-top: 2px; cursor: pointer;';
+                overrideLabel.title = 'Click to clear tissue selection';
+                overrideLabel.addEventListener('click', () => {
+                    this.applyTissueBreakdownSelection([]);
+                });
+                lineageGroup.appendChild(overrideLabel);
+            }
+            if (overrideLabel) {
+                overrideLabel.textContent = `Subtype: ${subtypeNames.join(', ')} (click to clear)`;
+            }
+        }
+
         // Trigger UI updates
         this.updateSubLineageFilter();
+
+        // Apply pending subtype selection after dropdown is populated
+        if (this._pendingSubtypeSelection) {
+            const subSelect = document.getElementById('subLineageFilter');
+            if (subSelect && this._pendingSubtypeSelection.length === 1) {
+                subSelect.value = this._pendingSubtypeSelection[0];
+            }
+            this._pendingSubtypeSelection = null;
+        }
+
         this.updateHotspotCountsForCurrentFilters();
     }
 
