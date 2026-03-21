@@ -553,12 +553,17 @@ class CorrelationExplorer {
         const cellLines = this.metadata.cellLines;
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+        const hasExcluded = this.excludedTissues && this.excludedTissues.size > 0;
         const currentValue = select.value;
 
-        const filteredCLs = (lineageFilter || subLineageFilter)
+        const filteredCLs = (lineageFilter || subLineageFilter || hasExcluded)
             ? cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                if (hasExcluded) {
+                    const lin = this.cellLineMetadata?.lineage?.[cl];
+                    if (lin && this.excludedTissues.has(lin)) return false;
+                }
                 return true;
             }) : cellLines;
 
@@ -662,13 +667,18 @@ class CorrelationExplorer {
         const cellLines = this.metadata.cellLines;
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+        const hasExcluded = this.excludedTissues && this.excludedTissues.size > 0;
         const currentValue = input.value;
 
         // Build filtered cell line list once
-        const filteredCLs = lineageFilter || subLineageFilter
+        const filteredCLs = (lineageFilter || subLineageFilter || hasExcluded)
             ? cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                if (hasExcluded) {
+                    const lin = this.cellLineMetadata?.lineage?.[cl];
+                    if (lin && this.excludedTissues.has(lin)) return false;
+                }
                 return true;
             }) : cellLines;
 
@@ -846,12 +856,17 @@ class CorrelationExplorer {
 
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+        const hasExcluded = this.excludedTissues && this.excludedTissues.size > 0;
         const cellLines = this.metadata.cellLines;
 
-        const filteredCLs = (lineageFilter || subLineageFilter)
+        const filteredCLs = (lineageFilter || subLineageFilter || hasExcluded)
             ? cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                if (hasExcluded) {
+                    const lin = this.cellLineMetadata?.lineage?.[cl];
+                    if (lin && this.excludedTissues.has(lin)) return false;
+                }
                 return true;
             }) : cellLines;
 
@@ -877,6 +892,7 @@ class CorrelationExplorer {
         const select = document.getElementById('mutationHotspotSelect');
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+        const hasExcluded = this.excludedTissues && this.excludedTissues.size > 0;
         const currentValue = select.value;
 
         if (!this.mutations || !this.mutations.geneData) return;
@@ -885,10 +901,14 @@ class CorrelationExplorer {
         const cellLines = this.metadata.cellLines;
 
         // Build filtered cell line list
-        const filteredCLs = (lineageFilter || subLineageFilter)
+        const filteredCLs = (lineageFilter || subLineageFilter || hasExcluded)
             ? cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                if (hasExcluded) {
+                    const lin = this.cellLineMetadata?.lineage?.[cl];
+                    if (lin && this.excludedTissues.has(lin)) return false;
+                }
                 return true;
             }) : cellLines;
 
@@ -923,16 +943,21 @@ class CorrelationExplorer {
         const datalist = document.getElementById('translocationHotspotList');
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+        const hasExcluded = this.excludedTissues && this.excludedTissues.size > 0;
         const currentValue = input.value;
 
         const genes = Object.keys(this.translocations.geneData);
         const cellLines = this.metadata.cellLines;
 
         // Build filtered cell line list once
-        const filteredCLs = lineageFilter || subLineageFilter
+        const filteredCLs = (lineageFilter || subLineageFilter || hasExcluded)
             ? cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                if (hasExcluded) {
+                    const lin = this.cellLineMetadata?.lineage?.[cl];
+                    if (lin && this.excludedTissues.has(lin)) return false;
+                }
                 return true;
             }) : cellLines;
 
