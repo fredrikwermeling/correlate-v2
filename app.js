@@ -5234,8 +5234,8 @@ class CorrelationExplorer {
 
         // Add mean lines
         const allGE = [...data.wt, ...data.mut1, ...data.mut2].map(d => d.ge);
-        const xMin = Math.min(...allGE) - 0.1;
-        const xMax = Math.max(...allGE) + 0.1;
+        const xMin = Math.min(0, Math.min(...allGE)) - 0.1;
+        const xMax = Math.max(0, Math.max(...allGE)) + 0.1;
 
         if (!isNaN(meanWT)) {
             traces.push({
@@ -5353,7 +5353,7 @@ class CorrelationExplorer {
         const geYLabelAnn = {
             text: yAxisTitle,
             xref: 'paper', yref: 'paper',
-            x: this._geUserYLabelPos ? this._geUserYLabelPos.x : -0.18,
+            x: this._geUserYLabelPos ? this._geUserYLabelPos.x : -0.22,
             y: this._geUserYLabelPos ? this._geUserYLabelPos.y : 0.5,
             xanchor: this._geUserYLabelPos ? 'auto' : 'center',
             yanchor: this._geUserYLabelPos ? 'auto' : 'middle',
@@ -5381,7 +5381,7 @@ class CorrelationExplorer {
                 tickfont: { size: 17 }
             },
             showlegend: false,
-            margin: { t: 160, r: 30, b: 50, l: 130 },
+            margin: { t: 160, r: 30, b: 55, l: 160 },
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
