@@ -1199,21 +1199,31 @@ class CorrelationExplorer {
         if (!this.mutations?.geneData) return;
 
         let filteredCLs;
+        let filterLabel = '';
         if (context === 'clb' && this._clbVisibleCellLines) {
             // Use cell line browser's currently visible cell lines
             filteredCLs = [...this._clbVisibleCellLines];
+            const clbTissue = document.getElementById('clbTissueFilter')?.value;
+            if (clbTissue) filterLabel = clbTissue;
         } else {
-            const lineageFilter = document.getElementById('lineageFilter').value;
-            const subLineageFilter = document.getElementById('subLineageFilter')?.value;
+            const lineageFilter = document.getElementById('lineageFilter')?.value || '';
+            const subLineageFilter = document.getElementById('subLineageFilter')?.value || '';
             filteredCLs = this.metadata.cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                // Respect excluded tissues from tissue breakdown
+                if (this.excludedTissues && this.excludedTissues.size > 0) {
+                    const lin = this.cellLineMetadata?.lineage?.[cl];
+                    if (lin && this.excludedTissues.has(lin)) return false;
+                }
                 return true;
             });
+            if (lineageFilter) filterLabel = lineageFilter;
+            else if (this.excludedTissues && this.excludedTissues.size > 0) filterLabel = 'filtered tissues';
         }
 
         // Cap cell lines for performance
-        const maxCLs = 100;
+        const maxCLs = 200;
         const clsToShow = filteredCLs.slice(0, maxCLs);
 
         // Get top N hotspot genes by mutation count in filtered cell lines
@@ -1272,7 +1282,7 @@ class CorrelationExplorer {
         // Draggable header
         let html = `<div id="oncoprintDragHandle" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
         html += `<span style="font-weight:600; font-size:12px;">Oncoprint — Top ${topGenes.length} hotspot genes</span>`;
-        html += `<span style="font-size:10px; color:#6b7280;">${sortedCLs.length} CLs${lineageFilter ? ' · ' + lineageFilter : ''}${filteredCLs.length > maxCLs ? ` (${maxCLs}/${filteredCLs.length})` : ''}</span>`;
+        html += `<span style="font-size:10px; color:#6b7280;">${sortedCLs.length} cell lines${filterLabel ? ' · ' + filterLabel : ''}${filteredCLs.length > maxCLs ? ` (showing ${maxCLs} of ${filteredCLs.length})` : ''}</span>`;
         html += `<button onclick="document.getElementById('oncoprintPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
         html += `<div style="padding:6px 10px; overflow:auto; flex:1;">`;
