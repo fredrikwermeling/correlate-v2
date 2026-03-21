@@ -15917,6 +15917,8 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     _updateGeOncoprintLabel() {
         const el = document.getElementById('geOncoprintLabel');
+        const hotspotSelect = document.getElementById('geHotspotFilter');
+        const fusionSelect = document.getElementById('geFusionFilter');
         if (!el) return;
         if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
             const tags = this._activeOncoprintFilters.map(f => {
@@ -15926,8 +15928,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             }).join(' ');
             el.innerHTML = tags;
             el.style.display = 'inline-flex';
+            // Gray out single-gene filter dropdowns — oncoprint handles it
+            if (hotspotSelect) { hotspotSelect.style.opacity = '0.3'; hotspotSelect.style.pointerEvents = 'none'; }
+            if (fusionSelect) { fusionSelect.style.opacity = '0.3'; fusionSelect.style.pointerEvents = 'none'; }
         } else {
             el.style.display = 'none';
+            if (hotspotSelect) { hotspotSelect.style.opacity = ''; hotspotSelect.style.pointerEvents = ''; }
+            if (fusionSelect) { fusionSelect.style.opacity = ''; fusionSelect.style.pointerEvents = ''; }
         }
     }
 
