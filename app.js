@@ -1023,7 +1023,8 @@ class CorrelationExplorer {
             return;
         }
 
-        const cls = data.sortedCLs;
+        // Use ALL filtered cell lines (not capped oncoprint set) for accurate counts
+        const cls = data.allFilteredCLs || data.sortedCLs;
 
         // Build set membership for each cell line
         const intersections = new Map(); // key = binary string, value = { count, genes[] }
@@ -1673,7 +1674,7 @@ class CorrelationExplorer {
         });
 
         // Store data and context for export and live updates
-        this._oncoprintData = { topGenes, sortedCLs, cellW, cellH, boxAreaW, labelW, boxW, boxGap };
+        this._oncoprintData = { topGenes, sortedCLs, allFilteredCLs: filteredCLs, cellW, cellH, boxAreaW, labelW, boxW, boxGap };
         this._oncoprintContext = context;
 
         const self = this;
