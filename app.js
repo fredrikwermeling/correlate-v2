@@ -19362,6 +19362,9 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
     }
 
     openCellLineBrowser() {
+        // Reset all filters for a fresh start
+        this._oncoprintFilters = {};
+        this._activeOncoprintFilters = null;
         document.getElementById('clbSearch').value = '';
         document.getElementById('clbSortGene').value = '';
         document.getElementById('clbTissueFilter').value = '';
@@ -19387,6 +19390,11 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
     closeCellLineBrowser() {
         document.getElementById('cellLineBrowserModal').style.display = 'none';
+        // Clear oncoprint filters so they don't leak into other parts of the app
+        this._oncoprintFilters = {};
+        this._activeOncoprintFilters = null;
+        this._oncoprintSyncFilters?.();
+        document.getElementById('oncoprintPopup')?.remove();
         // Switch back to network tab
         document.querySelectorAll('.nav-link').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
