@@ -1208,7 +1208,7 @@ class CorrelationExplorer {
         });
 
         // Close on Escape
-        const esc = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('keydown', esc); } };
+        const esc = (e) => { if (e.key === 'Escape') { e.stopImmediatePropagation(); popup.remove(); document.removeEventListener('keydown', esc); } };
         document.addEventListener('keydown', esc);
     }
 
@@ -1844,7 +1844,8 @@ class CorrelationExplorer {
         // Close on click outside
         setTimeout(() => {
             const outsideHandler = (e) => {
-                if (!popup.contains(e.target) && e.target.id !== 'oncoprintBtn') {
+                const upsetPopup = document.getElementById('upsetPopup');
+                if (!popup.contains(e.target) && e.target.id !== 'oncoprintBtn' && (!upsetPopup || !upsetPopup.contains(e.target))) {
                     popup.remove();
                     document.removeEventListener('mousedown', outsideHandler);
                 }
