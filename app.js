@@ -1080,6 +1080,7 @@ class CorrelationExplorer {
         html += `</div>`;
         html += `<div style="display:flex; gap:6px; padding:6px 10px; border-top:1px solid #e5e7eb; align-items:center; flex-wrap:wrap;">`;
         html += `<label style="font-size:10px;cursor:pointer;color:#374151;"><input type="checkbox" id="upsetShowCounts" ${this._upsetShowCounts ? 'checked' : ''} onchange="app._upsetToggle('counts')" style="margin:0 3px 0 0;vertical-align:middle;"> Counts</label>`;
+        html += `<label style="font-size:10px;cursor:pointer;color:#374151;"><input type="checkbox" id="upsetShowPct" ${this._upsetShowPct ? 'checked' : ''} onchange="app._upsetToggle('pct')" style="margin:0 3px 0 0;vertical-align:middle;"> %</label>`;
         html += `<label style="font-size:10px;cursor:pointer;color:#374151;"><input type="checkbox" id="upsetShowNames" ${this._upsetShowNames ? 'checked' : ''} onchange="app._upsetToggle('names')" style="margin:0 3px 0 0;vertical-align:middle;"> Names</label>`;
         html += `<span style="border-left:1px solid #d1d5db;height:14px;"></span>`;
         html += `<button onclick="app._upsetExport('svg')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">SVG</button>`;
@@ -1163,12 +1164,20 @@ class CorrelationExplorer {
             showlegend: false
         }, ...matrixTraces];
 
-        // Count annotations above bars
-        const countAnnotations = this._upsetShowCounts ? barX.map((x, i) => ({
-            x, y: barY[i], text: String(barY[i]),
-            showarrow: false, font: { size: 9, color: '#374151' },
-            yanchor: 'bottom', yshift: 2
-        })) : [];
+        // Count/% annotations above bars
+        const totalCLs = cls.length;
+        const showCounts = this._upsetShowCounts;
+        const showPct = this._upsetShowPct;
+        const countAnnotations = (showCounts || showPct) ? barX.map((x, i) => {
+            const parts = [];
+            if (showCounts) parts.push(String(barY[i]));
+            if (showPct) parts.push(`${(barY[i] / totalCLs * 100).toFixed(1)}%`);
+            return {
+                x, y: barY[i], text: parts.join(' · '),
+                showarrow: false, font: { size: 9, color: '#374151' },
+                yanchor: 'bottom', yshift: 2
+            };
+        }) : [];
 
         const layout = {
             font: { family: 'Arial, Helvetica, sans-serif' },
@@ -1205,6 +1214,7 @@ class CorrelationExplorer {
 
     _upsetToggle(what) {
         if (what === 'counts') this._upsetShowCounts = !this._upsetShowCounts;
+        if (what === 'pct') this._upsetShowPct = !this._upsetShowPct;
         if (what === 'names') this._upsetShowNames = !this._upsetShowNames;
         this._showUpsetPlot();
     }
