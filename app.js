@@ -15809,6 +15809,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
 
         // Show modal
         document.getElementById('geneEffectModal').style.display = 'flex';
+        this._updateGeOncoprintLabel();
 
         // Render the selected view
         this.switchGeneEffectView(view);
@@ -15908,8 +15909,26 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const geFusion = document.getElementById('geFusionFilter');
             if (geFusion) geFusion.value = trans;
         }
+        // Show oncoprint filter label in GE modal
+        this._updateGeOncoprintLabel();
         // Re-render with the applied filters
         this.switchGeneEffectView(this.currentGEView || 'tissue');
+    }
+
+    _updateGeOncoprintLabel() {
+        const el = document.getElementById('geOncoprintLabel');
+        if (!el) return;
+        if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
+            const tags = this._activeOncoprintFilters.map(f => {
+                const bg = f.state === 'mut' ? '#dcfce7' : '#fef2f2';
+                const color = f.state === 'mut' ? '#16a34a' : '#dc2626';
+                return `<span style="background:${bg};color:${color};padding:1px 6px;border-radius:10px;font-size:10px;">${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}</span>`;
+            }).join(' ');
+            el.innerHTML = tags;
+            el.style.display = 'inline-flex';
+        } else {
+            el.style.display = 'none';
+        }
     }
 
     showGeneEffectAnalysis(gene, view = 'tissue') {
