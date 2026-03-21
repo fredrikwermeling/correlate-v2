@@ -1628,9 +1628,13 @@ class CorrelationExplorer {
         const dragHandle = document.getElementById('oncoprintDragHandle');
         let dragX, dragY;
         dragHandle.addEventListener('mousedown', (e) => {
-            dragX = e.clientX - popup.offsetLeft;
-            dragY = e.clientY - popup.offsetTop;
+            // Convert right-based positioning to left-based before dragging
+            const rect = popup.getBoundingClientRect();
+            popup.style.left = rect.left + 'px';
+            popup.style.top = rect.top + 'px';
             popup.style.right = 'auto';
+            dragX = e.clientX - rect.left;
+            dragY = e.clientY - rect.top;
             const onMove = (e2) => {
                 popup.style.left = (e2.clientX - dragX) + 'px';
                 popup.style.top = (e2.clientY - dragY) + 'px';
