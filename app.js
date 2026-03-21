@@ -992,14 +992,31 @@ class CorrelationExplorer {
         if (!data || !data.topGenes) return;
 
         // Use genes that have active filters, or top 5 by count
+        // Always include the selected hotspot mutation gene if set
         const activeFilters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
+        const hotspotGene = document.getElementById('mutationHotspotSelect')?.value;
         let upsetGenes, upsetLabel;
         if (activeFilters.length >= 2) {
             upsetGenes = activeFilters.map(([gene]) => data.topGenes.find(g => g.gene === gene)).filter(Boolean);
+            // Ensure hotspot gene is included
+            if (hotspotGene && !upsetGenes.find(g => g.gene === hotspotGene)) {
+                const hg = data.topGenes.find(g => g.gene === hotspotGene);
+                if (hg) upsetGenes.unshift(hg);
+            }
             upsetLabel = upsetGenes.map(g => g.gene).join(', ');
         } else {
-            upsetGenes = data.topGenes.slice(0, 5);
-            upsetLabel = `Top ${upsetGenes.length} most mutated`;
+            // Start with hotspot gene + top genes by count
+            const used = new Set();
+            upsetGenes = [];
+            if (hotspotGene) {
+                const hg = data.topGenes.find(g => g.gene === hotspotGene);
+                if (hg) { upsetGenes.push(hg); used.add(hotspotGene); }
+            }
+            for (const g of data.topGenes) {
+                if (upsetGenes.length >= 5) break;
+                if (!used.has(g.gene)) { upsetGenes.push(g); used.add(g.gene); }
+            }
+            upsetLabel = hotspotGene ? `${hotspotGene} + Top ${upsetGenes.length - 1}` : `Top ${upsetGenes.length} most mutated`;
         }
         if (upsetGenes.length < 2) {
             alert('Select at least 2 genes in the oncoprint (include or exclude) to generate an UpSet plot, or use top 5 by default.');
