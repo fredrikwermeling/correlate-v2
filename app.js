@@ -1364,6 +1364,26 @@ class CorrelationExplorer {
                 <th style="padding: 4px 8px; text-align: right; width: 44px;">%</th>
             </tr></thead><tbody>`;
 
+        // Pre-compute sub-tissue breakdown for each tissue
+        const subBreakdowns = {};
+        if (this.cellLineMetadata?.primaryDisease) {
+            const cellLines = this.metadata.cellLines;
+            const mutSource = isTransloc ? this.translocations?.geneData?.[gene]?.translocations
+                : isDamaging ? this.damagingMutations?.geneData?.[gene]?.mutations
+                : this.mutations?.geneData?.[gene]?.mutations;
+            if (mutSource) {
+                cellLines.forEach(cl => {
+                    const lin = this.cellLineMetadata.lineage?.[cl];
+                    const sub = this.cellLineMetadata.primaryDisease?.[cl];
+                    if (!lin || !sub) return;
+                    if (!subBreakdowns[lin]) subBreakdowns[lin] = {};
+                    if (!subBreakdowns[lin][sub]) subBreakdowns[lin][sub] = { nMut: 0, nWT: 0 };
+                    if (mutSource[cl] > 0) subBreakdowns[lin][sub].nMut++;
+                    else subBreakdowns[lin][sub].nWT++;
+                });
+            }
+        }
+
         breakdown.forEach(t => {
             const total = t.nMut + t.nWT;
             const pct = total > 0 ? (t.nMut / total * 100).toFixed(1) : '0.0';
@@ -1371,15 +1391,34 @@ class CorrelationExplorer {
             const isCurrentFilter = (currentLineage && t.lineage === currentLineage);
             const rowBg = isCurrentFilter ? 'background: #ecfdf5;' : '';
             const checked = isCurrentFilter ? ' checked' : '';
+            const hasSubs = subBreakdowns[t.lineage] && Object.keys(subBreakdowns[t.lineage]).length > 1;
 
             html += `<tr class="tb-row" data-tissue="${t.lineage}" style="cursor: pointer; ${rowBg}" onmouseenter="this.style.background=this.style.background||'#f3f4f6'" onmouseleave="this.style.background='${isCurrentFilter ? '#ecfdf5' : ''}'">
                 <td style="padding: 3px 8px;"><input type="checkbox" class="tb-check" value="${t.lineage}"${checked}></td>
-                <td style="padding: 3px 4px; font-weight: ${t.nMut > 0 ? '500' : '400'}; color: ${t.nMut > 0 ? '#1f2937' : '#9ca3af'};">${t.lineage}</td>
+                <td style="padding: 3px 4px; font-weight: ${t.nMut > 0 ? '500' : '400'}; color: ${t.nMut > 0 ? '#1f2937' : '#9ca3af'};">${hasSubs ? '<span class="tb-expand" style="font-size:9px;color:#9ca3af;margin-right:2px;">▶</span>' : ''}${t.lineage}</td>
                 <td style="padding: 3px 6px; text-align: right; color: #dc2626; font-weight: 600;">${t.nMut}</td>
                 <td style="padding: 3px 6px; text-align: right; color: #6b7280;">${t.nWT}</td>
                 <td style="padding: 3px 8px;"><div style="background: #fee2e2; border-radius: 2px; height: 10px; width: 100%;"><div style="background: #ef4444; border-radius: 2px; height: 10px; width: ${barWidth}%;"></div></div></td>
                 <td style="padding: 3px 8px; text-align: right; color: #6b7280; font-size: 11px;">${pct}%</td>
             </tr>`;
+
+            // Sub-tissue rows (hidden by default)
+            if (hasSubs) {
+                const subs = Object.entries(subBreakdowns[t.lineage]).sort((a, b) => b[1].nMut - a[1].nMut);
+                subs.forEach(([sub, counts]) => {
+                    const subTotal = counts.nMut + counts.nWT;
+                    const subPct = subTotal > 0 ? (counts.nMut / subTotal * 100).toFixed(1) : '0.0';
+                    const subBarW = maxMut > 0 ? (counts.nMut / maxMut * 100) : 0;
+                    html += `<tr class="tb-sub-row" data-parent="${t.lineage}" style="display:none; cursor:pointer; background:#fafafa;">
+                        <td style="padding: 2px 8px;"></td>
+                        <td style="padding: 2px 4px 2px 20px; font-size:11px; color:#6b7280;">${sub}</td>
+                        <td style="padding: 2px 6px; text-align: right; color: #dc2626; font-size:11px;">${counts.nMut}</td>
+                        <td style="padding: 2px 6px; text-align: right; color: #6b7280; font-size:11px;">${counts.nWT}</td>
+                        <td style="padding: 2px 8px;"><div style="background: #fee2e2; border-radius: 2px; height: 8px; width: 100%;"><div style="background: #f87171; border-radius: 2px; height: 8px; width: ${subBarW}%;"></div></div></td>
+                        <td style="padding: 2px 8px; text-align: right; color: #9ca3af; font-size: 10px;">${subPct}%</td>
+                    </tr>`;
+                });
+            }
         });
 
         html += `</tbody></table></div>`;
@@ -1396,10 +1435,22 @@ class CorrelationExplorer {
         popup.innerHTML = html;
         document.body.appendChild(popup);
 
-        // Row click toggles checkbox
+        // Row click: toggle checkbox, or expand sub-tissues if clicking the tissue name
         popup.querySelectorAll('.tb-row').forEach(row => {
             row.addEventListener('click', (e) => {
                 if (e.target.type === 'checkbox') return;
+                const tissue = row.dataset.tissue;
+                const expandArrow = row.querySelector('.tb-expand');
+
+                // If clicking tissue name area and has sub-tissues, toggle expansion
+                if (expandArrow && (e.target.closest('td') === row.cells[1])) {
+                    const subRows = popup.querySelectorAll(`.tb-sub-row[data-parent="${tissue}"]`);
+                    const isExpanded = subRows[0]?.style.display !== 'none';
+                    subRows.forEach(sr => sr.style.display = isExpanded ? 'none' : '');
+                    expandArrow.textContent = isExpanded ? '▶' : '▼';
+                    return;
+                }
+
                 const cb = row.querySelector('.tb-check');
                 cb.checked = !cb.checked;
                 this.updateTBSelectionCount();
