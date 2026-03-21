@@ -1152,10 +1152,26 @@ class CorrelationExplorer {
             xaxis: 'x', yaxis: 'y2'
         });
 
+        // Determine which bar matches the active oncoprint filter selection
+        const oncoFilters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
+        const barColors = sorted.map(s => {
+            if (oncoFilters.length === 0) return '#3b82f6';
+            const bits = s.key.split('');
+            let matches = true;
+            for (const [gene, state] of oncoFilters) {
+                const idx = upsetGenes.findIndex(g => g.gene === gene);
+                if (idx < 0) continue;
+                const isMut = bits[idx] === '1';
+                if (state === 'mut' && !isMut) { matches = false; break; }
+                if (state === 'wt' && isMut) { matches = false; break; }
+            }
+            return matches ? '#16a34a' : '#cbd5e1';
+        });
+
         const traces = [{
             x: barX, y: barY,
             type: 'bar',
-            marker: { color: '#3b82f6' },
+            marker: { color: barColors, line: { color: barColors.map(c => c === '#16a34a' ? '#15803d' : 'transparent'), width: barColors.map(c => c === '#16a34a' ? 2 : 0) } },
             text: this._upsetShowNames ? barLabels : barLabels.map(() => ''),
             textposition: 'inside',
             textangle: -90,
