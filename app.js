@@ -993,14 +993,16 @@ class CorrelationExplorer {
 
         // Use genes that have active filters, or top 5 by count
         const activeFilters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
-        let upsetGenes;
+        let upsetGenes, upsetLabel;
         if (activeFilters.length >= 2) {
             upsetGenes = activeFilters.map(([gene]) => data.topGenes.find(g => g.gene === gene)).filter(Boolean);
+            upsetLabel = upsetGenes.map(g => g.gene).join(', ');
         } else {
             upsetGenes = data.topGenes.slice(0, 5);
+            upsetLabel = `Top ${upsetGenes.length} most mutated`;
         }
         if (upsetGenes.length < 2) {
-            alert('Select at least 2 genes in the oncoprint (include or exclude) to generate an UpSet plot.');
+            alert('Select at least 2 genes in the oncoprint (include or exclude) to generate an UpSet plot, or use top 5 by default.');
             return;
         }
 
@@ -1038,11 +1040,15 @@ class CorrelationExplorer {
         popup.style.top = '50px';
 
         let html = `<div id="upsetDragHandle" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
-        html += `<span style="font-weight:600; font-size:12px;">UpSet — ${upsetGenes.map(g => g.gene).join(', ')}</span>`;
+        html += `<span style="font-weight:600; font-size:12px;">UpSet — ${upsetLabel}</span>`;
         html += `<button onclick="document.getElementById('upsetPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
         html += `<div style="padding:10px; overflow:auto; flex:1;">`;
         html += `<div id="upsetPlotDiv" style="width:${plotW}px; height:${plotH}px;"></div>`;
+        html += `</div>`;
+        html += `<div style="display:flex; gap:4px; padding:6px 10px; border-top:1px solid #e5e7eb;">`;
+        html += `<button onclick="app._upsetExport('svg')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">SVG</button>`;
+        html += `<button onclick="app._upsetExport('png')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">PNG</button>`;
         html += `</div>`;
         popup.innerHTML = html;
         document.body.appendChild(popup);
@@ -1149,6 +1155,32 @@ class CorrelationExplorer {
         // Close on Escape
         const esc = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('keydown', esc); } };
         document.addEventListener('keydown', esc);
+    }
+
+    async _upsetExport(format) {
+        const plotEl = document.getElementById('upsetPlotDiv');
+        if (!plotEl?.data) return;
+        const w = plotEl.layout?.width || 500;
+        const h = plotEl.layout?.height || 400;
+        const filename = 'upset_plot';
+
+        if (format === 'svg') {
+            const svgDataUrl = await Plotly.toImage(plotEl, { format: 'svg', width: w, height: h });
+            let svgStr = svgDataUrl.indexOf('base64,') > -1 ? atob(svgDataUrl.split('base64,')[1]) : decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
+            svgStr = this._finalizeSvgForExport(svgStr);
+            const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${filename}.svg`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        } else {
+            const url = await Plotly.toImage(plotEl, { format: 'png', width: w * 2, height: h * 2, scale: 2 });
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${filename}.png`;
+            a.click();
+        }
     }
 
     getTissueBreakdownForHotspot(gene) {
@@ -4586,7 +4618,7 @@ class CorrelationExplorer {
             settingsText += ` | Lineage: ${lineageText}`;
         }
         if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-            const levelLabels = { '0': 'WT', '1': '1 mut', '2': '2 mut', '1+2': 'Mut' };
+            const levelLabels = { '0': 'WT', '1': 'Mut', '2': 'Mut', '1+2': 'Mut' };
             settingsText += ` | Mut Filter: ${mr.additionalHotspot} ${levelLabels[mr.additionalHotspotLevel] || mr.additionalHotspotLevel}`;
         }
         if (mr.additionalTransGene && mr.additionalTransLevel !== 'all') {
