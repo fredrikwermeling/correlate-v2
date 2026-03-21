@@ -1774,6 +1774,25 @@ class CorrelationExplorer {
         // Sync active filters from the oncoprint checkboxes and update CLB if open
         const filters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
         this._activeOncoprintFilters = filters.length > 0 ? filters.map(([gene, state]) => ({ gene, state })) : null;
+
+        // Update param hotspot filter UI — gray out when oncoprint has multi-gene filters
+        const controls = document.getElementById('paramHotspotControls');
+        const label = document.getElementById('oncoprintFilterLabel');
+        if (controls && label) {
+            if (filters.length > 0) {
+                controls.style.opacity = '0.3';
+                controls.style.pointerEvents = 'none';
+                const parts = filters.map(([gene, state]) => `${gene} ${state === 'mut' ? 'Mut' : 'WT'}`);
+                label.innerHTML = `Oncoprint filter: ${parts.join(', ')} <span style="font-size:9px;color:#9ca3af;">(click to clear)</span>`;
+                label.style.display = '';
+                label.onclick = () => { this._oncoprintClearAll(); };
+            } else {
+                controls.style.opacity = '';
+                controls.style.pointerEvents = '';
+                label.style.display = 'none';
+            }
+        }
+
         // Live-update CLB if oncoprint was opened from CLB
         if (this._oncoprintContext === 'clb') {
             this.renderCellLineList();

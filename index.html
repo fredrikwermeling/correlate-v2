@@ -1614,7 +1614,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.30.7</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.30.8</a>
     </div>
 
     <div class="main-content">
@@ -1779,19 +1779,22 @@
                             <label class="form-label" style="margin-bottom:0;">Hotspot Mutation Filter:</label>
                             <button id="oncoprintBtn" type="button" style="padding: 2px 8px; font-size: 10px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show oncoprint of top hotspot mutations">Oncoprint</button>
                         </div>
-                        <select id="paramHotspotGene" class="form-control" style="margin-bottom: 4px;">
-                            <option value="">No filter</option>
-                        </select>
-                        <select id="paramHotspotLevel" class="form-control">
-                            <option value="all">All cells</option>
-                            <option value="0">Only WT (0 mutations)</option>
-                            <option value="1">Only 1 mutation</option>
-                            <option value="2">Only 2 mutations</option>
-                            <option value="1+2">Only mutated (1+2)</option>
-                        </select>
-                        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 4px; font-size: 9px; color: #92400e;">
-                            Selecting for mutations may introduce bias — mutations are often enriched in specific cancer types.
+                        <div id="paramHotspotControls">
+                            <select id="paramHotspotGene" class="form-control" style="margin-bottom: 4px;">
+                                <option value="">No filter</option>
+                            </select>
+                            <select id="paramHotspotLevel" class="form-control">
+                                <option value="all">All cells</option>
+                                <option value="0">Only WT (0 mutations)</option>
+                                <option value="1">Only 1 mutation</option>
+                                <option value="2">Only 2 mutations</option>
+                                <option value="1+2">Only mutated (1+2)</option>
+                            </select>
+                            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 4px; font-size: 9px; color: #92400e;">
+                                Selecting for mutations may introduce bias — mutations are often enriched in specific cancer types.
+                            </div>
                         </div>
+                        <div id="oncoprintFilterLabel" style="display:none; font-size:11px; color:#5a9f4a; margin-top:4px; cursor:pointer;" title="Click to clear oncoprint filters"></div>
                     </div>
 
                     <div class="form-group" id="paramTranslocationFilterGroup" style="display: none;">
