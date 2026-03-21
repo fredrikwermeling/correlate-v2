@@ -16072,7 +16072,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const layout = {
             annotations: [
                 { text: `<b>${geTissueTitle}</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 19 }, _tsRole: 'title' },
-                { text: 'Gene Effect', xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 17 }, _tsRole: 'xlabel' }
+                { text: `${gene} Gene Effect`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 17 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
                 zeroline: true,
@@ -16318,7 +16318,7 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const layout = {
             annotations: [
                 { text: `<b>${gene} Gene Effect by Hotspot Mutation</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
-                { text: 'Gene Effect', xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
+                { text: `${gene} Gene Effect`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
                 zeroline: true,
