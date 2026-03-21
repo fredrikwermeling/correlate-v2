@@ -1313,6 +1313,45 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.32.2 (2026-03-21)</strong></p>
+                <ul>
+                    <li>CLB active filter summary bar: "Showing 137 of 1186: Skin · Melanoma, TP53 Mut, KRAS WT"</li>
+                    <li>CLB filter counts cascade with oncoprint selections</li>
+                    <li>CLB Reset clears all filters including oncoprint selections</li>
+                    <li>CLB tissue/subtype filters carry through to GE modal</li>
+                    <li>Min n per tissue control in GE modal (default 1 = show all)</li>
+                </ul>
+                <p><strong>v.31.0–v.31.9 (2026-03-21)</strong></p>
+                <ul>
+                    <li>Tissue breakdown: expandable sub-tissues with checkboxes for selection</li>
+                    <li>Oncoprint drag fix, UpSet close doesn't close oncoprint</li>
+                    <li>Network/CSV/SVG exports include all oncoprint mutation filters</li>
+                    <li>Mutation inspect chart: x-axis always includes 0, wider left margin</li>
+                    <li>CLB toolbar: Hotspot filter, Fusion filter labels, Sort by GE for gene</li>
+                    <li>Expr vs GE button green (was purple)</li>
+                    <li>Mutation filter labels: "Mutation filter: NRAS WT, HRAS WT"</li>
+                </ul>
+                <p><strong>v.29.0–v.30.9 (2026-03-20–21)</strong></p>
+                <ul>
+                    <li>Oncoprint: two boxes per gene (include mutated / exclude mutated)</li>
+                    <li>Oncoprint multi-gene filters apply to all analyses and inspect views</li>
+                    <li>Oncoprint: SVG, PNG, CSV export</li>
+                    <li>UpSet intersection plot with counts/percent/names toggles and export</li>
+                    <li>Oncoprint in cell line browser with live filtering</li>
+                    <li>Oncoprint filter label replaces param hotspot controls when active</li>
+                    <li>All selectors respect excludedTissues from tissue breakdown</li>
+                    <li>Compact Min Cell Lines + P-value on same row</li>
+                    <li>Green border on mutation analysis sub-type selector</li>
+                </ul>
+                <p><strong>v.28.0–v.28.7 (2026-03-20)</strong></p>
+                <ul>
+                    <li>CLB mutation/translocation filters: searchable (input + datalist), sorted by count</li>
+                    <li>CLB gene click carries all active filters (tissue, hotspot, fusion) to GE modal</li>
+                    <li>Enrichr filter dropdown: Top 10/20/50/100, WT vs 1+2, WT vs 2, 2 vs 1, Δ GE, Visible</li>
+                    <li>GE modal shows all tissues when mutation/fusion filter active (min group size 1)</li>
+                    <li>Sort ALL dropdowns by count descending (tissues, subtypes, mutations)</li>
+                    <li>Oncoprint button in mutation analysis (first version)</li>
+                </ul>
                 <p><strong>v.27.6 (2026-03-20)</strong></p>
                 <ul>
                     <li>Cascading filters: all selectors reflect active lineage/sublineage, sorted by count descending</li>
@@ -1614,7 +1653,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.32.2</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.32.3</a>
     </div>
 
     <div class="main-content">
