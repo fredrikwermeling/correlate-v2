@@ -4586,10 +4586,26 @@ class CorrelationExplorer {
             settingsText += ` | Lineage: ${lineageText}`;
         }
         if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-            settingsText += ` | Mut Filter: ${mr.additionalHotspot} ${mr.additionalHotspotLevel}`;
+            const levelLabels = { '0': 'WT', '1': '1 mut', '2': '2 mut', '1+2': 'Mut' };
+            settingsText += ` | Mut Filter: ${mr.additionalHotspot} ${levelLabels[mr.additionalHotspotLevel] || mr.additionalHotspotLevel}`;
         }
         if (mr.additionalTransGene && mr.additionalTransLevel !== 'all') {
-            settingsText += ` | Fusion Filter: ${mr.additionalTransGene} ${mr.additionalTransLevel}`;
+            const levelLabels = { '0': 'WT', '1': '1 partner', '2': '2+', '1+2': 'Fused' };
+            settingsText += ` | Fusion Filter: ${mr.additionalTransGene} ${levelLabels[mr.additionalTransLevel] || mr.additionalTransLevel}`;
+        }
+        // Show active oncoprint multi-gene filters
+        if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
+            const filterParts = this._activeOncoprintFilters.map(f =>
+                `${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`
+            );
+            // Don't duplicate the main hotspot gene or the param filter gene
+            const shown = new Set();
+            if (mr.hotspotGene) shown.add(mr.hotspotGene);
+            if (mr.additionalHotspot) shown.add(mr.additionalHotspot);
+            const extra = filterParts.filter(p => !shown.has(p.split(' ')[0]));
+            if (extra.length > 0) {
+                settingsText += ` | Oncoprint: ${extra.join(', ')}`;
+            }
         }
         if (mr.excludedTissues && mr.excludedTissues.size > 0) {
             // Show included tissues (inverse of excluded) for clarity
