@@ -1056,8 +1056,23 @@ class CorrelationExplorer {
         popup.style.left = '50px';
         popup.style.top = '50px';
 
+        // Build filter context string
+        const lineageF = document.getElementById('lineageFilter')?.value || '';
+        const subLineageF = document.getElementById('subLineageFilter')?.value || '';
+        const hasExcl = this.excludedTissues && this.excludedTissues.size > 0;
+        let filterCtx = '';
+        if (lineageF) {
+            filterCtx = lineageF;
+            if (subLineageF) filterCtx += ` · ${subLineageF}`;
+        } else if (hasExcl) {
+            const allLin = this.cellLineMetadata?.lineage ? [...new Set(Object.values(this.cellLineMetadata.lineage))] : [];
+            const incl = allLin.filter(t => !this.excludedTissues.has(t));
+            filterCtx = incl.length <= 4 ? incl.join(', ') : `${incl.length} tissues`;
+        }
+
         let html = `<div id="upsetDragHandle" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
         html += `<span style="font-weight:600; font-size:12px;">UpSet — ${upsetLabel}</span>`;
+        html += `<span style="font-size:10px; color:#6b7280;">${cls.length} cell lines${filterCtx ? ' · ' + filterCtx : ''}</span>`;
         html += `<button onclick="document.getElementById('upsetPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
         html += `<div style="padding:10px; overflow:auto; flex:1;">`;
