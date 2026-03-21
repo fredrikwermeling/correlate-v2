@@ -19743,9 +19743,15 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
             const transVal = document.getElementById('clbTranslocationFilter').value;
             if (tissueVal) filterParts.push(tissueVal);
             if (subtypeVal) filterParts.push(subtypeVal);
-            if (hotspotVal) filterParts.push(hotspotVal + ' mut');
-            if (transVal) filterParts.push(transVal + ' fus');
-            const filterLabel = filterParts.length > 0 ? filterParts.join(' / ') : `all (n=${filteredIndices.length})`;
+            if (hotspotVal) filterParts.push(hotspotVal + ' Mut');
+            if (transVal) filterParts.push(transVal + ' Fused');
+            if (this._activeOncoprintFilters) {
+                const shown = new Set([hotspotVal, transVal].filter(Boolean));
+                for (const f of this._activeOncoprintFilters) {
+                    if (!shown.has(f.gene)) filterParts.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`);
+                }
+            }
+            const filterLabel = `filtered (n=${filteredIndices.length})${filterParts.length > 0 ? ': ' + filterParts.join(', ') : ''}`;
 
             const extremeLow = zScores.slice(0, N);
             const extremeHigh = zScores.slice(-N).reverse();
