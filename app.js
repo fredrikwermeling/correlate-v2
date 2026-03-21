@@ -1046,7 +1046,10 @@ class CorrelationExplorer {
         html += `<div style="padding:10px; overflow:auto; flex:1;">`;
         html += `<div id="upsetPlotDiv" style="width:${plotW}px; height:${plotH}px;"></div>`;
         html += `</div>`;
-        html += `<div style="display:flex; gap:4px; padding:6px 10px; border-top:1px solid #e5e7eb;">`;
+        html += `<div style="display:flex; gap:6px; padding:6px 10px; border-top:1px solid #e5e7eb; align-items:center; flex-wrap:wrap;">`;
+        html += `<label style="font-size:10px;cursor:pointer;color:#374151;"><input type="checkbox" id="upsetShowCounts" ${this._upsetShowCounts ? 'checked' : ''} onchange="app._upsetToggle('counts')" style="margin:0 3px 0 0;vertical-align:middle;"> Counts</label>`;
+        html += `<label style="font-size:10px;cursor:pointer;color:#374151;"><input type="checkbox" id="upsetShowNames" ${this._upsetShowNames ? 'checked' : ''} onchange="app._upsetToggle('names')" style="margin:0 3px 0 0;vertical-align:middle;"> Names</label>`;
+        html += `<span style="border-left:1px solid #d1d5db;height:14px;"></span>`;
         html += `<button onclick="app._upsetExport('svg')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">SVG</button>`;
         html += `<button onclick="app._upsetExport('png')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">PNG</button>`;
         html += `</div>`;
@@ -1063,14 +1066,13 @@ class CorrelationExplorer {
             document.addEventListener('mouseup', onUp);
         });
 
+        // Toggle states
+        this._upsetShowNames = this._upsetShowNames || false;
+        this._upsetShowCounts = this._upsetShowCounts !== false; // default true
+
         // Bar chart (top): intersection sizes
         const barX = sorted.map((_, i) => i);
         const barY = sorted.map(s => s.count);
-        const barColors = sorted.map(s => {
-            const bits = s.key.split('');
-            const nActive = bits.filter(b => b === '1').length;
-            return nActive === 0 ? '#d1d5db' : nActive === 1 ? '#3b82f6' : '#1e40af';
-        });
         const barLabels = sorted.map(s => {
             const bits = s.key.split('');
             const names = bits.map((b, i) => b === '1' ? upsetGenes[i].gene : null).filter(Boolean);
@@ -1119,14 +1121,26 @@ class CorrelationExplorer {
         const traces = [{
             x: barX, y: barY,
             type: 'bar',
-            marker: { color: barColors },
-            text: barLabels,
-            hovertemplate: '%{text}<br>%{y} cell lines<extra></extra>',
+            marker: { color: '#3b82f6' },
+            text: this._upsetShowNames ? barLabels : barLabels.map(() => ''),
+            textposition: 'inside',
+            textangle: -90,
+            textfont: { size: 9, color: 'white' },
+            customdata: barLabels,
+            hovertemplate: '%{customdata}<br>%{y} cell lines<extra></extra>',
             showlegend: false
         }, ...matrixTraces];
 
+        // Count annotations above bars
+        const countAnnotations = this._upsetShowCounts ? barX.map((x, i) => ({
+            x, y: barY[i], text: String(barY[i]),
+            showarrow: false, font: { size: 9, color: '#374151' },
+            yanchor: 'bottom', yshift: 2
+        })) : [];
+
         const layout = {
             font: { family: 'Arial, Helvetica, sans-serif' },
+            annotations: countAnnotations,
             width: plotW, height: plotH,
             margin: { t: 20, b: 10, l: 60, r: 20 },
             xaxis: {
@@ -1155,6 +1169,12 @@ class CorrelationExplorer {
         // Close on Escape
         const esc = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('keydown', esc); } };
         document.addEventListener('keydown', esc);
+    }
+
+    _upsetToggle(what) {
+        if (what === 'counts') this._upsetShowCounts = !this._upsetShowCounts;
+        if (what === 'names') this._upsetShowNames = !this._upsetShowNames;
+        this._showUpsetPlot();
     }
 
     async _upsetExport(format) {
