@@ -1837,12 +1837,7 @@ class CorrelationExplorer {
                 // Clicked gene label — set as hotspot
                 document.getElementById('mutationHotspotSelect').value = gene;
                 document.getElementById('tissueBreakdownBtn').style.display = 'inline-block';
-                this.showOncoprint();
-            } else {
-                // Clicked grid area — set as hotspot filter
-                document.getElementById('mutationHotspotSelect').value = gene;
-                document.getElementById('tissueBreakdownBtn').style.display = 'inline-block';
-                this.showOncoprint();
+                this.showOncoprint(this._oncoprintContext);
             }
         });
 
