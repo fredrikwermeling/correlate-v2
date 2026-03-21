@@ -15917,6 +15917,13 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         this._updateGeOncoprintLabel();
         // Re-render with the applied filters
         this.switchGeneEffectView(this.currentGEView || 'tissue');
+        // Update cell line count to reflect filters
+        const filteredData = this.getGETissueFilteredData();
+        const totalData = this.currentGeneEffect?.data?.length || 0;
+        const nEl = document.getElementById('geSummaryN');
+        if (nEl && filteredData.length < totalData) {
+            nEl.textContent = `${filteredData.length} of ${totalData}`;
+        }
     }
 
     _updateGeOncoprintLabel() {
@@ -15925,12 +15932,14 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         const fusionSelect = document.getElementById('geFusionFilter');
         if (!el) return;
         if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
+            const filteredN = this.getGETissueFilteredData().length;
+            const totalN = this.currentGeneEffect?.data?.length || 0;
             const tags = this._activeOncoprintFilters.map(f => {
                 const bg = f.state === 'mut' ? '#dcfce7' : '#fef2f2';
                 const color = f.state === 'mut' ? '#16a34a' : '#dc2626';
                 return `<span style="background:${bg};color:${color};padding:1px 6px;border-radius:10px;font-size:10px;">${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}</span>`;
             }).join(' ');
-            el.innerHTML = tags;
+            el.innerHTML = tags + ` <span style="font-size:10px;color:#6b7280;">(${filteredN}/${totalN} cell lines)</span>`;
             el.style.display = 'inline-flex';
             // Gray out single-gene filter dropdowns — oncoprint handles it
             if (hotspotSelect) { hotspotSelect.style.opacity = '0.3'; hotspotSelect.style.pointerEvents = 'none'; }
@@ -15965,6 +15974,10 @@ ${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-f
         if (fusionGene && this.translocations?.geneData?.[fusionGene]) {
             const transData = this.translocations.geneData[fusionGene].translocations || {};
             data = data.filter(d => (transData[d.cellLineId] || 0) >= 1);
+        }
+        // Oncoprint multi-gene filters
+        if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
+            data = data.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId));
         }
         return data;
     }
