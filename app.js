@@ -987,6 +987,170 @@ class CorrelationExplorer {
         if (currentValue) input.value = currentValue;
     }
 
+    _showUpsetPlot() {
+        const data = this._oncoprintData;
+        if (!data || !data.topGenes) return;
+
+        // Use genes that have active filters, or top 5 by count
+        const activeFilters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
+        let upsetGenes;
+        if (activeFilters.length >= 2) {
+            upsetGenes = activeFilters.map(([gene]) => data.topGenes.find(g => g.gene === gene)).filter(Boolean);
+        } else {
+            upsetGenes = data.topGenes.slice(0, 5);
+        }
+        if (upsetGenes.length < 2) {
+            alert('Select at least 2 genes in the oncoprint (include or exclude) to generate an UpSet plot.');
+            return;
+        }
+
+        const cls = data.sortedCLs;
+
+        // Build set membership for each cell line
+        const intersections = new Map(); // key = binary string, value = { count, genes[] }
+        for (const cl of cls) {
+            let key = '';
+            for (const g of upsetGenes) {
+                key += (g.muts[cl] > 0) ? '1' : '0';
+            }
+            if (!intersections.has(key)) intersections.set(key, { count: 0, key });
+            intersections.get(key).count++;
+        }
+
+        // Sort by count descending
+        const sorted = [...intersections.values()].sort((a, b) => b.count - a.count);
+
+        // Build the plot using Plotly
+        const nGenes = upsetGenes.length;
+        const nBars = sorted.length;
+        const barW = 30;
+        const matrixH = nGenes * 20;
+        const plotW = Math.max(400, nBars * barW + 100);
+        const plotH = 250 + matrixH;
+
+        // Remove existing upset
+        document.getElementById('upsetPopup')?.remove();
+
+        const popup = document.createElement('div');
+        popup.id = 'upsetPopup';
+        popup.style.cssText = `position:fixed; z-index:10001; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15); display:flex; flex-direction:column; max-width:90vw; max-height:85vh;`;
+        popup.style.left = '50px';
+        popup.style.top = '50px';
+
+        let html = `<div id="upsetDragHandle" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
+        html += `<span style="font-weight:600; font-size:12px;">UpSet — ${upsetGenes.map(g => g.gene).join(', ')}</span>`;
+        html += `<button onclick="document.getElementById('upsetPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
+        html += `</div>`;
+        html += `<div style="padding:10px; overflow:auto; flex:1;">`;
+        html += `<div id="upsetPlotDiv" style="width:${plotW}px; height:${plotH}px;"></div>`;
+        html += `</div>`;
+        popup.innerHTML = html;
+        document.body.appendChild(popup);
+
+        // Make draggable
+        const dh = document.getElementById('upsetDragHandle');
+        dh.addEventListener('mousedown', (e) => {
+            const dx = e.clientX - popup.offsetLeft, dy = e.clientY - popup.offsetTop;
+            const onMove = (e2) => { popup.style.left = (e2.clientX - dx) + 'px'; popup.style.top = (e2.clientY - dy) + 'px'; };
+            const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+
+        // Bar chart (top): intersection sizes
+        const barX = sorted.map((_, i) => i);
+        const barY = sorted.map(s => s.count);
+        const barColors = sorted.map(s => {
+            const bits = s.key.split('');
+            const nActive = bits.filter(b => b === '1').length;
+            return nActive === 0 ? '#d1d5db' : nActive === 1 ? '#3b82f6' : '#1e40af';
+        });
+        const barLabels = sorted.map(s => {
+            const bits = s.key.split('');
+            const names = bits.map((b, i) => b === '1' ? upsetGenes[i].gene : null).filter(Boolean);
+            return names.length === 0 ? 'None' : names.join(' ∩ ');
+        });
+
+        // Matrix (bottom): dots showing which genes are in each intersection
+        const matrixTraces = [];
+        // Lines connecting dots
+        for (let col = 0; col < nBars; col++) {
+            const bits = sorted[col].key.split('');
+            const activeRows = [];
+            bits.forEach((b, row) => { if (b === '1') activeRows.push(row); });
+            if (activeRows.length >= 2) {
+                matrixTraces.push({
+                    x: activeRows.map(() => col),
+                    y: activeRows.map(r => -(r + 1)),
+                    mode: 'lines',
+                    line: { color: '#374151', width: 2 },
+                    showlegend: false,
+                    hoverinfo: 'skip',
+                    xaxis: 'x', yaxis: 'y2'
+                });
+            }
+        }
+        // Dots
+        const dotX = [], dotY = [], dotColor = [], dotText = [];
+        for (let col = 0; col < nBars; col++) {
+            const bits = sorted[col].key.split('');
+            bits.forEach((b, row) => {
+                dotX.push(col);
+                dotY.push(-(row + 1));
+                dotColor.push(b === '1' ? '#374151' : '#d1d5db');
+                dotText.push(`${upsetGenes[row].gene}: ${b === '1' ? 'Mutated' : 'WT'}`);
+            });
+        }
+        matrixTraces.push({
+            x: dotX, y: dotY,
+            mode: 'markers',
+            marker: { color: dotColor, size: 10 },
+            text: dotText, hoverinfo: 'text',
+            showlegend: false,
+            xaxis: 'x', yaxis: 'y2'
+        });
+
+        const traces = [{
+            x: barX, y: barY,
+            type: 'bar',
+            marker: { color: barColors },
+            text: barLabels,
+            hovertemplate: '%{text}<br>%{y} cell lines<extra></extra>',
+            showlegend: false
+        }, ...matrixTraces];
+
+        const layout = {
+            font: { family: 'Arial, Helvetica, sans-serif' },
+            width: plotW, height: plotH,
+            margin: { t: 20, b: 10, l: 60, r: 20 },
+            xaxis: {
+                showticklabels: false, showgrid: false, zeroline: false,
+                range: [-0.5, nBars - 0.5]
+            },
+            yaxis: {
+                title: 'Cell lines', domain: [0.4, 1], anchor: 'x'
+            },
+            yaxis2: {
+                domain: [0, 0.35], anchor: 'x',
+                tickvals: upsetGenes.map((_, i) => -(i + 1)),
+                ticktext: upsetGenes.map(g => g.gene),
+                showgrid: false, zeroline: false,
+                range: [-(nGenes + 0.5), -0.5]
+            },
+            bargap: 0.3,
+            plot_bgcolor: '#fafafa',
+            paper_bgcolor: 'white'
+        };
+
+        Plotly.newPlot('upsetPlotDiv', traces, layout, {
+            responsive: false, displayModeBar: false
+        });
+
+        // Close on Escape
+        const esc = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('keydown', esc); } };
+        document.addEventListener('keydown', esc);
+    }
+
     getTissueBreakdownForHotspot(gene) {
         if (!this.mutations?.geneData?.[gene] || !this.cellLineMetadata?.lineage) return [];
         const mutations = this.mutations.geneData[gene].mutations;
@@ -1319,6 +1483,8 @@ class CorrelationExplorer {
         html += `<button onclick="app._oncoprintExport('svg')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">SVG</button>`;
         html += `<button onclick="app._oncoprintExport('png')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">PNG</button>`;
         html += `<button onclick="app._oncoprintExport('csv')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">CSV</button>`;
+        html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
+        html += `<button onclick="app._showUpsetPlot()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f0fdf4;color:#16a34a;font-weight:500;">UpSet</button>`;
         html += `</div>`;
         popup.innerHTML = html;
         document.body.appendChild(popup);
@@ -4449,7 +4615,7 @@ class CorrelationExplorer {
         const mut2Toggle = document.getElementById('mut2ColToggle');
         if (mut2Toggle) {
             mut2Toggle.style.display = !isD ? '' : 'none';
-            // Default: hide mut2 columns unless user toggled them on
+            // Default: show all columns
             const showMut2 = document.getElementById('showMut2Cols');
             if (showMut2 && !showMut2.checked) {
                 document.querySelectorAll('#mutationTable .mut2-col').forEach(el => el.style.display = 'none');
