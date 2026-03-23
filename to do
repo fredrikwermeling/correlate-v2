@@ -1,5 +1,6 @@
-In mutational analysis, selected eg BRAF hotspot mutation. If you select only TP53 in the oncoprint, the oblique hotspot mutation also changes. These should be separated.
-
+in v. 1 (but probably in other apps too): In mutational analysis, selected eg BRAF hotspot mutation. If you select only TP53 in the oncoprint, the oblique hotspot mutation also changes. These should be separated.
+in v. 1 (but probably in other apps too): analyis of a gene set and applied TP53 mut and BRAF mut in oncoprint. in the network, the legend in the header say TP53 level all, it should say WT or mut. 
+in v.1 (but probably in other apps too): ehen using design mode, searched genes are darker green and collerated geesn are lighter green. thuis is good. but when change the size in the "Aa" settings, the öighter gereen color diseapear. 
 
 
 
