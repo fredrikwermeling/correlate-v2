@@ -1,3 +1,21 @@
+In mutational analysis, selected eg BRAF hotspot mutation. If you select only TP53 in the oncoprint, the oblique hotspot mutation also changes. These should be separated.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Better long-term fix in your correlate app: Another item for Claude Code. The SVG lines probably use absolute stroke-width values. Add this to your prompt:
 When generating SVGs for export, add vector-effect="non-scaling-stroke" to line/path elements if you want strokes to stay consistent, OR (preferred for Inkscape compatibility) make sure all stroke-widths are set as proportional values and include the attribute style="vector-effect: none" on the root SVG so that Inkscape scales strokes with transforms. Also, avoid using SVG transform="scale()" on groups. Instead, set actual coordinate values so that when the user scales in Inkscape, everything behaves predictably.
 The encoding issue you're seeing (the garbled text like "ÝÜOOîß" instead of gene names) is a separate problem. That's a character encoding mismatch in the SVG, likely UTF-8 vs Latin-1. Add this for Claude Code too:
