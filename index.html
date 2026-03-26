@@ -1313,6 +1313,39 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.35.0 (2026-03-26)</strong></p>
+                <ul>
+                    <li>Harmonized all 3 apps (V2, V1, CoExpress) — consistent fonts, labels, defaults</li>
+                    <li>Publication-ready scatter: 25px title, 15px subtitle, 20px axis labels, 17px ticks/legend</li>
+                    <li>GE by-tissue/hotspot: annotation-based draggable titles, larger fonts (12-14pt ticks)</li>
+                    <li>Box plots default B&W (color schemes via Aa panel)</li>
+                    <li>Default node size 20 (was 25), slider step=1 for snapping</li>
+                    <li>"No hotspot mutation" label, 2-line mutation inspect subtitle</li>
+                </ul>
+                <p><strong>v.34.0–v.34.8 (2026-03-26)</strong></p>
+                <ul>
+                    <li>Table font 12px, Δ GE (1+2v0) label, mutation table PNG/SVG export</li>
+                    <li>SVG clip fix: keep plot area clips, only remove legend/scrollbox</li>
+                    <li>Network Aa banner font size + position preserved in export</li>
+                    <li>Aa settings preserve input/correlated node color distinction</li>
+                    <li>Oncoprint Apply no longer overwrites hotspot selector</li>
+                    <li>UpSet: gene counts from all CLs, configurable N (3/5/7/10), removed bar click</li>
+                    <li>Network edge click carries filters to scatter inspect</li>
+                    <li>General tissue selector with checkboxes, subtypes, Apply (matches mutation analysis)</li>
+                    <li>Lineage filter scales with oncoprint filters</li>
+                </ul>
+                <p><strong>v.33.0–v.33.9 (2026-03-21–26)</strong></p>
+                <ul>
+                    <li>GE x-axis label includes gene name</li>
+                    <li>UpSet highlights bars matching oncoprint selection (green/gray)</li>
+                    <li>Mutation inspect subtitle: all filters with WT/Mut labels</li>
+                    <li>GE modal: oncoprint filters actually filter data + show tags + count</li>
+                    <li>CLB→GE: skip hotspot when oncoprint active, carry CLB tissue filters</li>
+                    <li>Network filter text includes all oncoprint filters</li>
+                    <li>CLB active filter summary: "Showing N of M: filters..."</li>
+                    <li>CLB Reset clears all filters including oncoprint</li>
+                    <li>All exports include oncoprint filters in metadata</li>
+                </ul>
                 <p><strong>v.32.2 (2026-03-21)</strong></p>
                 <ul>
                     <li>CLB active filter summary bar: "Showing 137 of 1186: Skin · Melanoma, TP53 Mut, KRAS WT"</li>
@@ -1653,7 +1686,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.35.0</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.35.1</a>
     </div>
 
     <div class="main-content">
