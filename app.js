@@ -9366,6 +9366,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return;
         }
         this.openInspect(c);
+        // Apply current network filters to the scatter inspect
+        this._applyNetworkFiltersToInspect();
+    }
+
+    _applyNetworkFiltersToInspect() {
+        // Apply lineage filter
+        const lineage = document.getElementById('lineageFilter')?.value;
+        if (lineage) {
+            const scatterFilter = document.getElementById('scatterCancerFilter');
+            if (scatterFilter) scatterFilter.value = lineage;
+        }
+        // Apply param hotspot as scatter hotspot overlay
+        const paramHotspot = document.getElementById('paramHotspotGene')?.value;
+        const paramLevel = document.getElementById('paramHotspotLevel')?.value;
+        if (paramHotspot && paramLevel !== 'all') {
+            const hotspotSelect = document.getElementById('hotspotGene');
+            const hotspotMode = document.getElementById('hotspotMode');
+            if (hotspotSelect) hotspotSelect.value = paramHotspot;
+            if (hotspotMode) hotspotMode.value = 'color';
+        }
+        // Apply param translocation as scatter translocation overlay
+        const paramTrans = document.getElementById('paramTranslocationGene')?.value;
+        const paramTransLevel = document.getElementById('paramTranslocationLevel')?.value;
+        if (paramTrans && paramTransLevel !== 'all') {
+            const transSelect = document.getElementById('translocationGene');
+            const transMode = document.getElementById('translocationMode');
+            if (transSelect) transSelect.value = paramTrans;
+            if (transMode) transMode.value = 'color';
+        }
+        // Re-render with filters
+        setTimeout(() => this.updateInspectPlot(), 100);
     }
 
     openByTissueByGenes(gene1, gene2) {
