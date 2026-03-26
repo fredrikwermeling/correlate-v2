@@ -1027,6 +1027,13 @@ class CorrelationExplorer {
         // Use ALL filtered cell lines (not capped oncoprint set) for accurate counts
         const cls = data.allFilteredCLs || data.sortedCLs;
 
+        // Recount gene mutations using all filtered cell lines (not capped oncoprint set)
+        upsetGenes.forEach(g => {
+            let count = 0;
+            for (const cl of cls) { if (g.muts[cl] > 0) count++; }
+            g.nAll = count;
+        });
+
         // Build set membership for each cell line
         const intersections = new Map(); // key = binary string, value = { count, genes[] }
         for (const cl of cls) {
@@ -1212,7 +1219,7 @@ class CorrelationExplorer {
             yaxis2: {
                 domain: [0, 0.35], anchor: 'x',
                 tickvals: upsetGenes.map((_, i) => -(i + 1)),
-                ticktext: upsetGenes.map(g => `${g.gene} (${g.n})`),
+                ticktext: upsetGenes.map(g => `${g.gene} (${g.nAll || g.n})`),
                 showgrid: false, zeroline: false,
                 range: [-(nGenes + 0.5), -0.5]
             },
@@ -1223,29 +1230,6 @@ class CorrelationExplorer {
 
         Plotly.newPlot('upsetPlotDiv', traces, layout, {
             responsive: false, displayModeBar: false
-        }).then(plotEl => {
-            // Click bar to apply equivalent oncoprint filters
-            plotEl.on('plotly_click', (eventData) => {
-                if (!eventData.points || eventData.points.length === 0) return;
-                const pt = eventData.points[0];
-                if (pt.curveNumber !== 0) return; // only bar trace
-                const idx = pt.pointIndex;
-                if (idx >= 0 && idx < sorted.length) {
-                    const bits = sorted[idx].key.split('');
-                    // Apply as oncoprint filters
-                    this._oncoprintFilters = {};
-                    bits.forEach((b, i) => {
-                        this._oncoprintFilters[upsetGenes[i].gene] = b === '1' ? 'mut' : 'wt';
-                    });
-                    this._oncoprintSyncFilters();
-                    // Re-render oncoprint if open
-                    if (document.getElementById('oncoprintPopup')) {
-                        this.showOncoprint(this._oncoprintContext);
-                    }
-                    // Re-draw UpSet to update highlighting
-                    this._showUpsetPlot();
-                }
-            });
         });
 
         // Close on Escape
