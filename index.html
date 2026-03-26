@@ -607,14 +607,14 @@
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .data-table thead th {
             background: var(--green-50);
             color: var(--green-800);
             font-weight: 600;
-            padding: 10px 12px;
+            padding: 6px 8px;
             text-align: center;
             border-bottom: 2px solid var(--green-200);
             position: sticky;
@@ -628,7 +628,7 @@
         }
 
         .data-table td {
-            padding: 8px 12px;
+            padding: 5px 8px;
             border-bottom: 1px solid var(--gray-200);
             text-align: center;
         }
@@ -1653,7 +1653,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.33.7</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.33.8</a>
     </div>
 
     <div class="main-content">
@@ -2197,6 +2197,8 @@
                         <button class="btn btn-outline btn-sm" id="filterMutationToggle" title="Toggle column filters">Filters</button>
                         <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadMutationResults">Export CSV</button>
+                        <button class="btn btn-outline btn-sm" id="exportMutTablePNG" title="Export mutation table as PNG image">PNG</button>
+                        <button class="btn btn-outline btn-sm" id="exportMutTableSVG" title="Export mutation table as SVG image">SVG</button>
                         <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
                         <button class="btn btn-secondary btn-sm" id="mutCompareByTissueBtn" title="Compare mutation effect across cancer types">Compare by Tissue</button>
                         <button class="btn btn-secondary btn-sm" id="mutCompareByHotspotBtn" title="Compare with other hotspot mutations">Compare by Hotspot</button>
