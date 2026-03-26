@@ -6815,14 +6815,16 @@ class CorrelationExplorer {
         // Sync node font from slider (slider still controls node label size)
         const fontSize = parseInt(document.getElementById('netFontSize').value) || 16;
 
-        // Update all nodes
+        // Update all nodes — preserve input/correlated color distinction
         const nodeUpdates = [];
         this.networkData.nodes.forEach(node => {
             const update = {
                 id: node.id,
                 font: { size: fontSize, color: labelColor, face: fontFamily }
             };
-            if (node.color?.background !== '#d1d5db') {
+            // Only override color if user explicitly changed it from default
+            // Skip gray nodes (#d1d5db) and preserve input (#5a9f4a) vs correlated (#a8d89a) distinction
+            if (nodeColor !== '#5a9f4a' && node.color?.background !== '#d1d5db') {
                 update.color = { ...node.color, background: nodeColor };
             }
             nodeUpdates.push(update);
