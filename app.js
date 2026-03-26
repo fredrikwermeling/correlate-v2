@@ -7403,7 +7403,8 @@ Results:
         const legendHeight = 160;
         const padding = 30;
         const filterText = this._getNetworkFilterText();
-        const filterBannerHeight = filterText ? 24 : 0;
+        const bannerFs = this._netBannerFontSize || 12;
+        const filterBannerHeight = filterText ? bannerFs + 14 : 0;
         const totalWidth = cssWidth;
         const totalHeight = filterBannerHeight + cssHeight + legendHeight + padding;
 
@@ -7423,10 +7424,10 @@ Results:
 
         // Draw filter banner at top if active
         if (filterText) {
-            ctx.font = '12px Arial';
+            ctx.font = `${bannerFs}px Arial`;
             ctx.fillStyle = '#374151';
             ctx.textAlign = 'center';
-            ctx.fillText(filterText, totalWidth / 2, 16);
+            ctx.fillText(filterText, totalWidth / 2, bannerFs + 4);
             ctx.textAlign = 'left';
         }
 
@@ -7740,7 +7741,8 @@ Results:
         const networkHeight = container.clientHeight;
         const legendHeight = 160;  // Larger for publication
         const filterText = this._getNetworkFilterText();
-        const filterBannerHeight = filterText ? 24 : 0;
+        const svgBannerFs = this._netBannerFontSize || 12;
+        const filterBannerHeight = filterText ? svgBannerFs + 14 : 0;
         const totalHeight = filterBannerHeight + networkHeight + legendHeight;
 
         // Get positions from vis.js and convert to DOM coordinates
@@ -7778,7 +7780,7 @@ Results:
   .legend-small { font-family: Arial, sans-serif; font-size: 13px; fill: #333; }
 </style>
 ${transparentBg ? '' : '<rect width="100%" height="100%" fill="white"/>'}
-${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-family: Arial, sans-serif; font-size: 12px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
+${filterText ? `<text x="${width / 2}" y="${svgBannerFs + 4}" text-anchor="middle" style="font-family: Arial, sans-serif; font-size: ${svgBannerFs}px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
 `;
 
         // Get current scale for sizing elements
@@ -9055,7 +9057,8 @@ Results:
         const networkHeight = container.clientHeight;
         const legendHeight = 160;  // Larger for publication
         const filterText = this._getNetworkFilterText();
-        const filterBannerHeight = filterText ? 24 : 0;
+        const svgBannerFs = this._netBannerFontSize || 12;
+        const filterBannerHeight = filterText ? svgBannerFs + 14 : 0;
         const totalHeight = filterBannerHeight + networkHeight + legendHeight;
 
         // Get positions from vis.js and convert to DOM coordinates
@@ -9093,7 +9096,7 @@ Results:
   .legend-small { font-family: Arial, sans-serif; font-size: 13px; fill: #333; }
 </style>
 <rect width="100%" height="100%" fill="white"/>
-${filterText ? `<text x="${width / 2}" y="16" text-anchor="middle" style="font-family: Arial, sans-serif; font-size: 12px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
+${filterText ? `<text x="${width / 2}" y="${svgBannerFs + 4}" text-anchor="middle" style="font-family: Arial, sans-serif; font-size: ${svgBannerFs}px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
 `;
 
         // Get current scale for sizing elements
