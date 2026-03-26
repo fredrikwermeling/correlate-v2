@@ -6407,8 +6407,12 @@ class CorrelationExplorer {
             document.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
                 const containerRect = container.getBoundingClientRect();
-                banner.style.left = (e.clientX - containerRect.left - dragOffsetX) + 'px';
-                banner.style.top = (e.clientY - containerRect.top - dragOffsetY) + 'px';
+                const newLeft = e.clientX - containerRect.left - dragOffsetX;
+                const newTop = e.clientY - containerRect.top - dragOffsetY;
+                banner.style.left = newLeft + 'px';
+                banner.style.top = newTop + 'px';
+                // Store position for export
+                this._netBannerPos = { x: newLeft, y: newTop };
             });
             document.addEventListener('mouseup', () => { isDragging = false; });
         }
@@ -7424,12 +7428,17 @@ Results:
             ctx.fillRect(0, 0, totalWidth, totalHeight);
         }
 
-        // Draw filter banner at top if active
+        // Draw filter banner — use dragged position if available, else top center
         if (filterText) {
             ctx.font = `${bannerFs}px Arial`;
             ctx.fillStyle = '#374151';
-            ctx.textAlign = 'center';
-            ctx.fillText(filterText, totalWidth / 2, bannerFs + 4);
+            if (this._netBannerPos) {
+                ctx.textAlign = 'left';
+                ctx.fillText(filterText, this._netBannerPos.x, this._netBannerPos.y + bannerFs);
+            } else {
+                ctx.textAlign = 'center';
+                ctx.fillText(filterText, totalWidth / 2, bannerFs + 4);
+            }
             ctx.textAlign = 'left';
         }
 
@@ -7782,7 +7791,7 @@ Results:
   .legend-small { font-family: Arial, sans-serif; font-size: 13px; fill: #333; }
 </style>
 ${transparentBg ? '' : '<rect width="100%" height="100%" fill="white"/>'}
-${filterText ? `<text x="${width / 2}" y="${svgBannerFs + 4}" text-anchor="middle" style="font-family: Arial, sans-serif; font-size: ${svgBannerFs}px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
+${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2}" y="${this._netBannerPos ? this._netBannerPos.y + svgBannerFs : svgBannerFs + 4}" text-anchor="${this._netBannerPos ? 'start' : 'middle'}" style="font-family: Arial, sans-serif; font-size: ${svgBannerFs}px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
 `;
 
         // Get current scale for sizing elements
@@ -9098,7 +9107,7 @@ Results:
   .legend-small { font-family: Arial, sans-serif; font-size: 13px; fill: #333; }
 </style>
 <rect width="100%" height="100%" fill="white"/>
-${filterText ? `<text x="${width / 2}" y="${svgBannerFs + 4}" text-anchor="middle" style="font-family: Arial, sans-serif; font-size: ${svgBannerFs}px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
+${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2}" y="${this._netBannerPos ? this._netBannerPos.y + svgBannerFs : svgBannerFs + 4}" text-anchor="${this._netBannerPos ? 'start' : 'middle'}" style="font-family: Arial, sans-serif; font-size: ${svgBannerFs}px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
 `;
 
         // Get current scale for sizing elements
