@@ -5669,7 +5669,7 @@ class CorrelationExplorer {
         // Populate inspect-level hotspot filter dropdown
         const hotspotFilterEl = document.getElementById('geHotspotFilter');
         if (hotspotFilterEl) {
-            let hHtml = '<option value="">No mutation filter</option>';
+            let hHtml = '<option value="">No hotspot mutation</option>';
             if (this.mutations?.genes) {
                 hHtml += '<optgroup label="Hotspot">';
                 for (const g of this.mutations.genes) {
@@ -6247,7 +6247,7 @@ class CorrelationExplorer {
         // Reset sliders to default values
         document.getElementById('netFontSize').value = 16;
         document.getElementById('fontSizeBubble').textContent = '16';
-        document.getElementById('netNodeSize').value = 25;
+        document.getElementById('netNodeSize').value = 20;
         document.getElementById('nodeSizeBubble').textContent = '25';
         document.getElementById('netEdgeWidth').value = 3;
         document.getElementById('edgeWidthBubble').textContent = '3';
@@ -14660,7 +14660,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     _captureNetworkSettings() {
         return {
             fontSize: parseInt(document.getElementById('netFontSize')?.value) || 16,
-            nodeSize: parseInt(document.getElementById('netNodeSize')?.value) || 25,
+            nodeSize: parseInt(document.getElementById('netNodeSize')?.value) || 20,
             edgeWidth: parseInt(document.getElementById('netEdgeWidth')?.value) || 3,
             colorByGeneEffect: document.getElementById('colorByGeneEffect')?.checked || false,
             colorGEType: document.querySelector('input[name="colorGEType"]:checked')?.value || 'signed',
@@ -14965,7 +14965,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Populate hotspot filter (hotspot + damaging mutations)
         const hotspotFilter = document.getElementById('caHotspotFilter');
         if (hotspotFilter) {
-            let hHtml = '<option value="">No mutation filter</option>';
+            let hHtml = '<option value="">No hotspot mutation</option>';
             if (this.mutations?.genes) {
                 hHtml += '<optgroup label="Hotspot Mutations">';
                 for (const g of this.mutations.genes) {
@@ -16042,7 +16042,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Populate and show hotspot filter
         const hotspotFilterEl = document.getElementById('geHotspotFilter');
         if (hotspotFilterEl) {
-            let hHtml = '<option value="">No mutation filter</option>';
+            let hHtml = '<option value="">No hotspot mutation</option>';
             if (this.mutations?.genes) {
                 hHtml += '<optgroup label="Hotspot">';
                 for (const g of this.mutations.genes) {
