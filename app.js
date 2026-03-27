@@ -768,6 +768,7 @@ class CorrelationExplorer {
         const hideParams = isMutationMode || isSynonymMode;
         document.getElementById('correlationParams').style.display = hideParams ? 'none' : 'block';
         document.getElementById('slopeParams').style.display = hideParams ? 'none' : 'block';
+        document.getElementById('growthRateOption').style.display = hideParams ? 'none' : 'block';
 
         // Hide min cell lines, filters, exclude tissues, and find synonyms button for synonym mode
         document.getElementById('minCellLinesGroup').style.display = isSynonymMode ? 'none' : 'block';
@@ -4040,12 +4041,13 @@ class CorrelationExplorer {
         }
 
         const expandNetwork = mode === 'design' && document.getElementById('designExpandNetwork')?.checked;
+        const includeGrowthRate = document.getElementById('includeGrowthRate')?.checked && !!this.growthRateData;
         this.showStatus('info', expandNetwork ? 'Running correlation analysis (expanded network)...' : 'Running correlation analysis...');
 
         // Use setTimeout to allow UI to update
         setTimeout(() => {
             try {
-                this.results = this.calculateCorrelations(geneList, mode, cutoff, minN, minSlope, cellLineIndices, expandNetwork);
+                this.results = this.calculateCorrelations(geneList, mode, cutoff, minN, minSlope, cellLineIndices, expandNetwork, includeGrowthRate);
                 if (this.results.success) {
                     this.displayResults();
                     this.showStatus('success',
@@ -5526,6 +5528,7 @@ class CorrelationExplorer {
 
     showGeneEffectDistribution(gene, tissueOverride, inspectHotspotOverride) {
         if (!this.mutationResults) return;
+        if (gene === '⚡ Growth Rate') return; // pseudo-gene, not a real gene
 
         const mr = this.mutationResults;
         const hotspotGene = mr.hotspotGene;
@@ -6248,7 +6251,7 @@ class CorrelationExplorer {
         this.downloadFile(csv, filename, 'text/csv');
     }
 
-    calculateCorrelations(geneList, mode, cutoff, minN, minSlope, cellLineIndices, expandNetwork = false) {
+    calculateCorrelations(geneList, mode, cutoff, minN, minSlope, cellLineIndices, expandNetwork = false, includeGrowthRate = false) {
         const correlations = [];
         let targetGenes;
 
@@ -6268,6 +6271,18 @@ class CorrelationExplorer {
             const filteredData = cellLineIndices.map(i => fullData[i]);
             inputData.set(gene, filteredData);
         });
+
+        // If growth rate is included, build its pseudo-gene vector and add to input
+        const GROWTH_RATE_LABEL = '⚡ Growth Rate';
+        if (includeGrowthRate && this.growthRateData) {
+            const growthData = cellLineIndices.map(i => {
+                const cl = this.metadata.cellLines[i];
+                const v = this.growthRateData[cl];
+                return v !== undefined ? v : NaN;
+            });
+            inputData.set(GROWTH_RATE_LABEL, growthData);
+            geneList = [...geneList, GROWTH_RATE_LABEL];
+        }
 
         // Calculate correlations (first pass: input genes vs target genes)
         for (let i = 0; i < geneList.length; i++) {
@@ -6355,17 +6370,28 @@ class CorrelationExplorer {
 
         // Calculate mean effect for each gene (both all cells and filtered cells)
         const clusterData = clusters.map(gene => {
-            const idx = this.geneIndex.get(gene);
-            const fullData = this.getGeneData(idx);
+            // Handle growth rate pseudo-gene
+            const isGrowthRate = gene === GROWTH_RATE_LABEL;
+            let fullData, allValidData, filteredData;
+            if (isGrowthRate && this.growthRateData) {
+                allValidData = Object.values(this.growthRateData).filter(v => !isNaN(v));
+                filteredData = cellLineIndices.map(i => {
+                    const cl = this.metadata.cellLines[i];
+                    return this.growthRateData[cl] ?? NaN;
+                }).filter(v => !isNaN(v));
+            } else {
+                const idx = this.geneIndex.get(gene);
+                fullData = this.getGeneData(idx);
+                allValidData = Array.from(fullData).filter(v => !isNaN(v));
+                filteredData = cellLineIndices.map(i => fullData[i]).filter(v => !isNaN(v));
+            }
 
             // Stats for ALL cells
-            const allValidData = Array.from(fullData).filter(v => !isNaN(v));
             const allMean = allValidData.length > 0 ? allValidData.reduce((a, b) => a + b, 0) / allValidData.length : NaN;
             const allVariance = allValidData.length > 0 ? allValidData.reduce((a, b) => a + (b - allMean) ** 2, 0) / allValidData.length : NaN;
             const allSd = Math.sqrt(allVariance);
 
             // Stats for FILTERED cells
-            const filteredData = cellLineIndices.map(i => fullData[i]).filter(v => !isNaN(v));
             const filtMean = filteredData.length > 0 ? filteredData.reduce((a, b) => a + b, 0) / filteredData.length : NaN;
             const filtVariance = filteredData.length > 0 ? filteredData.reduce((a, b) => a + (b - filtMean) ** 2, 0) / filteredData.length : NaN;
             const filtSd = Math.sqrt(filtVariance);
@@ -6386,27 +6412,36 @@ class CorrelationExplorer {
         // Add uncorrelated input genes so they appear in the clusters table
         const correlatedGenes = new Set(clusterData.map(c => c.gene));
         geneList.forEach(gene => {
-            if (!correlatedGenes.has(gene) && this.geneIndex.has(gene)) {
-                const idx = this.geneIndex.get(gene);
-                const fullData = this.getGeneData(idx);
-                const allValidData = Array.from(fullData).filter(v => !isNaN(v));
-                const allMean = allValidData.length > 0 ? allValidData.reduce((a, b) => a + b, 0) / allValidData.length : NaN;
-                const allVariance = allValidData.length > 0 ? allValidData.reduce((a, b) => a + (b - allMean) ** 2, 0) / allValidData.length : NaN;
-                const allSd = Math.sqrt(allVariance);
-                const filteredData = cellLineIndices.map(i => fullData[i]).filter(v => !isNaN(v));
-                const filtMean = filteredData.length > 0 ? filteredData.reduce((a, b) => a + b, 0) / filteredData.length : NaN;
-                const filtVariance = filteredData.length > 0 ? filteredData.reduce((a, b) => a + (b - filtMean) ** 2, 0) / filteredData.length : NaN;
-                const filtSd = Math.sqrt(filtVariance);
+            if (!correlatedGenes.has(gene) && (this.geneIndex.has(gene) || gene === GROWTH_RATE_LABEL)) {
+                let allValidData, filteredData2;
+                if (gene === GROWTH_RATE_LABEL && this.growthRateData) {
+                    allValidData = Object.values(this.growthRateData).filter(v => !isNaN(v));
+                    filteredData2 = cellLineIndices.map(i => {
+                        const cl = this.metadata.cellLines[i];
+                        return this.growthRateData[cl] ?? NaN;
+                    }).filter(v => !isNaN(v));
+                } else {
+                    const idx = this.geneIndex.get(gene);
+                    const fullData = this.getGeneData(idx);
+                    allValidData = Array.from(fullData).filter(v => !isNaN(v));
+                    filteredData2 = cellLineIndices.map(i => fullData[i]).filter(v => !isNaN(v));
+                }
+                const allMean2 = allValidData.length > 0 ? allValidData.reduce((a, b) => a + b, 0) / allValidData.length : NaN;
+                const allVariance2 = allValidData.length > 0 ? allValidData.reduce((a, b) => a + (b - allMean2) ** 2, 0) / allValidData.length : NaN;
+                const allSd2 = Math.sqrt(allVariance2);
+                const filtMean2 = filteredData2.length > 0 ? filteredData2.reduce((a, b) => a + b, 0) / filteredData2.length : NaN;
+                const filtVariance2 = filteredData2.length > 0 ? filteredData2.reduce((a, b) => a + (b - filtMean2) ** 2, 0) / filteredData2.length : NaN;
+                const filtSd2 = Math.sqrt(filtVariance2);
 
                 clusterData.push({
                     gene: gene,
                     cluster: '-',
-                    meanEffect: Math.round(allMean * 100) / 100,
-                    sdEffect: Math.round(allSd * 100) / 100,
-                    meanEffectFiltered: Math.round(filtMean * 100) / 100,
-                    sdEffectFiltered: Math.round(filtSd * 100) / 100,
+                    meanEffect: Math.round(allMean2 * 100) / 100,
+                    sdEffect: Math.round(allSd2 * 100) / 100,
+                    meanEffectFiltered: Math.round(filtMean2 * 100) / 100,
+                    sdEffectFiltered: Math.round(filtSd2 * 100) / 100,
                     nAll: allValidData.length,
-                    nFiltered: filteredData.length,
+                    nFiltered: filteredData2.length,
                     inGeneList: true,
                     hasCorrelation: false
                 });
@@ -6619,15 +6654,17 @@ class CorrelationExplorer {
             }
 
             // Add * to label if synonym
-            const label = isSynonym ? `${gene}*` : gene;
+            const isGrowthRate = gene === '⚡ Growth Rate';
+            const label = isGrowthRate ? 'Growth Rate' : isSynonym ? `${gene}*` : gene;
 
             nodes.push({
                 id: gene,
                 label: label,
                 size: nodeSize,
+                shape: isGrowthRate ? 'diamond' : 'dot',
                 font: { size: fontSize, color: this._netLabelColor || '#333', face: this._netFontFamily || 'Arial, sans-serif' },
                 color: {
-                    background: this._netNodeColor || (this.results.mode === 'design' ?
+                    background: isGrowthRate ? '#9333ea' : this._netNodeColor || (this.results.mode === 'design' ?
                         (isInput ? '#5a9f4a' : '#a8d89a') : '#5a9f4a'),
                     border: '#000000'
                 },
@@ -9701,8 +9738,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._userTitlePosition = null;
         this._userXLabelPos = null;
         this._userYLabelPos = null;
-        const xTypeByTissue = document.getElementById('xAxisDataType')?.value || 'ge';
-        const yTypeByTissue = document.getElementById('yAxisDataType')?.value || 'ge';
+        const GR_LABEL = '⚡ Growth Rate';
+        let xTypeByTissue = document.getElementById('xAxisDataType')?.value || 'ge';
+        let yTypeByTissue = document.getElementById('yAxisDataType')?.value || 'ge';
+        if (c.gene1 === GR_LABEL) xTypeByTissue = 'growth';
+        if (c.gene2 === GR_LABEL) yTypeByTissue = 'growth';
         this.currentInspect = {
             gene1: c.gene1,
             gene2: c.gene2,
@@ -9712,10 +9752,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
 
         // Get data for both genes (respecting axis data type)
-        const idx1 = this.geneIndex.get(c.gene1);
-        const idx2 = this.geneIndex.get(c.gene2);
-        const geData1 = this.getGeneData(idx1);
-        const geData2 = this.getGeneData(idx2);
+        const idx1 = c.gene1 !== GR_LABEL ? this.geneIndex.get(c.gene1) : undefined;
+        const idx2 = c.gene2 !== GR_LABEL ? this.geneIndex.get(c.gene2) : undefined;
+        const geData1 = idx1 !== undefined ? this.getGeneData(idx1) : null;
+        const geData2 = idx2 !== undefined ? this.getGeneData(idx2) : null;
 
         // Prepare plot data
         const plotData = [];
@@ -9775,8 +9815,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._userXLabelPos = null;
         this._userYLabelPos = null;
         this._userLabelPositions = new Map();
-        const xType = document.getElementById('xAxisDataType')?.value || 'ge';
-        const yType = document.getElementById('yAxisDataType')?.value || 'ge';
+        let xType = document.getElementById('xAxisDataType')?.value || 'ge';
+        let yType = document.getElementById('yAxisDataType')?.value || 'ge';
+
+        // Auto-detect growth rate pseudo-gene and force axis type
+        const GR_LABEL = '⚡ Growth Rate';
+        if (c.gene1 === GR_LABEL) { xType = 'growth'; document.getElementById('xAxisDataType').value = 'growth'; }
+        if (c.gene2 === GR_LABEL) { yType = 'growth'; document.getElementById('yAxisDataType').value = 'growth'; }
+
         this.currentInspect = {
             gene1: c.gene1,
             gene2: c.gene2,
@@ -9788,10 +9834,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.clearGates();
 
         // Get data for both genes (respecting axis data type)
-        const idx1 = this.geneIndex.get(c.gene1);
-        const idx2 = this.geneIndex.get(c.gene2);
-        const geData1 = this.getGeneData(idx1);
-        const geData2 = this.getGeneData(idx2);
+        const idx1 = c.gene1 !== GR_LABEL ? this.geneIndex.get(c.gene1) : undefined;
+        const idx2 = c.gene2 !== GR_LABEL ? this.geneIndex.get(c.gene2) : undefined;
+        const geData1 = idx1 !== undefined ? this.getGeneData(idx1) : null;
+        const geData2 = idx2 !== undefined ? this.getGeneData(idx2) : null;
 
         // Prepare plot data
         const plotData = [];

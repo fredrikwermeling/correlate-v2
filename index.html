@@ -1313,6 +1313,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.37.1 (2026-03-27)</strong></p>
+                <ul>
+                    <li>Growth rate included in correlation analysis (toggle on/off, default on)</li>
+                    <li>Shows as "⚡ Growth Rate" in correlations table, purple diamond in network</li>
+                    <li>Click scatter from growth rate correlation auto-sets axis to Growth</li>
+                </ul>
                 <p><strong>v.37 (2026-03-27)</strong></p>
                 <ul>
                     <li>Growth rate data: CRISPR-inferred growth rate per cell line (100% coverage)</li>
@@ -1699,7 +1705,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.37</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.37.1</a>
     </div>
 
     <div class="main-content">
@@ -1780,6 +1786,13 @@
                     <div class="form-group" id="slopeParams">
                         <label class="form-label">Min Slope: <span class="slider-value" id="slopeValue">0.10</span></label>
                         <input type="range" id="minSlope" min="0" max="2" step="0.05" value="0.1">
+                    </div>
+
+                    <div class="form-group" id="growthRateOption" style="margin-top: -4px; margin-bottom: 4px;">
+                        <label style="font-size: 11px; color: #4b5563; cursor: pointer;">
+                            <input type="checkbox" id="includeGrowthRate" checked>
+                            Include growth rate in correlation
+                        </label>
                     </div>
 
                     <div class="form-group" id="mutationHotspotGroup" style="display: none; border: 1.5px solid #86efac; border-radius: 6px; padding: 8px; background: #f0fdf4;">
