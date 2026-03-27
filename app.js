@@ -2893,9 +2893,35 @@ class CorrelationExplorer {
         });
         document.getElementById('translocationFilterLevel')?.addEventListener('change', () => this.updateInspectPlot());
 
-        // Axis data type selectors (GE / Expression)
-        document.getElementById('xAxisDataType')?.addEventListener('change', () => this.updateInspectGenes());
-        document.getElementById('yAxisDataType')?.addEventListener('change', () => this.updateInspectGenes());
+        // Axis data type selectors (GE / Expression / Growth)
+        document.getElementById('xAxisDataType')?.addEventListener('change', (e) => {
+            const geneInput = document.getElementById('inspectGeneX');
+            if (e.target.value === 'growth') {
+                geneInput.dataset.savedGene = geneInput.value;
+                geneInput.value = '';
+                geneInput.disabled = true;
+                geneInput.placeholder = 'Growth Rate';
+            } else if (geneInput.disabled) {
+                geneInput.value = geneInput.dataset.savedGene || '';
+                geneInput.disabled = false;
+                geneInput.placeholder = 'X gene';
+            }
+            this.updateInspectGenes();
+        });
+        document.getElementById('yAxisDataType')?.addEventListener('change', (e) => {
+            const geneInput = document.getElementById('inspectGeneY');
+            if (e.target.value === 'growth') {
+                geneInput.dataset.savedGene = geneInput.value;
+                geneInput.value = '';
+                geneInput.disabled = true;
+                geneInput.placeholder = 'Growth Rate';
+            } else if (geneInput.disabled) {
+                geneInput.value = geneInput.dataset.savedGene || '';
+                geneInput.disabled = false;
+                geneInput.placeholder = 'Y gene';
+            }
+            this.updateInspectGenes();
+        });
 
         document.getElementById('downloadScatterPNG').addEventListener('click', () => this.downloadScatterPNG());
         document.getElementById('downloadScatterSVG').addEventListener('click', () => this.downloadScatterSVG());
@@ -2918,6 +2944,7 @@ class CorrelationExplorer {
         document.getElementById('compareAllMutationsBtn')?.addEventListener('click', () => this.showCompareAllMutations());
         document.getElementById('compareAllTranslocationsBtn')?.addEventListener('click', () => this.showCompareAllTranslocations());
         document.getElementById('compareAllCancerTypesBtn')?.addEventListener('click', () => this.showCompareAllCancerTypes());
+        document.getElementById('compareAllGrowthBtn')?.addEventListener('click', () => this.showCompareByGrowthRate());
         document.getElementById('updateInspectGenes')?.addEventListener('click', () => this.updateInspectGenes());
 
         // Plot size controls
@@ -11813,22 +11840,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     async updateInspectGenes() {
-        const gene1 = document.getElementById('inspectGeneX').value.trim().toUpperCase();
-        const gene2 = document.getElementById('inspectGeneY').value.trim().toUpperCase();
         const xType = document.getElementById('xAxisDataType')?.value || 'ge';
         const yType = document.getElementById('yAxisDataType')?.value || 'ge';
+        const GR_LABEL = '⚡ Growth Rate';
 
-        if (!gene1 || !gene2) {
-            alert('Please enter both X and Y genes.');
+        // For growth axes, use the growth rate label; otherwise require a gene
+        const gene1 = xType === 'growth' ? GR_LABEL : document.getElementById('inspectGeneX').value.trim().toUpperCase();
+        const gene2 = yType === 'growth' ? GR_LABEL : document.getElementById('inspectGeneY').value.trim().toUpperCase();
+
+        if ((!gene1 && xType !== 'growth') || (!gene2 && yType !== 'growth')) {
+            alert('Please enter genes for non-growth axes.');
             return;
         }
 
-        // Validate genes exist in GE data (required for cell line indexing)
-        if (!this.geneIndex.has(gene1)) {
+        // Validate genes exist in GE data (not needed for growth axis)
+        if (xType !== 'growth' && !this.geneIndex.has(gene1)) {
             alert(`Gene "${gene1}" not found in the gene effect dataset.`);
             return;
         }
-        if (!this.geneIndex.has(gene2)) {
+        if (yType !== 'growth' && !this.geneIndex.has(gene2)) {
             alert(`Gene "${gene2}" not found in the gene effect dataset.`);
             return;
         }
@@ -11917,6 +11947,166 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const yLabel = yType === 'growth' ? 'Growth' : yType === 'expr' ? 'Expr' : 'GE';
         const typeInfo = (xType !== 'ge' || yType !== 'ge') ? ` [${xLabel}/${yLabel}]` : '';
         document.getElementById('inspectTitle').textContent = `Correlation: ${gene1} vs ${gene2}${typeInfo}`;
+    }
+
+    showCompareByGrowthRate() {
+        if (!this.currentInspect || !this.growthRateData) return;
+
+        const { gene1, gene2, data } = this.currentInspect;
+
+        // Apply current filters
+        const cancerFilter = document.getElementById('scatterCancerFilter').value;
+        const subtypeFilter = document.getElementById('scatterSubtypeFilter').value;
+        const mutFilterGene = document.getElementById('mutationFilterGene').value;
+        const mutFilterLevel = document.getElementById('mutationFilterLevel').value;
+
+        let filteredData = cancerFilter ? data.filter(d => d.lineage === cancerFilter) : [...data];
+
+        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
+            filteredData = filteredData.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
+        }
+        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
+            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
+            filteredData = filteredData.filter(d => {
+                const mutLevel = filterMutations[d.cellLineId] || 0;
+                if (mutFilterLevel === '0') return mutLevel === 0;
+                if (mutFilterLevel === '1') return mutLevel === 1;
+                if (mutFilterLevel === '2') return mutLevel >= 2;
+                if (mutFilterLevel === '1+2') return mutLevel >= 1;
+                return true;
+            });
+        }
+        if (this._customCellLineFilter) {
+            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
+        }
+
+        // Get growth rate for each cell line
+        const withGrowth = filteredData.map(d => ({
+            ...d,
+            growth: this.growthRateData[d.cellLineId] ?? NaN
+        })).filter(d => !isNaN(d.growth));
+
+        if (withGrowth.length < 5) {
+            alert(`Too few cell lines with growth rate data (${withGrowth.length}). Need at least 5.`);
+            return;
+        }
+
+        // Correlate X gene vs growth and Y gene vs growth
+        const xVals = withGrowth.map(d => d.x);
+        const yVals = withGrowth.map(d => d.y);
+        const grVals = withGrowth.map(d => d.growth);
+
+        const xVsGr = this.pearsonWithSlope(xVals, grVals);
+        const yVsGr = this.pearsonWithSlope(yVals, grVals);
+
+        // Also compute by tissue
+        const tissueGroups = {};
+        withGrowth.forEach(d => {
+            const t = d.lineage || 'Unknown';
+            if (!tissueGroups[t]) tissueGroups[t] = [];
+            tissueGroups[t].push(d);
+        });
+
+        const tissueRows = Object.entries(tissueGroups)
+            .filter(([, pts]) => pts.length >= 5)
+            .map(([tissue, pts]) => {
+                const tx = pts.map(d => d.x), ty = pts.map(d => d.y), tg = pts.map(d => d.growth);
+                const rxg = this.pearsonWithSlope(tx, tg);
+                const ryg = this.pearsonWithSlope(ty, tg);
+                return { tissue, n: pts.length, rxg: rxg.correlation, ryg: ryg.correlation };
+            })
+            .sort((a, b) => Math.abs(b.rxg) - Math.abs(a.rxg));
+
+        // Build filter description
+        const filterParts = [];
+        if (cancerFilter) filterParts.push(`Tissue: ${cancerFilter}`);
+        if (subtypeFilter) filterParts.push(`Subtype: ${subtypeFilter}`);
+        if (mutFilterGene && mutFilterLevel !== 'all') filterParts.push(`${mutFilterGene}: ${mutFilterLevel}`);
+        const filterDesc = filterParts.join(' | ');
+
+        // Render
+        const xType = this.currentInspect.xType || 'ge';
+        const yType = this.currentInspect.yType || 'ge';
+        const xLabel = xType === 'growth' ? 'Growth Rate' : xType === 'expr' ? `${gene1} Expr` : `${gene1} GE`;
+        const yLabel = yType === 'growth' ? 'Growth Rate' : yType === 'expr' ? `${gene2} Expr` : `${gene2} GE`;
+
+        const corrColor = (r) => r > 0 ? '#059669' : '#dc2626';
+        const fmt = (v) => isNaN(v) ? '-' : v.toFixed(3);
+
+        let html = `<div style="padding: 10px;">
+            <h4 style="margin: 0 0 6px 0;">Growth Rate Correlation — ${gene1} vs ${gene2}</h4>
+            <p style="font-size: 11px; color: #666; margin: 0 0 10px 0;">
+                n=${withGrowth.length} cell lines${filterDesc ? ' | ' + filterDesc : ''}
+            </p>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 12px;">
+                <tr style="background: #f9fafb; font-weight: 600;">
+                    <td style="padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">Axis</td>
+                    <td style="padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">r vs Growth</td>
+                    <td style="padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">n</td>
+                    <td style="padding: 6px 8px; border-bottom: 2px solid #e5e7eb;"></td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-weight: 500;">${xLabel} (X)</td>
+                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; color: ${corrColor(xVsGr.correlation)}; font-weight: 600;">${fmt(xVsGr.correlation)}</td>
+                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb;">${xVsGr.n}</td>
+                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb;">
+                        <button class="btn btn-sm" style="font-size:10px;padding:1px 6px;background:#9333ea;color:white;" onclick="app.openGrowthRateScatter('x')">Scatter</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-weight: 500;">${yLabel} (Y)</td>
+                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; color: ${corrColor(yVsGr.correlation)}; font-weight: 600;">${fmt(yVsGr.correlation)}</td>
+                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb;">${yVsGr.n}</td>
+                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb;">
+                        <button class="btn btn-sm" style="font-size:10px;padding:1px 6px;background:#9333ea;color:white;" onclick="app.openGrowthRateScatter('y')">Scatter</button>
+                    </td>
+                </tr>
+            </table>`;
+
+        if (tissueRows.length > 0) {
+            html += `<h5 style="margin: 12px 0 6px 0;">By Tissue</h5>
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <tr style="background: #f9fafb; font-weight: 600;">
+                    <td style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">Tissue</td>
+                    <td style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">n</td>
+                    <td style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">r(${gene1} vs GR)</td>
+                    <td style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">r(${gene2} vs GR)</td>
+                </tr>`;
+            tissueRows.forEach(row => {
+                html += `<tr>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6;">${row.tissue}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6;">${row.n}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; color: ${corrColor(row.rxg)}; font-weight: 500;">${fmt(row.rxg)}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; color: ${corrColor(row.ryg)}; font-weight: 500;">${fmt(row.ryg)}</td>
+                </tr>`;
+            });
+            html += `</table>`;
+        }
+
+        html += `<button class="btn btn-outline btn-sm" style="margin-top: 10px;" onclick="document.getElementById('compareTable').style.display='none'; document.getElementById('scatterPlot').style.display='block';">Back to Scatter</button>
+        </div>`;
+
+        document.getElementById('scatterPlot').style.display = 'none';
+        document.getElementById('compareTable').style.display = 'block';
+        document.getElementById('compareTable').innerHTML = html;
+    }
+
+    openGrowthRateScatter(axis) {
+        if (!this.currentInspect) return;
+        const gene = axis === 'x' ? this.currentInspect.gene1 : this.currentInspect.gene2;
+        const xInput = document.getElementById('inspectGeneX');
+        const yInput = document.getElementById('inspectGeneY');
+        // X axis = gene GE, Y axis = growth rate
+        xInput.value = gene;
+        xInput.disabled = false;
+        xInput.placeholder = 'X gene';
+        document.getElementById('xAxisDataType').value = 'ge';
+        yInput.dataset.savedGene = yInput.value;
+        yInput.value = '';
+        yInput.disabled = true;
+        yInput.placeholder = 'Growth Rate';
+        document.getElementById('yAxisDataType').value = 'growth';
+        this.updateInspectGenes();
     }
 
     showCompareAllCancerTypes() {
