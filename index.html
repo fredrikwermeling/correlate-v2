@@ -1313,11 +1313,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.40.1 (2026-03-27)</strong></p>
+                <p><strong>v.40.2 (2026-03-27)</strong></p>
                 <ul>
-                    <li>GE boxplot data type selector: switch Y axis to Growth Rate or Gene Set Score</li>
-                    <li>Gene set dropdown appears when "Gene Set" is selected — pick any Hallmark pathway</li>
-                    <li>Boxplots, stats table, and summary all update to reflect selected data type</li>
+                    <li>Standalone "Growth Rate" and "Gene Set" buttons in GE analysis — no gene input needed</li>
+                    <li>Click Growth Rate → immediate boxplot of growth rate by tissue</li>
+                    <li>Click Gene Set → dropdown to pick Hallmark pathway → boxplot of pathway score by tissue</li>
+                    <li>Both work independently of gene effect, with full filter support</li>
                 </ul>
                 <p><strong>v.40 (2026-03-27)</strong></p>
                 <ul>
@@ -1729,7 +1730,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.40.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.40.2</a>
     </div>
 
     <div class="main-content">
@@ -2695,19 +2696,11 @@
                 <!-- Gene search bar -->
                 <div id="geSearchBar" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
                     <!-- Row 1: Gene Effect + Mutation + Analyze -->
-                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Gene Effect:</label>
                             <input type="text" id="geneEffectSearch" class="form-control" placeholder="Gene symbol" style="width: 130px; font-size: 13px; padding: 6px 10px;">
-                            <select id="geDataType" style="font-size: 11px; padding: 3px 6px; border: 1px solid #ddd; border-radius: 4px; background: #fff;" title="Data type for Y axis">
-                                <option value="ge">GE</option>
-                                <option value="growth">Growth</option>
-                                <option value="geneset">Gene Set</option>
-                            </select>
                         </div>
-                        <select id="geGeneSetSelect" style="display: none; font-size: 11px; padding: 3px 6px; border: 1px solid #ddd; border-radius: 4px; width: 200px;" title="Select Hallmark gene set">
-                            <option value="">Select gene set...</option>
-                        </select>
                         <span id="geHotspotGeneGroup" style="display: none;">
                             <div style="display: flex; align-items: center; gap: 6px;">
                                 <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Mutation:</label>
@@ -2715,6 +2708,12 @@
                             </div>
                         </span>
                         <button class="btn btn-success btn-sm" id="geneEffectSearchBtn" style="padding: 6px 16px;">Analyze</button>
+                        <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
+                        <button class="btn btn-sm btn-outline" id="geGrowthRateBtn" style="font-size: 11px; padding: 3px 10px;" title="Show growth rate by tissue">Growth Rate</button>
+                        <button class="btn btn-sm btn-outline" id="geGeneSetBtn" style="font-size: 11px; padding: 3px 10px;" title="Show gene set score by tissue">Gene Set ▾</button>
+                        <select id="geGeneSetSelect" style="display: none; font-size: 11px; padding: 3px 6px; border: 1px solid #ddd; border-radius: 4px; width: 220px;" title="Select Hallmark gene set">
+                            <option value="">Select gene set...</option>
+                        </select>
                         <span id="geneEffectCurrentGene" style="font-weight: 600; color: #5a9f4a;"></span>
                     </div>
                     <!-- Row 2: Filters + Compare + View -->

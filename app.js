@@ -3239,25 +3239,33 @@ class CorrelationExplorer {
                 this.switchGeneEffectView(this.currentGEView || 'tissue');
             }
         });
-        // GE data type selector (GE / Growth / Gene Set)
-        document.getElementById('geDataType')?.addEventListener('change', async (e) => {
-            const val = e.target.value;
+        // GE Growth Rate button — show growth rate by tissue (no gene needed)
+        document.getElementById('geGrowthRateBtn')?.addEventListener('click', () => this._showGrowthRateAnalysis());
+
+        // GE Gene Set button — show/hide gene set dropdown
+        document.getElementById('geGeneSetBtn')?.addEventListener('click', async () => {
             const gsSelect = document.getElementById('geGeneSetSelect');
-            gsSelect.style.display = val === 'geneset' ? '' : 'none';
-            if (val === 'geneset' && gsSelect.options.length <= 1) {
-                await this.loadHallmarkGeneSets();
-                if (!this.expressionLoaded) await this.loadExpressionData();
-                if (this.hallmarkGeneSets) {
-                    gsSelect.innerHTML = '<option value="">Select gene set...</option>';
-                    for (const name of Object.keys(this.hallmarkGeneSets).sort()) {
-                        const clean = name.replace('HALLMARK_', '').replace(/_/g, ' ');
-                        gsSelect.innerHTML += `<option value="${name}">${clean} (${this.hallmarkGeneSets[name].length})</option>`;
+            if (gsSelect.style.display === 'none' || !gsSelect.style.display) {
+                gsSelect.style.display = '';
+                if (gsSelect.options.length <= 1) {
+                    await this.loadHallmarkGeneSets();
+                    if (!this.expressionLoaded) await this.loadExpressionData();
+                    if (this.hallmarkGeneSets) {
+                        gsSelect.innerHTML = '<option value="">Select gene set...</option>';
+                        for (const name of Object.keys(this.hallmarkGeneSets).sort()) {
+                            const clean = name.replace('HALLMARK_', '').replace(/_/g, ' ');
+                            gsSelect.innerHTML += `<option value="${name}">${clean} (${this.hallmarkGeneSets[name].length})</option>`;
+                        }
                     }
                 }
+            } else {
+                gsSelect.style.display = 'none';
             }
-            if (val !== 'geneset') this._applyGEDataTypeOverride();
         });
-        document.getElementById('geGeneSetSelect')?.addEventListener('change', () => this._applyGEDataTypeOverride());
+        document.getElementById('geGeneSetSelect')?.addEventListener('change', () => {
+            const setName = document.getElementById('geGeneSetSelect').value;
+            if (setName) this._showGeneSetAnalysis(setName);
+        });
 
         // Hotspot gene selector (Y axis mutation gene)
         document.getElementById('geHotspotGeneSelect')?.addEventListener('change', () => {
@@ -17096,8 +17104,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Reset data type override
         this._originalGEData = null;
-        const geDataTypeEl = document.getElementById('geDataType');
-        if (geDataTypeEl) geDataTypeEl.value = 'ge';
         const geGsSelect = document.getElementById('geGeneSetSelect');
         if (geGsSelect) { geGsSelect.value = ''; geGsSelect.style.display = 'none'; }
 
@@ -17346,61 +17352,58 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.openGeneEffectModal(gene, view);
     }
 
-    _applyGEDataTypeOverride() {
-        if (!this.currentGeneEffect?.data?.length) return;
+    _showIndependentAnalysis(valueMap, label) {
+        // Build data for all cell lines that have a value
+        const data = [];
+        this.metadata.cellLines.forEach(cl => {
+            const v = valueMap[cl];
+            if (v === undefined || isNaN(v)) return;
+            data.push({
+                cellLineId: cl,
+                cellLineName: this.getCellLineName(cl),
+                lineage: this.getCellLineLineage(cl),
+                geneEffect: v
+            });
+        });
 
-        const dataType = document.getElementById('geDataType')?.value || 'ge';
+        if (data.length < 10) { alert('Too few cell lines with data.'); return; }
 
-        if (dataType === 'ge') {
-            // Restore original GE values
-            if (this._originalGEData) {
-                this.currentGeneEffect.data = this._originalGEData;
-                this._originalGEData = null;
-            }
-        } else {
-            // Save original data if not already saved
-            if (!this._originalGEData) {
-                this._originalGEData = this.currentGeneEffect.data;
-            }
+        this._originalGEData = null;
+        this.currentGeneEffect = { gene: label, data };
+        this.currentGeneEffectGene = label;
 
-            let valueMap = null; // {cellLineId: value}
+        // Update UI
+        document.getElementById('geneEffectTitle').textContent = `${label} - By Tissue`;
+        document.getElementById('geneEffectSearch').value = '';
+        document.getElementById('geneEffectCurrentGene').textContent = label;
 
-            if (dataType === 'growth' && this.growthRateData) {
-                valueMap = this.growthRateData;
-            } else if (dataType === 'geneset') {
-                const setName = document.getElementById('geGeneSetSelect')?.value;
-                if (!setName || !this.hallmarkGeneSets?.[setName]) return;
-                valueMap = this.computeGeneSetScore(this.hallmarkGeneSets[setName]);
-                if (!valueMap) { alert('Failed to compute gene set scores.'); return; }
-            }
-
-            if (!valueMap) return;
-
-            // Replace geneEffect with new values
-            this.currentGeneEffect.data = this._originalGEData
-                .map(d => {
-                    const v = valueMap[d.cellLineId];
-                    if (v === undefined || isNaN(v)) return null;
-                    return { ...d, geneEffect: v };
-                })
-                .filter(d => d !== null);
-        }
-
-        // Update summary
-        const data = this.currentGeneEffect.data;
         const effects = data.map(d => d.geneEffect);
         const mean = effects.reduce((a, b) => a + b, 0) / effects.length;
         const sd = Math.sqrt(effects.reduce((a, b) => a + (b - mean) ** 2, 0) / effects.length);
-        const gene = this.currentGeneEffect.gene;
-        const typeLabel = dataType === 'growth' ? 'Growth Rate' : dataType === 'geneset' ? 'Gene Set Score' : 'GE';
-        document.getElementById('geneEffectSummary').querySelector('div').innerHTML =
-            `<span><b>Gene:</b> ${gene}</span>
-             <span><b>Data:</b> ${typeLabel}</span>
-             <span><b>Mean:</b> ${mean.toFixed(2)}</span>
-             <span><b>SD:</b> ${sd.toFixed(2)}</span>
-             <span><b>Cell lines:</b> ${data.length}</span>`;
+        document.getElementById('geSummaryGene').textContent = label;
+        document.getElementById('geSummaryMean').textContent = mean.toFixed(3);
+        document.getElementById('geSummarySD').textContent = sd.toFixed(3);
+        document.getElementById('geSummaryN').textContent = data.length;
+        document.getElementById('geneEffectSummary').style.display = 'block';
 
-        this.switchGeneEffectView(this.currentGEView || 'tissue');
+        // Show modal if not already open
+        document.getElementById('geneEffectModal').classList.add('active');
+        this.geneEffectViewMode = 'geneEffect';
+        this.switchGeneEffectView('tissue');
+    }
+
+    _showGrowthRateAnalysis() {
+        if (!this.growthRateData) { alert('Growth rate data not available.'); return; }
+        this._showIndependentAnalysis(this.growthRateData, 'Growth Rate');
+    }
+
+    async _showGeneSetAnalysis(setName) {
+        if (!this.hallmarkGeneSets?.[setName]) return;
+        if (!this.expressionLoaded) await this.loadExpressionData();
+        const scores = this.computeGeneSetScore(this.hallmarkGeneSets[setName]);
+        if (!scores) { alert('Failed to compute gene set scores.'); return; }
+        const cleanName = setName.replace('HALLMARK_', '').replace(/_/g, ' ');
+        this._showIndependentAnalysis(scores, cleanName);
     }
 
     getGETissueFilteredData() {
