@@ -12083,12 +12083,141 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             html += `</table>`;
         }
 
-        html += `<button class="btn btn-outline btn-sm" style="margin-top: 10px;" onclick="document.getElementById('compareTable').style.display='none'; document.getElementById('scatterPlot').style.display='block';">Back to Scatter</button>
+        html += `<div style="margin-top: 10px; display: flex; gap: 6px;">
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('compareTable').style.display='none'; document.getElementById('scatterPlot').style.display='block';">Back to Scatter</button>
+            <button class="btn btn-sm" id="findTopGrowthCorrelators" style="background: #6b7280; color: white; font-size: 10px;">Find Top Growth Correlators (all genes)</button>
+        </div>
+        <div id="topGrowthCorrelators"></div>
         </div>`;
 
         document.getElementById('scatterPlot').style.display = 'none';
         document.getElementById('compareTable').style.display = 'block';
         document.getElementById('compareTable').innerHTML = html;
+
+        document.getElementById('findTopGrowthCorrelators').addEventListener('click', () => this.findTopGrowthCorrelators());
+    }
+
+    findTopGrowthCorrelators() {
+        if (!this.growthRateData || !this.currentInspect) return;
+
+        const container = document.getElementById('topGrowthCorrelators');
+        const btn = document.getElementById('findTopGrowthCorrelators');
+        btn.textContent = 'Scanning...';
+        btn.disabled = true;
+
+        // Use current scatter filters
+        const data = this.currentInspect.data || [];
+        const cancerFilter = document.getElementById('scatterCancerFilter').value;
+        const subtypeFilter = document.getElementById('scatterSubtypeFilter').value;
+        const mutFilterGene = document.getElementById('mutationFilterGene').value;
+        const mutFilterLevel = document.getElementById('mutationFilterLevel').value;
+
+        let filteredData = cancerFilter ? data.filter(d => d.lineage === cancerFilter) : [...data];
+        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
+            filteredData = filteredData.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
+        }
+        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
+            const filterMuts = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
+            filteredData = filteredData.filter(d => {
+                const ml = filterMuts[d.cellLineId] || 0;
+                if (mutFilterLevel === '0') return ml === 0;
+                if (mutFilterLevel === '1') return ml === 1;
+                if (mutFilterLevel === '2') return ml >= 2;
+                if (mutFilterLevel === '1+2') return ml >= 1;
+                return true;
+            });
+        }
+        if (this._customCellLineFilter) {
+            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
+        }
+
+        // Build cell line index set from filtered data
+        const clSet = new Set(filteredData.map(d => d.cellLineId));
+        const clIndices = [];
+        this.metadata.cellLines.forEach((cl, i) => { if (clSet.has(cl)) clIndices.push(i); });
+
+        // Build growth rate vector for these indices
+        const grVals = clIndices.map(i => {
+            const cl = this.metadata.cellLines[i];
+            return this.growthRateData[cl] ?? NaN;
+        });
+
+        // Scan all genes
+        setTimeout(() => {
+            const results = [];
+            const geneNames = [...this.geneIndex.keys()];
+
+            for (const gene of geneNames) {
+                const geneIdx = this.geneIndex.get(gene);
+                const geneData = this.getGeneData(geneIdx);
+
+                const validX = [], validY = [];
+                for (let j = 0; j < clIndices.length; j++) {
+                    const ge = geneData[clIndices[j]];
+                    const gr = grVals[j];
+                    if (!isNaN(ge) && !isNaN(gr)) {
+                        validX.push(ge);
+                        validY.push(gr);
+                    }
+                }
+
+                if (validX.length >= 20) {
+                    const stats = this.pearsonWithSlope(validX, validY);
+                    if (!isNaN(stats.correlation)) {
+                        results.push({ gene, r: stats.correlation, n: validX.length });
+                    }
+                }
+            }
+
+            results.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+            const top100 = results.slice(0, 100);
+
+            const corrColor = (r) => r > 0 ? '#059669' : '#dc2626';
+            const fmt = (v) => v.toFixed(3);
+
+            let html = `<h5 style="margin: 12px 0 6px 0;">Top 100 Genes Correlated with Growth Rate (n=${clIndices.length} cell lines)</h5>
+            <p style="font-size:10px; color:#999; margin:0 0 6px 0;">Note: Growth rate correlations are generally weak (max |r| ≈ 0.3). Top hits are core growth machinery (translation, ribosome, mitochondria).</p>
+            <div style="max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <thead style="position: sticky; top: 0; background: white;">
+                <tr style="background: #f9fafb; font-weight: 600;">
+                    <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb; text-align: left;">Gene</th>
+                    <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">r</th>
+                    <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">n</th>
+                    <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;"></th>
+                </tr></thead><tbody>`;
+
+            top100.forEach(row => {
+                html += `<tr>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; font-weight: 500;">${row.gene}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; color: ${corrColor(row.r)}; font-weight: 500;">${fmt(row.r)}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6;">${row.n}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6;">
+                        <button class="btn btn-sm" style="font-size:9px;padding:1px 4px;background:#6b7280;color:white;" onclick="app.openGrowthScatterForGene('${row.gene}')">Scatter</button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table></div>`;
+
+            container.innerHTML = html;
+            btn.textContent = 'Find Top Growth Correlators (all genes)';
+            btn.disabled = false;
+        }, 50);
+    }
+
+    openGrowthScatterForGene(gene) {
+        const xInput = document.getElementById('inspectGeneX');
+        const yInput = document.getElementById('inspectGeneY');
+        xInput.value = gene;
+        xInput.disabled = false;
+        xInput.placeholder = 'X gene';
+        document.getElementById('xAxisDataType').value = 'ge';
+        yInput.dataset.savedGene = yInput.value;
+        yInput.value = '';
+        yInput.disabled = true;
+        yInput.placeholder = 'Growth Rate';
+        document.getElementById('yAxisDataType').value = 'growth';
+        this.updateInspectGenes();
     }
 
     openGrowthRateScatter(axis) {
