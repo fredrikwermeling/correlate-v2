@@ -17439,6 +17439,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const data = this.getGETissueFilteredData();
         const gene = this.currentGeneEffect.gene;
 
+        // Detect data type from gene name
+        const isGrowth = gene === 'Growth Rate';
+        const isGeneSet = !isGrowth && !this.geneIndex.has(gene?.toUpperCase?.());
+
         // Determine if we should group by subtype (when a lineage filter is active)
         const tissueFilter = document.getElementById('geTissueFilter')?.value;
         const groupBySubtype = !!tissueFilter && !!this.cellLineMetadata?.primaryDisease;
@@ -17510,7 +17514,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             },
             line: { color: '#374151' },
             fillcolor: 'rgba(200,200,200,0.3)',
-            hovertemplate: '<b>%{text}</b><br>Gene Effect: %{x:.3f}<extra></extra>'
+            hovertemplate: `<b>%{text}</b><br>${isGrowth ? 'Growth Rate' : isGeneSet ? 'Score' : 'Gene Effect'}: %{x:.3f}<extra></extra>`
         }));
 
         // Calculate dynamic sizing
@@ -17519,11 +17523,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const boxHeight = numEntries > 25 ? 22 : numEntries > 15 ? 26 : 32;
         const chartHeight = Math.max(400, numEntries * boxHeight + 100);
 
-        const geTissueTitle = `${gene} by ${groupBySubtype ? 'Disease Subtype' : 'Cancer Type'}`;
+        // Determine data type label
+        const dataLabel = isGrowth ? 'Growth Rate' : isGeneSet ? `${gene} Score` : `${gene} Gene Effect`;
+        const geTissueTitle = `${isGrowth ? 'Growth Rate' : isGeneSet ? gene : gene} by ${groupBySubtype ? 'Disease Subtype' : 'Cancer Type'}`;
         const layout = {
             annotations: [
                 { text: `<b>${geTissueTitle}</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 19 }, _tsRole: 'title' },
-                { text: `${gene} Gene Effect`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 17 }, _tsRole: 'xlabel' }
+                { text: dataLabel, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 17 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
                 zeroline: true,
@@ -17607,6 +17613,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const data = this.getGETissueFilteredData();
         const gene = this.currentGeneEffect.gene;
+        const isGrowthHS = gene === 'Growth Rate';
+        const isGeneSetHS = !isGrowthHS && !this.geneIndex.has(gene?.toUpperCase?.());
 
         // Calculate stats for each hotspot gene, keeping cell-level data for box plots
         // Now showing 3 levels: 0 (WT), 1, and 2 mutations
@@ -17768,8 +17776,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             annotations: [
-                { text: `<b>${gene} Gene Effect by Hotspot Mutation</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
-                { text: `${gene} Gene Effect`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
+                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} Gene Effect`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
                 zeroline: true,
@@ -17835,10 +17843,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         if (mode === 'tissue') {
             const groupLabel = this._geGroupBySubtype ? 'Disease Subtype' : 'Cancer Type';
+            const gene = this.currentGeneEffect?.gene || '';
+            const _isGr = gene === 'Growth Rate';
+            const _isGs = !_isGr && !this.geneIndex.has(gene?.toUpperCase?.());
+            const valLabel = _isGr ? 'Growth' : _isGs ? 'Score' : 'Mean GE';
             thead.innerHTML = `<tr>
                 <th style="${headerStyle}" data-sort="group" data-type="string">${groupLabel}${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="n" data-type="number">N${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean" data-type="number">Mean GE${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="mean" data-type="number">${valLabel}${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="sd" data-type="number">SD${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="pValue" data-type="number">p-value${sortIcon}</th>
             </tr>`;
