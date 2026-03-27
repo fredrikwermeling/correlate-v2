@@ -100,6 +100,7 @@ class CorrelationExplorer {
         this.expressionMetadata = null;   // {genes, cellLines, nGenes, nCellLines, scaleFactor, naValue}
         this.expressionGeneIndex = null;  // Map: gene name -> row index
         this.expressionLoaded = false;
+        this.growthRateData = null;
         this.expressionCellLineMap = null; // array: GE cell line index -> expression cell line index (or -1)
         this.expressionCorrelateResults = null;
         this.exprCorrelatesSortCol = 'absR';
@@ -158,13 +159,14 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
             fetch('web_data/orthologs.json'),
             fetch('web_data/translocations.json').catch(() => null),
-            fetch('web_data/damaging_mutations.json').catch(() => null)
+            fetch('web_data/damaging_mutations.json').catch(() => null),
+            fetch('web_data/growth_rate.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -173,6 +175,9 @@ class CorrelationExplorer {
         this.orthologs = await orthologsRes.json();
         if (damagingMutRes && damagingMutRes.ok) {
             this.damagingMutations = await damagingMutRes.json();
+        }
+        if (growthRateRes && growthRateRes.ok) {
+            this.growthRateData = await growthRateRes.json();
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -2377,6 +2382,45 @@ class CorrelationExplorer {
         const val = this.expressionData[offset];
         if (isNaN(val)) return NaN;
         return val;
+    }
+
+    /**
+     * Get growth rate for a cell line by its GE cell-line index.
+     * Returns NaN if growth rate data is not loaded or cell line is missing.
+     */
+    getGrowthRateByGEIndex(geCellLineIndex) {
+        if (!this.growthRateData) return NaN;
+        const cellLine = this.metadata.cellLines[geCellLineIndex];
+        const val = this.growthRateData[cellLine];
+        return val !== undefined ? val : NaN;
+    }
+
+    /**
+     * Get axis value for a gene at a given GE cell-line index, respecting axis type.
+     * type: 'ge' | 'expr' | 'growth'
+     */
+    getAxisValue(gene, geCellLineIndex, type, geData) {
+        if (type === 'growth') return this.getGrowthRateByGEIndex(geCellLineIndex);
+        if (type === 'expr') return this.getExpressionValueByGEIndex(gene, geCellLineIndex);
+        return geData ? geData[geCellLineIndex] : NaN;
+    }
+
+    /**
+     * Get axis label for a gene and type.
+     */
+    getAxisLabel(gene, type) {
+        if (type === 'growth') return 'Growth Rate';
+        if (type === 'expr') return `${gene} Expression (log2 TPM+1)`;
+        return `${gene} Gene Effect`;
+    }
+
+    /**
+     * Get short axis label for a type.
+     */
+    getAxisLabelShort(type) {
+        if (type === 'growth') return 'Growth';
+        if (type === 'expr') return 'Expr';
+        return 'Effect';
     }
 
     setupUI() {
@@ -5311,6 +5355,7 @@ class CorrelationExplorer {
                 filters: filters,
                 nSignificant: sigResults.length,
                 nTotalTested: allResults.length,
+                growthRateAvailable: !!this.growthRateData,
                 dataSource: 'DepMap 25Q3 CRISPRGeneEffect',
                 app: 'Correlate V2',
                 date: new Date().toISOString().slice(0, 10)
@@ -5371,11 +5416,13 @@ class CorrelationExplorer {
             cellLines: {
                 gateA: gateA.map(d => ({
                     id: d.cellLineId, name: d.cellLineName || this.getCellLineName(d.cellLineId),
-                    tissue: d.lineage, x: d.x, y: d.y
+                    tissue: d.lineage, x: d.x, y: d.y,
+                    growthRate: this.growthRateData?.[d.cellLineId] ?? null
                 })),
                 gateB: gateB.map(d => ({
                     id: d.cellLineId, name: d.cellLineName || this.getCellLineName(d.cellLineId),
-                    tissue: d.lineage, x: d.x, y: d.y
+                    tissue: d.lineage, x: d.x, y: d.y,
+                    growthRate: this.growthRateData?.[d.cellLineId] ?? null
                 }))
             },
             tissueEnrichment: r.tissueStats,
@@ -9673,8 +9720,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Prepare plot data
         const plotData = [];
         for (let i = 0; i < this.nCellLines; i++) {
-            const xVal = xTypeByTissue === 'expr' ? this.getExpressionValueByGEIndex(c.gene1, i) : geData1[i];
-            const yVal = yTypeByTissue === 'expr' ? this.getExpressionValueByGEIndex(c.gene2, i) : geData2[i];
+            const xVal = this.getAxisValue(c.gene1, i, xTypeByTissue, geData1);
+            const yVal = this.getAxisValue(c.gene2, i, yTypeByTissue, geData2);
             if (!isNaN(xVal) && !isNaN(yVal)) {
                 const cellLine = this.metadata.cellLines[i];
                 plotData.push({
@@ -9749,8 +9796,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Prepare plot data
         const plotData = [];
         for (let i = 0; i < this.nCellLines; i++) {
-            const xVal = xType === 'expr' ? this.getExpressionValueByGEIndex(c.gene1, i) : geData1[i];
-            const yVal = yType === 'expr' ? this.getExpressionValueByGEIndex(c.gene2, i) : geData2[i];
+            const xVal = this.getAxisValue(c.gene1, i, xType, geData1);
+            const yVal = this.getAxisValue(c.gene2, i, yType, geData2);
             if (!isNaN(xVal) && !isNaN(yVal)) {
                 const cellLine = this.metadata.cellLines[i];
                 plotData.push({
@@ -9900,8 +9947,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Calculate stats for ALL cells (unfiltered) for the title
         const allCellsStats = this.pearsonWithSlope(plotData.map(d => d.x), plotData.map(d => d.y));
-        const xLbl = xType === 'expr' ? 'Expr' : 'GE';
-        const yLbl = yType === 'expr' ? 'Expr' : 'GE';
+        const xLbl = xType === 'growth' ? 'Growth' : xType === 'expr' ? 'Expr' : 'GE';
+        const yLbl = yType === 'growth' ? 'Growth' : yType === 'expr' ? 'Expr' : 'GE';
         const typeTag = (xType !== 'ge' || yType !== 'ge') ? ` [${xLbl}/${yLbl}]` : '';
         document.getElementById('inspectTitle').textContent =
             `${c.gene1} vs ${c.gene2}${typeTag} | r=${this.formatNum(allCellsStats.correlation)}, slope=${this.formatNum(allCellsStats.slope)}, n=${plotData.length} (all cells)`;
@@ -10517,12 +10564,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const showZero = document.getElementById('showZeroLines')?.checked !== false;
 
-        const xTypeLabel = this.currentInspect?.xType === 'expr' ? 'Expression (log2 TPM+1)' : 'Gene Effect';
-        const yTypeLabel = this.currentInspect?.yType === 'expr' ? 'Expression (log2 TPM+1)' : 'Gene Effect';
-
         // Axis labels as draggable annotations instead of axis titles
-        const xLabelText = `${gene1} ${xTypeLabel}`;
-        const yLabelText = `${gene2} ${yTypeLabel}`;
+        const xLabelText = this.getAxisLabel(gene1, this.currentInspect?.xType || 'ge');
+        const yLabelText = this.getAxisLabel(gene2, this.currentInspect?.yType || 'ge');
         const xLabelAnnotation = {
             x: this._userXLabelPos ? this._userXLabelPos.x : 0.5,
             y: this._userXLabelPos ? this._userXLabelPos.y : -0.08,
@@ -10922,8 +10966,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             font: { size: 14 }
         };
 
-        const xTypeLbl3 = this.currentInspect?.xType === 'expr' ? 'Expr' : 'Effect';
-        const yTypeLbl3 = this.currentInspect?.yType === 'expr' ? 'Expr' : 'Effect';
+        const xTypeLbl3 = this.getAxisLabelShort(this.currentInspect?.xType || 'ge');
+        const yTypeLbl3 = this.getAxisLabelShort(this.currentInspect?.yType || 'ge');
 
         const layout = {
             grid: { rows: 1, columns: 3, pattern: 'independent' },
@@ -11743,6 +11787,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return;
         }
 
+        // If growth rate is needed, check data is loaded
+        if ((xType === 'growth' || yType === 'growth') && !this.growthRateData) {
+            alert('Growth rate data not available.');
+            return;
+        }
+
         // If expression is needed, ensure data is loaded
         if (xType === 'expr' || yType === 'expr') {
             if (!this.expressionLoaded) {
@@ -11817,8 +11867,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.openInspect({ gene1, gene2, correlation: null });
 
         // Update title
-        const xLabel = xType === 'expr' ? 'Expr' : 'GE';
-        const yLabel = yType === 'expr' ? 'Expr' : 'GE';
+        const xLabel = xType === 'growth' ? 'Growth' : xType === 'expr' ? 'Expr' : 'GE';
+        const yLabel = yType === 'growth' ? 'Growth' : yType === 'expr' ? 'Expr' : 'GE';
         const typeInfo = (xType !== 'ge' || yType !== 'ge') ? ` [${xLabel}/${yLabel}]` : '';
         document.getElementById('inspectTitle').textContent = `Correlation: ${gene1} vs ${gene2}${typeInfo}`;
     }
@@ -15712,8 +15762,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }];
             layout = {
                 title: { text: `${d.gene1} vs ${d.gene2} — ${group} (n=${pts.length}, r=${s.correlation.toFixed(3)})`, font: { size: 13 } },
-                xaxis: { title: `${d.gene1} (${this.currentInspect?.xType === 'expr' ? 'Expression' : 'Gene Effect'})` },
-                yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
+                xaxis: { title: `${d.gene1} (${this.currentInspect?.xType === 'growth' ? 'Growth Rate' : this.currentInspect?.xType === 'expr' ? 'Expression' : 'Gene Effect'})` },
+                yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'growth' ? 'Growth Rate' : this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
                 margin: { t: 50, b: 50, l: 60, r: 30 },
                 showlegend: false,
                 paper_bgcolor: 'white',
@@ -15749,8 +15799,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ];
             layout = {
                 title: { text: `${d.gene1} vs ${d.gene2} — ${group}<br><span style="font-size:11px">WT r=${isNaN(wtR.correlation) ? '-' : wtR.correlation.toFixed(3)}, Mut r=${isNaN(mutR.correlation) ? '-' : mutR.correlation.toFixed(3)}</span>`, font: { size: 13 } },
-                xaxis: { title: `${d.gene1} (${this.currentInspect?.xType === 'expr' ? 'Expression' : 'Gene Effect'})` },
-                yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
+                xaxis: { title: `${d.gene1} (${this.currentInspect?.xType === 'growth' ? 'Growth Rate' : this.currentInspect?.xType === 'expr' ? 'Expression' : 'Gene Effect'})` },
+                yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'growth' ? 'Growth Rate' : this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
                 margin: { t: 60, b: 50, l: 60, r: 30 },
                 showlegend: true,
                 legend: { x: 0.02, y: 0.98, bgcolor: 'rgba(255,255,255,0.8)', font: { size: 10 } },
@@ -19966,11 +20016,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (inspected) cls.push('clb-inspected');
             const geVal = geMap ? geMap.get(cl) : null;
             const geStr = geVal !== null && !isNaN(geVal) ? `<span style="font-size:10px; color:#666; margin-left:auto; flex-shrink:0;">${geVal.toFixed(2)}</span>` : '';
-            const titleParts = [name, lin, sub].filter(Boolean).join(' · ');
+            const gr = this.growthRateData?.[cl];
+            const grStr = gr !== undefined ? `<span style="font-size:9px; color:#9333ea; margin-left:4px; flex-shrink:0;" title="Growth rate">${gr.toFixed(2)}</span>` : '';
+            const titleParts = [name, lin, sub, gr !== undefined ? `Growth: ${gr.toFixed(3)}` : ''].filter(Boolean).join(' · ');
             return `<div class="${cls.join(' ')}" data-clid="${cl}" title="${titleParts}">` +
                 `<input type="checkbox"${selected ? ' checked' : ''}>` +
                 `<span class="clb-entry-name">${name}</span>` +
-                `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${geStr}</div>`;
+                `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${geStr}${grStr}</div>`;
         }).join('');
         container.innerHTML = html;
 

@@ -1313,6 +1313,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.37 (2026-03-27)</strong></p>
+                <ul>
+                    <li>Growth rate data: CRISPR-inferred growth rate per cell line (100% coverage)</li>
+                    <li>New "Growth" axis option in scatter inspect (X or Y axis)</li>
+                    <li>Growth rate shown in cell line browser</li>
+                    <li>Growth rate included in AI exports (gate cell lines)</li>
+                    <li>Data source: CRISPRInferredModelGrowthRate.csv (DepMap 25Q3)</li>
+                </ul>
                 <p><strong>v.36 (2026-03-27)</strong></p>
                 <ul>
                     <li>AI-ready JSON export for all 5 data tables (mutations, gates, correlations, clusters, expression correlates)</li>
@@ -1691,7 +1699,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.36</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.37</a>
     </div>
 
     <div class="main-content">
@@ -1714,6 +1722,7 @@
                             <li>OmicsSomaticMutationsMatrixDamaging.csv <span style="color:#999;">(damaging mutations)</span></li>
                             <li>OmicsFusionFiltered.csv <span style="color:#999;">(translocations/fusions)</span></li>
                             <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
+                            <li>CRISPRInferredModelGrowthRate.csv <span style="color:#999;">(growth rate)</span></li>
                         </ul>
                         <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data.</p>
                     </div>
@@ -2355,11 +2364,13 @@
                                 <select id="xAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;" title="X axis data type">
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
+                                    <option value="growth">Growth</option>
                                 </select>
                                 <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; min-width: 100px; font-size: 12px; padding: 3px 8px;" placeholder="Y gene">
                                 <select id="yAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;" title="Y axis data type">
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
+                                    <option value="growth">Growth</option>
                                 </select>
                                 <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px; white-space: nowrap;">Update</button>
                             </div>
