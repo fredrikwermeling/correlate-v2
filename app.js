@@ -2571,6 +2571,12 @@ class CorrelationExplorer {
         document.getElementById('exportMutTablePNG')?.addEventListener('click', () => this._exportMutationTable('png'));
         document.getElementById('exportMutTableSVG')?.addEventListener('click', () => this._exportMutationTable('svg'));
 
+        // AI export buttons
+        document.getElementById('exportMutationAI')?.addEventListener('click', () => this.exportForAI('mutations'));
+        document.getElementById('exportCorrelationsAI')?.addEventListener('click', () => this.exportForAI('correlations'));
+        document.getElementById('exportClustersAI')?.addEventListener('click', () => this.exportForAI('clusters'));
+        document.getElementById('exportExprCorrelatesAI')?.addEventListener('click', () => this.exportForAI('exprCorrelates'));
+
         // Synonyms search
         document.getElementById('synonymsSearch').addEventListener('input', (e) => {
             this.filterSynonymsTable(e.target.value);
@@ -2778,6 +2784,7 @@ class CorrelationExplorer {
         });
         document.getElementById('exportGateReportPNG')?.addEventListener('click', () => this.exportGateReport('png'));
         document.getElementById('exportGateReportSVG')?.addEventListener('click', () => this.exportGateReport('svg'));
+        document.getElementById('exportGateAI')?.addEventListener('click', () => this.exportForAI('gates'));
         // Gate tab switching
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('gate-tab')) {
@@ -5236,6 +5243,238 @@ class CorrelationExplorer {
 
         const filename = `mutation_analysis_${mr.hotspotGene}_${new Date().toISOString().slice(0, 10)}.csv`;
         this.downloadFile(csv, filename, 'text/csv');
+    }
+
+    exportForAI(source) {
+        let data;
+
+        if (source === 'mutations') {
+            data = this._buildMutationAIExport();
+        } else if (source === 'gates') {
+            data = this._buildGateAIExport();
+        } else if (source === 'correlations') {
+            data = this._buildCorrelationAIExport();
+        } else if (source === 'clusters') {
+            data = this._buildClusterAIExport();
+        } else if (source === 'exprCorrelates') {
+            data = this._buildExprCorrelateAIExport();
+        }
+
+        if (!data) { alert('No data to export.'); return; }
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `correlate_${source}_AI.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+
+    _buildMutationAIExport() {
+        const mr = this.mutationResults;
+        if (!mr) return null;
+
+        const allResults = mr.allResults || [];
+        const sigResults = mr.significantResults || [];
+
+        // Build filter description
+        const filters = [];
+        if (mr.lineageFilter) filters.push(`Lineage: ${mr.lineageFilter}`);
+        if (mr.subLineageFilter) filters.push(`Subtype: ${mr.subLineageFilter}`);
+        if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
+            const ll = {'0':'WT','1':'Mut','2':'Mut','1+2':'Mut'};
+            filters.push(`${mr.additionalHotspot} ${ll[mr.additionalHotspotLevel] || mr.additionalHotspotLevel}`);
+        }
+        if (this._activeOncoprintFilters) {
+            for (const f of this._activeOncoprintFilters) {
+                filters.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`);
+            }
+        }
+
+        const topDepleted = sigResults.filter(r => r.diff_mut < 0).slice(0, 10).map(r => `${r.gene} (Δ=${r.diff_mut.toFixed(2)})`);
+        const topEnriched = sigResults.filter(r => r.diff_mut > 0).slice(0, 10).map(r => `${r.gene} (Δ=${r.diff_mut.toFixed(2)})`);
+
+        return {
+            analysis: {
+                type: 'mutation_analysis',
+                description: `Differential gene effect analysis comparing ${mr.hotspotGene}-mutated vs wild-type cell lines`,
+                hotspotGene: mr.hotspotGene,
+                isTranslocation: mr.isTranslocation || false,
+                isDamaging: mr.isDamaging || false,
+                nWT: mr.nWT,
+                nMutated: mr.nMut,
+                n2Mutations: mr.n2,
+                pValueThreshold: mr.pThreshold,
+                minCellLines: mr.minN,
+                filters: filters,
+                nSignificant: sigResults.length,
+                nTotalTested: allResults.length,
+                dataSource: 'DepMap 25Q3 CRISPRGeneEffect',
+                app: 'Correlate V2',
+                date: new Date().toISOString().slice(0, 10)
+            },
+            results: allResults.map(r => ({
+                gene: r.gene,
+                n_wt: r.n_wt, mean_wt: parseFloat(r.mean_wt?.toFixed(4)),
+                n_mut: r.n_mut, mean_mut: parseFloat(r.mean_mut?.toFixed(4)),
+                delta_ge_1plus2_vs_0: parseFloat(r.diff_mut?.toFixed(4)),
+                p_value_1plus2_vs_0: r.p_mut,
+                n_2: r.n_2, mean_2: isNaN(r.mean_2) ? null : parseFloat(r.mean_2?.toFixed(4)),
+                delta_ge_2_vs_0: isNaN(r.diff_2) ? null : parseFloat(r.diff_2?.toFixed(4)),
+                p_value_2_vs_0: isNaN(r.p_2) ? null : r.p_2,
+                delta_ge_2_vs_1: isNaN(r.diff_2v1) ? null : parseFloat(r.diff_2v1?.toFixed(4)),
+                p_value_2_vs_1: isNaN(r.p_2v1) ? null : r.p_2v1,
+                significant: r.p_mut < mr.pThreshold || r.p_2 < mr.pThreshold || r.p_2v1 < mr.pThreshold
+            })),
+            summary: `Mutation analysis of ${mr.hotspotGene} ${mr.isTranslocation ? 'fusions' : mr.isDamaging ? 'damaging mutations' : 'hotspot mutations'}. ${mr.nWT} WT vs ${mr.nMut} mutated cell lines${filters.length > 0 ? ' (' + filters.join(', ') + ')' : ''}. ${sigResults.length} genes with p < ${mr.pThreshold}. Top depleted: ${topDepleted.slice(0,5).join(', ') || 'none'}. Top enriched: ${topEnriched.slice(0,5).join(', ') || 'none'}.`,
+            promptSuggestion: `Analyze these differential gene effects between ${mr.hotspotGene}-mutated and wild-type cell lines. Which biological pathways are most affected? Are the top depleted genes known ${mr.hotspotGene} pathway members or synthetic lethal partners?`
+        };
+    }
+
+    _buildGateAIExport() {
+        const r = this._gateCompareResults;
+        if (!r) return null;
+        const gateA = this._gateA || [];
+        const gateB = this._gateB || [];
+        const ci = this.currentInspect;
+
+        const filters = [];
+        const cancerFilter = document.getElementById('scatterCancerFilter')?.value;
+        if (cancerFilter) filters.push(`Tissue: ${cancerFilter}`);
+        if (this._activeOncoprintFilters) {
+            for (const f of this._activeOncoprintFilters) filters.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`);
+        }
+
+        return {
+            analysis: {
+                type: 'gate_comparison',
+                description: `Comparing two populations from ${ci?.gene1 || '?'} vs ${ci?.gene2 || '?'} scatter plot`,
+                gene1: ci?.gene1, gene2: ci?.gene2,
+                xAxis: ci?.xType || 'ge', yAxis: ci?.yType || 'ge',
+                gateA: {
+                    n: gateA.length,
+                    xRange: this._gateAShape ? [this._gateAShape.x0, this._gateAShape.x1] : null,
+                    yRange: this._gateAShape ? [this._gateAShape.y0, this._gateAShape.y1] : null
+                },
+                gateB: {
+                    n: gateB.length,
+                    xRange: this._gateBShape ? [this._gateBShape.x0, this._gateBShape.x1] : null,
+                    yRange: this._gateBShape ? [this._gateBShape.y0, this._gateBShape.y1] : null
+                },
+                filters: filters,
+                dataSource: 'DepMap 25Q3',
+                app: 'Correlate V2',
+                date: new Date().toISOString().slice(0, 10)
+            },
+            cellLines: {
+                gateA: gateA.map(d => ({
+                    id: d.cellLineId, name: d.cellLineName || this.getCellLineName(d.cellLineId),
+                    tissue: d.lineage, x: d.x, y: d.y
+                })),
+                gateB: gateB.map(d => ({
+                    id: d.cellLineId, name: d.cellLineName || this.getCellLineName(d.cellLineId),
+                    tissue: d.lineage, x: d.x, y: d.y
+                }))
+            },
+            tissueEnrichment: r.tissueStats,
+            subtissueEnrichment: r.subtissueStats,
+            mutationEnrichment: r.mutStats?.slice(0, 200),
+            differentialGeneEffect: r.diffGE?.map(g => ({
+                gene: g.gene, meanA: parseFloat(g.meanA?.toFixed(4)), meanB: parseFloat(g.meanB?.toFixed(4)),
+                delta: parseFloat(g.diff?.toFixed(4)), pValue: g.pValue, nA: g.nA, nB: g.nB
+            })),
+            differentialExpression: r.diffExpr?.length > 0 ? r.diffExpr.map(g => ({
+                gene: g.gene, meanA: parseFloat(g.meanA?.toFixed(4)), meanB: parseFloat(g.meanB?.toFixed(4)),
+                delta: parseFloat(g.diff?.toFixed(4)), pValue: g.pValue, nA: g.nA, nB: g.nB
+            })) : null,
+            summary: `Gate comparison on ${ci?.gene1} vs ${ci?.gene2}: Gate A (${gateA.length} cells) vs Gate B (${gateB.length} cells)${filters.length > 0 ? '. Filters: ' + filters.join(', ') : ''}. ${r.diffGE?.filter(g => g.pValue < 0.001).length || 0} genes with differential GE (p<0.001). ${r.diffExpr?.filter(g => g.pValue < 0.001).length || 0} genes with differential expression. Top tissue enrichment: ${r.tissueStats?.[0]?.tissue || 'N/A'} (A=${r.tissueStats?.[0]?.pctA?.toFixed(0)}% B=${r.tissueStats?.[0]?.pctB?.toFixed(0)}%).`,
+            promptSuggestion: `Two populations of cell lines were defined by gating on ${ci?.gene1} and ${ci?.gene2} gene effects. Analyze the differential gene effects and expression between the two gates. What biological processes distinguish these populations? Are there enriched mutations that explain the phenotype?`
+        };
+    }
+
+    _buildCorrelationAIExport() {
+        if (!this.results?.correlations) return null;
+        const mode = this.results.mode;
+        const cutoff = this.results.cutoff;
+        const geneList = this.getGeneList();
+
+        return {
+            analysis: {
+                type: 'correlation_analysis',
+                mode: mode,
+                correlationCutoff: cutoff,
+                inputGenes: geneList,
+                nCorrelations: this.results.correlations.length,
+                nClusters: this.results.clusters?.length || 0,
+                nCellLines: this.results.nCellLines,
+                dataSource: 'DepMap 25Q3 CRISPRGeneEffect',
+                app: 'Correlate V2',
+                date: new Date().toISOString().slice(0, 10)
+            },
+            correlations: this.results.correlations.map(c => ({
+                gene1: c.gene1, gene2: c.gene2,
+                correlation: parseFloat(c.correlation?.toFixed(4)),
+                slope: parseFloat(c.slope?.toFixed(4)),
+                n: c.n
+            })),
+            summary: `${mode === 'design' ? 'Design' : 'Analysis'} mode correlation analysis with cutoff ${cutoff}. ${geneList.length} input genes, ${this.results.correlations.length} correlations found, ${this.results.clusters?.length || 0} genes in network.`,
+            promptSuggestion: `These genes show correlated CRISPR gene effects across ${this.results.nCellLines} cell lines. What biological pathways or complexes connect these correlated genes? Are there known protein-protein interactions among the most strongly correlated pairs?`
+        };
+    }
+
+    _buildClusterAIExport() {
+        if (!this.results?.clusters) return null;
+
+        return {
+            analysis: {
+                type: 'cluster_analysis',
+                mode: this.results.mode,
+                correlationCutoff: this.results.cutoff,
+                nGenes: this.results.clusters.length,
+                nCellLines: this.results.nCellLines,
+                dataSource: 'DepMap 25Q3 CRISPRGeneEffect',
+                app: 'Correlate V2',
+                date: new Date().toISOString().slice(0, 10)
+            },
+            genes: this.results.clusters.map(c => ({
+                gene: c.gene,
+                cluster: c.cluster,
+                inInputList: c.inGeneList || false,
+                meanEffect: parseFloat(c.meanEffect?.toFixed(4)),
+                sdEffect: parseFloat(c.sdEffect?.toFixed(4))
+            })),
+            summary: `${this.results.clusters.length} genes in the correlation network. ${this.results.clusters.filter(c => c.inGeneList).length} from the input gene list, ${this.results.clusters.filter(c => !c.inGeneList).length} discovered by correlation.`,
+            promptSuggestion: `These genes form a correlated network based on CRISPR gene effects. Analyze the biological functions of each cluster. Which genes are the most central or essential?`
+        };
+    }
+
+    _buildExprCorrelateAIExport() {
+        if (!this.expressionCorrelateResults) return null;
+        const ctx = this._exprCorrelateContext;
+
+        return {
+            analysis: {
+                type: 'expression_correlate',
+                targetGene: ctx?.targetGene,
+                hotspotGene: ctx?.hotspotGene,
+                subgroup: ctx?.subgroup,
+                nCellLines: ctx?.subgroupIndices?.length,
+                dataSource: 'DepMap 25Q3',
+                app: 'Correlate V2',
+                date: new Date().toISOString().slice(0, 10)
+            },
+            results: this.expressionCorrelateResults.map(r => ({
+                gene: r.gene,
+                correlation: parseFloat(r.r?.toFixed(4)),
+                slope: parseFloat(r.slope?.toFixed(4)),
+                n: r.n,
+                pValue: r.p
+            })),
+            summary: `Expression correlates of ${ctx?.targetGene} gene effect. ${this.expressionCorrelateResults.length} genes tested. Top positive: ${this.expressionCorrelateResults.filter(r => r.r > 0).slice(0, 3).map(r => r.gene).join(', ')}. Top negative: ${this.expressionCorrelateResults.filter(r => r.r < 0).slice(-3).map(r => r.gene).join(', ')}.`,
+            promptSuggestion: `These genes' expression levels correlate with ${ctx?.targetGene} CRISPR gene effect. Which expression patterns predict dependency on ${ctx?.targetGene}? Are there biomarkers that could identify cell lines sensitive to ${ctx?.targetGene} loss?`
+        };
     }
 
     showGeneEffectDistribution(gene, tissueOverride, inspectHotspotOverride) {
