@@ -3103,6 +3103,8 @@ class CorrelationExplorer {
         document.getElementById('compareAllTranslocationsBtn')?.addEventListener('click', () => this.showCompareAllTranslocations());
         document.getElementById('compareAllCancerTypesBtn')?.addEventListener('click', () => this.showCompareAllCancerTypes());
         document.getElementById('compareAllGrowthBtn')?.addEventListener('click', () => this.showCompareByGrowthRate());
+        document.getElementById('compareAllGeneSetsBtn')?.addEventListener('click', () => this.showCompareByGeneSets());
+        document.getElementById('mutGeneSetAnalysisBtn')?.addEventListener('click', () => this.showMutationGeneSetAnalysis());
         document.getElementById('updateInspectGenes')?.addEventListener('click', () => this.updateInspectGenes());
 
         // Plot size controls
@@ -5387,6 +5389,129 @@ class CorrelationExplorer {
             document.body.removeChild(a);
             URL.revokeObjectURL(a.href);
         }
+    }
+
+    async showMutationGeneSetAnalysis() {
+        if (!this.mutationResults) return;
+
+        // Ensure expression + hallmark data loaded
+        if (!this.expressionLoaded) {
+            this.showStatus('info', 'Loading expression data...');
+            await this.loadExpressionData();
+        }
+        await this.loadHallmarkGeneSets();
+        if (!this.hallmarkGeneSets) { alert('Failed to load gene sets.'); return; }
+
+        const mr = this.mutationResults;
+        const hotspotGene = mr.hotspotGene;
+        const isT = mr.isTranslocation;
+        const isD = mr.isDamaging;
+        const mutationData = isT
+            ? this.translocations?.geneData?.[hotspotGene]
+            : isD ? this.damagingMutations?.geneData?.[hotspotGene]
+            : this.mutations?.geneData?.[hotspotGene];
+
+        if (!mutationData) return;
+        const muts = isT ? mutationData.translocations : mutationData.mutations;
+
+        // Classify cell lines into WT and mutated (same logic as mutation analysis)
+        const wtCLs = [], mutCLs = [];
+        this.metadata.cellLines.forEach(cl => {
+            // Apply same filters as mutation analysis
+            if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== mr.lineageFilter) return;
+            if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) return;
+            if (mr.excludedTissues?.size > 0 && mr.excludedTissues.has(this.cellLineMetadata?.lineage?.[cl])) return;
+            if (this._activeOncoprintFilters?.length > 0 && !this._cellLinePassesOncoprintFilters(cl)) return;
+
+            const mutLevel = muts[cl] || 0;
+            if (mutLevel === 0) wtCLs.push(cl);
+            else mutCLs.push(cl);
+        });
+
+        if (wtCLs.length < 5 || mutCLs.length < 3) {
+            alert(`Too few cell lines (WT=${wtCLs.length}, Mut=${mutCLs.length}).`);
+            return;
+        }
+
+        this.showStatus('info', 'Computing pathway scores for 50 Hallmark gene sets...');
+
+        setTimeout(() => {
+            const results = [];
+
+            for (const [setName, genes] of Object.entries(this.hallmarkGeneSets)) {
+                const scores = this.computeGeneSetScore(genes);
+                if (!scores) continue;
+
+                const wtScores = wtCLs.map(cl => scores[cl]).filter(v => v !== undefined);
+                const mutScores = mutCLs.map(cl => scores[cl]).filter(v => v !== undefined);
+
+                if (wtScores.length < 5 || mutScores.length < 3) continue;
+
+                const wtMean = wtScores.reduce((a, b) => a + b, 0) / wtScores.length;
+                const mutMean = mutScores.reduce((a, b) => a + b, 0) / mutScores.length;
+                const tTest = this.welchTTest(wtScores, mutScores);
+
+                const cleanName = setName.replace('HALLMARK_', '').replace(/_/g, ' ');
+                results.push({
+                    setName, cleanName, nGenes: genes.length,
+                    nWT: wtScores.length, nMut: mutScores.length,
+                    meanWT: wtMean, meanMut: mutMean,
+                    delta: mutMean - wtMean, pValue: tTest.p
+                });
+            }
+
+            results.sort((a, b) => a.pValue - b.pValue);
+
+            const mutLabel = isT ? 'Fused' : isD ? 'Dmg' : 'Mut';
+            const corrColor = (d) => d > 0 ? '#059669' : '#dc2626';
+            const fmt = (v) => isNaN(v) ? '-' : v.toFixed(3);
+            const fmtP = (p) => p < 0.001 ? p.toExponential(1) : p.toFixed(3);
+
+            // Show in a modal-like overlay within the mutation tab
+            let html = `<div style="padding: 12px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; margin-top: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <h4 style="margin: 0;">Pathway Scores: ${hotspotGene} ${mutLabel} vs WT</h4>
+                    <button class="btn btn-outline btn-sm" onclick="this.closest('div').remove();">&times; Close</button>
+                </div>
+                <p style="font-size: 11px; color: #666; margin: 0 0 8px 0;">
+                    Mean z-scored expression per pathway. WT: ${wtCLs.length} | ${mutLabel}: ${mutCLs.length} cell lines.
+                    Δ = ${mutLabel} − WT (positive = higher in ${mutLabel}).
+                </p>
+                <div style="max-height: 400px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <thead style="position: sticky; top: 0; background: white;">
+                    <tr style="background: #f9fafb; font-weight: 600;">
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb; text-align: left;">Pathway</th>
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">Genes</th>
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">Mean WT</th>
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">Mean ${mutLabel}</th>
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">Δ</th>
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">p-value</th>
+                    </tr></thead><tbody>`;
+
+            results.forEach(row => {
+                const pBold = row.pValue < 0.05 ? 'font-weight:600;' : '';
+                html += `<tr>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; font-weight: 500; font-size: 10px;">${row.cleanName}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; text-align:center;">${row.nGenes}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; text-align:center;">${fmt(row.meanWT)}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; text-align:center;">${fmt(row.meanMut)}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; text-align:center; color: ${corrColor(row.delta)}; font-weight: 500;">${fmt(row.delta)}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; text-align:center; ${pBold}">${fmtP(row.pValue)}</td>
+                </tr>`;
+            });
+            html += `</tbody></table></div></div>`;
+
+            // Insert after the mutation table
+            const existing = document.getElementById('mutGeneSetPanel');
+            if (existing) existing.remove();
+            const panel = document.createElement('div');
+            panel.id = 'mutGeneSetPanel';
+            panel.innerHTML = html;
+            document.getElementById('mutationTable').after(panel);
+
+            this.showStatus('success', `Gene set analysis complete: ${results.filter(r => r.pValue < 0.05).length} pathways with p < 0.05`);
+        }, 50);
     }
 
     downloadMutationResults() {
@@ -12374,6 +12499,140 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             btn.textContent = 'Find Top Growth Correlators (all genes)';
             btn.disabled = false;
         }, 50);
+    }
+
+    async showCompareByGeneSets() {
+        if (!this.currentInspect) return;
+
+        // Ensure expression + hallmark data loaded
+        if (!this.expressionLoaded) await this.loadExpressionData();
+        await this.loadHallmarkGeneSets();
+        if (!this.hallmarkGeneSets) { alert('Failed to load gene sets.'); return; }
+
+        const { gene1, gene2, data } = this.currentInspect;
+
+        // Apply current filters
+        const cancerFilter = document.getElementById('scatterCancerFilter').value;
+        const subtypeFilter = document.getElementById('scatterSubtypeFilter').value;
+        let filteredData = cancerFilter ? data.filter(d => d.lineage === cancerFilter) : [...data];
+        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
+            filteredData = filteredData.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
+        }
+        if (this._customCellLineFilter) {
+            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
+        }
+
+        if (filteredData.length < 10) { alert('Too few cell lines.'); return; }
+
+        document.getElementById('scatterPlot').style.display = 'none';
+        document.getElementById('compareTable').style.display = 'block';
+        document.getElementById('compareTable').innerHTML = '<div style="padding:20px;text-align:center;color:#666;">Scoring 50 Hallmark gene sets...</div>';
+
+        setTimeout(() => {
+            const clSet = new Set(filteredData.map(d => d.cellLineId));
+            const results = [];
+
+            for (const [setName, genes] of Object.entries(this.hallmarkGeneSets)) {
+                const scores = this.computeGeneSetScore(genes);
+                if (!scores) continue;
+
+                // Correlate with X and Y gene values
+                const xVals = [], yVals = [], sVals = [];
+                for (const d of filteredData) {
+                    const s = scores[d.cellLineId];
+                    if (s !== undefined) {
+                        xVals.push(d.x); yVals.push(d.y); sVals.push(s);
+                    }
+                }
+                if (xVals.length < 10) continue;
+
+                const rxs = this.pearsonWithSlope(xVals, sVals);
+                const rys = this.pearsonWithSlope(yVals, sVals);
+                const cleanName = setName.replace('HALLMARK_', '').replace(/_/g, ' ');
+                results.push({
+                    setName, cleanName, nGenes: genes.length, n: xVals.length,
+                    rx: rxs.correlation, ry: rys.correlation,
+                    maxR: Math.max(Math.abs(rxs.correlation), Math.abs(rys.correlation))
+                });
+            }
+
+            results.sort((a, b) => b.maxR - a.maxR);
+
+            const corrColor = (r) => r > 0 ? '#059669' : '#dc2626';
+            const fmt = (v) => isNaN(v) ? '-' : v.toFixed(3);
+            const xType = this.currentInspect.xType || 'ge';
+            const yType = this.currentInspect.yType || 'ge';
+            const xLbl = xType === 'expr' ? `${gene1} Expr` : `${gene1} GE`;
+            const yLbl = yType === 'expr' ? `${gene2} Expr` : `${gene2} GE`;
+
+            let filterParts = [];
+            if (cancerFilter) filterParts.push(cancerFilter);
+            if (subtypeFilter) filterParts.push(subtypeFilter);
+
+            let html = `<div style="padding: 10px;">
+                <h4 style="margin: 0 0 6px 0;">Gene Set Correlations — ${gene1} vs ${gene2}</h4>
+                <p style="font-size: 11px; color: #666; margin: 0 0 10px 0;">
+                    50 Hallmark pathways scored per cell line (mean z-scored expression). n=${filteredData.length}${filterParts.length ? ' | ' + filterParts.join(', ') : ''}
+                </p>
+                <div style="max-height: 500px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <thead style="position: sticky; top: 0; background: white;">
+                    <tr style="background: #f9fafb; font-weight: 600;">
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb; text-align: left;">Pathway</th>
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">Genes</th>
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">r(${xLbl})</th>
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">r(${yLbl})</th>
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">n</th>
+                        <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;"></th>
+                    </tr></thead><tbody>`;
+
+            results.forEach(row => {
+                html += `<tr>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; font-weight: 500; font-size: 10px;">${row.cleanName}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; text-align:center;">${row.nGenes}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; color: ${corrColor(row.rx)}; font-weight: 500; text-align:center;">${fmt(row.rx)}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; color: ${corrColor(row.ry)}; font-weight: 500; text-align:center;">${fmt(row.ry)}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; text-align:center;">${row.n}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6;">
+                        <button class="btn btn-sm" style="font-size:9px;padding:1px 4px;background:#6b7280;color:white;" onclick="app.openGeneSetScatter('${row.setName}')">Plot</button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table></div>
+                <button class="btn btn-outline btn-sm" style="margin-top: 10px;" onclick="document.getElementById('compareTable').style.display='none'; document.getElementById('scatterPlot').style.display='block';">Back to Scatter</button>
+            </div>`;
+
+            document.getElementById('compareTable').innerHTML = html;
+        }, 50);
+    }
+
+    openGeneSetScatter(setName) {
+        if (!this.hallmarkGeneSets?.[setName]) return;
+        const scores = this.computeGeneSetScore(this.hallmarkGeneSets[setName]);
+        if (!scores) { alert('Failed to compute scores.'); return; }
+        this._geneSetScores = scores;
+        const cleanName = setName.replace('HALLMARK_', '').replace(/_/g, ' ');
+        this._geneSetLabel = cleanName;
+
+        // Keep current X gene, set Y to gene set
+        const xInput = document.getElementById('inspectGeneX');
+        const yInput = document.getElementById('inspectGeneY');
+        if (xInput.disabled) {
+            // X was growth/geneset, restore it
+            xInput.value = xInput.dataset.savedGene || this.currentInspect?.gene1 || '';
+            xInput.disabled = false;
+            xInput.placeholder = 'X gene';
+            document.getElementById('xAxisDataType').value = 'ge';
+        }
+        yInput.dataset.savedGene = yInput.value;
+        yInput.value = '';
+        yInput.disabled = true;
+        yInput.placeholder = cleanName;
+        document.getElementById('yAxisDataType').value = 'geneset';
+        document.getElementById('geneSetSelect').value = setName;
+        document.getElementById('geneSetInfo').textContent = `${Object.keys(scores).length} CLs, ${this.hallmarkGeneSets[setName].length} genes`;
+        this._updateGeneSetSelectorVisibility();
+        this.updateInspectGenes();
     }
 
     openGrowthScatterForGene(gene) {
