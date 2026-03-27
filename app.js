@@ -101,6 +101,9 @@ class CorrelationExplorer {
         this.expressionGeneIndex = null;  // Map: gene name -> row index
         this.expressionLoaded = false;
         this.growthRateData = null;
+        this.hallmarkGeneSets = null;
+        this._geneSetScores = null; // cached {modelId: score} for current gene set
+        this._geneSetLabel = null;  // current gene set name
         this.expressionCellLineMap = null; // array: GE cell line index -> expression cell line index (or -1)
         this.expressionCorrelateResults = null;
         this.exprCorrelatesSortCol = 'absR';
@@ -2401,6 +2404,7 @@ class CorrelationExplorer {
      * type: 'ge' | 'expr' | 'growth'
      */
     getAxisValue(gene, geCellLineIndex, type, geData) {
+        if (type === 'geneset') return this.getGeneSetScoreByGEIndex(geCellLineIndex);
         if (type === 'growth') return this.getGrowthRateByGEIndex(geCellLineIndex);
         if (type === 'expr') return this.getExpressionValueByGEIndex(gene, geCellLineIndex);
         return geData ? geData[geCellLineIndex] : NaN;
@@ -2410,6 +2414,7 @@ class CorrelationExplorer {
      * Get axis label for a gene and type.
      */
     getAxisLabel(gene, type) {
+        if (type === 'geneset') return this._geneSetLabel ? `${this._geneSetLabel} Score` : 'Gene Set Score';
         if (type === 'growth') return 'Growth Rate';
         if (type === 'expr') return `${gene} Expression (log2 TPM+1)`;
         return `${gene} Gene Effect`;
@@ -2419,9 +2424,160 @@ class CorrelationExplorer {
      * Get short axis label for a type.
      */
     getAxisLabelShort(type) {
+        if (type === 'geneset') return 'Set';
         if (type === 'growth') return 'Growth';
         if (type === 'expr') return 'Expr';
         return 'Effect';
+    }
+
+    _updateGeneSetSelectorVisibility() {
+        const xType = document.getElementById('xAxisDataType')?.value;
+        const yType = document.getElementById('yAxisDataType')?.value;
+        const show = xType === 'geneset' || yType === 'geneset';
+        document.getElementById('geneSetSelector').style.display = show ? 'block' : 'none';
+        if (show) this._populateGeneSetDropdown();
+    }
+
+    async _populateGeneSetDropdown() {
+        const select = document.getElementById('geneSetSelect');
+        if (select.options.length > 2) return; // already populated
+
+        await this.loadHallmarkGeneSets();
+        if (!this.hallmarkGeneSets) return;
+
+        // Ensure expression data is loaded
+        if (!this.expressionLoaded) {
+            select.innerHTML = '<option value="">Loading expression data...</option>';
+            await this.loadExpressionData();
+        }
+
+        select.innerHTML = '<option value="">Select gene set...</option>';
+        const names = Object.keys(this.hallmarkGeneSets).sort();
+        for (const name of names) {
+            const cleanName = name.replace('HALLMARK_', '').replace(/_/g, ' ');
+            const nGenes = this.hallmarkGeneSets[name].length;
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = `${cleanName} (${nGenes})`;
+            select.appendChild(opt);
+        }
+        const customOpt = document.createElement('option');
+        customOpt.value = '__custom__';
+        customOpt.textContent = '— Custom gene list —';
+        select.appendChild(customOpt);
+    }
+
+    async _applyGeneSet(setName) {
+        if (!this.hallmarkGeneSets?.[setName]) return;
+        const genes = this.hallmarkGeneSets[setName];
+
+        if (!this.expressionLoaded) await this.loadExpressionData();
+
+        const scores = this.computeGeneSetScore(genes);
+        if (!scores || Object.keys(scores).length < 20) {
+            alert('Too few cell lines with expression data for this gene set.');
+            return;
+        }
+        this._geneSetScores = scores;
+        const cleanName = setName.replace('HALLMARK_', '').replace(/_/g, ' ');
+        this._geneSetLabel = cleanName;
+        document.getElementById('geneSetInfo').textContent = `${Object.keys(scores).length} CLs, ${genes.length} genes`;
+        this.updateInspectGenes();
+    }
+
+    async _applyCustomGeneSet() {
+        const input = document.getElementById('customGeneSetInput').value.trim();
+        if (!input) return;
+        const genes = input.split(/[,\s\n]+/).map(g => g.trim()).filter(g => g.length > 0);
+        if (genes.length < 3) { alert('Need at least 3 genes.'); return; }
+
+        if (!this.expressionLoaded) await this.loadExpressionData();
+
+        const scores = this.computeGeneSetScore(genes);
+        if (!scores || Object.keys(scores).length < 20) {
+            alert('Too few cell lines with expression data for these genes.');
+            return;
+        }
+        this._geneSetScores = scores;
+        this._geneSetLabel = `Custom (${genes.length} genes)`;
+        document.getElementById('geneSetInfo').textContent = `${Object.keys(scores).length} CLs, ${genes.length} genes`;
+        this.updateInspectGenes();
+    }
+
+    async loadHallmarkGeneSets() {
+        if (this.hallmarkGeneSets) return;
+        const res = await fetch('web_data/hallmark_gene_sets.json');
+        this.hallmarkGeneSets = await res.json();
+    }
+
+    /**
+     * Compute gene set score per cell line: mean z-scored expression across genes in set.
+     * Returns {modelId: score} map.
+     */
+    computeGeneSetScore(geneList) {
+        if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata) return null;
+
+        const nCL = this.expressionMetadata.nCellLines;
+        const exprGeneIndex = this.expressionGeneIndex;
+
+        // Get expression vectors for genes in set
+        const geneIndices = [];
+        for (const gene of geneList) {
+            const idx = exprGeneIndex?.get(gene.toUpperCase());
+            if (idx !== undefined) geneIndices.push(idx);
+        }
+        if (geneIndices.length < 3) return null;
+
+        // For each gene, compute z-scores across cell lines
+        const zScores = []; // [geneIdx][cellLineIdx] -> z-score
+        for (const gi of geneIndices) {
+            const vals = new Float32Array(nCL);
+            let sum = 0, count = 0;
+            for (let j = 0; j < nCL; j++) {
+                const v = this.expressionData[gi * nCL + j];
+                vals[j] = v;
+                if (!isNaN(v)) { sum += v; count++; }
+            }
+            if (count < 10) continue;
+            const mean = sum / count;
+            let ssq = 0;
+            for (let j = 0; j < nCL; j++) {
+                if (!isNaN(vals[j])) ssq += (vals[j] - mean) ** 2;
+            }
+            const sd = Math.sqrt(ssq / count);
+            if (sd < 0.001) continue;
+            const z = new Float32Array(nCL);
+            for (let j = 0; j < nCL; j++) {
+                z[j] = isNaN(vals[j]) ? NaN : (vals[j] - mean) / sd;
+            }
+            zScores.push(z);
+        }
+
+        if (zScores.length < 3) return null;
+
+        // Average z-scores per cell line -> score
+        const scores = {};
+        const exprCellLines = this.expressionMetadata.cellLines;
+        for (let j = 0; j < nCL; j++) {
+            let sum = 0, count = 0;
+            for (const z of zScores) {
+                if (!isNaN(z[j])) { sum += z[j]; count++; }
+            }
+            if (count >= zScores.length * 0.5) { // require at least 50% of genes
+                scores[exprCellLines[j]] = sum / count;
+            }
+        }
+        return scores;
+    }
+
+    /**
+     * Get gene set score for a cell line by GE cell line index.
+     */
+    getGeneSetScoreByGEIndex(geCellLineIndex) {
+        if (!this._geneSetScores) return NaN;
+        const cl = this.metadata.cellLines[geCellLineIndex];
+        const v = this._geneSetScores[cl];
+        return v !== undefined ? v : NaN;
     }
 
     setupUI() {
@@ -2893,34 +3049,36 @@ class CorrelationExplorer {
         });
         document.getElementById('translocationFilterLevel')?.addEventListener('change', () => this.updateInspectPlot());
 
-        // Axis data type selectors (GE / Expression / Growth)
-        document.getElementById('xAxisDataType')?.addEventListener('change', (e) => {
-            const geneInput = document.getElementById('inspectGeneX');
-            if (e.target.value === 'growth') {
+        // Axis data type selectors (GE / Expression / Growth / Gene Set)
+        const handleAxisTypeChange = (e, inputId, defaultPlaceholder) => {
+            const geneInput = document.getElementById(inputId);
+            const val = e.target.value;
+            if (val === 'growth' || val === 'geneset') {
                 geneInput.dataset.savedGene = geneInput.value;
                 geneInput.value = '';
                 geneInput.disabled = true;
-                geneInput.placeholder = 'Growth Rate';
+                geneInput.placeholder = val === 'growth' ? 'Growth Rate' : 'Gene Set';
             } else if (geneInput.disabled) {
                 geneInput.value = geneInput.dataset.savedGene || '';
                 geneInput.disabled = false;
-                geneInput.placeholder = 'X gene';
+                geneInput.placeholder = defaultPlaceholder;
             }
-            this.updateInspectGenes();
+            this._updateGeneSetSelectorVisibility();
+            if (val !== 'geneset') this.updateInspectGenes();
+        };
+        document.getElementById('xAxisDataType')?.addEventListener('change', (e) => handleAxisTypeChange(e, 'inspectGeneX', 'X gene'));
+        document.getElementById('yAxisDataType')?.addEventListener('change', (e) => handleAxisTypeChange(e, 'inspectGeneY', 'Y gene'));
+
+        // Gene set selector
+        document.getElementById('geneSetSelect')?.addEventListener('change', (e) => {
+            const val = e.target.value;
+            document.getElementById('customGeneSetRow').style.display = val === '__custom__' ? 'block' : 'none';
+            if (val && val !== '__custom__') {
+                this._applyGeneSet(val);
+            }
         });
-        document.getElementById('yAxisDataType')?.addEventListener('change', (e) => {
-            const geneInput = document.getElementById('inspectGeneY');
-            if (e.target.value === 'growth') {
-                geneInput.dataset.savedGene = geneInput.value;
-                geneInput.value = '';
-                geneInput.disabled = true;
-                geneInput.placeholder = 'Growth Rate';
-            } else if (geneInput.disabled) {
-                geneInput.value = geneInput.dataset.savedGene || '';
-                geneInput.disabled = false;
-                geneInput.placeholder = 'Y gene';
-            }
-            this.updateInspectGenes();
+        document.getElementById('customGeneSetInput')?.addEventListener('change', () => {
+            this._applyCustomGeneSet();
         });
 
         document.getElementById('downloadScatterPNG').addEventListener('click', () => this.downloadScatterPNG());
@@ -5555,7 +5713,7 @@ class CorrelationExplorer {
 
     showGeneEffectDistribution(gene, tissueOverride, inspectHotspotOverride) {
         if (!this.mutationResults) return;
-        if (gene === '⚡ Growth Rate') return; // pseudo-gene, not a real gene
+        if (gene === '⚡ Growth Rate' || gene?.startsWith('📊')) return; // pseudo-gene, not a real gene
 
         const mr = this.mutationResults;
         const hotspotGene = mr.hotspotGene;
@@ -9765,11 +9923,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._userTitlePosition = null;
         this._userXLabelPos = null;
         this._userYLabelPos = null;
-        const GR_LABEL = '⚡ Growth Rate';
+        const isPseudo2 = (g) => g === '⚡ Growth Rate' || g?.startsWith('📊');
         let xTypeByTissue = document.getElementById('xAxisDataType')?.value || 'ge';
         let yTypeByTissue = document.getElementById('yAxisDataType')?.value || 'ge';
-        if (c.gene1 === GR_LABEL) xTypeByTissue = 'growth';
-        if (c.gene2 === GR_LABEL) yTypeByTissue = 'growth';
+        if (c.gene1 === '⚡ Growth Rate') xTypeByTissue = 'growth';
+        if (c.gene2 === '⚡ Growth Rate') yTypeByTissue = 'growth';
+        if (c.gene1?.startsWith('📊')) xTypeByTissue = 'geneset';
+        if (c.gene2?.startsWith('📊')) yTypeByTissue = 'geneset';
         this.currentInspect = {
             gene1: c.gene1,
             gene2: c.gene2,
@@ -9779,8 +9939,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
 
         // Get data for both genes (respecting axis data type)
-        const idx1 = c.gene1 !== GR_LABEL ? this.geneIndex.get(c.gene1) : undefined;
-        const idx2 = c.gene2 !== GR_LABEL ? this.geneIndex.get(c.gene2) : undefined;
+        const idx1 = !isPseudo2(c.gene1) ? this.geneIndex.get(c.gene1) : undefined;
+        const idx2 = !isPseudo2(c.gene2) ? this.geneIndex.get(c.gene2) : undefined;
         const geData1 = idx1 !== undefined ? this.getGeneData(idx1) : null;
         const geData2 = idx2 !== undefined ? this.getGeneData(idx2) : null;
 
@@ -9845,10 +10005,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let xType = document.getElementById('xAxisDataType')?.value || 'ge';
         let yType = document.getElementById('yAxisDataType')?.value || 'ge';
 
-        // Auto-detect growth rate pseudo-gene and force axis type
+        // Auto-detect pseudo-genes and force axis type
         const GR_LABEL = '⚡ Growth Rate';
+        const isPseudo = (g) => g === GR_LABEL || g?.startsWith('📊');
         if (c.gene1 === GR_LABEL) { xType = 'growth'; document.getElementById('xAxisDataType').value = 'growth'; }
         if (c.gene2 === GR_LABEL) { yType = 'growth'; document.getElementById('yAxisDataType').value = 'growth'; }
+        if (c.gene1?.startsWith('📊')) { xType = 'geneset'; document.getElementById('xAxisDataType').value = 'geneset'; this._updateGeneSetSelectorVisibility(); }
+        if (c.gene2?.startsWith('📊')) { yType = 'geneset'; document.getElementById('yAxisDataType').value = 'geneset'; this._updateGeneSetSelectorVisibility(); }
 
         this.currentInspect = {
             gene1: c.gene1,
@@ -9861,8 +10024,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.clearGates();
 
         // Get data for both genes (respecting axis data type)
-        const idx1 = c.gene1 !== GR_LABEL ? this.geneIndex.get(c.gene1) : undefined;
-        const idx2 = c.gene2 !== GR_LABEL ? this.geneIndex.get(c.gene2) : undefined;
+        const idx1 = !isPseudo(c.gene1) ? this.geneIndex.get(c.gene1) : undefined;
+        const idx2 = !isPseudo(c.gene2) ? this.geneIndex.get(c.gene2) : undefined;
         const geData1 = idx1 !== undefined ? this.getGeneData(idx1) : null;
         const geData2 = idx2 !== undefined ? this.getGeneData(idx2) : null;
 
@@ -10020,8 +10183,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Calculate stats for ALL cells (unfiltered) for the title
         const allCellsStats = this.pearsonWithSlope(plotData.map(d => d.x), plotData.map(d => d.y));
-        const xLbl = xType === 'growth' ? 'Growth' : xType === 'expr' ? 'Expr' : 'GE';
-        const yLbl = yType === 'growth' ? 'Growth' : yType === 'expr' ? 'Expr' : 'GE';
+        const xLbl = xType === 'geneset' ? 'Set' : xType === 'growth' ? 'Growth' : xType === 'expr' ? 'Expr' : 'GE';
+        const yLbl = yType === 'geneset' ? 'Set' : yType === 'growth' ? 'Growth' : yType === 'expr' ? 'Expr' : 'GE';
         const typeTag = (xType !== 'ge' || yType !== 'ge') ? ` [${xLbl}/${yLbl}]` : '';
         document.getElementById('inspectTitle').textContent =
             `${c.gene1} vs ${c.gene2}${typeTag} | r=${this.formatNum(allCellsStats.correlation)}, slope=${this.formatNum(allCellsStats.slope)}, n=${plotData.length} (all cells)`;
@@ -11843,22 +12006,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const xType = document.getElementById('xAxisDataType')?.value || 'ge';
         const yType = document.getElementById('yAxisDataType')?.value || 'ge';
         const GR_LABEL = '⚡ Growth Rate';
+        const GS_LABEL = this._geneSetLabel ? `📊 ${this._geneSetLabel}` : '📊 Gene Set';
+        const noGeneAxis = (t) => t === 'growth' || t === 'geneset';
 
-        // For growth axes, use the growth rate label; otherwise require a gene
-        const gene1 = xType === 'growth' ? GR_LABEL : document.getElementById('inspectGeneX').value.trim().toUpperCase();
-        const gene2 = yType === 'growth' ? GR_LABEL : document.getElementById('inspectGeneY').value.trim().toUpperCase();
+        // For growth/geneset axes, use labels; otherwise require a gene
+        const gene1 = xType === 'growth' ? GR_LABEL : xType === 'geneset' ? GS_LABEL : document.getElementById('inspectGeneX').value.trim().toUpperCase();
+        const gene2 = yType === 'growth' ? GR_LABEL : yType === 'geneset' ? GS_LABEL : document.getElementById('inspectGeneY').value.trim().toUpperCase();
 
-        if ((!gene1 && xType !== 'growth') || (!gene2 && yType !== 'growth')) {
-            alert('Please enter genes for non-growth axes.');
+        if ((!gene1 && !noGeneAxis(xType)) || (!gene2 && !noGeneAxis(yType))) {
+            alert('Please enter genes for GE/Expr axes.');
             return;
         }
 
-        // Validate genes exist in GE data (not needed for growth axis)
-        if (xType !== 'growth' && !this.geneIndex.has(gene1)) {
+        // Validate genes exist in GE data (not needed for growth/geneset axis)
+        if (!noGeneAxis(xType) && !this.geneIndex.has(gene1)) {
             alert(`Gene "${gene1}" not found in the gene effect dataset.`);
             return;
         }
-        if (yType !== 'growth' && !this.geneIndex.has(gene2)) {
+        if (!noGeneAxis(yType) && !this.geneIndex.has(gene2)) {
             alert(`Gene "${gene2}" not found in the gene effect dataset.`);
             return;
         }
@@ -11866,6 +12031,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // If growth rate is needed, check data is loaded
         if ((xType === 'growth' || yType === 'growth') && !this.growthRateData) {
             alert('Growth rate data not available.');
+            return;
+        }
+
+        // If gene set is needed, check scores are computed
+        if ((xType === 'geneset' || yType === 'geneset') && !this._geneSetScores) {
+            alert('Please select a gene set first.');
             return;
         }
 
@@ -11943,8 +12114,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.openInspect({ gene1, gene2, correlation: null });
 
         // Update title
-        const xLabel = xType === 'growth' ? 'Growth' : xType === 'expr' ? 'Expr' : 'GE';
-        const yLabel = yType === 'growth' ? 'Growth' : yType === 'expr' ? 'Expr' : 'GE';
+        const xLabel = xType === 'geneset' ? 'Set' : xType === 'growth' ? 'Growth' : xType === 'expr' ? 'Expr' : 'GE';
+        const yLabel = yType === 'geneset' ? 'Set' : yType === 'growth' ? 'Growth' : yType === 'expr' ? 'Expr' : 'GE';
         const typeInfo = (xType !== 'ge' || yType !== 'ge') ? ` [${xLabel}/${yLabel}]` : '';
         document.getElementById('inspectTitle').textContent = `Correlation: ${gene1} vs ${gene2}${typeInfo}`;
     }
@@ -16127,8 +16298,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }];
             layout = {
                 title: { text: `${d.gene1} vs ${d.gene2} — ${group} (n=${pts.length}, r=${s.correlation.toFixed(3)})`, font: { size: 13 } },
-                xaxis: { title: `${d.gene1} (${this.currentInspect?.xType === 'growth' ? 'Growth Rate' : this.currentInspect?.xType === 'expr' ? 'Expression' : 'Gene Effect'})` },
-                yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'growth' ? 'Growth Rate' : this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
+                xaxis: { title: `${d.gene1} (${this.currentInspect?.xType === 'geneset' ? 'Gene Set Score' : this.currentInspect?.xType === 'growth' ? 'Growth Rate' : this.currentInspect?.xType === 'expr' ? 'Expression' : 'Gene Effect'})` },
+                yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'geneset' ? 'Gene Set Score' : this.currentInspect?.yType === 'growth' ? 'Growth Rate' : this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
                 margin: { t: 50, b: 50, l: 60, r: 30 },
                 showlegend: false,
                 paper_bgcolor: 'white',
@@ -16164,8 +16335,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ];
             layout = {
                 title: { text: `${d.gene1} vs ${d.gene2} — ${group}<br><span style="font-size:11px">WT r=${isNaN(wtR.correlation) ? '-' : wtR.correlation.toFixed(3)}, Mut r=${isNaN(mutR.correlation) ? '-' : mutR.correlation.toFixed(3)}</span>`, font: { size: 13 } },
-                xaxis: { title: `${d.gene1} (${this.currentInspect?.xType === 'growth' ? 'Growth Rate' : this.currentInspect?.xType === 'expr' ? 'Expression' : 'Gene Effect'})` },
-                yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'growth' ? 'Growth Rate' : this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
+                xaxis: { title: `${d.gene1} (${this.currentInspect?.xType === 'geneset' ? 'Gene Set Score' : this.currentInspect?.xType === 'growth' ? 'Growth Rate' : this.currentInspect?.xType === 'expr' ? 'Expression' : 'Gene Effect'})` },
+                yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'geneset' ? 'Gene Set Score' : this.currentInspect?.yType === 'growth' ? 'Growth Rate' : this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
                 margin: { t: 60, b: 50, l: 60, r: 30 },
                 showlegend: true,
                 legend: { x: 0.02, y: 0.98, bgcolor: 'rgba(255,255,255,0.8)', font: { size: 10 } },

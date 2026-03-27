@@ -1313,11 +1313,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.38.2 (2026-03-27)</strong></p>
+                <p><strong>v.39 (2026-03-27)</strong></p>
                 <ul>
-                    <li>"By Growth" button same style as other compare buttons</li>
+                    <li>Gene set scoring: 50 MSigDB Hallmark pathway signatures as scatter axis</li>
+                    <li>New "Set" axis option — select a Hallmark set or enter custom gene list</li>
+                    <li>Scores computed as mean z-scored expression across genes in set per cell line</li>
+                    <li>Example: plot TSC1 GE (Y) vs mTORC1 Signaling score (X) to test pathway dependency</li>
                     <li>"Find Top Growth Correlators" scans all genes vs growth rate with current filters</li>
-                    <li>Shows top 100 genes ranked by |r|, each with Scatter button</li>
                 </ul>
                 <p><strong>v.38.1 (2026-03-27)</strong></p>
                 <ul>
@@ -1717,7 +1719,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.38.2</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.39</a>
     </div>
 
     <div class="main-content">
@@ -1741,6 +1743,7 @@
                             <li>OmicsFusionFiltered.csv <span style="color:#999;">(translocations/fusions)</span></li>
                             <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
                             <li>CRISPRInferredModelGrowthRate.csv <span style="color:#999;">(growth rate)</span></li>
+                            <li>MSigDB Hallmark gene sets <span style="color:#999;">(50 pathway signatures)</span></li>
                         </ul>
                         <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data.</p>
                     </div>
@@ -2390,14 +2393,27 @@
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
                                     <option value="growth">Growth</option>
+                                    <option value="geneset">Set</option>
                                 </select>
                                 <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; min-width: 100px; font-size: 12px; padding: 3px 8px;" placeholder="Y gene">
                                 <select id="yAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;" title="Y axis data type">
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
                                     <option value="growth">Growth</option>
+                                    <option value="geneset">Set</option>
                                 </select>
                                 <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px; white-space: nowrap;">Update</button>
+                            </div>
+                            <div id="geneSetSelector" style="display: none; margin-top: 4px;">
+                                <div style="display: flex; gap: 4px; align-items: center;">
+                                    <select id="geneSetSelect" style="flex: 1; font-size: 10px; padding: 2px 4px; border: 1px solid #ddd; border-radius: 4px;">
+                                        <option value="">Select gene set...</option>
+                                    </select>
+                                    <span id="geneSetInfo" style="font-size: 9px; color: #999; white-space: nowrap;"></span>
+                                </div>
+                                <div id="customGeneSetRow" style="display: none; margin-top: 3px;">
+                                    <input type="text" id="customGeneSetInput" class="form-control" style="font-size: 10px; padding: 2px 6px;" placeholder="Enter genes (comma-separated): TP53, BRCA1, MYC...">
+                                </div>
                             </div>
                         </div>
 
