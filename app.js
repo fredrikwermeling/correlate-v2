@@ -2557,10 +2557,11 @@ class CorrelationExplorer {
 
         if (geneData.length < 3) return null;
 
-        // B) Filter: keep only genes with above-median variance (removes non-informative genes)
+        // B) Filter: remove bottom 25% by variance (most non-informative genes)
         const variances = geneData.map(g => g.variance).sort((a, b) => a - b);
-        const medianVar = variances[Math.floor(variances.length / 2)];
-        const filtered = geneData.filter(g => g.variance >= medianVar);
+        const cutoffIdx = Math.floor(variances.length * 0.25);
+        const varCutoff = variances[cutoffIdx] || 0;
+        const filtered = geneData.filter(g => g.variance >= varCutoff);
         if (filtered.length < 3) return null;
 
         // A) Variance-weighted scoring: genes that vary more contribute more
