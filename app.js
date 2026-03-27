@@ -3239,6 +3239,26 @@ class CorrelationExplorer {
                 this.switchGeneEffectView(this.currentGEView || 'tissue');
             }
         });
+        // GE data type selector (GE / Growth / Gene Set)
+        document.getElementById('geDataType')?.addEventListener('change', async (e) => {
+            const val = e.target.value;
+            const gsSelect = document.getElementById('geGeneSetSelect');
+            gsSelect.style.display = val === 'geneset' ? '' : 'none';
+            if (val === 'geneset' && gsSelect.options.length <= 1) {
+                await this.loadHallmarkGeneSets();
+                if (!this.expressionLoaded) await this.loadExpressionData();
+                if (this.hallmarkGeneSets) {
+                    gsSelect.innerHTML = '<option value="">Select gene set...</option>';
+                    for (const name of Object.keys(this.hallmarkGeneSets).sort()) {
+                        const clean = name.replace('HALLMARK_', '').replace(/_/g, ' ');
+                        gsSelect.innerHTML += `<option value="${name}">${clean} (${this.hallmarkGeneSets[name].length})</option>`;
+                    }
+                }
+            }
+            if (val !== 'geneset') this._applyGEDataTypeOverride();
+        });
+        document.getElementById('geGeneSetSelect')?.addEventListener('change', () => this._applyGEDataTypeOverride());
+
         // Hotspot gene selector (Y axis mutation gene)
         document.getElementById('geHotspotGeneSelect')?.addEventListener('change', () => {
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene && this.mutationResults) {
@@ -17074,6 +17094,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const mean = allEffects.reduce((a, b) => a + b, 0) / allEffects.length;
         const sd = Math.sqrt(allEffects.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / allEffects.length);
 
+        // Reset data type override
+        this._originalGEData = null;
+        const geDataTypeEl = document.getElementById('geDataType');
+        if (geDataTypeEl) geDataTypeEl.value = 'ge';
+        const geGsSelect = document.getElementById('geGeneSetSelect');
+        if (geGsSelect) { geGsSelect.value = ''; geGsSelect.style.display = 'none'; }
+
         // Update UI
         document.getElementById('geneEffectTitle').textContent = `${geneUpper} - Gene Effect Analysis`;
         document.getElementById('geneEffectSearch').value = geneUpper;
@@ -17317,6 +17344,63 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     showGeneEffectAnalysis(gene, view = 'tissue') {
         this.openGeneEffectModal(gene, view);
+    }
+
+    _applyGEDataTypeOverride() {
+        if (!this.currentGeneEffect?.data?.length) return;
+
+        const dataType = document.getElementById('geDataType')?.value || 'ge';
+
+        if (dataType === 'ge') {
+            // Restore original GE values
+            if (this._originalGEData) {
+                this.currentGeneEffect.data = this._originalGEData;
+                this._originalGEData = null;
+            }
+        } else {
+            // Save original data if not already saved
+            if (!this._originalGEData) {
+                this._originalGEData = this.currentGeneEffect.data;
+            }
+
+            let valueMap = null; // {cellLineId: value}
+
+            if (dataType === 'growth' && this.growthRateData) {
+                valueMap = this.growthRateData;
+            } else if (dataType === 'geneset') {
+                const setName = document.getElementById('geGeneSetSelect')?.value;
+                if (!setName || !this.hallmarkGeneSets?.[setName]) return;
+                valueMap = this.computeGeneSetScore(this.hallmarkGeneSets[setName]);
+                if (!valueMap) { alert('Failed to compute gene set scores.'); return; }
+            }
+
+            if (!valueMap) return;
+
+            // Replace geneEffect with new values
+            this.currentGeneEffect.data = this._originalGEData
+                .map(d => {
+                    const v = valueMap[d.cellLineId];
+                    if (v === undefined || isNaN(v)) return null;
+                    return { ...d, geneEffect: v };
+                })
+                .filter(d => d !== null);
+        }
+
+        // Update summary
+        const data = this.currentGeneEffect.data;
+        const effects = data.map(d => d.geneEffect);
+        const mean = effects.reduce((a, b) => a + b, 0) / effects.length;
+        const sd = Math.sqrt(effects.reduce((a, b) => a + (b - mean) ** 2, 0) / effects.length);
+        const gene = this.currentGeneEffect.gene;
+        const typeLabel = dataType === 'growth' ? 'Growth Rate' : dataType === 'geneset' ? 'Gene Set Score' : 'GE';
+        document.getElementById('geneEffectSummary').querySelector('div').innerHTML =
+            `<span><b>Gene:</b> ${gene}</span>
+             <span><b>Data:</b> ${typeLabel}</span>
+             <span><b>Mean:</b> ${mean.toFixed(2)}</span>
+             <span><b>SD:</b> ${sd.toFixed(2)}</span>
+             <span><b>Cell lines:</b> ${data.length}</span>`;
+
+        this.switchGeneEffectView(this.currentGEView || 'tissue');
     }
 
     getGETissueFilteredData() {

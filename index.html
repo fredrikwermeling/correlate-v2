@@ -1313,6 +1313,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.40.1 (2026-03-27)</strong></p>
+                <ul>
+                    <li>GE boxplot data type selector: switch Y axis to Growth Rate or Gene Set Score</li>
+                    <li>Gene set dropdown appears when "Gene Set" is selected — pick any Hallmark pathway</li>
+                    <li>Boxplots, stats table, and summary all update to reflect selected data type</li>
+                </ul>
                 <p><strong>v.40 (2026-03-27)</strong></p>
                 <ul>
                     <li>"By Gene Set" comparison in scatter — correlate all 50 Hallmark scores with current genes</li>
@@ -1723,7 +1729,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.40</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.40.1</a>
     </div>
 
     <div class="main-content">
@@ -2693,7 +2699,15 @@
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Gene Effect:</label>
                             <input type="text" id="geneEffectSearch" class="form-control" placeholder="Gene symbol" style="width: 130px; font-size: 13px; padding: 6px 10px;">
+                            <select id="geDataType" style="font-size: 11px; padding: 3px 6px; border: 1px solid #ddd; border-radius: 4px; background: #fff;" title="Data type for Y axis">
+                                <option value="ge">GE</option>
+                                <option value="growth">Growth</option>
+                                <option value="geneset">Gene Set</option>
+                            </select>
                         </div>
+                        <select id="geGeneSetSelect" style="display: none; font-size: 11px; padding: 3px 6px; border: 1px solid #ddd; border-radius: 4px; width: 200px;" title="Select Hallmark gene set">
+                            <option value="">Select gene set...</option>
+                        </select>
                         <span id="geHotspotGeneGroup" style="display: none;">
                             <div style="display: flex; align-items: center; gap: 6px;">
                                 <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Mutation:</label>
