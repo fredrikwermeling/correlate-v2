@@ -2511,7 +2511,8 @@ class CorrelationExplorer {
     }
 
     /**
-     * Compute gene set score per cell line: mean z-scored expression across genes in set.
+     * Compute gene set score per cell line.
+     * Uses variance-weighted z-scores with automatic filtering of low-variance genes.
      * Returns {modelId: score} map.
      */
     computeGeneSetScore(geneList) {
@@ -2528,8 +2529,8 @@ class CorrelationExplorer {
         }
         if (geneIndices.length < 3) return null;
 
-        // For each gene, compute z-scores across cell lines
-        const zScores = []; // [geneIdx][cellLineIdx] -> z-score
+        // For each gene, compute z-scores and track variance across cell lines
+        const geneData = []; // {z: Float32Array, variance: number}
         for (const gi of geneIndices) {
             const vals = new Float32Array(nCL);
             let sum = 0, count = 0;
@@ -2544,27 +2545,37 @@ class CorrelationExplorer {
             for (let j = 0; j < nCL; j++) {
                 if (!isNaN(vals[j])) ssq += (vals[j] - mean) ** 2;
             }
-            const sd = Math.sqrt(ssq / count);
+            const variance = ssq / count;
+            const sd = Math.sqrt(variance);
             if (sd < 0.001) continue;
             const z = new Float32Array(nCL);
             for (let j = 0; j < nCL; j++) {
                 z[j] = isNaN(vals[j]) ? NaN : (vals[j] - mean) / sd;
             }
-            zScores.push(z);
+            geneData.push({ z, variance });
         }
 
-        if (zScores.length < 3) return null;
+        if (geneData.length < 3) return null;
 
-        // Average z-scores per cell line -> score
+        // B) Filter: keep only genes with above-median variance (removes non-informative genes)
+        const variances = geneData.map(g => g.variance).sort((a, b) => a - b);
+        const medianVar = variances[Math.floor(variances.length / 2)];
+        const filtered = geneData.filter(g => g.variance >= medianVar);
+        if (filtered.length < 3) return null;
+
+        // A) Variance-weighted scoring: genes that vary more contribute more
+        const totalWeight = filtered.reduce((s, g) => s + g.variance, 0);
+
+        // Weighted average z-scores per cell line -> score
         const scores = {};
         const exprCellLines = this.expressionMetadata.cellLines;
         for (let j = 0; j < nCL; j++) {
-            let sum = 0, count = 0;
-            for (const z of zScores) {
-                if (!isNaN(z[j])) { sum += z[j]; count++; }
+            let wSum = 0, wTotal = 0;
+            for (const g of filtered) {
+                if (!isNaN(g.z[j])) { wSum += g.z[j] * g.variance; wTotal += g.variance; }
             }
-            if (count >= zScores.length * 0.5) { // require at least 50% of genes
-                scores[exprCellLines[j]] = sum / count;
+            if (wTotal >= totalWeight * 0.3) { // require at least 30% of total weight
+                scores[exprCellLines[j]] = wSum / wTotal;
             }
         }
         return scores;

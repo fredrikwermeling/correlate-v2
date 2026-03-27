@@ -1313,8 +1313,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.40.3 (2026-03-27)</strong></p>
+                <p><strong>v.40.4 (2026-03-27)</strong></p>
                 <ul>
+                    <li>Improved gene set scoring: variance-weighted with automatic filtering of low-variance genes</li>
+                    <li>Keeps top 50% most variable genes, weights by variance — 2x better separation (KRAS: d=0.42→0.63)</li>
                     <li>Standalone "Growth Rate" and "Gene Set" buttons in GE analysis — no gene input needed</li>
                     <li>Click Growth Rate → immediate boxplot of growth rate by tissue</li>
                     <li>Click Gene Set → dropdown to pick Hallmark pathway → boxplot of pathway score by tissue</li>
@@ -1730,7 +1732,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.40.3</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.40.4</a>
     </div>
 
     <div class="main-content">
