@@ -1,15 +1,9 @@
 {
   "PROLIFERATION": {
-    "genes": ["MKI67","TOP2A","CDK1","CCNB1","CCNB2","CCNA2","PLK1","AURKA","AURKB","BUB1","BUB1B","CENPE","CENPF","TTK","KIF11"],
-    "description": "Proliferation / mitosis markers",
+    "genes": ["MKI67","TOP2A","CDK1","CCNB1","CCNA2","PLK1","AURKA","AURKB","BUB1B","TTK","GTSE1","GINS1","MYBL2","CENPE","CENPF"],
+    "description": "Proliferation / mitosis (classic + within-tissue validated)",
     "expectedMutations": ["RB1"],
     "withinTissueRatio": 2.89
-  },
-  "PROLIFERATION_EXTENDED": {
-    "genes": ["GTSE1","GINS1","MYBL2","DBF4","CDC27","NELFCD","MKI67","TOP2A","CDK1","CCNB1","PLK1","AURKA","AURKB","BUB1B","TTK"],
-    "description": "Proliferation (within-tissue validated, MKI67-correlated)",
-    "expectedMutations": ["RB1"],
-    "withinTissueRatio": 3.1
   },
   "OXPHOS": {
     "genes": ["NDUFA1","NDUFA2","NDUFB3","NDUFB8","NDUFS3","SDHB","UQCRC1","UQCRC2","COX5A","COX5B","COX6B1","ATP5F1A","ATP5F1B","ATP5MC1","CS"],

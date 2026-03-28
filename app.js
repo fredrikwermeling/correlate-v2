@@ -18240,7 +18240,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const p = wt.length >= 3 && mut.length >= 3 ? this.welchTTest(wt, mut).p : NaN;
                 return { gene: gv.gene, n: gv.values.length, wtMean, mutMean, delta, p };
             });
-            rows.sort((a, b) => (a.p || 1) - (b.p || 1));
+            // Match graph order (don't sort independently)
             tbody.innerHTML = rows.map(r => {
                 const dColor = r.delta > 0 ? '#059669' : '#dc2626';
                 const pStr = isNaN(r.p) ? '-' : r.p < 0.001 ? r.p.toExponential(1) : r.p.toFixed(3);
