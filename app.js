@@ -2566,15 +2566,13 @@ class CorrelationExplorer {
             html += '<optgroup label="Expr — pathway activity (RNA expression)">';
             for (const name of Object.keys(this.pathwaySignatures).sort()) {
                 const sig = this.pathwaySignatures[name];
-                const clean = name.replace(/_/g, ' ');
-                html += `<option value="${name}">Expr: ${clean} (${sig.genes.length})</option>`;
+                html += `<option value="${name}">Expr: ${sig.description} (${sig.genes.length})</option>`;
             }
             html += '</optgroup>';
             html += '<optgroup label="GE — pathway dependency (CRISPR gene effect)">';
             for (const name of Object.keys(this.pathwaySignatures).sort()) {
                 const sig = this.pathwaySignatures[name];
-                const clean = name.replace(/_/g, ' ');
-                html += `<option value="GE:${name}">GE: ${clean} (${sig.genes.length})</option>`;
+                html += `<option value="GE:${name}">GE: ${sig.description} (${sig.genes.length})</option>`;
             }
             html += '</optgroup>';
         }
@@ -3398,18 +3396,27 @@ class CorrelationExplorer {
             this.switchGeneEffectView(this.currentGEView || 'tissue');
         });
 
-        // Individual Genes button and connect lines toggle
+        // Individual Genes button, back button, hotspot overlay, connect lines
         document.getElementById('geShowIndividualGenesBtn')?.addEventListener('click', () => this.showGeneSetIndividualGenes());
+        document.getElementById('geBackFromIndividual')?.addEventListener('click', () => this.switchGeneEffectView(this.currentGEView || 'tissue'));
+        document.getElementById('geIndivHotspot')?.addEventListener('change', () => this.showGeneSetIndividualGenes());
         document.getElementById('geConnectLines')?.addEventListener('change', () => this.showGeneSetIndividualGenes());
 
         // Gene Sets button from main nav
         document.getElementById('showGeneSetAnalysis')?.addEventListener('click', async () => {
-            await this.loadAllGeneSets();
+            try {
+                await this.loadAllGeneSets();
+            } catch(e) { console.error('Failed to load gene sets:', e); return; }
+            // Set mode so filters and views work
+            this.geneEffectViewMode = 'geneEffect';
+            this.currentGeneEffect = null;
+            this._originalGEData = null;
             // Open GE modal and show gene set dropdown
             document.getElementById('geneEffectModal').classList.add('active');
             document.getElementById('geneEffectTitle').textContent = 'Pathway Signature Analysis';
             document.getElementById('geneEffectSearch').value = '';
             document.getElementById('geneEffectCurrentGene').textContent = '';
+            document.getElementById('geShowIndividualGenesBtn').style.display = 'none';
             const gsSelect = document.getElementById('geGeneSetSelect');
             if (gsSelect.options.length <= 1) {
                 gsSelect.innerHTML = this.buildGeneSetOptions();
@@ -3417,6 +3424,8 @@ class CorrelationExplorer {
             gsSelect.style.display = '';
             // Show instructions in the plot area
             document.getElementById('geneEffectSummary').style.display = 'none';
+            document.getElementById('geByTissueView').style.display = 'block';
+            document.getElementById('geByHotspotView').style.display = 'none';
             document.getElementById('geneEffectPlot').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Select a pathway signature from the dropdown above.<br><br><span style="font-size:12px;">Choose <b>Expr:</b> to see pathway activity (RNA expression)<br>or <b>GE:</b> to see pathway dependency (CRISPR gene effect).<br><br>Use <b>By Tissue</b> and <b>By Hotspot</b> to explore,<br>or <b>Individual Genes</b> to see all genes in the set.</span></div></div>';
             document.getElementById('geneEffectHotspotPlot').innerHTML = '';
             document.getElementById('geneEffectTableBody').innerHTML = '';
@@ -17798,10 +17807,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const genes = allSets[realName];
         if (!genes) return;
 
-        const gene = this.currentGeneEffect?.gene || realName;
+        const sig = this.pathwaySignatures?.[realName];
+        const setLabel = sig?.description || realName.replace(/_/g, ' ');
 
-        // Get hotspot gene for overlay
-        const hotspotGene = document.getElementById('geHotspotFilter')?.value || '';
+        // Populate hotspot overlay dropdown if needed
+        const hsSelect = document.getElementById('geIndivHotspot');
+        if (hsSelect.options.length <= 1 && this.mutations?.genes) {
+            hsSelect.innerHTML = '<option value="">No overlay</option>';
+            const hotspots = this.mutations.genes.slice(0, 50);
+            hotspots.forEach(g => {
+                hsSelect.innerHTML += `<option value="${g}">${g}</option>`;
+            });
+        }
+
+        // Get hotspot gene for overlay from dedicated dropdown
+        const hotspotGene = hsSelect?.value || '';
         const mutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
         const mutData = mutSource?.mutations || {};
 
@@ -17901,18 +17921,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             annotations: [
-                { text: `<b>${cleanName} — Individual Genes</b><br><span style="font-size:10px;color:#6b7280;">${dataTypeStr}${hotspotGene ? ` | ${hotspotGene} mutation overlay` : ''}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''} | n=${filteredData.length}</span>`,
-                  xref: 'paper', yref: 'paper', x: 0.5, y: 1.10, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 14 }, _tsRole: 'title' },
+                { text: `<b>${setLabel}</b><br><span style="font-size:11px;color:#374151;">Individual genes — ${dataTypeStr}</span><br><span style="font-size:10px;color:#6b7280;">${hotspotGene ? `${hotspotGene} overlay | ` : ''}${this._getGEFilterDescription() ? this._getGEFilterDescription() + ' | ' : ''}n=${filteredData.length}</span>`,
+                  xref: 'paper', yref: 'paper', x: 0.5, y: 1.14, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 14 }, _tsRole: 'title' },
                 { text: dataTypeStr, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             yaxis: { automargin: true, tickfont: { size: 11 }, categoryorder: 'array', categoryarray: yCategories.slice().reverse() },
             xaxis: { zeroline: true, zerolinecolor: '#ccc' },
             boxmode: hotspotGene ? 'group' : 'overlay',
             boxgap: 0.1, boxgroupgap: 0.05,
-            margin: { t: 80, b: 50, l: 10, r: 30 },
+            margin: { t: 95, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: !!hotspotGene,
-            legend: { x: 0.5, y: 1.04, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, traceorder: 'reversed' },
+            legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, traceorder: 'reversed' },
             paper_bgcolor: 'white', plot_bgcolor: 'white'
         };
 
