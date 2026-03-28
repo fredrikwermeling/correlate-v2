@@ -64,5 +64,23 @@
     "description": "Notch signaling output",
     "expectedMutations": ["NOTCH1"],
     "withinTissueRatio": 1.54
+  },
+  "RAS_MAPK_OUTPUT": {
+    "genes": ["DUSP6","SPRY2","SPRY4","ETV4","ETV5","PHLDA1","AREG","EREG","EGR1","FOS","FOSL1","MYC","CCND1","DUSP4","DUSP5"],
+    "description": "RAS/MAPK transcriptional targets (ERK output)",
+    "expectedMutations": ["KRAS","BRAF","NRAS"],
+    "withinTissueRatio": 1.15
+  },
+  "EMT_SIGNATURE": {
+    "genes": ["VIM","FN1","CDH2","SNAI1","SNAI2","ZEB1","ZEB2","TWIST1","CDH1","CLDN1","OCLN","TJP1","KRT18","KRT19","EPCAM"],
+    "description": "Epithelial-mesenchymal transition markers",
+    "expectedMutations": [],
+    "withinTissueRatio": 0.97
+  },
+  "WNT_TARGETS": {
+    "genes": ["AXIN2","LGR5","RNF43","ZNRF3","NKD1","DKK1","MYC","CCND1","TCF7","LEF1","BMP4","SOX9","CD44","ASCL2","TROY"],
+    "description": "WNT/beta-catenin transcriptional targets",
+    "expectedMutations": ["APC","CTNNB1"],
+    "withinTissueRatio": 1.03
   }
 }

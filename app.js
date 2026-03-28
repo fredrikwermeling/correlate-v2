@@ -17981,6 +17981,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (lineWidth) lineWidth.value = '1';
         this._geClearGates();
         this._indivGeneOrder = null;
+        this._indivSortKey = null;
+        this._indivSortDir = null;
         this.clearCustomCellLineFilterGE?.();
     }
 
@@ -18308,17 +18310,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Add sort handlers to table headers — also reorder graph Y axis
         thead.querySelectorAll('th[data-sort]').forEach(th => {
             th.addEventListener('click', () => {
+                const key = th.dataset.sort;
                 const type = th.dataset.type;
-                const dir = th._sortDir === 'asc' ? 'desc' : 'asc';
-                th._sortDir = dir;
-                const trs = Array.from(tbody.querySelectorAll('tr'));
+                // Toggle direction using persistent state
+                if (!this._indivSortKey || this._indivSortKey !== key) {
+                    this._indivSortKey = key;
+                    this._indivSortDir = 'desc';
+                } else {
+                    this._indivSortDir = this._indivSortDir === 'asc' ? 'desc' : 'asc';
+                }
+                const dir = this._indivSortDir;
                 const colIdx = Array.from(th.parentNode.children).indexOf(th);
+                const trs = Array.from(tbody.querySelectorAll('tr'));
                 trs.sort((a, b) => {
                     let va = a.children[colIdx]?.textContent?.trim() || '';
                     let vb = b.children[colIdx]?.textContent?.trim() || '';
                     if (type === 'number') {
-                        va = va === '-' ? Infinity : parseFloat(va);
-                        vb = vb === '-' ? Infinity : parseFloat(vb);
+                        va = va === '-' || va.startsWith('<') ? Infinity : parseFloat(va);
+                        vb = vb === '-' || vb.startsWith('<') ? Infinity : parseFloat(vb);
                         return dir === 'asc' ? va - vb : vb - va;
                     }
                     return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
