@@ -17717,8 +17717,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Sort by p-value (most significant first) for better visualization
         hotspotStats.sort((a, b) => a.pValue - b.pValue);
 
-        // Take top 20 most significant for box plot display
-        const topStats = hotspotStats.slice(0, 20);
+        // Take top 10 most significant (with at least 3 mutant cells) for box plot display
+        const topStats = hotspotStats.filter(s => s.nMut >= 3).slice(0, 10);
 
         // Create box plots for 3 mutation levels (0, 1, 2) for each hotspot
         const traces = [];
@@ -17799,7 +17799,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             annotations: [
-                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.08, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
                 { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} Gene Effect`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
@@ -17816,15 +17816,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             boxmode: 'group',
             boxgap: 0.1,
             boxgroupgap: 0.05,
-            margin: { t: 70, b: 50, l: 10, r: 30 },
+            margin: { t: 80, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: true,
-            legend: { x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.8)', traceorder: 'reversed' },
+            legend: { x: 0.5, y: 1.04, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.8)', traceorder: 'reversed' },
             paper_bgcolor: 'white',
             plot_bgcolor: 'white'
         };
 
-        Plotly.newPlot('geneEffectHotspotPlot', traces, layout, { responsive: true, edits: { annotationPosition: true, legendPosition: true } });
+        Plotly.newPlot('geneEffectHotspotPlot', traces, layout, {
+            responsive: true,
+            edits: { annotationPosition: true, legendPosition: true },
+            modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+            displaylogo: false
+        });
 
         // Store stats for table (without cell data)
         const tableStats = hotspotStats.map(s => ({
