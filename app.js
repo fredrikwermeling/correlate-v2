@@ -171,7 +171,7 @@ class CorrelationExplorer {
             fetch('web_data/orthologs.json'),
             fetch('web_data/translocations.json').catch(() => null),
             fetch('web_data/damaging_mutations.json').catch(() => null),
-            fetch('web_data/growth_rate.json').catch(() => null)
+            Promise.resolve(null) // growth_rate.json disabled (v.54)
         ]);
 
         this.metadata = await metadataRes.json();
