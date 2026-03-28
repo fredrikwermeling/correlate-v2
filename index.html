@@ -1313,9 +1313,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.43 (2026-03-28)</strong></p>
+                <ul>
+                    <li>Rank-based gene set scoring — batch-effect resistant, wins 6/10 vs z-score</li>
+                    <li>Scores = mean percentile rank of pathway genes within each cell line (0-1 scale)</li>
+                    <li>WNT/CTNNB1 d=1.77, RAS/KRAS d=1.24, P53/TP53 d=0.94 (all improved)</li>
+                </ul>
                 <p><strong>v.42 (2026-03-28)</strong></p>
                 <ul>
-                    <li>Replace Hallmark/KEGG with 15 curated pathway output signatures (15 genes each)</li>
+                    <li>15 curated pathway output signatures (transcriptional targets, not machinery)</li>
                     <li>Focus on transcriptional TARGETS not pathway machinery — 8x better delta for KRAS (d=1.12)</li>
                     <li>Sets: RAS/MAPK, WNT, P53, E2F, Hypoxia, Proliferation, MYC, EMT, IFN, OXPHOS, TGF-b, Notch, DDR, Apoptosis, PI3K/AKT</li>
                     <li>Table sorting now syncs with boxplot order (By Tissue view)</li>
@@ -1735,7 +1741,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.42</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.43</a>
     </div>
 
     <div class="main-content">

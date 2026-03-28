@@ -2539,17 +2539,20 @@ class CorrelationExplorer {
     }
 
     /**
-     * Compute gene set score per cell line.
-     * Uses variance-weighted z-scores with automatic filtering of low-variance genes.
-     * Returns {modelId: score} map.
+     * Compute gene set score per cell line using rank-based scoring.
+     * For each cell line, ranks all genes by expression, then computes the mean
+     * percentile rank of the gene set members. Batch-effect resistant since ranks
+     * are relative within each cell line.
+     * Returns {modelId: score} map. Scores range 0-1 (0.5 = average).
      */
     computeGeneSetScore(geneList) {
         if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata) return null;
 
         const nCL = this.expressionMetadata.nCellLines;
+        const nGenes = this.expressionMetadata.nGenes;
         const exprGeneIndex = this.expressionGeneIndex;
 
-        // Get expression vectors for genes in set
+        // Get gene indices for set members
         const geneIndices = [];
         for (const gene of geneList) {
             const idx = exprGeneIndex?.get(gene.toUpperCase());
@@ -2557,54 +2560,39 @@ class CorrelationExplorer {
         }
         if (geneIndices.length < 3) return null;
 
-        // For each gene, compute z-scores and track variance across cell lines
-        const geneData = []; // {z: Float32Array, variance: number}
-        for (const gi of geneIndices) {
-            const vals = new Float32Array(nCL);
-            let sum = 0, count = 0;
+        // Compute per-cell-line ranks lazily (cache for reuse)
+        if (!this._exprRanks) {
+            this._exprRanks = new Float32Array(nGenes * nCL);
+            this._exprRanks.fill(NaN);
             for (let j = 0; j < nCL; j++) {
-                const v = this.expressionData[gi * nCL + j];
-                vals[j] = v;
-                if (!isNaN(v)) { sum += v; count++; }
+                // Collect valid gene values for this cell line
+                const validPairs = [];
+                for (let gi = 0; gi < nGenes; gi++) {
+                    const v = this.expressionData[gi * nCL + j];
+                    if (!isNaN(v)) validPairs.push({ gi, v });
+                }
+                if (validPairs.length < 100) continue;
+                // Sort by expression value
+                validPairs.sort((a, b) => a.v - b.v);
+                const n = validPairs.length;
+                for (let k = 0; k < n; k++) {
+                    this._exprRanks[validPairs[k].gi * nCL + j] = k / (n - 1);
+                }
             }
-            if (count < 10) continue;
-            const mean = sum / count;
-            let ssq = 0;
-            for (let j = 0; j < nCL; j++) {
-                if (!isNaN(vals[j])) ssq += (vals[j] - mean) ** 2;
-            }
-            const variance = ssq / count;
-            const sd = Math.sqrt(variance);
-            if (sd < 0.001) continue;
-            const z = new Float32Array(nCL);
-            for (let j = 0; j < nCL; j++) {
-                z[j] = isNaN(vals[j]) ? NaN : (vals[j] - mean) / sd;
-            }
-            geneData.push({ z, variance });
         }
 
-        if (geneData.length < 3) return null;
-
-        // B) Filter: remove bottom 25% by variance (most non-informative genes)
-        const variances = geneData.map(g => g.variance).sort((a, b) => a - b);
-        const cutoffIdx = Math.floor(variances.length * 0.25);
-        const varCutoff = variances[cutoffIdx] || 0;
-        const filtered = geneData.filter(g => g.variance >= varCutoff);
-        if (filtered.length < 3) return null;
-
-        // A) Variance-weighted scoring: genes that vary more contribute more
-        const totalWeight = filtered.reduce((s, g) => s + g.variance, 0);
-
-        // Weighted average z-scores per cell line -> score
+        // Mean percentile rank of gene set members per cell line
         const scores = {};
         const exprCellLines = this.expressionMetadata.cellLines;
+        const minGenes = Math.max(3, Math.floor(geneIndices.length * 0.5));
         for (let j = 0; j < nCL; j++) {
-            let wSum = 0, wTotal = 0;
-            for (const g of filtered) {
-                if (!isNaN(g.z[j])) { wSum += g.z[j] * g.variance; wTotal += g.variance; }
+            let sum = 0, count = 0;
+            for (const gi of geneIndices) {
+                const r = this._exprRanks[gi * nCL + j];
+                if (!isNaN(r)) { sum += r; count++; }
             }
-            if (wTotal >= totalWeight * 0.3) { // require at least 30% of total weight
-                scores[exprCellLines[j]] = wSum / wTotal;
+            if (count >= minGenes) {
+                scores[exprCellLines[j]] = sum / count;
             }
         }
         return scores;
