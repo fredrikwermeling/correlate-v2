@@ -17926,7 +17926,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             annotations: [
-                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b><br><span style="font-size:10px;color:#6b7280;">Top ${topStats.length} most significant (of ${hotspotStats.length} tested, ≥3 mutant cells)</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
                 { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} Gene Effect`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
@@ -17943,10 +17943,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             boxmode: 'group',
             boxgap: 0.1,
             boxgroupgap: 0.05,
-            margin: { t: 80, b: 50, l: 10, r: 30 },
+            margin: { t: 90, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: true,
-            legend: { x: 0.5, y: 1.04, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.8)', traceorder: 'reversed' },
+            legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.8)', traceorder: 'reversed' },
             paper_bgcolor: 'white',
             plot_bgcolor: 'white'
         };
