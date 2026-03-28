@@ -18057,8 +18057,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const yIndexMap = new Map(yCategories.map((g, i) => [g, i]));
 
         const mutColors = { 0: '#2563eb', 1: '#f97316', 2: '#dc2626' };
-        const mutLabels = { 0: '0 (WT)', 1: '1 mutation', 2: '2+ mutations' };
         const yOffsets = { 0: -0.15, 1: 0, 2: 0.15 }; // vertical nudge per genotype
+
+        // Count per genotype for legend labels
+        const allCLs = filteredData.map(d => d.cellLineId);
+        const n0 = allCLs.filter(cl => (mutData[cl] || 0) === 0).length;
+        const n1 = allCLs.filter(cl => (mutData[cl] || 0) === 1).length;
+        const n2 = allCLs.filter(cl => (mutData[cl] || 0) >= 2).length;
+        const mutLabels = { 0: `0 (WT, n=${n0})`, 1: `1 mutation (n=${n1})`, 2: `2+ mutations (n=${n2})` };
 
         if (hotspotGene) {
             let show0 = true, show1 = true, show2 = true;
@@ -18144,7 +18150,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const layout = {
             annotations: [
                 { text: `<b>${setLabel}</b><br><span style="font-size:11px;color:#374151;">Individual genes — ${dataTypeStr}</span><br><span style="font-size:10px;color:#6b7280;">${hotspotGene ? `${hotspotGene} overlay | ` : ''}${this._getGEFilterDescription() ? this._getGEFilterDescription() + ' | ' : ''}n=${filteredData.length}</span>`,
-                  xref: 'paper', yref: 'paper', x: 0.5, y: 1.14, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 14 }, _tsRole: 'title' },
+                  xref: 'paper', yref: 'paper', x: 0.5, y: 1.18, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 14 }, _tsRole: 'title' },
                 { text: dataTypeStr, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             yaxis: {
@@ -18155,7 +18161,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 range: [-0.5, yCategories.length - 0.5]
             },
             xaxis: { zeroline: true, zerolinecolor: '#ccc' },
-            margin: { t: 120, b: 50, l: 10, r: 30 },
+            margin: { t: 140, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: !!hotspotGene,
             legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, traceorder: 'reversed' },
@@ -18283,12 +18289,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
                 // Reorder graph Y axis to match table order
                 const sortedGenes = trs.map(tr => tr.children[0]?.textContent?.trim());
-                const plotEl = document.getElementById('geneEffectPlot');
-                if (plotEl?.layout && sortedGenes.length > 0) {
-                    const newTickVals = sortedGenes.map((_, i) => i);
-                    // Remap all trace Y values
-                    const newIndexMap = new Map(sortedGenes.map((g, i) => [g, i]));
-                    // Re-render with new order
+                if (sortedGenes.length > 0) {
                     this._indivGeneOrder = sortedGenes;
                     this.showGeneSetIndividualGenes();
                 }
