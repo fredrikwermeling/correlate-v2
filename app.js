@@ -3387,12 +3387,9 @@ class CorrelationExplorer {
                 this.switchGeneEffectView(this.currentGEView || 'tissue');
             }
         });
-        // Show all genes / p-value filter toggles in hotspot view
-        document.getElementById('geShowAllGenes')?.addEventListener('change', () => {
-            this.renderGeneEffectByHotspot();
-        });
+        // p-value filter toggle — applies to both tissue and hotspot views
         document.getElementById('gePvalueFilter')?.addEventListener('change', () => {
-            this.renderGeneEffectByHotspot();
+            this.switchGeneEffectView(this.currentGEView || 'tissue');
         });
 
         // Individual Genes button and connect lines toggle
@@ -3402,15 +3399,24 @@ class CorrelationExplorer {
         // Gene Sets button from main nav
         document.getElementById('showGeneSetAnalysis')?.addEventListener('click', async () => {
             await this.loadAllGeneSets();
-            if (!this.expressionLoaded) await this.loadExpressionData();
             // Open GE modal and show gene set dropdown
             document.getElementById('geneEffectModal').classList.add('active');
             document.getElementById('geneEffectTitle').textContent = 'Pathway Signature Analysis';
+            document.getElementById('geneEffectSearch').value = '';
+            document.getElementById('geneEffectCurrentGene').textContent = '';
             const gsSelect = document.getElementById('geGeneSetSelect');
             if (gsSelect.options.length <= 1) {
                 gsSelect.innerHTML = this.buildGeneSetOptions();
             }
             gsSelect.style.display = '';
+            // Show instructions in the plot area
+            document.getElementById('geneEffectSummary').style.display = 'none';
+            document.getElementById('geneEffectPlot').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Select a pathway signature from the dropdown above.<br><br><span style="font-size:12px;">Choose <b>Expr:</b> to see pathway activity (RNA expression)<br>or <b>GE:</b> to see pathway dependency (CRISPR gene effect).<br><br>Use <b>By Tissue</b> and <b>By Hotspot</b> to explore,<br>or <b>Individual Genes</b> to see all genes in the set.</span></div></div>';
+            document.getElementById('geneEffectHotspotPlot').innerHTML = '';
+            document.getElementById('geneEffectTableBody').innerHTML = '';
+            // Hide expression correlates
+            document.getElementById('toggleExprCorrelatesBtn').style.display = 'none';
+            document.getElementById('exprCorrelatesPanel').style.display = 'none';
         });
 
         // GE Growth Rate button — show growth rate by tissue (no gene needed)
@@ -17388,7 +17394,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Restore table and hide individual gene controls
         document.getElementById('geTableContainer').style.display = '';
-        document.getElementById('geConnectLinesToggle').style.display = 'none';
+        document.getElementById('geIndividualControls').style.display = 'none';
 
         // Reset detailed view state and search
         this.geDetailedView = null;
@@ -17424,13 +17430,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('geByTissueView').style.display = 'block';
             document.getElementById('geByHotspotView').style.display = 'none';
             if (statsExplanation) statsExplanation.textContent = "p-values: Welch's t-test comparing each cancer type vs all other cell lines.";
-            document.getElementById('geHotspotToggles').style.display = 'none';
+            /* p-value filter visible in both views */
             this.renderGeneEffectByTissue();
         } else {
             document.getElementById('geByTissueView').style.display = 'none';
             document.getElementById('geByHotspotView').style.display = 'block';
             if (statsExplanation) statsExplanation.textContent = "Shows 3 mutation levels: 0 (WT, blue), 1 (orange), 2 (red). p-value: Welch's t-test comparing 1+2 combined vs WT.";
-            document.getElementById('geHotspotToggles').style.display = '';
+            /* p-value filter visible in both views */
             this.renderGeneEffectByHotspot();
         }
     }
@@ -17756,7 +17762,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Show/hide connect lines toggle
-        document.getElementById('geConnectLinesToggle').style.display = '';
+        document.getElementById('geIndividualControls').style.display = '';
 
         // Render into the tissue plot area
         document.getElementById('geByTissueView').style.display = 'block';
@@ -17883,9 +17889,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         });
 
+        // Apply p-value filter if enabled
+        const pFilterTissue = document.getElementById('gePvalueFilter')?.checked;
+        const filteredStats = pFilterTissue ? stats.filter(s => s.pValue < 0.05) : stats;
+
         // Sort by median gene effect for chart display
-        stats.sort((a, b) => a.mean - b.mean);
-        this.currentGEStats = stats;
+        filteredStats.sort((a, b) => a.mean - b.mean);
+        this.currentGEStats = filteredStats;
 
         // Create box plot traces for each group (default: B&W)
         const traces = stats.map((s, idx) => ({
@@ -18087,13 +18097,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Apply p-value filter if enabled
         const pFilter = document.getElementById('gePvalueFilter')?.checked;
-        let filteredHotspot = pFilter ? hotspotStats.filter(s => s.pValue < 0.05) : hotspotStats;
-
-        // Show all or top 10 based on toggle
-        const showAll = document.getElementById('geShowAllGenes')?.checked;
-        const topStats = showAll
-            ? filteredHotspot
-            : filteredHotspot.filter(s => s.nMut >= 3).slice(0, 10);
+        const topStats = pFilter
+            ? hotspotStats.filter(s => s.pValue < 0.05 && s.nMut >= 3)
+            : hotspotStats.filter(s => s.nMut >= 3).slice(0, 10);
 
         // Create box plots for 3 mutation levels (0, 1, 2) for each hotspot
         const traces = [];
@@ -18174,7 +18180,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             annotations: [
-                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b><br><span style="font-size:10px;color:#6b7280;">${showAll ? `All ${topStats.length} genes` : `Top ${topStats.length} most significant`} (of ${hotspotStats.length} tested)</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b><br><span style="font-size:10px;color:#6b7280;">n=${data.length}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''}${pFilter ? ' | p<0.05' : ''}</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
                 { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} Gene Effect`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
@@ -18207,7 +18213,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         // Store stats for table — sync with what's shown in graph
-        const tableSource = showAll ? hotspotStats : topStats;
+        const tableSource = topStats;
         const tableStats = tableSource.map(s => ({
             group: s.group,
             n0: s.n0,
