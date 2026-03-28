@@ -3387,9 +3387,29 @@ class CorrelationExplorer {
                 this.switchGeneEffectView(this.currentGEView || 'tissue');
             }
         });
-        // Show all genes toggle in hotspot view
+        // Show all genes / p-value filter toggles in hotspot view
         document.getElementById('geShowAllGenes')?.addEventListener('change', () => {
             this.renderGeneEffectByHotspot();
+        });
+        document.getElementById('gePvalueFilter')?.addEventListener('change', () => {
+            this.renderGeneEffectByHotspot();
+        });
+
+        // Individual Genes button for gene set view
+        document.getElementById('geShowIndividualGenesBtn')?.addEventListener('click', () => this.showGeneSetIndividualGenes());
+
+        // Gene Sets button from main nav
+        document.getElementById('showGeneSetAnalysis')?.addEventListener('click', async () => {
+            await this.loadAllGeneSets();
+            if (!this.expressionLoaded) await this.loadExpressionData();
+            // Open GE modal and show gene set dropdown
+            document.getElementById('geneEffectModal').classList.add('active');
+            document.getElementById('geneEffectTitle').textContent = 'Pathway Signature Analysis';
+            const gsSelect = document.getElementById('geGeneSetSelect');
+            if (gsSelect.options.length <= 1) {
+                gsSelect.innerHTML = this.buildGeneSetOptions();
+            }
+            gsSelect.style.display = '';
         });
 
         // GE Growth Rate button — show growth rate by tissue (no gene needed)
@@ -17365,6 +17385,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     switchGeneEffectView(view) {
         this.currentGEView = view;
 
+        // Restore table if hidden by individual gene view
+        document.getElementById('geTableContainer').style.display = '';
+
         // Reset detailed view state and search
         this.geDetailedView = null;
         this.updateShowAllButton();
@@ -17399,13 +17422,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('geByTissueView').style.display = 'block';
             document.getElementById('geByHotspotView').style.display = 'none';
             if (statsExplanation) statsExplanation.textContent = "p-values: Welch's t-test comparing each cancer type vs all other cell lines.";
-            document.getElementById('geShowAllToggle').style.display = 'none';
+            document.getElementById('geHotspotToggles').style.display = 'none';
             this.renderGeneEffectByTissue();
         } else {
             document.getElementById('geByTissueView').style.display = 'none';
             document.getElementById('geByHotspotView').style.display = 'block';
             if (statsExplanation) statsExplanation.textContent = "Shows 3 mutation levels: 0 (WT, blue), 1 (orange), 2 (red). p-value: Welch's t-test comparing 1+2 combined vs WT.";
-            document.getElementById('geShowAllToggle').style.display = '';
+            document.getElementById('geHotspotToggles').style.display = '';
             this.renderGeneEffectByHotspot();
         }
     }
@@ -17537,10 +17560,154 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('geSummaryN').textContent = data.length;
         document.getElementById('geneEffectSummary').style.display = 'block';
 
+        // Hide expression correlates button (not applicable for gene set/growth)
+        document.getElementById('toggleExprCorrelatesBtn').style.display = 'none';
+        document.getElementById('exprCorrelatesPanel').style.display = 'none';
+
+        // Show individual genes button for gene sets (not growth)
+        document.getElementById('geShowIndividualGenesBtn').style.display = label !== 'Growth Rate' ? '' : 'none';
+
         // Show modal if not already open
         document.getElementById('geneEffectModal').classList.add('active');
         this.geneEffectViewMode = 'geneEffect';
         this.switchGeneEffectView('tissue');
+    }
+
+    showGeneSetIndividualGenes() {
+        const gsVal = document.getElementById('geGeneSetSelect')?.value;
+        if (!gsVal || gsVal === '__custom__') { alert('Select a gene set first.'); return; }
+
+        const isGE = gsVal.startsWith('GE:');
+        const realName = isGE ? gsVal.slice(3) : gsVal;
+        const allSets = this.getAllGeneSets();
+        const genes = allSets[realName];
+        if (!genes) return;
+
+        const gene = this.currentGeneEffect?.gene || realName;
+
+        // Get hotspot gene for overlay
+        const hotspotGene = document.getElementById('geHotspotFilter')?.value || '';
+        const mutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
+        const mutData = mutSource?.mutations || {};
+
+        // Get filtered cell lines
+        const filteredData = this.getGETissueFilteredData();
+        const clSet = new Set(filteredData.map(d => d.cellLineId));
+
+        // Build data: for each gene, get value per cell line
+        const geneValues = []; // [{gene, values: [{cl, val, mutLevel}]}]
+        for (const g of genes) {
+            let vals = [];
+            if (isGE) {
+                const gIdx = this.geneIndex.get(g.toUpperCase());
+                if (gIdx === undefined) continue;
+                const gd = this.getGeneData(gIdx);
+                for (let i = 0; i < this.nCellLines; i++) {
+                    const cl = this.metadata.cellLines[i];
+                    if (!clSet.has(cl)) continue;
+                    if (!isNaN(gd[i])) {
+                        vals.push({ cl, val: gd[i], mut: mutData[cl] || 0, name: this.getCellLineName(cl) });
+                    }
+                }
+            } else {
+                const eIdx = this.expressionGeneIndex?.get(g.toUpperCase());
+                if (eIdx === undefined) continue;
+                for (let i = 0; i < this.nCellLines; i++) {
+                    const cl = this.metadata.cellLines[i];
+                    if (!clSet.has(cl)) continue;
+                    const exprIdx = this.expressionCellLineMap?.[i];
+                    if (exprIdx === undefined || exprIdx === -1) continue;
+                    const v = this.expressionData[eIdx * this.expressionMetadata.nCellLines + exprIdx];
+                    if (!isNaN(v)) {
+                        vals.push({ cl, val: v, mut: mutData[cl] || 0, name: this.getCellLineName(cl) });
+                    }
+                }
+            }
+            if (vals.length > 0) geneValues.push({ gene: g, values: vals });
+        }
+
+        if (geneValues.length < 3) { alert('Too few genes with data.'); return; }
+
+        // Build Plotly traces — horizontal boxplots per gene, colored by mutation
+        const traces = [];
+        const yCategories = geneValues.map(gv => gv.gene);
+        let show0 = true, show1 = true, show2 = true;
+
+        const colors = { 0: '#2563eb', 1: '#f97316', 2: '#dc2626' };
+        const fills = { 0: 'rgba(37,99,235,0.4)', 1: 'rgba(249,115,22,0.4)', 2: 'rgba(220,38,38,0.4)' };
+        const labels = { 0: '0 (WT)', 1: '1 mutation', 2: '2 mutations' };
+
+        if (hotspotGene) {
+            // Split by mutation level
+            for (const level of [2, 1, 0]) {
+                geneValues.forEach(gv => {
+                    const pts = gv.values.filter(v => level === 2 ? v.mut >= 2 : v.mut === level);
+                    if (pts.length === 0) return;
+                    const showLegend = level === 0 ? show0 : level === 1 ? show1 : show2;
+                    traces.push({
+                        type: 'box', orientation: 'h',
+                        name: labels[level], legendgroup: String(level), showlegend: showLegend,
+                        y: Array(pts.length).fill(gv.gene),
+                        x: pts.map(p => p.val),
+                        text: pts.map(p => p.name),
+                        boxpoints: 'all', jitter: 0.3, pointpos: 0,
+                        marker: { color: colors[level], size: 4 },
+                        line: { color: colors[level], width: 1.5 },
+                        fillcolor: fills[level],
+                        hovertemplate: `<b>%{text}</b><br>${gv.gene}: %{x:.3f}<extra>${labels[level]}</extra>`,
+                        offsetgroup: String(level)
+                    });
+                    if (level === 0) show0 = false;
+                    if (level === 1) show1 = false;
+                    if (level === 2) show2 = false;
+                });
+            }
+        } else {
+            geneValues.forEach(gv => {
+                traces.push({
+                    type: 'box', orientation: 'h',
+                    name: gv.gene,
+                    y: Array(gv.values.length).fill(gv.gene),
+                    x: gv.values.map(v => v.val),
+                    text: gv.values.map(v => v.name),
+                    boxpoints: 'all', jitter: 0.3, pointpos: 0,
+                    marker: { color: 'rgba(80,80,80,0.5)', size: 5 },
+                    line: { color: '#374151' },
+                    fillcolor: 'rgba(200,200,200,0.3)',
+                    hovertemplate: `<b>%{text}</b><br>${gv.gene}: %{x:.3f}<extra></extra>`,
+                    showlegend: false
+                });
+            });
+        }
+
+        const cleanName = realName.replace(/_/g, ' ');
+        const dataTypeStr = isGE ? 'Gene Effect' : 'Expression (log2 TPM+1)';
+        const chartHeight = Math.max(400, geneValues.length * 45 + 120);
+
+        const layout = {
+            annotations: [
+                { text: `<b>${cleanName} — Individual Genes</b><br><span style="font-size:10px;color:#6b7280;">${dataTypeStr}${hotspotGene ? ` | ${hotspotGene} mutation overlay` : ''} | n=${filteredData.length} cell lines</span>`,
+                  xref: 'paper', yref: 'paper', x: 0.5, y: 1.10, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 14 }, _tsRole: 'title' },
+                { text: dataTypeStr, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
+            ],
+            yaxis: { automargin: true, tickfont: { size: 11 }, categoryorder: 'array', categoryarray: yCategories.slice().reverse() },
+            xaxis: { zeroline: true, zerolinecolor: '#ccc' },
+            boxmode: hotspotGene ? 'group' : 'overlay',
+            boxgap: 0.1, boxgroupgap: 0.05,
+            margin: { t: 80, b: 50, l: 10, r: 30 },
+            height: chartHeight,
+            showlegend: !!hotspotGene,
+            legend: { x: 0.5, y: 1.04, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, traceorder: 'reversed' },
+            paper_bgcolor: 'white', plot_bgcolor: 'white'
+        };
+
+        // Render into the tissue plot area
+        document.getElementById('geByTissueView').style.display = 'block';
+        document.getElementById('geByHotspotView').style.display = 'none';
+        Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true, displaylogo: false });
+
+        // Hide the stats table for individual view
+        document.getElementById('geTableContainer').style.display = 'none';
     }
 
     _showGrowthRateAnalysis() {
@@ -17561,7 +17728,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             scores = this.computeGeneSetScore(allSets[realName]);
         }
         if (!scores) { alert('Failed to compute gene set scores.'); return; }
-        const cleanName = realName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ') + (isGE ? ' (GE)' : '');
+        const cleanName = realName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ') + (isGE ? ' (GE dep.)' : ' (Expr)');
         this._showIndependentAnalysis(scores, cleanName);
     }
 
@@ -17858,11 +18025,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Sort by p-value (most significant first) for better visualization
         hotspotStats.sort((a, b) => a.pValue - b.pValue);
 
+        // Apply p-value filter if enabled
+        const pFilter = document.getElementById('gePvalueFilter')?.checked;
+        let filteredHotspot = pFilter ? hotspotStats.filter(s => s.pValue < 0.05) : hotspotStats;
+
         // Show all or top 10 based on toggle
         const showAll = document.getElementById('geShowAllGenes')?.checked;
         const topStats = showAll
-            ? hotspotStats
-            : hotspotStats.filter(s => s.nMut >= 3).slice(0, 10);
+            ? filteredHotspot
+            : filteredHotspot.filter(s => s.nMut >= 3).slice(0, 10);
 
         // Create box plots for 3 mutation levels (0, 1, 2) for each hotspot
         const traces = [];
