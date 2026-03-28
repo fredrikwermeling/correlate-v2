@@ -3387,6 +3387,12 @@ class CorrelationExplorer {
                 this.switchGeneEffectView(this.currentGEView || 'tissue');
             }
         });
+        // GE plot gating
+        document.getElementById('geSetGateABtn')?.addEventListener('click', () => this._geStartGate('A'));
+        document.getElementById('geSetGateBBtn')?.addEventListener('click', () => this._geStartGate('B'));
+        document.getElementById('geClearGatesBtn')?.addEventListener('click', () => this._geClearGates());
+        document.getElementById('geCompareGatesBtn')?.addEventListener('click', () => this._geCompareGates());
+
         // p-value filter toggle — applies to both tissue and hotspot views
         document.getElementById('gePvalueFilter')?.addEventListener('change', () => {
             this.switchGeneEffectView(this.currentGEView || 'tissue');
@@ -17392,9 +17398,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     switchGeneEffectView(view) {
         this.currentGEView = view;
 
-        // Restore table and hide individual gene controls
+        // Restore table, hide individual gene controls, clear gates
         document.getElementById('geTableContainer').style.display = '';
         document.getElementById('geIndividualControls').style.display = 'none';
+        this._geClearGates();
 
         // Reset detailed view state and search
         this.geDetailedView = null;
@@ -17579,6 +17586,190 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('geneEffectModal').classList.add('active');
         this.geneEffectViewMode = 'geneEffect';
         this.switchGeneEffectView('tissue');
+    }
+
+    _attachGEGateHandler(plotId) {
+        const plotEl = document.getElementById(plotId);
+        if (!plotEl) return;
+        plotEl.removeAllListeners?.('plotly_relayout');
+        plotEl.on('plotly_relayout', (eventData) => {
+            if (!this._geGateSelecting) return;
+            // Check for new shapes
+            const keys = Object.keys(eventData || {});
+            const hasNewShape = keys.some(k => k.startsWith('shapes['));
+            if (!hasNewShape && !eventData?.shapes) return;
+
+            const shapes = plotEl.layout?.shapes || [];
+            if (shapes.length === 0) return;
+            const shape = shapes[shapes.length - 1];
+            if (!shape || shape.x0 === undefined) return;
+
+            const xMin = Math.min(shape.x0, shape.x1);
+            const xMax = Math.max(shape.x0, shape.x1);
+
+            const data = this.getGETissueFilteredData();
+            const cells = data.filter(d => d.geneEffect >= xMin && d.geneEffect <= xMax);
+
+            if (this._geGateSelecting === 'A') {
+                this._geGateA = cells;
+                document.getElementById('geSetGateABtn').textContent = `Gate A (n=${cells.length})`;
+                document.getElementById('geSetGateABtn').style.opacity = '0.7';
+                document.getElementById('geSetGateBBtn').disabled = false;
+                document.getElementById('geClearGatesBtn').style.display = '';
+                document.getElementById('geGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
+            } else {
+                this._geGateB = cells;
+                document.getElementById('geSetGateBBtn').textContent = `Gate B (n=${cells.length})`;
+                document.getElementById('geSetGateBBtn').style.opacity = '0.7';
+                document.getElementById('geCompareGatesBtn').style.display = '';
+                document.getElementById('geGateStatus').textContent = `Gate A: ${this._geGateA?.length || 0}, Gate B: ${cells.length}. Click Compare.`;
+            }
+
+            // Style shape
+            const idx = shapes.length - 1;
+            const color = this._geGateSelecting === 'A' ? '#2563eb' : '#dc2626';
+            const fill = this._geGateSelecting === 'A' ? 'rgba(37,99,235,0.1)' : 'rgba(220,38,38,0.1)';
+            Plotly.relayout(plotId, {
+                [`shapes[${idx}].line.color`]: color,
+                [`shapes[${idx}].line.width`]: 2,
+                [`shapes[${idx}].fillcolor`]: fill,
+                dragmode: 'zoom'
+            });
+
+            this._geGateSelecting = null;
+        });
+    }
+
+    _geStartGate(gate) {
+        this._geGateSelecting = gate;
+        const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
+        Plotly.relayout(plotId, { dragmode: 'drawrect' });
+        document.getElementById('geGateStatus').textContent = `Draw rectangle for Gate ${gate}...`;
+    }
+
+    _geClearGates() {
+        this._geGateA = null;
+        this._geGateB = null;
+        this._geGateSelecting = null;
+        document.getElementById('geSetGateABtn').textContent = 'Gate A';
+        document.getElementById('geSetGateABtn').style.opacity = '1';
+        document.getElementById('geSetGateBBtn').textContent = 'Gate B';
+        document.getElementById('geSetGateBBtn').style.opacity = '1';
+        document.getElementById('geSetGateBBtn').disabled = true;
+        document.getElementById('geCompareGatesBtn').style.display = 'none';
+        document.getElementById('geClearGatesBtn').style.display = 'none';
+        document.getElementById('geGateStatus').textContent = '';
+
+        // Remove shapes
+        const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
+        try { Plotly.relayout(plotId, { shapes: [], dragmode: 'zoom' }); } catch(e) {}
+
+        // Remove compare panel
+        const panel = document.getElementById('geGateComparePanel');
+        if (panel) panel.remove();
+    }
+
+    async _geCompareGates() {
+        if (!this._geGateA?.length || !this._geGateB?.length) return;
+
+        const gateA = this._geGateA;
+        const gateB = this._geGateB;
+        const gateAIds = new Set(gateA.map(d => d.cellLineId));
+        const gateBIds = new Set(gateB.map(d => d.cellLineId));
+
+        // Tissue enrichment
+        const tissueA = {}, tissueB = {};
+        gateA.forEach(d => { tissueA[d.lineage || 'Unknown'] = (tissueA[d.lineage || 'Unknown'] || 0) + 1; });
+        gateB.forEach(d => { tissueB[d.lineage || 'Unknown'] = (tissueB[d.lineage || 'Unknown'] || 0) + 1; });
+        const allTissues = [...new Set([...Object.keys(tissueA), ...Object.keys(tissueB)])].sort();
+        const tissueStats = allTissues.map(t => ({
+            tissue: t, nA: tissueA[t] || 0, pctA: ((tissueA[t] || 0) / gateA.length * 100),
+            nB: tissueB[t] || 0, pctB: ((tissueB[t] || 0) / gateB.length * 100)
+        })).sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
+
+        // Differential GE for top genes
+        const diffGE = [];
+        const geneNames = [...this.geneIndex.keys()];
+        for (const gene of geneNames) {
+            const geneIdx = this.geneIndex.get(gene);
+            const geneData = this.getGeneData(geneIdx);
+            const valsA = [], valsB = [];
+            for (let j = 0; j < this.nCellLines; j++) {
+                if (isNaN(geneData[j])) continue;
+                const cl = this.metadata.cellLines[j];
+                if (gateAIds.has(cl)) valsA.push(geneData[j]);
+                else if (gateBIds.has(cl)) valsB.push(geneData[j]);
+            }
+            if (valsA.length >= 2 && valsB.length >= 2) {
+                const meanA = valsA.reduce((a, b) => a + b, 0) / valsA.length;
+                const meanB = valsB.reduce((a, b) => a + b, 0) / valsB.length;
+                const tTest = this.welchTTest(valsA, valsB);
+                diffGE.push({ gene, meanA, meanB, diff: meanA - meanB, pValue: tTest.p });
+            }
+        }
+        diffGE.sort((a, b) => a.pValue - b.pValue);
+
+        // Build results panel
+        const gene = this.currentGeneEffect?.gene || '';
+        let html = `<div style="padding: 12px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; margin-top: 10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <h4 style="margin:0;">Gate Compare — ${gene}</h4>
+                <button class="btn btn-outline btn-sm" onclick="this.closest('div').remove();">&times; Close</button>
+            </div>
+            <p style="font-size:11px; color:#666; margin:0 0 8px;">Gate A: ${gateA.length} cells | Gate B: ${gateB.length} cells</p>`;
+
+        // Tissue table
+        html += `<h5 style="margin:8px 0 4px;">Tissue Enrichment</h5>
+            <div style="max-height:200px; overflow-y:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:11px;">
+            <tr style="background:#f9fafb;font-weight:600;">
+                <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;text-align:left;">Tissue</th>
+                <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">A (n)</th>
+                <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">A %</th>
+                <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">B (n)</th>
+                <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">B %</th>
+            </tr>`;
+        tissueStats.slice(0, 15).forEach(t => {
+            html += `<tr><td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;">${t.tissue}</td>
+                <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${t.nA}</td>
+                <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${t.pctA.toFixed(0)}%</td>
+                <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${t.nB}</td>
+                <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${t.pctB.toFixed(0)}%</td></tr>`;
+        });
+        html += `</table></div>`;
+
+        // Differential GE table
+        html += `<h5 style="margin:12px 0 4px;">Differential Gene Effect (top 20)</h5>
+            <div style="max-height:300px; overflow-y:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:11px;">
+            <tr style="background:#f9fafb;font-weight:600;">
+                <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;text-align:left;">Gene</th>
+                <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">Mean A</th>
+                <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">Mean B</th>
+                <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">Δ</th>
+                <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">p-value</th>
+            </tr>`;
+        diffGE.slice(0, 20).forEach(g => {
+            const pStr = g.pValue < 0.001 ? g.pValue.toExponential(1) : g.pValue.toFixed(3);
+            const dColor = g.diff > 0 ? '#059669' : '#dc2626';
+            html += `<tr><td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;font-weight:500;">${g.gene}</td>
+                <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${g.meanA.toFixed(3)}</td>
+                <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${g.meanB.toFixed(3)}</td>
+                <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;color:${dColor};font-weight:500;">${g.diff.toFixed(3)}</td>
+                <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;${g.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td></tr>`;
+        });
+        html += `</table></div></div>`;
+
+        // Insert panel
+        const existing = document.getElementById('geGateComparePanel');
+        if (existing) existing.remove();
+        const panel = document.createElement('div');
+        panel.id = 'geGateComparePanel';
+        panel.innerHTML = html;
+        const plotContainer = this.currentGEView === 'tissue'
+            ? document.getElementById('geByTissueView')
+            : document.getElementById('geByHotspotView');
+        plotContainer.appendChild(panel);
     }
 
     _getGEFilterDescription() {
@@ -17950,6 +18141,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
 
         Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true, edits: { annotationPosition: true }, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'] });
+        this._attachGEGateHandler('geneEffectPlot');
 
         // Highlight cell line if requested (from CLB gene link or cell line search)
         const highlightCl = this._geHighlightCellLine;
@@ -18211,6 +18403,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             modeBarButtonsToRemove: ['lasso2d', 'select2d'],
             displaylogo: false
         });
+        this._attachGEGateHandler('geneEffectHotspotPlot');
 
         // Store stats for table — sync with what's shown in graph
         const tableSource = topStats;
