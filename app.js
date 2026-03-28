@@ -3415,7 +3415,7 @@ class CorrelationExplorer {
             this.currentGeneEffect = null;
             this._originalGEData = null;
             // Open GE modal and show gene set dropdown
-            document.getElementById('geneEffectModal').classList.add('active');
+            document.getElementById('geneEffectModal').style.display = 'flex';
             document.getElementById('geneEffectTitle').textContent = 'Pathway Signature Analysis';
             document.getElementById('geneEffectSearch').value = '';
             document.getElementById('geneEffectCurrentGene').textContent = '';
@@ -17595,7 +17595,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('geShowIndividualGenesBtn').style.display = label !== 'Growth Rate' ? '' : 'none';
 
         // Show modal if not already open
-        document.getElementById('geneEffectModal').classList.add('active');
+        document.getElementById('geneEffectModal').style.display = 'flex';
         this.geneEffectViewMode = 'geneEffect';
         this.switchGeneEffectView('tissue');
     }
