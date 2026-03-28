@@ -18521,7 +18521,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 zeroline: true,
                 zerolinecolor: '#374151',
                 zerolinewidth: 2,
-                tickfont: { size: 15 }
+                tickfont: { size: 15 },
+                tickformat: '.1f'
             },
             yaxis: {
                 automargin: true,
