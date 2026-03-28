@@ -3466,8 +3466,8 @@ class CorrelationExplorer {
         document.getElementById('geGeneSetSelect')?.addEventListener('change', async () => {
             const setName = document.getElementById('geGeneSetSelect').value;
             if (!setName) return;
-            // Show loading in plot area
-            document.getElementById('geneEffectPlot').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:#6b7280;font-size:13px;">Computing pathway scores...</div>';
+            // Show loading in summary area (not plot div, which gets replaced by Plotly)
+            document.getElementById('geneEffectCurrentGene').textContent = 'Computing...';
             await new Promise(r => setTimeout(r, 50)); // let UI update
             await this._showGeneSetAnalysis(setName);
         });
