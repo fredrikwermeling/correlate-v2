@@ -17942,14 +17942,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 automargin: true,
                 tickfont: { size: tickFontSize }
             },
-            margin: { t: 50, b: 60, l: 10, r: 30 },
+            margin: { t: 70, b: 60, l: 10, r: 30 },
             height: chartHeight,
             showlegend: false,
             paper_bgcolor: 'white',
             plot_bgcolor: 'white'
         };
 
-        Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true, edits: { annotationPosition: true } });
+        Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true, edits: { annotationPosition: true }, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'] });
 
         // Highlight cell line if requested (from CLB gene link or cell line search)
         const highlightCl = this._geHighlightCellLine;
