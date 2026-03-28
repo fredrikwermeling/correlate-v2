@@ -3675,6 +3675,32 @@ class CorrelationExplorer {
         document.getElementById('downloadGETableCSV')?.addEventListener('click', () => this.downloadGETableCSV());
         document.getElementById('downloadGECellLineCSV')?.addEventListener('click', () => this.downloadGECellLineCSV());
 
+        // AI Analysis — all views share the same dialog and export method
+        const aiShowDialog = (source) => {
+            this._aiExportSource = source;
+            const dialog = document.getElementById('aiAnalysisDialog');
+            dialog.style.display = 'block';
+            // Scroll dialog into view
+            dialog.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            // Determine cell lines and show tier info
+            const cls = this._getAICellLines(source);
+            const n = cls.length;
+            let tierText;
+            if (n <= 100) {
+                tierText = `<b>${n} cell lines</b> — Full export: gene effect + expression + mutations + metadata`;
+            } else if (n <= 300) {
+                tierText = `<b>${n} cell lines</b> — Gene effect + mutations + metadata (expression skipped to limit file size)`;
+            } else {
+                tierText = `<b>${n} cell lines (capped at 300)</b> — Mutations + metadata only (GE/expression too large)`;
+            }
+            document.getElementById('aiDataTierInfo').innerHTML = tierText;
+            document.getElementById('aiExportStatus').textContent = '';
+        };
+        document.getElementById('geAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('ge'));
+        document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('mutation'));
+        document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('scatter'));
+        document.getElementById('aiExportBtn')?.addEventListener('click', () => this.exportFullAIAnalysis());
+
         // Chart width control — works for both inspect and detailed views
         document.getElementById('geAspectRatio')?.addEventListener('input', (e) => {
             const ratio = parseFloat(e.target.value);
@@ -19436,6 +19462,223 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         this.downloadFile(csv, `gene_effect_${gene}_by_${this.currentGEView}.csv`, 'text/csv');
+    }
+
+    _getAICellLines(source) {
+        if (source === 'ge') {
+            return this.getGETissueFilteredData().map(d => d.cellLineId);
+        } else if (source === 'scatter') {
+            const data = this.currentInspect?.data || this._currentFilteredData || [];
+            return data.map(d => d.cellLineId);
+        } else if (source === 'mutation') {
+            // All cell lines from mutation analysis (WT + mutated)
+            const mr = this.mutationResults;
+            if (!mr) return [];
+            const allData = mr.allResults?.[0] ? this.metadata.cellLines : [];
+            return allData;
+        }
+        return [];
+    }
+
+    async exportFullAIAnalysis() {
+        const statusEl = document.getElementById('aiExportStatus');
+        statusEl.textContent = 'Collecting data...';
+
+        const source = this._aiExportSource || 'ge';
+        const allCLs = this._getAICellLines(source);
+        if (!allCLs.length) { statusEl.textContent = 'No cell lines to export.'; return; }
+
+        // Cap at 300
+        const cellLines = allCLs.slice(0, 300);
+        const n = cellLines.length;
+
+        // Determine data tier
+        const includeGE = n <= 300;
+        const includeExpr = n <= 100 && this.expressionLoaded;
+        const tierLabel = n <= 100 ? 'full (GE + expression + mutations)' :
+                          n <= 300 ? 'GE + mutations (expression skipped)' :
+                          'mutations + metadata only';
+
+        // Build context based on source
+        let context;
+        if (source === 'ge') {
+            context = {
+                type: 'gene_effect_analysis',
+                gene: this.currentGeneEffect?.gene || '',
+                tissueFilter: document.getElementById('geTissueFilter')?.value || '',
+                subtypeFilter: document.getElementById('geSubtypeFilter')?.value || '',
+                hotspotFilter: document.getElementById('geHotspotFilter')?.value || '',
+                mutGeneFilter: document.getElementById('geMutGeneFilter')?.value || '',
+                mutLevelFilter: document.getElementById('geMutLevelFilter')?.value || '',
+                view: this.currentGEView || 'tissue'
+            };
+        } else if (source === 'scatter') {
+            const ci = this.currentInspect;
+            context = {
+                type: 'scatter_correlation',
+                gene1: ci?.gene1, gene2: ci?.gene2,
+                correlation: ci?.correlation,
+                xType: ci?.xType, yType: ci?.yType,
+                cancerFilter: document.getElementById('scatterCancerFilter')?.value || ''
+            };
+        } else if (source === 'mutation') {
+            const mr = this.mutationResults;
+            context = {
+                type: 'mutation_analysis',
+                hotspotGene: mr?.hotspotGene,
+                isTranslocation: mr?.isTranslocation || false,
+                isDamaging: mr?.isDamaging || false,
+                nWT: mr?.nWT, nMutated: mr?.nMut,
+                pValueThreshold: mr?.pThreshold,
+                lineageFilter: mr?.lineageFilter || ''
+            };
+        }
+        context.nCellLines = n;
+        context.dataTier = tierLabel;
+        context.app = 'Correlate V2';
+        context.dataSource = 'DepMap 25Q3';
+        context.date = new Date().toISOString().slice(0, 10);
+
+        const question = document.getElementById('aiQuestion')?.value?.trim() || '';
+
+        // Build cell line metadata + mutations
+        statusEl.textContent = `Building metadata for ${cellLines.length} cell lines...`;
+        await new Promise(r => setTimeout(r, 50));
+
+        const clMeta = {};
+        for (const cl of cellLines) {
+            const entry = {
+                name: this.getCellLineName(cl),
+                tissue: this.getCellLineLineage(cl),
+                subtype: this.cellLineMetadata?.primaryDisease?.[cl] || ''
+            };
+            // Hotspot mutations
+            const hotspotMuts = {};
+            if (this.mutations?.genes) {
+                for (const g of this.mutations.genes) {
+                    const level = this.mutations.geneData[g]?.mutations?.[cl] || 0;
+                    if (level > 0) hotspotMuts[g] = level;
+                }
+            }
+            if (Object.keys(hotspotMuts).length > 0) entry.hotspotMutations = hotspotMuts;
+            // Damaging mutations
+            const dmgMuts = {};
+            if (this.damagingMutations?.genes) {
+                for (const g of this.damagingMutations.genes) {
+                    const level = this.damagingMutations.geneData[g]?.mutations?.[cl] || 0;
+                    if (level > 0) dmgMuts[g] = level;
+                }
+            }
+            if (Object.keys(dmgMuts).length > 0) entry.damagingMutations = dmgMuts;
+            clMeta[cl] = entry;
+        }
+
+        // Build GE matrix (if tier allows)
+        let geMatrix = null;
+        if (includeGE) {
+            statusEl.textContent = 'Building gene effect matrix...';
+            await new Promise(r => setTimeout(r, 50));
+
+            const geGenes = this.metadata.genes;
+            const geCLIndices = cellLines.map(cl => this.metadata.cellLines.indexOf(cl));
+            geMatrix = {};
+            for (let gi = 0; gi < this.nGenes; gi++) {
+                const vals = [];
+                let hasData = false;
+                for (const clIdx of geCLIndices) {
+                    if (clIdx === -1) { vals.push(null); continue; }
+                    const v = this.geneEffects[gi * this.nCellLines + clIdx];
+                    if (!isNaN(v)) { vals.push(parseFloat(v.toFixed(4))); hasData = true; }
+                    else vals.push(null);
+                }
+                if (hasData) geMatrix[geGenes[gi]] = vals;
+            }
+        }
+
+        // Build expression matrix (if tier allows and data loaded)
+        let exprMatrix = null;
+        if (includeExpr && this.expressionData && this.expressionMetadata) {
+            statusEl.textContent = 'Building expression matrix...';
+            await new Promise(r => setTimeout(r, 50));
+
+            const exprGenes = this.expressionMetadata.genes;
+            const nExprCL = this.expressionMetadata.nCellLines;
+            const exprCLMap = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, i) => exprCLMap.set(cl, i));
+
+            const exprCLIndices = cellLines.map(cl => exprCLMap.get(cl) ?? -1);
+            exprMatrix = {};
+            for (let gi = 0; gi < exprGenes.length; gi++) {
+                const vals = [];
+                let hasData = false;
+                for (const clIdx of exprCLIndices) {
+                    if (clIdx === -1) { vals.push(null); continue; }
+                    const v = this.expressionData[gi * nExprCL + clIdx];
+                    if (!isNaN(v)) { vals.push(parseFloat(v.toFixed(3))); hasData = true; }
+                    else vals.push(null);
+                }
+                if (hasData) exprMatrix[exprGenes[gi]] = vals;
+            }
+        }
+
+        // Assemble the export
+        statusEl.textContent = 'Compressing...';
+        await new Promise(r => setTimeout(r, 50));
+
+        const exportData = {
+            _description: 'Correlate V2 — AI Analysis Export',
+            _instructions: [
+                'This file contains cancer cell line data from DepMap (Broad Institute) for AI analysis.',
+                '',
+                'DATA TYPES:',
+                '- geneEffect: CRISPR knockout gene effect scores. Negative = gene is essential for cell survival. More negative = more essential. 0 = no effect. Positive = growth advantage when knocked out.',
+                '- expression: RNA expression in log2(TPM+1). Higher = more expressed. 0 = not detected.',
+                '- hotspotMutations: recurrent cancer mutations. 1 = heterozygous, 2 = homozygous or multi-hit.',
+                '- damagingMutations: protein-damaging mutations (loss-of-function).',
+                '',
+                'DATA TIER: ' + tierLabel,
+                n <= 100 ? '  All data included (GE + expression + mutations + metadata).' :
+                n <= 300 ? '  Expression data omitted to limit file size. GE + mutations included.' :
+                '  Only mutations + metadata included. GE/expression omitted (too many cell lines).',
+                '',
+                'STRUCTURE:',
+                '- cellLineOrder: array of cell line IDs — defines column order in geneEffect and expression matrices',
+                '- cellLineMetadata[cellLineId]: name, tissue, subtype, hotspotMutations, damagingMutations',
+                '- geneEffect[geneName]: array of values, one per cell line in cellLineOrder. null = missing.',
+                '- expression[geneName]: same structure (if included).',
+                '',
+                'CONTEXT: The "context" field describes what the user was analyzing when they exported.',
+                'QUESTION: The "question" field contains the user\'s hypothesis or question (if provided).',
+                '',
+                'Use this data to identify patterns, explain biological mechanisms, and suggest further analyses.'
+            ],
+            context,
+            question: question || null,
+            cellLineOrder: cellLines,
+            cellLineMetadata: clMeta,
+            geneEffect: geMatrix,
+            expression: exprMatrix
+        };
+
+        const jsonStr = JSON.stringify(exportData);
+        const compressed = pako.gzip(jsonStr);
+
+        const blob = new Blob([compressed], { type: 'application/gzip' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const label = context.gene || context.hotspotGene || context.gene1 || 'analysis';
+        a.download = `correlate_ai_${source}_${label}_${n}cl.json.gz`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+
+        const sizeMB = (compressed.length / (1024 * 1024)).toFixed(1);
+        const parts = [`${n} cell lines`];
+        if (geMatrix) parts.push(`${Object.keys(geMatrix).length} GE genes`);
+        if (exprMatrix) parts.push(`${Object.keys(exprMatrix).length} expr genes`);
+        parts.push(`${sizeMB} MB`);
+        statusEl.textContent = `Exported: ${parts.join(', ')} [${tierLabel}]`;
     }
 
     downloadGECellLineCSV() {
