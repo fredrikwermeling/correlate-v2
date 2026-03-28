@@ -3395,8 +3395,9 @@ class CorrelationExplorer {
             this.renderGeneEffectByHotspot();
         });
 
-        // Individual Genes button for gene set view
+        // Individual Genes button and connect lines toggle
         document.getElementById('geShowIndividualGenesBtn')?.addEventListener('click', () => this.showGeneSetIndividualGenes());
+        document.getElementById('geConnectLines')?.addEventListener('change', () => this.showGeneSetIndividualGenes());
 
         // Gene Sets button from main nav
         document.getElementById('showGeneSetAnalysis')?.addEventListener('click', async () => {
@@ -6559,7 +6560,7 @@ class CorrelationExplorer {
 
         // Apply current width ratio to container
         const container = document.getElementById('geChartContainer');
-        const ratio = this.geChartWidthRatio || 1;
+        const ratio = this.geChartWidthRatio || 0.7;
         if (container) {
             container.style.flex = `0 0 ${Math.round(ratio * 55)}%`;
         }
@@ -6666,7 +6667,7 @@ class CorrelationExplorer {
                 lineageFilter: this.mutationResults?.lineageFilter || '',
                 subLineageFilter: this.mutationResults?.subLineageFilter || '',
                 textSettings: this._capturePlotTextSettings('geneEffectPlot'),
-                geChartWidthRatio: this.geChartWidthRatio || 1.0,
+                geChartWidthRatio: this.geChartWidthRatio || 0.7,
                 oncoprintFilters: this._activeOncoprintFilters || null
             });
             const metaJson = JSON.stringify(meta);
@@ -17385,8 +17386,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     switchGeneEffectView(view) {
         this.currentGEView = view;
 
-        // Restore table if hidden by individual gene view
+        // Restore table and hide individual gene controls
         document.getElementById('geTableContainer').style.display = '';
+        document.getElementById('geConnectLinesToggle').style.display = 'none';
 
         // Reset detailed view state and search
         this.geDetailedView = null;
@@ -17573,6 +17575,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.switchGeneEffectView('tissue');
     }
 
+    _getGEFilterDescription() {
+        const parts = [];
+        const tissue = document.getElementById('geTissueFilter')?.value;
+        const subtype = document.getElementById('geSubtypeFilter')?.value;
+        const hotspot = document.getElementById('geHotspotFilter')?.value;
+        const fusion = document.getElementById('geFusionFilter')?.value;
+        if (tissue) parts.push(tissue);
+        if (subtype) parts.push(subtype);
+        if (hotspot) parts.push(`${hotspot} mutated`);
+        if (fusion) parts.push(`${fusion} fused`);
+        if (this._activeOncoprintFilters?.length > 0) {
+            this._activeOncoprintFilters.forEach(f => parts.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`));
+        }
+        return parts.join(' | ');
+    }
+
     showGeneSetIndividualGenes() {
         const gsVal = document.getElementById('geGeneSetSelect')?.value;
         if (!gsVal || gsVal === '__custom__') { alert('Select a gene set first.'); return; }
@@ -17686,7 +17704,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             annotations: [
-                { text: `<b>${cleanName} — Individual Genes</b><br><span style="font-size:10px;color:#6b7280;">${dataTypeStr}${hotspotGene ? ` | ${hotspotGene} mutation overlay` : ''} | n=${filteredData.length} cell lines</span>`,
+                { text: `<b>${cleanName} — Individual Genes</b><br><span style="font-size:10px;color:#6b7280;">${dataTypeStr}${hotspotGene ? ` | ${hotspotGene} mutation overlay` : ''}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''} | n=${filteredData.length}</span>`,
                   xref: 'paper', yref: 'paper', x: 0.5, y: 1.10, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 14 }, _tsRole: 'title' },
                 { text: dataTypeStr, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
@@ -17700,6 +17718,45 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             legend: { x: 0.5, y: 1.04, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, traceorder: 'reversed' },
             paper_bgcolor: 'white', plot_bgcolor: 'white'
         };
+
+        // Add connecting lines if toggled on
+        const connectLines = document.getElementById('geConnectLines')?.checked;
+        if (connectLines && geneValues.length >= 2) {
+            // Build per-cell-line traces connecting values across genes
+            // Limit to first 200 cell lines for performance
+            const clIds = [...clSet].slice(0, 200);
+            const geneNames = geneValues.map(gv => gv.gene);
+            // Build lookup: gene -> {cl -> val}
+            const geneCLMap = new Map();
+            geneValues.forEach(gv => {
+                const m = new Map();
+                gv.values.forEach(v => m.set(v.cl, v));
+                geneCLMap.set(gv.gene, m);
+            });
+
+            for (const cl of clIds) {
+                const xs = [], ys = [];
+                for (const gn of geneNames) {
+                    const v = geneCLMap.get(gn)?.get(cl);
+                    if (v) { xs.push(v.val); ys.push(gn); }
+                }
+                if (xs.length >= 2) {
+                    const mutLevel = mutData[cl] || 0;
+                    const lineColor = hotspotGene
+                        ? (mutLevel >= 2 ? 'rgba(220,38,38,0.15)' : mutLevel === 1 ? 'rgba(249,115,22,0.15)' : 'rgba(37,99,235,0.08)')
+                        : 'rgba(100,100,100,0.08)';
+                    traces.push({
+                        type: 'scatter', mode: 'lines',
+                        x: xs, y: ys,
+                        line: { color: lineColor, width: 0.5 },
+                        hoverinfo: 'skip', showlegend: false
+                    });
+                }
+            }
+        }
+
+        // Show/hide connect lines toggle
+        document.getElementById('geConnectLinesToggle').style.display = '';
 
         // Render into the tissue plot area
         document.getElementById('geByTissueView').style.display = 'block';
@@ -17855,11 +17912,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const chartHeight = Math.max(400, numEntries * boxHeight + 100);
 
         // Determine data type label
-        const dataLabel = isGrowth ? 'Growth Rate' : isGeneSet ? `${gene} Score` : `${gene} Gene Effect`;
+        const dataLabel = isGrowth ? 'Growth Rate' : isGeneSet ? `${gene}` : `${gene} Gene Effect`;
         const geTissueTitle = `${isGrowth ? 'Growth Rate' : isGeneSet ? gene : gene} by ${groupBySubtype ? 'Disease Subtype' : 'Cancer Type'}`;
+        const filterDesc = this._getGEFilterDescription();
+        const subtitleParts = [`n=${data.length}`];
+        if (filterDesc) subtitleParts.push(filterDesc);
         const layout = {
             annotations: [
-                { text: `<b>${geTissueTitle}</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 19 }, _tsRole: 'title' },
+                { text: `<b>${geTissueTitle}</b>${subtitleParts.length ? '<br><span style="font-size:11px;color:#6b7280;">' + subtitleParts.join(' | ') + '</span>' : ''}`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 19 }, _tsRole: 'title' },
                 { text: dataLabel, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 17 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
@@ -18404,7 +18464,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const statsText = statsAnnotations.join('<br>');
 
             // Apply width ratio from slider (default 1.0 = full width)
-            const widthRatio = this.geChartWidthRatio || 1.0;
+            const widthRatio = this.geChartWidthRatio || 0.7;
             const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
             const container = document.getElementById(plotId);
             const containerWidth = container ? container.offsetWidth || 500 : 500;
@@ -18498,7 +18558,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const statsText = statsAnnotations.join('<br>');
 
         // Apply width ratio from slider (default 1.0 = full width)
-        const widthRatio = this.geChartWidthRatio || 1.0;
+        const widthRatio = this.geChartWidthRatio || 0.7;
         const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
         const container = document.getElementById(plotId);
         const containerWidth = container ? container.offsetWidth || 500 : 500;
