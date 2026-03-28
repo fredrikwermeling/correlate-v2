@@ -3410,7 +3410,8 @@ class CorrelationExplorer {
             try {
                 await this.loadAllGeneSets();
             } catch(e) { console.error('Failed to load gene sets:', e); return; }
-            // Set mode so filters and views work
+            // Reset everything
+            this._resetGEFilters();
             this.geneEffectViewMode = 'geneEffect';
             this.currentGeneEffect = null;
             this._originalGEData = null;
@@ -3495,13 +3496,7 @@ class CorrelationExplorer {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         });
         document.getElementById('geResetFiltersBtn')?.addEventListener('click', () => {
-            document.getElementById('geTissueFilter').value = '';
-            document.getElementById('geSubtypeFilter').value = '';
-            const geSubEl = document.getElementById('geSubtypeFilter');
-            if (geSubEl) geSubEl.style.display = 'none';
-            document.getElementById('geHotspotFilter').value = '';
-            document.getElementById('geFusionFilter').value = '';
-            this.clearCustomCellLineFilterGE();
+            this._resetGEFilters();
             // Clear analysis-level filters so inspect truly shows ALL cell lines
             if (this.mutationResults) {
                 this.mutationResults.lineageFilter = '';
@@ -17554,6 +17549,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     _showIndependentAnalysis(valueMap, label) {
+        // Reset filters when switching to a new analysis
+        this._resetGEFilters();
+
         // Build data for all cell lines that have a value
         const data = [];
         this.metadata.cellLines.forEach(cl => {
@@ -17782,6 +17780,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ? document.getElementById('geByTissueView')
             : document.getElementById('geByHotspotView');
         plotContainer.appendChild(panel);
+    }
+
+    _resetGEFilters() {
+        document.getElementById('geTissueFilter').value = '';
+        document.getElementById('geSubtypeFilter').value = '';
+        const geSubEl = document.getElementById('geSubtypeFilter');
+        if (geSubEl) geSubEl.style.display = 'none';
+        document.getElementById('geHotspotFilter').value = '';
+        document.getElementById('geFusionFilter').value = '';
+        document.getElementById('gePvalueFilter').checked = false;
+        document.getElementById('geConnectLines').checked = false;
+        const indivHs = document.getElementById('geIndivHotspot');
+        if (indivHs) indivHs.value = '';
+        const lineWidth = document.getElementById('geLineWidth');
+        if (lineWidth) lineWidth.value = '1';
+        this._geClearGates();
+        this.clearCustomCellLineFilterGE?.();
     }
 
     _getGEFilterDescription() {
