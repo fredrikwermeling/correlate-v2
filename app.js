@@ -17592,6 +17592,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Show individual genes button for gene sets (not growth)
         document.getElementById('geShowIndividualGenesBtn').style.display = label !== 'Growth Rate' ? '' : 'none';
 
+        // Populate tissue filter from the data
+        const tissueFilterEl = document.getElementById('geTissueFilter');
+        if (tissueFilterEl) {
+            const lineages = [...new Set(data.map(d => d.lineage).filter(Boolean))].sort();
+            const lineageCounts = {};
+            data.forEach(d => { if (d.lineage) lineageCounts[d.lineage] = (lineageCounts[d.lineage] || 0) + 1; });
+            lineages.sort((a, b) => (lineageCounts[b] || 0) - (lineageCounts[a] || 0));
+            tissueFilterEl.innerHTML = `<option value="">All tissues (n=${data.length})</option>` +
+                lineages.map(l => `<option value="${l}">${l} (n=${lineageCounts[l]})</option>`).join('');
+        }
+
+        // Populate hotspot filter
+        const hsFilterEl = document.getElementById('geHotspotFilter');
+        if (hsFilterEl && this.mutations?.genes) {
+            hsFilterEl.innerHTML = '<option value="">No hotspot mutation</option>';
+            this.mutations.genes.slice(0, 50).forEach(g => {
+                hsFilterEl.innerHTML += `<option value="${g}">${g}</option>`;
+            });
+            hsFilterEl.style.display = '';
+        }
+
         // Show modal if not already open
         document.getElementById('geneEffectModal').style.display = 'flex';
         this.geneEffectViewMode = 'geneEffect';
