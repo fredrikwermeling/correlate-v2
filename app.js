@@ -3363,6 +3363,19 @@ class CorrelationExplorer {
                 this.switchGeneEffectView('hotspot');
             }
         });
+        // Mutation filter (gene + WT/Mut selector)
+        const geMutGeneInput = document.getElementById('geMutGeneFilter');
+        const geMutLevelSelect = document.getElementById('geMutLevelFilter');
+        const _applyMutFilter = () => {
+            if (document.getElementById('geIndividualControls')?.style.display !== 'none') {
+                this.showGeneSetIndividualGenes();
+            } else {
+                this.switchGeneEffectView(this.currentGEView || 'tissue');
+            }
+        };
+        geMutGeneInput?.addEventListener('change', _applyMutFilter);
+        geMutLevelSelect?.addEventListener('change', _applyMutFilter);
+
         const _isIndivMode = () => document.getElementById('geIndividualControls')?.style.display !== 'none';
         const _refreshGEView = () => {
             if (_isIndivMode()) { this.showGeneSetIndividualGenes(); return; }
@@ -17646,6 +17659,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
             hsFilterEl.style.display = '';
         }
+        // Populate mutation gene datalist
+        const mutDl = document.getElementById('geMutGeneFilterList');
+        if (mutDl && this.mutations?.genes && mutDl.children.length === 0) {
+            this.mutations.genes.forEach(g => {
+                mutDl.innerHTML += `<option value="${g}">`;
+            });
+        }
 
         // Show modal if not already open
         document.getElementById('geneEffectModal').style.display = 'flex';
@@ -17951,6 +17971,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (geSubEl) geSubEl.style.display = 'none';
         document.getElementById('geHotspotFilter').value = '';
         document.getElementById('geFusionFilter').value = '';
+        document.getElementById('geMutGeneFilter').value = '';
+        document.getElementById('geMutLevelFilter').value = 'all';
         document.getElementById('gePvalueFilter').checked = false;
         document.getElementById('geConnectLines').checked = false;
         const indivHs = document.getElementById('geIndivHotspot');
@@ -17968,10 +17990,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const subtype = document.getElementById('geSubtypeFilter')?.value;
         const hotspot = document.getElementById('geHotspotFilter')?.value;
         const fusion = document.getElementById('geFusionFilter')?.value;
+        const mutGene = document.getElementById('geMutGeneFilter')?.value?.trim();
+        const mutLevel = document.getElementById('geMutLevelFilter')?.value;
         if (tissue) parts.push(tissue);
         if (subtype) parts.push(subtype);
         if (hotspot) parts.push(`${hotspot} mutated`);
         if (fusion) parts.push(`${fusion} fused`);
+        if (mutGene && mutLevel !== 'all') parts.push(`${mutGene} ${mutLevel === 'wt' ? 'WT' : 'Mut'}`);
         if (this._activeOncoprintFilters?.length > 0) {
             this._activeOncoprintFilters.forEach(f => parts.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`));
         }
@@ -18360,6 +18385,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Oncoprint multi-gene filters
         if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
             data = data.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId));
+        }
+        // Inline mutation gene filter (WT/Mut selector)
+        const mutGeneFilter = document.getElementById('geMutGeneFilter')?.value?.trim();
+        const mutLevelFilter = document.getElementById('geMutLevelFilter')?.value;
+        if (mutGeneFilter && mutLevelFilter !== 'all') {
+            const mutSrc = this.mutations?.geneData?.[mutGeneFilter] || this.damagingMutations?.geneData?.[mutGeneFilter];
+            if (mutSrc) {
+                const md = mutSrc.mutations || {};
+                if (mutLevelFilter === 'wt') {
+                    data = data.filter(d => (md[d.cellLineId] || 0) === 0);
+                } else if (mutLevelFilter === 'mut') {
+                    data = data.filter(d => (md[d.cellLineId] || 0) >= 1);
+                }
+            }
         }
         return data;
     }
