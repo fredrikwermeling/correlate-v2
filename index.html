@@ -1313,10 +1313,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.40.5 (2026-03-27)</strong></p>
+                <p><strong>v.41 (2026-03-28)</strong></p>
                 <ul>
-                    <li>Improved gene set scoring: variance-weighted, bottom 25% low-variance genes filtered</li>
-                    <li>Tested across 19 pathway-mutation pairs: improves mean effect size by 27%, wins 10/19</li>
+                    <li>Added 186 KEGG pathways alongside 50 Hallmark sets (236 total, grouped in dropdowns)</li>
+                    <li>KEGG pathways are smaller and more focused (median 53 genes vs 200 for Hallmark)</li>
+                    <li>Fixed title/legend overlap in hotspot boxplot view</li>
+                    <li>Variance-weighted scoring with 25% low-variance filter (validated across 19 test pairs)</li>
                     <li>Standalone "Growth Rate" and "Gene Set" buttons in GE analysis — no gene input needed</li>
                     <li>Click Growth Rate → immediate boxplot of growth rate by tissue</li>
                     <li>Click Gene Set → dropdown to pick Hallmark pathway → boxplot of pathway score by tissue</li>
@@ -1732,7 +1734,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.40.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.41</a>
     </div>
 
     <div class="main-content">
@@ -1756,7 +1758,7 @@
                             <li>OmicsFusionFiltered.csv <span style="color:#999;">(translocations/fusions)</span></li>
                             <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
                             <li>CRISPRInferredModelGrowthRate.csv <span style="color:#999;">(growth rate)</span></li>
-                            <li>MSigDB Hallmark gene sets <span style="color:#999;">(50 pathway signatures)</span></li>
+                            <li>MSigDB Hallmark + KEGG gene sets <span style="color:#999;">(236 pathway signatures)</span></li>
                         </ul>
                         <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data.</p>
                     </div>

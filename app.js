@@ -102,6 +102,7 @@ class CorrelationExplorer {
         this.expressionLoaded = false;
         this.growthRateData = null;
         this.hallmarkGeneSets = null;
+        this.keggGeneSets = null;
         this._geneSetScores = null; // cached {modelId: score} for current gene set
         this._geneSetLabel = null;  // current gene set name
         this.expressionCellLineMap = null; // array: GE cell line index -> expression cell line index (or -1)
@@ -2442,34 +2443,17 @@ class CorrelationExplorer {
         const select = document.getElementById('geneSetSelect');
         if (select.options.length > 2) return; // already populated
 
-        await this.loadHallmarkGeneSets();
-        if (!this.hallmarkGeneSets) return;
+        select.innerHTML = '<option value="">Loading gene sets...</option>';
+        await this.loadAllGeneSets();
+        if (!this.expressionLoaded) await this.loadExpressionData();
 
-        // Ensure expression data is loaded
-        if (!this.expressionLoaded) {
-            select.innerHTML = '<option value="">Loading expression data...</option>';
-            await this.loadExpressionData();
-        }
-
-        select.innerHTML = '<option value="">Select gene set...</option>';
-        const names = Object.keys(this.hallmarkGeneSets).sort();
-        for (const name of names) {
-            const cleanName = name.replace('HALLMARK_', '').replace(/_/g, ' ');
-            const nGenes = this.hallmarkGeneSets[name].length;
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = `${cleanName} (${nGenes})`;
-            select.appendChild(opt);
-        }
-        const customOpt = document.createElement('option');
-        customOpt.value = '__custom__';
-        customOpt.textContent = '— Custom gene list —';
-        select.appendChild(customOpt);
+        select.innerHTML = this.buildGeneSetOptions();
     }
 
     async _applyGeneSet(setName) {
-        if (!this.hallmarkGeneSets?.[setName]) return;
-        const genes = this.hallmarkGeneSets[setName];
+        const allSets = this.getAllGeneSets();
+        if (!allSets[setName]) return;
+        const genes = allSets[setName];
 
         if (!this.expressionLoaded) await this.loadExpressionData();
 
@@ -2479,7 +2463,7 @@ class CorrelationExplorer {
             return;
         }
         this._geneSetScores = scores;
-        const cleanName = setName.replace('HALLMARK_', '').replace(/_/g, ' ');
+        const cleanName = setName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ');
         this._geneSetLabel = cleanName;
         document.getElementById('geneSetInfo').textContent = `${Object.keys(scores).length} CLs, ${genes.length} genes`;
         this.updateInspectGenes();
@@ -2508,6 +2492,47 @@ class CorrelationExplorer {
         if (this.hallmarkGeneSets) return;
         const res = await fetch('web_data/hallmark_gene_sets.json');
         this.hallmarkGeneSets = await res.json();
+    }
+
+    async loadKeggGeneSets() {
+        if (this.keggGeneSets) return;
+        const res = await fetch('web_data/kegg_gene_sets.json');
+        this.keggGeneSets = await res.json();
+    }
+
+    async loadAllGeneSets() {
+        await Promise.all([this.loadHallmarkGeneSets(), this.loadKeggGeneSets()]);
+    }
+
+    /** Get all gene sets as a flat map with collection prefix */
+    getAllGeneSets() {
+        const all = {};
+        if (this.hallmarkGeneSets) Object.assign(all, this.hallmarkGeneSets);
+        if (this.keggGeneSets) Object.assign(all, this.keggGeneSets);
+        return all;
+    }
+
+    /** Build grouped HTML options for gene set dropdowns */
+    buildGeneSetOptions() {
+        let html = '<option value="">Select gene set...</option>';
+        if (this.hallmarkGeneSets) {
+            html += '<optgroup label="Hallmark (50 sets)">';
+            for (const name of Object.keys(this.hallmarkGeneSets).sort()) {
+                const clean = name.replace('HALLMARK_', '').replace(/_/g, ' ');
+                html += `<option value="${name}">${clean} (${this.hallmarkGeneSets[name].length})</option>`;
+            }
+            html += '</optgroup>';
+        }
+        if (this.keggGeneSets) {
+            html += '<optgroup label="KEGG (186 pathways)">';
+            for (const name of Object.keys(this.keggGeneSets).sort()) {
+                const clean = name.replace('KEGG_', '').replace(/_/g, ' ');
+                html += `<option value="${name}">${clean} (${this.keggGeneSets[name].length})</option>`;
+            }
+            html += '</optgroup>';
+        }
+        html += '<option value="__custom__">— Custom gene list —</option>';
+        return html;
     }
 
     /**
@@ -3260,15 +3285,10 @@ class CorrelationExplorer {
             if (gsSelect.style.display === 'none' || !gsSelect.style.display) {
                 gsSelect.style.display = '';
                 if (gsSelect.options.length <= 1) {
-                    await this.loadHallmarkGeneSets();
+                    gsSelect.innerHTML = '<option value="">Loading...</option>';
+                    await this.loadAllGeneSets();
                     if (!this.expressionLoaded) await this.loadExpressionData();
-                    if (this.hallmarkGeneSets) {
-                        gsSelect.innerHTML = '<option value="">Select gene set...</option>';
-                        for (const name of Object.keys(this.hallmarkGeneSets).sort()) {
-                            const clean = name.replace('HALLMARK_', '').replace(/_/g, ' ');
-                            gsSelect.innerHTML += `<option value="${name}">${clean} (${this.hallmarkGeneSets[name].length})</option>`;
-                        }
-                    }
+                    gsSelect.innerHTML = this.buildGeneSetOptions();
                 }
             } else {
                 gsSelect.style.display = 'none';
@@ -5439,8 +5459,7 @@ class CorrelationExplorer {
             this.showStatus('info', 'Loading expression data...');
             await this.loadExpressionData();
         }
-        await this.loadHallmarkGeneSets();
-        if (!this.hallmarkGeneSets) { alert('Failed to load gene sets.'); return; }
+        await this.loadAllGeneSets();
 
         const mr = this.mutationResults;
         const hotspotGene = mr.hotspotGene;
@@ -5473,12 +5492,12 @@ class CorrelationExplorer {
             return;
         }
 
-        this.showStatus('info', 'Computing pathway scores for 50 Hallmark gene sets...');
+        this.showStatus('info', 'Computing pathway scores (Hallmark + KEGG)...');
 
         setTimeout(() => {
             const results = [];
 
-            for (const [setName, genes] of Object.entries(this.hallmarkGeneSets)) {
+            for (const [setName, genes] of Object.entries(this.getAllGeneSets())) {
                 const scores = this.computeGeneSetScore(genes);
                 if (!scores) continue;
 
@@ -5491,7 +5510,7 @@ class CorrelationExplorer {
                 const mutMean = mutScores.reduce((a, b) => a + b, 0) / mutScores.length;
                 const tTest = this.welchTTest(wtScores, mutScores);
 
-                const cleanName = setName.replace('HALLMARK_', '').replace(/_/g, ' ');
+                const cleanName = setName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ');
                 results.push({
                     setName, cleanName, nGenes: genes.length,
                     nWT: wtScores.length, nMut: mutScores.length,
@@ -12544,10 +12563,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     async showCompareByGeneSets() {
         if (!this.currentInspect) return;
 
-        // Ensure expression + hallmark data loaded
+        // Ensure expression + gene set data loaded
         if (!this.expressionLoaded) await this.loadExpressionData();
-        await this.loadHallmarkGeneSets();
-        if (!this.hallmarkGeneSets) { alert('Failed to load gene sets.'); return; }
+        await this.loadAllGeneSets();
 
         const { gene1, gene2, data } = this.currentInspect;
 
@@ -12572,7 +12590,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const clSet = new Set(filteredData.map(d => d.cellLineId));
             const results = [];
 
-            for (const [setName, genes] of Object.entries(this.hallmarkGeneSets)) {
+            for (const [setName, genes] of Object.entries(this.getAllGeneSets())) {
                 const scores = this.computeGeneSetScore(genes);
                 if (!scores) continue;
 
@@ -12588,7 +12606,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
                 const rxs = this.pearsonWithSlope(xVals, sVals);
                 const rys = this.pearsonWithSlope(yVals, sVals);
-                const cleanName = setName.replace('HALLMARK_', '').replace(/_/g, ' ');
+                const cleanName = setName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ');
                 results.push({
                     setName, cleanName, nGenes: genes.length, n: xVals.length,
                     rx: rxs.correlation, ry: rys.correlation,
@@ -12612,7 +12630,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             let html = `<div style="padding: 10px;">
                 <h4 style="margin: 0 0 6px 0;">Gene Set Correlations — ${gene1} vs ${gene2}</h4>
                 <p style="font-size: 11px; color: #666; margin: 0 0 10px 0;">
-                    50 Hallmark pathways scored per cell line (mean z-scored expression). n=${filteredData.length}${filterParts.length ? ' | ' + filterParts.join(', ') : ''}
+                    ${Object.keys(this.getAllGeneSets()).length} pathways (Hallmark + KEGG) scored per cell line. n=${filteredData.length}${filterParts.length ? ' | ' + filterParts.join(', ') : ''}
                 </p>
                 <div style="max-height: 500px; overflow-y: auto;">
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
@@ -12647,11 +12665,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     openGeneSetScatter(setName) {
-        if (!this.hallmarkGeneSets?.[setName]) return;
-        const scores = this.computeGeneSetScore(this.hallmarkGeneSets[setName]);
+        const allSets = this.getAllGeneSets();
+        if (!allSets[setName]) return;
+        const scores = this.computeGeneSetScore(allSets[setName]);
         if (!scores) { alert('Failed to compute scores.'); return; }
         this._geneSetScores = scores;
-        const cleanName = setName.replace('HALLMARK_', '').replace(/_/g, ' ');
+        const cleanName = setName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ');
         this._geneSetLabel = cleanName;
 
         // Keep current X gene, set Y to gene set
@@ -17410,11 +17429,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     async _showGeneSetAnalysis(setName) {
-        if (!this.hallmarkGeneSets?.[setName]) return;
+        const allSets = this.getAllGeneSets();
+        if (!allSets[setName]) return;
         if (!this.expressionLoaded) await this.loadExpressionData();
-        const scores = this.computeGeneSetScore(this.hallmarkGeneSets[setName]);
+        const scores = this.computeGeneSetScore(allSets[setName]);
         if (!scores) { alert('Failed to compute gene set scores.'); return; }
-        const cleanName = setName.replace('HALLMARK_', '').replace(/_/g, ' ');
+        const cleanName = setName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ');
         this._showIndependentAnalysis(scores, cleanName);
     }
 
@@ -17788,7 +17808,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             annotations: [
-                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.08, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
                 { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} Gene Effect`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
@@ -17805,10 +17825,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             boxmode: 'group',
             boxgap: 0.1,
             boxgroupgap: 0.05,
-            margin: { t: 50, b: 50, l: 10, r: 30 },
+            margin: { t: 70, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: true,
-            legend: { x: 0.5, y: 1.0, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.8)', traceorder: 'reversed' },
+            legend: { x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.8)', traceorder: 'reversed' },
             paper_bgcolor: 'white',
             plot_bgcolor: 'white'
         };
