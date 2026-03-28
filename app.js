@@ -2595,7 +2595,7 @@ class CorrelationExplorer {
         }
 
         // Mean percentile rank of gene set members per cell line
-        const scores = {};
+        const rawScores = {};
         const exprCellLines = this.expressionMetadata.cellLines;
         const lowQ = this._exprLowQualityCLs || new Set();
         const minGenes = Math.max(3, Math.floor(geneIndices.length * 0.5));
@@ -2607,8 +2607,19 @@ class CorrelationExplorer {
                 if (!isNaN(r)) { sum += r; count++; }
             }
             if (count >= minGenes) {
-                scores[exprCellLines[j]] = sum / count;
+                rawScores[exprCellLines[j]] = sum / count;
             }
+        }
+
+        // Z-score the raw scores across cell lines for better dynamic range
+        const vals = Object.values(rawScores);
+        if (vals.length < 20) return null;
+        const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+        if (sd < 0.0001) return null;
+        const scores = {};
+        for (const [cl, v] of Object.entries(rawScores)) {
+            scores[cl] = (v - mean) / sd;
         }
         return scores;
     }
