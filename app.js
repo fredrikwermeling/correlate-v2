@@ -18107,18 +18107,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
 
-            // Add median lines per genotype per gene
+            // Add mean lines per genotype per gene
             for (const level of [0, 1, 2]) {
                 geneValues.forEach(gv => {
                     const pts = gv.values.filter(v => level === 2 ? v.mut >= 2 : v.mut === level);
                     if (pts.length < 2) return;
-                    const sorted = pts.map(p => p.val).sort((a, b) => a - b);
-                    const median = sorted[Math.floor(sorted.length / 2)];
+                    const mean = pts.reduce((s, p) => s + p.val, 0) / pts.length;
                     const yBase = yIndexMap.get(gv.gene);
                     traces.push({
                         type: 'scatter', mode: 'lines',
-                        x: [median, median], y: [yBase + yOffsets[level] - 0.08, yBase + yOffsets[level] + 0.08],
-                        line: { color: mutColors[level], width: 3 },
+                        x: [mean, mean], y: [yBase + yOffsets[level] - 0.12, yBase + yOffsets[level] + 0.12],
+                        line: { color: mutColors[level], width: 4 },
                         showlegend: false, hoverinfo: 'skip'
                     });
                 });
