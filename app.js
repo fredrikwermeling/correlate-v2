@@ -18264,7 +18264,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Re-render the boxplot to match table sort order
         if (this.currentGETableMode === 'tissue') {
-            // Reorder Plotly traces to match sorted stats
             const plotEl = document.getElementById('geneEffectPlot');
             if (plotEl?.data) {
                 const traceOrder = this.currentGEStats.map(s => `${s.group} (n=${s.n})`);
@@ -18272,6 +18271,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (newData.length === plotEl.data.length) {
                     Plotly.react('geneEffectPlot', newData, plotEl.layout, { responsive: true, edits: { annotationPosition: true } });
                 }
+            }
+        } else if (this.currentGETableMode === 'hotspot') {
+            // Hotspot: reorder Y axis categories to match sorted stats
+            const plotEl = document.getElementById('geneEffectHotspotPlot');
+            if (plotEl?.layout) {
+                const sortedCategories = this.currentGEStats.map(s => s.group).slice().reverse();
+                Plotly.relayout('geneEffectHotspotPlot', { 'yaxis.categoryarray': sortedCategories });
             }
         }
 
