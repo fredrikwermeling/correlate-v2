@@ -17590,11 +17590,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const effects = data.map(d => d.geneEffect);
         const mean = effects.reduce((a, b) => a + b, 0) / effects.length;
         const sd = Math.sqrt(effects.reduce((a, b) => a + (b - mean) ** 2, 0) / effects.length);
-        document.getElementById('geSummaryGene').textContent = label;
-        document.getElementById('geSummaryMean').textContent = mean.toFixed(3);
-        document.getElementById('geSummarySD').textContent = sd.toFixed(3);
-        document.getElementById('geSummaryN').textContent = data.length;
-        document.getElementById('geneEffectSummary').style.display = 'block';
+        // Hide the blue summary box — title contains all this info
+        document.getElementById('geneEffectSummary').style.display = 'none';
 
         // Hide expression correlates button (not applicable for gene set/growth)
         document.getElementById('toggleExprCorrelatesBtn').style.display = 'none';
