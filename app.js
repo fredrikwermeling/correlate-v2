@@ -2452,21 +2452,27 @@ class CorrelationExplorer {
     }
 
     async _applyGeneSet(setName) {
+        const isGE = setName.startsWith('GE:');
+        const realName = isGE ? setName.slice(3) : setName;
         const allSets = this.getAllGeneSets();
-        const genes = allSets[setName];
+        const genes = allSets[realName];
         if (!genes) return;
 
-        if (!this.expressionLoaded) await this.loadExpressionData();
-
-        const scores = this.computeGeneSetScore(genes);
+        let scores;
+        if (isGE) {
+            scores = this.computeGeneSetScoreGE(genes);
+        } else {
+            if (!this.expressionLoaded) await this.loadExpressionData();
+            scores = this.computeGeneSetScore(genes);
+        }
         if (!scores || Object.keys(scores).length < 20) {
             alert('Too few cell lines with expression data for this gene set.');
             return;
         }
         this._geneSetScores = scores;
-        const cleanName = setName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ');
-        this._geneSetLabel = cleanName;
-        document.getElementById('geneSetInfo').textContent = `${Object.keys(scores).length} CLs, ${genes.length} genes`;
+        const cleanName = realName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ');
+        this._geneSetLabel = (isGE ? cleanName + ' (GE)' : cleanName);
+        document.getElementById('geneSetInfo').textContent = `${Object.keys(scores).length} CLs, ${genes.length} genes${isGE ? ', GE-based' : ''}`;
         this.updateInspectGenes();
     }
 
@@ -2526,11 +2532,18 @@ class CorrelationExplorer {
     buildGeneSetOptions() {
         let html = '<option value="">Select pathway signature...</option>';
         if (this.pathwaySignatures) {
-            html += '<optgroup label="Pathway Signatures (15 curated)">';
+            html += '<optgroup label="Expression-based (pathway output)">';
             for (const name of Object.keys(this.pathwaySignatures).sort()) {
                 const sig = this.pathwaySignatures[name];
                 const clean = name.replace(/_/g, ' ');
                 html += `<option value="${name}">${clean} (${sig.genes.length})</option>`;
+            }
+            html += '</optgroup>';
+            html += '<optgroup label="Gene Effect-based (pathway dependency)">';
+            for (const name of Object.keys(this.pathwaySignatures).sort()) {
+                const sig = this.pathwaySignatures[name];
+                const clean = name.replace(/_/g, ' ');
+                html += `<option value="GE:${name}">${clean} GE (${sig.genes.length})</option>`;
             }
             html += '</optgroup>';
         }
@@ -2596,6 +2609,63 @@ class CorrelationExplorer {
             }
         }
         return scores;
+    }
+
+    /**
+     * Compute gene set score using gene effect data instead of expression.
+     * Mean z-scored gene effect across genes in set per cell line.
+     * Returns {modelId: score} map.
+     */
+    computeGeneSetScoreGE(geneList) {
+        if (!this.geneEffects || !this.metadata) return null;
+
+        const geneIndices = [];
+        for (const gene of geneList) {
+            const idx = this.geneIndex.get(gene.toUpperCase());
+            if (idx !== undefined) geneIndices.push(idx);
+        }
+        if (geneIndices.length < 3) return null;
+
+        const nCL = this.nCellLines;
+
+        // For each gene, compute z-scores across cell lines
+        const geneData = [];
+        for (const gi of geneIndices) {
+            const vals = this.getGeneData(gi);
+            let sum = 0, count = 0;
+            for (let j = 0; j < nCL; j++) {
+                if (!isNaN(vals[j])) { sum += vals[j]; count++; }
+            }
+            if (count < 10) continue;
+            const mean = sum / count;
+            let ssq = 0;
+            for (let j = 0; j < nCL; j++) {
+                if (!isNaN(vals[j])) ssq += (vals[j] - mean) ** 2;
+            }
+            const sd = Math.sqrt(ssq / count);
+            if (sd < 0.001) continue;
+            const z = new Float32Array(nCL);
+            for (let j = 0; j < nCL; j++) {
+                z[j] = isNaN(vals[j]) ? NaN : (vals[j] - mean) / sd;
+            }
+            geneData.push(z);
+        }
+
+        if (geneData.length < 3) return null;
+
+        // Mean z-score per cell line
+        const scores = {};
+        const minGenes = Math.max(3, Math.floor(geneData.length * 0.5));
+        for (let j = 0; j < nCL; j++) {
+            let sum = 0, count = 0;
+            for (const z of geneData) {
+                if (!isNaN(z[j])) { sum += z[j]; count++; }
+            }
+            if (count >= minGenes) {
+                scores[this.metadata.cellLines[j]] = sum / count;
+            }
+        }
+        return Object.keys(scores).length >= 20 ? scores : null;
     }
 
     /**
@@ -12656,12 +12726,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     openGeneSetScatter(setName) {
+        const isGE = setName.startsWith('GE:');
+        const realName = isGE ? setName.slice(3) : setName;
         const allSets = this.getAllGeneSets();
-        if (!allSets[setName]) return;
-        const scores = this.computeGeneSetScore(allSets[setName]);
+        if (!allSets[realName]) return;
+        const scores = isGE ? this.computeGeneSetScoreGE(allSets[realName]) : this.computeGeneSetScore(allSets[realName]);
         if (!scores) { alert('Failed to compute scores.'); return; }
         this._geneSetScores = scores;
-        const cleanName = setName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ');
+        const cleanName = realName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ') + (isGE ? ' (GE)' : '');
         this._geneSetLabel = cleanName;
 
         // Keep current X gene, set Y to gene set
@@ -17420,12 +17492,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     async _showGeneSetAnalysis(setName) {
+        const isGE = setName.startsWith('GE:');
+        const realName = isGE ? setName.slice(3) : setName;
         const allSets = this.getAllGeneSets();
-        if (!allSets[setName]) return;
-        if (!this.expressionLoaded) await this.loadExpressionData();
-        const scores = this.computeGeneSetScore(allSets[setName]);
+        if (!allSets[realName]) return;
+        let scores;
+        if (isGE) {
+            scores = this.computeGeneSetScoreGE(allSets[realName]);
+        } else {
+            if (!this.expressionLoaded) await this.loadExpressionData();
+            scores = this.computeGeneSetScore(allSets[realName]);
+        }
         if (!scores) { alert('Failed to compute gene set scores.'); return; }
-        const cleanName = setName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ');
+        const cleanName = realName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ') + (isGE ? ' (GE)' : '');
         this._showIndependentAnalysis(scores, cleanName);
     }
 
