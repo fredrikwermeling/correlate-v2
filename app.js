@@ -17958,6 +17958,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const lineWidth = document.getElementById('geLineWidth');
         if (lineWidth) lineWidth.value = '1';
         this._geClearGates();
+        this._indivGeneOrder = null;
         this.clearCustomCellLineFilterGE?.();
     }
 
@@ -18010,7 +18011,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const clSet = new Set(filteredData.map(d => d.cellLineId));
 
         // Build data: for each gene, get value per cell line
-        const geneValues = []; // [{gene, values: [{cl, val, mutLevel}]}]
+        let geneValues = []; // [{gene, values: [{cl, val, mutLevel}]}]
         for (const g of genes) {
             let vals = [];
             if (isGE) {
@@ -18251,10 +18252,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const p = wt.length >= 3 && mut.length >= 3 ? this.welchTTest(wt, mut).p : NaN;
                 return { gene: gv.gene, n: gv.values.length, wtMean, mutMean, delta, p };
             });
-            // Match graph order (don't sort independently)
+            // Reverse so table top = graph top (graph Y=0 is bottom)
+            rows.reverse();
             tbody.innerHTML = rows.map(r => {
                 const dColor = r.delta > 0 ? '#059669' : '#dc2626';
-                const pStr = isNaN(r.p) ? '-' : r.p < 0.001 ? r.p.toExponential(1) : r.p.toFixed(3);
+                const pStr = isNaN(r.p) ? '-' : r.p < 0.001 ? (r.p < 1e-10 ? '<1e-10' : r.p.toExponential(1)) : r.p.toFixed(3);
                 return `<tr>
                     <td style="font-weight:500">${r.gene}</td>
                     <td style="text-align:center">${r.n}</td>
@@ -18266,7 +18268,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }).join('');
         } else {
             thead.innerHTML = '<tr><th>Gene</th><th>N</th><th>Mean</th><th>SD</th></tr>';
-            tbody.innerHTML = geneValues.map(gv => {
+            tbody.innerHTML = [...geneValues].reverse().map(gv => {
                 const vals = gv.values.map(v => v.val);
                 const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
                 const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
@@ -18299,10 +18301,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 });
                 trs.forEach(tr => tbody.appendChild(tr));
 
-                // Reorder graph Y axis to match table order
+                // Reorder graph — table is reversed vs graph, so reverse back
                 const sortedGenes = trs.map(tr => tr.children[0]?.textContent?.trim());
                 if (sortedGenes.length > 0) {
-                    this._indivGeneOrder = sortedGenes;
+                    this._indivGeneOrder = [...sortedGenes].reverse();
                     this.showGeneSetIndividualGenes();
                 }
             });
