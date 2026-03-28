@@ -19068,20 +19068,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const pStr = !isNaN(pValue) ? (pValue < 0.001 ? pValue.toExponential(2) : pValue.toFixed(4)) : null;
 
             // Row 1: 0 (WT) stats
-            statsAnnotations.push(`0 (WT): n=${stats0.n}, ${valLabelShort}=${stats0.mean.toFixed(2)}, SD=${stats0.sd.toFixed(2)}`);
-            // Row 2: 1 mut stats
-            if (stats1.n > 0) {
-                statsAnnotations.push(`1 mut: n=${stats1.n}, ${valLabelShort}=${stats1.mean.toFixed(2)}${stats1.n > 1 ? `, SD=${stats1.sd.toFixed(2)}` : ''}`);
-            }
-            // Row 3: 2 mut stats
-            if (stats2.n > 0) {
-                statsAnnotations.push(`2 mut: n=${stats2.n}, ${valLabelShort}=${stats2.mean.toFixed(2)}${stats2.n > 1 ? `, SD=${stats2.sd.toFixed(2)}` : ''}`);
-            }
-            // Row 4: p-value
-            if (pStr) {
-                statsAnnotations.push(`p-value (0 vs 1+2): ${pStr}`);
-            }
-            const statsText = statsAnnotations.join('<br>');
+            const statsParts = [`WT: n=${stats0.n}, mean=${stats0.mean.toFixed(2)}`];
+            if (stats1.n > 0) statsParts.push(`Mut1: n=${stats1.n}, mean=${stats1.mean.toFixed(2)}`);
+            if (stats2.n > 0) statsParts.push(`Mut2: n=${stats2.n}, mean=${stats2.mean.toFixed(2)}`);
+            if (pStr) statsParts.push(`p(WT vs 1+2): ${pStr}`);
+            const statsText = statsParts.join('  |  ');
 
             // Apply width ratio from slider (default 1.0 = full width)
             const widthRatio = this.geChartWidthRatio || 0.7;
@@ -19091,25 +19082,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const chartWidth = Math.round(containerWidth * widthRatio);
 
             const layout = {
-                title: { text: `${gene} ${valLabel.toLowerCase()} by ${group} mutation status`, font: { size: 14 } },
-                yaxis: { title: valLabel, zeroline: true, zerolinecolor: '#374151' },
+                title: { text: `${gene} ${valLabel} by ${group} Mutation<br><span style="font-size:10px;color:#6b7280;">${this._getGEFilterDescription() || 'All tissues'} | ${statsText}</span>`, font: { size: 13 } },
+                yaxis: { automargin: true },
+                xaxis: { title: `${gene} ${valLabel}`, automargin: true },
                 showlegend: false,
-                height: 520,
+                height: 450,
                 width: chartWidth,
-                margin: { t: 50, b: 170, l: 60, r: 30 },
+                margin: { t: 70, b: 60, l: 10, r: 30 },
                 paper_bgcolor: 'white',
-                plot_bgcolor: 'white',
-                annotations: [{
-                    x: 0,
-                    y: -0.38,
-                    xref: 'paper',
-                    yref: 'paper',
-                    xanchor: 'left',
-                    text: statsText,
-                    showarrow: false,
-                    font: { size: 10, family: 'monospace' },
-                    align: 'left'
-                }]
+                plot_bgcolor: 'white'
             };
 
             // Mark that we're in detailed view
