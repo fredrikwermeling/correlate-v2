@@ -773,7 +773,7 @@ class CorrelationExplorer {
         const hideParams = isMutationMode || isSynonymMode;
         document.getElementById('correlationParams').style.display = hideParams ? 'none' : 'block';
         document.getElementById('slopeParams').style.display = hideParams ? 'none' : 'block';
-        document.getElementById('growthRateOption').style.display = hideParams ? 'none' : 'block';
+        /* growthRateOption removed in v.54 */
 
         // Hide min cell lines, filters, exclude tissues, and find synonyms button for synonym mode
         document.getElementById('minCellLinesGroup').style.display = isSynonymMode ? 'none' : 'block';
