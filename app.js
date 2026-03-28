@@ -2416,7 +2416,7 @@ class CorrelationExplorer {
      * Get axis label for a gene and type.
      */
     getAxisLabel(gene, type) {
-        if (type === 'geneset') return this._geneSetLabel ? `${this._geneSetLabel} Score` : 'Gene Set Score';
+        if (type === 'geneset') return this._geneSetLabel ? `${this._geneSetLabel}` : 'Gene Set Score';
         if (type === 'growth') return 'Growth Rate';
         if (type === 'expr') return `${gene} Expression (log2 TPM+1)`;
         return `${gene} Gene Effect`;
@@ -2471,8 +2471,8 @@ class CorrelationExplorer {
         }
         this._geneSetScores = scores;
         const cleanName = realName.replace('HALLMARK_', '').replace('KEGG_', '').replace(/_/g, ' ');
-        this._geneSetLabel = (isGE ? cleanName + ' (GE)' : cleanName);
-        document.getElementById('geneSetInfo').textContent = `${Object.keys(scores).length} CLs, ${genes.length} genes${isGE ? ', GE-based' : ''}`;
+        this._geneSetLabel = isGE ? `${cleanName} (GE dep.)` : `${cleanName} (Expr)`;
+        document.getElementById('geneSetInfo').textContent = `${Object.keys(scores).length} CLs, ${genes.length} genes, ${isGE ? 'CRISPR gene effect' : 'RNA expression'}`;
         this.updateInspectGenes();
     }
 
@@ -2507,6 +2507,37 @@ class CorrelationExplorer {
         this.keggGeneSets = await res.json();
     }
 
+    _showGeneSetAbout(selectId, panelId) {
+        const panel = document.getElementById(panelId);
+        const select = document.getElementById(selectId);
+        const val = select?.value || '';
+
+        if (!val || val === '__custom__' || panel.style.display !== 'none') {
+            panel.style.display = 'none';
+            return;
+        }
+
+        const isGE = val.startsWith('GE:');
+        const realName = isGE ? val.slice(3) : val;
+        const sig = this.pathwaySignatures?.[realName];
+        if (!sig) { panel.style.display = 'none'; return; }
+
+        const dataType = isGE ? 'CRISPR Gene Effect' : 'RNA Expression';
+        const method = isGE
+            ? 'Mean z-scored gene effect across pathway genes per cell line. Measures how dependent the cell line is on this pathway.'
+            : 'Rank-based scoring: genes are ranked by expression within each cell line, then the mean percentile rank of pathway genes is z-scored across all cell lines. Batch-effect resistant.';
+
+        panel.innerHTML = `
+            <div style="margin-bottom: 4px;"><b>${realName.replace(/_/g, ' ')}</b></div>
+            <div style="margin-bottom: 4px; color: #6b7280;">${sig.description}</div>
+            <div style="margin-bottom: 4px;"><b>Data:</b> ${dataType}</div>
+            <div style="margin-bottom: 4px;"><b>Method:</b> ${method}</div>
+            ${sig.expectedMutations?.length ? `<div style="margin-bottom: 4px;"><b>Expected mutations:</b> ${sig.expectedMutations.join(', ')}</div>` : ''}
+            <div><b>Genes (${sig.genes.length}):</b> <span style="font-family: monospace; font-size: 9px;">${sig.genes.join(', ')}</span></div>
+        `;
+        panel.style.display = 'block';
+    }
+
     async loadPathwaySignatures() {
         if (this.pathwaySignatures) return;
         const res = await fetch('web_data/pathway_signatures.json');
@@ -2532,18 +2563,18 @@ class CorrelationExplorer {
     buildGeneSetOptions() {
         let html = '<option value="">Select pathway signature...</option>';
         if (this.pathwaySignatures) {
-            html += '<optgroup label="Expression-based (pathway output)">';
+            html += '<optgroup label="Expr — pathway activity (RNA expression)">';
             for (const name of Object.keys(this.pathwaySignatures).sort()) {
                 const sig = this.pathwaySignatures[name];
                 const clean = name.replace(/_/g, ' ');
-                html += `<option value="${name}">${clean} (${sig.genes.length})</option>`;
+                html += `<option value="${name}">Expr: ${clean} (${sig.genes.length})</option>`;
             }
             html += '</optgroup>';
-            html += '<optgroup label="Gene Effect-based (pathway dependency)">';
+            html += '<optgroup label="GE — pathway dependency (CRISPR gene effect)">';
             for (const name of Object.keys(this.pathwaySignatures).sort()) {
                 const sig = this.pathwaySignatures[name];
                 const clean = name.replace(/_/g, ' ');
-                html += `<option value="GE:${name}">${clean} GE (${sig.genes.length})</option>`;
+                html += `<option value="GE:${name}">GE: ${clean} (${sig.genes.length})</option>`;
             }
             html += '</optgroup>';
         }
@@ -3184,12 +3215,16 @@ class CorrelationExplorer {
         document.getElementById('geneSetSelect')?.addEventListener('change', (e) => {
             const val = e.target.value;
             document.getElementById('customGeneSetRow').style.display = val === '__custom__' ? 'block' : 'none';
+            document.getElementById('geneSetAboutPanel').style.display = 'none';
             if (val && val !== '__custom__') {
                 this._applyGeneSet(val);
             }
         });
         document.getElementById('customGeneSetInput')?.addEventListener('change', () => {
             this._applyCustomGeneSet();
+        });
+        document.getElementById('geneSetAboutBtn')?.addEventListener('click', () => {
+            this._showGeneSetAbout('geneSetSelect', 'geneSetAboutPanel');
         });
 
         document.getElementById('downloadScatterPNG').addEventListener('click', () => this.downloadScatterPNG());
