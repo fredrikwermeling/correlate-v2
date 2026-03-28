@@ -103,6 +103,7 @@ class CorrelationExplorer {
         this.growthRateData = null;
         this.hallmarkGeneSets = null;
         this.keggGeneSets = null;
+        this.pathwaySignatures = null;
         this._geneSetScores = null; // cached {modelId: score} for current gene set
         this._geneSetLabel = null;  // current gene set name
         this.expressionCellLineMap = null; // array: GE cell line index -> expression cell line index (or -1)
@@ -2452,8 +2453,8 @@ class CorrelationExplorer {
 
     async _applyGeneSet(setName) {
         const allSets = this.getAllGeneSets();
-        if (!allSets[setName]) return;
         const genes = allSets[setName];
+        if (!genes) return;
 
         if (!this.expressionLoaded) await this.loadExpressionData();
 
@@ -2500,34 +2501,36 @@ class CorrelationExplorer {
         this.keggGeneSets = await res.json();
     }
 
-    async loadAllGeneSets() {
-        await Promise.all([this.loadHallmarkGeneSets(), this.loadKeggGeneSets()]);
+    async loadPathwaySignatures() {
+        if (this.pathwaySignatures) return;
+        const res = await fetch('web_data/pathway_signatures.json');
+        this.pathwaySignatures = await res.json();
     }
 
-    /** Get all gene sets as a flat map with collection prefix */
+    async loadAllGeneSets() {
+        await this.loadPathwaySignatures();
+    }
+
+    /** Get all gene sets as a flat map {name: [genes]} */
     getAllGeneSets() {
         const all = {};
-        if (this.hallmarkGeneSets) Object.assign(all, this.hallmarkGeneSets);
-        if (this.keggGeneSets) Object.assign(all, this.keggGeneSets);
+        if (this.pathwaySignatures) {
+            for (const [k, v] of Object.entries(this.pathwaySignatures)) {
+                all[k] = v.genes;
+            }
+        }
         return all;
     }
 
-    /** Build grouped HTML options for gene set dropdowns */
+    /** Build HTML options for gene set dropdowns */
     buildGeneSetOptions() {
-        let html = '<option value="">Select gene set...</option>';
-        if (this.hallmarkGeneSets) {
-            html += '<optgroup label="Hallmark (50 sets)">';
-            for (const name of Object.keys(this.hallmarkGeneSets).sort()) {
-                const clean = name.replace('HALLMARK_', '').replace(/_/g, ' ');
-                html += `<option value="${name}">${clean} (${this.hallmarkGeneSets[name].length})</option>`;
-            }
-            html += '</optgroup>';
-        }
-        if (this.keggGeneSets) {
-            html += '<optgroup label="KEGG (186 pathways)">';
-            for (const name of Object.keys(this.keggGeneSets).sort()) {
-                const clean = name.replace('KEGG_', '').replace(/_/g, ' ');
-                html += `<option value="${name}">${clean} (${this.keggGeneSets[name].length})</option>`;
+        let html = '<option value="">Select pathway signature...</option>';
+        if (this.pathwaySignatures) {
+            html += '<optgroup label="Pathway Signatures (15 curated)">';
+            for (const name of Object.keys(this.pathwaySignatures).sort()) {
+                const sig = this.pathwaySignatures[name];
+                const clean = name.replace(/_/g, ' ');
+                html += `<option value="${name}">${clean} (${sig.genes.length})</option>`;
             }
             html += '</optgroup>';
         }
@@ -17892,15 +17895,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const isT = this.mutationResults?.isTranslocation;
             const wtLbl = isT ? 'No Fusion' : `${hg} WT`;
             const mutLbl = isT ? 'Fused' : `${hg} Mut`;
+            const gene = this.currentGeneEffect?.gene || '';
+            const _isGr2 = gene === 'Growth Rate';
+            const _isGs2 = !_isGr2 && !this.geneIndex.has(gene?.toUpperCase?.());
+            const vLbl = _isGr2 ? 'Growth' : _isGs2 ? 'Score' : 'GE';
             thead.innerHTML = `<tr>
                 <th style="${headerStyle}" data-sort="group" data-type="string">Gene${sortIcon}</th>
                 <th style="${headerStyle}; border-left: 2px solid #2563eb;" data-sort="n0" data-type="number">N (${wtLbl})${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean0" data-type="number">GE (${wtLbl})${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="mean0" data-type="number">${vLbl} (${wtLbl})${sortIcon}</th>
                 <th style="${headerStyle}; border-left: 2px solid #f97316;" data-sort="n1" data-type="number">N (${mutLbl} 1)${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean1" data-type="number">GE (${mutLbl} 1)${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="mean1" data-type="number">${vLbl} (${mutLbl} 1)${sortIcon}</th>
                 <th style="${headerStyle}; border-left: 2px solid #dc2626;" data-sort="n2" data-type="number">N (${mutLbl} 2${isT ? '+' : ''})${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean2" data-type="number">GE (${mutLbl} 2${isT ? '+' : ''})${sortIcon}</th>
-                <th style="${headerStyle}; border-left: 2px solid #6b7280;" data-sort="diff" data-type="number">Δ GE${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="mean2" data-type="number">${vLbl} (${mutLbl} 2${isT ? '+' : ''})${sortIcon}</th>
+                <th style="${headerStyle}; border-left: 2px solid #6b7280;" data-sort="diff" data-type="number">Δ ${vLbl}${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="pValue" data-type="number">p-value${sortIcon}</th>
             </tr>`;
             this.renderGETableBody(stats, mode);
@@ -18266,6 +18273,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         this.renderGETableBody(this.currentGEStats, this.currentGETableMode);
+
+        // Re-render the boxplot to match table sort order
+        if (this.currentGETableMode === 'tissue') {
+            // Reorder Plotly traces to match sorted stats
+            const plotEl = document.getElementById('geneEffectPlot');
+            if (plotEl?.data) {
+                const traceOrder = this.currentGEStats.map(s => `${s.group} (n=${s.n})`);
+                const newData = traceOrder.map(name => plotEl.data.find(t => t.name === name)).filter(Boolean);
+                if (newData.length === plotEl.data.length) {
+                    Plotly.react('geneEffectPlot', newData, plotEl.layout, { responsive: true, edits: { annotationPosition: true } });
+                }
+            }
+        }
 
         // Update header to show sort direction
         const thead = document.getElementById('geTableHead');
