@@ -2597,8 +2597,10 @@ class CorrelationExplorer {
         // Mean percentile rank of gene set members per cell line
         const scores = {};
         const exprCellLines = this.expressionMetadata.cellLines;
+        const lowQ = this._exprLowQualityCLs || new Set();
         const minGenes = Math.max(3, Math.floor(geneIndices.length * 0.5));
         for (let j = 0; j < nCL; j++) {
+            if (lowQ.has(exprCellLines[j])) continue; // skip low-quality cell lines
             let sum = 0, count = 0;
             for (const gi of geneIndices) {
                 const r = this._exprRanks[gi * nCL + j];
@@ -18357,11 +18359,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
         } else if (this.currentGETableMode === 'hotspot') {
-            // Hotspot: reorder Y axis categories to match sorted stats
+            // Hotspot: reorder Y axis categories — only include genes currently in the plot
             const plotEl = document.getElementById('geneEffectHotspotPlot');
             if (plotEl?.layout) {
-                const sortedCategories = this.currentGEStats.map(s => s.group).slice().reverse();
-                Plotly.relayout('geneEffectHotspotPlot', { 'yaxis.categoryarray': sortedCategories });
+                // Get genes that are actually plotted (from Y axis trace data)
+                const plottedGenes = new Set();
+                (plotEl.data || []).forEach(t => {
+                    if (t.y) t.y.forEach(v => plottedGenes.add(v));
+                });
+                const sortedCategories = this.currentGEStats
+                    .filter(s => plottedGenes.has(s.group))
+                    .map(s => s.group)
+                    .slice().reverse();
+                if (sortedCategories.length > 0) {
+                    Plotly.relayout('geneEffectHotspotPlot', { 'yaxis.categoryarray': sortedCategories });
+                }
             }
         }
 
@@ -19324,6 +19336,32 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 } else {
                     this.expressionCellLineMap[i] = -1;
                 }
+            }
+
+            // Quality filter: flag cell lines with very low median expression
+            loadingTextEl.textContent = 'Computing quality metrics...';
+            const nExprCL = this.expressionMetadata.nCellLines;
+            const nExprGenes = this.expressionMetadata.nGenes;
+            const clMedians = new Float32Array(nExprCL);
+            for (let j = 0; j < nExprCL; j++) {
+                const vals = [];
+                for (let gi = 0; gi < nExprGenes; gi += 10) { // sample every 10th gene for speed
+                    const v = this.expressionData[gi * nExprCL + j];
+                    if (!isNaN(v)) vals.push(v);
+                }
+                vals.sort((a, b) => a - b);
+                clMedians[j] = vals.length > 0 ? vals[Math.floor(vals.length / 2)] : 0;
+            }
+            const sortedMedians = Array.from(clMedians).sort((a, b) => a - b);
+            const q1Cutoff = sortedMedians[Math.floor(sortedMedians.length * 0.01)];
+            this._exprLowQualityCLs = new Set();
+            for (let j = 0; j < nExprCL; j++) {
+                if (clMedians[j] < q1Cutoff) {
+                    this._exprLowQualityCLs.add(this.expressionMetadata.cellLines[j]);
+                }
+            }
+            if (this._exprLowQualityCLs.size > 0) {
+                console.log(`Expression QC: ${this._exprLowQualityCLs.size} cell lines below 1st percentile median expression (cutoff=${q1Cutoff.toFixed(2)}), excluded from gene set scoring.`);
             }
 
             this.expressionLoaded = true;
