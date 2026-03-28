@@ -3393,6 +3393,8 @@ class CorrelationExplorer {
 
         // p-value filter toggle — applies to both tissue and hotspot views
         document.getElementById('gePvalueFilter')?.addEventListener('change', () => {
+            // Don't switch view if in individual genes mode
+            if (document.getElementById('geIndividualControls')?.style.display !== 'none') return;
             this.switchGeneEffectView(this.currentGEView || 'tissue');
         });
 
@@ -18020,27 +18022,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         if (geneValues.length < 3) { alert('Too few genes with data.'); return; }
 
-        // Build Plotly traces — one boxplot per gene, dots colored by mutation
+        // Build Plotly traces — scatter dots with vertical offset per genotype + median lines
         const traces = [];
         const yCategories = geneValues.map(gv => gv.gene);
+        const yIndexMap = new Map(yCategories.map((g, i) => [g, i]));
 
         const mutColors = { 0: '#2563eb', 1: '#f97316', 2: '#dc2626' };
         const mutLabels = { 0: '0 (WT)', 1: '1 mutation', 2: '2+ mutations' };
+        const yOffsets = { 0: -0.15, 1: 0, 2: 0.15 }; // vertical nudge per genotype
 
-        // One B&W boxplot per gene (no individual points — scatter overlays handle that)
-        geneValues.forEach(gv => {
-            traces.push({
-                type: 'box', orientation: 'h',
-                y: Array(gv.values.length).fill(gv.gene),
-                x: gv.values.map(v => v.val),
-                boxpoints: false, // points added as scatter
-                line: { color: '#374151', width: 1.5 },
-                fillcolor: 'rgba(200,200,200,0.3)',
-                showlegend: false, hoverinfo: 'skip'
-            });
-        });
-
-        // Scatter overlay: dots colored by mutation status
         if (hotspotGene) {
             let show0 = true, show1 = true, show2 = true;
             for (const level of [0, 1, 2]) {
@@ -18048,7 +18038,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const allX = [], allY = [], allText = [];
                 geneValues.forEach(gv => {
                     const pts = gv.values.filter(v => level === 2 ? v.mut >= 2 : v.mut === level);
-                    pts.forEach(p => { allX.push(p.val); allY.push(gv.gene); allText.push(p.name); });
+                    const yBase = yIndexMap.get(gv.gene);
+                    pts.forEach(p => {
+                        allX.push(p.val);
+                        allY.push(yBase + yOffsets[level] + (Math.random() - 0.5) * 0.08);
+                        allText.push(p.name);
+                    });
                 });
                 if (allX.length > 0) {
                     traces.push({
@@ -18063,11 +18058,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     if (level === 2) show2 = false;
                 }
             }
+
+            // Add median lines per genotype per gene
+            for (const level of [0, 1, 2]) {
+                geneValues.forEach(gv => {
+                    const pts = gv.values.filter(v => level === 2 ? v.mut >= 2 : v.mut === level);
+                    if (pts.length < 2) return;
+                    const sorted = pts.map(p => p.val).sort((a, b) => a - b);
+                    const median = sorted[Math.floor(sorted.length / 2)];
+                    const yBase = yIndexMap.get(gv.gene);
+                    traces.push({
+                        type: 'scatter', mode: 'lines',
+                        x: [median, median], y: [yBase + yOffsets[level] - 0.08, yBase + yOffsets[level] + 0.08],
+                        line: { color: mutColors[level], width: 3 },
+                        showlegend: false, hoverinfo: 'skip'
+                    });
+                });
+            }
         } else {
-            // No hotspot — grey dots
+            // No hotspot — grey dots with jitter
             const allX = [], allY = [], allText = [];
             geneValues.forEach(gv => {
-                gv.values.forEach(v => { allX.push(v.val); allY.push(gv.gene); allText.push(v.name); });
+                const yBase = yIndexMap.get(gv.gene);
+                gv.values.forEach(v => {
+                    allX.push(v.val);
+                    allY.push(yBase + (Math.random() - 0.5) * 0.2);
+                    allText.push(v.name);
+                });
             });
             traces.push({
                 type: 'scatter', mode: 'markers',
@@ -18075,6 +18092,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 marker: { color: 'rgba(80,80,80,0.5)', size: 5 },
                 hovertemplate: '<b>%{text}</b><br>%{x:.3f}<extra></extra>',
                 showlegend: false
+            });
+
+            // Median lines
+            geneValues.forEach(gv => {
+                const sorted = gv.values.map(v => v.val).sort((a, b) => a - b);
+                const median = sorted[Math.floor(sorted.length / 2)];
+                const yBase = yIndexMap.get(gv.gene);
+                traces.push({
+                    type: 'scatter', mode: 'lines',
+                    x: [median, median], y: [yBase - 0.15, yBase + 0.15],
+                    line: { color: '#374151', width: 3 },
+                    showlegend: false, hoverinfo: 'skip'
+                });
             });
         }
 
@@ -18088,9 +18118,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                   xref: 'paper', yref: 'paper', x: 0.5, y: 1.14, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 14 }, _tsRole: 'title' },
                 { text: dataTypeStr, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
-            yaxis: { automargin: true, tickfont: { size: 11 }, categoryorder: 'array', categoryarray: yCategories.slice().reverse() },
+            yaxis: {
+                automargin: true, tickfont: { size: 11 },
+                tickmode: 'array',
+                tickvals: yCategories.map((_, i) => i),
+                ticktext: yCategories,
+                range: [-0.5, yCategories.length - 0.5]
+            },
             xaxis: { zeroline: true, zerolinecolor: '#ccc' },
-            boxgap: 0.15,
             margin: { t: 120, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: !!hotspotGene,
@@ -18118,7 +18153,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const xs = [], ys = [];
                 for (const gn of geneNames) {
                     const v = geneCLMap.get(gn)?.get(cl);
-                    if (v) { xs.push(v.val); ys.push(gn); }
+                    if (v) { xs.push(v.val); ys.push(yIndexMap.get(gn)); }
                 }
                 if (xs.length >= 2) {
                     const mutLevel = mutData[cl] || 0;
@@ -18138,7 +18173,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Show/hide connect lines toggle
         document.getElementById('geIndividualControls').style.display = '';
 
-        // Render into the tissue plot area
+        // Clear any leftover content and render
+        document.getElementById('geneEffectPlot').innerHTML = '';
+        document.getElementById('geneEffectHotspotPlot').innerHTML = '';
         document.getElementById('geByTissueView').style.display = 'block';
         document.getElementById('geByHotspotView').style.display = 'none';
         Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true, displaylogo: false });
@@ -18149,11 +18186,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('geTableContainer').style.display = '';
 
         if (hotspotGene) {
+            const hs = 'cursor:pointer;user-select:none;';
             thead.innerHTML = `<tr>
-                <th>Gene</th><th>N</th>
-                <th style="color:#2563eb">Mean WT</th>
-                <th style="color:#f97316">Mean Mut</th>
-                <th>Δ</th><th>p-value</th>
+                <th style="${hs}" data-sort="gene" data-type="string">Gene ↕</th>
+                <th style="${hs}" data-sort="n" data-type="number">N ↕</th>
+                <th style="${hs};color:#2563eb" data-sort="wtMean" data-type="number">Mean WT ↕</th>
+                <th style="${hs};color:#f97316" data-sort="mutMean" data-type="number">Mean Mut ↕</th>
+                <th style="${hs}" data-sort="delta" data-type="number">Δ ↕</th>
+                <th style="${hs}" data-sort="p" data-type="number">p-value ↕</th>
             </tr>`;
             const rows = geneValues.map(gv => {
                 const wt = gv.values.filter(v => v.mut === 0).map(v => v.val);
@@ -18191,6 +18231,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 </tr>`;
             }).join('');
         }
+
+        // Add sort handlers to table headers
+        thead.querySelectorAll('th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.dataset.sort;
+                const type = th.dataset.type;
+                const dir = th._sortDir === 'asc' ? 'desc' : 'asc';
+                th._sortDir = dir;
+                const trs = Array.from(tbody.querySelectorAll('tr'));
+                const colIdx = Array.from(th.parentNode.children).indexOf(th);
+                trs.sort((a, b) => {
+                    let va = a.children[colIdx]?.textContent?.trim() || '';
+                    let vb = b.children[colIdx]?.textContent?.trim() || '';
+                    if (type === 'number') {
+                        va = va === '-' ? Infinity : parseFloat(va);
+                        vb = vb === '-' ? Infinity : parseFloat(vb);
+                        return dir === 'asc' ? va - vb : vb - va;
+                    }
+                    return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+                });
+                trs.forEach(tr => tbody.appendChild(tr));
+            });
+        });
     }
 
     _showGrowthRateAnalysis() {
