@@ -17729,6 +17729,34 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             nB: tissueB[t] || 0, pctB: ((tissueB[t] || 0) / gateB.length * 100)
         })).sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
 
+        // Mutation enrichment
+        const mutStats = [];
+        const mutSources = [];
+        if (this.mutations?.genes) {
+            for (const g of this.mutations.genes) mutSources.push({ gene: g, source: this.mutations, type: 'hotspot' });
+        }
+        if (this.damagingMutations?.genes) {
+            const hsSet = new Set(this.mutations?.genes || []);
+            for (const g of this.damagingMutations.genes) {
+                if (!hsSet.has(g)) mutSources.push({ gene: g, source: this.damagingMutations, type: 'damaging' });
+            }
+        }
+        mutSources.forEach(({ gene, source, type }) => {
+            const md = source.geneData?.[gene]?.mutations || {};
+            const mutA = gateA.filter(d => (md[d.cellLineId] || 0) > 0).length;
+            const mutB = gateB.filter(d => (md[d.cellLineId] || 0) > 0).length;
+            const pctA = mutA / gateA.length * 100;
+            const pctB = mutB / gateB.length * 100;
+            if (mutA > 0 || mutB > 0) {
+                const a = mutA, b = mutB, c = gateA.length - mutA, d2 = gateB.length - mutB;
+                const n = a + b + c + d2;
+                const chi2 = n > 0 ? Math.pow(a * d2 - b * c, 2) * n / ((a + b) * (c + d2) * (a + c) * (b + d2) || 1) : 0;
+                const pApprox = Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
+                mutStats.push({ gene, mutA, mutB, pctA, pctB, diff: pctA - pctB, pValue: pApprox, type });
+            }
+        });
+        mutStats.sort((a, b) => a.pValue - b.pValue);
+
         // Differential GE for top genes
         const diffGE = [];
         const geneNames = [...this.geneIndex.keys()];
@@ -17750,6 +17778,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
         diffGE.sort((a, b) => a.pValue - b.pValue);
+
+        // Differential expression
+        const diffExpr = [];
+        if (this.expressionLoaded && this.expressionData && this.expressionMetadata) {
+            const nExprCL = this.expressionMetadata.nCellLines;
+            const exprCLIndex = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, idx) => { exprCLIndex.set(cl, idx); });
+            for (let gi = 0; gi < this.expressionMetadata.genes.length; gi++) {
+                const eValsA = [], eValsB = [];
+                for (const d of gateA) {
+                    const ei = exprCLIndex.get(d.cellLineId);
+                    if (ei !== undefined) { const v = this.expressionData[gi * nExprCL + ei]; if (!isNaN(v)) eValsA.push(v); }
+                }
+                for (const d of gateB) {
+                    const ei = exprCLIndex.get(d.cellLineId);
+                    if (ei !== undefined) { const v = this.expressionData[gi * nExprCL + ei]; if (!isNaN(v)) eValsB.push(v); }
+                }
+                if (eValsA.length >= 2 && eValsB.length >= 2) {
+                    const meanA = eValsA.reduce((a, b) => a + b, 0) / eValsA.length;
+                    const meanB = eValsB.reduce((a, b) => a + b, 0) / eValsB.length;
+                    const tTest = this.welchTTest(eValsA, eValsB);
+                    diffExpr.push({ gene: this.expressionMetadata.genes[gi], meanA, meanB, diff: meanA - meanB, pValue: tTest.p });
+                }
+                if (gi % 1000 === 0 && gi > 0) await new Promise(r => setTimeout(r, 0));
+            }
+            diffExpr.sort((a, b) => a.pValue - b.pValue);
+        }
 
         // Build results panel
         const gene = this.currentGeneEffect?.gene || '';
@@ -17780,6 +17835,32 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
         html += `</table></div>`;
 
+        // Mutation enrichment
+        if (mutStats.length > 0) {
+            html += `<h5 style="margin:12px 0 4px;">Mutation Enrichment (top 20)</h5>
+                <div style="max-height:200px; overflow-y:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                <tr style="background:#f9fafb;font-weight:600;">
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;text-align:left;">Gene</th>
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">Type</th>
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">A %</th>
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">B %</th>
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">Δ%</th>
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">p-value</th>
+                </tr>`;
+            mutStats.slice(0, 20).forEach(m => {
+                const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
+                const dColor = m.diff > 0 ? '#059669' : '#dc2626';
+                html += `<tr><td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;font-weight:500;">${m.gene}</td>
+                    <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;font-size:9px;color:#999;">${m.type}</td>
+                    <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${m.pctA.toFixed(0)}%</td>
+                    <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${m.pctB.toFixed(0)}%</td>
+                    <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;color:${dColor};font-weight:500;">${m.diff.toFixed(0)}%</td>
+                    <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;${m.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td></tr>`;
+            });
+            html += `</table></div>`;
+        }
+
         // Differential GE table
         html += `<h5 style="margin:12px 0 4px;">Differential Gene Effect (top 20)</h5>
             <div style="max-height:300px; overflow-y:auto;">
@@ -17800,7 +17881,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;color:${dColor};font-weight:500;">${g.diff.toFixed(3)}</td>
                 <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;${g.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td></tr>`;
         });
-        html += `</table></div></div>`;
+        html += `</table></div>`;
+
+        // Differential expression
+        if (diffExpr.length > 0) {
+            html += `<h5 style="margin:12px 0 4px;">Differential Expression (top 20)</h5>
+                <div style="max-height:300px; overflow-y:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                <tr style="background:#f9fafb;font-weight:600;">
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;text-align:left;">Gene</th>
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">Mean A</th>
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">Mean B</th>
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">Δ</th>
+                    <th style="padding:3px 8px;border-bottom:2px solid #e5e7eb;">p-value</th>
+                </tr>`;
+            diffExpr.slice(0, 20).forEach(g => {
+                const pStr = g.pValue < 0.001 ? g.pValue.toExponential(1) : g.pValue.toFixed(3);
+                const dColor = g.diff > 0 ? '#059669' : '#dc2626';
+                html += `<tr><td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;font-weight:500;">${g.gene}</td>
+                    <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${g.meanA.toFixed(2)}</td>
+                    <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${g.meanB.toFixed(2)}</td>
+                    <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;color:${dColor};font-weight:500;">${g.diff.toFixed(2)}</td>
+                    <td style="padding:2px 8px;border-bottom:1px solid #f3f4f6;text-align:center;${g.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td></tr>`;
+            });
+            html += `</table></div>`;
+        }
+
+        html += `</div>`;
 
         // Insert panel
         const existing = document.getElementById('geGateComparePanel');
