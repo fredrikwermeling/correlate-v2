@@ -17600,6 +17600,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Show individual genes button for gene sets (not growth)
         document.getElementById('geShowIndividualGenesBtn').style.display = label !== 'Growth Rate' ? '' : 'none';
 
+        // Clear any leftover content from other views
+        document.getElementById('geneEffectHotspotPlot').innerHTML = '';
+
         // Populate tissue filter from the data
         const tissueFilterEl = document.getElementById('geTissueFilter');
         if (tissueFilterEl) {
@@ -18182,14 +18185,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Determine data type label
         const dataLabel = isGrowth ? 'Growth Rate' : isGeneSet ? `${gene}` : `${gene} Gene Effect`;
-        const geTissueTitle = `${isGrowth ? 'Growth Rate' : isGeneSet ? gene : gene} by ${groupBySubtype ? 'Disease Subtype' : 'Cancer Type'}`;
+        const geTissueTitle = isGrowth ? 'Growth Rate' : isGeneSet ? gene : `${gene} Gene Effect`;
         const filterDesc = this._getGEFilterDescription();
         const subtitleParts = [`n=${data.length}`];
         if (filterDesc) subtitleParts.push(filterDesc);
         const layout = {
             annotations: [
                 { text: `<b>${geTissueTitle}</b>${subtitleParts.length ? '<br><span style="font-size:11px;color:#6b7280;">' + subtitleParts.join(' | ') + '</span>' : ''}`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 19 }, _tsRole: 'title' },
-                { text: dataLabel, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 17 }, _tsRole: 'xlabel' }
+                { text: dataLabel, xref: 'paper', yref: 'paper', x: 0.5, y: -0.06, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 17 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
                 zeroline: true,
@@ -18201,7 +18204,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 automargin: true,
                 tickfont: { size: tickFontSize }
             },
-            margin: { t: 70, b: 60, l: 10, r: 30 },
+            margin: { t: 70, b: 75, l: 10, r: 30 },
             height: chartHeight,
             showlegend: false,
             paper_bgcolor: 'white',
