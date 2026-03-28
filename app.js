@@ -3393,9 +3393,12 @@ class CorrelationExplorer {
 
         // p-value filter toggle — applies to both tissue and hotspot views
         document.getElementById('gePvalueFilter')?.addEventListener('change', () => {
-            // Don't switch view if in individual genes mode
-            if (document.getElementById('geIndividualControls')?.style.display !== 'none') return;
-            this.switchGeneEffectView(this.currentGEView || 'tissue');
+            if (document.getElementById('geIndividualControls')?.style.display !== 'none') {
+                // In individual genes mode — re-render with filter
+                this.showGeneSetIndividualGenes();
+            } else {
+                this.switchGeneEffectView(this.currentGEView || 'tissue');
+            }
         });
 
         // Individual Genes button, back button, hotspot overlay, connect lines
@@ -18022,8 +18025,28 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         if (geneValues.length < 3) { alert('Too few genes with data.'); return; }
 
+        // Apply p-value filter if hotspot is active
+        const pFilter = document.getElementById('gePvalueFilter')?.checked;
+        if (pFilter && hotspotGene) {
+            geneValues = geneValues.filter(gv => {
+                const wt = gv.values.filter(v => v.mut === 0).map(v => v.val);
+                const mut = gv.values.filter(v => v.mut > 0).map(v => v.val);
+                if (wt.length < 3 || mut.length < 3) return false;
+                return this.welchTTest(wt, mut).p < 0.05;
+            });
+            if (geneValues.length === 0) {
+                document.getElementById('geneEffectPlot').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:#6b7280;">No genes with p < 0.05</div>';
+                return;
+            }
+        }
+
         // Build Plotly traces — scatter dots with vertical offset per genotype + median lines
         const traces = [];
+        // Use custom sort order if set by table sorting
+        if (this._indivGeneOrder) {
+            const orderMap = new Map(this._indivGeneOrder.map((g, i) => [g, i]));
+            geneValues.sort((a, b) => (orderMap.get(a.gene) ?? 99) - (orderMap.get(b.gene) ?? 99));
+        }
         const yCategories = geneValues.map(gv => gv.gene);
         const yIndexMap = new Map(yCategories.map((g, i) => [g, i]));
 
@@ -18232,10 +18255,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }).join('');
         }
 
-        // Add sort handlers to table headers
+        // Add sort handlers to table headers — also reorder graph Y axis
         thead.querySelectorAll('th[data-sort]').forEach(th => {
             th.addEventListener('click', () => {
-                const key = th.dataset.sort;
                 const type = th.dataset.type;
                 const dir = th._sortDir === 'asc' ? 'desc' : 'asc';
                 th._sortDir = dir;
@@ -18252,6 +18274,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
                 });
                 trs.forEach(tr => tbody.appendChild(tr));
+
+                // Reorder graph Y axis to match table order
+                const sortedGenes = trs.map(tr => tr.children[0]?.textContent?.trim());
+                const plotEl = document.getElementById('geneEffectPlot');
+                if (plotEl?.layout && sortedGenes.length > 0) {
+                    const newTickVals = sortedGenes.map((_, i) => i);
+                    // Remap all trace Y values
+                    const newIndexMap = new Map(sortedGenes.map((g, i) => [g, i]));
+                    // Re-render with new order
+                    this._indivGeneOrder = sortedGenes;
+                    this.showGeneSetIndividualGenes();
+                }
             });
         });
     }
