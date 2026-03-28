@@ -3407,9 +3407,16 @@ class CorrelationExplorer {
 
         // Gene Sets button from main nav
         document.getElementById('showGeneSetAnalysis')?.addEventListener('click', async () => {
+            const btn = document.getElementById('showGeneSetAnalysis');
+            const origText = btn.textContent;
+            btn.textContent = 'Loading...';
+            btn.disabled = true;
             try {
                 await this.loadAllGeneSets();
-            } catch(e) { console.error('Failed to load gene sets:', e); return; }
+                if (!this.expressionLoaded) await this.loadExpressionData();
+            } catch(e) { console.error('Failed to load gene sets:', e); btn.textContent = origText; btn.disabled = false; return; }
+            btn.textContent = origText;
+            btn.disabled = false;
             // Reset everything
             this._resetGEFilters();
             this.geneEffectViewMode = 'geneEffect';
@@ -3456,9 +3463,13 @@ class CorrelationExplorer {
                 gsSelect.style.display = 'none';
             }
         });
-        document.getElementById('geGeneSetSelect')?.addEventListener('change', () => {
+        document.getElementById('geGeneSetSelect')?.addEventListener('change', async () => {
             const setName = document.getElementById('geGeneSetSelect').value;
-            if (setName) this._showGeneSetAnalysis(setName);
+            if (!setName) return;
+            // Show loading in plot area
+            document.getElementById('geneEffectPlot').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:#6b7280;font-size:13px;">Computing pathway scores...</div>';
+            await new Promise(r => setTimeout(r, 50)); // let UI update
+            await this._showGeneSetAnalysis(setName);
         });
 
         // Hotspot gene selector (Y axis mutation gene)
