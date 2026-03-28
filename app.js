@@ -18266,7 +18266,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (this.currentGETableMode === 'tissue') {
             const plotEl = document.getElementById('geneEffectPlot');
             if (plotEl?.data) {
-                const traceOrder = this.currentGEStats.map(s => `${s.group} (n=${s.n})`);
+                const traceOrder = this.currentGEStats.map(s => `${s.group} (n=${s.n})`).reverse();
                 const newData = traceOrder.map(name => plotEl.data.find(t => t.name === name)).filter(Boolean);
                 if (newData.length === plotEl.data.length) {
                     Plotly.react('geneEffectPlot', newData, plotEl.layout, { responsive: true, edits: { annotationPosition: true } });
