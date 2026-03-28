@@ -19626,9 +19626,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         await new Promise(r => setTimeout(r, 50));
 
         const exportData = {
-            _description: 'Correlate V2 — AI Analysis Export',
+            _description: 'Correlate V2 — Full Data Export (compressed)',
             _instructions: [
-                'This file contains cancer cell line data from DepMap (Broad Institute) for AI analysis.',
+                'This file contains cancer cell line data from DepMap (Broad Institute) for external analysis.',
                 '',
                 'DATA TYPES:',
                 '- geneEffect: CRISPR knockout gene effect scores. Negative = gene is essential for cell survival. More negative = more essential. 0 = no effect. Positive = growth advantage when knocked out.',
