@@ -17979,7 +17979,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             xaxis: { zeroline: true, zerolinecolor: '#ccc' },
             boxmode: hotspotGene ? 'group' : 'overlay',
             boxgap: 0.1, boxgroupgap: 0.05,
-            margin: { t: 95, b: 50, l: 10, r: 30 },
+            margin: { t: 110, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: !!hotspotGene,
             legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, traceorder: 'reversed' },
