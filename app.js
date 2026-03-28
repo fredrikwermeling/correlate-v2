@@ -3401,6 +3401,9 @@ class CorrelationExplorer {
         document.getElementById('geBackFromIndividual')?.addEventListener('click', () => this.switchGeneEffectView(this.currentGEView || 'tissue'));
         document.getElementById('geIndivHotspot')?.addEventListener('change', () => this.showGeneSetIndividualGenes());
         document.getElementById('geConnectLines')?.addEventListener('change', () => this.showGeneSetIndividualGenes());
+        document.getElementById('geLineWidth')?.addEventListener('input', () => {
+            if (document.getElementById('geConnectLines')?.checked) this.showGeneSetIndividualGenes();
+        });
 
         // Gene Sets button from main nav
         document.getElementById('showGeneSetAnalysis')?.addEventListener('click', async () => {
@@ -17938,6 +17941,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Add connecting lines if toggled on
         const connectLines = document.getElementById('geConnectLines')?.checked;
+        const lineWidth = parseFloat(document.getElementById('geLineWidth')?.value) || 1;
         if (connectLines && geneValues.length >= 2) {
             // Build per-cell-line traces connecting values across genes
             // Limit to first 200 cell lines for performance
@@ -17960,12 +17964,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (xs.length >= 2) {
                     const mutLevel = mutData[cl] || 0;
                     const lineColor = hotspotGene
-                        ? (mutLevel >= 2 ? 'rgba(220,38,38,0.15)' : mutLevel === 1 ? 'rgba(249,115,22,0.15)' : 'rgba(37,99,235,0.08)')
-                        : 'rgba(100,100,100,0.08)';
+                        ? (mutLevel >= 2 ? 'rgba(220,38,38,0.3)' : mutLevel === 1 ? 'rgba(249,115,22,0.3)' : 'rgba(37,99,235,0.15)')
+                        : 'rgba(100,100,100,0.15)';
                     traces.push({
                         type: 'scatter', mode: 'lines',
                         x: xs, y: ys,
-                        line: { color: lineColor, width: 0.5 },
+                        line: { color: lineColor, width: lineWidth },
                         hoverinfo: 'skip', showlegend: false
                     });
                 }
@@ -18109,7 +18113,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.currentGEStats = filteredStats;
 
         // Create box plot traces for each group (default: B&W)
-        const traces = stats.map((s, idx) => ({
+        const traces = filteredStats.map((s, idx) => ({
             type: 'box',
             name: `${s.group} (n=${s.n})`,
             x: s.cellData.map(c => c.geneEffect),
