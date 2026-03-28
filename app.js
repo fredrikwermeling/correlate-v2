@@ -3365,6 +3365,8 @@ class CorrelationExplorer {
         document.getElementById('geSubtypeFilter')?.addEventListener('change', () => {
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
+            } else if (this.currentGeneEffect) {
+                this.switchGeneEffectView(this.currentGEView || 'tissue');
             }
         });
         // Inspect-level hotspot filter
@@ -3385,6 +3387,11 @@ class CorrelationExplorer {
                 this.switchGeneEffectView(this.currentGEView || 'tissue');
             }
         });
+        // Show all genes toggle in hotspot view
+        document.getElementById('geShowAllGenes')?.addEventListener('change', () => {
+            this.renderGeneEffectByHotspot();
+        });
+
         // GE Growth Rate button — show growth rate by tissue (no gene needed)
         document.getElementById('geGrowthRateBtn')?.addEventListener('click', () => this._showGrowthRateAnalysis());
 
@@ -17392,11 +17399,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('geByTissueView').style.display = 'block';
             document.getElementById('geByHotspotView').style.display = 'none';
             if (statsExplanation) statsExplanation.textContent = "p-values: Welch's t-test comparing each cancer type vs all other cell lines.";
+            document.getElementById('geShowAllToggle').style.display = 'none';
             this.renderGeneEffectByTissue();
         } else {
             document.getElementById('geByTissueView').style.display = 'none';
             document.getElementById('geByHotspotView').style.display = 'block';
             if (statsExplanation) statsExplanation.textContent = "Shows 3 mutation levels: 0 (WT, blue), 1 (orange), 2 (red). p-value: Welch's t-test comparing 1+2 combined vs WT.";
+            document.getElementById('geShowAllToggle').style.display = '';
             this.renderGeneEffectByHotspot();
         }
     }
@@ -17562,6 +17571,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const tissueFilter = document.getElementById('geTissueFilter')?.value;
         if (tissueFilter) {
             data = data.filter(d => d.lineage === tissueFilter);
+        }
+        // Subtype filter
+        const subtypeFilter = document.getElementById('geSubtypeFilter')?.value;
+        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
+            data = data.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
         }
         // Hotspot filter — only show cell lines mutated in this gene
         const hotspotGene = document.getElementById('geHotspotFilter')?.value;
@@ -17844,8 +17858,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Sort by p-value (most significant first) for better visualization
         hotspotStats.sort((a, b) => a.pValue - b.pValue);
 
-        // Take top 10 most significant (with at least 3 mutant cells) for box plot display
-        const topStats = hotspotStats.filter(s => s.nMut >= 3).slice(0, 10);
+        // Show all or top 10 based on toggle
+        const showAll = document.getElementById('geShowAllGenes')?.checked;
+        const topStats = showAll
+            ? hotspotStats
+            : hotspotStats.filter(s => s.nMut >= 3).slice(0, 10);
 
         // Create box plots for 3 mutation levels (0, 1, 2) for each hotspot
         const traces = [];
@@ -17926,7 +17943,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             annotations: [
-                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b><br><span style="font-size:10px;color:#6b7280;">Top ${topStats.length} most significant (of ${hotspotStats.length} tested, ≥3 mutant cells)</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b><br><span style="font-size:10px;color:#6b7280;">${showAll ? `All ${topStats.length} genes` : `Top ${topStats.length} most significant`} (of ${hotspotStats.length} tested)</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
                 { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} Gene Effect`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
@@ -17958,8 +17975,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             displaylogo: false
         });
 
-        // Store stats for table (without cell data)
-        const tableStats = hotspotStats.map(s => ({
+        // Store stats for table — sync with what's shown in graph
+        const tableSource = showAll ? hotspotStats : topStats;
+        const tableStats = tableSource.map(s => ({
             group: s.group,
             n0: s.n0,
             n1: s.n1,
@@ -18098,6 +18116,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const data = this.currentGeneEffect.data;
         const gene = this.currentGeneEffect.gene;
+        const _isGrowthDV = gene === 'Growth Rate';
+        const _isGeneSetDV = !_isGrowthDV && !this.geneIndex.has(gene?.toUpperCase?.());
+        const valLabel = _isGrowthDV ? 'Growth Rate' : _isGeneSetDV ? 'Score' : 'Gene Effect';
+        const valLabelShort = _isGrowthDV ? 'GR' : _isGeneSetDV ? 'Score' : 'GE';
 
         // Helper to calculate stats
         const calcStats = (values) => {
@@ -18111,7 +18133,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Helper to format stats annotation
         const formatStats = (stats, label) => {
             if (stats.n === 0) return `${label}: n=0`;
-            return `${label}: n=${stats.n}, GE=${stats.mean.toFixed(2)}, SD=${stats.sd.toFixed(2)}`;
+            return `${label}: n=${stats.n}, ${valLabelShort}=${stats.mean.toFixed(2)}, SD=${stats.sd.toFixed(2)}`;
         };
 
         if (mode === 'hotspot') {
@@ -18150,7 +18172,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     marker: { color: '#2563eb', size: 5 },
                     line: { color: '#1e40af', width: 2 },
                     fillcolor: 'rgba(37, 99, 235, 0.4)',
-                    hovertemplate: '<b>%{text}</b><br>%{customdata}<br>Gene Effect: %{y:.3f}<extra>0 (WT)</extra>'
+                    hovertemplate: `<b>%{text}</b><br>%{customdata}<br>${valLabel}: %{y:.3f}<extra>0 (WT)</extra>`
                 }
             ];
 
@@ -18168,7 +18190,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     marker: { color: '#f97316', size: 5 },
                     line: { color: '#c2410c', width: 2 },
                     fillcolor: 'rgba(249, 115, 22, 0.4)',
-                    hovertemplate: '<b>%{text}</b><br>%{customdata}<br>Gene Effect: %{y:.3f}<extra>1 mutation</extra>'
+                    hovertemplate: `<b>%{text}</b><br>%{customdata}<br>${valLabel}: %{y:.3f}<extra>1 mutation</extra>`
                 });
             }
 
@@ -18186,7 +18208,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     marker: { color: '#dc2626', size: 5 },
                     line: { color: '#991b1b', width: 2 },
                     fillcolor: 'rgba(220, 38, 38, 0.4)',
-                    hovertemplate: '<b>%{text}</b><br>%{customdata}<br>Gene Effect: %{y:.3f}<extra>2 mutations</extra>'
+                    hovertemplate: `<b>%{text}</b><br>%{customdata}<br>${valLabel}: %{y:.3f}<extra>2 mutations</extra>`
                 });
             }
 
@@ -18195,14 +18217,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const pStr = !isNaN(pValue) ? (pValue < 0.001 ? pValue.toExponential(2) : pValue.toFixed(4)) : null;
 
             // Row 1: 0 (WT) stats
-            statsAnnotations.push(`0 (WT): n=${stats0.n}, GE=${stats0.mean.toFixed(2)}, SD=${stats0.sd.toFixed(2)}`);
+            statsAnnotations.push(`0 (WT): n=${stats0.n}, ${valLabelShort}=${stats0.mean.toFixed(2)}, SD=${stats0.sd.toFixed(2)}`);
             // Row 2: 1 mut stats
             if (stats1.n > 0) {
-                statsAnnotations.push(`1 mut: n=${stats1.n}, GE=${stats1.mean.toFixed(2)}${stats1.n > 1 ? `, SD=${stats1.sd.toFixed(2)}` : ''}`);
+                statsAnnotations.push(`1 mut: n=${stats1.n}, ${valLabelShort}=${stats1.mean.toFixed(2)}${stats1.n > 1 ? `, SD=${stats1.sd.toFixed(2)}` : ''}`);
             }
             // Row 3: 2 mut stats
             if (stats2.n > 0) {
-                statsAnnotations.push(`2 mut: n=${stats2.n}, GE=${stats2.mean.toFixed(2)}${stats2.n > 1 ? `, SD=${stats2.sd.toFixed(2)}` : ''}`);
+                statsAnnotations.push(`2 mut: n=${stats2.n}, ${valLabelShort}=${stats2.mean.toFixed(2)}${stats2.n > 1 ? `, SD=${stats2.sd.toFixed(2)}` : ''}`);
             }
             // Row 4: p-value
             if (pStr) {
@@ -18218,8 +18240,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const chartWidth = Math.round(containerWidth * widthRatio);
 
             const layout = {
-                title: { text: `${gene} gene effect by ${group} mutation status`, font: { size: 14 } },
-                yaxis: { title: 'Gene Effect', zeroline: true, zerolinecolor: '#374151' },
+                title: { text: `${gene} ${valLabel.toLowerCase()} by ${group} mutation status`, font: { size: 14 } },
+                yaxis: { title: valLabel, zeroline: true, zerolinecolor: '#374151' },
                 showlegend: false,
                 height: 520,
                 width: chartWidth,
