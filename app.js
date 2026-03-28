@@ -2533,6 +2533,7 @@ class CorrelationExplorer {
             <div style="margin-bottom: 4px;"><b>Data:</b> ${dataType}</div>
             <div style="margin-bottom: 4px;"><b>Method:</b> ${method}</div>
             ${sig.expectedMutations?.length ? `<div style="margin-bottom: 4px;"><b>Expected mutations:</b> ${sig.expectedMutations.join(', ')}</div>` : ''}
+            ${sig.withinTissueRatio ? `<div style="margin-bottom: 4px;"><b>Within-tissue ratio:</b> ${sig.withinTissueRatio.toFixed(1)} ${sig.withinTissueRatio > 2 ? '(good — varies within tissues)' : sig.withinTissueRatio > 1.5 ? '(moderate)' : '(low — mostly tissue identity)'}</div>` : ''}
             <div><b>Genes (${sig.genes.length}):</b> <span style="font-family: monospace; font-size: 9px;">${sig.genes.join(', ')}</span></div>
         `;
         panel.style.display = 'block';
