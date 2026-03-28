@@ -17913,55 +17913,61 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         if (geneValues.length < 3) { alert('Too few genes with data.'); return; }
 
-        // Build Plotly traces — horizontal boxplots per gene, colored by mutation
+        // Build Plotly traces — one boxplot per gene, dots colored by mutation
         const traces = [];
         const yCategories = geneValues.map(gv => gv.gene);
-        let show0 = true, show1 = true, show2 = true;
 
-        const colors = { 0: '#2563eb', 1: '#f97316', 2: '#dc2626' };
-        const fills = { 0: 'rgba(37,99,235,0.4)', 1: 'rgba(249,115,22,0.4)', 2: 'rgba(220,38,38,0.4)' };
-        const labels = { 0: '0 (WT)', 1: '1 mutation', 2: '2 mutations' };
+        const mutColors = { 0: '#2563eb', 1: '#f97316', 2: '#dc2626' };
+        const mutLabels = { 0: '0 (WT)', 1: '1 mutation', 2: '2+ mutations' };
 
+        // One B&W boxplot per gene (no individual points — scatter overlays handle that)
+        geneValues.forEach(gv => {
+            traces.push({
+                type: 'box', orientation: 'h',
+                y: Array(gv.values.length).fill(gv.gene),
+                x: gv.values.map(v => v.val),
+                boxpoints: false, // points added as scatter
+                line: { color: '#374151', width: 1.5 },
+                fillcolor: 'rgba(200,200,200,0.3)',
+                showlegend: false, hoverinfo: 'skip'
+            });
+        });
+
+        // Scatter overlay: dots colored by mutation status
         if (hotspotGene) {
-            // Split by mutation level
-            for (const level of [2, 1, 0]) {
+            let show0 = true, show1 = true, show2 = true;
+            for (const level of [0, 1, 2]) {
+                const showLeg = level === 0 ? show0 : level === 1 ? show1 : show2;
+                const allX = [], allY = [], allText = [];
                 geneValues.forEach(gv => {
                     const pts = gv.values.filter(v => level === 2 ? v.mut >= 2 : v.mut === level);
-                    if (pts.length === 0) return;
-                    const showLegend = level === 0 ? show0 : level === 1 ? show1 : show2;
+                    pts.forEach(p => { allX.push(p.val); allY.push(gv.gene); allText.push(p.name); });
+                });
+                if (allX.length > 0) {
                     traces.push({
-                        type: 'box', orientation: 'h',
-                        name: labels[level], legendgroup: String(level), showlegend: showLegend,
-                        y: Array(pts.length).fill(gv.gene),
-                        x: pts.map(p => p.val),
-                        text: pts.map(p => p.name),
-                        boxpoints: 'all', jitter: 0.3, pointpos: 0,
-                        marker: { color: colors[level], size: 4 },
-                        line: { color: colors[level], width: 1.5 },
-                        fillcolor: fills[level],
-                        hovertemplate: `<b>%{text}</b><br>${gv.gene}: %{x:.3f}<extra>${labels[level]}</extra>`,
-                        offsetgroup: String(level)
+                        type: 'scatter', mode: 'markers',
+                        name: mutLabels[level], legendgroup: String(level), showlegend: showLeg,
+                        x: allX, y: allY, text: allText,
+                        marker: { color: mutColors[level], size: 5, opacity: 0.7 },
+                        hovertemplate: '<b>%{text}</b><br>%{x:.3f}<extra>' + mutLabels[level] + '</extra>'
                     });
                     if (level === 0) show0 = false;
                     if (level === 1) show1 = false;
                     if (level === 2) show2 = false;
-                });
+                }
             }
         } else {
+            // No hotspot — grey dots
+            const allX = [], allY = [], allText = [];
             geneValues.forEach(gv => {
-                traces.push({
-                    type: 'box', orientation: 'h',
-                    name: gv.gene,
-                    y: Array(gv.values.length).fill(gv.gene),
-                    x: gv.values.map(v => v.val),
-                    text: gv.values.map(v => v.name),
-                    boxpoints: 'all', jitter: 0.3, pointpos: 0,
-                    marker: { color: 'rgba(80,80,80,0.5)', size: 5 },
-                    line: { color: '#374151' },
-                    fillcolor: 'rgba(200,200,200,0.3)',
-                    hovertemplate: `<b>%{text}</b><br>${gv.gene}: %{x:.3f}<extra></extra>`,
-                    showlegend: false
-                });
+                gv.values.forEach(v => { allX.push(v.val); allY.push(gv.gene); allText.push(v.name); });
+            });
+            traces.push({
+                type: 'scatter', mode: 'markers',
+                x: allX, y: allY, text: allText,
+                marker: { color: 'rgba(80,80,80,0.5)', size: 5 },
+                hovertemplate: '<b>%{text}</b><br>%{x:.3f}<extra></extra>',
+                showlegend: false
             });
         }
 
@@ -17977,9 +17983,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ],
             yaxis: { automargin: true, tickfont: { size: 11 }, categoryorder: 'array', categoryarray: yCategories.slice().reverse() },
             xaxis: { zeroline: true, zerolinecolor: '#ccc' },
-            boxmode: hotspotGene ? 'group' : 'overlay',
-            boxgap: 0.1, boxgroupgap: 0.05,
-            margin: { t: 110, b: 50, l: 10, r: 30 },
+            boxgap: 0.15,
+            margin: { t: 120, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: !!hotspotGene,
             legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, traceorder: 'reversed' },
@@ -18031,8 +18036,54 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('geByHotspotView').style.display = 'none';
         Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true, displaylogo: false });
 
-        // Hide the stats table for individual view
-        document.getElementById('geTableContainer').style.display = 'none';
+        // Build stats table for individual genes
+        const thead = document.getElementById('geTableHead');
+        const tbody = document.getElementById('geneEffectTableBody');
+        document.getElementById('geTableContainer').style.display = '';
+
+        if (hotspotGene) {
+            thead.innerHTML = `<tr>
+                <th>Gene</th><th>N</th>
+                <th style="color:#2563eb">Mean WT</th>
+                <th style="color:#f97316">Mean Mut</th>
+                <th>Δ</th><th>p-value</th>
+            </tr>`;
+            const rows = geneValues.map(gv => {
+                const wt = gv.values.filter(v => v.mut === 0).map(v => v.val);
+                const mut = gv.values.filter(v => v.mut > 0).map(v => v.val);
+                const wtMean = wt.length > 0 ? wt.reduce((a, b) => a + b, 0) / wt.length : NaN;
+                const mutMean = mut.length > 0 ? mut.reduce((a, b) => a + b, 0) / mut.length : NaN;
+                const delta = mutMean - wtMean;
+                const p = wt.length >= 3 && mut.length >= 3 ? this.welchTTest(wt, mut).p : NaN;
+                return { gene: gv.gene, n: gv.values.length, wtMean, mutMean, delta, p };
+            });
+            rows.sort((a, b) => (a.p || 1) - (b.p || 1));
+            tbody.innerHTML = rows.map(r => {
+                const dColor = r.delta > 0 ? '#059669' : '#dc2626';
+                const pStr = isNaN(r.p) ? '-' : r.p < 0.001 ? r.p.toExponential(1) : r.p.toFixed(3);
+                return `<tr>
+                    <td style="font-weight:500">${r.gene}</td>
+                    <td style="text-align:center">${r.n}</td>
+                    <td style="text-align:center">${isNaN(r.wtMean) ? '-' : r.wtMean.toFixed(2)}</td>
+                    <td style="text-align:center">${isNaN(r.mutMean) ? '-' : r.mutMean.toFixed(2)}</td>
+                    <td style="text-align:center;color:${dColor};font-weight:500">${isNaN(r.delta) ? '-' : r.delta.toFixed(2)}</td>
+                    <td style="text-align:center;${r.p < 0.05 ? 'font-weight:600' : ''}">${pStr}</td>
+                </tr>`;
+            }).join('');
+        } else {
+            thead.innerHTML = '<tr><th>Gene</th><th>N</th><th>Mean</th><th>SD</th></tr>';
+            tbody.innerHTML = geneValues.map(gv => {
+                const vals = gv.values.map(v => v.val);
+                const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+                const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+                return `<tr>
+                    <td style="font-weight:500">${gv.gene}</td>
+                    <td style="text-align:center">${vals.length}</td>
+                    <td style="text-align:center">${mean.toFixed(2)}</td>
+                    <td style="text-align:center">${sd.toFixed(2)}</td>
+                </tr>`;
+            }).join('');
+        }
     }
 
     _showGrowthRateAnalysis() {
