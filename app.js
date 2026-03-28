@@ -3351,12 +3351,18 @@ class CorrelationExplorer {
                 this.switchGeneEffectView('hotspot');
             }
         });
+        const _isIndivMode = () => document.getElementById('geIndividualControls')?.style.display !== 'none';
+        const _refreshGEView = () => {
+            if (_isIndivMode()) { this.showGeneSetIndividualGenes(); return; }
+            this.switchGeneEffectView(this.currentGEView || 'tissue');
+        };
+
         document.getElementById('geTissueFilter')?.addEventListener('change', () => {
             this.updateGeSubtypeFilter();
             if (this.geneEffectViewMode === 'mutation' && this.mutationResults && this.currentGeneEffectGene) {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             } else {
-                this.switchGeneEffectView(this.currentGEView || 'tissue');
+                _refreshGEView();
             }
         });
         // Inspect-level subtype filter
@@ -3364,7 +3370,7 @@ class CorrelationExplorer {
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             } else if (this.currentGeneEffect) {
-                this.switchGeneEffectView(this.currentGEView || 'tissue');
+                _refreshGEView();
             }
         });
         // Inspect-level hotspot filter
@@ -3374,7 +3380,7 @@ class CorrelationExplorer {
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             } else if (this.geneEffectViewMode === 'geneEffect') {
-                this.switchGeneEffectView(this.currentGEView || 'tissue');
+                _refreshGEView();
             }
         });
         // Inspect-level fusion filter
@@ -3382,7 +3388,7 @@ class CorrelationExplorer {
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             } else if (this.geneEffectViewMode === 'geneEffect') {
-                this.switchGeneEffectView(this.currentGEView || 'tissue');
+                _refreshGEView();
             }
         });
         // GE plot gating
