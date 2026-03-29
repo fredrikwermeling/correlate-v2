@@ -19730,6 +19730,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 `Data tier: ${tierLabel}.`,
                 'Use cellLineOrder as shared index for geneEffect and expression arrays.'
             ],
+            _analysisInstructions: [
+                'Step 1 - Overview: Briefly survey the data. Summarize key groups, sample sizes, and the target gene\'s effect distribution. Run a quick unbiased scan of the top 10 gene effect co-correlates and anti-correlates, noting their likely pathway/function.',
+                'Step 2 - Confirm scope: Present this overview to the user together with their question (from the \'question\' field). Propose 2-3 specific analytical angles suggested by the unbiased hits. Ask the user to confirm, adjust, or redirect before proceeding with deep analysis.',
+                'Step 3 - Deep analysis: After user confirmation, work data-first. Characterize unbiased genome-wide hits and annotate by pathway before testing hypothesis-driven candidate gene lists. After finding one explanatory model, actively search for alternative or complementary axes. Report all major signals, not just the first plausible one.'
+            ],
             context,
             question: question || null,
             cellLineOrder: cellLines,
