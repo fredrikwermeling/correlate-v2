@@ -1855,10 +1855,7 @@ class CorrelationExplorer {
                 this._oncoprintSyncFilters();
                 drawOncoprint();
             } else if (x < boxAreaW + labelW) {
-                // Clicked gene label — set as hotspot
-                document.getElementById('mutationHotspotSelect').value = gene;
-                document.getElementById('tissueBreakdownBtn').style.display = 'inline-block';
-                this.showOncoprint(this._oncoprintContext);
+                // Clicked gene label — no action (don't change required hotspot)
             }
         });
 
