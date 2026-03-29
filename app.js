@@ -3697,8 +3697,14 @@ class CorrelationExplorer {
             document.getElementById('aiExportStatus').textContent = '';
         };
         document.getElementById('geAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('ge'));
-        document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('mutation'));
-        document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('scatter'));
+        document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => {
+            this._aiExportSource = 'mutation';
+            this.exportFullAIAnalysis();
+        });
+        document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => {
+            this._aiExportSource = 'scatter';
+            this.exportFullAIAnalysis();
+        });
         document.getElementById('aiExportBtn')?.addEventListener('click', () => this.exportFullAIAnalysis());
 
         // Chart width control — works for both inspect and detailed views
@@ -19494,11 +19500,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     async exportFullAIAnalysis() {
         const statusEl = document.getElementById('aiExportStatus');
-        statusEl.textContent = 'Collecting data...';
+        const setStatus = (msg) => { if (statusEl) statusEl.textContent = msg; };
+        setStatus('Collecting data...');
 
         const source = this._aiExportSource || 'ge';
         const allCLs = this._getAICellLines(source);
-        if (!allCLs.length) { statusEl.textContent = 'No cell lines to export.'; return; }
+        if (!allCLs.length) { setStatus('No cell lines to export.'); return; }
 
         // Cap at 400
         const cellLines = allCLs.slice(0, 400);
@@ -19594,7 +19601,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Build cell line metadata + mutations
-        statusEl.textContent = `Building metadata for ${n} cell lines...`;
+        setStatus(`Building metadata for ${n} cell lines...`);
         await new Promise(r => setTimeout(r, 50));
 
         const clMeta = {};
@@ -19612,7 +19619,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Build GE matrix with tier filtering (#7)
-        statusEl.textContent = 'Building gene effect matrix...';
+        setStatus('Building gene effect matrix...');
         await new Promise(r => setTimeout(r, 50));
 
         const geGenes = this.metadata.genes;
@@ -19638,7 +19645,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Build expression matrix with tier filtering (#7)
         let exprMatrix = null;
         if (includeExpr && this.expressionData && this.expressionMetadata) {
-            statusEl.textContent = 'Building expression matrix...';
+            setStatus('Building expression matrix...');
             await new Promise(r => setTimeout(r, 50));
             const exprGenes = this.expressionMetadata.genes;
             const nExprCL = this.expressionMetadata.nCellLines;
@@ -19672,7 +19679,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let topCorrelates = null;
         const analysisGene = context.gene || context.hotspotGene || '';
         if (analysisGene && this.geneIndex.has(analysisGene.toUpperCase()) && includeExpr && this.expressionData) {
-            statusEl.textContent = 'Computing top expression correlates...';
+            setStatus('Computing top expression correlates...');
             await new Promise(r => setTimeout(r, 50));
             const targetIdx = this.geneIndex.get(analysisGene.toUpperCase());
             const targetData = this.getGeneData(targetIdx);
@@ -19711,7 +19718,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Assemble the export
-        statusEl.textContent = 'Compressing...';
+        setStatus('Compressing...');
         await new Promise(r => setTimeout(r, 50));
 
         const exportData = {
@@ -19767,7 +19774,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (exprMatrix) infoParts.push(`${Object.keys(exprMatrix).length} expr genes`);
         if (topCorrelates) infoParts.push(`${topCorrelates.length} correlates`);
         infoParts.push(`${sizeMB} MB`);
-        statusEl.textContent = `Exported: ${infoParts.join(', ')}`;
+        setStatus(`Exported: ${infoParts.join(', ')}`);
     }
 
     downloadGECellLineCSV() {
