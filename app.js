@@ -19095,9 +19095,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 yaxis: { automargin: true, tickfont: { size: 12 }, title: '' },
                 xaxis: { automargin: true, tickfont: { size: 12 }, title: '' },
                 showlegend: false,
-                height: 500,
-                width: Math.max(chartWidth, 500),
-                margin: { t: 110, b: 85, l: 10, r: 30 },
+                height: 550,
+                width: Math.max(containerWidth * 0.95, 550),
+                margin: { t: 110, b: 85, l: 120, r: 30 },
                 paper_bgcolor: 'white',
                 plot_bgcolor: 'white'
             };
