@@ -3697,15 +3697,21 @@ class CorrelationExplorer {
             document.getElementById('aiExportStatus').textContent = '';
         };
         document.getElementById('geAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('ge'));
-        document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => {
-            this._aiExportSource = 'mutation';
-            this.exportFullAIAnalysis();
-        });
-        document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => {
-            this._aiExportSource = 'scatter';
-            this.exportFullAIAnalysis();
-        });
-        document.getElementById('aiExportBtn')?.addEventListener('click', () => this.exportFullAIAnalysis());
+        const _aiExportWithLoading = async (btnId, source) => {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            const orig = btn.textContent;
+            btn.textContent = 'Exporting...';
+            btn.disabled = true;
+            this._aiExportSource = source;
+            await new Promise(r => setTimeout(r, 50));
+            await this.exportFullAIAnalysis();
+            btn.textContent = orig;
+            btn.disabled = false;
+        };
+        document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => _aiExportWithLoading('mutAnalyzeWithAI', 'mutation'));
+        document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => _aiExportWithLoading('scatterAnalyzeWithAI', 'scatter'));
+        document.getElementById('aiExportBtn')?.addEventListener('click', () => _aiExportWithLoading('aiExportBtn', this._aiExportSource || 'ge'));
 
         // Chart width control — works for both inspect and detailed views
         document.getElementById('geAspectRatio')?.addEventListener('input', (e) => {
