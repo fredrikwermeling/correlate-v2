@@ -19081,14 +19081,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const containerWidth = container ? container.offsetWidth || 500 : 500;
             const chartWidth = Math.round(containerWidth * widthRatio);
 
+            const filterDesc = this._getGEFilterDescription() || 'All tissues';
             const layout = {
-                title: { text: `${gene} ${valLabel} by ${group} Mutation<br><span style="font-size:10px;color:#6b7280;">${this._getGEFilterDescription() || 'All tissues'} | ${statsText}</span>`, font: { size: 13 } },
+                title: { text: `${gene} ${valLabel} by ${group} Mutation<br><span style="font-size:10px;color:#6b7280;">${filterDesc}</span><br><span style="font-size:9px;color:#9ca3af;">${statsText}</span>`, font: { size: 13 } },
                 yaxis: { automargin: true },
                 xaxis: { title: `${gene} ${valLabel}`, automargin: true },
                 showlegend: false,
                 height: 450,
                 width: chartWidth,
-                margin: { t: 70, b: 60, l: 10, r: 30 },
+                margin: { t: 90, b: 60, l: 10, r: 30 },
                 paper_bgcolor: 'white',
                 plot_bgcolor: 'white'
             };
@@ -19447,16 +19448,31 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     _getAICellLines(source) {
         if (source === 'ge') {
+            // Try detailed view data first, then filtered tissue data
+            if (this.currentGeneEffect?.data) {
+                return this.currentGeneEffect.data.map(d => d.cellLineId);
+            }
             return this.getGETissueFilteredData().map(d => d.cellLineId);
         } else if (source === 'scatter') {
             const data = this.currentInspect?.data || this._currentFilteredData || [];
             return data.map(d => d.cellLineId);
         } else if (source === 'mutation') {
-            // All cell lines from mutation analysis (WT + mutated)
             const mr = this.mutationResults;
             if (!mr) return [];
-            const allData = mr.allResults?.[0] ? this.metadata.cellLines : [];
-            return allData;
+            // Get cell lines from the analysis results
+            const allResults = mr.allResults || mr.significantResults || [];
+            if (allResults.length === 0) return [];
+            // Return all cell lines that were part of the analysis
+            const cls = new Set();
+            this.metadata.cellLines.forEach(cl => {
+                // Apply same filters as mutation analysis
+                if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== mr.lineageFilter) return;
+                if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) return;
+                if (mr.excludedTissues?.size > 0 && mr.excludedTissues.has(this.cellLineMetadata?.lineage?.[cl])) return;
+                if (this._activeOncoprintFilters?.length > 0 && !this._cellLinePassesOncoprintFilters(cl)) return;
+                cls.add(cl);
+            });
+            return [...cls];
         }
         return [];
     }
