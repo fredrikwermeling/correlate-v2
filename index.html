@@ -1313,7 +1313,7 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.57.6 (2026-03-28)</strong></p>
+                <p><strong>v.58 (2026-03-28)</strong></p>
                 <ul>
                     <li>Fix Gene Sets nav button — now works without a gene selected</li>
                     <li>Individual Genes: Back button, dedicated hotspot overlay dropdown, clear title with set description</li>
@@ -1754,7 +1754,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.57.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.58</a>
     </div>
 
     <div class="main-content">
@@ -1777,15 +1777,15 @@
                             <li>OmicsSomaticMutationsMatrixDamaging.csv <span style="color:#999;">(damaging mutations)</span></li>
                             <li>OmicsFusionFiltered.csv <span style="color:#999;">(translocations/fusions)</span></li>
                             <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
-                            <!-- Growth rate hidden (v.57.6) -->
-                            <!-- Pathway signatures hidden (v.57.6) -->
+                            <!-- Growth rate hidden (v.58) -->
+                            <!-- Pathway signatures hidden (v.58) -->
                         </ul>
                         <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data.</p>
                     </div>
                     <div style="display:flex; gap:6px; margin-top:10px;">
                         <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="flex:1;">Reset App</button>
                         <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="flex:1; color:var(--green-700); border-color:var(--green-400);">Cell Lines</button>
-                        <!-- Gene Sets feature hidden — not adding clear value (v.57.6) -->
+                        <!-- Gene Sets feature hidden — not adding clear value (v.58) -->
                         <label class="btn btn-outline btn-sm" style="flex:0; cursor:pointer; font-size:11px; color:var(--green-700); border-color:var(--green-400); white-space:nowrap;" title="Open a Correlate export (SVG/PNG) to restore settings">
                             Open <input type="file" id="restoreFromExportInput" accept=".svg,.png" style="display:none;">
                         </label>
@@ -1839,7 +1839,7 @@
                         <input type="range" id="minSlope" min="0" max="2" step="0.05" value="0.1">
                     </div>
 
-                    <!-- Growth rate in correlation hidden (v.57.6) -->
+                    <!-- Growth rate in correlation hidden (v.58) -->
 
                     <div class="form-group" id="mutationHotspotGroup" style="display: none; border: 1.5px solid #86efac; border-radius: 6px; padding: 8px; background: #f0fdf4;">
                         <div id="mutAnalysisTypeSelector" style="margin-bottom: 8px;">
@@ -2300,38 +2300,38 @@
                         <strong>Statistics:</strong> p-values are calculated using Welch's t-test comparing gene effect scores between wild-type (WT, 0 mutations) and mutated cells (1+2 or 2 mutations). Δ GE = Mean(mutated) − Mean(WT).
                     </div>
                     <div id="mutationResultsCount" style="margin-bottom: 10px;">0 genes with p < 0.001</div>
-                    <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
-                        <input type="text" id="mutationSearch" class="form-control" placeholder="Search genes..." style="width: 160px; display: inline-block; font-size: 12px; padding: 4px 8px;">
-                        <button class="btn btn-outline btn-sm" id="filterMutationToggle" title="Toggle column filters">Filters</button>
-                        <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
-                        <button class="btn btn-outline btn-sm" id="downloadMutationResults">Export CSV</button>
-                        <button class="btn btn-outline btn-sm" id="exportMutTablePNG" title="Export mutation table as PNG image">PNG</button>
-                        <button class="btn btn-outline btn-sm" id="exportMutTableSVG" title="Export mutation table as SVG image">SVG</button>
-                        <!-- AI button removed — Full Export supersedes it -->
-                        <button class="btn btn-sm" id="mutAnalyzeWithAI" style="background:#0369a1;color:white;font-size:10px;" title="Export all data (compressed) for external analysis">Full Export</button>
-                        <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
+                    <!-- Row 1: Search + Compare -->
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;">
+                        <input type="text" id="mutationSearch" class="form-control" placeholder="Search genes..." style="width: 160px; font-size: 12px; padding: 4px 8px;">
                         <button class="btn btn-secondary btn-sm" id="mutCompareByTissueBtn" title="Compare mutation effect across cancer types">Compare by Tissue</button>
                         <button class="btn btn-secondary btn-sm" id="mutCompareByHotspotBtn" title="Compare with other hotspot mutations">Compare by Hotspot</button>
                         <button class="btn btn-secondary btn-sm" id="mutCompareByFusionBtn" title="Compare with fusion genes" style="display: none;">Compare by Fusion</button>
-                        <!-- <button class="btn btn-secondary btn-sm" id="mutGeneSetAnalysisBtn">Gene Sets</button> -->
-                        <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
-                        <select id="mutEnrichrFilter" style="font-size:10px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px;" title="Filter genes for Enrichr by comparison">
+                        <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
+                        <select id="mutEnrichrFilter" style="font-size:10px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px;" title="Filter genes for Enrichr">
                             <option value="all">All sig.</option>
-                            <option value="top10">Top 10 (sorted)</option>
-                            <option value="top20">Top 20 (sorted)</option>
-                            <option value="top50">Top 50 (sorted)</option>
-                            <option value="top100">Top 100 (sorted)</option>
-                            <option value="p_mut">WT vs 1+2</option>
-                            <option value="p_2">WT vs 2</option>
-                            <option value="p_2v1">2 vs 1</option>
+                            <option value="top10">Top 10</option>
+                            <option value="top20">Top 20</option>
+                            <option value="top50">Top 50</option>
                             <option value="diff_neg">Δ GE &lt; 0</option>
                             <option value="diff_pos">Δ GE &gt; 0</option>
-                            <option value="filtered">Visible (filtered)</option>
+                            <option value="filtered">Visible</option>
                         </select>
                         <button class="btn btn-secondary btn-sm" id="mutEnrichrBtn" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr — Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
                     </div>
-                    <div id="mut2ColToggle" style="display:none; margin-bottom:4px; font-size:11px;">
-                        <label style="cursor:pointer; color:#374151;"><input type="checkbox" id="showMut2Cols" checked style="margin:0 4px 0 0; vertical-align:middle;" onchange="app.toggleMut2Columns()"> Show Mut 2, 2v1 columns</label>
+                    <!-- Row 2: Export -->
+                    <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                        <span style="font-size: 10px; color: #9ca3af;">Export:</span>
+                        <button class="btn btn-outline btn-sm" id="downloadMutationResults" title="Download table as CSV spreadsheet">.csv</button>
+                        <button class="btn btn-sm" id="mutAnalyzeWithAI" style="background:#0369a1;color:white;font-size:10px;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
+                        <button class="btn btn-outline btn-sm" id="exportMutTableSVG" title="Export visible table as SVG vector image">.svg</button>
+                        <button class="btn btn-outline btn-sm" id="exportMutTablePNG" title="Export visible table as PNG image">.png</button>
+                        <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
+                        <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
+                        <button class="btn btn-outline btn-sm" id="filterMutationToggle" title="Toggle column value filters">Filters</button>
+                    </div>
+                    <!-- Mut 2 columns always shown (toggle hidden) -->
+                    <div id="mut2ColToggle" style="display:none;">
+                        <input type="checkbox" id="showMut2Cols" checked style="display:none;" onchange="app.toggleMut2Columns()">
                     </div>
                     <div class="table-container" style="max-height: 600px; overflow-y: auto;">
                         <table class="data-table" id="mutationTable">
@@ -2734,7 +2734,7 @@
                         <button class="btn btn-success btn-sm" id="geneEffectSearchBtn" style="padding: 6px 16px;">Analyze</button>
                         <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
                         <!-- <button class="btn btn-sm btn-outline" id="geGrowthRateBtn">Growth Rate</button> -->
-                        <!-- Gene Set buttons hidden (v.57.6) -->
+                        <!-- Gene Set buttons hidden (v.58) -->
                         <button class="btn btn-sm btn-outline" id="geGeneSetBtn" style="display: none;">Gene Set ▾</button>
                         <button class="btn btn-sm btn-outline" id="geShowIndividualGenesBtn" style="display: none;">Individual Genes</button>
                         <span id="geIndividualControls" style="display: none;">
