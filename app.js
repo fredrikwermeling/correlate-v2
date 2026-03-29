@@ -21942,6 +21942,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             e.preventDefault();
             this.openCellLineBrowser();
         });
+
+        // Direct Gene Effect button
+        document.getElementById('showGeneEffectDirect')?.addEventListener('click', () => {
+            this._resetGEFilters();
+            this.geneEffectViewMode = 'geneEffect';
+            this.currentGeneEffect = null;
+            document.getElementById('geneEffectModal').style.display = 'flex';
+            document.getElementById('geneEffectTitle').textContent = 'Gene Effect Analysis';
+            document.getElementById('geneEffectSearch').value = '';
+            document.getElementById('geneEffectCurrentGene').textContent = '';
+            document.getElementById('geneEffectSummary').style.display = 'none';
+            document.getElementById('toggleExprCorrelatesBtn').style.display = 'none';
+            document.getElementById('exprCorrelatesPanel').style.display = 'none';
+            document.getElementById('geByTissueView').style.display = 'block';
+            document.getElementById('geByHotspotView').style.display = 'none';
+            document.getElementById('geneEffectPlot').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Type a gene name above and click <b>Analyze</b>.<br><br><span style="font-size:12px;">This shows the gene effect (CRISPR knockout impact) across all cell lines,<br>broken down by cancer type or hotspot mutation.</span></div></div>';
+            document.getElementById('geneEffectTableBody').innerHTML = '';
+        });
+
+        // Direct Correlation button
+        document.getElementById('showCorrelationDirect')?.addEventListener('click', () => {
+            document.getElementById('inspectModal').classList.add('active');
+            const plotEl = document.getElementById('scatterPlot');
+            if (!this.currentInspect) {
+                plotEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:400px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Enter two gene names in the <b>Genes (X/Y)</b> fields above<br>and click <b>Update</b>.<br><br><span style="font-size:12px;">This shows the correlation between two genes\' effects across cell lines.<br>Use tissue and mutation filters to explore subgroups.</span></div></div>';
+            }
+        });
         document.getElementById('clbCloseBtn').addEventListener('click', () => this.closeCellLineBrowser());
         document.getElementById('cellLineBrowserModal').addEventListener('click', (e) => {
             if (e.target.id === 'cellLineBrowserModal') this.closeCellLineBrowser();
