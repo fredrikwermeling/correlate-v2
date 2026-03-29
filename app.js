@@ -19087,16 +19087,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const filterDesc = this._getGEFilterDescription() || 'All tissues';
             const layout = {
                 annotations: [
-                    { text: `<b>${gene} ${valLabel} by ${group} Mutation</b><br><span style="font-size:10px;color:#6b7280;">${filterDesc}</span><br><span style="font-size:9px;color:#9ca3af;">${statsText}</span>`,
-                      xref: 'paper', yref: 'paper', x: 0.5, y: 1.15, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
-                    { text: `${gene} ${valLabel}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.08, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 14 }, _tsRole: 'xlabel' }
+                    { text: `<b>${gene} ${valLabel} by ${group} Mutation</b>`,
+                      xref: 'paper', yref: 'paper', x: 0.5, y: 1.15, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 15 }, _tsRole: 'title' },
+                    { text: `<span style="color:#6b7280;">${filterDesc}</span>`,
+                      xref: 'paper', yref: 'paper', x: 0.5, y: 1.07, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 10 } },
+                    { text: `<span style="color:#9ca3af;">${statsText}</span>`,
+                      xref: 'paper', yref: 'paper', x: 0.5, y: 1.01, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 9 } },
+                    { text: `${gene} ${valLabel}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.15, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 14 }, _tsRole: 'xlabel' }
                 ],
-                yaxis: { automargin: true, tickfont: { size: 12 } },
-                xaxis: { automargin: true, tickfont: { size: 12 } },
+                yaxis: { automargin: true, tickfont: { size: 12 }, title: '' },
+                xaxis: { automargin: true, tickfont: { size: 12 }, title: '' },
                 showlegend: false,
-                height: 450,
-                width: chartWidth,
-                margin: { t: 110, b: 70, l: 10, r: 30 },
+                height: 500,
+                width: Math.max(chartWidth, 500),
+                margin: { t: 110, b: 85, l: 10, r: 30 },
                 paper_bgcolor: 'white',
                 plot_bgcolor: 'white'
             };
@@ -19104,7 +19108,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Mark that we're in detailed view
             this.geDetailedView = { mode: 'hotspot', group };
 
-            Plotly.newPlot(plotId, traces, layout, { responsive: true });
+            Plotly.newPlot(plotId, traces, layout, { responsive: true, displaylogo: false });
             this.updateShowAllButton();
             return;
         }
