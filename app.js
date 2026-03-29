@@ -17986,6 +17986,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ? document.getElementById('geByTissueView')
             : document.getElementById('geByHotspotView');
         plotContainer.appendChild(panel);
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     _resetGEFilters() {
