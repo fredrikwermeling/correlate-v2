@@ -11274,7 +11274,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 y: -0.15,
                 xanchor: 'center',
                 yanchor: 'top',
-                bgcolor: 'rgba(255,255,255,0.85)',
+                bgcolor: 'white',
                 bordercolor: '#ddd',
                 borderwidth: 1,
                 font: { size: 17 },
@@ -11286,7 +11286,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 y: 1,
                 xanchor: 'left',
                 yanchor: 'top',
-                bgcolor: 'rgba(255,255,255,0.85)',
+                bgcolor: 'white',
                 bordercolor: '#ddd',
                 borderwidth: 1,
                 title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 17 } },
@@ -11334,6 +11334,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (heightEl) heightEl.value = plotAreaH;
         layout.width = plotAreaW + m.l + m.r;
         layout.height = plotAreaH + m.t + m.b;
+        // Don't let plot overflow its container
+        const maxPlotWidth = plotContainer.parentElement?.offsetWidth || layout.width;
+        if (layout.width > maxPlotWidth) layout.width = maxPlotWidth;
         plotContainer.style.width = layout.width + 'px';
         plotContainer.style.height = layout.height + 'px';
 
@@ -16702,7 +16705,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             margin: { t: 50, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: true,
-            legend: { x: 0.5, y: 1.0, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.8)', traceorder: 'reversed' },
+            legend: { x: 0.5, y: 1.0, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'white', traceorder: 'reversed' },
             paper_bgcolor: 'white',
             plot_bgcolor: 'white'
         };
@@ -16896,7 +16899,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'geneset' ? 'Gene Set Score' : this.currentInspect?.yType === 'growth' ? 'Growth Rate' : this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
                 margin: { t: 60, b: 50, l: 60, r: 30 },
                 showlegend: true,
-                legend: { x: 0.02, y: 0.98, bgcolor: 'rgba(255,255,255,0.8)', font: { size: 10 } },
+                legend: { x: 0.02, y: 0.98, bgcolor: 'white', font: { size: 10 } },
                 paper_bgcolor: 'white',
                 plot_bgcolor: 'white'
             };
@@ -18822,7 +18825,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             margin: { t: 90, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: true,
-            legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.8)', traceorder: 'reversed' },
+            legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'white', traceorder: 'reversed' },
             paper_bgcolor: 'white',
             plot_bgcolor: 'white'
         };
@@ -21071,7 +21074,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             xaxis: { title: `${ctx.targetGene} Gene Effect` },
             yaxis: { title: `${expressionGene} Expression (log TPM+1)` },
             showlegend: true,
-            legend: { x: 0, y: 1, bgcolor: 'rgba(255,255,255,0.8)' },
+            legend: { x: 0, y: 1, bgcolor: 'white' },
             margin: { t: 80, r: 30, b: 60, l: 70 }
         };
 
