@@ -19083,13 +19083,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
             const filterDesc = this._getGEFilterDescription() || 'All tissues';
             const layout = {
-                title: { text: `${gene} ${valLabel} by ${group} Mutation<br><span style="font-size:10px;color:#6b7280;">${filterDesc}</span><br><span style="font-size:9px;color:#9ca3af;">${statsText}</span>`, font: { size: 13 } },
-                yaxis: { automargin: true },
-                xaxis: { title: `${gene} ${valLabel}`, automargin: true },
+                annotations: [
+                    { text: `<b>${gene} ${valLabel} by ${group} Mutation</b><br><span style="font-size:10px;color:#6b7280;">${filterDesc}</span><br><span style="font-size:9px;color:#9ca3af;">${statsText}</span>`,
+                      xref: 'paper', yref: 'paper', x: 0.5, y: 1.15, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                    { text: `${gene} ${valLabel}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.08, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 14 }, _tsRole: 'xlabel' }
+                ],
+                yaxis: { automargin: true, tickfont: { size: 12 } },
+                xaxis: { automargin: true, tickfont: { size: 12 } },
                 showlegend: false,
                 height: 450,
                 width: chartWidth,
-                margin: { t: 90, b: 60, l: 10, r: 30 },
+                margin: { t: 110, b: 70, l: 10, r: 30 },
                 paper_bgcolor: 'white',
                 plot_bgcolor: 'white'
             };
