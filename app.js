@@ -5609,18 +5609,16 @@ class CorrelationExplorer {
         });
         const settingsText = settingsEl ? settingsEl.textContent.trim() : '';
 
+        // Limit to visible rows in scroll viewport (what user sees on screen)
+        const tableContainer = table.closest('.table-container') || table.parentElement;
+        const maxVisibleRows = Math.min(rows.length, 17);
+        const visibleRows = rows.slice(0, maxVisibleRows);
+
         if (format === 'png') {
-            // Use the visible table directly with html2canvas
-            const tableContainer = table.closest('.table-container') || table.parentElement;
+            // Use html2canvas on the visible portion only
             try {
-                // Temporarily expand scroll container
-                const origMaxH = tableContainer.style.maxHeight;
-                const origOverflow = tableContainer.style.overflow;
-                tableContainer.style.maxHeight = 'none';
-                tableContainer.style.overflow = 'visible';
+                // Don't expand — keep current scroll state so it captures what's on screen
                 const canvas = await html2canvas(tableContainer, { scale: 2, backgroundColor: '#ffffff', scrollY: -window.scrollY });
-                tableContainer.style.maxHeight = origMaxH;
-                tableContainer.style.overflow = origOverflow;
                 const a = document.createElement('a');
                 a.href = canvas.toDataURL('image/png');
                 a.download = `${filename}.png`;
@@ -5635,7 +5633,7 @@ class CorrelationExplorer {
             // Build clean SVG table
             const cellW = 70, cellH = 20, headerH = 28, pad = 10, titleH = settingsText ? 20 : 0;
             const nCols = headers.length;
-            const nRows = rows.length;
+            const nRows = visibleRows.length;
             const firstColW = 90;
             const totalW = firstColW + (nCols - 1) * cellW + pad * 2;
             const totalH = titleH + headerH + nRows * cellH + pad * 2;
@@ -5656,8 +5654,8 @@ class CorrelationExplorer {
                 svg += `<text x="${x}" y="${startY + headerH / 2 + 4}" font-family="Arial" font-size="9" font-weight="bold" fill="#1a4a1a" text-anchor="middle">${this.escapeXml(h)}</text>\n`;
             });
 
-            // Data rows
-            rows.forEach((row, ri) => {
+            // Data rows (visible portion only)
+            visibleRows.forEach((row, ri) => {
                 const y = startY + headerH + ri * cellH;
                 if (ri % 2 === 1) svg += `<rect x="${pad}" y="${y}" width="${totalW - pad * 2}" height="${cellH}" fill="#f9fafb"/>\n`;
                 row.forEach((cell, ci) => {
