@@ -11340,9 +11340,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (heightEl) heightEl.value = plotAreaH;
         layout.width = plotAreaW + m.l + m.r;
         layout.height = plotAreaH + m.t + m.b;
-        // Don't let plot overflow its container
-        const maxPlotWidth = plotContainer.parentElement?.offsetWidth || layout.width;
-        if (layout.width > maxPlotWidth) layout.width = maxPlotWidth;
+        // Constrain to available space
+        const availableWidth = plotContainer.parentElement?.offsetWidth || 600;
+        if (layout.width > availableWidth) {
+            plotAreaW = availableWidth - m.l - m.r;
+            layout.width = availableWidth;
+            if (widthEl) widthEl.value = plotAreaW;
+        }
         plotContainer.style.width = layout.width + 'px';
         plotContainer.style.height = layout.height + 'px';
 
