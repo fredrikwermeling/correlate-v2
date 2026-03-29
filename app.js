@@ -19448,8 +19448,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     _getAICellLines(source) {
         if (source === 'ge') {
-            // Try detailed view data first, then filtered tissue data
-            if (this.currentGeneEffect?.data) {
+            // Mutation inspect mode — use currentGeneEffectData (cell-level data)
+            if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectData?.length > 0) {
+                return this.currentGeneEffectData.map(d => d.cellLine);
+            }
+            // Gene set / GE analysis mode
+            if (this.currentGeneEffect?.data?.length > 0) {
                 return this.currentGeneEffect.data.map(d => d.cellLineId);
             }
             return this.getGETissueFilteredData().map(d => d.cellLineId);
