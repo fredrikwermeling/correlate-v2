@@ -10407,6 +10407,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     openInspect(c) {
+        // Clear any instruction text from direct access
+        const scatterEl = document.getElementById('scatterPlot');
+        if (scatterEl && !scatterEl.data) scatterEl.innerHTML = '';
+
         // c is now the correlation object directly
         this._userLegendPosition = null;
         this._userTitlePosition = null;
@@ -21957,7 +21961,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('exprCorrelatesPanel').style.display = 'none';
             document.getElementById('geByTissueView').style.display = 'block';
             document.getElementById('geByHotspotView').style.display = 'none';
-            document.getElementById('geneEffectPlot').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Type a gene name above and click <b>Analyze</b>.<br><br><span style="font-size:12px;">This shows the gene effect (CRISPR knockout impact) across all cell lines,<br>broken down by cancer type or hotspot mutation.</span></div></div>';
+            document.getElementById('geneEffectPlot').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Type a gene name above and click <b>Analyze</b>.<br><br><span style="font-size:12px;">Shows gene effect (CRISPR knockout impact) across all cell lines,<br>broken down by cancer type or hotspot mutation.<br><br><span style="color:#9ca3af;">Try: <b>BRAF</b>, <b>TP53</b>, <b>MYC</b>, <b>KRAS</b>, <b>TSC1</b>, <b>CDK4</b></span></span></div></div>';
             document.getElementById('geneEffectTableBody').innerHTML = '';
         });
 
@@ -21966,7 +21970,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('inspectModal').classList.add('active');
             const plotEl = document.getElementById('scatterPlot');
             if (!this.currentInspect) {
-                plotEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:400px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Enter two gene names in the <b>Genes (X/Y)</b> fields above<br>and click <b>Update</b>.<br><br><span style="font-size:12px;">This shows the correlation between two genes\' effects across cell lines.<br>Use tissue and mutation filters to explore subgroups.</span></div></div>';
+                plotEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:400px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Enter two gene names in the <b>Genes (X/Y)</b> fields above<br>and click <b>Update</b>.<br><br><span style="font-size:12px;">Shows the correlation between two genes\' effects across cell lines.<br>Use tissue and mutation filters to explore subgroups.<br><br><span style="color:#9ca3af;">Try: <b>TP53</b> vs <b>MDM2</b>, <b>BRAF</b> vs <b>MAP2K1</b>, <b>BRCA1</b> vs <b>BRCA2</b></span></span></div></div>';
             }
         });
         document.getElementById('clbCloseBtn').addEventListener('click', () => this.closeCellLineBrowser());
