@@ -11272,7 +11272,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 tickfont: { size: sts?.yTickSize || 17 }
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene)) ? 240 : 30, b: colorByCategory ? 100 : 60, l: 80, autoexpand: false },
+            margin: { t: topMargin, r: 30, b: colorByCategory ? 100 : 60, l: 80, autoexpand: false },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: colorByCategory ? {
                 orientation: 'h',
@@ -11288,9 +11288,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 entrywidth: 120,
                 entrywidthmode: 'pixels'
             } : {
-                x: 1.02,
-                y: 1,
-                xanchor: 'left',
+                x: 0.98,
+                y: 0.98,
+                xanchor: 'right',
                 yanchor: 'top',
                 bgcolor: 'white',
                 bordercolor: '#ddd',
