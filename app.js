@@ -4532,7 +4532,9 @@ class CorrelationExplorer {
             // Show as a simple select dropdown
             let html = '<div style="margin-top:4px; font-size:10px;">';
             html += '<select id="bestFilterSelect" class="form-control" style="font-size:10px; padding:2px 4px;" onchange="if(this.value!==\'_none\'){document.getElementById(\'lineageFilter\').value=this.value;app.updateSubLineageFilter();}">';
-            html += '<option value="_none">Best filters (by # correlations):</option>';
+            const allEntry = results.find(r => r.filter === 'All tissues');
+            const allCorr = allEntry ? allEntry.nCorr : 0;
+            html += `<option value="_none">Best filters (All: ${allCorr} correlations):</option>`;
             results.forEach(r => {
                 const filterVal = r.filter === 'All tissues' ? '' : r.filter;
                 html += `<option value="${filterVal}">${r.filter} — ${r.nCorr} correlations (n=${r.n})</option>`;
