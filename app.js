@@ -4496,8 +4496,7 @@ class CorrelationExplorer {
         }
 
         const btn = document.getElementById('findBestFilterBtn');
-        btn.textContent = 'Searching...';
-        btn.disabled = true;
+        if (btn) { btn.textContent = 'Searching...'; btn.disabled = true; }
 
         setTimeout(() => {
             const mode = document.querySelector('input[name="analysisMode"]:checked').value;
@@ -4551,8 +4550,7 @@ class CorrelationExplorer {
             const statusEl = document.getElementById('analysisStatus');
             statusEl.innerHTML = html;
 
-            btn.textContent = 'Best Filter';
-            btn.disabled = false;
+            if (btn) { btn.textContent = 'Best Filter'; btn.disabled = false; }
         }, 50);
     }
 
