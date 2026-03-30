@@ -11288,15 +11288,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 entrywidth: 120,
                 entrywidthmode: 'pixels'
             } : {
-                x: 0.98,
+                x: 0.02,
                 y: 0.98,
-                xanchor: 'right',
+                xanchor: 'left',
                 yanchor: 'top',
                 bgcolor: 'white',
                 bordercolor: '#ddd',
                 borderwidth: 1,
-                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 17 } },
-                font: { size: 17 }
+                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 14 } },
+                font: { size: 14 }
             },
             annotations: annotations,
             plot_bgcolor: '#fafafa'
