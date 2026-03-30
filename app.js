@@ -11650,17 +11650,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             annotations: [
                 titleAnnotation,
                 { x: 0.14, y: 1.02, xref: 'paper', yref: 'paper',
-                  text: `${annotLabels[0]} n=${wt.length}<br>r=${wtStats.correlation.toFixed(3)}, slope=${wtStats.slope.toFixed(3)}<br>mean: x=${wtExtra.meanX.toFixed(2)}, y=${wtExtra.meanY.toFixed(2)}<br>median: x=${wtExtra.medianX.toFixed(2)}, y=${wtExtra.medianY.toFixed(2)}`,
-                  showarrow: false, font: { size: 9 } },
+                  text: `<b>${annotLabels[0]}</b> n=${wt.length}, r=${wtStats.correlation.toFixed(3)}`,
+                  showarrow: false, font: { size: 10 } },
                 { x: 0.5, y: 1.02, xref: 'paper', yref: 'paper',
-                  text: `${annotLabels[1]} n=${mut1.length}<br>r=${mut1Stats.correlation.toFixed(3)}, slope=${mut1Stats.slope.toFixed(3)}<br>mean: x=${mut1Extra.meanX.toFixed(2)}, y=${mut1Extra.meanY.toFixed(2)}<br>median: x=${mut1Extra.medianX.toFixed(2)}, y=${mut1Extra.medianY.toFixed(2)}`,
-                  showarrow: false, font: { size: 9 } },
+                  text: `<b>${annotLabels[1]}</b> n=${mut1.length}, r=${mut1Stats.correlation.toFixed(3)}`,
+                  showarrow: false, font: { size: 10 } },
                 { x: 0.86, y: 1.02, xref: 'paper', yref: 'paper',
-                  text: `${annotLabels[2]} n=${mut2.length}<br>r=${mut2Stats.correlation.toFixed(3)}, slope=${mut2Stats.slope.toFixed(3)}<br>mean: x=${mut2Extra.meanX.toFixed(2)}, y=${mut2Extra.meanY.toFixed(2)}<br>median: x=${mut2Extra.medianX.toFixed(2)}, y=${mut2Extra.medianY.toFixed(2)}`,
-                  showarrow: false, font: { size: 9 } },
+                  text: `<b>${annotLabels[2]}</b> n=${mut2.length}, r=${mut2Stats.correlation.toFixed(3)}`,
+                  showarrow: false, font: { size: 10 } },
                 ...threePanelHighlightAnnotations
             ],
-            margin: { t: filterDesc ? 160 : 140, r: 30, b: categoryOrder ? 100 : 60, l: 60 },
+            margin: { t: filterDesc ? 100 : 80, r: 30, b: categoryOrder ? 100 : 60, l: 60 },
             showlegend: !!categoryOrder,
             legend: {
                 orientation: 'h',
@@ -11668,7 +11668,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 y: -0.15,
                 xanchor: 'center',
                 yanchor: 'top',
-                bgcolor: 'rgba(255,255,255,0.85)',
+                bgcolor: 'white',
                 bordercolor: '#ddd',
                 borderwidth: 1,
                 font: { size: 10 },
@@ -11702,8 +11702,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const m3 = layout.margin;
         let plotAreaW3 = parseInt(document.getElementById('plotWidth')?.value);
         let plotAreaH3 = parseInt(document.getElementById('plotHeight')?.value);
-        if (isNaN(plotAreaW3)) plotAreaW3 = Math.max(600, Math.min(1000, window.innerWidth - 500));
-        if (isNaN(plotAreaH3)) plotAreaH3 = Math.max(300, Math.min(500, window.innerHeight - 300));
+        if (isNaN(plotAreaW3)) plotAreaW3 = Math.max(700, Math.min(1100, window.innerWidth - 400));
+        if (isNaN(plotAreaH3)) plotAreaH3 = Math.round(plotAreaW3 / 3 * 0.9); // ~square per panel
         layout.width = plotAreaW3 + m3.l + m3.r;
         layout.height = plotAreaH3 + m3.t + m3.b;
         plotContainer3.style.width = layout.width + 'px';
@@ -21988,6 +21988,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Direct Correlation button
         document.getElementById('showCorrelationDirect')?.addEventListener('click', () => {
             document.getElementById('inspectModal').classList.add('active');
+            // Set default plot size if empty
+            const wEl = document.getElementById('plotWidth');
+            const hEl = document.getElementById('plotHeight');
+            if (wEl && !wEl.value) wEl.value = 400;
+            if (hEl && !hEl.value) hEl.value = 400;
             const plotEl = document.getElementById('scatterPlot');
             if (!this.currentInspect) {
                 plotEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:400px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Enter two gene names in the <b>Genes (X/Y)</b> fields above<br>and click <b>Update</b>.<br><br><span style="font-size:12px;">Shows the correlation between two genes\' effects across cell lines.<br>Use tissue and mutation filters to explore subgroups.<br><br><span style="color:#9ca3af;">Try: <b>TP53</b> vs <b>MDM2</b>, <b>BRAF</b> vs <b>MAP2K1</b>, <b>BRCA1</b> vs <b>BRCA2</b></span></span></div></div>';
