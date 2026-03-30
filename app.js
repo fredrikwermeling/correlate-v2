@@ -11626,12 +11626,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             grid: { rows: 1, columns: 3, pattern: 'independent' },
-            xaxis: { range: xRange, domain: [0, 0.30], tickfont: { size: 10 } },
-            yaxis: { title: `${gene2} ${yTypeLbl3}`, titlefont: { size: 11 }, range: yRange, tickfont: { size: 10 } },
-            xaxis2: { range: xRange, domain: [0.35, 0.65], tickfont: { size: 10 } },
-            yaxis2: { range: yRange, anchor: 'x2', tickfont: { size: 10 } },
-            xaxis3: { range: xRange, domain: [0.70, 1], tickfont: { size: 10 } },
-            yaxis3: { range: yRange, anchor: 'x3', tickfont: { size: 10 } },
+            xaxis: { title: `${gene1} ${xTypeLbl3}`, range: xRange, domain: [0, 0.28] },
+            yaxis: { title: `${gene2} ${yTypeLbl3}`, range: yRange },
+            xaxis2: { title: `${gene1} ${xTypeLbl3}`, range: xRange, domain: [0.36, 0.64] },
+            yaxis2: { range: yRange, anchor: 'x2' },
+            xaxis3: { title: `${gene1} ${xTypeLbl3}`, range: xRange, domain: [0.72, 1] },
+            yaxis3: { range: yRange, anchor: 'x3' },
             annotations: [
                 titleAnnotation,
                 { x: 0.14, y: 1.02, xref: 'paper', yref: 'paper',
