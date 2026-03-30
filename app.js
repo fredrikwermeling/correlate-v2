@@ -2853,7 +2853,6 @@ class CorrelationExplorer {
 
         // Run analysis
         document.getElementById('runAnalysis').addEventListener('click', () => this.runAnalysis());
-        document.getElementById('findBestFilterBtn')?.addEventListener('click', () => this.findBestFilter());
 
         // Reset App button
         document.getElementById('resetAppBtn')?.addEventListener('click', () => location.reload());
@@ -3774,7 +3773,7 @@ class CorrelationExplorer {
         if (notFound.length === 0) {
             display.innerHTML = `<div class="status-box status-success">&#10003; All ${found.length} genes found in reference data</div>`;
             synonymBtn.style.display = 'none';
-            document.getElementById('findBestFilterBtn').disabled = found.length < 2;
+            /* findBestFilterBtn removed — auto-runs after analysis */
         } else {
             // Find fuzzy suggestions for not-found genes
             const suggestions = this._findGeneSuggestions(notFound);
@@ -3796,7 +3795,7 @@ class CorrelationExplorer {
             </div>`;
             synonymBtn.style.display = 'block';
             this.genesNotFound = notFound;
-            document.getElementById('findBestFilterBtn').disabled = found.length < 2;
+            /* findBestFilterBtn removed — auto-runs after analysis */
         }
     }
 
@@ -4612,6 +4611,8 @@ class CorrelationExplorer {
                     this.displayResults();
                     this.showStatus('success',
                         `&#10003; Analysis complete: ${this.results.correlations.length} correlations, ${this.results.clusters.length} genes in network`);
+                    // Auto-run best filter and show dropdown
+                    if (geneList.length >= 2) this.findBestFilter();
                 } else {
                     this.showStatus('error', this.results.error);
                 }
