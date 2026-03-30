@@ -8419,8 +8419,10 @@ Results:
             ctx.fillRect(0, 0, totalWidth, totalHeight);
         }
 
-        // Draw network first
-        ctx.drawImage(networkCanvas, 0, 0, cssWidth, cssHeight);
+        // Draw network — account for device pixel ratio
+        const srcW = networkCanvas.width;
+        const srcH = networkCanvas.height;
+        ctx.drawImage(networkCanvas, 0, 0, srcW, srcH, 0, 0, cssWidth, cssHeight);
 
         // Draw filter banner on top of network at its screen position
         if (filterText) {
