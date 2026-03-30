@@ -8456,7 +8456,7 @@ Results:
 
         // Calculate total legend width to center it
         let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
-        if (this.results?.mode === 'design') totalLegendWidth += 140;
+        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) totalLegendWidth += 140;
         if (document.getElementById('colorByGeneEffect').checked && this.results?.clusters) totalLegendWidth += 170;
         if (document.getElementById('colorByStats').checked && this.geneStats && this.geneStats.size > 0) totalLegendWidth += 200;
 
@@ -8526,8 +8526,8 @@ Results:
 
         legendX += 160;
 
-        // Node type legend (for design mode)
-        if (this.results?.mode === 'design') {
+        // Node type legend (for design mode, hidden when color by GE/stats)
+        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) {
             ctx.font = titleFont;
             ctx.fillStyle = '#333';
             ctx.fillText('Node Type:', legendX, legendY);
@@ -8826,7 +8826,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Calculate total legend width to center it
         let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
-        if (this.results?.mode === 'design') totalLegendWidth += 140;
+        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) totalLegendWidth += 140;
         if (document.getElementById('colorByGeneEffect').checked && this.results?.clusters) totalLegendWidth += 170;
         if (document.getElementById('colorByStats').checked && this.geneStats && this.geneStats.size > 0) totalLegendWidth += 200;
 
@@ -8866,8 +8866,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         legendX += 160;
 
-        // Node type legend (for design mode)
-        if (this.results?.mode === 'design') {
+        // Node type legend (for design mode, hidden when color by GE/stats)
+        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) {
             svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Node Type:</text>\n`;
             svg += `  <circle cx="${legendX + 12}" cy="${legendY + 25}" r="10" fill="#5a9f4a"/>\n`;
             svg += `  <text x="${legendX + 28}" y="${legendY + 30}" class="legend-text">Input</text>\n`;
@@ -9797,7 +9797,7 @@ Results:
 
         // Calculate total legend width to center it
         let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
-        if (this.results?.mode === 'design') totalLegendWidth += 140;
+        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) totalLegendWidth += 140;
         if (document.getElementById('colorByGeneEffect').checked && this.results?.clusters) totalLegendWidth += 170;
         if (document.getElementById('colorByStats').checked && this.geneStats && this.geneStats.size > 0) totalLegendWidth += 200;
 
@@ -9867,8 +9867,8 @@ Results:
 
         legendX += 160;
 
-        // Node type legend (for design mode)
-        if (this.results?.mode === 'design') {
+        // Node type legend (for design mode, hidden when color by GE/stats)
+        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) {
             ctx.font = titleFont;
             ctx.fillStyle = '#333';
             ctx.fillText('Node Type:', legendX, legendY);
@@ -10142,7 +10142,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Calculate total legend width to center it
         let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
-        if (this.results?.mode === 'design') totalLegendWidth += 140;
+        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) totalLegendWidth += 140;
         if (document.getElementById('colorByGeneEffect').checked && this.results?.clusters) totalLegendWidth += 170;
         if (document.getElementById('colorByStats').checked && this.geneStats && this.geneStats.size > 0) totalLegendWidth += 200;
 
@@ -10180,8 +10180,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         legendX += 160;
 
-        // Node type legend (for design mode)
-        if (this.results?.mode === 'design') {
+        // Node type legend (for design mode, hidden when color by GE/stats)
+        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) {
             svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Node Type:</text>\n`;
             svg += `  <circle cx="${legendX + 12}" cy="${legendY + 25}" r="10" fill="#5a9f4a"/>\n`;
             svg += `  <text x="${legendX + 28}" y="${legendY + 30}" class="legend-text">Input</text>\n`;
