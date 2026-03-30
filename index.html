@@ -1316,7 +1316,7 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.62.2 (2026-03-28)</strong></p>
+                <p><strong>v.62.3 (2026-03-28)</strong></p>
                 <ul>
                     <li>Fix Gene Sets nav button — now works without a gene selected</li>
                     <li>Individual Genes: Back button, dedicated hotspot overlay dropdown, clear title with set description</li>
@@ -1757,7 +1757,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.62.2</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.62.3</a>
     </div>
 
     <div class="main-content">
@@ -1780,8 +1780,8 @@
                             <li>OmicsSomaticMutationsMatrixDamaging.csv <span style="color:#999;">(damaging mutations)</span></li>
                             <li>OmicsFusionFiltered.csv <span style="color:#999;">(translocations/fusions)</span></li>
                             <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
-                            <!-- Growth rate hidden (v.62.2) -->
-                            <!-- Pathway signatures hidden (v.62.2) -->
+                            <!-- Growth rate hidden (v.62.3) -->
+                            <!-- Pathway signatures hidden (v.62.3) -->
                         </ul>
                         <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data.</p>
                     </div>
@@ -1843,7 +1843,7 @@
                         <input type="range" id="minSlope" min="0" max="2" step="0.05" value="0.1">
                     </div>
 
-                    <!-- Growth rate in correlation hidden (v.62.2) -->
+                    <!-- Growth rate in correlation hidden (v.62.3) -->
 
                     <div class="form-group" id="mutationHotspotGroup" style="display: none; border: 1.5px solid #86efac; border-radius: 6px; padding: 8px; background: #f0fdf4;">
                         <div id="mutAnalysisTypeSelector" style="margin-bottom: 8px;">
@@ -2558,61 +2558,49 @@
                             </select>
                         </div>
 
-                        <!-- Custom Cell Lines Filter -->
-                        <div class="control-box-compact" id="customCellLineFilterBox" style="grid-column: span 2;">
-                            <span class="control-label">Custom Cell Lines</span>
-                            <textarea id="customCellLineFilter" placeholder="Paste cell line IDs or names..." style="font-size:10px; width:100%; height:28px; resize:vertical; border:1px solid #d1d5db; border-radius:4px; padding:3px; box-sizing:border-box;"></textarea>
-                            <div style="display:flex; gap:4px; margin-top:2px;">
-                                <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilter()" style="font-size:10px; flex:1;">Apply</button>
-                                <button class="btn btn-sm btn-outline" onclick="app.clearCustomCellLineFilter()" style="font-size:10px; flex:1;">Clear</button>
-                                <span id="customCLFilterCount" style="font-size:9px; color:#6b7280; align-self:center;"></span>
+                        <!-- Custom Cell Lines + Highlight (side by side) -->
+                        <div class="control-box-compact" id="customCellLineFilterBox">
+                            <span class="control-label" style="font-size:9px;">Custom Cell Lines</span>
+                            <textarea id="customCellLineFilter" placeholder="Paste IDs or names..." style="font-size:9px; width:100%; height:24px; resize:vertical; border:1px solid #d1d5db; border-radius:3px; padding:2px; box-sizing:border-box;"></textarea>
+                            <div style="display:flex; gap:3px; margin-top:2px;">
+                                <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilter()" style="font-size:9px; flex:1; padding:1px;">Apply</button>
+                                <button class="btn btn-sm btn-outline" onclick="app.clearCustomCellLineFilter()" style="font-size:9px; flex:1; padding:1px;">Clear</button>
                             </div>
+                            <span id="customCLFilterCount" style="font-size:8px; color:#6b7280;"></span>
                         </div>
-
-                        <!-- Compare + Reset -->
                         <div class="control-box-compact">
-                            <span class="control-label">Compare</span>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px;">
-                                <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size: 10px; padding: 2px 4px;">By Tissue</button>
-                                <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size: 10px; padding: 2px 4px;">By Hotspot</button>
-                                <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size: 10px; padding: 2px 4px; display: none;">By Fusion</button>
-                                <!-- <button class="btn btn-secondary btn-sm" id="compareAllGrowthBtn">By Growth</button> -->
-                                <!-- <button class="btn btn-secondary btn-sm" id="compareAllGeneSetsBtn">By Gene Set</button> -->
-                                <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size: 10px; padding: 2px 4px;">Reset</button>
-                            </div>
-                        </div>
-
-                        <!-- Gating -->
-                        <div class="control-box-compact" style="grid-column: span 2;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span class="control-label" style="margin-bottom: 0;">Gate Compare</span>
-                                <button class="btn btn-outline btn-sm" id="clearGatesBtn" style="font-size: 10px; padding: 1px 6px; display: none;">Clear</button>
-                            </div>
-                            <div style="margin-top: 4px; display: flex; gap: 4px; align-items: center;">
-                                <button class="btn btn-sm" id="setGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;">Set Gate A</button>
-                                <button class="btn btn-sm" id="setGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled>Set Gate B</button>
-                                <button class="btn btn-success btn-sm" id="compareGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Compare</button>
-                            </div>
-                            <div id="gateStatus" style="font-size: 9px; color: #6b7280; margin-top: 3px;">Draw rectangles on plot to define gates</div>
-                        </div>
-
-                        <!-- Highlight + Color -->
-                        <div class="control-box-compact" style="grid-column: span 2;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span class="control-label" style="margin-bottom: 0;">Highlight Cell Lines</span>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="font-size: 9px; color: #666;">Font</span>
-                                    <input type="number" id="scatterFontSize" value="3" min="1" max="10" style="width: 30px; padding: 1px 2px; font-size: 10px; text-align: center;">
-                                    <button class="btn btn-secondary btn-sm" id="clearHighlights" style="font-size: 9px; padding: 1px 4px;">Clear</button>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="control-label" style="font-size:9px;">Highlight Cell Lines</span>
+                                <div style="display:flex; align-items:center; gap:2px;">
+                                    <input type="number" id="scatterFontSize" value="3" min="1" max="10" style="width:24px; padding:0 1px; font-size:9px; text-align:center;">
+                                    <button class="btn btn-secondary btn-sm" id="clearHighlights" style="font-size:8px; padding:0 3px;">Clear</button>
                                 </div>
                             </div>
-                            <textarea id="scatterCellSearch" class="form-control" style="height: 28px; font-size: 10px; margin-top: 3px;" placeholder="Type names or click plot..."></textarea>
-                            <select id="colorByCategory" class="form-control" style="font-size: 10px; padding: 2px 4px; margin-top: 3px;">
+                            <textarea id="scatterCellSearch" class="form-control" style="height:24px; font-size:9px; margin-top:2px;" placeholder="Type or click plot..."></textarea>
+                            <select id="colorByCategory" class="form-control" style="font-size:9px; padding:1px 3px; margin-top:2px;">
                                 <option value="">Color by...</option>
-                                <option value="tissue">Color by tissue</option>
-                                <option value="subtype" id="colorBySubtypeOption" style="display: none;">Color by subtype</option>
+                                <option value="tissue">By tissue</option>
+                                <option value="subtype" id="colorBySubtypeOption" style="display:none;">By subtype</option>
                             </select>
-                            <div id="colorByLegend" style="display: none; margin-top: 3px; max-height: 30vh; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 4px; padding: 3px;"></div>
+                            <div id="colorByLegend" style="display:none; margin-top:2px; max-height:25vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:3px; padding:2px;"></div>
+                        </div>
+
+                        <!-- Compare + Gate (merged) -->
+                        <div class="control-box-compact" style="grid-column: span 2;">
+                            <div style="display:flex; gap:3px; align-items:center; flex-wrap:wrap;">
+                                <span class="control-label" style="font-size:9px; margin:0;">Compare:</span>
+                                <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size:9px; padding:1px 4px;">By Tissue</button>
+                                <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size:9px; padding:1px 4px;">By Hotspot</button>
+                                <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size:9px; padding:1px 4px; display:none;">By Fusion</button>
+                                <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size:9px; padding:1px 4px;">Reset</button>
+                                <span style="border-left:1px solid #ddd; height:14px; margin:0 2px;"></span>
+                                <span style="font-size:9px; color:#666;">Gate:</span>
+                                <button class="btn btn-sm" id="setGateABtn" style="font-size:9px; padding:1px 6px; background:#2563eb; color:white;">A</button>
+                                <button class="btn btn-sm" id="setGateBBtn" style="font-size:9px; padding:1px 6px; background:#dc2626; color:white;" disabled>B</button>
+                                <button class="btn btn-success btn-sm" id="compareGatesBtn" style="font-size:9px; padding:1px 4px; display:none;">Compare</button>
+                                <button class="btn btn-outline btn-sm" id="clearGatesBtn" style="font-size:9px; padding:1px 4px; display:none;">Clear</button>
+                            </div>
+                            <div id="gateStatus" style="font-size:8px; color:#9ca3af; margin-top:2px;"></div>
                         </div>
 
                         <!-- Mutation Overlay -->
@@ -2738,7 +2726,7 @@
                         <button class="btn btn-success btn-sm" id="geneEffectSearchBtn" style="padding: 6px 16px;">Analyze</button>
                         <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
                         <!-- <button class="btn btn-sm btn-outline" id="geGrowthRateBtn">Growth Rate</button> -->
-                        <!-- Gene Set buttons hidden (v.62.2) -->
+                        <!-- Gene Set buttons hidden (v.62.3) -->
                         <button class="btn btn-sm btn-outline" id="geGeneSetBtn" style="display: none;">Gene Set ▾</button>
                         <button class="btn btn-sm btn-outline" id="geShowIndividualGenesBtn" style="display: none;">Individual Genes</button>
                         <span id="geIndividualControls" style="display: none;">

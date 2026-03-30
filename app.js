@@ -11645,7 +11645,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                   showarrow: false, font: { size: 10 } },
                 ...threePanelHighlightAnnotations
             ],
-            margin: { t: filterDesc ? 100 : 80, r: 30, b: categoryOrder ? 100 : 60, l: 60 },
+            margin: { t: 110, r: 30, b: categoryOrder ? 100 : 50, l: 60 },
             showlegend: !!categoryOrder,
             legend: {
                 orientation: 'h',
