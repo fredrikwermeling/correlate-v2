@@ -4480,6 +4480,14 @@ class CorrelationExplorer {
         return indices;
     }
 
+    adjustPlotSize(dim, delta) {
+        const el = document.getElementById(dim === 'width' ? 'plotWidth' : 'plotHeight');
+        if (!el) return;
+        const val = parseInt(el.value) || 400;
+        el.value = Math.max(200, Math.min(1200, val + delta));
+        this.updateInspectPlot();
+    }
+
     findBestFilter() {
         const geneList = this.getGeneList();
         if (geneList.length < 2) {
