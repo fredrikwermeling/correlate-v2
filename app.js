@@ -4525,25 +4525,19 @@ class CorrelationExplorer {
                 }
             }
 
-            results.sort((a, b) => b.meanAbsR - a.meanAbsR);
+            results.sort((a, b) => b.nCorr - a.nCorr || b.meanAbsR - a.meanAbsR);
 
-            // Show results
-            let html = '<div style="margin-top:8px; padding:8px; background:#f0f9ff; border:1px solid #7dd3fc; border-radius:6px; font-size:11px;">';
-            html += '<div style="font-weight:600; margin-bottom:4px;">Best filters for your gene list (sorted by mean |r|):</div>';
-            html += '<table style="width:100%; border-collapse:collapse; font-size:10px;">';
-            html += '<tr style="background:#e0f2fe;"><th style="padding:2px 4px; text-align:left;">Filter</th><th style="padding:2px 4px;">n</th><th style="padding:2px 4px;">Corr.</th><th style="padding:2px 4px;">Mean |r|</th><th></th></tr>';
-            results.slice(0, 10).forEach((r, i) => {
+            // Show results as compact list
+            let html = '<div style="margin-top:6px; font-size:10px; color:#374151;">';
+            html += '<div style="font-weight:600; margin-bottom:3px;">Best filters (by # correlations):</div>';
+            results.slice(0, 8).forEach((r, i) => {
                 const bold = i === 0 ? 'font-weight:600;' : '';
-                html += `<tr style="${bold}">
-                    <td style="padding:2px 4px;">${r.filter}</td>
-                    <td style="padding:2px 4px; text-align:center;">${r.n}</td>
-                    <td style="padding:2px 4px; text-align:center;">${r.nCorr}</td>
-                    <td style="padding:2px 4px; text-align:center;">${r.meanAbsR.toFixed(3)}</td>
-                    <td style="padding:2px 4px;"><button class="btn btn-sm btn-outline" style="font-size:9px; padding:0 4px;" onclick="document.getElementById('lineageFilter').value='${r.filter === 'All tissues' ? '' : r.filter}'; app.updateSubLineageFilter();">Use</button></td>
-                </tr>`;
+                const filterVal = r.filter === 'All tissues' ? '' : r.filter;
+                html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:1px 0; ${bold}">`;
+                html += `<span>${r.filter} <span style="color:#9ca3af;">(n=${r.n})</span></span>`;
+                html += `<span>${r.nCorr} corr, |r|=${r.meanAbsR.toFixed(2)} <button class="btn btn-sm btn-outline" style="font-size:8px; padding:0 3px; margin-left:3px;" onclick="document.getElementById('lineageFilter').value='${filterVal}'; app.updateSubLineageFilter();">Use</button></span>`;
+                html += `</div>`;
             });
-            html += '</table>';
-            html += '<button class="btn btn-outline btn-sm" style="margin-top:4px; font-size:9px;" onclick="this.parentElement.remove()">Close</button>';
             html += '</div>';
 
             const statusEl = document.getElementById('analysisStatus');
