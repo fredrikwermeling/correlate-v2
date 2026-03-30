@@ -228,6 +228,7 @@ class CorrelationExplorer {
 
         // Enable run button
         document.getElementById('runAnalysis').disabled = false;
+        document.getElementById('findBestFilterBtn').disabled = false;
 
         // Populate lineage filter if available
         this.populateLineageFilter();
@@ -2852,6 +2853,7 @@ class CorrelationExplorer {
 
         // Run analysis
         document.getElementById('runAnalysis').addEventListener('click', () => this.runAnalysis());
+        document.getElementById('findBestFilterBtn')?.addEventListener('click', () => this.findBestFilter());
 
         // Reset App button
         document.getElementById('resetAppBtn')?.addEventListener('click', () => location.reload());
@@ -4475,6 +4477,81 @@ class CorrelationExplorer {
         }
 
         return indices;
+    }
+
+    findBestFilter() {
+        const geneList = this.getGeneList();
+        if (geneList.length < 2) {
+            this.showStatus('error', 'Need at least 2 genes to find best filter.');
+            return;
+        }
+
+        const btn = document.getElementById('findBestFilterBtn');
+        btn.textContent = 'Searching...';
+        btn.disabled = true;
+
+        setTimeout(() => {
+            const mode = document.querySelector('input[name="analysisMode"]:checked').value;
+            const cutoff = parseFloat(document.getElementById('correlationCutoff').value);
+            const minN = parseInt(document.getElementById('minCellLines').value);
+
+            // Get all unique lineages
+            const lineages = [...new Set(Object.values(this.cellLineMetadata?.lineage || {}))].sort();
+
+            const results = [];
+
+            // Test "All" (no filter)
+            const allIndices = [];
+            for (let i = 0; i < this.nCellLines; i++) allIndices.push(i);
+            const allResult = this.calculateCorrelations(geneList, mode === 'design' ? 'design' : 'analysis', cutoff, minN, 0, allIndices);
+            if (allResult.success) {
+                const meanR = allResult.correlations.reduce((s, c) => s + Math.abs(c.correlation), 0) / allResult.correlations.length;
+                results.push({ filter: 'All tissues', n: allIndices.length, nCorr: allResult.correlations.length, meanAbsR: meanR });
+            }
+
+            // Test each lineage
+            for (const lineage of lineages) {
+                const indices = [];
+                for (let i = 0; i < this.nCellLines; i++) {
+                    const cl = this.metadata.cellLines[i];
+                    if (this.cellLineMetadata?.lineage?.[cl] === lineage) indices.push(i);
+                }
+                if (indices.length < minN) continue;
+
+                const result = this.calculateCorrelations(geneList, mode === 'design' ? 'design' : 'analysis', cutoff, minN, 0, indices);
+                if (result.success && result.correlations.length > 0) {
+                    const meanR = result.correlations.reduce((s, c) => s + Math.abs(c.correlation), 0) / result.correlations.length;
+                    results.push({ filter: lineage, n: indices.length, nCorr: result.correlations.length, meanAbsR: meanR });
+                }
+            }
+
+            results.sort((a, b) => b.meanAbsR - a.meanAbsR);
+
+            // Show results
+            let html = '<div style="margin-top:8px; padding:8px; background:#f0f9ff; border:1px solid #7dd3fc; border-radius:6px; font-size:11px;">';
+            html += '<div style="font-weight:600; margin-bottom:4px;">Best filters for your gene list (sorted by mean |r|):</div>';
+            html += '<table style="width:100%; border-collapse:collapse; font-size:10px;">';
+            html += '<tr style="background:#e0f2fe;"><th style="padding:2px 4px; text-align:left;">Filter</th><th style="padding:2px 4px;">n</th><th style="padding:2px 4px;">Corr.</th><th style="padding:2px 4px;">Mean |r|</th><th></th></tr>';
+            results.slice(0, 10).forEach((r, i) => {
+                const bold = i === 0 ? 'font-weight:600;' : '';
+                html += `<tr style="${bold}">
+                    <td style="padding:2px 4px;">${r.filter}</td>
+                    <td style="padding:2px 4px; text-align:center;">${r.n}</td>
+                    <td style="padding:2px 4px; text-align:center;">${r.nCorr}</td>
+                    <td style="padding:2px 4px; text-align:center;">${r.meanAbsR.toFixed(3)}</td>
+                    <td style="padding:2px 4px;"><button class="btn btn-sm btn-outline" style="font-size:9px; padding:0 4px;" onclick="document.getElementById('lineageFilter').value='${r.filter === 'All tissues' ? '' : r.filter}'; app.updateSubLineageFilter();">Use</button></td>
+                </tr>`;
+            });
+            html += '</table>';
+            html += '<button class="btn btn-outline btn-sm" style="margin-top:4px; font-size:9px;" onclick="this.parentElement.remove()">Close</button>';
+            html += '</div>';
+
+            const statusEl = document.getElementById('analysisStatus');
+            statusEl.innerHTML = html;
+
+            btn.textContent = 'Best Filter';
+            btn.disabled = false;
+        }, 50);
     }
 
     runAnalysis() {
