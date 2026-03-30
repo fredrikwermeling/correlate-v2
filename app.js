@@ -228,7 +228,7 @@ class CorrelationExplorer {
 
         // Enable run button
         document.getElementById('runAnalysis').disabled = false;
-        document.getElementById('findBestFilterBtn').disabled = false;
+        // findBestFilterBtn stays disabled until genes are entered
 
         // Populate lineage filter if available
         this.populateLineageFilter();
@@ -3774,6 +3774,7 @@ class CorrelationExplorer {
         if (notFound.length === 0) {
             display.innerHTML = `<div class="status-box status-success">&#10003; All ${found.length} genes found in reference data</div>`;
             synonymBtn.style.display = 'none';
+            document.getElementById('findBestFilterBtn').disabled = found.length < 2;
         } else {
             // Find fuzzy suggestions for not-found genes
             const suggestions = this._findGeneSuggestions(notFound);
@@ -3795,6 +3796,7 @@ class CorrelationExplorer {
             </div>`;
             synonymBtn.style.display = 'block';
             this.genesNotFound = notFound;
+            document.getElementById('findBestFilterBtn').disabled = found.length < 2;
         }
     }
 
@@ -4527,18 +4529,15 @@ class CorrelationExplorer {
 
             results.sort((a, b) => b.nCorr - a.nCorr || b.meanAbsR - a.meanAbsR);
 
-            // Show results as compact list
-            let html = '<div style="margin-top:6px; font-size:10px; color:#374151;">';
-            html += '<div style="font-weight:600; margin-bottom:3px;">Best filters (by # correlations):</div>';
-            results.slice(0, 8).forEach((r, i) => {
-                const bold = i === 0 ? 'font-weight:600;' : '';
+            // Show as a simple select dropdown
+            let html = '<div style="margin-top:4px; font-size:10px;">';
+            html += '<select id="bestFilterSelect" class="form-control" style="font-size:10px; padding:2px 4px;" onchange="if(this.value!==\'_none\'){document.getElementById(\'lineageFilter\').value=this.value;app.updateSubLineageFilter();}">';
+            html += '<option value="_none">Best filters (by # correlations):</option>';
+            results.forEach(r => {
                 const filterVal = r.filter === 'All tissues' ? '' : r.filter;
-                html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:1px 0; ${bold}">`;
-                html += `<span>${r.filter} <span style="color:#9ca3af;">(n=${r.n})</span></span>`;
-                html += `<span>${r.nCorr} corr, |r|=${r.meanAbsR.toFixed(2)} <button class="btn btn-sm btn-outline" style="font-size:8px; padding:0 3px; margin-left:3px;" onclick="document.getElementById('lineageFilter').value='${filterVal}'; app.updateSubLineageFilter();">Use</button></span>`;
-                html += `</div>`;
+                html += `<option value="${filterVal}">${r.filter} — ${r.nCorr} correlations (n=${r.n})</option>`;
             });
-            html += '</div>';
+            html += '</select></div>';
 
             const statusEl = document.getElementById('analysisStatus');
             statusEl.innerHTML = html;
