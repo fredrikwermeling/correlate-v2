@@ -11398,22 +11398,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 this._handleGateShapeRelayout(relayoutData);
             });
 
-            // Auto-reposition vertical legend outside the actual plot domain
-            if (!this._userLegendPosition && layout.showlegend && layout.legend?.orientation !== 'h') {
-                const fl = plotEl._fullLayout;
-                if (fl && fl.xaxis && fl.yaxis) {
-                    const xDomain = fl.xaxis.domain;
-                    const yDomain = fl.yaxis.domain;
-                    // Place legend just outside the plot to the right
-                    isProgrammaticRelayout = true;
-                    Plotly.relayout('scatterPlot', {
-                        'legend.x': xDomain[1] + 0.02,
-                        'legend.y': yDomain[1],
-                        'legend.xanchor': 'left',
-                        'legend.yanchor': 'top'
-                    }).then(() => { isProgrammaticRelayout = false; });
-                }
-            }
+            // Legend auto-reposition disabled — keep inside plot
 
             // Add click handler
             this.setupScatterClickHandler(filteredData);
