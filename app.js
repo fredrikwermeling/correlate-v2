@@ -4513,8 +4513,8 @@ class CorrelationExplorer {
             for (let i = 0; i < this.nCellLines; i++) allIndices.push(i);
             const allResult = this.calculateCorrelations(geneList, mode === 'design' ? 'design' : 'analysis', cutoff, minN, 0, allIndices);
             if (allResult.success) {
-                const meanR = allResult.correlations.reduce((s, c) => s + Math.abs(c.correlation), 0) / allResult.correlations.length;
-                results.push({ filter: 'All tissues', n: allIndices.length, nCorr: allResult.correlations.length, meanAbsR: meanR });
+                const genes = new Set(); allResult.correlations.forEach(c => { genes.add(c.gene1); genes.add(c.gene2); });
+                results.push({ filter: 'All tissues', n: allIndices.length, nGenes: genes.size });
             }
 
             // Test each lineage
@@ -4528,22 +4528,22 @@ class CorrelationExplorer {
 
                 const result = this.calculateCorrelations(geneList, mode === 'design' ? 'design' : 'analysis', cutoff, minN, 0, indices);
                 if (result.success && result.correlations.length > 0) {
-                    const meanR = result.correlations.reduce((s, c) => s + Math.abs(c.correlation), 0) / result.correlations.length;
-                    results.push({ filter: lineage, n: indices.length, nCorr: result.correlations.length, meanAbsR: meanR });
+                    const genes = new Set(); result.correlations.forEach(c => { genes.add(c.gene1); genes.add(c.gene2); });
+                    results.push({ filter: lineage, n: indices.length, nGenes: genes.size });
                 }
             }
 
-            results.sort((a, b) => b.nCorr - a.nCorr || b.meanAbsR - a.meanAbsR);
+            results.sort((a, b) => b.nGenes - a.nGenes);
 
             // Show as a simple select dropdown
             let html = '<div style="margin-top:4px; font-size:10px;">';
             html += '<select id="bestFilterSelect" class="form-control" style="font-size:10px; padding:2px 4px;" onchange="if(this.value!==\'_none\'){document.getElementById(\'lineageFilter\').value=this.value;app.updateSubLineageFilter();}">';
             const allEntry = results.find(r => r.filter === 'All tissues');
-            const allCorr = allEntry ? allEntry.nCorr : 0;
-            html += `<option value="_none">Best filters (All: ${allCorr} correlations):</option>`;
+            const allGenes = allEntry ? allEntry.nGenes : 0;
+            html += `<option value="_none">Best filters (All: ${allGenes} genes):</option>`;
             results.forEach(r => {
                 const filterVal = r.filter === 'All tissues' ? '' : r.filter;
-                html += `<option value="${filterVal}">${r.filter} — ${r.nCorr} correlations (n=${r.n})</option>`;
+                html += `<option value="${filterVal}">${r.filter} — ${r.nGenes} genes (n=${r.n})</option>`;
             });
             html += '</select></div>';
 
