@@ -8634,31 +8634,32 @@ Results:
         const edgeWidthBase = parseInt(document.getElementById('netEdgeWidth').value) || 3;
         const legendVals = this.edgeLegendValues || { minCorr: 0.5, midCorr: 0.75, maxCorr: 1.0 };
         const cutoff = this.results?.cutoff || 0.5;
+        const eX = legendX + 15; // offset to center lines under title
 
         // Min correlation
         ctx.lineWidth = Math.max(1, 1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
-        ctx.moveTo(legendX, legendY + 22);
-        ctx.lineTo(legendX + 35, legendY + 22);
+        ctx.moveTo(eX, legendY + 22);
+        ctx.lineTo(eX + 35, legendY + 22);
         ctx.stroke();
         ctx.fillStyle = '#333';
-        ctx.fillText(`r = ${legendVals.minCorr.toFixed(2)}`, legendX + 42, legendY + 27);
+        ctx.fillText(`r = ${legendVals.minCorr.toFixed(2)}`, eX + 42, legendY + 27);
 
         // Mid correlation
         ctx.lineWidth = Math.max(1, 1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
-        ctx.moveTo(legendX, legendY + 48);
-        ctx.lineTo(legendX + 35, legendY + 48);
+        ctx.moveTo(eX, legendY + 48);
+        ctx.lineTo(eX + 35, legendY + 48);
         ctx.stroke();
-        ctx.fillText(`r = ${legendVals.midCorr.toFixed(2)}`, legendX + 42, legendY + 53);
+        ctx.fillText(`r = ${legendVals.midCorr.toFixed(2)}`, eX + 42, legendY + 53);
 
         // Max correlation
         ctx.lineWidth = Math.max(1, 1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
-        ctx.moveTo(legendX, legendY + 74);
-        ctx.lineTo(legendX + 35, legendY + 74);
+        ctx.moveTo(eX, legendY + 74);
+        ctx.lineTo(eX + 35, legendY + 74);
         ctx.stroke();
-        ctx.fillText(`r = ${legendVals.maxCorr.toFixed(2)}`, legendX + 42, legendY + 79);
+        ctx.fillText(`r = ${legendVals.maxCorr.toFixed(2)}`, eX + 42, legendY + 79);
 
         legendX += 160;
 
@@ -9985,31 +9986,32 @@ Results:
         const edgeWidthBase = parseInt(document.getElementById('netEdgeWidth').value) || 3;
         const legendVals = this.edgeLegendValues || { minCorr: 0.5, midCorr: 0.75, maxCorr: 1.0 };
         const cutoff = this.results?.cutoff || 0.5;
+        const eX = legendX + 15; // offset to center lines under title
 
         // Min correlation
         ctx.lineWidth = Math.max(1, 1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
-        ctx.moveTo(legendX, legendY + 22);
-        ctx.lineTo(legendX + 35, legendY + 22);
+        ctx.moveTo(eX, legendY + 22);
+        ctx.lineTo(eX + 35, legendY + 22);
         ctx.stroke();
         ctx.fillStyle = '#333';
-        ctx.fillText(`r = ${legendVals.minCorr.toFixed(2)}`, legendX + 42, legendY + 27);
+        ctx.fillText(`r = ${legendVals.minCorr.toFixed(2)}`, eX + 42, legendY + 27);
 
         // Mid correlation
         ctx.lineWidth = Math.max(1, 1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
-        ctx.moveTo(legendX, legendY + 48);
-        ctx.lineTo(legendX + 35, legendY + 48);
+        ctx.moveTo(eX, legendY + 48);
+        ctx.lineTo(eX + 35, legendY + 48);
         ctx.stroke();
-        ctx.fillText(`r = ${legendVals.midCorr.toFixed(2)}`, legendX + 42, legendY + 53);
+        ctx.fillText(`r = ${legendVals.midCorr.toFixed(2)}`, eX + 42, legendY + 53);
 
         // Max correlation
         ctx.lineWidth = Math.max(1, 1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
         ctx.beginPath();
-        ctx.moveTo(legendX, legendY + 74);
-        ctx.lineTo(legendX + 35, legendY + 74);
+        ctx.moveTo(eX, legendY + 74);
+        ctx.lineTo(eX + 35, legendY + 74);
         ctx.stroke();
-        ctx.fillText(`r = ${legendVals.maxCorr.toFixed(2)}`, legendX + 42, legendY + 79);
+        ctx.fillText(`r = ${legendVals.maxCorr.toFixed(2)}`, eX + 42, legendY + 79);
 
         legendX += 160;
 
