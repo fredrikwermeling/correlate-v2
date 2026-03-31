@@ -7713,7 +7713,9 @@ class CorrelationExplorer {
         legendEl0.style.fontSize = defLegendFs + 'px';
         legendEl0.querySelectorAll('strong, div, span').forEach(el => { el.style.fontSize = defLegendFs + 'px'; });
         const legendNodeType = document.getElementById('legendNodeType');
-        if (this.results.mode === 'design') {
+        const _colorByGEActive = document.getElementById('colorByGeneEffect')?.checked;
+        const _colorByStatsActive = document.getElementById('colorByStats')?.checked;
+        if (this.results.mode === 'design' && !_colorByGEActive && !_colorByStatsActive) {
             legendNodeType.innerHTML = `
                 <strong>Node Type:</strong>
                 <span class="legend-item"><span class="legend-dot" style="background: #5a9f4a;"></span> Input</span>
@@ -9489,6 +9491,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         this.networkData.nodes.update(updates);
+
+        // Hide/show Node Type legend based on color mode
+        const ntLegend = document.getElementById('legendNodeType');
+        if (ntLegend) {
+            if ((colorByGeneEffect || colorByStats) && this.results?.mode === 'design') {
+                ntLegend.style.display = 'none';
+            } else if (this.results?.mode === 'design') {
+                ntLegend.style.display = 'block';
+            }
+        }
     }
 
     interpolateColor(color1, color2, color3, t) {
