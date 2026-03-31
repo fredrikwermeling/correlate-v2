@@ -7501,6 +7501,7 @@ class CorrelationExplorer {
             const banner = document.createElement('div');
             banner.className = 'network-filter-banner';
             banner.textContent = filterText;
+            banner.style.fontSize = (this._netBannerFontSize || 20) + 'px';
             container.appendChild(banner);
 
             // Make banner draggable
@@ -7704,8 +7705,12 @@ class CorrelationExplorer {
             }
         });
 
-        // Show legend
-        document.getElementById('networkLegend').style.display = 'flex';
+        // Show legend with default font sizes
+        const legendEl0 = document.getElementById('networkLegend');
+        legendEl0.style.display = 'flex';
+        const defLegendFs = this._netLegendFontSize || 15;
+        legendEl0.style.fontSize = defLegendFs + 'px';
+        legendEl0.querySelectorAll('strong, div, span').forEach(el => { el.style.fontSize = defLegendFs + 'px'; });
         const legendNodeType = document.getElementById('legendNodeType');
         if (this.results.mode === 'design') {
             legendNodeType.innerHTML = `
