@@ -14977,8 +14977,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 { y: valsA, x: valsA.map(() => 'Gate A'), type: 'box', name: `Gate A (n=${valsA.length})`, marker: { color: '#2563eb' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true },
                 { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true }
             ], {
-                title: { text: `${gene} \u2014 Gene Effect (\u0394=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
-                yaxis: { title: 'Gene Effect (CERES)' }, width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 }, showlegend: false
+                title: { text: `${gene} \u2014 Gene Effect (\u0394=${(meanA - meanB).toFixed(3)})<br><span style="font-size:9px;color:#9ca3af;">n=${valsA.length}/${gateA.length} vs ${valsB.length}/${gateB.length} with data</span>`, font: { size: 13 } },
+                yaxis: { title: 'Gene Effect (CERES)' }, width: 300, height: 300, margin: { t: 55, b: 60, l: 60, r: 30 }, showlegend: false
             }, { displayModeBar: false, responsive: true });
 
         } else if (type === 'expression') {
@@ -23460,16 +23460,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
 
             previewArea.innerHTML = '';
+            previewArea.style.cssText = 'display:flex; align-items:flex-end; gap:8px; justify-content:center;';
             if (mainImgUrl) {
                 const img1 = document.createElement('img');
                 img1.src = mainImgUrl;
-                img1.style.cssText = `max-width:45%; height:auto; display:inline-block; vertical-align:top; margin:4px;`;
+                img1.style.cssText = `max-width:45%; height:auto;`;
                 previewArea.appendChild(img1);
             }
             if (geneImgUrl) {
                 const img2 = document.createElement('img');
                 img2.src = geneImgUrl;
-                img2.style.cssText = `max-width:45%; height:auto; display:inline-block; vertical-align:top; margin:4px;`;
+                img2.style.cssText = `max-width:45%; height:auto;`;
                 previewArea.appendChild(img2);
             }
 
@@ -24496,8 +24497,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' },
                   boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true, text: namesB, hovertemplate: '%{text}<br>GE: %{y:.3f}<extra></extra>' }
             ], {
-                title: { text: `${gene} — Gene Effect (Δ=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
-                yaxis: { title: 'Gene Effect (CERES)' }, width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 }, showlegend: false
+                title: { text: `${gene} — Gene Effect (Δ=${(meanA - meanB).toFixed(3)})<br><span style="font-size:9px;color:#9ca3af;">n=${valsA.length}/${gateA.length} vs ${valsB.length}/${gateB.length} with data</span>`, font: { size: 13 } },
+                yaxis: { title: 'Gene Effect (CERES)' }, width: 300, height: 300, margin: { t: 55, b: 60, l: 60, r: 30 }, showlegend: false
             }, { displayModeBar: false, responsive: true });
 
         } else if (type === 'expression') {
