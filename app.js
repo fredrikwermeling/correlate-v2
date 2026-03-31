@@ -3160,6 +3160,47 @@ class CorrelationExplorer {
 
         document.getElementById('showCorrelationLine').addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('showZeroLines')?.addEventListener('change', () => this.updateInspectPlot());
+
+        // Reset all scatter settings (keep genes)
+        document.getElementById('resetScatterAll')?.addEventListener('click', () => {
+            // Clear filters
+            document.getElementById('scatterCancerFilter').value = '';
+            const subF = document.getElementById('scatterSubtypeFilter');
+            if (subF) { subF.value = ''; subF.style.display = 'none'; }
+            document.getElementById('mutationFilterGene').value = '';
+            document.getElementById('mutationFilterLevel').value = 'all';
+            document.getElementById('translocationFilterGene').value = '';
+            document.getElementById('translocationFilterLevel').value = 'all';
+            // Clear overlays
+            document.getElementById('hotspotGene').value = '';
+            document.getElementById('hotspotMode').value = 'color';
+            document.getElementById('translocationGene').value = '';
+            document.getElementById('translocationMode').value = 'none';
+            // Clear highlights and custom
+            document.getElementById('scatterCellSearch').value = '';
+            document.getElementById('colorByCategory').value = '';
+            document.getElementById('customCellLineFilter').value = '';
+            this._customCellLineFilter = null;
+            document.getElementById('customCLFilterCount').textContent = '';
+            // Clear gates
+            this.clearGates();
+            // Reset text settings
+            this._savedScatterTextSettings = null;
+            this._userLegendPosition = null;
+            this._userTitlePosition = null;
+            this._userXLabelPos = null;
+            this._userYLabelPos = null;
+            this._userLabelPositions = new Map();
+            this.clickedCells.clear();
+            // Reset checkboxes
+            document.getElementById('showCorrelationLine').checked = true;
+            document.getElementById('showZeroLines').checked = true;
+            // Reset plot size to default
+            document.getElementById('plotWidth').value = 400;
+            document.getElementById('plotHeight').value = 400;
+            // Re-render
+            this.openInspect({ gene1: this.currentInspect?.gene1, gene2: this.currentInspect?.gene2, correlation: null });
+        });
         document.getElementById('scatterCellSearch').addEventListener('input', () => this.updateInspectPlot());
         document.getElementById('colorByCategory').addEventListener('change', () => {
             this._styleActiveFilters();
