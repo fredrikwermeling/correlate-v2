@@ -13740,7 +13740,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 absDelta: d => Math.abs(d.pctA - d.pctB)
             });
 
-            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
+                <colgroup><col style="width:35%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('tissue')">Tissue${sortIcon('tissue')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('nA')">Gate A${sortIcon('nA')}</th>
@@ -13769,7 +13770,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 subData.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
                 html += `<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;">
                     <div style="font-size:11px;font-weight:600;margin-bottom:6px;color:#374151;">Subtissue (Primary Disease)</div>
-                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                    <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
+                    <colgroup><col style="width:35%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
                     <thead><tr style="background:#f3f4f6;">
                         <th style="padding:5px;text-align:left;">Subtype</th>
                         <th style="padding:5px;text-align:center;">Gate A</th>
@@ -13829,7 +13831,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <option value="0.001"${pFilter === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
                 </select>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('type')">Type${sortIcon('type')}</th>
@@ -13887,7 +13889,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <option value="0.001"${pFilterDGE === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
                 </select>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('meanA')">Mean A${sortIcon('meanA')}</th>
@@ -13946,7 +13948,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <option value="0.001"${pFilterExpr === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
                 </select>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('meanA')">Mean A${sortIcon('meanA')}</th>
@@ -14620,7 +14622,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 absDelta: d => Math.abs(d.pctA - d.pctB)
             });
 
-            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
+                <colgroup><col style="width:35%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('tissue')">Tissue${sortIcon('tissue')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('nA')">Gate A${sortIcon('nA')}</th>
@@ -14649,7 +14652,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 subData.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
                 html += `<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;">
                     <div style="font-size:11px;font-weight:600;margin-bottom:6px;color:#374151;">Subtissue (Primary Disease)</div>
-                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                    <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                     <thead><tr style="background:#f3f4f6;">
                         <th style="padding:5px;text-align:left;">Subtype</th>
                         <th style="padding:5px;text-align:center;">Gate A</th>
@@ -14709,7 +14712,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <option value="0.001"${geGatePFilter === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
                 </select>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('gene')">Gene${sortIcon('gene')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('type')">Type${sortIcon('type')}</th>
@@ -14767,7 +14770,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <option value="0.001"${geGatePFilterDGE === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
                 </select>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('gene')">Gene${sortIcon('gene')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('meanA')">Mean A${sortIcon('meanA')}</th>
@@ -14826,7 +14829,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <option value="0.001"${geGatePFilterExpr === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
                 </select>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="app.sortGEGateTable('gene')">Gene${sortIcon('gene')}</th>
                     <th style="${thStyle}text-align:center;" onclick="app.sortGEGateTable('meanA')">Mean A${sortIcon('meanA')}</th>
@@ -23460,7 +23463,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
 
             previewArea.innerHTML = '';
-            previewArea.style.cssText = 'display:flex; align-items:flex-end; gap:8px; justify-content:center;';
+            previewArea.style.cssText = 'display:flex; align-items:flex-start; gap:8px; justify-content:center;';
             if (mainImgUrl) {
                 const img1 = document.createElement('img');
                 img1.src = mainImgUrl;
@@ -23589,7 +23592,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         ctx.drawImage(mainImg, padding, padding, leftW, leftH);
 
         if (geneImg) {
-            ctx.drawImage(geneImg, padding + leftW + padding, padding, rightW, rightH);
+            // Align gene plot bottom with main plot bottom
+            const yOffset = leftH > rightH ? leftH - rightH : 0;
+            ctx.drawImage(geneImg, padding + leftW + padding, padding + yOffset, rightW, rightH);
         }
 
         const textY = padding + plotsHeight + padding;
@@ -24223,7 +24228,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 tissue: d => d.tissue.toLowerCase(), nA: d => d.nA, pctA: d => d.pctA,
                 nB: d => d.nB, pctB: d => d.pctB, delta: d => d.pctA - d.pctB, absDelta: d => Math.abs(d.pctA - d.pctB)
             });
-            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="${sortFn('tissue')}">Tissue${sortIcon('tissue')}</th>
                     <th style="${thStyle}text-align:center;" onclick="${sortFn('nA')}">Gate A${sortIcon('nA')}</th>
@@ -24250,7 +24255,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 subData.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
                 html += `<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;">
                     <div style="font-size:11px;font-weight:600;margin-bottom:6px;color:#374151;">Subtissue</div>
-                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                    <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                     <thead><tr style="background:#f3f4f6;"><th style="padding:5px;text-align:left;">Subtype</th><th style="padding:5px;text-align:center;">Gate A</th><th style="padding:5px;text-align:center;">%A</th><th style="padding:5px;text-align:center;">Gate B</th><th style="padding:5px;text-align:center;">%B</th><th style="padding:5px;text-align:center;">|Δ%|</th></tr></thead><tbody>`;
                 subData.forEach(t => {
                     const delta = t.pctA - t.pctB;
@@ -24284,7 +24289,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <option value="0.001"${pf === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
                 </select>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="${sortFn('gene')}">Gene${sortIcon('gene')}</th>
                     <th style="${thStyle}text-align:center;" onclick="${sortFn('type')}">Type${sortIcon('type')}</th>
@@ -24335,7 +24340,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <option value="0.001"${pf === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
                 </select>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="${sortFn('gene')}">Gene${sortIcon('gene')}</th>
                     <th style="${thStyle}text-align:center;" onclick="${sortFn('meanA')}">Mean A${sortIcon('meanA')}</th>
@@ -24377,7 +24382,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <option value="0.001"${pf === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
                 </select>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="${sortFn('gene')}">Gene${sortIcon('gene')}</th>
                     <th style="${thStyle}text-align:center;" onclick="${sortFn('meanA')}">Mean A${sortIcon('meanA')}</th>
