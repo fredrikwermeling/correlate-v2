@@ -7856,9 +7856,9 @@ class CorrelationExplorer {
         // Current values
         const legendEl = document.getElementById('networkLegend');
         const currentFont = this._netFontFamily || 'Arial, sans-serif';
-        const legendFontSize = this._netLegendFontSize || 11;
+        const legendFontSize = this._netLegendFontSize || 15;
         const legendColor = this._netLegendColor || '#374151';
-        const bannerFontSize = this._netBannerFontSize || 10;
+        const bannerFontSize = this._netBannerFontSize || 20;
         const bannerColor = this._netBannerColor || '#374151';
         const labelColor = this._netLabelColor || '#333333';
         const nodeColor = this._netNodeColor || '#5a9f4a';
@@ -7948,7 +7948,7 @@ class CorrelationExplorer {
         this.networkData.nodes.update(nodeUpdates);
 
         // Legend styling
-        const legendFontSize = parseInt(document.getElementById('net_ts_legendSize')?.value) || 11;
+        const legendFontSize = parseInt(document.getElementById('net_ts_legendSize')?.value) || 15;
         const legendColor = document.getElementById('net_ts_legendColor')?.value || '#374151';
         this._netLegendFontSize = legendFontSize;
         this._netLegendColor = legendColor;
@@ -7967,7 +7967,7 @@ class CorrelationExplorer {
         }
 
         // Filter banner styling
-        const bannerFontSize = parseInt(document.getElementById('net_ts_bannerSize')?.value) || 10;
+        const bannerFontSize = parseInt(document.getElementById('net_ts_bannerSize')?.value) || 20;
         const bannerColor = document.getElementById('net_ts_bannerColor')?.value || '#374151';
         this._netBannerFontSize = bannerFontSize;
         this._netBannerColor = bannerColor;
@@ -8521,7 +8521,7 @@ Results:
         const legendHeight = 160;
         const padding = 30;
         const filterText = this._getNetworkFilterText();
-        const bannerFs = this._netBannerFontSize || 12;
+        const bannerFs = this._netBannerFontSize || 20;
         const totalWidth = cssWidth;
         const totalHeight = cssHeight + legendHeight + padding;
 
@@ -8865,7 +8865,7 @@ Results:
         const networkHeight = container.clientHeight;
         const legendHeight = 160;  // Larger for publication
         const filterText = this._getNetworkFilterText();
-        const svgBannerFs = this._netBannerFontSize || 12;
+        const svgBannerFs = this._netBannerFontSize || 20;
         const filterBannerHeight = filterText ? svgBannerFs + 14 : 0;
         const totalHeight = networkHeight + legendHeight;
 
@@ -10181,7 +10181,7 @@ Results:
         const networkHeight = container.clientHeight;
         const legendHeight = 160;  // Larger for publication
         const filterText = this._getNetworkFilterText();
-        const svgBannerFs = this._netBannerFontSize || 12;
+        const svgBannerFs = this._netBannerFontSize || 20;
         const filterBannerHeight = filterText ? svgBannerFs + 14 : 0;
         const totalHeight = networkHeight + legendHeight;
 
