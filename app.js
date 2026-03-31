@@ -3003,11 +3003,15 @@ class CorrelationExplorer {
         // Color by gene effect controls (mutually exclusive with stats)
         document.getElementById('colorByGeneEffect').addEventListener('change', (e) => {
             if (e.target.checked) {
-                // Uncheck color by stats
                 document.getElementById('colorByStats').checked = false;
                 document.getElementById('colorStatsOptions').style.display = 'none';
             }
             document.getElementById('colorGEOptions').style.display = e.target.checked ? 'block' : 'none';
+            // Hide/show Node Type legend
+            const nt = document.getElementById('legendNodeType');
+            if (nt && this.results?.mode === 'design') {
+                nt.style.display = (e.target.checked || document.getElementById('colorByStats')?.checked) ? 'none' : 'block';
+            }
             this.updateNetworkColors();
         });
         document.querySelectorAll('input[name="colorGEType"]').forEach(radio => {
@@ -3022,12 +3026,16 @@ class CorrelationExplorer {
         // Color by stats controls (mutually exclusive with GE)
         document.getElementById('colorByStats').addEventListener('change', (e) => {
             if (e.target.checked) {
-                // Uncheck color by gene effect
                 document.getElementById('colorByGeneEffect').checked = false;
                 document.getElementById('colorGEOptions').style.display = 'none';
             }
             document.getElementById('colorStatsOptions').style.display = e.target.checked ? 'block' : 'none';
             document.getElementById('legendNodeColor').style.display = e.target.checked ? 'block' : 'none';
+            // Hide/show Node Type legend
+            const nt = document.getElementById('legendNodeType');
+            if (nt && this.results?.mode === 'design') {
+                nt.style.display = (e.target.checked || document.getElementById('colorByGeneEffect')?.checked) ? 'none' : 'block';
+            }
             this.updateNetworkColors();
         });
 
