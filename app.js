@@ -7564,6 +7564,7 @@ class CorrelationExplorer {
         // After stabilization: resolve edge crossings, then lock large networks
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
+            this.network.fit({ animation: false });
             if (nodeCount > 30) {
                 this.network.setOptions({ physics: { enabled: false } });
                 this.physicsEnabled = false;
