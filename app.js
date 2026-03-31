@@ -23378,7 +23378,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
     }
 
-    async _renderExportPlotToImage(plotEl, width, height, settings, format) {
+    async _renderExportPlotToImage(plotEl, width, height, settings, format, matchTopMargin) {
         if (!plotEl || !plotEl.data) return null;
 
         const tempDiv = document.createElement('div');
@@ -23392,6 +23392,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Apply size overrides
             layout.width = width;
             layout.height = height;
+
+            // Match top margin to main plot if specified
+            if (matchTopMargin && layout.margin) {
+                layout.margin.t = matchTopMargin;
+            }
 
             // Apply font overrides
             layout.title = layout.title || {};
@@ -23459,7 +23464,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
             let geneImgUrl = null;
             if (geneEl && geneEl.data) {
-                geneImgUrl = await this._renderExportPlotToImage(geneEl, settings.geneW, settings.geneH, settings, 'png');
+                geneImgUrl = await this._renderExportPlotToImage(geneEl, settings.geneW, settings.geneH, settings, 'png', mainMargin.t);
             }
 
             previewArea.innerHTML = '';
@@ -23497,7 +23502,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         let genePlotDataUrl = null;
         if (geneEl && geneEl.data) {
-            genePlotDataUrl = await this._renderExportPlotToImage(geneEl, settings.geneW, settings.geneH, settings, imgFmt);
+            genePlotDataUrl = await this._renderExportPlotToImage(geneEl, settings.geneW, settings.geneH, settings, imgFmt, mainMargin.t);
         }
 
         if (format === 'svg') {
