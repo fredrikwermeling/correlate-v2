@@ -9,9 +9,13 @@ Input:
   /Users/fredrikwermeling/Documents/coexpress/OmicsExpressionTPMLogp1HumanAllGenes.csv
   scripts/Model_25Q3.csv
 
-Output: web_data/cellLineMetadata.json gets two new fields keyed by ACH-id:
-  - sex:        DepMap annotation ('Male' | 'Female' | 'Unknown')
-  - sexImputed: expression-based call ('likely_male' | 'likely_female' | 'unknown')
+Output: web_data/cellLineMetadata.json gets two independent fields keyed by ACH-id:
+  - sex:             DepMap annotation ('Male' | 'Female' | 'Unknown')
+  - sexByExpression: expression-based call ('male' | 'female' | 'unknown') — computed
+                     for every cell line, independent of annotation.
+
+Thresholds trained on DepMap-labeled Male/Female cells to give <1% false-positive
+rate on each side. Cell lines in the ambiguous score band are 'unknown'.
 
 Script is idempotent.
 """
@@ -132,9 +136,9 @@ def main():
         if np.isnan(s):
             return "unknown"
         if s > thr_male:
-            return "likely_male"
+            return "male"
         if s < thr_female:
-            return "likely_female"
+            return "female"
         return "unknown"
 
     # Validation on known-label cell lines
@@ -143,44 +147,46 @@ def main():
     print("  Validation:")
     print(
         f"    Of {len(male_s)} known males:  "
-        f"{male_calls.get('likely_male', 0)} likely_male, "
-        f"{male_calls.get('likely_female', 0)} likely_female, "
+        f"{male_calls.get('male', 0)} male, "
+        f"{male_calls.get('female', 0)} female, "
         f"{male_calls.get('unknown', 0)} unknown"
     )
     print(
         f"    Of {len(female_s)} known females: "
-        f"{female_calls.get('likely_male', 0)} likely_male, "
-        f"{female_calls.get('likely_female', 0)} likely_female, "
+        f"{female_calls.get('male', 0)} male, "
+        f"{female_calls.get('female', 0)} female, "
         f"{female_calls.get('unknown', 0)} unknown"
     )
 
-    imputed = {cl: classify(s) for cl, (_, _, s) in scores.items()}
+    by_expression = {cl: classify(s) for cl, (_, _, s) in scores.items()}
 
     print(f"Updating {METADATA_JSON}")
     with open(METADATA_JSON) as f:
         meta = json.load(f)
 
     sex_map = {}
-    imputed_map = {}
+    exp_map = {}
     for cl in meta["cellLines"]:
         sex_map[cl] = depmap_sex.get(cl, "Unknown")
-        imputed_map[cl] = imputed.get(cl, "unknown")
+        exp_map[cl] = by_expression.get(cl, "unknown")
 
     meta["sex"] = sex_map
-    meta["sexImputed"] = imputed_map
+    meta["sexByExpression"] = exp_map
+    # Remove any previous field name
+    meta.pop("sexImputed", None)
 
     with open(METADATA_JSON, "w") as f:
         json.dump(meta, f)
 
     print("\nFinal distribution in cellLineMetadata.json:")
-    print("  sex (DepMap):", dict(Counter(sex_map.values())))
-    print("  sexImputed:  ", dict(Counter(imputed_map.values())))
+    print("  sex (annotation):    ", dict(Counter(sex_map.values())))
+    print("  sexByExpression:     ", dict(Counter(exp_map.values())))
 
-    unknown_cls = [cl for cl, s in sex_map.items() if s == "Unknown"]
-    unk_imp = Counter(imputed_map[cl] for cl in unknown_cls)
-    print(f"\nFor {len(unknown_cls)} DepMap-Unknown cell lines:")
-    for k, v in unk_imp.items():
-        print(f"    {k}: {v}")
+    # Agreement crosstab
+    ct = Counter((sex_map[cl], exp_map[cl]) for cl in meta["cellLines"])
+    print("\nAgreement crosstab (annotation × expression):")
+    for (a, e), n in sorted(ct.items()):
+        print(f"    {a:8s} × {e:8s}: {n}")
 
 
 if __name__ == "__main__":

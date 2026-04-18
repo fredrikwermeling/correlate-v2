@@ -22133,19 +22133,30 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         tally(this.translocations, d => d.translocations, this._fusionCountByCL);
     }
 
-    // Resolve effective sex for a cell line: prefer DepMap annotation, fall back to imputation.
-    // Returns { label, category } where category is one of:
-    //   'Male' | 'Female' | 'likely_male' | 'likely_female' | 'Unknown'
+    // Annotation and expression are two independent sex axes.
+    // Returns { annotation, byExpression }
+    //   annotation:   'Male' | 'Female' | 'Unknown'
+    //   byExpression: 'male' | 'female' | 'unknown'
     _getCellLineSex(cl) {
         const meta = this.cellLineMetadata;
-        const depmap = meta?.sex?.[cl] || 'Unknown';
-        if (depmap === 'Male' || depmap === 'Female') {
-            return { label: depmap, category: depmap };
+        return {
+            annotation: meta?.sex?.[cl] || 'Unknown',
+            byExpression: meta?.sexByExpression?.[cl] || 'unknown',
+        };
+    }
+
+    // Test if cell line matches a sex-filter value from the dropdown.
+    _cellLineMatchesSexFilter(cl, filter) {
+        if (!filter) return true;
+        const { annotation, byExpression } = this._getCellLineSex(cl);
+        switch (filter) {
+            case 'ann_male':    return annotation === 'Male';
+            case 'ann_female':  return annotation === 'Female';
+            case 'exp_male':    return byExpression === 'male';
+            case 'exp_female':  return byExpression === 'female';
+            case 'unknown':     return annotation === 'Unknown';
+            default: return true;
         }
-        const imp = meta?.sexImputed?.[cl] || 'unknown';
-        if (imp === 'likely_male') return { label: 'Unknown (likely male)', category: 'likely_male' };
-        if (imp === 'likely_female') return { label: 'Unknown (likely female)', category: 'likely_female' };
-        return { label: 'Unknown', category: 'Unknown' };
     }
 
     setupCellLineBrowserEvents() {
@@ -22513,7 +22524,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let filtered = this.metadata.cellLines.filter(cl => {
             if (tissue && this.getCellLineLineage(cl) !== tissue) return false;
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
-            if (sexFilter && this._getCellLineSex(cl).category !== sexFilter) return false;
+            if (sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
             if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
             if (transMuts && !(transMuts[cl] >= 1)) return false;
             if (!this._cellLinePassesOncoprintFilters(cl)) return false;
@@ -22848,13 +22859,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         geneVals.sort((a, b) => a.val - b.val);
 
         // Top section (metadata) — rendered once
-        const sexInfo = this._getCellLineSex(cellLineId);
+        const { annotation: sexAnn, byExpression: sexExp } = this._getCellLineSex(cellLineId);
+        const expDisplay = sexExp === 'male' ? 'Male' : sexExp === 'female' ? 'Female' : 'Unknown';
+        const disagree = (sexAnn === 'Male' && sexExp === 'female') || (sexAnn === 'Female' && sexExp === 'male');
+        const expStyle = disagree ? ' style="color:#b45309;" title="Expression disagrees with annotation"' : '';
         let top = `<h4>${name}</h4>`;
         top += `<div class="clb-detail-id">${cellLineId}</div>`;
         top += `<div class="clb-detail-section">`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Subtype</span><span class="clb-stat-value">${sublineage || '-'}</span></div>`;
-        top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex</span><span class="clb-stat-value">${sexInfo.label}</span></div>`;
+        top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex (annotation)</span><span class="clb-stat-value">${sexAnn}</span></div>`;
+        top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex (expression)</span><span class="clb-stat-value"${expStyle}>${expDisplay}</span></div>`;
         top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutGenes.length})</strong>`;

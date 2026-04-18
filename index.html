@@ -1315,12 +1315,17 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.4 (2026-04-18)</strong></p>
+                <ul>
+                    <li>Cell Line Browser sex filter: annotation and expression are now independent axes — filter options are <em>Male/Female (by annotation)</em>, <em>Male/Female (by expression)</em>, or <em>Unknown</em></li>
+                    <li>Detail panel shows both <strong>Sex (annotation)</strong> and <strong>Sex (expression)</strong> — expression call highlighted when it disagrees with annotation</li>
+                </ul>
                 <p><strong>v.67.3 (2026-04-18)</strong></p>
                 <ul>
-                    <li>Cell Line Browser: new <strong>Sex filter</strong> (Male / Female / Likely male / Likely female / Unknown)</li>
-                    <li>Detail panel shows <strong>Sex</strong> (DepMap annotation, with expression-based fallback for unknowns) and <strong>Damaging Mutations (N)</strong> count</li>
+                    <li>Cell Line Browser: new <strong>Sex filter</strong></li>
+                    <li>Detail panel shows <strong>Sex</strong> and <strong>Damaging Mutations (N)</strong> count</li>
                     <li>Unified <strong>Sort by</strong> dropdown: Name / Hotspot muts / Damaging muts / Fusions / GE for gene</li>
-                    <li>Sex imputation from Y-chromosome markers + XIST expression for cell lines missing DepMap sex annotation (thresholds tuned to &lt;1% false-positive rate)</li>
+                    <li>Sex imputation from Y-chromosome markers + XIST expression (thresholds tuned to &lt;1% false-positive rate)</li>
                 </ul>
                 <p><strong>v.67.2 (2026-04-18)</strong></p>
                 <ul>
@@ -1773,7 +1778,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.3</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.4</a>
     </div>
 
     <div class="main-content">
@@ -3281,13 +3286,13 @@
           <input type="text" id="clbSearch" placeholder="Search cell lines...">
           <select id="clbTissueFilter"><option value="">All tissues</option></select>
           <select id="clbSubtypeFilter" style="display:none;"><option value="">All subtypes</option></select>
-          <select id="clbSexFilter" style="font-size:12px;" title="Filter by sex (uses DepMap annotation; falls back to expression-based imputation for unknowns)">
+          <select id="clbSexFilter" style="font-size:12px;" title="Filter by sex — annotation (from DepMap) or expression (Y-markers + XIST) are independent axes">
             <option value="">All sexes</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="likely_male">Likely male</option>
-            <option value="likely_female">Likely female</option>
-            <option value="Unknown">Unknown</option>
+            <option value="ann_male">Male (by annotation)</option>
+            <option value="ann_female">Female (by annotation)</option>
+            <option value="exp_male">Male (by expression)</option>
+            <option value="exp_female">Female (by expression)</option>
+            <option value="unknown">Unknown</option>
           </select>
           <span style="display:inline-flex; align-items:center; gap:2px; border:1px solid #d1d5db; border-radius:5px; padding:1px;">
             <input type="text" id="clbHotspotFilter" list="clbHotspotList" placeholder="Hotspot filter" autocomplete="off" style="width:120px; border:none; font-size:12px; padding:4px 6px;">
