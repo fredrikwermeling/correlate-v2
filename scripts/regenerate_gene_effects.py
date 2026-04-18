@@ -17,7 +17,7 @@ import numpy as np
 
 # Paths
 CRISPR_CSV = "/Users/fredrikwermeling/Documents/CRISPR screen script depmap/crispr screen script depmap conections/CRISPRGeneEffect.csv"
-OUTPUT_DIR = "/Users/fredrikwermeling/Documents/correlate v2/web_data"
+OUTPUT_DIR = "/Users/fredrikwermeling/Documents/correlate_v2/web_data"
 V1_OUTPUT_DIR = "/Users/fredrikwermeling/Documents/correlate app feb 2026 (färdig)/correlation app/web_data"
 
 NEW_SCALE_FACTOR = 5000

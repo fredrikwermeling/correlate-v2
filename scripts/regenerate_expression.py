@@ -16,7 +16,7 @@ import numpy as np
 
 # Paths
 EXPRESSION_CSV = "/Users/fredrikwermeling/Documents/coexpress/OmicsExpressionTPMLogp1HumanProteinCodingGenes.csv"
-OUTPUT_DIR = "/Users/fredrikwermeling/Documents/correlate v2/web_data"
+OUTPUT_DIR = "/Users/fredrikwermeling/Documents/correlate_v2/web_data"
 
 SCALE_FACTOR = 1800  # Max = 32767/1800 = 18.2, covers max observed 17.36
 NA_VALUE = -32768
