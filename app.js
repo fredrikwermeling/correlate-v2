@@ -18215,32 +18215,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     _getAICellLines(source) {
         if (source === 'ge') {
-            // Mutation inspect mode — use currentGeneEffectData (cell-level data)
+            // Mutation inspect mode — currentGeneEffectData is already filter-aware
+            // (populated by showGeneEffectDistribution with tissue/subtype/hotspot/fusion filters applied).
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectData?.length > 0) {
                 return this.currentGeneEffectData.map(d => d.cellLine);
             }
-            // Gene set / GE analysis mode
-            if (this.currentGeneEffect?.data?.length > 0) {
-                return this.currentGeneEffect.data.map(d => d.cellLineId);
-            }
+            // Regular GE analysis / gene-set mode — always route through
+            // getGETissueFilteredData() so the CURRENT toolbar filters
+            // (tissue, subtype, hotspot, fusion, mut gene, oncoprint, custom CL list)
+            // are applied. Fixes: user could filter down to one subtype but the
+            // AI export still dumped all 1147 cell lines.
             return this.getGETissueFilteredData().map(d => d.cellLineId);
         } else if (source === 'scatter') {
+            // Scatter inspect — currentInspect.data is filter-aware (built by
+            // updateInspectPlot with tissue/subtype/mutation/fusion filters applied).
             const data = this.currentInspect?.data || this._currentFilteredData || [];
             return data.map(d => d.cellLineId);
         } else if (source === 'mutation') {
             const mr = this.mutationResults;
             if (!mr) return [];
-            // Get cell lines from the analysis results
             const allResults = mr.allResults || mr.significantResults || [];
             if (allResults.length === 0) return [];
-            // Return all cell lines that were part of the analysis
+            // Apply same filter stack the mutation analysis used.
             const cls = new Set();
             this.metadata.cellLines.forEach(cl => {
-                // Apply same filters as mutation analysis
                 if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== mr.lineageFilter) return;
                 if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) return;
                 if (mr.excludedTissues?.size > 0 && mr.excludedTissues.has(this.cellLineMetadata?.lineage?.[cl])) return;
                 if (this._activeOncoprintFilters?.length > 0 && !this._cellLinePassesOncoprintFilters(cl)) return;
+                if (this._customCellLineFilter && !this._customCellLineFilter.has(cl)) return;
                 cls.add(cl);
             });
             return [...cls];
