@@ -1315,6 +1315,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.14 (2026-04-18)</strong></p>
+                <ul>
+                    <li>CLB help modal: fusion entries clarified as "fusion/translocation"</li>
+                </ul>
                 <p><strong>v.67.13 (2026-04-18)</strong></p>
                 <ul>
                     <li>Cell Line Browser: new <strong>?</strong> info button opens a help modal explaining filters, sort options, sex annotation vs sex (expression), and symbol meanings</li>
@@ -1819,7 +1823,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.13</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.14</a>
     </div>
 
     <div class="main-content">
@@ -3334,7 +3338,7 @@
             <li><b>Tissue / Subtype</b> &mdash; DepMap OncotreeLineage and primary disease subtype.</li>
             <li><b>Sex</b> &mdash; annotation and expression are two independent axes (see below).</li>
             <li><b>Hotspot filter</b> &mdash; only show cell lines mutated in this gene at a hotspot position.</li>
-            <li><b>Fusion filter</b> &mdash; only show cell lines with this gene as a fusion partner.</li>
+            <li><b>Fusion filter</b> &mdash; only show cell lines with this gene as a fusion/translocation partner.</li>
             <li><b>Oncoprint</b> &mdash; mutation heatmap across filtered cell lines.</li>
           </ul>
           <p><strong>Sex</strong> &mdash; two independent axes:</p>
@@ -3361,7 +3365,7 @@
             <li><b>Tissue + Subtype</b> &mdash; alphabetical by tissue, then subtype within each tissue.</li>
             <li><b>Hotspot muts</b> &mdash; number of hotspot-mutated genes per cell line (descending by default).</li>
             <li><b>Damaging muts</b> &mdash; number of genes with damaging (deleterious / loss-of-function) somatic mutations per cell line (descending). Source: DepMap <code>OmicsSomaticMutationsMatrixDamaging</code>.</li>
-            <li><b>Fusions</b> &mdash; number of distinct fusion partner genes per cell line (descending).</li>
+            <li><b>Fusions</b> &mdash; number of distinct fusion/translocation partner genes per cell line (descending).</li>
             <li><b>GE for gene</b> &mdash; enter a gene; cells sorted by its CRISPR gene effect (CERES score) value.</li>
           </ul>
           <p style="color:#6b7280; margin-bottom:0;"><b>Data source:</b> DepMap 25Q3. All filters and sorts use the data currently loaded in the browser; changing tissue / subtype filters narrows the visible set that subsequent sorts operate on.</p>
