@@ -18213,6 +18213,59 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return titleHtml + subtitleHtml;
     }
 
+    // Runtime bbox checks for the three GE-modal layout invariants.
+    // Called by window._geStressTest(). Returns { A, B, C, note? }.
+    //   A: placeholder hidden AND a plot exists in #geneEffectPlot
+    //   B: title bbox within plot SVG bounds (no clipping left/right)
+    //   C: y-label bbox disjoint from every y-tick label bbox
+    _checkGEInvariants() {
+        const ph = document.getElementById('gePlotPlaceholder');
+        const plotEl = document.getElementById('geneEffectPlot');
+        const svg = plotEl?.querySelector('svg.main-svg');
+        if (!svg) return { A: false, B: false, C: false, note: 'no SVG' };
+
+        // A: placeholder hidden + plot container present
+        const A = (ph?.style.display === 'none') && !!plotEl.querySelector('.plot-container, g.cartesianlayer');
+
+        // Locate title + y-label annotation groups by role-based text matching.
+        const annGroups = svg.querySelectorAll('g.annotation');
+        const titleText = (this.mutationResults && this.currentGeneEffectGene)
+            ? 'Gene Effect by'
+            : null;
+        let titleG = null, yLabelG = null;
+        for (const g of annGroups) {
+            const t = g.textContent || '';
+            if (!titleG && titleText && t.includes(titleText)) titleG = g;
+            // y-label text ends in "Mutations" / "Damaging" / "Fusions"
+            if (!yLabelG && /(Mutations|Damaging|Fusions)\s*$/.test(t) && !t.includes('Gene Effect by')) yLabelG = g;
+        }
+
+        const svgRect = svg.getBoundingClientRect();
+
+        // B: title within SVG horizontal bounds (small tolerance)
+        let B = true;
+        if (titleG) {
+            const r = titleG.getBoundingClientRect();
+            if (r.left < svgRect.left - 1 || r.right > svgRect.right + 1) B = false;
+        } else {
+            B = false; // couldn't find title — treat as fail so we notice
+        }
+
+        // C: y-label bbox disjoint from every y-tick text bbox
+        let C = true;
+        if (yLabelG) {
+            const yr = yLabelG.getBoundingClientRect();
+            const ticks = svg.querySelectorAll('g.ytick text');
+            for (const t of ticks) {
+                const tr = t.getBoundingClientRect();
+                const overlap = !(yr.right < tr.left || tr.right < yr.left || yr.bottom < tr.top || tr.bottom < yr.top);
+                if (overlap) { C = false; break; }
+            }
+        }
+
+        return { A, B, C };
+    }
+
     _wrapTextGreedy(text, fontSize, maxWidth, measure) {
         const words = String(text).split(/\s+/);
         const lines = [];
@@ -26631,3 +26684,67 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
 // Initialize app
 const app = new CorrelationExplorer();
+window.app = app;
+
+// ============================================================================
+// Dev helper: stress-test GE modal layout invariants across slider values.
+// Call from DevTools: await _geStressTest()
+// Prerequisite: a mutation-inspect plot must already be open (run a mutation
+// analysis, then click a gene). The test varies width/height slider values,
+// re-renders, and asserts the three layout invariants:
+//   A. Placeholder hidden when a plot is rendered.
+//   B. Title bounding box inside the plot SVG (no clipping).
+//   C. Y-label bbox disjoint from all y-tick label bboxes.
+// ============================================================================
+window._geStressTest = async function _geStressTest() {
+    const a = window.app;
+    if (!a?.mutationResults) {
+        console.error('[_geStressTest] Open a mutation analysis first, then click a gene to enter mutation-inspect.');
+        return;
+    }
+    if (a.geneEffectViewMode !== 'mutation') {
+        console.error('[_geStressTest] Current view is not mutation-inspect. Click a gene from the mutation-analysis table.');
+        return;
+    }
+    const currentGene = a.currentGeneEffectGene || a.mutationResults.hotspotGene;
+    if (!currentGene) {
+        console.error('[_geStressTest] No current gene — click a gene in the analysis table.');
+        return;
+    }
+
+    const savedW = a.geChartWidthRatio;
+    const savedH = a.geChartHeightRatio;
+
+    const widthRatios  = [0.3, 0.5, 0.8, 1.0, 1.2, 1.5, 1.8];
+    const heightRatios = [0.5, 1.0, 1.5, 2.0];
+
+    const wait = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const results = [];
+    for (const w of widthRatios) {
+        for (const h of heightRatios) {
+            a.geChartWidthRatio = w;
+            a.geChartHeightRatio = h;
+            a.showGeneEffectDistribution(currentGene);
+            await wait();
+            await wait();
+            const inv = a._checkGEInvariants();
+            results.push({ gene: currentGene, width: w, height: h, ...inv });
+        }
+    }
+
+    // Restore
+    a.geChartWidthRatio = savedW;
+    a.geChartHeightRatio = savedH;
+    a.showGeneEffectDistribution(currentGene);
+
+    console.table(results);
+    const failed = results.filter(r => !r.A || !r.B || !r.C);
+    const pass = results.length - failed.length;
+    console.log(`%c[_geStressTest] PASS: ${pass}/${results.length}, FAIL: ${failed.length}`,
+        failed.length ? 'color:#dc2626;font-weight:700;' : 'color:#16a34a;font-weight:700;');
+    if (failed.length) {
+        console.log('[_geStressTest] Failed combos:', failed);
+    }
+    return results;
+};
