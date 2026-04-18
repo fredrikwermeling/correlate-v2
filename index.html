@@ -1315,6 +1315,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.5 (2026-04-18)</strong></p>
+                <ul>
+                    <li>Sex-by-expression classifier now uses independent Y-marker and XIST thresholds (Y&gt;1.0 → male; XIST&gt;1.0 with Y low → female). Earlier score-based threshold required XIST to be extremely high, causing many XIST-silenced female cancers (esp. breast) to fall into Unknown</li>
+                    <li>Breast cancer cell lines called <em>female</em> by expression: <strong>26/53</strong> (was 15/53)</li>
+                    <li>DepMap-female cell lines correctly identified: <strong>54%</strong> (was 34%)</li>
+                    <li>Note: XIST-silenced breast cancers (27/53) still land in Unknown — this is a biological limitation of expression-based sex inference</li>
+                </ul>
                 <p><strong>v.67.4 (2026-04-18)</strong></p>
                 <ul>
                     <li>Cell Line Browser sex filter: annotation and expression are now independent axes — filter options are <em>Male/Female (by annotation)</em>, <em>Male/Female (by expression)</em>, or <em>Unknown</em></li>
@@ -1778,7 +1785,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.4</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.5</a>
     </div>
 
     <div class="main-content">

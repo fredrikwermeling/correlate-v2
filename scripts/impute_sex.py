@@ -14,8 +14,14 @@ Output: web_data/cellLineMetadata.json gets two independent fields keyed by ACH-
   - sexByExpression: expression-based call ('male' | 'female' | 'unknown') — computed
                      for every cell line, independent of annotation.
 
-Thresholds trained on DepMap-labeled Male/Female cells to give <1% false-positive
-rate on each side. Cell lines in the ambiguous score band are 'unknown'.
+Classifier (two-rule, independent thresholds):
+  - Y_mean > Y_THR           -> 'male'    (Y presence is unambiguous; takes precedence)
+  - XIST  > X_THR            -> 'female'  (only if Y is below threshold)
+  - otherwise                -> 'unknown' (Y-loss males AND XIST-silenced females live here)
+
+Thresholds Y_THR=1.0, X_THR=1.0 chosen to separate the two populations robustly in
+both directions. Note: XIST silencing is common in breast and other cancers, so a
+large minority of annotated females land in 'unknown' — this is biology, not a bug.
 
 Script is idempotent.
 """
@@ -36,6 +42,10 @@ METADATA_JSON = os.path.join(HERE, "..", "web_data", "cellLineMetadata.json")
 
 Y_MARKERS = ["RPS4Y1", "DDX3Y", "EIF1AY", "KDM5D", "UTY", "USP9Y"]
 XIST = "XIST"
+
+# Classifier thresholds (log-TPM units). See tuning in commit history.
+Y_THR = 1.0
+X_THR = 1.0
 
 
 def parse_gene_name(col_header):
@@ -83,19 +93,13 @@ def main():
             cell_vals[cl] = vals
     print(f"  Loaded markers for {len(cell_vals)} cell lines")
 
-    # Score per cell line: mean(Y) - XIST
-    #   Male: Y high, XIST low -> score high
-    #   Female: Y low, XIST high -> score low
-    #   Y-loss male or low-confidence: near zero
+    # Per cell line: mean(Y) and XIST
     scores = {}
     for cl, v in cell_vals.items():
         y_vals = [v[g] for g in Y_MARKERS if not np.isnan(v.get(g, np.nan))]
         x = v.get(XIST, np.nan)
         y_mean = float(np.mean(y_vals)) if y_vals else np.nan
-        if np.isnan(y_mean) or np.isnan(x):
-            scores[cl] = (np.nan, np.nan, np.nan)
-        else:
-            scores[cl] = (y_mean, float(x), y_mean - float(x))
+        scores[cl] = (y_mean, float(x) if not np.isnan(x) else np.nan)
 
     print(f"Reading Sex labels from {MODEL_CSV}")
     depmap_sex = {}
@@ -104,61 +108,47 @@ def main():
             s = row["Sex"].strip()
             depmap_sex[row["ModelID"]] = s if s else "Unknown"
 
-    male_s, female_s = [], []
-    for cl, (_, _, s) in scores.items():
-        if np.isnan(s):
-            continue
-        label = depmap_sex.get(cl, "Unknown")
-        if label == "Male":
-            male_s.append(s)
-        elif label == "Female":
-            female_s.append(s)
-    male_s = np.array(male_s)
-    female_s = np.array(female_s)
-    print(f"  Training scores: {len(male_s)} males, {len(female_s)} females")
-    print(
-        f"    Male   median={np.median(male_s):+.3f}, 1st pct={np.percentile(male_s, 1):+.3f}"
-    )
-    print(
-        f"    Female median={np.median(female_s):+.3f}, 99th pct={np.percentile(female_s, 99):+.3f}"
-    )
-
-    # Conservative thresholds: <1% false-positive rate on each side
-    thr_male = float(np.percentile(female_s, 99))
-    thr_female = float(np.percentile(male_s, 1))
-    print(
-        f"  Thresholds: >{thr_male:+.3f} -> likely_male, <{thr_female:+.3f} -> likely_female"
-    )
-    if thr_male <= thr_female:
-        print("  WARNING: thresholds overlap — the two populations are not separable.")
-
-    def classify(s):
-        if np.isnan(s):
+    # Classifier: Y_THR takes precedence over X_THR so XIST-positive males
+    # (e.g. Klinefelter) still get called male.
+    def classify(y, x):
+        if np.isnan(y) or np.isnan(x):
             return "unknown"
-        if s > thr_male:
+        if y > Y_THR:
             return "male"
-        if s < thr_female:
+        if x > X_THR:
             return "female"
         return "unknown"
 
+    print(f"  Thresholds: Y_mean > {Y_THR} -> male, XIST > {X_THR} (Y low) -> female")
+
     # Validation on known-label cell lines
-    male_calls = Counter(classify(s) for s in male_s)
-    female_calls = Counter(classify(s) for s in female_s)
+    male_y, male_x, female_y, female_x = [], [], [], []
+    for cl, (y, x) in scores.items():
+        if np.isnan(y) or np.isnan(x):
+            continue
+        label = depmap_sex.get(cl, "Unknown")
+        if label == "Male":
+            male_y.append(y); male_x.append(x)
+        elif label == "Female":
+            female_y.append(y); female_x.append(x)
+
+    m_calls = Counter(classify(y, x) for y, x in zip(male_y, male_x))
+    f_calls = Counter(classify(y, x) for y, x in zip(female_y, female_x))
     print("  Validation:")
     print(
-        f"    Of {len(male_s)} known males:  "
-        f"{male_calls.get('male', 0)} male, "
-        f"{male_calls.get('female', 0)} female, "
-        f"{male_calls.get('unknown', 0)} unknown"
+        f"    Of {len(male_y)} known males:  "
+        f"{m_calls.get('male', 0)} male, "
+        f"{m_calls.get('female', 0)} female ({100 * m_calls.get('female', 0) / len(male_y):.2f}% FP), "
+        f"{m_calls.get('unknown', 0)} unknown"
     )
     print(
-        f"    Of {len(female_s)} known females: "
-        f"{female_calls.get('male', 0)} male, "
-        f"{female_calls.get('female', 0)} female, "
-        f"{female_calls.get('unknown', 0)} unknown"
+        f"    Of {len(female_y)} known females: "
+        f"{f_calls.get('male', 0)} male ({100 * f_calls.get('male', 0) / len(female_y):.2f}% FP), "
+        f"{f_calls.get('female', 0)} female, "
+        f"{f_calls.get('unknown', 0)} unknown"
     )
 
-    by_expression = {cl: classify(s) for cl, (_, _, s) in scores.items()}
+    by_expression = {cl: classify(y, x) for cl, (y, x) in scores.items()}
 
     print(f"Updating {METADATA_JSON}")
     with open(METADATA_JSON) as f:
