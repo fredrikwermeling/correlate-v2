@@ -1315,6 +1315,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.22 (2026-04-18)</strong></p>
+                <ul>
+                    <li>GE gating now matches scatter gating and UMAP gating: tabbed results panel (Tissue / Mutations / &Delta; Gene Effect / Expression) in <code>#geGateComparePanel</code> with sortable tables. Removed the older flat-stacked-tables implementation (<code>_geStartGate</code>, <code>_geClearGates</code>, <code>_geCompareGates</code>) and the duplicate event listeners that were wiring the same buttons to both implementations. Callers updated to use <code>startGEGateSelection</code> / <code>clearGEGates</code> / <code>compareGEGates</code></li>
+                </ul>
                 <p><strong>v.67.21 (2026-04-18)</strong></p>
                 <ul>
                     <li>GE by-hotspot table now scrolls horizontally when the modal is narrow (prevents the p-value column from being cropped off)</li>
@@ -1852,7 +1856,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.21</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.22</a>
     </div>
 
     <div class="main-content">
