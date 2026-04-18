@@ -17,6 +17,17 @@
     };
 })();
 
+// Single source of truth for DepMap release.
+// Also appears literally in index.html footer/changelog — update together.
+const DEPMAP_VERSION = '25Q3';
+
+// Build a CSV filename with DepMap release + today's date suffix.
+// csvName('correlations') -> 'correlations_DepMap25Q3_2026-04-18.csv'
+function csvName(stem) {
+    const date = new Date().toISOString().slice(0, 10);
+    return `${stem}_DepMap${DEPMAP_VERSION}_${date}.csv`;
+}
+
 class CorrelationExplorer {
     static CATEGORY_COLORS = [
         '#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4',
@@ -2019,7 +2030,7 @@ class CorrelationExplorer {
             const blob = new Blob([csv], { type: 'text/csv' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = 'oncoprint.csv';
+            a.download = csvName('oncoprint');
             a.click();
             URL.revokeObjectURL(a.href);
         } else if (format === 'png') {
@@ -4433,7 +4444,7 @@ class CorrelationExplorer {
         ];
 
         const csv = sampleData.map(row => row.join(',')).join('\n');
-        this.downloadFile(csv, 'sample_genes_with_stats.csv', 'text/csv');
+        this.downloadFile(csv, csvName('sample_genes_with_stats'), 'text/csv');
     }
 
     getGeneList() {
@@ -5008,7 +5019,7 @@ class CorrelationExplorer {
             }
         });
 
-        this.downloadFile(csv, 'synonym_ortholog_lookup.csv', 'text/csv');
+        this.downloadFile(csv, csvName('synonym_ortholog_lookup'), 'text/csv');
     }
 
     calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel, mutDataSource) {
@@ -6023,7 +6034,7 @@ class CorrelationExplorer {
             csv += row.join(',') + '\n';
         });
 
-        const filename = `mutation_analysis_${mr.hotspotGene}_${new Date().toISOString().slice(0, 10)}.csv`;
+        const filename = csvName(`mutation_analysis_${mr.hotspotGene}`);
         this.downloadFile(csv, filename, 'text/csv');
     }
 
@@ -6983,7 +6994,7 @@ class CorrelationExplorer {
             csv += `${d.cellLine},${d.cellName},${d.lineage},${d.ge.toFixed(2)},${d.mutLevel}\n`;
         });
 
-        const filename = `gene_effect_${this.currentGeneEffectGene}_${mr.hotspotGene}_data.csv`;
+        const filename = csvName(`gene_effect_${this.currentGeneEffectGene}_${mr.hotspotGene}_data`);
         this.downloadFile(csv, filename, 'text/csv');
     }
 
@@ -8418,7 +8429,7 @@ Results:
             this.results.correlations.forEach(c => {
                 csv += `${c.gene1},${c.gene2},${c.correlation},${c.slope},${c.n},${c.cluster}\n`;
             });
-            filename = 'correlations.csv';
+            filename = csvName('correlations');
         } else {
             const isFiltered = this.results.isFiltered;
             const lineage = document.getElementById('lineageFilter').value || 'All lineages';
@@ -8461,7 +8472,7 @@ Results:
                 }
                 csv += row + '\n';
             });
-            filename = 'clusters.csv';
+            filename = csvName('clusters');
         }
 
         this.downloadFile(csv, filename, 'text/csv');
@@ -9866,15 +9877,15 @@ Results:
         if (typeof JSZip === 'undefined') {
             // Fallback if JSZip not loaded
             console.warn('JSZip not loaded, downloading files separately');
-            this.downloadFile(correlationsCSV, 'correlations.csv', 'text/csv');
-            setTimeout(() => this.downloadFile(clustersCSV, 'clusters.csv', 'text/csv'), 300);
+            this.downloadFile(correlationsCSV, csvName('correlations'), 'text/csv');
+            setTimeout(() => this.downloadFile(clustersCSV, csvName('clusters'), 'text/csv'), 300);
             setTimeout(() => this.downloadFile(summary, 'summary.txt', 'text/plain'), 600);
             return;
         }
 
         const zip = new JSZip();
-        zip.file('correlations.csv', correlationsCSV);
-        zip.file('clusters.csv', clustersCSV);
+        zip.file(csvName('correlations'), correlationsCSV);
+        zip.file(csvName('clusters'), clustersCSV);
         zip.file('summary.txt', summary);
 
         // Add network images if network exists
@@ -12107,7 +12118,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             tableData.forEach(row => {
                 csv += `"${row.lineage}",${row.nWT},${row.rWT.toFixed(4)},${row.slopeWT.toFixed(4)},${row.nMut},${row.rMut.toFixed(4)},${row.slopeMut.toFixed(4)},${row.deltaR.toFixed(4)},${row.pR.toExponential(2)},${row.deltaSlope.toFixed(4)},${row.pSlope.toExponential(2)}\n`;
             });
-            this.downloadFile(csv, `correlation_${gene1}_vs_${gene2}_by_${hotspotGene}_${isFusion ? 'fusion' : 'mutation'}.csv`, 'text/csv');
+            this.downloadFile(csv, csvName(`correlation_${gene1}_vs_${gene2}_by_${hotspotGene}_${isFusion ? 'fusion' : 'mutation'}`), 'text/csv');
         });
 
         // Make table sortable
@@ -12327,7 +12338,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             tableData.forEach(row => {
                 csv += `${row.mutGene},${row.nWT},${row.rWT.toFixed(4)},${row.slopeWT.toFixed(4)},${row.nMut},${row.rMut.toFixed(4)},${row.slopeMut.toFixed(4)},${row.deltaR.toFixed(4)},${row.pR.toExponential(2)},${row.deltaSlope.toFixed(4)}\n`;
             });
-            this.downloadFile(csv, `${gene1}_vs_${gene2}_all_mutations_comparison.csv`, 'text/csv');
+            this.downloadFile(csv, csvName(`${gene1}_vs_${gene2}_all_mutations_comparison`), 'text/csv');
         });
 
         // Add row click handlers to filter by mutation
@@ -12554,7 +12565,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             tableData.forEach(row => {
                 csv += `${row.tGene},${row.nWT},${row.rWT.toFixed(4)},${row.slopeWT.toFixed(4)},${row.nFused},${row.rFused.toFixed(4)},${row.slopeFused.toFixed(4)},${row.deltaR.toFixed(4)},${row.pR.toExponential(2)},${row.deltaSlope.toFixed(4)}\n`;
             });
-            this.downloadFile(csv, `${gene1}_vs_${gene2}_fusion_comparison.csv`, 'text/csv');
+            this.downloadFile(csv, csvName(`${gene1}_vs_${gene2}_fusion_comparison`), 'text/csv');
         });
 
         document.querySelectorAll('#compareTranslocationsTable .clickable-trans-row').forEach(row => {
@@ -13263,7 +13274,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             tableData.forEach(row => {
                 csv += `"${row.cancerType}",${row.n},${row.correlation.toFixed(4)},${row.slope.toFixed(4)},${row.meanX.toFixed(2)},${row.meanY.toFixed(2)}\n`;
             });
-            this.downloadFile(csv, `${gene1}_vs_${gene2}_by_cancer_type.csv`, 'text/csv');
+            this.downloadFile(csv, csvName(`${gene1}_vs_${gene2}_by_cancer_type`), 'text/csv');
         });
 
         // Add row click handlers to filter by cancer type
@@ -17149,7 +17160,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const blob = new Blob([csv], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `correlation_${d.gene1}_vs_${d.gene2}_by_${this._caView}.csv`;
+        a.download = csvName(`correlation_${d.gene1}_vs_${d.gene2}_by_${this._caView}`);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -17167,7 +17178,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const blob = new Blob([csv], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `correlation_${d.gene1}_vs_${d.gene2}_cell_lines.csv`;
+        a.download = csvName(`correlation_${d.gene1}_vs_${d.gene2}_cell_lines`);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -17395,7 +17406,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const suffix = hotspotGene ? `_${hotspotGene}` : '';
         this.downloadFile(csv,
-            `scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}.csv`,
+            csvName(`scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`),
             'text/csv');
     }
 
@@ -17479,7 +17490,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         this.downloadFile(csv,
-            `by_tissue_${gene1}_vs_${gene2}.csv`,
+            csvName(`by_tissue_${gene1}_vs_${gene2}`),
             'text/csv');
     }
 
@@ -19611,7 +19622,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         }
 
-        this.downloadFile(csv, `gene_effect_${gene}_by_${this.currentGEView}.csv`, 'text/csv');
+        this.downloadFile(csv, csvName(`gene_effect_${gene}_by_${this.currentGEView}`), 'text/csv');
     }
 
     _getAICellLines(source) {
@@ -19938,7 +19949,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const subtype = this.getCellLineSublineage?.(d.cellLine) || '';
                 csv += `"${d.cellLine}","${d.cellName}","${d.lineage}","${subtype}",${d.ge.toFixed(2)},${d.mutLevel}\n`;
             });
-            this.downloadFile(csv, `gene_effect_${gene}_${mr.hotspotGene}_by_cell_line.csv`, 'text/csv');
+            this.downloadFile(csv, csvName(`gene_effect_${gene}_${mr.hotspotGene}_by_cell_line`), 'text/csv');
             return;
         }
 
@@ -19955,7 +19966,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             csv += `"${d.cellLineId}","${d.cellLineName}","${d.lineage}","${subtype}",${d.geneEffect.toFixed(2)}\n`;
         });
 
-        this.downloadFile(csv, `gene_effect_${gene}_by_cell_line.csv`, 'text/csv');
+        this.downloadFile(csv, csvName(`gene_effect_${gene}_by_cell_line`), 'text/csv');
     }
 
     getCellLineSublineage(cellLineId) {
@@ -21360,7 +21371,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             csv += `${r.gene},${r.r.toFixed(4)},${r.slope.toFixed(4)},${r.n},${pStr}\n`;
         });
 
-        const filename = `expression_correlates_${ctx?.targetGene || 'gene'}_${ctx?.hotspotGene || 'hotspot'}.csv`;
+        const filename = csvName(`expression_correlates_${ctx?.targetGene || 'gene'}_${ctx?.hotspotGene || 'hotspot'}`);
         this.downloadFile(csv, filename, 'text/csv');
     }
     // ===== Full-Screen Compare Modal =====
@@ -21758,7 +21769,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             csv += r.gene + ',' + colLabels.map(l => r[l]).join(',') + '\n';
         });
 
-        const filename = `compare_${d.mode}_${d.hotspotGene}_${new Date().toISOString().slice(0, 10)}.csv`;
+        const filename = csvName(`compare_${d.mode}_${d.hotspotGene}`);
         this.downloadFile(csv, filename, 'text/csv');
     }
 
@@ -22081,7 +22092,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         const libLabel = this._enrichrData.libraries.find(l => l.key === lib)?.label || lib;
-        this.downloadFile(csv, `enrichr_${libLabel}.csv`, 'text/csv');
+        this.downloadFile(csv, csvName(`enrichr_${libLabel}`), 'text/csv');
     }
 
     openCompareInspect(gene, tissue, hotspot, mode) {
@@ -22882,7 +22893,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
                 lines.push(row.join(','));
             }
-            this.downloadFile(lines.join('\n'), `correlate_GE_matrix${namePart}.csv`, 'text/csv');
+            this.downloadFile(lines.join('\n'), csvName(`correlate_GE_matrix${namePart}`), 'text/csv');
         } else if (mode === 'full') {
             // Report: cell line info + gene lists
             const N = parseInt(document.getElementById('clbTopN').value) || 10;
@@ -22976,7 +22987,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
 
-            this.downloadFile(lines.join('\n'), `correlate_report${namePart}.csv`, 'text/csv');
+            this.downloadFile(lines.join('\n'), csvName(`correlate_report${namePart}`), 'text/csv');
         } else if (mode === 'comprehensive') {
             // Ensure expression data is loaded
             if (!this.expressionLoaded) {
@@ -23027,7 +23038,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             lines.push('');
             lines.push('# Data source: DepMap 25Q1 (https://depmap.org/)');
             lines.push('# Tsherniak A et al. Defining a Cancer Dependency Map. Cell. 2017.');
-            this.downloadFile(lines.join('\n'), `correlate_comprehensive${namePart}.csv`, 'text/csv');
+            this.downloadFile(lines.join('\n'), csvName(`correlate_comprehensive${namePart}`), 'text/csv');
         }
     }
 
