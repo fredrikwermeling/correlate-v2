@@ -6638,15 +6638,24 @@ class CorrelationExplorer {
             font: { size: 20 },
             _tsRole: 'xlabel'
         };
+        const yLabelFontSize = 20;
+        const yTickFontSize = 17;
+        const yTickTexts = [
+            `${tick0Label} (n=${data.wt.length})`,
+            `${tick1Label} (n=${data.mut1.length})`,
+            `${tick2Label} (n=${data.mut2.length})`
+        ];
+        const yFit = this._computeGEYAxisLayout(yTickTexts, yTickFontSize, yLabelFontSize, 'geneEffectPlot');
+
         const geYLabelAnn = {
             text: yAxisTitle,
             xref: 'paper', yref: 'paper',
-            x: this._geUserYLabelPos ? this._geUserYLabelPos.x : -0.22,
+            x: this._geUserYLabelPos ? this._geUserYLabelPos.x : yFit.labelX,
             y: this._geUserYLabelPos ? this._geUserYLabelPos.y : 0.5,
             xanchor: this._geUserYLabelPos ? 'auto' : 'center',
             yanchor: this._geUserYLabelPos ? 'auto' : 'middle',
             showarrow: false,
-            font: { size: 20 },
+            font: { size: yLabelFontSize },
             textangle: -90,
             _tsRole: 'ylabel'
         };
@@ -6659,17 +6668,17 @@ class CorrelationExplorer {
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : 'transparent',
                 zerolinewidth: showZero ? 2 : 0,
-                tickfont: { size: 17 }
+                tickfont: { size: yTickFontSize }
             },
             yaxis: {
                 tickmode: 'array',
                 tickvals: [0, 1, 2],
-                ticktext: [`${tick0Label} (n=${data.wt.length})`, `${tick1Label} (n=${data.mut1.length})`, `${tick2Label} (n=${data.mut2.length})`],
+                ticktext: yTickTexts,
                 range: [-0.5, 2.5],
-                tickfont: { size: 17 }
+                tickfont: { size: yTickFontSize }
             },
             showlegend: false,
-            margin: { t: 160, r: 30, b: 55, l: 160 },
+            margin: { t: 160, r: 30, b: 55, l: yFit.marginL },
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
@@ -18165,6 +18174,47 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             : document.getElementById('geByHotspotView');
         plotContainer.appendChild(panel);
         panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Compute dynamic left margin and y-label x (paper coords) so the rotated
+    // y-label never overlaps the widest tick label, regardless of slider width
+    // or tick-content length. Called before building a layout that uses a
+    // custom y-label annotation with _tsRole='ylabel'.
+    //
+    // Returns { marginL, labelX } in pixels / paper-fraction respectively.
+    _computeGEYAxisLayout(tickTexts, tickFontSize, labelFontSize, plotDivId) {
+        const ctx = (this._geMeasureCtx ||= document.createElement('canvas').getContext('2d'));
+        // Match Plotly font; font-weight doesn't materially change widths here
+        ctx.font = `${tickFontSize}px Arial, Helvetica, sans-serif`;
+        let tickPx = 0;
+        for (const t of tickTexts || []) {
+            const w = ctx.measureText(String(t)).width;
+            if (w > tickPx) tickPx = w;
+        }
+        tickPx = Math.ceil(tickPx);
+
+        // Rotated label's horizontal extent ≈ font size + small pad for stems
+        const labelPx = Math.ceil(labelFontSize + 4);
+
+        const gapTickLabel = 10;   // space between rightmost tick text and label
+        const gapLabelMargin = 8;  // space between label and plot-area margin edge
+
+        // Dynamic left margin (floor/ceiling to avoid extremes)
+        const marginL = Math.max(80, Math.min(320, tickPx + gapTickLabel + labelPx + gapLabelMargin));
+
+        // Convert the label's intended pixel offset into a paper-fraction x.
+        // Plot-area left edge is at paper x=0. Labels sit at negative paper x.
+        const container = plotDivId ? document.getElementById(plotDivId) : null;
+        const containerWidth = container?.clientWidth || 600;
+        const marginR = 30;
+        const plotAreaWidth = Math.max(50, containerWidth - marginL - marginR);
+
+        // Center the rotated label at tickPx + gapTickLabel + labelPx/2 pixels
+        // left of plot-area left edge.
+        const labelPxOffset = tickPx + gapTickLabel + labelPx / 2;
+        const labelX = -labelPxOffset / plotAreaWidth;
+
+        return { marginL, labelX };
     }
 
     // Single source of truth for "is there a plot to show vs the placeholder?"
