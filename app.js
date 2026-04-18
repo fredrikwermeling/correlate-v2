@@ -22460,6 +22460,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         document.getElementById('clbOncoprintBtn').addEventListener('click', () => this.showOncoprint('clb'));
 
+        // CLB help modal
+        document.getElementById('clbInfoBtn')?.addEventListener('click', () => {
+            document.getElementById('clbInfoModal').style.display = 'flex';
+        });
+        document.getElementById('clbInfoCloseBtn')?.addEventListener('click', () => {
+            document.getElementById('clbInfoModal').style.display = 'none';
+        });
+        document.getElementById('clbInfoModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'clbInfoModal') e.target.style.display = 'none';
+        });
+
         document.getElementById('clbResetFilters').addEventListener('click', () => {
             document.getElementById('clbSearch').value = '';
             document.getElementById('clbTissueFilter').value = '';
