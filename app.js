@@ -22145,6 +22145,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
     }
 
+    // Expanded, human-readable "Sex (expression)" string combining both axes.
+    // When expression is unknown, infer reason from annotation.
+    _getSexExpressionDisplay(cl) {
+        const { annotation, byExpression } = this._getCellLineSex(cl);
+        if (byExpression === 'male') return 'Male';
+        if (byExpression === 'female') return 'Female';
+        if (annotation === 'Male') return 'Unknown (likely Y-chromosome loss)';
+        if (annotation === 'Female') return 'Unknown (likely XIST silencing)';
+        return 'Unknown';
+    }
+
+    // Single symbol (♂ / ♀ / ?) + color + tooltip for list display.
+    _getSexSymbol(cl) {
+        const { annotation, byExpression } = this._getCellLineSex(cl);
+        if (annotation === 'Male')   return { sym: '♂', color: '#2563eb', italic: false, title: 'Male (annotation)' };
+        if (annotation === 'Female') return { sym: '♀', color: '#db2777', italic: false, title: 'Female (annotation)' };
+        if (byExpression === 'male')   return { sym: '♂', color: '#2563eb', italic: true,  title: 'Male (by expression)' };
+        if (byExpression === 'female') return { sym: '♀', color: '#db2777', italic: true,  title: 'Female (by expression)' };
+        return { sym: '?', color: '#9ca3af', italic: false, title: 'Sex unknown' };
+    }
+
+    // Numeric rank for sex-grouped sort. Lower = earlier.
+    //   Male=0, Female=1, Unknown=2
+    _getSexSortKey(cl, axis) {
+        const { annotation, byExpression } = this._getCellLineSex(cl);
+        const val = axis === 'annotation' ? annotation : byExpression;
+        if (val === 'Male' || val === 'male') return 0;
+        if (val === 'Female' || val === 'female') return 1;
+        return 2;
+    }
+
     // Test if cell line matches a sex-filter value from the dropdown.
     _cellLineMatchesSexFilter(cl, filter) {
         if (!filter) return true;
@@ -22260,6 +22291,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             clbSortDir.innerHTML = this._clbSortAsc ? '&#x25B2;' : '&#x25BC;';
             this.renderCellLineList();
         });
+        document.getElementById('clbSexSort').addEventListener('change', () => this.renderCellLineList());
 
         document.getElementById('clbOncoprintBtn').addEventListener('click', () => this.showOncoprint('clb'));
 
@@ -22274,6 +22306,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('clbSortGene').value = '';
             document.getElementById('clbSortGene').style.display = 'none';
             document.getElementById('clbSortDir').style.display = 'none';
+            document.getElementById('clbSexSort').value = '';
             this._clbSortMode = 'name';
             this._clbSortAsc = true;
             this._oncoprintFilters = {};
@@ -22538,11 +22571,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         // Sort mode: name | hotspot | damaging | fusion | ge
+        // Sex sort (separate axis): '' | 'annotation' | 'expression' — grouping primary key.
         const mode = this._clbSortMode || 'name';
+        const sexSort = document.getElementById('clbSexSort')?.value || '';
         const dir = this._clbSortAsc ? 1 : -1;
         let geMap = null;
         let countMap = null; // used for hotspot/damaging/fusion to display counts inline
 
+        // Build secondary comparator (the existing sort mode)
+        let secondaryCmp;
         if (mode === 'ge') {
             const sortGene = document.getElementById('clbSortGene').value.trim().toUpperCase();
             const sortGeneIdx = sortGene ? this.geneIndex.get(sortGene) : undefined;
@@ -22555,29 +22592,40 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         geMap.set(cl, (!isNaN(val) && val !== -999) ? val : NaN);
                     }
                 }
-                filtered.sort((a, b) => {
+                secondaryCmp = (a, b) => {
                     const va = geMap.get(a), vb = geMap.get(b);
                     if (isNaN(va) && isNaN(vb)) return 0;
                     if (isNaN(va)) return 1;
                     if (isNaN(vb)) return -1;
                     return (va - vb) * dir;
-                });
+                };
             } else {
-                filtered.sort((a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)));
+                secondaryCmp = (a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b));
             }
         } else if (mode === 'hotspot' || mode === 'damaging' || mode === 'fusion') {
             const source = mode === 'hotspot' ? this._hotspotCountByCL
                          : mode === 'damaging' ? this._damagingCountByCL
                          : this._fusionCountByCL;
             countMap = source;
-            filtered.sort((a, b) => {
+            secondaryCmp = (a, b) => {
                 const va = source.get(a) || 0;
                 const vb = source.get(b) || 0;
                 if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
                 return (va - vb) * dir;
+            };
+        } else {
+            secondaryCmp = (a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+        }
+
+        if (sexSort === 'annotation' || sexSort === 'expression') {
+            filtered.sort((a, b) => {
+                const ka = this._getSexSortKey(a, sexSort);
+                const kb = this._getSexSortKey(b, sexSort);
+                if (ka !== kb) return ka - kb;
+                return secondaryCmp(a, b);
             });
         } else {
-            filtered.sort((a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)));
+            filtered.sort(secondaryCmp);
         }
 
         this._clbVisibleCellLines = filtered;
@@ -22609,9 +22657,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             const gr = this.growthRateData?.[cl];
             const grStr = gr !== undefined ? `<span style="font-size:9px; color:#9333ea; margin-left:4px; flex-shrink:0;" title="Growth rate">${gr.toFixed(2)}</span>` : '';
-            const titleParts = [name, lin, sub, gr !== undefined ? `Growth: ${gr.toFixed(3)}` : ''].filter(Boolean).join(' · ');
+            const sx = this._getSexSymbol(cl);
+            const sxStyle = `color:${sx.color}; font-weight:700; margin-right:4px;${sx.italic ? ' font-style:italic;' : ''}`;
+            const sexStr = `<span style="${sxStyle}" title="${sx.title}">${sx.sym}</span>`;
+            const titleParts = [name, lin, sub, sx.title, gr !== undefined ? `Growth: ${gr.toFixed(3)}` : ''].filter(Boolean).join(' · ');
             return `<div class="${cls.join(' ')}" data-clid="${cl}" title="${titleParts}">` +
                 `<input type="checkbox"${selected ? ' checked' : ''}>` +
+                sexStr +
                 `<span class="clb-entry-name">${name}</span>` +
                 `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${sortValStr}${grStr}</div>`;
         }).join('');
@@ -22860,7 +22912,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Top section (metadata) — rendered once
         const { annotation: sexAnn, byExpression: sexExp } = this._getCellLineSex(cellLineId);
-        const expDisplay = sexExp === 'male' ? 'Male' : sexExp === 'female' ? 'Female' : 'Unknown';
+        const expDisplay = this._getSexExpressionDisplay(cellLineId);
         const disagree = (sexAnn === 'Male' && sexExp === 'female') || (sexAnn === 'Female' && sexExp === 'male');
         const expStyle = disagree ? ' style="color:#b45309;" title="Expression disagrees with annotation"' : '';
         let top = `<h4>${name}</h4>`;

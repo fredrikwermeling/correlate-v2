@@ -1315,6 +1315,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.6 (2026-04-18)</strong></p>
+                <ul>
+                    <li>Cell Line Browser list: <strong>♂ / ♀ / ?</strong> symbol next to each cell line (annotation first, falls back to expression in italic, ? when both unknown)</li>
+                    <li>Detail panel: <strong>Sex (expression)</strong> expands to "Unknown (likely Y-chromosome loss)" or "Unknown (likely XIST silencing)" based on annotation context</li>
+                    <li>New <strong>Sex sort</strong> control — groups cell lines by sex (Male → Female → Unknown); main sort still orders within each group. Independent from the main Sort dropdown</li>
+                </ul>
                 <p><strong>v.67.5 (2026-04-18)</strong></p>
                 <ul>
                     <li>Sex-by-expression classifier now uses independent Y-marker and XIST thresholds (Y&gt;1.0 → male; XIST&gt;1.0 with Y low → female). Earlier score-based threshold required XIST to be extremely high, causing many XIST-silenced female cancers (esp. breast) to fall into Unknown</li>
@@ -1785,7 +1791,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.6</a>
     </div>
 
     <div class="main-content">
@@ -3317,6 +3323,11 @@
           </select>
           <input type="text" id="clbSortGene" placeholder="Gene..." style="width:100px; display:none;" title="Gene name for GE sort">
           <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="padding:4px 6px; font-size:10px; display:none;">&#x25BC;</button>
+          <select id="clbSexSort" style="font-size:12px;" title="Group cell lines by sex (Male → Female → Unknown). The main sort still orders within each group.">
+            <option value="">Sex sort: off</option>
+            <option value="annotation">Group by sex (annotation)</option>
+            <option value="expression">Group by sex (expression)</option>
+          </select>
           <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Reset all filters">Reset</button>
           <span id="clbSelectionCount" class="clb-selection-count">0 selected</span>
           <div id="clbActiveFilters" style="display:none; font-size:10px; color:#374151; padding:2px 0; gap:4px; flex-wrap:wrap; align-items:center; width:100%;"></div>
