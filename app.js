@@ -22613,6 +22613,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
                 return (va - vb) * dir;
             };
+        } else if (mode === 'tissue') {
+            secondaryCmp = (a, b) => {
+                const ta = this.getCellLineLineage(a) || '';
+                const tb = this.getCellLineLineage(b) || '';
+                if (ta !== tb) return ta.localeCompare(tb) * dir;
+                const sa = this.getCellLineSublineage(a) || '';
+                const sb = this.getCellLineSublineage(b) || '';
+                if (sa !== sb) return sa.localeCompare(sb) * dir;
+                return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+            };
         } else {
             secondaryCmp = (a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b));
         }
