@@ -1045,8 +1045,8 @@
         .clb-entry.clb-selected { border-color: var(--green-400); background: var(--green-50); }
         .clb-entry.clb-inspected { border-color: #60a5fa; background: #eff6ff; }
         .clb-entry input[type="checkbox"] { flex-shrink: 0; cursor: pointer; }
-        .clb-entry-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; max-width: 55%; }
-        .clb-entry-tissue { font-size: 10px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .clb-entry-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0; max-width: 75%; }
+        .clb-entry-tissue { font-size: 10px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 2; min-width: 0; }
         .clb-detail {
             width: 280px;
             flex-shrink: 0;
@@ -1315,6 +1315,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.15 (2026-04-18)</strong></p>
+                <ul>
+                    <li>Cell Line Browser modal widened (1200 &rarr; min(98vw, 1600)). In the list, cell line name now gets up to 75% of the entry width and tissue/subtype shrinks first when cramped, so names are cropped only when excessively long</li>
+                </ul>
                 <p><strong>v.67.14 (2026-04-18)</strong></p>
                 <ul>
                     <li>CLB help modal: fusion entries clarified as "fusion/translocation"</li>
@@ -1823,7 +1827,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.14</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.15</a>
     </div>
 
     <div class="main-content">
@@ -3375,7 +3379,7 @@
 
     <!-- Cell Line Browser Modal -->
     <div id="cellLineBrowserModal" style="display:none; position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,0.5); justify-content:center; align-items:flex-start; padding:20px;">
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:1200px; max-height:calc(100vh - 40px); margin-top:20px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+      <div style="background:#fff; border-radius:8px; width:100%; max-width:min(98vw, 1600px); max-height:calc(100vh - 40px); margin-top:20px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
         <!-- Header -->
         <div class="modal-header">
           <h3>Cell Line Browser</h3>
