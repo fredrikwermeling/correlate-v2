@@ -6617,7 +6617,7 @@ class CorrelationExplorer {
         const xLabelText = `${gene} Gene Effect`;
 
         const geTitleAnn = {
-            text: `<span style="font-size:25px"><b>${titleText}</b></span><br><span style="font-size:15px;color:#666">${subtitleText}</span>`,
+            text: this._computeGETitleText(titleText, subtitleText, 25, 'geneEffectPlot'),
             xref: 'paper', yref: 'paper',
             x: this._geUserTitlePos ? this._geUserTitlePos.x : 0.5,
             y: this._geUserTitlePos ? this._geUserTitlePos.y : 1.35,
@@ -18174,6 +18174,60 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             : document.getElementById('geByHotspotView');
         plotContainer.appendChild(panel);
         panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Build the title annotation HTML with measure-and-wrap logic so the
+    // title always fits within the plot width. Wraps on word boundaries;
+    // if still too wide after wrapping (very narrow plot), steps font size
+    // down from baseFontSize to a minimum of 12 px.
+    //
+    // Returns the `text:` value for a Plotly annotation. Preserves the
+    // existing subtitle styling.
+    _computeGETitleText(titleText, subtitleText, baseFontSize, plotDivId) {
+        const container = plotDivId ? document.getElementById(plotDivId) : null;
+        const containerWidth = container?.clientWidth || 600;
+        // Safety pad so the text doesn't kiss the plot edges.
+        const maxTitleWidth = Math.max(200, containerWidth - 40);
+
+        const ctx = (this._geMeasureCtx ||= document.createElement('canvas').getContext('2d'));
+        const measure = (text, sizePx) => {
+            ctx.font = `bold ${sizePx}px Arial, Helvetica, sans-serif`;
+            return ctx.measureText(text).width;
+        };
+
+        let fontSize = baseFontSize;
+        let lines = [titleText];
+
+        if (measure(titleText, fontSize) > maxTitleWidth) {
+            lines = this._wrapTextGreedy(titleText, fontSize, maxTitleWidth, measure);
+            while (fontSize > 12 && lines.some(l => measure(l, fontSize) > maxTitleWidth)) {
+                fontSize -= 1;
+                lines = this._wrapTextGreedy(titleText, fontSize, maxTitleWidth, measure);
+            }
+        }
+
+        const titleHtml = `<span style="font-size:${fontSize}px"><b>${lines.join('<br>')}</b></span>`;
+        const subtitleHtml = subtitleText
+            ? `<br><span style="font-size:15px;color:#666">${subtitleText}</span>`
+            : '';
+        return titleHtml + subtitleHtml;
+    }
+
+    _wrapTextGreedy(text, fontSize, maxWidth, measure) {
+        const words = String(text).split(/\s+/);
+        const lines = [];
+        let cur = '';
+        for (const w of words) {
+            const trial = cur ? cur + ' ' + w : w;
+            if (!cur || measure(trial, fontSize) <= maxWidth) {
+                cur = trial;
+            } else {
+                lines.push(cur);
+                cur = w;
+            }
+        }
+        if (cur) lines.push(cur);
+        return lines;
     }
 
     // Compute dynamic left margin and y-label x (paper coords) so the rotated
