@@ -22166,16 +22166,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return { sym: '?', color: '#9ca3af', italic: false, title: 'Sex unknown' };
     }
 
-    // Numeric rank for sex-grouped sort. Lower = earlier.
-    //   Male=0, Female=1, Unknown=2
-    _getSexSortKey(cl, axis) {
-        const { annotation, byExpression } = this._getCellLineSex(cl);
-        const val = axis === 'annotation' ? annotation : byExpression;
-        if (val === 'Male' || val === 'male') return 0;
-        if (val === 'Female' || val === 'female') return 1;
-        return 2;
-    }
-
     // Test if cell line matches a sex-filter value from the dropdown.
     _cellLineMatchesSexFilter(cl, filter) {
         if (!filter) return true;
@@ -22291,7 +22281,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             clbSortDir.innerHTML = this._clbSortAsc ? '&#x25B2;' : '&#x25BC;';
             this.renderCellLineList();
         });
-        document.getElementById('clbSexSort').addEventListener('change', () => this.renderCellLineList());
 
         document.getElementById('clbOncoprintBtn').addEventListener('click', () => this.showOncoprint('clb'));
 
@@ -22306,7 +22295,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('clbSortGene').value = '';
             document.getElementById('clbSortGene').style.display = 'none';
             document.getElementById('clbSortDir').style.display = 'none';
-            document.getElementById('clbSexSort').value = '';
             this._clbSortMode = 'name';
             this._clbSortAsc = true;
             this._oncoprintFilters = {};
@@ -22570,10 +22558,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return true;
         });
 
-        // Sort mode: name | hotspot | damaging | fusion | ge
-        // Sex sort (separate axis): '' | 'annotation' | 'expression' — grouping primary key.
+        // Sort mode: name | tissue | hotspot | damaging | fusion | ge
         const mode = this._clbSortMode || 'name';
-        const sexSort = document.getElementById('clbSexSort')?.value || '';
         const dir = this._clbSortAsc ? 1 : -1;
         let geMap = null;
         let countMap = null; // used for hotspot/damaging/fusion to display counts inline
@@ -22627,16 +22613,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             secondaryCmp = (a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b));
         }
 
-        if (sexSort === 'annotation' || sexSort === 'expression') {
-            filtered.sort((a, b) => {
-                const ka = this._getSexSortKey(a, sexSort);
-                const kb = this._getSexSortKey(b, sexSort);
-                if (ka !== kb) return ka - kb;
-                return secondaryCmp(a, b);
-            });
-        } else {
-            filtered.sort(secondaryCmp);
-        }
+        filtered.sort(secondaryCmp);
 
         this._clbVisibleCellLines = filtered;
         this._updateClbActiveFilterLabel();
