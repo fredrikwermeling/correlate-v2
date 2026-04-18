@@ -2408,17 +2408,6 @@ class CorrelationExplorer {
      * Get growth rate for a cell line by its GE cell-line index.
      * Returns NaN if growth rate data is not loaded or cell line is missing.
      */
-    getGrowthRateByGEIndex(geCellLineIndex) {
-        if (!this.growthRateData) return NaN;
-        const cellLine = this.metadata.cellLines[geCellLineIndex];
-        const val = this.growthRateData[cellLine];
-        return val !== undefined ? val : NaN;
-    }
-
-    /**
-     * Get axis value for a gene at a given GE cell-line index, respecting axis type.
-     * type: 'ge' | 'expr' | 'growth'
-     */
     getAxisValue(gene, geCellLineIndex, type, geData) {
         if (type === 'geneset') return this.getGeneSetScoreByGEIndex(geCellLineIndex);
         if (type === 'growth') return this.getGrowthRateByGEIndex(geCellLineIndex);
@@ -3321,7 +3310,6 @@ class CorrelationExplorer {
         document.getElementById('compareAllMutationsBtn')?.addEventListener('click', () => this.showCompareAllMutations());
         document.getElementById('compareAllTranslocationsBtn')?.addEventListener('click', () => this.showCompareAllTranslocations());
         document.getElementById('compareAllCancerTypesBtn')?.addEventListener('click', () => this.showCompareAllCancerTypes());
-        document.getElementById('compareAllGrowthBtn')?.addEventListener('click', () => this.showCompareByGrowthRate());
         document.getElementById('compareAllGeneSetsBtn')?.addEventListener('click', () => this.showCompareByGeneSets());
         document.getElementById('mutGeneSetAnalysisBtn')?.addEventListener('click', () => this.showMutationGeneSetAnalysis());
         document.getElementById('updateInspectGenes')?.addEventListener('click', () => this.updateInspectGenes());
@@ -3544,8 +3532,6 @@ class CorrelationExplorer {
             document.getElementById('exprCorrelatesPanel').style.display = 'none';
         });
 
-        // GE Growth Rate button — show growth rate by tissue (no gene needed)
-        document.getElementById('geGrowthRateBtn')?.addEventListener('click', () => this._showGrowthRateAnalysis());
 
         // GE Gene Set button — show/hide gene set dropdown
         document.getElementById('geGeneSetBtn')?.addEventListener('click', async () => {
@@ -12714,262 +12700,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('inspectTitle').textContent = `Correlation: ${gene1} vs ${gene2}${typeInfo}`;
     }
 
-    showCompareByGrowthRate() {
-        if (!this.currentInspect || !this.growthRateData) return;
-
-        const { gene1, gene2, data } = this.currentInspect;
-
-        // Apply current filters
-        const cancerFilter = document.getElementById('scatterCancerFilter').value;
-        const subtypeFilter = document.getElementById('scatterSubtypeFilter').value;
-        const mutFilterGene = document.getElementById('mutationFilterGene').value;
-        const mutFilterLevel = document.getElementById('mutationFilterLevel').value;
-
-        let filteredData = cancerFilter ? data.filter(d => d.lineage === cancerFilter) : [...data];
-
-        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
-            filteredData = filteredData.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
-        }
-        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
-            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
-            filteredData = filteredData.filter(d => {
-                const mutLevel = filterMutations[d.cellLineId] || 0;
-                if (mutFilterLevel === '0') return mutLevel === 0;
-                if (mutFilterLevel === '1') return mutLevel === 1;
-                if (mutFilterLevel === '2') return mutLevel >= 2;
-                if (mutFilterLevel === '1+2') return mutLevel >= 1;
-                return true;
-            });
-        }
-        if (this._customCellLineFilter) {
-            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
-        }
-
-        // Get growth rate for each cell line
-        const withGrowth = filteredData.map(d => ({
-            ...d,
-            growth: this.growthRateData[d.cellLineId] ?? NaN
-        })).filter(d => !isNaN(d.growth));
-
-        if (withGrowth.length < 5) {
-            alert(`Too few cell lines with growth rate data (${withGrowth.length}). Need at least 5.`);
-            return;
-        }
-
-        // Correlate X gene vs growth and Y gene vs growth
-        const xVals = withGrowth.map(d => d.x);
-        const yVals = withGrowth.map(d => d.y);
-        const grVals = withGrowth.map(d => d.growth);
-
-        const xVsGr = this.pearsonWithSlope(xVals, grVals);
-        const yVsGr = this.pearsonWithSlope(yVals, grVals);
-
-        // Also compute by tissue
-        const tissueGroups = {};
-        withGrowth.forEach(d => {
-            const t = d.lineage || 'Unknown';
-            if (!tissueGroups[t]) tissueGroups[t] = [];
-            tissueGroups[t].push(d);
-        });
-
-        const tissueRows = Object.entries(tissueGroups)
-            .filter(([, pts]) => pts.length >= 5)
-            .map(([tissue, pts]) => {
-                const tx = pts.map(d => d.x), ty = pts.map(d => d.y), tg = pts.map(d => d.growth);
-                const rxg = this.pearsonWithSlope(tx, tg);
-                const ryg = this.pearsonWithSlope(ty, tg);
-                return { tissue, n: pts.length, rxg: rxg.correlation, ryg: ryg.correlation };
-            })
-            .sort((a, b) => Math.abs(b.rxg) - Math.abs(a.rxg));
-
-        // Build filter description
-        const filterParts = [];
-        if (cancerFilter) filterParts.push(`Tissue: ${cancerFilter}`);
-        if (subtypeFilter) filterParts.push(`Subtype: ${subtypeFilter}`);
-        if (mutFilterGene && mutFilterLevel !== 'all') filterParts.push(`${mutFilterGene}: ${mutFilterLevel}`);
-        const filterDesc = filterParts.join(' | ');
-
-        // Render
-        const xType = this.currentInspect.xType || 'ge';
-        const yType = this.currentInspect.yType || 'ge';
-        const xLabel = xType === 'growth' ? 'Growth Rate' : xType === 'expr' ? `${gene1} Expr` : `${gene1} GE`;
-        const yLabel = yType === 'growth' ? 'Growth Rate' : yType === 'expr' ? `${gene2} Expr` : `${gene2} GE`;
-
-        const corrColor = (r) => r > 0 ? '#059669' : '#dc2626';
-        const fmt = (v) => isNaN(v) ? '-' : v.toFixed(3);
-
-        let html = `<div style="padding: 10px;">
-            <h4 style="margin: 0 0 6px 0;">Growth Rate Correlation — ${gene1} vs ${gene2}</h4>
-            <p style="font-size: 11px; color: #666; margin: 0 0 10px 0;">
-                n=${withGrowth.length} cell lines${filterDesc ? ' | ' + filterDesc : ''}
-            </p>
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 12px;">
-                <tr style="background: #f9fafb; font-weight: 600;">
-                    <td style="padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">Axis</td>
-                    <td style="padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">r vs Growth</td>
-                    <td style="padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">n</td>
-                    <td style="padding: 6px 8px; border-bottom: 2px solid #e5e7eb;"></td>
-                </tr>
-                <tr>
-                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-weight: 500;">${xLabel} (X)</td>
-                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; color: ${corrColor(xVsGr.correlation)}; font-weight: 600;">${fmt(xVsGr.correlation)}</td>
-                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb;">${xVsGr.n}</td>
-                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb;">
-                        <button class="btn btn-sm" style="font-size:10px;padding:1px 6px;background:#9333ea;color:white;" onclick="app.openGrowthRateScatter('x')">Scatter</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-weight: 500;">${yLabel} (Y)</td>
-                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; color: ${corrColor(yVsGr.correlation)}; font-weight: 600;">${fmt(yVsGr.correlation)}</td>
-                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb;">${yVsGr.n}</td>
-                    <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb;">
-                        <button class="btn btn-sm" style="font-size:10px;padding:1px 6px;background:#9333ea;color:white;" onclick="app.openGrowthRateScatter('y')">Scatter</button>
-                    </td>
-                </tr>
-            </table>`;
-
-        if (tissueRows.length > 0) {
-            html += `<h5 style="margin: 12px 0 6px 0;">By Tissue</h5>
-            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                <tr style="background: #f9fafb; font-weight: 600;">
-                    <td style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">Tissue</td>
-                    <td style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">n</td>
-                    <td style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">r(${gene1} vs GR)</td>
-                    <td style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">r(${gene2} vs GR)</td>
-                </tr>`;
-            tissueRows.forEach(row => {
-                html += `<tr>
-                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6;">${row.tissue}</td>
-                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6;">${row.n}</td>
-                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; color: ${corrColor(row.rxg)}; font-weight: 500;">${fmt(row.rxg)}</td>
-                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; color: ${corrColor(row.ryg)}; font-weight: 500;">${fmt(row.ryg)}</td>
-                </tr>`;
-            });
-            html += `</table>`;
-        }
-
-        html += `<div style="margin-top: 10px; display: flex; gap: 6px;">
-            <button class="btn btn-outline btn-sm" onclick="document.getElementById('compareTable').style.display='none'; document.getElementById('scatterPlot').style.display='block';">Back to Scatter</button>
-            <button class="btn btn-sm" id="findTopGrowthCorrelators" style="background: #6b7280; color: white; font-size: 10px;">Find Top Growth Correlators (all genes)</button>
-        </div>
-        <div id="topGrowthCorrelators"></div>
-        </div>`;
-
-        document.getElementById('scatterPlot').style.display = 'none';
-        document.getElementById('compareTable').style.display = 'block';
-        document.getElementById('compareTable').innerHTML = html;
-
-        document.getElementById('findTopGrowthCorrelators').addEventListener('click', () => this.findTopGrowthCorrelators());
-    }
-
-    findTopGrowthCorrelators() {
-        if (!this.growthRateData || !this.currentInspect) return;
-
-        const container = document.getElementById('topGrowthCorrelators');
-        const btn = document.getElementById('findTopGrowthCorrelators');
-        btn.textContent = 'Scanning...';
-        btn.disabled = true;
-
-        // Use current scatter filters
-        const data = this.currentInspect.data || [];
-        const cancerFilter = document.getElementById('scatterCancerFilter').value;
-        const subtypeFilter = document.getElementById('scatterSubtypeFilter').value;
-        const mutFilterGene = document.getElementById('mutationFilterGene').value;
-        const mutFilterLevel = document.getElementById('mutationFilterLevel').value;
-
-        let filteredData = cancerFilter ? data.filter(d => d.lineage === cancerFilter) : [...data];
-        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
-            filteredData = filteredData.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
-        }
-        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
-            const filterMuts = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
-            filteredData = filteredData.filter(d => {
-                const ml = filterMuts[d.cellLineId] || 0;
-                if (mutFilterLevel === '0') return ml === 0;
-                if (mutFilterLevel === '1') return ml === 1;
-                if (mutFilterLevel === '2') return ml >= 2;
-                if (mutFilterLevel === '1+2') return ml >= 1;
-                return true;
-            });
-        }
-        if (this._customCellLineFilter) {
-            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
-        }
-
-        // Build cell line index set from filtered data
-        const clSet = new Set(filteredData.map(d => d.cellLineId));
-        const clIndices = [];
-        this.metadata.cellLines.forEach((cl, i) => { if (clSet.has(cl)) clIndices.push(i); });
-
-        // Build growth rate vector for these indices
-        const grVals = clIndices.map(i => {
-            const cl = this.metadata.cellLines[i];
-            return this.growthRateData[cl] ?? NaN;
-        });
-
-        // Scan all genes
-        setTimeout(() => {
-            const results = [];
-            const geneNames = [...this.geneIndex.keys()];
-
-            for (const gene of geneNames) {
-                const geneIdx = this.geneIndex.get(gene);
-                const geneData = this.getGeneData(geneIdx);
-
-                const validX = [], validY = [];
-                for (let j = 0; j < clIndices.length; j++) {
-                    const ge = geneData[clIndices[j]];
-                    const gr = grVals[j];
-                    if (!isNaN(ge) && !isNaN(gr)) {
-                        validX.push(ge);
-                        validY.push(gr);
-                    }
-                }
-
-                if (validX.length >= 20) {
-                    const stats = this.pearsonWithSlope(validX, validY);
-                    if (!isNaN(stats.correlation)) {
-                        results.push({ gene, r: stats.correlation, n: validX.length });
-                    }
-                }
-            }
-
-            results.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
-            const top100 = results.slice(0, 100);
-
-            const corrColor = (r) => r > 0 ? '#059669' : '#dc2626';
-            const fmt = (v) => v.toFixed(3);
-
-            let html = `<h5 style="margin: 12px 0 6px 0;">Top 100 Genes Correlated with Growth Rate (n=${clIndices.length} cell lines)</h5>
-            <p style="font-size:10px; color:#999; margin:0 0 6px 0;">Note: Growth rate correlations are generally weak (max |r| ≈ 0.3). Top hits are core growth machinery (translation, ribosome, mitochondria).</p>
-            <div style="max-height: 400px; overflow-y: auto;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                <thead style="position: sticky; top: 0; background: white;">
-                <tr style="background: #f9fafb; font-weight: 600;">
-                    <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb; text-align: left;">Gene</th>
-                    <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">r</th>
-                    <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;">n</th>
-                    <th style="padding: 4px 8px; border-bottom: 2px solid #e5e7eb;"></th>
-                </tr></thead><tbody>`;
-
-            top100.forEach(row => {
-                html += `<tr>
-                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; font-weight: 500;">${row.gene}</td>
-                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6; color: ${corrColor(row.r)}; font-weight: 500;">${fmt(row.r)}</td>
-                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6;">${row.n}</td>
-                    <td style="padding: 3px 8px; border-bottom: 1px solid #f3f4f6;">
-                        <button class="btn btn-sm" style="font-size:9px;padding:1px 4px;background:#6b7280;color:white;" onclick="app.openGrowthScatterForGene('${row.gene}')">Scatter</button>
-                    </td>
-                </tr>`;
-            });
-            html += `</tbody></table></div>`;
-
-            container.innerHTML = html;
-            btn.textContent = 'Find Top Growth Correlators (all genes)';
-            btn.disabled = false;
-        }, 50);
-    }
-
     async showCompareByGeneSets() {
         if (!this.currentInspect) return;
 
@@ -13103,39 +12833,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('geneSetSelect').value = setName;
         document.getElementById('geneSetInfo').textContent = `${Object.keys(scores).length} CLs, ${this.hallmarkGeneSets[setName].length} genes`;
         this._updateGeneSetSelectorVisibility();
-        this.updateInspectGenes();
-    }
-
-    openGrowthScatterForGene(gene) {
-        const xInput = document.getElementById('inspectGeneX');
-        const yInput = document.getElementById('inspectGeneY');
-        xInput.value = gene;
-        xInput.disabled = false;
-        xInput.placeholder = 'X gene';
-        document.getElementById('xAxisDataType').value = 'ge';
-        yInput.dataset.savedGene = yInput.value;
-        yInput.value = '';
-        yInput.disabled = true;
-        yInput.placeholder = 'Growth Rate';
-        document.getElementById('yAxisDataType').value = 'growth';
-        this.updateInspectGenes();
-    }
-
-    openGrowthRateScatter(axis) {
-        if (!this.currentInspect) return;
-        const gene = axis === 'x' ? this.currentInspect.gene1 : this.currentInspect.gene2;
-        const xInput = document.getElementById('inspectGeneX');
-        const yInput = document.getElementById('inspectGeneY');
-        // X axis = gene GE, Y axis = growth rate
-        xInput.value = gene;
-        xInput.disabled = false;
-        xInput.placeholder = 'X gene';
-        document.getElementById('xAxisDataType').value = 'ge';
-        yInput.dataset.savedGene = yInput.value;
-        yInput.value = '';
-        yInput.disabled = true;
-        yInput.placeholder = 'Growth Rate';
-        document.getElementById('yAxisDataType').value = 'growth';
         this.updateInspectGenes();
     }
 
@@ -18723,11 +18420,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
     }
 
-    _showGrowthRateAnalysis() {
-        if (!this.growthRateData) { alert('Growth rate data not available.'); return; }
-        this._showIndependentAnalysis(this.growthRateData, 'Growth Rate');
-    }
-
     async _showGeneSetAnalysis(setName) {
         const isGE = setName.startsWith('GE:');
         const realName = isGE ? setName.slice(3) : setName;
@@ -22557,11 +22249,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbExportMinimal').addEventListener('click', () => this.exportCellLineBrowserCSV('minimal'));
         document.getElementById('clbExportFull').addEventListener('click', () => this.exportCellLineBrowserCSV('full'));
         document.getElementById('clbExportComprehensive')?.addEventListener('click', () => this.exportCellLineBrowserCSV('comprehensive'));
-        document.getElementById('clbExprVsGEAll')?.addEventListener('click', () => this.showExprVsGEAllPlot());
-        document.getElementById('clbExprVsGEBtn')?.addEventListener('click', () => this.showExprVsGEPlot());
-        document.getElementById('exprVsGEClose')?.addEventListener('click', () => { document.getElementById('exprVsGESection').style.display = 'none'; });
-        document.getElementById('exprVsGEGeneSearch')?.addEventListener('input', () => this.filterExprVsGETable());
-        document.getElementById('exprVsGEAaBtn')?.addEventListener('click', () => this.openTextSettings('exprVsGEPlot'));
 
         // Gene tooltips on gene links in detail panel
         const geneLists = document.getElementById('clbDetailGeneLists');
@@ -22829,17 +22516,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const v = countMap.get(cl) || 0;
                 sortValStr = `<span style="font-size:10px; color:#666; margin-left:auto; flex-shrink:0;" title="${mode} count">${v}</span>`;
             }
-            const gr = this.growthRateData?.[cl];
-            const grStr = gr !== undefined ? `<span style="font-size:9px; color:#9333ea; margin-left:4px; flex-shrink:0;" title="Growth rate">${gr.toFixed(2)}</span>` : '';
             const sx = this._getSexSymbol(cl);
             const sxStyle = `color:${sx.color}; font-weight:700; margin-right:4px;${sx.italic ? ' font-style:italic;' : ''}`;
             const sexStr = `<span style="${sxStyle}" title="${sx.title}">${sx.sym}</span>`;
-            const titleParts = [name, lin, sub, sx.title, gr !== undefined ? `Growth: ${gr.toFixed(3)}` : ''].filter(Boolean).join(' · ');
+            const titleParts = [name, lin, sub, sx.title].filter(Boolean).join(' · ');
             return `<div class="${cls.join(' ')}" data-clid="${cl}" title="${titleParts}">` +
                 `<input type="checkbox"${selected ? ' checked' : ''}>` +
                 sexStr +
                 `<span class="clb-entry-name">${name}</span>` +
-                `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${sortValStr}${grStr}</div>`;
+                `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${sortValStr}</div>`;
         }).join('');
         container.innerHTML = html;
 
@@ -23382,303 +23067,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
     }
 
-    async showExprVsGEPlot(cellLineId) {
-        // Accept explicit cell line ID or fall back to inspected one
-        cellLineId = cellLineId || this._clbInspectedCellLine;
-        if (!cellLineId) { alert('Select a cell line first.'); return; }
-
-        // Ensure expression data is loaded
-        if (!this.expressionLoaded) {
-            try { await this.loadExpressionData(); } catch (e) { alert('Failed to load expression data: ' + e.message); return; }
-        }
-
-        const clIdx = this.metadata.cellLines.indexOf(cellLineId);
-        if (clIdx < 0) return;
-        const clName = this.getCellLineName(cellLineId);
-
-        // Build data: X=expression, Y=gene effect for all genes
-        const data = [];
-        for (let g = 0; g < this.nGenes; g++) {
-            const ge = this.geneEffects[g * this.nCellLines + clIdx];
-            if (isNaN(ge) || ge === -999) continue;
-            const geneName = this.geneNames[g];
-            const expr = this.getExpressionValueByGEIndex(geneName, clIdx);
-            if (isNaN(expr)) continue;
-            data.push({ gene: geneName, expr, ge, score: expr * (-ge) });
-        }
-
-        this._exprVsGEData = data;
-        this._exprVsGECellLine = cellLineId;
-        this._exprVsGESortCol = 'score';
-        this._exprVsGESortAsc = false;
-        document.getElementById('exprVsGECellLine').textContent = clName;
-        document.getElementById('exprVsGESection').style.display = '';
-
-        // Render scatter with annotation-based draggable titles
-        const traces = [{
-            x: data.map(d => d.expr),
-            y: data.map(d => d.ge),
-            mode: 'markers',
-            type: 'scatter',
-            text: data.map(d => d.gene),
-            hovertemplate: '%{text}<br>Expr: %{x:.2f}<br>GE: %{y:.3f}<extra></extra>',
-            marker: { color: '#3b82f6', size: 5, opacity: 0.5 },
-            showlegend: false
-        }];
-
-        const titleAnnotation = {
-            x: 0.5, y: 1.0, xref: 'paper', yref: 'paper',
-            xanchor: 'center', yanchor: 'bottom',
-            text: `<span style="font-size:25px"><b>${clName}: Expression vs Gene Effect</b></span><br><span style="font-size:15px;color:#666">${data.length} genes</span>`,
-            showarrow: false,
-            font: { size: Math.round(15 * 0.85) },
-            _tsRole: 'title'
-        };
-        const xLabelAnnotation = {
-            x: 0.5, y: -0.10, xref: 'paper', yref: 'paper',
-            xanchor: 'center', yanchor: 'top',
-            text: 'Expression (log2 TPM+1)',
-            showarrow: false, font: { size: 20 },
-            _tsRole: 'xlabel'
-        };
-        const yLabelAnnotation = {
-            x: -0.12, y: 0.5, xref: 'paper', yref: 'paper',
-            xanchor: 'center', yanchor: 'middle',
-            text: 'Gene Effect', textangle: -90,
-            showarrow: false, font: { size: 20 },
-            _tsRole: 'ylabel'
-        };
-
-        const layout = {
-            xaxis: { tickfont: { size: 17 } },
-            yaxis: { tickfont: { size: 17 } },
-            annotations: [titleAnnotation, xLabelAnnotation, yLabelAnnotation],
-            margin: { t: 80, r: 20, b: 55, l: 65, autoexpand: false },
-            width: 500, height: 420,
-            hovermode: 'closest',
-            plot_bgcolor: '#fafafa'
-        };
-
-        Plotly.newPlot('exprVsGEPlot', traces, layout, {
-            responsive: false, displayModeBar: false, displaylogo: false,
-            edits: { annotationPosition: true }
-        }).then(plotEl => {
-            plotEl.on('plotly_click', (eventData) => {
-                if (eventData.points.length > 0) {
-                    const gene = eventData.points[0].text;
-                    this._highlightExprVsGEGene(gene);
-                }
-            });
-        });
-
-        // Render table
-        this.filterExprVsGETable();
-    }
-
-    sortExprVsGETable(col) {
-        if (this._exprVsGESortCol === col) {
-            this._exprVsGESortAsc = !this._exprVsGESortAsc;
-        } else {
-            this._exprVsGESortCol = col;
-            this._exprVsGESortAsc = col === 'gene'; // alphabetical asc for gene, numeric asc for others (score starts desc via default)
-        }
-        this.filterExprVsGETable();
-    }
-
-    filterExprVsGETable() {
-        const data = this._exprVsGEData;
-        if (!data) return;
-
-        const search = (document.getElementById('exprVsGEGeneSearch')?.value || '').toUpperCase().trim();
-        let filtered = data;
-        if (search) {
-            filtered = data.filter(d => d.gene.toUpperCase().includes(search));
-        }
-
-        // Sort by selected column
-        const col = this._exprVsGESortCol || 'score';
-        const asc = this._exprVsGESortAsc ?? false;
-        filtered = [...filtered].sort((a, b) => {
-            const va = col === 'gene' ? a.gene : a[col];
-            const vb = col === 'gene' ? b.gene : b[col];
-            if (col === 'gene') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
-            return asc ? va - vb : vb - va;
-        });
-
-        const show = filtered.slice(0, 200);
-        const arrow = (c) => this._exprVsGESortCol === c ? (this._exprVsGESortAsc ? ' ▲' : ' ▼') : '';
-        const thStyle = 'padding:2px 4px; cursor:pointer; user-select:none; white-space:nowrap;';
-
-        let html = `<table style="width:100%; border-collapse:collapse; font-size:10px;">
-            <thead><tr style="background:#f3f4f6; position:sticky; top:0;">
-                <th style="${thStyle} text-align:left;" onclick="app.sortExprVsGETable('gene')">Gene${arrow('gene')}</th>
-                <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('expr')">Expr${arrow('expr')}</th>
-                <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('ge')">GE${arrow('ge')}</th>
-                <th style="${thStyle} text-align:right;" onclick="app.sortExprVsGETable('score')" title="Expr × (−GE): high = expressed & essential">Score${arrow('score')}</th>
-            </tr></thead><tbody>`;
-
-        show.forEach(d => {
-            const geColor = d.ge < -0.5 ? '#dc2626' : (d.ge > 0.5 ? '#16a34a' : '#374151');
-            html += `<tr class="exprVsGERow" data-gene="${d.gene}" style="cursor:pointer; border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">
-                <td style="padding:2px 4px;">${d.gene}</td>
-                <td style="padding:2px 4px; text-align:right;">${d.expr.toFixed(2)}</td>
-                <td style="padding:2px 4px; text-align:right; color:${geColor};">${d.ge.toFixed(3)}</td>
-                <td style="padding:2px 4px; text-align:right;">${d.score.toFixed(2)}</td>
-            </tr>`;
-        });
-        html += `</tbody></table>`;
-        if (filtered.length > 200) html += `<div style="font-size:9px;color:#999;text-align:center;margin-top:4px;">Showing 200 of ${filtered.length} genes. Use search to filter.</div>`;
-
-        document.getElementById('exprVsGETable').innerHTML = html;
-
-        document.querySelectorAll('.exprVsGERow').forEach(row => {
-            row.addEventListener('click', () => {
-                this._highlightExprVsGEGene(row.dataset.gene);
-            });
-        });
-    }
-
-    _highlightExprVsGEGene(gene) {
-        const data = this._exprVsGEData;
-        if (!data) return;
-        const d = data.find(dd => dd.gene === gene);
-        if (!d) return;
-
-        const plotEl = document.getElementById('exprVsGEPlot');
-        if (!plotEl?.data) return;
-
-        // Update or add highlight trace
-        const highlightTrace = {
-            x: [d.expr], y: [d.ge],
-            mode: 'markers+text',
-            type: 'scatter',
-            text: [gene],
-            textposition: 'top center',
-            textfont: { size: 10, color: '#000' },
-            marker: { color: '#f59e0b', size: 12, line: { color: '#000', width: 2 } },
-            showlegend: false
-        };
-
-        if (plotEl.data.length > 1) {
-            Plotly.deleteTraces('exprVsGEPlot', 1);
-        }
-        Plotly.addTraces('exprVsGEPlot', highlightTrace);
-
-        // Highlight table row
-        document.querySelectorAll('.exprVsGERow').forEach(row => {
-            row.style.background = row.dataset.gene === gene ? '#fef3c7' : '';
-        });
-    }
-
-    async showExprVsGEAllPlot() {
-        // Use selected cell lines, or all visible if none selected
-        let cellLineIds = [...this._clbSelectedCellLines];
-        if (cellLineIds.length === 0) {
-            cellLineIds = this._clbVisibleCellLines ? [...this._clbVisibleCellLines] : [...this.metadata.cellLines];
-        }
-        if (cellLineIds.length === 0) { alert('No cell lines available.'); return; }
-
-        // Ensure expression data is loaded
-        if (!this.expressionLoaded) {
-            try { await this.loadExpressionData(); } catch (e) { alert('Failed to load expression data: ' + e.message); return; }
-        }
-
-        // Build per-gene mean expression and mean GE across selected cell lines
-        const geneAgg = new Map(); // geneName -> { exprSum, geSum, n }
-        for (const clId of cellLineIds) {
-            const clIdx = this.metadata.cellLines.indexOf(clId);
-            if (clIdx < 0) continue;
-            for (let g = 0; g < this.nGenes; g++) {
-                const ge = this.geneEffects[g * this.nCellLines + clIdx];
-                if (isNaN(ge) || ge === -999) continue;
-                const geneName = this.geneNames[g];
-                const expr = this.getExpressionValueByGEIndex(geneName, clIdx);
-                if (isNaN(expr)) continue;
-                if (!geneAgg.has(geneName)) geneAgg.set(geneName, { exprSum: 0, geSum: 0, n: 0 });
-                const agg = geneAgg.get(geneName);
-                agg.exprSum += expr;
-                agg.geSum += ge;
-                agg.n++;
-            }
-        }
-
-        const data = [];
-        for (const [gene, agg] of geneAgg) {
-            if (agg.n < 2) continue; // require at least 2 cell lines
-            const expr = agg.exprSum / agg.n;
-            const ge = agg.geSum / agg.n;
-            data.push({ gene, expr, ge, score: expr * (-ge) });
-        }
-
-        if (data.length === 0) { alert('No overlapping expression/GE data found.'); return; }
-
-        this._exprVsGEData = data;
-        this._exprVsGECellLine = null;
-        this._exprVsGESortCol = 'score';
-        this._exprVsGESortAsc = false;
-        const label = cellLineIds.length === this.metadata.cellLines.length ? 'All cell lines' :
-            `${cellLineIds.length} cell lines (mean)`;
-        document.getElementById('exprVsGECellLine').textContent = label;
-        document.getElementById('exprVsGESection').style.display = '';
-
-        const traces = [{
-            x: data.map(d => d.expr),
-            y: data.map(d => d.ge),
-            mode: 'markers',
-            type: 'scatter',
-            text: data.map(d => d.gene),
-            hovertemplate: '%{text}<br>Mean Expr: %{x:.2f}<br>Mean GE: %{y:.3f}<extra></extra>',
-            marker: { color: '#7c3aed', size: 5, opacity: 0.5 },
-            showlegend: false
-        }];
-
-        const titleAnnotation = {
-            x: 0.5, y: 1.0, xref: 'paper', yref: 'paper',
-            xanchor: 'center', yanchor: 'bottom',
-            text: `<span style="font-size:25px"><b>Mean Expression vs Gene Effect</b></span><br><span style="font-size:15px;color:#666">${label} · ${data.length} genes</span>`,
-            showarrow: false,
-            font: { size: Math.round(15 * 0.85) },
-            _tsRole: 'title'
-        };
-        const xLabelAnnotation = {
-            x: 0.5, y: -0.10, xref: 'paper', yref: 'paper',
-            xanchor: 'center', yanchor: 'top',
-            text: 'Mean Expression (log2 TPM+1)',
-            showarrow: false, font: { size: 20 },
-            _tsRole: 'xlabel'
-        };
-        const yLabelAnnotation = {
-            x: -0.12, y: 0.5, xref: 'paper', yref: 'paper',
-            xanchor: 'center', yanchor: 'middle',
-            text: 'Mean Gene Effect', textangle: -90,
-            showarrow: false, font: { size: 20 },
-            _tsRole: 'ylabel'
-        };
-
-        const layout = {
-            xaxis: { tickfont: { size: 17 } },
-            yaxis: { tickfont: { size: 17 } },
-            annotations: [titleAnnotation, xLabelAnnotation, yLabelAnnotation],
-            margin: { t: 80, r: 20, b: 55, l: 65, autoexpand: false },
-            width: 500, height: 420,
-            hovermode: 'closest',
-            plot_bgcolor: '#fafafa'
-        };
-
-        Plotly.newPlot('exprVsGEPlot', traces, layout, {
-            responsive: false, displayModeBar: false, displaylogo: false,
-            edits: { annotationPosition: true }
-        }).then(plotEl => {
-            plotEl.on('plotly_click', (eventData) => {
-                if (eventData.points.length > 0) {
-                    const gene = eventData.points[0].text;
-                    this._highlightExprVsGEGene(gene);
-                }
-            });
-        });
-
-        this.filterExprVsGETable();
-    }
 
     _buildGateReportFilename(prefix) {
         const parts = [prefix];

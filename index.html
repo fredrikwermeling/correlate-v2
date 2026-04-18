@@ -1315,6 +1315,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.19 (2026-04-18)</strong></p>
+                <ul>
+                    <li>Removed Expression vs Gene Effect panel and its UI entry points (was confusing alongside the Expression Correlates modal)</li>
+                    <li>Removed Growth Rate analysis &mdash; 6 methods, UI entry points, and the CLB list&rsquo;s purple growth-rate indicator. Defensive <code>growthRateData</code> null-checks left in place; they&rsquo;re dead code but harmless</li>
+                </ul>
                 <p><strong>v.67.18 (2026-04-18)</strong></p>
                 <ul>
                     <li>Mutation-inspect plot: title and x-axis label pushed further from the plot area (title y 1.45 &rarr; 1.65; x-label y &minus;0.15 &rarr; &minus;0.20). Top/bottom margins bumped (160/55 &rarr; 180/75 px) so the labels have enough pixel budget regardless of width/height slider values</li>
@@ -1839,7 +1844,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.18</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.19</a>
     </div>
 
     <div class="main-content">
@@ -2740,7 +2745,6 @@
                         </span>
                         <button class="btn btn-success btn-sm" id="geneEffectSearchBtn" style="padding: 6px 16px;">Analyze</button>
                         <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
-                        <!-- <button class="btn btn-sm btn-outline" id="geGrowthRateBtn">Growth Rate</button> -->
                         <!-- Gene Set buttons hidden (v.67) -->
                         <button class="btn btn-sm btn-outline" id="geGeneSetBtn" style="display: none;">Gene Set ▾</button>
                         <button class="btn btn-sm btn-outline" id="geShowIndividualGenesBtn" style="display: none;">Individual Genes</button>
@@ -3437,7 +3441,6 @@
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="Gene Effect values for all genes × selected cell lines (CSV)">Export GE<br><span style="font-size:9px;font-weight:normal;">for selected CLs</span></button>
             <button id="clbExportFull" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="Detailed report: metadata, mutations, top depleted/enriched genes, z-scores">Cell Line<br><span style="font-size:9px;font-weight:normal;">Detail Report</span></button>
             <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="All data per cell line: GE, Expression, Hotspot, Damaging, Translocation (genes × cell lines)">Full Data<br><span style="font-size:9px;font-weight:normal;">Export</span></button>
-            <button id="clbExprVsGEAll" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400);" title="Expression vs Gene Effect for all or selected cell lines">Expr vs GE</button>
           </div>
         </div>
         <!-- Custom Cell Line Filter for CLB -->
@@ -3468,27 +3471,9 @@
                 </select>
                 <label style="font-size:11px; color:var(--gray-500);">genes per list</label>
               </div>
-              <div style="margin-top:8px; border-top:1px solid #e5e7eb; padding-top:8px;">
-                <button id="clbExprVsGEBtn" class="btn btn-outline btn-sm" style="font-size:10px; color:var(--green-700); border-color:var(--green-400); width:100%;">Expression vs Gene Effect</button>
-              </div>
               <div id="clbDetailGeneLists"></div>
             </div>
           </div>
-        </div>
-        <!-- Expression vs GE Section (hidden by default) -->
-        <div id="exprVsGESection" style="display:none; border-top:1px solid #e5e7eb; padding:10px 16px;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <strong style="font-size:12px;">Expression vs Gene Effect</strong>
-                <span id="exprVsGECellLine" style="font-size:11px; color:var(--gray-500);"></span>
-                <button id="exprVsGEAaBtn" class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 8px; font-weight:700;" title="Text & layout settings">Aa</button>
-                <button id="exprVsGEClose" class="btn btn-sm btn-outline" style="margin-left:auto; font-size:10px; padding:2px 6px;">Close</button>
-            </div>
-            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
-                <label style="font-size:10px; color:var(--gray-500);">Search gene:</label>
-                <input type="text" id="exprVsGEGeneSearch" placeholder="Gene..." style="font-size:10px; padding:2px 6px; width:80px; border:1px solid #d1d5db; border-radius:4px;">
-            </div>
-            <div id="exprVsGEPlot" style="width:100%;"></div>
-            <div id="exprVsGETable" style="max-height:300px; overflow-y:auto; font-size:10px; margin-top:6px;"></div>
         </div>
         <!-- UMAP Section -->
         <div id="clbUmapSection" style="border-top:1px solid #e5e7eb; padding:10px 16px; position:relative;">
