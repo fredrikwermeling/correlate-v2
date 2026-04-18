@@ -1315,6 +1315,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.23 (2026-04-18)</strong></p>
+                <ul>
+                    <li>GE toolbar: Gate A / Gate B / Compare / Clear wrapped in an inline-flex group so they stay together when the toolbar wraps (instead of splitting across rows)</li>
+                </ul>
                 <p><strong>v.67.22 (2026-04-18)</strong></p>
                 <ul>
                     <li>GE gating now matches scatter gating and UMAP gating: tabbed results panel (Tissue / Mutations / &Delta; Gene Effect / Expression) in <code>#geGateComparePanel</code> with sortable tables. Removed the older flat-stacked-tables implementation (<code>_geStartGate</code>, <code>_geClearGates</code>, <code>_geCompareGates</code>) and the duplicate event listeners that were wiring the same buttons to both implementations. Callers updated to use <code>startGEGateSelection</code> / <code>clearGEGates</code> / <code>compareGEGates</code></li>
@@ -1856,7 +1860,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.22</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.23</a>
     </div>
 
     <div class="main-content">
@@ -2796,11 +2800,12 @@
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot">By Hotspot</button>
-                        <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
-                        <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle to define Gate A">Gate A</button>
-                        <button class="btn btn-sm" id="geSetGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled title="Draw rectangle to define Gate B">Gate B</button>
-                        <button class="btn btn-sm btn-secondary" id="geCompareGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Compare</button>
-                        <button class="btn btn-sm btn-outline" id="geClearGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Clear</button>
+                        <span style="display: inline-flex; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 6px; margin-left: 2px;">
+                            <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle to define Gate A">Gate A</button>
+                            <button class="btn btn-sm" id="geSetGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled title="Draw rectangle to define Gate B">Gate B</button>
+                            <button class="btn btn-sm btn-secondary" id="geCompareGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Compare</button>
+                            <button class="btn btn-sm btn-outline" id="geClearGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Clear</button>
+                        </span>
                         <span id="geGateStatus" style="font-size: 10px; color: #6b7280;"></span>
                     </div>
                     <!-- Row 3: Custom Cell Line Filter -->
