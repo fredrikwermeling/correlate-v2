@@ -1315,6 +1315,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.9 (2026-04-18)</strong></p>
+                <ul>
+                    <li>Gene Effect modal: placeholder ("Type a gene name above and click Analyze…") moved to its own sibling element. Single visibility predicate (<code>_updateGEPlaceholderVisibility</code>) enforces the invariant that at most one of {placeholder, tissue view, hotspot view} is visible at any time. Fixes cases where the placeholder showed below a rendered plot</li>
+                </ul>
                 <p><strong>v.67.8 (2026-04-18)</strong></p>
                 <ul>
                     <li>Removed redundant "Sex sort" control — the sex filter already serves this purpose</li>
@@ -1799,7 +1803,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.8</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.9</a>
     </div>
 
     <div class="main-content">
@@ -2804,7 +2808,14 @@
                             <label style="cursor:pointer; color:#374151;"><input type="checkbox" id="geShowZeroLine" checked style="margin:0 4px 0 0; vertical-align:middle;" onchange="app.showGeneEffectDistribution(app.currentGeneEffectGene)"> Zero line</label>
                         </div>
                         <div style="font-size: 9px; color: #b0b0b0; margin-bottom: 4px;">Adjust graph size with Width/Height sliders. Change fonts with Aa. Drag title or axis labels to reposition if they overlap.</div>
-                        <div id="geByTissueView">
+                        <!-- Placeholder: single source of truth for "no plot yet". Visibility owned by _updateGEPlaceholderVisibility(). -->
+                        <div id="gePlotPlaceholder" style="display:flex; align-items:center; justify-content:center; min-height:400px; color:#6b7280; font-size:14px; text-align:center; padding:40px;">
+                            <div>Type a gene name above and click <b>Analyze</b>.<br><br>
+                            <span style="font-size:12px;">Shows gene effect (CRISPR knockout impact) across all cell lines,<br>
+                            broken down by cancer type or hotspot mutation.<br><br>
+                            <span style="color:#9ca3af;">Try: <b>BRAF</b>, <b>TP53</b>, <b>MYC</b>, <b>KRAS</b>, <b>TSC1</b>, <b>CDK4</b></span></span></div>
+                        </div>
+                        <div id="geByTissueView" style="display: none;">
                             <div id="geneEffectPlot" style="width: 100%; min-height: 400px;"></div>
                         </div>
                         <div id="geByHotspotView" style="display: none;">

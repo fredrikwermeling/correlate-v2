@@ -6776,6 +6776,7 @@ class CorrelationExplorer {
 
         // Mark this as mutation analysis view
         this.geneEffectViewMode = 'mutation';
+        this._updateGEPlaceholderVisibility();
 
         // Show zero line control
         document.getElementById('geZeroLineControl').style.display = '';
@@ -17700,6 +17701,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             /* p-value filter visible in both views */
             this.renderGeneEffectByHotspot();
         }
+        this._updateGEPlaceholderVisibility();
     }
 
     filterGETable(searchTerm) {
@@ -18163,6 +18165,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             : document.getElementById('geByHotspotView');
         plotContainer.appendChild(panel);
         panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Single source of truth for "is there a plot to show vs the placeholder?"
+    // Invariant: at most one of {placeholder, tissue view, hotspot view} is visible.
+    // Called from every state transition that touches currentGeneEffect or geneEffectViewMode.
+    _updateGEPlaceholderVisibility() {
+        const hasPlot = !!this.currentGeneEffect || this.geneEffectViewMode === 'mutation';
+        const ph = document.getElementById('gePlotPlaceholder');
+        const tv = document.getElementById('geByTissueView');
+        const hv = document.getElementById('geByHotspotView');
+        if (!ph || !tv || !hv) return;
+        if (!hasPlot) {
+            ph.style.display = 'flex';
+            tv.style.display = 'none';
+            hv.style.display = 'none';
+        } else {
+            ph.style.display = 'none';
+            // tv/hv visibility is owned by switchGeneEffectView / showGeneEffectDistribution
+        }
     }
 
     _resetGEFilters() {
@@ -22198,9 +22219,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('geneEffectSummary').style.display = 'none';
             document.getElementById('toggleExprCorrelatesBtn').style.display = 'none';
             document.getElementById('exprCorrelatesPanel').style.display = 'none';
-            document.getElementById('geByTissueView').style.display = 'block';
-            document.getElementById('geByHotspotView').style.display = 'none';
-            document.getElementById('geneEffectPlot').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Type a gene name above and click <b>Analyze</b>.<br><br><span style="font-size:12px;">Shows gene effect (CRISPR knockout impact) across all cell lines,<br>broken down by cancer type or hotspot mutation.<br><br><span style="color:#9ca3af;">Try: <b>BRAF</b>, <b>TP53</b>, <b>MYC</b>, <b>KRAS</b>, <b>TSC1</b>, <b>CDK4</b></span></span></div></div>';
+            this._updateGEPlaceholderVisibility();
             document.getElementById('geneEffectTableBody').innerHTML = '';
         });
 
