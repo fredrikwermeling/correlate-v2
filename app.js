@@ -80,7 +80,8 @@ class CorrelationExplorer {
         this._geUserXLabelPos = null;
         this._geUserYLabelPos = null;
 
-        // CLB sort direction (true = ascending, false = descending)
+        // CLB sort: mode ∈ {name, hotspot, damaging, fusion, ge}; direction
+        this._clbSortMode = 'name';
         this._clbSortAsc = true;
 
         // Custom cell line filter (Set<string> of cell line IDs, or null)
@@ -217,6 +218,9 @@ class CorrelationExplorer {
                     });
             }
         }
+
+        // Precompute per-cell-line counts (hotspot, damaging, fusion) for fast sort
+        this._precomputeCellLineCounts();
         // synonymLookup loaded lazily when "Find Synonyms" is clicked
 
         this.nGenes = this.metadata.nGenes;
@@ -22110,6 +22114,40 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     // ===== Cell Line Browser =====
 
+    _precomputeCellLineCounts() {
+        this._hotspotCountByCL = new Map();
+        this._damagingCountByCL = new Map();
+        this._fusionCountByCL = new Map();
+        const tally = (src, getInner, target) => {
+            if (!src?.geneData) return;
+            for (const gene of Object.keys(src.geneData)) {
+                const inner = getInner(src.geneData[gene]);
+                if (!inner) continue;
+                for (const [cl, v] of Object.entries(inner)) {
+                    if (v >= 1) target.set(cl, (target.get(cl) || 0) + 1);
+                }
+            }
+        };
+        tally(this.mutations, d => d.mutations, this._hotspotCountByCL);
+        tally(this.damagingMutations, d => d.mutations, this._damagingCountByCL);
+        tally(this.translocations, d => d.translocations, this._fusionCountByCL);
+    }
+
+    // Resolve effective sex for a cell line: prefer DepMap annotation, fall back to imputation.
+    // Returns { label, category } where category is one of:
+    //   'Male' | 'Female' | 'likely_male' | 'likely_female' | 'Unknown'
+    _getCellLineSex(cl) {
+        const meta = this.cellLineMetadata;
+        const depmap = meta?.sex?.[cl] || 'Unknown';
+        if (depmap === 'Male' || depmap === 'Female') {
+            return { label: depmap, category: depmap };
+        }
+        const imp = meta?.sexImputed?.[cl] || 'unknown';
+        if (imp === 'likely_male') return { label: 'Unknown (likely male)', category: 'likely_male' };
+        if (imp === 'likely_female') return { label: 'Unknown (likely female)', category: 'likely_female' };
+        return { label: 'Unknown', category: 'Unknown' };
+    }
+
     setupCellLineBrowserEvents() {
         document.getElementById('showCellLineBrowser').addEventListener('click', (e) => {
             e.preventDefault();
@@ -22161,6 +22199,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.renderCellLineList();
         });
         document.getElementById('clbSubtypeFilter').addEventListener('change', () => this.renderCellLineList());
+        document.getElementById('clbSexFilter').addEventListener('change', () => this.renderCellLineList());
         // Hotspot/translocation filters are now <input> + <datalist> — trigger on change and input
         const clbHotspotInput = document.getElementById('clbHotspotFilter');
         clbHotspotInput.addEventListener('change', () => this.renderCellLineList());
@@ -22174,19 +22213,40 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!clbTransInput.value) this.renderCellLineList();
         });
 
+        // Sort controls: mode dropdown + gene input (only when mode==ge) + direction arrow
+        const clbSortBy = document.getElementById('clbSortBy');
+        const clbSortGene = document.getElementById('clbSortGene');
+        const clbSortDir = document.getElementById('clbSortDir');
+        const updateSortControls = () => {
+            const mode = clbSortBy.value;
+            this._clbSortMode = mode;
+            clbSortGene.style.display = (mode === 'ge') ? '' : 'none';
+            // Show direction arrow unless mode is name or (mode=ge and no gene typed)
+            const showDir = mode !== 'name' && !(mode === 'ge' && !clbSortGene.value.trim());
+            clbSortDir.style.display = showDir ? '' : 'none';
+            // Default descending for count sorts (more-first), ascending for name/GE
+            if (mode === 'hotspot' || mode === 'damaging' || mode === 'fusion') {
+                this._clbSortAsc = false;
+            } else {
+                this._clbSortAsc = true;
+            }
+            clbSortDir.innerHTML = this._clbSortAsc ? '&#x25B2;' : '&#x25BC;';
+        };
+        clbSortBy.addEventListener('change', () => {
+            updateSortControls();
+            this.renderCellLineList();
+        });
         let clbGeneTimer;
-        document.getElementById('clbSortGene').addEventListener('input', () => {
+        clbSortGene.addEventListener('input', () => {
             clearTimeout(clbGeneTimer);
             clbGeneTimer = setTimeout(() => {
-                const hasGene = document.getElementById('clbSortGene').value.trim() !== '';
-                document.getElementById('clbSortDir').style.display = hasGene ? '' : 'none';
+                updateSortControls();
                 this.renderCellLineList();
             }, 200);
         });
-
-        document.getElementById('clbSortDir').addEventListener('click', () => {
+        clbSortDir.addEventListener('click', () => {
             this._clbSortAsc = !this._clbSortAsc;
-            document.getElementById('clbSortDir').innerHTML = this._clbSortAsc ? '&#x25B2;' : '&#x25BC;';
+            clbSortDir.innerHTML = this._clbSortAsc ? '&#x25B2;' : '&#x25BC;';
             this.renderCellLineList();
         });
 
@@ -22196,10 +22256,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('clbSearch').value = '';
             document.getElementById('clbTissueFilter').value = '';
             document.getElementById('clbSubtypeFilter').value = '';
+            document.getElementById('clbSexFilter').value = '';
             document.getElementById('clbHotspotFilter').value = '';
             document.getElementById('clbTranslocationFilter').value = '';
+            document.getElementById('clbSortBy').value = 'name';
             document.getElementById('clbSortGene').value = '';
+            document.getElementById('clbSortGene').style.display = 'none';
             document.getElementById('clbSortDir').style.display = 'none';
+            this._clbSortMode = 'name';
+            this._clbSortAsc = true;
             this._oncoprintFilters = {};
             this._activeOncoprintFilters = null;
             this._oncoprintSyncFilters?.();
@@ -22437,6 +22502,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const search = document.getElementById('clbSearch').value.trim().toLowerCase();
         const tissue = document.getElementById('clbTissueFilter').value;
         const subtype = document.getElementById('clbSubtypeFilter').value;
+        const sexFilter = document.getElementById('clbSexFilter').value;
         const hotspotGene = document.getElementById('clbHotspotFilter').value;
         const transGene = document.getElementById('clbTranslocationFilter').value;
 
@@ -22447,6 +22513,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let filtered = this.metadata.cellLines.filter(cl => {
             if (tissue && this.getCellLineLineage(cl) !== tissue) return false;
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
+            if (sexFilter && this._getCellLineSex(cl).category !== sexFilter) return false;
             if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
             if (transMuts && !(transMuts[cl] >= 1)) return false;
             if (!this._cellLinePassesOncoprintFilters(cl)) return false;
@@ -22459,30 +22526,49 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return true;
         });
 
-        // Check if sorting by a gene
-        const sortGene = document.getElementById('clbSortGene').value.trim().toUpperCase();
-        const sortGeneIdx = sortGene ? this.geneIndex.get(sortGene) : undefined;
+        // Sort mode: name | hotspot | damaging | fusion | ge
+        const mode = this._clbSortMode || 'name';
+        const dir = this._clbSortAsc ? 1 : -1;
         let geMap = null;
-        if (sortGeneIdx !== undefined) {
-            geMap = new Map();
-            for (const cl of filtered) {
-                const clIdx = this.metadata.cellLines.indexOf(cl);
-                if (clIdx >= 0) {
-                    const val = this.geneEffects[sortGeneIdx * this.nCellLines + clIdx];
-                    geMap.set(cl, (!isNaN(val) && val !== -999) ? val : NaN);
+        let countMap = null; // used for hotspot/damaging/fusion to display counts inline
+
+        if (mode === 'ge') {
+            const sortGene = document.getElementById('clbSortGene').value.trim().toUpperCase();
+            const sortGeneIdx = sortGene ? this.geneIndex.get(sortGene) : undefined;
+            if (sortGeneIdx !== undefined) {
+                geMap = new Map();
+                for (const cl of filtered) {
+                    const clIdx = this.metadata.cellLines.indexOf(cl);
+                    if (clIdx >= 0) {
+                        const val = this.geneEffects[sortGeneIdx * this.nCellLines + clIdx];
+                        geMap.set(cl, (!isNaN(val) && val !== -999) ? val : NaN);
+                    }
                 }
+                filtered.sort((a, b) => {
+                    const va = geMap.get(a), vb = geMap.get(b);
+                    if (isNaN(va) && isNaN(vb)) return 0;
+                    if (isNaN(va)) return 1;
+                    if (isNaN(vb)) return -1;
+                    return (va - vb) * dir;
+                });
+            } else {
+                filtered.sort((a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)));
             }
-            const dir = this._clbSortAsc ? 1 : -1;
+        } else if (mode === 'hotspot' || mode === 'damaging' || mode === 'fusion') {
+            const source = mode === 'hotspot' ? this._hotspotCountByCL
+                         : mode === 'damaging' ? this._damagingCountByCL
+                         : this._fusionCountByCL;
+            countMap = source;
             filtered.sort((a, b) => {
-                const va = geMap.get(a), vb = geMap.get(b);
-                if (isNaN(va) && isNaN(vb)) return 0;
-                if (isNaN(va)) return 1;
-                if (isNaN(vb)) return -1;
+                const va = source.get(a) || 0;
+                const vb = source.get(b) || 0;
+                if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
                 return (va - vb) * dir;
             });
         } else {
             filtered.sort((a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)));
         }
+
         this._clbVisibleCellLines = filtered;
         this._updateClbActiveFilterLabel();
 
@@ -22502,15 +22588,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const cls = ['clb-entry'];
             if (selected) cls.push('clb-selected');
             if (inspected) cls.push('clb-inspected');
-            const geVal = geMap ? geMap.get(cl) : null;
-            const geStr = geVal !== null && !isNaN(geVal) ? `<span style="font-size:10px; color:#666; margin-left:auto; flex-shrink:0;">${geVal.toFixed(2)}</span>` : '';
+            let sortValStr = '';
+            if (geMap) {
+                const v = geMap.get(cl);
+                if (v !== undefined && !isNaN(v)) sortValStr = `<span style="font-size:10px; color:#666; margin-left:auto; flex-shrink:0;">${v.toFixed(2)}</span>`;
+            } else if (countMap) {
+                const v = countMap.get(cl) || 0;
+                sortValStr = `<span style="font-size:10px; color:#666; margin-left:auto; flex-shrink:0;" title="${mode} count">${v}</span>`;
+            }
             const gr = this.growthRateData?.[cl];
             const grStr = gr !== undefined ? `<span style="font-size:9px; color:#9333ea; margin-left:4px; flex-shrink:0;" title="Growth rate">${gr.toFixed(2)}</span>` : '';
             const titleParts = [name, lin, sub, gr !== undefined ? `Growth: ${gr.toFixed(3)}` : ''].filter(Boolean).join(' · ');
             return `<div class="${cls.join(' ')}" data-clid="${cl}" title="${titleParts}">` +
                 `<input type="checkbox"${selected ? ' checked' : ''}>` +
                 `<span class="clb-entry-name">${name}</span>` +
-                `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${geStr}${grStr}</div>`;
+                `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${sortValStr}${grStr}</div>`;
         }).join('');
         container.innerHTML = html;
 
@@ -22726,6 +22818,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
 
+        // Damaging mutation count (no gene list — per design)
+        const damagingCount = this._damagingCountByCL?.get(cellLineId) || 0;
+
         // Count fusions
         const fusionGenes = [];
         if (this.translocations?.geneData) {
@@ -22753,15 +22848,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         geneVals.sort((a, b) => a.val - b.val);
 
         // Top section (metadata) — rendered once
+        const sexInfo = this._getCellLineSex(cellLineId);
         let top = `<h4>${name}</h4>`;
         top += `<div class="clb-detail-id">${cellLineId}</div>`;
         top += `<div class="clb-detail-section">`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Subtype</span><span class="clb-stat-value">${sublineage || '-'}</span></div>`;
+        top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex</span><span class="clb-stat-value">${sexInfo.label}</span></div>`;
         top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutGenes.length})</strong>`;
         top += `<div style="color:var(--gray-500); font-size:11px;">${mutGenes.length > 0 ? mutGenes.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') : 'None'}</div></div>`;
+
+        top += `<div class="clb-detail-section"><strong>Damaging Mutations (${damagingCount})</strong></div>`;
 
         top += `<div class="clb-detail-section"><strong>Fusions (${fusionGenes.length})</strong>`;
         top += `<div style="color:var(--gray-500); font-size:11px;">${fusionGenes.length > 0 ? fusionGenes.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') : 'None'}</div></div>`;
