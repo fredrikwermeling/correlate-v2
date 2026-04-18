@@ -1315,6 +1315,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.21 (2026-04-18)</strong></p>
+                <ul>
+                    <li>GE by-hotspot table now scrolls horizontally when the modal is narrow (prevents the p-value column from being cropped off)</li>
+                </ul>
                 <p><strong>v.67.20 (2026-04-18)</strong></p>
                 <ul>
                     <li>Removed Gene Sets / Pathway Signatures feature entirely &mdash; 18 methods, all UI entry points (<code>geGeneSetBtn</code>, <code>geGeneSetSelect</code>, <code>geShowIndividualGenesBtn</code>, <code>geIndividualControls</code>), event listeners, and data files (<code>hallmark_gene_sets.json</code>, <code>kegg_gene_sets.json</code>, <code>pathway_signatures.json</code>). Closes the last divergence that was hidden-but-still-shipped from V1/CoExpress</li>
@@ -1848,7 +1852,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.20</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.21</a>
     </div>
 
     <div class="main-content">
@@ -2854,7 +2858,7 @@
                     </div>
 
                     <!-- Table container -->
-                    <div id="geTableContainer" style="flex: 1; min-width: 300px;">
+                    <div id="geTableContainer" style="flex: 1; min-width: 300px; overflow-x: auto;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <div style="font-weight: 600; color: #374151; font-size: 13px;">Statistics (click row to focus)</div>
                             <input type="text" id="geTableSearch" class="form-control" placeholder="Search..." style="width: 120px; font-size: 11px; padding: 4px 8px;">
