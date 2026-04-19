@@ -21888,48 +21888,51 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const dmtype = get('depmapModelType');
         const psf = get('patientSubtypeFeatures');
         const classificationHtml = `
-            ${row('Tissue lineage', lin)}
-            ${row('Primary disease', pd)}
-            ${row('Oncotree subtype', sub)}
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">How this tumour is classified in the Oncotree cancer-classification system, from broad tissue down to specific disease variant.</p>
+            ${row('Tissue of origin', lin)}
+            ${row('Broad disease', pd)}
+            ${row('Specific subtype', sub)}
             ${row('Oncotree code', code ? `<code>${code}</code>` : '')}
             ${row('DepMap type', dmtype)}
-            ${row('Subtype features', psf)}`;
+            ${row('Molecular features', psf)}`;
 
         // --- Patient/tumor origin ---
         const originHtml = `
-            ${row('Age', get('age'))}
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Clinical information about the patient the cell line was derived from, plus how it grows in the lab.</p>
+            ${row('Patient age at sampling', get('age'))}
             ${row('Age category', get('ageCategory'))}
-            ${row('Sex (annotation)', get('sex'))}
-            ${row('Race / ancestry', get('patientRace'))}
-            ${row('Primary vs metastasis', get('primaryOrMetastasis'))}
-            ${row('Collection site', get('sampleCollectionSite'))}
-            ${row('Tumor grade', get('patientTumorGrade'))}
-            ${row('Growth pattern in vitro', get('growthPattern'))}
-            ${row('Engineered model', get('engineeredModel'))}
-            ${row('Cultured resistance drug', get('culturedResistanceDrug'))}`;
+            ${row('Patient sex (recorded)', get('sex'))}
+            ${row('Ancestry', get('patientRace'))}
+            ${row('Tumour stage (at sampling)', get('primaryOrMetastasis'))}
+            ${row('Where sample was taken', get('sampleCollectionSite'))}
+            ${row('Tumour grade', get('patientTumorGrade'))}
+            ${row('Growth pattern in culture', get('growthPattern'))}
+            ${row('Engineered modifications', get('engineeredModel'))}
+            ${row('Drug resistance from culture', get('culturedResistanceDrug'))}`;
 
-        // --- Sex analysis deep-dive ---
+        // --- Sex analysis ---
         const sexInfo = this._getCellLineSex(cellLineId);
         const sexExpDisplay = this._getSexExpressionDisplay(cellLineId);
         let sexNarrative = '';
         if (sexInfo.annotation === 'Male' && sexInfo.byExpression === 'male') {
-            sexNarrative = 'Annotation and expression agree — intact Y-chromosome expression, low/absent XIST.';
+            sexNarrative = 'Patient was male, and the cell line still expresses Y-chromosome genes normally. Everything consistent.';
         } else if (sexInfo.annotation === 'Female' && sexInfo.byExpression === 'female') {
-            sexNarrative = 'Annotation and expression agree — XIST active, low Y-marker expression.';
+            sexNarrative = 'Patient was female, and the cell line expresses XIST (the gene that silences the extra X chromosome in females). Everything consistent.';
         } else if (sexInfo.annotation === 'Male' && sexInfo.byExpression === 'unknown') {
-            sexNarrative = 'Annotated Male but Y-chromosome markers are silent and XIST is low — <b>likely Y-chromosome loss</b>, a common phenomenon in cancer (esp. advanced tumors and older male patients).';
+            sexNarrative = 'Patient was male, but Y-chromosome genes are silent in this cell line. Almost certainly <b>loss of the Y chromosome</b> — a common event in cancer, especially in older male patients and advanced tumours.';
         } else if (sexInfo.annotation === 'Female' && sexInfo.byExpression === 'unknown') {
-            sexNarrative = 'Annotated Female but XIST is silent — <b>likely XIST silencing</b>, documented in many cancers (esp. breast, hematological, and some epithelial cancers). XIST loss is associated with X-reactivation and can drive oncogenic programs.';
+            sexNarrative = 'Patient was female, but XIST expression is lost in this cell line. <b>XIST silencing</b> is well documented in many cancers (breast, blood cancers, some epithelial) and is thought to re-activate genes on the silent X chromosome.';
         } else if (sexInfo.annotation !== 'Unknown' && sexInfo.annotation.toLowerCase() !== sexInfo.byExpression) {
-            sexNarrative = `<span style="color:#b45309;"><b>Disagreement</b> — annotation says ${sexInfo.annotation.toLowerCase()} but expression pattern matches ${sexInfo.byExpression}. Possible cell-line mix-up or contamination; consider STR reauthentication.</span>`;
+            sexNarrative = `<span style="color:#b45309;"><b>Disagreement.</b> The patient sex recorded does not match what the cell-line expression pattern suggests. This can happen with cell-line mix-ups or contamination — re-authentication (see Authentication section below) is recommended.</span>`;
         } else if (sexInfo.annotation === 'Unknown' && sexInfo.byExpression !== 'unknown') {
-            sexNarrative = `DepMap did not annotate sex but expression pattern indicates <b>likely ${sexInfo.byExpression}</b>.`;
+            sexNarrative = `Patient sex was not recorded, but the expression pattern points to <b>${sexInfo.byExpression === 'male' ? 'male' : 'female'}</b> origin.`;
         } else {
-            sexNarrative = 'Neither annotation nor expression give a confident call (no Y-markers, XIST silent). Often indicates Y-loss + XIST silencing in the same cell, or low-quality expression data.';
+            sexNarrative = 'Neither patient records nor expression give a confident call. Often means both Y-chromosome expression and XIST are silent (which can happen in aggressive tumours).';
         }
         const sexHtml = `
-            ${row('Sex (annotation)', sexInfo.annotation)}
-            ${row('Sex (expression)', sexExpDisplay)}
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Two independent views: what the patient records say, and what the cell line's gene expression pattern suggests. Disagreements can indicate chromosomal loss, epigenetic silencing, or cell-line misidentification.</p>
+            ${row('From patient records', sexInfo.annotation)}
+            ${row('From gene expression', sexExpDisplay)}
             <div style="margin-top:6px; padding:8px 10px; background:#f9fafb; border-left:3px solid #10b981; font-size:11px;">${sexNarrative}</div>`;
 
         // --- Mutation profile + pathway scan ---
@@ -21945,17 +21948,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const flags = [];
         const MMR_GENES = ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'];
         const mmrHits = MMR_GENES.filter(damHit);
-        if (mmrHits.length > 0) flags.push(pill(`MMR-deficient (${mmrHits.join(', ')} damaging) → likely hypermutator / MSI-H / ICB candidate`, '#dc2626'));
+        if (mmrHits.length > 0) flags.push(pill(`Mismatch-repair deficient (${mmrHits.join(', ')} damaged) → expected to be hypermutated / microsatellite-unstable → checkpoint-immunotherapy candidate`, '#dc2626'));
         if (damagingCount > 1000) flags.push(pill(`Ultra-hypermutated (${damagingCount} damaging mutations)`, '#dc2626'));
         else if (damagingCount > 500) flags.push(pill(`Hypermutated (${damagingCount} damaging mutations)`, '#d97706'));
         // HR deficiency quick flag
         const hrGenes = ['BRCA1', 'BRCA2', 'PALB2', 'RAD51C', 'RAD51D'];
         const hrHits = hrGenes.filter(damHit);
-        if (hrHits.length > 0) flags.push(pill(`HR-deficient (${hrHits.join(', ')} damaging) → PARP inhibitor candidate`, '#7c3aed'));
+        if (hrHits.length > 0) flags.push(pill(`Homologous-recombination deficient (${hrHits.join(', ')} damaged) → PARP-inhibitor candidate`, '#7c3aed'));
         // p53 pathway
-        if (damHit('TP53') || hotHit('TP53')) flags.push(pill('TP53 mutant', '#dc2626'));
+        if (damHit('TP53') || hotHit('TP53')) flags.push(pill('TP53 mutated (tumour-suppressor lost)', '#dc2626'));
         // RB / cell cycle
-        if (damHit('RB1') || damHit('CDKN2A')) flags.push(pill('Cell-cycle checkpoint loss (RB1 or CDKN2A)', '#d97706'));
+        if (damHit('RB1') || damHit('CDKN2A')) flags.push(pill('Cell-cycle brake lost (RB1 or CDKN2A)', '#d97706'));
 
         // Pathway scan
         const pathways = this._WIKI_PATHWAYS();
@@ -21986,12 +21989,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         hotspotsMutated.sort((a, b) => b.level - a.level);
         const topHotspots = hotspotsMutated.slice(0, 10).map(h => `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>`).join(', ');
         const mutationHtml = `
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Summary of mutations detected in this cell line. <b>Damaging</b> mutations typically knock out a gene (frameshift, nonsense, splice). <b>Hotspot</b> mutations occur at positions known to be oncogenic drivers (for example BRAF V600E). Colored badges below call out clinically-relevant patterns.</p>
             ${flags.length ? `<div style="margin-bottom:8px;">${flags.join(' ')}</div>` : ''}
             ${row('Damaging mutations (total)', damagingCount)}
             ${row('Hotspot-mutated genes', hotspotCount)}
             ${topHotspots ? row('Top hotspot hits', topHotspots) : ''}
-            <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;">
+            <div style="margin-top:12px; padding-top:8px; border-top:1px solid #e5e7eb;">
                 <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway scan</div>
+                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">Each row below is a cancer-relevant pathway where at least one gene is mutated. Red = hotspot mutation (typically gain-of-function in oncogenes); orange = damaging mutation (typically loss-of-function in tumour suppressors).</p>
                 ${pathwayHtml}
             </div>`;
 
@@ -22032,11 +22037,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
         const fusionCaveat = fusionCount > 30
-            ? `<div style="margin-top:6px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>⚠ High fusion count (${fusionCount}).</b> In highly rearranged / hypermutated cancer genomes, fusion callers produce many artifacts from read misalignment in repetitive regions and passenger rearrangements from chromothripsis. Treat individual calls with caution — cross-reference with karyotype or targeted sequencing where it matters.</div>`
+            ? `<div style="margin-top:6px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>⚠ Very high fusion count (${fusionCount}).</b> When a cancer has a chaotic, highly rearranged genome, fusion-detection software tends to produce many false positives. Some of these calls are real driver fusions; many are technical artifacts or bystander events. Treat individual calls with caution &mdash; cross-reference with karyotype or targeted sequencing before acting on any single fusion.</div>`
             : '';
         const fusionHtml = `
-            ${row('Fusion/translocation partners', fusionCount)}
-            ${fusionPartners.length ? row('Partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20}</span>` : '')) : ''}
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Gene fusions (also called translocations) happen when two chromosomes break and join incorrectly, creating a chimeric gene. Many hematological cancers are driven by specific fusions (BCR-ABL in CML, EWSR1-FLI1 in Ewing sarcoma, etc.). In solid tumours with complex genomes the fusion calls are noisier.</p>
+            ${row('Fusion partners (total)', fusionCount)}
+            ${fusionPartners.length ? row('Partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20} more</span>` : '')) : ''}
             ${fusionCaveat}`;
 
         // --- GE signature (interpretive) ---
@@ -22069,7 +22075,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Interpretation lines
             const interpLines = [];
             if (essentialDrugTargets.length > 0) {
-                interpLines.push(`<div style="padding:6px 10px; background:#faf5ff; border-left:3px solid #7c3aed; font-size:11px;"><b style="color:#6d28d9;">Druggable dependencies</b>: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span>`).join(', ')} are in the top-15 most essential genes and have approved/clinical inhibitors.</div>`);
+                interpLines.push(`<div style="padding:6px 10px; background:#faf5ff; border-left:3px solid #7c3aed; font-size:11px;"><b style="color:#6d28d9;">Druggable dependencies</b> — genes this cell line depends on for survival that also have approved or clinical-stage drugs targeting them: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span>`).join(', ')}.</div>`);
             }
             if (essentialPathwayHits.length > 0) {
                 const hitsByPathway = {};
@@ -22079,7 +22085,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
                 if (Object.keys(hitsByPathway).length > 0) {
                     const items = Object.entries(hitsByPathway).map(([pw, gs]) => `<li><b>${pw}</b>: ${gs.join(', ')}</li>`).join('');
-                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #16a34a; font-size:11px;"><b style="color:#15803d;">Pathway dependencies</b> (cell line can&rsquo;t survive without these):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
+                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #16a34a; font-size:11px;"><b style="color:#15803d;">Pathway dependencies</b> — cell line can&rsquo;t survive without these (knockout is lethal):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
                 }
             }
             // Enriched (gain on knockout) — flag known tumor suppressors
@@ -22088,12 +22094,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const tsHits = topEnriched.filter(g => tumorSuppressors.has(g.gene));
             const topEnrHtml = topEnriched.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tumorSuppressors.has(g.gene) ? 'color:#dc2626; font-weight:600;' : ''}">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
             const tsInterp = tsHits.length > 0
-                ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumor-suppressor knockout → growth advantage</b>: ${tsHits.map(g => g.gene).join(', ')}. Indicates these TSGs are still functional in this cell line (consistent with not-yet-mutated).</div>`
+                ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumour-suppressor genes that, when knocked out, make this cell line grow <em>better</em></b> (red in the list above): ${tsHits.map(g => g.gene).join(', ')}. Tumour suppressors normally restrain proliferation &mdash; if removing them helps, it means they're still functional here. So these particular tumour-suppressor genes have <em>not</em> yet been inactivated in this cell line.</div>`
                 : '';
 
             geSigHtml = `
-                ${row('Most essential (top 8, 💊 = druggable)', topEssHtml)}
-                ${row('Most enriched on KO (red = tumor suppressor)', topEnrHtml)}
+                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? &ldquo;Essential&rdquo; genes are ones the cell cannot live without. Some are common to every cell (ribosomal, housekeeping); the interesting ones are lineage-specific or driven by active oncogenes. Scores below &minus;1 generally indicate essentiality; above 0 indicates knockout gives a growth advantage.</p>
+                ${row('Top essential genes (💊 = drug exists)', topEssHtml)}
+                ${row('Top growth-advantage on knockout', topEnrHtml)}
                 ${interpLines.join('')}
                 ${tsInterp}`;
         }
@@ -22137,9 +22144,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     : '';
 
                 exprSigHtml = `
-                    ${row('Top expressed genes', topExpr)}
-                    ${xist !== undefined ? row('XIST (log₂-TPM+1)', xist.toFixed(2) + (xist > 1.0 ? ' → active (X-inactivation working)' : ' → silenced')) : ''}
-                    ${yMean !== null ? row('Y-marker mean', yMean.toFixed(2) + (yMean > 1.0 ? ' → Y-chromosome active' : ' → Y-chromosome silent or lost')) : ''}
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Which genes are switched on highest in this cell line. Values are log₂(TPM+1) &mdash; think of it roughly as &ldquo;mRNA copies per cell, on a log scale.&rdquo; A value above 1 means the gene is clearly expressed; below 1 means it is essentially off.</p>
+                    ${row('Most-expressed genes', topExpr)}
+                    ${xist !== undefined ? row('XIST', xist.toFixed(2) + (xist > 1.0 ? ' &mdash; active (the normal silencing of the extra X chromosome is working)' : ' &mdash; silenced (unusual; can re-activate X-linked genes)')) : ''}
+                    ${yMean !== null ? row('Y-chromosome genes (mean)', yMean.toFixed(2) + (yMean > 1.0 ? ' &mdash; Y chromosome active' : ' &mdash; Y chromosome silent or lost')) : ''}
                     ${markerHtml}
                     ${drugExprHtml}`;
             } else {
@@ -22170,12 +22178,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const resistant = rows.slice().sort((a, b) => b.z - a.z).filter(r => r.z > 1).slice(0, 5);
 
                 const fmtCompound = (c, signClass) => {
-                    const zStr = c.z.toFixed(1);
+                    const zStr = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1);
                     const color = signClass === 'sens' ? '#047857' : '#b91c1c';
                     const bg = signClass === 'sens' ? '#ecfdf5' : '#fef2f2';
+                    const word = signClass === 'sens' ? 'below average' : 'above average';
                     return `<li style="padding:3px 0;"><span style="display:inline-block; min-width:170px; font-weight:600; color:${color};">${c.name}</span>
-                        <span style="font-size:10px; color:#6b7280;">${c.target} · ${c.moa}</span><br>
-                        <span style="padding-left:170px; font-size:10px;">AUC ${c.v.toFixed(3)} (panel mean ${c.mean.toFixed(3)}, z = <b style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;">${zStr}</b>) &mdash; <i>${c.indication}</i></span></li>`;
+                        <span style="font-size:10px; color:#6b7280;">${c.target} &middot; ${c.moa}</span><br>
+                        <span style="padding-left:170px; font-size:10px;">AUC ${c.v.toFixed(3)} &mdash; <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span> &mdash; <i>${c.indication}</i></span></li>`;
                 };
 
                 // Context-aware cross-checks based on what this wiki has already detected
@@ -22234,22 +22243,57 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     : '';
 
                 drugHtml = `
-                    <p style="margin:0 0 6px; font-size:11px; color:#6b7280;">AUC (0 = complete kill, 1 = no effect). z-score computed against all ${dr.panelSize} compounds in the panel for this cell line. Scored on ${rows.length} compounds.</p>
-                    ${sensitive.length ? `<div><b style="color:#047857;">Standout sensitive (z &lt; −1):</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">No compounds show standout sensitivity (z &lt; −1).</div>'}
-                    ${resistant.length ? `<div><b style="color:#b91c1c;">Standout resistant (z &gt; +1):</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen, which tested ${dr.panelSize} clinically-relevant compounds against this cell line. The <b>AUC</b> (area under the dose-response curve) goes from 0 to 1: lower is more sensitive, higher is more resistant. Compounds below are ranked by how much this cell line deviates from the average response across all tested cell lines &mdash; &ldquo;standout sensitive&rdquo; means this cell is noticeably more sensitive than a typical cell line.</p>
+                    ${sensitive.length ? `<div><b style="color:#047857;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
+                    ${resistant.length ? `<div><b style="color:#b91c1c;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
                     ${ctxHtml}`;
             }
         }
 
-        // --- Authentication (STR) ---
+        // --- Authentication (STR profile) ---
+        // Show the reference profile inline so users can compare the numbers from
+        // their authentication lab report directly. Data from Cellosaurus.
+        const strProfile = m.strProfile?.[cellLineId];
+        // Core ANSI/ATCC panel first, then extensions, in display order
+        const STR_ORDER = [
+            'Amelogenin', 'CSF1PO', 'D5S818', 'D7S820', 'D13S317', 'D16S539',
+            'TH01', 'TPOX', 'vWA',
+            'D3S1358', 'D8S1179', 'D18S51', 'D21S11', 'D19S433', 'D2S1338',
+            'FGA', 'Penta D', 'Penta E',
+            'D1S1656', 'D2S441', 'D10S1248', 'D12S391', 'D22S1045', 'D6S1043'
+        ];
+        let strTableHtml;
+        if (strProfile && Object.keys(strProfile).length > 0) {
+            const coreRows = [];
+            const extRows = [];
+            for (const marker of STR_ORDER) {
+                const alleles = strProfile[marker];
+                if (!alleles) continue;
+                const isCore = ['Amelogenin','CSF1PO','D5S818','D7S820','D13S317','D16S539','TH01','TPOX','vWA'].includes(marker);
+                const row = `<tr><td style="padding:3px 10px; border:1px solid #e5e7eb; background:${isCore ? '#f0fdf4' : '#f9fafb'}; font-family:monospace; font-size:11px;">${marker}</td><td style="padding:3px 10px; border:1px solid #e5e7eb; font-family:monospace; font-size:11px;"><b>${alleles}</b></td></tr>`;
+                if (isCore) coreRows.push(row); else extRows.push(row);
+            }
+            // Include any markers in the profile that weren't in STR_ORDER
+            const known = new Set(STR_ORDER);
+            const otherMarkers = Object.keys(strProfile).filter(k => !known.has(k)).sort();
+            for (const marker of otherMarkers) {
+                extRows.push(`<tr><td style="padding:3px 10px; border:1px solid #e5e7eb; background:#f9fafb; font-family:monospace; font-size:11px;">${marker}</td><td style="padding:3px 10px; border:1px solid #e5e7eb; font-family:monospace; font-size:11px;"><b>${strProfile[marker]}</b></td></tr>`);
+            }
+            strTableHtml = `
+                <table style="border-collapse:collapse; margin-top:4px;">
+                    <thead><tr><th style="padding:3px 10px; border:1px solid #d1d5db; background:#374151; color:white; text-align:left; font-size:11px;">Marker</th><th style="padding:3px 10px; border:1px solid #d1d5db; background:#374151; color:white; text-align:left; font-size:11px;">Expected alleles</th></tr></thead>
+                    <tbody>${coreRows.join('')}${extRows.length ? `<tr><td colspan="2" style="padding:2px 10px; background:#e5e7eb; font-size:10px; color:#6b7280;">Extended markers</td></tr>${extRows.join('')}` : ''}</tbody>
+                </table>
+                <p style="margin:8px 0 0; font-size:10px; color:#6b7280;">Rows shaded green are the core ANSI/ATCC 9-marker panel. Remaining rows are extended markers commonly included in commercial 16- or 21-marker panels. Amelogenin gives sex (X = one X chromosome visible; X,Y = male).</p>`;
+        } else {
+            strTableHtml = '<em style="color:#6b7280;">No STR profile found for this cell line in Cellosaurus.</em>';
+        }
+
         const authHtml = `
-            <p style="margin:0 0 6px;">Cell line authenticity is standardly verified by <b>Short Tandem Repeat (STR) profiling</b> — a panel of polymorphic microsatellite loci unique to each individual. An authentic cell line should match the reference profile at every locus.</p>
-            <p style="margin:0 0 6px;"><b>Common STR panels:</b></p>
-            <ul style="margin:0 0 6px 18px; padding:0;">
-              <li>ANSI/ATCC 9-marker: Amelogenin (sex), CSF1PO, D5S818, D7S820, D13S317, D16S539, TH01, TPOX, vWA.</li>
-              <li>Eurofins / Promega PowerPlex 16 extension adds: D3S1358, D8S1179, D18S51, D21S11, FGA, D19S433, D2S1338 (+ Penta D/E on some panels).</li>
-            </ul>
-            <p style="margin:0 0 6px;">The reference profile for this cell line (alleles at each locus) is maintained in <b>Cellosaurus</b>${rrid ? ' (RRID link below)' : ''}. When you send cells to Eurofins and they return a report like <code>CSF1PO: 11,12 · D5S818: 10,11 · TH01: 6,7 …</code>, compare allele-by-allele against the Cellosaurus reference. A perfect or 1-mismatch match authenticates the line; &gt;1 mismatch usually indicates misidentification or contamination.</p>`;
+            <p style="margin:0 0 8px;">Before using a cell line you should confirm it really is what the label says. The standard method is <b>Short Tandem Repeat (STR) profiling</b> &mdash; a small panel of highly variable DNA regions (microsatellites) that act like a fingerprint. An authenticated cell line matches the reference profile at every marker.</p>
+            <p style="margin:0 0 8px;"><b>How to use this:</b> send your cells to a commercial authentication service (ATCC, DSMZ, and other vendors offer this), then compare their report to the table below. A perfect or one-marker mismatch is considered an authentic match; two or more mismatches typically means the line is misidentified or contaminated and should not be trusted for downstream experiments.</p>
+            <p style="margin:0 0 6px;"><b>Reference profile for ${name}:</b></p>
+            ${strTableHtml}`;
 
         // --- External resources ---
         const stripped = get('strippedCellLineName') || name.replace(/[^A-Za-z0-9]/g, '');
