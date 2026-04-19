@@ -21662,6 +21662,195 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Composes a deep-dive view for a single cell line. All data comes from
     // DepMap 25Q3 (Model, CRISPRGeneEffect, Expression, Mutations, Fusions) and
     // derivations computed in-app. Every section carries a source line.
+
+    // Cancer pathway knowledge base. Each pathway lists marker genes and
+    // whether damaging LOF-type mutations or hotspot GOF-type mutations (or
+    // both) are informative. Evidence pooled from OncoKB / COSMIC / SIGNOR.
+    _WIKI_PATHWAYS() {
+        return {
+            'p53 / apoptosis':          { genes: ['TP53', 'MDM2', 'MDM4', 'CDKN2A', 'CDKN2B'], note: 'compromised apoptosis, genome instability' },
+            'Cell cycle / RB':          { genes: ['RB1', 'CDK4', 'CDK6', 'CCND1', 'CCND2', 'CCNE1', 'CDKN1B'], note: 'G1/S checkpoint loss — CDK4/6 inhibitor context' },
+            'RAS-MAPK':                 { genes: ['KRAS', 'NRAS', 'HRAS', 'BRAF', 'MAP2K1', 'MAP2K2', 'NF1', 'PTPN11', 'RAF1'], note: 'MEK/ERK signalling — MEK or RAF inhibitor targets' },
+            'PI3K / AKT / mTOR':        { genes: ['PIK3CA', 'PIK3CB', 'PIK3R1', 'PTEN', 'AKT1', 'AKT2', 'TSC1', 'TSC2', 'MTOR', 'STK11'], note: 'PI3K inhibitor / mTOR inhibitor target' },
+            'RTK (receptor tyr kinase)':{ genes: ['EGFR', 'ERBB2', 'ERBB3', 'MET', 'KIT', 'PDGFRA', 'PDGFRB', 'FGFR1', 'FGFR2', 'FGFR3', 'FGFR4', 'ALK', 'ROS1', 'RET', 'NTRK1', 'NTRK2', 'NTRK3', 'FLT3'], note: 'receptor TKI targets — check amplification / fusion' },
+            'WNT / beta-catenin':       { genes: ['APC', 'CTNNB1', 'AXIN1', 'AXIN2', 'RNF43'], note: 'WNT pathway activation' },
+            'MYC / MAX':                { genes: ['MYC', 'MYCN', 'MYCL', 'MAX'], note: 'MYC-driven proliferation — BET inhibitor / MYC-synthetic-lethal context' },
+            'SWI/SNF chromatin':        { genes: ['ARID1A', 'ARID1B', 'ARID2', 'SMARCA4', 'SMARCA2', 'SMARCB1', 'PBRM1', 'BRD7'], note: 'chromatin remodelling defect — SMARCA2 / EZH2 synthetic lethality' },
+            'Epigenetic writers':       { genes: ['KMT2A', 'KMT2B', 'KMT2C', 'KMT2D', 'CREBBP', 'EP300', 'EZH2', 'DNMT3A', 'TET2', 'ASXL1', 'IDH1', 'IDH2'], note: 'histone / DNA methylation dysregulation' },
+            'DNA damage repair (HR/FA)':{ genes: ['BRCA1', 'BRCA2', 'PALB2', 'ATM', 'ATR', 'CHEK1', 'CHEK2', 'RAD51', 'RAD51C', 'RAD51D', 'FANCA', 'FANCC', 'FANCD2', 'BRIP1', 'BARD1'], note: 'HR deficiency — PARP inhibitor context' },
+            'Mismatch repair (MMR)':    { genes: ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'], note: 'MSI-H → immune checkpoint inhibitor candidate' },
+            'NOTCH / HES':              { genes: ['NOTCH1', 'NOTCH2', 'NOTCH3', 'FBXW7', 'MAML2'], note: 'NOTCH activation (T-ALL) or inactivation (squamous)' },
+            'Hematopoietic / IG':       { genes: ['RUNX1', 'CEBPA', 'GATA2', 'IKZF1', 'PAX5', 'EBF1', 'IL7R', 'CRLF2', 'JAK1', 'JAK2', 'JAK3', 'STAT3', 'STAT5B'], note: 'hematopoietic transcription / cytokine signalling' },
+            'Telomere / aging':         { genes: ['TERT', 'TERC', 'POT1', 'ATRX', 'DAXX'], note: 'telomere maintenance — TERT promoter mutations or ALT' },
+        };
+    }
+
+    // Subtype hallmarks — canonical mutation/fusion signatures associated with
+    // each Oncotree subtype. Sources: WHO classification (hematologic
+    // neoplasms 5th ed. 2022), COSMIC, OncoKB, NCCN guidelines.
+    _WIKI_SUBTYPE_HALLMARKS() {
+        return {
+            // Hematologic
+            'Chronic Lymphocytic Leukemia/Small Lymphocytic Lymphoma': {
+                expected: 'Cytogenetic hallmarks: del(13q14) ≈55%, trisomy 12 ≈15%, del(11q)/ATM ≈15%, del(17p)/TP53 ≈5–10%. Prognostic: IGHV mutational status (unmutated → worse). Common point mutations: NOTCH1, SF3B1, ATM, TP53. Usually lacks classical fusions.',
+                lookFor: ['TP53', 'ATM', 'NOTCH1', 'SF3B1']
+            },
+            'Burkitt Lymphoma': {
+                expected: 'Defining translocation: MYC-IGH t(8;14), or variants t(2;8) IGK-MYC / t(8;22) MYC-IGL. Often germline-like TP53, ID3, TCF3, CCND3 mutations. EBV+ in endemic form. Should NOT have BCL2/BCL6 rearrangements (that would be "high-grade B-cell lymphoma with MYC+BCL2/BCL6").',
+                lookFor: ['MYC', 'TP53', 'ID3', 'TCF3', 'CCND3']
+            },
+            'Diffuse Large B-Cell Lymphoma, NOS': {
+                expected: 'Cell-of-origin: GCB vs ABC (germinal-centre vs activated-B-cell). GCB markers: BCL6, EZH2, GNA13, MEF2B. ABC markers: MYD88 L265P, CD79B, TNFAIP3, PIM1. "Double-hit" = MYC + BCL2 and/or BCL6 rearrangements (reclassified as high-grade B-cell lymphoma).',
+                lookFor: ['MYD88', 'CD79B', 'BCL2', 'BCL6', 'MYC', 'EZH2', 'CREBBP', 'KMT2D', 'TP53']
+            },
+            'Activated B-cell Type': {
+                expected: 'ABC-DLBCL subtype: chronic active BCR signalling. Near-universal NF-κB activation. Hallmarks: MYD88 L265P (~30%), CD79B ITAM mutations (~20%), TNFAIP3 loss, PIM1, PRDM1/BLIMP1. Worse prognosis than GCB.',
+                lookFor: ['MYD88', 'CD79B', 'TNFAIP3', 'PIM1', 'PRDM1', 'CARD11']
+            },
+            'Germinal Center B-Cell Type': {
+                expected: 'GCB-DLBCL subtype: EZH2 GOF (Y641), GNA13 loss, MEF2B, BCL2 translocation, TNFRSF14. Better prognosis than ABC.',
+                lookFor: ['EZH2', 'BCL2', 'GNA13', 'MEF2B', 'TNFRSF14', 'KMT2D', 'CREBBP', 'EP300']
+            },
+            'Follicular Lymphoma': {
+                expected: 'Hallmark translocation: t(14;18) BCL2-IGH (≈90%). Common mutations: KMT2D (~70%), CREBBP (~40%), EZH2 Y641 (~25%), TNFRSF14, EP300.',
+                lookFor: ['BCL2', 'KMT2D', 'CREBBP', 'EZH2', 'TNFRSF14']
+            },
+            'Mantle Cell Lymphoma': {
+                expected: 'Defining translocation: t(11;14) CCND1-IGH — cyclin D1 overexpression. Frequent ATM loss (~50%), TP53 (aggressive variant), CDKN2A loss, NOTCH1/2 (~15%).',
+                lookFor: ['CCND1', 'ATM', 'TP53', 'CDKN2A', 'NOTCH1', 'NOTCH2']
+            },
+            'Hairy Cell Leukemia': {
+                expected: 'Near-universal BRAF V600E (>95%). Characteristic tartrate-resistant acid phosphatase (TRAP) positivity. CD103+, CD25+, CD11c+ immunophenotype.',
+                lookFor: ['BRAF', 'MAP2K1']
+            },
+            'Plasma Cell Myeloma': {
+                expected: 'Primary IGH translocations: t(11;14) CCND1 (~15%), t(4;14) FGFR3+MMSET (~15%), t(14;16) MAF (~5%), t(14;20) MAFB. Or hyperdiploidy (odd-number trisomies). Secondary events: MYC rearrangements, del(17p)/TP53, RAS mutations (KRAS, NRAS).',
+                lookFor: ['CCND1', 'FGFR3', 'NSD2', 'MAF', 'MYC', 'KRAS', 'NRAS', 'TP53', 'BRAF']
+            },
+            'B-Cell Acute Lymphoblastic Leukemia': {
+                expected: 'Common fusions: BCR-ABL1 (Ph+), ETV6-RUNX1 (childhood favorable), TCF3-PBX1 (E2A-PBX1), KMT2A/MLL rearrangements (infant ALL), TCF3-HLF, IGH-DUX4, iAMP21. Mutations: IKZF1 (poor prognosis in Ph+), CRLF2/JAK2 (Ph-like).',
+                lookFor: ['ABL1', 'BCR', 'ETV6', 'RUNX1', 'KMT2A', 'TCF3', 'IKZF1', 'CRLF2', 'JAK2', 'PAX5']
+            },
+            'T-Cell Acute Lymphoblastic Leukemia': {
+                expected: 'NOTCH1 mutations ~60%, FBXW7 ~15% (PEST domain). TAL1/LMO2 rearrangements (TAL/LMO subtype). TLX1, TLX3, HOXA rearrangements. CDKN2A/B deletion ~70%.',
+                lookFor: ['NOTCH1', 'FBXW7', 'CDKN2A', 'PTEN', 'TAL1', 'LMO2', 'TLX1', 'TLX3']
+            },
+            'Acute Myeloid Leukemia': {
+                expected: 'Recurrent: FLT3-ITD (~25%), NPM1 (~30%), DNMT3A (~25%), IDH1/2 (~20%), TET2, ASXL1, RUNX1, TP53 (complex karyotype). Fusions: PML-RARA (APL), RUNX1-RUNX1T1 t(8;21), CBFB-MYH11 inv(16).',
+                lookFor: ['FLT3', 'NPM1', 'DNMT3A', 'IDH1', 'IDH2', 'TET2', 'ASXL1', 'RUNX1', 'TP53', 'NRAS', 'KIT', 'WT1']
+            },
+            'Plasmablastic Lymphoma': {
+                expected: 'MYC rearrangement in majority (~50–70%). Often EBV+ and associated with HIV. Plasma-cell phenotype but IG-MYC fusion like Burkitt.',
+                lookFor: ['MYC', 'TP53']
+            },
+            'Hodgkin Lymphoma': {
+                expected: 'Classical: aberrant NF-κB and JAK-STAT. Mutations in NFKBIA/E, TNFAIP3, JAK2 amplification (cHL), STAT6. Nodular-lymphocyte-predominant (NLPHL): BCL6 rearrangements.',
+                lookFor: ['STAT6', 'TNFAIP3', 'JAK2', 'NFKBIA', 'B2M', 'SOCS1']
+            },
+
+            // Solid tumors
+            'Melanoma': {
+                expected: 'BRAF V600E/K ~50%, NRAS Q61 ~20%, NF1 loss ~14%, triple-WT (~15% — typically KIT or cryptic fusions). Near-universal TERT promoter mutations. CDKN2A loss common.',
+                lookFor: ['BRAF', 'NRAS', 'NF1', 'TERT', 'CDKN2A', 'TP53', 'PTEN', 'KIT']
+            },
+            'Lung Adenocarcinoma': {
+                expected: 'KRAS ~30% (G12C enriched in smokers), EGFR ~15% (L858R, exon-19 del — targetable), ALK fusion ~4%, ROS1 ~2%, BRAF ~3%, MET exon-14 skip, RET fusion, HER2 ins. Non-overlapping driver pattern. TP53 co-mutation common.',
+                lookFor: ['KRAS', 'EGFR', 'ALK', 'ROS1', 'BRAF', 'MET', 'RET', 'ERBB2', 'STK11', 'KEAP1', 'TP53']
+            },
+            'Lung Squamous Cell Carcinoma': {
+                expected: 'TP53 ~80%, CDKN2A loss ~70%, PIK3CA ~15%, PTEN loss, FGFR1 amplification, SOX2 amp, NFE2L2/KEAP1. Smoking-associated high mutation burden.',
+                lookFor: ['TP53', 'CDKN2A', 'PIK3CA', 'PTEN', 'FGFR1', 'NFE2L2', 'KEAP1', 'SOX2']
+            },
+            'Colon Adenocarcinoma': {
+                expected: 'CIN (chromosomal instability, 85%): APC ~80%, KRAS ~45%, TP53 ~55%, SMAD4, PIK3CA. MSI subtype (15%): MMR loss, BRAF V600E, often right-sided. POLE/POLD1 hypermutators (~1–2%).',
+                lookFor: ['APC', 'KRAS', 'TP53', 'SMAD4', 'BRAF', 'PIK3CA', 'MLH1', 'MSH2', 'MSH6', 'PMS2', 'POLE']
+            },
+            'Invasive Breast Carcinoma': {
+                expected: 'Receptor status (ER / PR / HER2) drives treatment. Molecular: PIK3CA ~35%, TP53 ~35%, GATA3, CDH1 (lobular), BRCA1/2. ERBB2 amplification → HER2+ (15–20%).',
+                lookFor: ['PIK3CA', 'TP53', 'ERBB2', 'GATA3', 'CDH1', 'BRCA1', 'BRCA2', 'ESR1', 'MAP3K1']
+            },
+            'High-Grade Serous Ovarian Cancer': {
+                expected: 'TP53 mutated in >95%. BRCA1/2 germline or somatic in ~20% → HR-deficient → PARP inhibitor sensitive. NF1, RB1, CDKN2A. Nearly universal genomic instability.',
+                lookFor: ['TP53', 'BRCA1', 'BRCA2', 'NF1', 'RB1', 'CCNE1', 'CDKN2A']
+            },
+            'Pancreatic Adenocarcinoma': {
+                expected: 'KRAS ~95% (G12D/V/R), CDKN2A ~90%, TP53 ~75%, SMAD4 ~55%. MYC amp in a subset. The "big four" define the disease.',
+                lookFor: ['KRAS', 'CDKN2A', 'TP53', 'SMAD4', 'BRCA2']
+            },
+            'Glioblastoma': {
+                expected: 'EGFR amp/EGFRvIII ~45%, TERT promoter ~80%, CDKN2A/B deletion ~60%, TP53 ~30%, PTEN ~35%, NF1. IDH1/2 mutation denotes "astrocytoma, IDH-mutant" (now classified separately from GBM).',
+                lookFor: ['EGFR', 'TERT', 'CDKN2A', 'TP53', 'PTEN', 'NF1', 'IDH1', 'IDH2']
+            },
+            'Prostate Adenocarcinoma': {
+                expected: 'TMPRSS2-ERG fusion ~50% (ETS family rearrangement). AR amplification/mutation in castration-resistant. PTEN loss ~40%, SPOP mutation, TP53, FOXA1. BRCA2 in subset (PARP inhibitor context).',
+                lookFor: ['AR', 'PTEN', 'TP53', 'SPOP', 'FOXA1', 'ERG', 'TMPRSS2', 'BRCA2', 'ATM', 'RB1']
+            },
+            'Bladder Urothelial Carcinoma': {
+                expected: 'FGFR3 mutations (~15% — targetable with erdafitinib), TP53, RB1, PIK3CA, KDM6A, ARID1A, CDKN2A, STAG2. Luminal vs basal molecular subtypes.',
+                lookFor: ['FGFR3', 'TP53', 'RB1', 'PIK3CA', 'KDM6A', 'ARID1A', 'CDKN2A', 'STAG2']
+            },
+            'Hepatocellular Carcinoma': {
+                expected: 'CTNNB1 (β-catenin) ~30%, TP53 ~30%, TERT promoter ~50%, AXIN1, ARID1A, ARID2.',
+                lookFor: ['CTNNB1', 'TP53', 'TERT', 'AXIN1', 'ARID1A', 'ARID2']
+            },
+            'Ewing Sarcoma': {
+                expected: 'Defining fusion: EWSR1-FLI1 (~85%) or EWSR1-ERG. STAG2, TP53, CDKN2A in subset.',
+                lookFor: ['EWSR1', 'FLI1', 'ERG', 'STAG2', 'TP53', 'CDKN2A']
+            },
+            'Osteosarcoma': {
+                expected: 'Complex karyotype. TP53 (~50%, often structural rearrangements), RB1 loss, MDM2/CDK4 amplification (~10%).',
+                lookFor: ['TP53', 'RB1', 'MDM2', 'CDK4', 'ATRX']
+            },
+            'Renal Clear Cell Carcinoma': {
+                expected: 'Near-universal VHL loss (chr 3p) → HIF pathway activation. PBRM1 (~40%), BAP1 (~15%, worse prognosis), SETD2 (~15%).',
+                lookFor: ['VHL', 'PBRM1', 'BAP1', 'SETD2', 'KDM5C', 'MTOR', 'TP53']
+            }
+        };
+    }
+
+    // Drug-targetable genes — highlight when they show up as essential or highly expressed.
+    _WIKI_DRUG_TARGETS() {
+        return new Set([
+            'EGFR','ERBB2','ERBB3','ALK','ROS1','RET','MET','FGFR1','FGFR2','FGFR3','FGFR4','KIT','PDGFRA','PDGFRB','FLT3','NTRK1','NTRK2','NTRK3',
+            'BRAF','MAP2K1','MAP2K2','KRAS','MEK1','MEK2',
+            'PIK3CA','PIK3CB','AKT1','AKT2','MTOR',
+            'CDK4','CDK6','CDK2','CDK7','CDK9','CCND1','CCNE1',
+            'BCL2','MCL1','BCLX',
+            'MDM2','MDM4',
+            'PARP1','PARP2',
+            'BRD4','EZH2','DOT1L','HDAC1','HDAC2','HDAC6',
+            'JAK1','JAK2','JAK3','STAT3','STAT5A','STAT5B',
+            'IDH1','IDH2',
+            'ABL1','BCR',
+            'ESR1','AR',
+            'MYC','MYCN'
+        ]);
+    }
+
+    // Lineage marker panel — genes whose expression is diagnostic of lineage.
+    _WIKI_LINEAGE_MARKERS() {
+        return {
+            'Lymphoid': ['CD19','MS4A1','CD79A','CD79B','PAX5','EBF1','CD22','CD38','CD138','SDC1','IRF4','PRDM1','CD3D','CD3E','CD4','CD8A','CD8B','TRAC','CD5','CD7','CD56','NCAM1'],
+            'Myeloid': ['CD33','CD34','CSF1R','MPO','CEBPA','SPI1','ITGAM','CD14','CD68','CD163'],
+            'Breast': ['ESR1','PGR','ERBB2','FOXA1','GATA3','KRT8','KRT18','CDH1','ELF5'],
+            'Prostate': ['AR','KLK3','NKX3-1','FOXA1','FOLH1','STEAP1'],
+            'Lung': ['NKX2-1','SFTPC','SFTPB','KRT5','KRT6A','SOX2'],
+            'Skin': ['MITF','MLANA','TYR','DCT','S100B','SOX10'],
+            'Bowel': ['CDX2','KRT20','MUC2','VIL1','SATB2'],
+            'CNS/Brain': ['GFAP','S100B','OLIG2','NES','SOX2','PAX6','VIM'],
+            'Bone': ['RUNX2','SP7','COL1A1','IBSP'],
+            'Liver': ['AFP','ALB','CYP3A4'],
+            'Pancreas': ['KRT19','KRT7','MUC1','PDX1','CPA1'],
+            'Kidney': ['PAX8','CA9','VIM'],
+            'Ovary/Fallopian Tube': ['PAX8','WT1','KRT7','MUC16'],
+            'Uterus': ['PAX8','ESR1','PGR'],
+            'Head and Neck': ['KRT5','KRT14','TP63','SOX2'],
+            'Bladder/Urinary Tract': ['KRT5','KRT14','TP63','UPK1A','UPK3A','GATA3'],
+            'Thyroid': ['TG','TPO','PAX8','TTF1','NKX2-1'],
+            'Eye': ['PAX6','RPE65','MITF']
+        };
+    }
+
     openCellLineWiki(cellLineId) {
         const name = this.getCellLineName(cellLineId);
         const m = this.cellLineMetadata || {};
@@ -21738,18 +21927,48 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ${row('Sex (expression)', sexExpDisplay)}
             <div style="margin-top:6px; padding:8px 10px; background:#f9fafb; border-left:3px solid #10b981; font-size:11px;">${sexNarrative}</div>`;
 
-        // --- Mutation profile ---
+        // --- Mutation profile + pathway scan ---
         const damagingCount = this._damagingCountByCL?.get(cellLineId) || 0;
         const hotspotCount = this._hotspotCountByCL?.get(cellLineId) || 0;
         const fusionCount = this._fusionCountByCL?.get(cellLineId) || 0;
 
-        const MMR_GENES = ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'];
-        const mmrHits = MMR_GENES.filter(g => this.damagingMutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1);
+        // Per-gene lookup helpers
+        const damHit = (g) => this.damagingMutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1;
+        const hotHit = (g) => this.mutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1;
+        const anyHit = (g) => damHit(g) || hotHit(g);
 
         const flags = [];
-        if (mmrHits.length > 0) flags.push(pill(`MMR-deficient (${mmrHits.join(', ')} damaging) → likely hypermutator / MSI-H`, '#dc2626'));
+        const MMR_GENES = ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'];
+        const mmrHits = MMR_GENES.filter(damHit);
+        if (mmrHits.length > 0) flags.push(pill(`MMR-deficient (${mmrHits.join(', ')} damaging) → likely hypermutator / MSI-H / ICB candidate`, '#dc2626'));
         if (damagingCount > 1000) flags.push(pill(`Ultra-hypermutated (${damagingCount} damaging mutations)`, '#dc2626'));
         else if (damagingCount > 500) flags.push(pill(`Hypermutated (${damagingCount} damaging mutations)`, '#d97706'));
+        // HR deficiency quick flag
+        const hrGenes = ['BRCA1', 'BRCA2', 'PALB2', 'RAD51C', 'RAD51D'];
+        const hrHits = hrGenes.filter(damHit);
+        if (hrHits.length > 0) flags.push(pill(`HR-deficient (${hrHits.join(', ')} damaging) → PARP inhibitor candidate`, '#7c3aed'));
+        // p53 pathway
+        if (damHit('TP53') || hotHit('TP53')) flags.push(pill('TP53 mutant', '#dc2626'));
+        // RB / cell cycle
+        if (damHit('RB1') || damHit('CDKN2A')) flags.push(pill('Cell-cycle checkpoint loss (RB1 or CDKN2A)', '#d97706'));
+
+        // Pathway scan
+        const pathways = this._WIKI_PATHWAYS();
+        const pathwayRows = [];
+        for (const [name, info] of Object.entries(pathways)) {
+            const hits = info.genes.filter(anyHit);
+            if (hits.length === 0) continue;
+            const tags = hits.map(g => {
+                const isDam = damHit(g), isHot = hotHit(g);
+                const label = isHot && isDam ? `${g}*` : g;
+                const color = isHot ? '#dc2626' : '#d97706';
+                return `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help; color:${color}; font-weight:500;">${label}</span>`;
+            }).join(', ');
+            pathwayRows.push(`<div style="padding:4px 0; border-bottom:1px dashed #e5e7eb;"><span style="font-weight:600; color:#374151;">${name}</span> <span style="color:#6b7280; font-size:10px;">&mdash; ${info.note}</span><br><span style="padding-left:8px;">${tags}</span></div>`);
+        }
+        const pathwayHtml = pathwayRows.length
+            ? pathwayRows.join('')
+            : '<em style="color:#6b7280;">No mutations detected in the curated cancer-pathway gene panels (~90 genes). Either this cell line is genuinely "clean" or its drivers are outside the panels.</em>';
 
         // Top hotspot genes
         const hotspotsMutated = [];
@@ -21765,8 +21984,40 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ${flags.length ? `<div style="margin-bottom:8px;">${flags.join(' ')}</div>` : ''}
             ${row('Damaging mutations (total)', damagingCount)}
             ${row('Hotspot-mutated genes', hotspotCount)}
-            ${row('MMR gene damage', mmrHits.length ? mmrHits.join(', ') : 'None')}
-            ${topHotspots ? row('Top hotspot hits', topHotspots) : ''}`;
+            ${topHotspots ? row('Top hotspot hits', topHotspots) : ''}
+            <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;">
+                <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway scan</div>
+                ${pathwayHtml}
+            </div>`;
+
+        // --- Subtype hallmarks speculation ---
+        const subtypeKB = this._WIKI_SUBTYPE_HALLMARKS();
+        const subKey = sub || pd;
+        const kb = subtypeKB[subKey] || subtypeKB[pd];
+        let hallmarksHtml;
+        if (kb) {
+            const observedHits = kb.lookFor.filter(anyHit);
+            const observedFus = kb.lookFor.filter(g => this.translocations?.geneData?.[g]?.translocations?.[cellLineId] >= 1);
+            const hitSet = new Set([...observedHits, ...observedFus]);
+            const hitLabels = [...hitSet].map(g => {
+                const kind = observedFus.includes(g) && !observedHits.includes(g) ? 'fusion'
+                    : observedFus.includes(g) && observedHits.includes(g) ? 'mut+fusion'
+                    : hotHit(g) ? 'hotspot' : damHit(g) ? 'damaging' : '?';
+                return `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help; color:#059669; font-weight:600;">${g}</span> <span style="font-size:9px; color:#6b7280;">[${kind}]</span>`;
+            }).join(', ');
+            const missingKey = kb.lookFor.filter(g => !hitSet.has(g));
+            hallmarksHtml = `
+                <div style="padding:8px 10px; background:#eff6ff; border-left:3px solid #2563eb; margin-bottom:8px;">
+                  <b style="color:#1e40af;">Typical for this subtype:</b> ${kb.expected}
+                </div>
+                ${hitLabels
+                    ? `<div style="padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a; margin-bottom:6px;"><b style="color:#15803d;">Observed hallmarks (${hitSet.size}/${kb.lookFor.length}):</b> ${hitLabels}</div>`
+                    : `<div style="padding:8px 10px; background:#fef2f2; border-left:3px solid #dc2626; margin-bottom:6px;"><b style="color:#991b1b;">No canonical subtype hallmarks observed in the mutation/fusion panel (0/${kb.lookFor.length}).</b> Could be: (a) atypical driver, (b) copy-number event our mutation panel doesn't capture (e.g. amplification, deletion, translocation missed by our fusion caller), or (c) possible cell-line misidentification &mdash; consider STR re-authentication.</div>`
+                }
+                ${missingKey.length && hitSet.size ? `<div style="font-size:10px; color:#6b7280; padding-left:4px;">Hallmark genes <i>not</i> detected in this cell line: ${missingKey.join(', ')}</div>` : ''}`;
+        } else {
+            hallmarksHtml = `<em style="color:#6b7280;">No curated knowledge base for "${subKey}" yet. Hallmark speculation is only populated for ~30 common Oncotree subtypes so far.</em>`;
+        }
 
         // --- Fusion profile ---
         const fusionPartners = [];
@@ -21783,9 +22034,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ${fusionPartners.length ? row('Partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20}</span>` : '')) : ''}
             ${fusionCaveat}`;
 
-        // --- GE signature ---
+        // --- GE signature (interpretive) ---
         const clIdx = this.metadata.cellLines.indexOf(cellLineId);
+        const drugTargets = this._WIKI_DRUG_TARGETS();
         let geSigHtml = '<em style="color:#6b7280;">No GE data available.</em>';
+        let essentialDrugTargets = [];
+        let essentialPathwayHits = [];
         if (clIdx >= 0) {
             const geVals = [];
             for (let g = 0; g < this.nGenes; g++) {
@@ -21793,32 +22047,96 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (!isNaN(v) && v !== -999) geVals.push({ gene: this.geneNames[g], val: v });
             }
             geVals.sort((a, b) => a.val - b.val);
-            const depleted = geVals.slice(0, 5).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
-            const enriched = geVals.slice(-5).reverse().map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
-            geSigHtml = `${row('Most essential (depleted)', depleted)}${row('Most enriched', enriched)}`;
+
+            // Top depleted (essential)
+            const topEss = geVals.slice(0, 15);
+            const topEssHtml = topEss.slice(0, 8).map(g => {
+                const isTgt = drugTargets.has(g.gene);
+                return `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${isTgt ? 'color:#7c3aed; font-weight:600; background:#faf5ff; padding:1px 4px; border-radius:3px;' : ''}">${g.gene}</span> (${g.val.toFixed(2)})${isTgt ? ' 💊' : ''}`;
+            }).join(', ');
+            // Flag essential drug targets (lethal when knocked out → candidate for targeting)
+            essentialDrugTargets = topEss.filter(g => drugTargets.has(g.gene));
+            // Pathway-gene essentialities (cross-check with mutation-found pathway genes)
+            const allPathwayGenes = new Set();
+            Object.values(pathways).forEach(p => p.genes.forEach(g => allPathwayGenes.add(g)));
+            essentialPathwayHits = topEss.filter(g => allPathwayGenes.has(g.gene));
+
+            // Interpretation lines
+            const interpLines = [];
+            if (essentialDrugTargets.length > 0) {
+                interpLines.push(`<div style="padding:6px 10px; background:#faf5ff; border-left:3px solid #7c3aed; font-size:11px;"><b style="color:#6d28d9;">Druggable dependencies</b>: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span>`).join(', ')} are in the top-15 most essential genes and have approved/clinical inhibitors.</div>`);
+            }
+            if (essentialPathwayHits.length > 0) {
+                const hitsByPathway = {};
+                for (const [pw, info] of Object.entries(pathways)) {
+                    const inPw = essentialPathwayHits.filter(h => info.genes.includes(h.gene));
+                    if (inPw.length > 0) hitsByPathway[pw] = inPw.map(h => h.gene);
+                }
+                if (Object.keys(hitsByPathway).length > 0) {
+                    const items = Object.entries(hitsByPathway).map(([pw, gs]) => `<li><b>${pw}</b>: ${gs.join(', ')}</li>`).join('');
+                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #16a34a; font-size:11px;"><b style="color:#15803d;">Pathway dependencies</b> (cell line can&rsquo;t survive without these):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
+                }
+            }
+            // Enriched (gain on knockout) — flag known tumor suppressors
+            const tumorSuppressors = new Set(['TP53', 'RB1', 'PTEN', 'APC', 'NF1', 'VHL', 'BRCA1', 'BRCA2', 'STK11', 'CDKN2A', 'SMAD4', 'CTCF']);
+            const topEnriched = geVals.slice(-8).reverse();
+            const tsHits = topEnriched.filter(g => tumorSuppressors.has(g.gene));
+            const topEnrHtml = topEnriched.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tumorSuppressors.has(g.gene) ? 'color:#dc2626; font-weight:600;' : ''}">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
+            const tsInterp = tsHits.length > 0
+                ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumor-suppressor knockout → growth advantage</b>: ${tsHits.map(g => g.gene).join(', ')}. Indicates these TSGs are still functional in this cell line (consistent with not-yet-mutated).</div>`
+                : '';
+
+            geSigHtml = `
+                ${row('Most essential (top 8, 💊 = druggable)', topEssHtml)}
+                ${row('Most enriched on KO (red = tumor suppressor)', topEnrHtml)}
+                ${interpLines.join('')}
+                ${tsInterp}`;
         }
 
-        // --- Expression signature ---
+        // --- Expression signature (interpretive) ---
         let exprSigHtml = '';
         if (this.expressionLoaded && this.expressionData && this.expressionMetadata) {
             const exprCLIndex = this.expressionMetadata.cellLines.indexOf(cellLineId);
             if (exprCLIndex >= 0) {
                 const nExprCL = this.expressionMetadata.nCellLines;
+                const exprByGene = new Map();
                 const exprVals = [];
                 for (let g = 0; g < this.expressionMetadata.genes.length; g++) {
                     const v = this.expressionData[g * nExprCL + exprCLIndex];
-                    if (!isNaN(v)) exprVals.push({ gene: this.expressionMetadata.genes[g], val: v });
+                    if (!isNaN(v)) {
+                        const gene = this.expressionMetadata.genes[g];
+                        exprByGene.set(gene, v);
+                        exprVals.push({ gene, val: v });
+                    }
                 }
                 exprVals.sort((a, b) => b.val - a.val);
-                const topExpr = exprVals.slice(0, 5).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
-                const xistRow = exprVals.find(e => e.gene === 'XIST');
+                const topExpr = exprVals.slice(0, 8).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
+                const xist = exprByGene.get('XIST');
                 const yMarkers = ['RPS4Y1', 'DDX3Y', 'EIF1AY', 'KDM5D', 'UTY', 'USP9Y'];
-                const yVals = yMarkers.map(g => exprVals.find(e => e.gene === g)?.val).filter(v => v !== undefined);
+                const yVals = yMarkers.map(g => exprByGene.get(g)).filter(v => v !== undefined);
                 const yMean = yVals.length ? (yVals.reduce((a, b) => a + b, 0) / yVals.length) : null;
+
+                // Lineage marker panel
+                const lineageMarkers = this._WIKI_LINEAGE_MARKERS()[lin] || [];
+                const markerScores = lineageMarkers.map(g => ({ gene: g, val: exprByGene.get(g) })).filter(x => x.val !== undefined);
+                markerScores.sort((a, b) => b.val - a.val);
+                const positiveMarkers = markerScores.filter(m => m.val > 1.0);
+                const markerHtml = markerScores.length > 0
+                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f0f9ff; border-left:3px solid #0ea5e9; font-size:11px;"><b style="color:#0369a1;">${lin} lineage markers</b> (log₂-TPM+1; &gt;1 considered expressed):<br>${markerScores.map(m => `<span class="gene-hover clb-gene-link" data-gene="${m.gene}" style="cursor:help; ${m.val > 1 ? 'font-weight:600; color:#0369a1;' : 'color:#9ca3af;'}">${m.gene}</span>&nbsp;(${m.val.toFixed(1)})`).join(', ')}</div>`
+                    : '';
+
+                // Drug target expression
+                const expressedDrugTargets = exprVals.filter(e => drugTargets.has(e.gene) && e.val > 3.0).slice(0, 10);
+                const drugExprHtml = expressedDrugTargets.length > 0
+                    ? `<div style="margin-top:6px; padding:6px 10px; background:#faf5ff; border-left:3px solid #7c3aed; font-size:11px;"><b style="color:#6d28d9;">Highly-expressed druggable targets</b> (log₂-TPM+1 &gt;3): ${expressedDrugTargets.map(e => `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" style="cursor:help;">${e.gene}</span> (${e.val.toFixed(1)})`).join(', ')}</div>`
+                    : '';
+
                 exprSigHtml = `
                     ${row('Top expressed genes', topExpr)}
-                    ${xistRow ? row('XIST (log-TPM+1)', xistRow.val.toFixed(2) + (xistRow.val > 1.0 ? ' (active)' : ' (silenced)')) : ''}
-                    ${yMean !== null ? row('Y-marker mean', yMean.toFixed(2) + (yMean > 1.0 ? ' (Y active)' : ' (Y silent / lost)')) : ''}`;
+                    ${xist !== undefined ? row('XIST (log₂-TPM+1)', xist.toFixed(2) + (xist > 1.0 ? ' → active (X-inactivation working)' : ' → silenced')) : ''}
+                    ${yMean !== null ? row('Y-marker mean', yMean.toFixed(2) + (yMean > 1.0 ? ' → Y-chromosome active' : ' → Y-chromosome silent or lost')) : ''}
+                    ${markerHtml}
+                    ${drugExprHtml}`;
             } else {
                 exprSigHtml = '<em style="color:#6b7280;">Cell line not present in expression dataset.</em>';
             }
@@ -21856,10 +22174,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             section('Classification', classificationHtml, 'DepMap 25Q3 Model (OncotreeLineage, OncotreeSubtype, OncotreeCode, PatientSubtypeFeatures).'),
             section('Patient / tumor origin', originHtml, 'DepMap 25Q3 Model table (patient-reported demographics and tissue metadata).'),
             section('Sex', sexHtml, 'Annotation: DepMap Model. Expression: Correlate V2 classifier (Y-markers RPS4Y1/DDX3Y/EIF1AY/KDM5D/UTY/USP9Y + XIST; thresholds Y&gt;1.0 or XIST&gt;1.0 in log-TPM+1).'),
-            section('Mutation profile', mutationHtml, 'DepMap 25Q3 mutations (hotspot) and damaging mutations matrices. MMR-deficiency flag: any damaging mutation in MLH1/MSH2/MSH6/PMS2/EPCAM. Hypermutation thresholds: &gt;500 damaging = hypermutated, &gt;1000 = ultra-hypermutated (heuristic; confirm with targeted sequencing).'),
+            section(`Subtype hallmarks — <i>${subKey || 'unclassified'}</i>`, hallmarksHtml, 'Curated from WHO classification of haematolymphoid tumours (5th ed., 2022), COSMIC Cancer Gene Census, OncoKB, NCCN guidelines. Coverage: ~30 common Oncotree subtypes. Hit detection uses DepMap hotspot / damaging / fusion data.'),
+            section('Mutation profile', mutationHtml, 'DepMap 25Q3 mutations (hotspot) and damaging mutations matrices. Pathway KB: ~14 pathways × ~90 genes curated from OncoKB / COSMIC / SIGNOR. Flags: MMR-deficiency (damaging hit in MLH1/MSH2/MSH6/PMS2/EPCAM → MSI-H / ICB candidate); HR-deficiency (BRCA1/2/PALB2/RAD51C/D damaging → PARP inhibitor candidate); hypermutation (&gt;500 damaging = hypermutated, &gt;1000 = ultra, heuristic).'),
             section('Fusion / translocation profile', fusionHtml, 'DepMap 25Q3 OmicsFusionFiltered. NOTE: fusion callers on hypermutated / highly-rearranged cancers produce many technical and passenger calls; counts &gt;30 are flagged for caution.'),
-            section('Gene-effect signature', geSigHtml, 'DepMap 25Q3 CRISPRGeneEffect (CERES). Most essential = most depleted (smallest effect score); most enriched = least essential / gain-of-function on depletion.'),
-            section('Expression signature', exprSigHtml, 'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1 units). XIST and Y-markers are lifted from the all-genes TPM CSV during offline preprocessing.'),
+            section('Gene-effect signature (interpretive)', geSigHtml, 'DepMap 25Q3 CRISPRGeneEffect (CERES). Most essential = most depleted. Druggable dependencies cross-referenced against a curated panel of ~60 genes with approved or clinical-stage inhibitors. Tumor-suppressor enrichment flagged when canonical TSGs (TP53, RB1, PTEN, APC, NF1, VHL, BRCA1/2, STK11, CDKN2A, SMAD4) score positive on knockout.'),
+            section('Expression signature (interpretive)', exprSigHtml, 'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). XIST and Y-markers lifted from the all-genes TPM CSV during offline preprocessing. Lineage-marker panels curated per Oncotree lineage (~15 markers each). Druggable targets flagged at log₂-TPM+1 &gt; 3.'),
             section('Authentication (STR profiling)', authHtml, 'Concept / panel descriptions: ANSI/ATCC ASN-0002-2011 standard, Promega PowerPlex panels, Eurofins Genomics cell-line authentication reports. Reference profiles: Cellosaurus.'),
             section('External resources', extHtml, 'Outbound links only — nothing is fetched live from inside this app.'),
         ].join('');

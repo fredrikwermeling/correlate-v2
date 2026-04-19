@@ -1315,6 +1315,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.29 (2026-04-19)</strong></p>
+                <ul>
+                    <li>Cell Line Wiki: added a <strong>Subtype hallmarks</strong> section. Curated knowledge base of ~30 Oncotree subtypes (CLL, Burkitt Lymphoma, DLBCL GCB/ABC, MCL, FL, Hairy-Cell Leukaemia, Plasma Cell Myeloma, B-ALL, T-ALL, AML, Hodgkin Lymphoma, Plasmablastic Lymphoma, Melanoma, Lung Adeno/Squamous, Colon, Breast, HGSOC, PDAC, GBM, Prostate, Bladder, HCC, Ewing, Osteosarcoma, ccRCC) with expected mutations/fusions per subtype. Green box shows hallmarks <em>observed</em> in the cell line, blue box shows what's <em>typical</em>, red box flags when zero canonical hallmarks are seen (possible atypical driver or misidentified cell line)</li>
+                    <li>Cell Line Wiki: added <strong>Pathway scan</strong> in the Mutation profile. 14 cancer pathways × ~90 curated genes (p53/apoptosis, cell cycle/RB, RAS-MAPK, PI3K/AKT/mTOR, RTK, WNT, MYC/MAX, SWI-SNF, epigenetic writers, HR/FA, MMR, NOTCH, hematopoietic TFs, telomere). Each pathway shows which genes are hit (hotspot in red, damaging in amber)</li>
+                    <li>Cell Line Wiki: new flags &mdash; <strong>HR-deficient</strong> (PARP-inhibitor candidate), <strong>TP53 mutant</strong>, <strong>cell-cycle checkpoint loss</strong> (RB1 or CDKN2A)</li>
+                    <li>GE signature turned interpretive: <strong>druggable dependencies</strong> (top-essential genes that have approved/clinical inhibitors, ~60-gene curated panel, highlighted purple with 💊 marker), <strong>pathway dependencies</strong> (top-essential genes grouped by cancer pathway), <strong>tumor-suppressor-positive-on-KO</strong> flag (canonical TSGs scoring positive on knockout indicates they're still functional)</li>
+                    <li>Expression signature turned interpretive: per-lineage marker panels (e.g. Lymphoid: CD19/MS4A1/CD79A/PAX5/CD3D/CD8A…; Breast: ESR1/PGR/ERBB2/FOXA1/GATA3…), highly-expressed druggable targets flagged</li>
+                </ul>
                 <p><strong>v.67.28 (2026-04-19)</strong></p>
                 <ul>
                     <li>New <strong>Cell line Wiki</strong> modal (button in the CLB detail panel). Sections: Classification (Oncotree subtype/code + PatientSubtypeFeatures &mdash; exposes CLL/Burkitt/DLBCL/MCL etc. under Lymphoid), Patient/tumor origin (age, race, primary/metastasis, collection site, grade, growth pattern, engineered model), Sex deep-dive with Y-loss / XIST-silencing reasoning, Mutation profile with MMR-deficiency and hypermutation flags, Fusion profile with caveat for counts &gt;30 (hypermutated / chromothripsis artifacts), GE signature (top essential / enriched), Expression signature (top expressed, XIST, Y-mean), STR authentication explainer (ANSI/ATCC 9-marker + Promega PowerPlex 16 panel, Cellosaurus reference profiles), and outbound links to DepMap Portal, Cellosaurus, COSMIC, PubMed, ATCC</li>
@@ -1885,7 +1893,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.28</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.29</a>
     </div>
 
     <div class="main-content">
