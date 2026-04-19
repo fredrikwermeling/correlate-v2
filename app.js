@@ -22013,6 +22013,244 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ? pathwayRows.join('')
             : '<em style="color:#6b7280;">No mutations detected in the curated cancer-pathway gene panels (~90 genes). Either this cell line is genuinely "clean" or its drivers are outside the panels.</em>';
 
+        // --- Pathway status (genotype + CRISPR dependency) ---
+        // For a handful of clinically-important pathways, combine the mutation
+        // call with the gene-effect (CRISPR knockout) read-out to infer whether
+        // the pathway is functionally active in this cell line. This catches
+        // the common case where TP53 is wild-type at the DNA level but the
+        // pathway is dormant (and vice versa).
+        const wikiClIdx = this.metadata.cellLines.indexOf(cellLineId);
+        const ge = (gene) => {
+            if (wikiClIdx < 0) return null;
+            const gi = this.geneIndex.get(gene);
+            if (gi === undefined) return null;
+            const v = this.geneEffects[gi * this.nCellLines + wikiClIdx];
+            return (!isNaN(v) && v !== -999) ? v : null;
+        };
+        const fmtGE = (v) => v === null ? 'no data' : v.toFixed(2);
+
+        const pathwayStatuses = [];
+
+        // ---------- p53 pathway ----------
+        {
+            const tp53Mut = damHit('TP53') || hotHit('TP53');
+            const tp53GE = ge('TP53');
+            const mdm2GE = ge('MDM2');
+            const lines = [];
+            lines.push(`<b>TP53 ${tp53Mut ? 'mutated' : 'wild-type'}</b>`);
+            if (tp53GE !== null) {
+                lines.push(tp53GE > 0.2
+                    ? `Knocking out TP53 helps the cell grow (gene-effect ${fmtGE(tp53GE)}) &mdash; consistent with TP53 actively restraining proliferation.`
+                    : tp53GE < -0.2
+                        ? `Knocking out TP53 reduces growth (${fmtGE(tp53GE)}) &mdash; unusual for a tumour-suppressor; could indicate a non-canonical or gain-of-function role here.`
+                        : `Knocking out TP53 is neutral (${fmtGE(tp53GE)}) &mdash; TP53 not actively restraining growth.`);
+            }
+            if (mdm2GE !== null) {
+                lines.push(mdm2GE < -0.3
+                    ? `MDM2 knockout reduces growth (${fmtGE(mdm2GE)}) &mdash; consistent with a functional p53 being normally held in check by MDM2.`
+                    : `MDM2 knockout is neutral (${fmtGE(mdm2GE)}) &mdash; MDM2 not the limiting brake on p53 in this cell.`);
+            }
+            let synthesis, color;
+            if (tp53Mut) {
+                synthesis = '<b>Pathway inactivated</b> by the TP53 mutation. p53-restoring therapies (e.g. MDM2 inhibitors) unlikely to help.';
+                color = '#dc2626';
+            } else if (tp53GE !== null && tp53GE > 0.2) {
+                synthesis = '<b>Pathway active.</b> TP53 is wild-type and functional. MDM2 inhibitors can be a therapeutic option.';
+                color = '#059669';
+            } else if (tp53GE !== null && Math.abs(tp53GE) < 0.2) {
+                synthesis = '<b>Pathway functionally dormant</b> despite WT TP53 &mdash; suggests inactivation downstream (copy-number loss of CDKN1A/PUMA, epigenetic silencing, or a dominant-negative partner).';
+                color = '#d97706';
+            } else {
+                synthesis = 'Insufficient gene-effect data to interpret pathway status.';
+                color = '#6b7280';
+            }
+            pathwayStatuses.push({ name: 'p53 tumour-suppressor pathway', lines, synthesis, color });
+        }
+
+        // ---------- Cell cycle / RB ----------
+        {
+            const rb1Mut = damHit('RB1');
+            const cdkn2aMut = damHit('CDKN2A');
+            const ccnd1Hot = hotHit('CCND1');
+            const cdk4GE = ge('CDK4');
+            const cdk6GE = ge('CDK6');
+            const ccnd1GE = ge('CCND1');
+            const lines = [];
+            const geno = [];
+            if (rb1Mut) geno.push('RB1 damaged');
+            if (cdkn2aMut) geno.push('CDKN2A damaged');
+            if (ccnd1Hot) geno.push('CCND1 hotspot');
+            lines.push(`<b>${geno.length ? geno.join(', ') : 'No mutation in RB1 / CDKN2A / CCND1'}</b>`);
+            const cdkGE = (cdk4GE !== null && cdk6GE !== null) ? Math.min(cdk4GE, cdk6GE) : (cdk4GE ?? cdk6GE);
+            if (cdkGE !== null) {
+                lines.push(cdkGE < -0.2
+                    ? `CDK4/6 knockout reduces growth (best score ${fmtGE(cdkGE)}) &mdash; the cell relies on CDK4/6 for proliferation. CDK4/6 inhibitors likely active.`
+                    : `CDK4/6 knockout is neutral (${fmtGE(cdkGE)}) &mdash; cell does not depend on CDK4/6 (may use CDK2 or run a CDK4/6-independent cell cycle).`);
+            }
+            if (ccnd1GE !== null && ccnd1GE < -0.2) {
+                lines.push(`CCND1 knockout reduces growth (${fmtGE(ccnd1GE)}) &mdash; consistent with cyclin-D1-driven proliferation.`);
+            }
+            let synthesis, color;
+            if ((cdkn2aMut || ccnd1Hot) && cdkGE !== null && cdkGE < -0.2) {
+                synthesis = '<b>G1/S brake released</b> at the genome level <em>and</em> the cell remains CDK4/6-dependent &mdash; classic CDK4/6-inhibitor target.';
+                color = '#059669';
+            } else if (rb1Mut) {
+                synthesis = '<b>RB1 lost</b> &mdash; downstream of CDK4/6, so CDK4/6 inhibitors are typically ineffective.';
+                color = '#dc2626';
+            } else if (cdkGE !== null && cdkGE < -0.3) {
+                synthesis = '<b>CDK4/6 dependent</b> by gene-effect, with no obvious mutation driving it &mdash; pathway still a viable inhibitor target.';
+                color = '#059669';
+            } else if (cdkGE !== null && cdkGE > -0.1) {
+                synthesis = '<b>Cell cycle not CDK4/6-driven</b> &mdash; CDK4/6 inhibitors unlikely to help.';
+                color = '#6b7280';
+            } else {
+                synthesis = 'Mixed / insufficient signal.';
+                color = '#6b7280';
+            }
+            pathwayStatuses.push({ name: 'Cell cycle (RB / CDK4/6)', lines, synthesis, color });
+        }
+
+        // ---------- RAS / MAPK ----------
+        {
+            const krasMut = damHit('KRAS') || hotHit('KRAS');
+            const nrasMut = damHit('NRAS') || hotHit('NRAS');
+            const hrasMut = damHit('HRAS') || hotHit('HRAS');
+            const brafMut = damHit('BRAF') || hotHit('BRAF');
+            const nf1Mut = damHit('NF1');
+            const krasGE = ge('KRAS');
+            const brafGE = ge('BRAF');
+            const mekGE = ge('MAP2K1');
+            const lines = [];
+            const geno = [];
+            if (krasMut) geno.push('KRAS');
+            if (nrasMut) geno.push('NRAS');
+            if (hrasMut) geno.push('HRAS');
+            if (brafMut) geno.push('BRAF');
+            if (nf1Mut) geno.push('NF1 (loss)');
+            lines.push(`<b>${geno.length ? geno.join(', ') + ' mutated' : 'No RAS/MAPK driver mutation detected'}</b>`);
+            if (krasMut && krasGE !== null) {
+                lines.push(krasGE < -0.3
+                    ? `KRAS knockout strongly reduces growth (${fmtGE(krasGE)}) &mdash; cell line is <b>KRAS-addicted</b>.`
+                    : `KRAS knockout has limited effect (${fmtGE(krasGE)}) despite the mutation &mdash; cell may have switched to alternative drivers.`);
+            }
+            if (brafMut && brafGE !== null) {
+                lines.push(brafGE < -0.3
+                    ? `BRAF knockout strongly reduces growth (${fmtGE(brafGE)}) &mdash; cell line is <b>BRAF-addicted</b>; BRAF/MEK inhibitors expected to be effective.`
+                    : `BRAF knockout has limited effect (${fmtGE(brafGE)}) &mdash; bypass mechanism may be present.`);
+            }
+            if (mekGE !== null && mekGE < -0.3) {
+                lines.push(`MEK1 (MAP2K1) knockout reduces growth (${fmtGE(mekGE)}) &mdash; MAPK signalling is essential.`);
+            }
+            let synthesis, color;
+            if ((krasMut && krasGE !== null && krasGE < -0.3) || (brafMut && brafGE !== null && brafGE < -0.3)) {
+                synthesis = '<b>Oncogene-addicted</b> to its driver mutation. Direct inhibitor of the mutant gene is the rational therapy.';
+                color = '#059669';
+            } else if (geno.length === 0 && mekGE !== null && mekGE < -0.3) {
+                synthesis = '<b>MAPK-dependent without an obvious driver mutation</b> &mdash; check for upstream RTK amplification or fusion.';
+                color = '#d97706';
+            } else if (geno.length === 0 && (mekGE === null || mekGE > -0.1)) {
+                synthesis = 'No evidence of RAS/MAPK pathway activation.';
+                color = '#6b7280';
+            } else {
+                synthesis = 'Mixed signal &mdash; mutation present but limited functional dependency.';
+                color = '#d97706';
+            }
+            pathwayStatuses.push({ name: 'RAS / MAPK signalling', lines, synthesis, color });
+        }
+
+        // ---------- PI3K / AKT ----------
+        {
+            const pikMut = hotHit('PIK3CA') || damHit('PIK3CA');
+            const ptenLoss = damHit('PTEN');
+            const akt1Mut = hotHit('AKT1');
+            const pi3kGE = ge('PIK3CA');
+            const akt1GE = ge('AKT1');
+            const aktcombGE = (() => {
+                const a1 = ge('AKT1'); const a2 = ge('AKT2'); const a3 = ge('AKT3');
+                const v = [a1, a2, a3].filter(x => x !== null);
+                return v.length ? Math.min(...v) : null;
+            })();
+            const lines = [];
+            const geno = [];
+            if (pikMut) geno.push('PIK3CA');
+            if (ptenLoss) geno.push('PTEN loss');
+            if (akt1Mut) geno.push('AKT1');
+            lines.push(`<b>${geno.length ? geno.join(', ') + ' mutated' : 'No PI3K/AKT driver mutation detected'}</b>`);
+            if (pi3kGE !== null) {
+                lines.push(pi3kGE < -0.2
+                    ? `PIK3CA knockout reduces growth (${fmtGE(pi3kGE)}) &mdash; PI3K signalling is essential.`
+                    : `PIK3CA knockout is neutral (${fmtGE(pi3kGE)}) &mdash; PI3K not the limiting node here.`);
+            }
+            if (aktcombGE !== null && aktcombGE < -0.3) {
+                lines.push(`AKT knockout reduces growth (best AKT1/2/3 score ${fmtGE(aktcombGE)}) &mdash; downstream survival signalling is essential.`);
+            }
+            let synthesis, color;
+            if ((pikMut || ptenLoss) && (pi3kGE !== null && pi3kGE < -0.2 || aktcombGE !== null && aktcombGE < -0.3)) {
+                synthesis = '<b>Pathway active and essential</b> &mdash; PI3K-α inhibitors (alpelisib for PIK3CA-mut), AKT inhibitors, or mTOR inhibitors are rational candidates.';
+                color = '#059669';
+            } else if (geno.length === 0 && (pi3kGE === null || pi3kGE > -0.1)) {
+                synthesis = 'No evidence of PI3K/AKT pathway dependency.';
+                color = '#6b7280';
+            } else {
+                synthesis = 'Mixed signal between mutation status and dependency.';
+                color = '#d97706';
+            }
+            pathwayStatuses.push({ name: 'PI3K / AKT survival pathway', lines, synthesis, color });
+        }
+
+        // ---------- BCR-ABL / EGFR / ALK driven (only when applicable) ----------
+        {
+            const bcrAblFusion = (this.translocations?.geneData?.['ABL1']?.translocations?.[cellLineId] >= 1) ||
+                                 (this.translocations?.geneData?.['BCR']?.translocations?.[cellLineId] >= 1);
+            const ablGE = ge('ABL1');
+            if (bcrAblFusion) {
+                const lines = ['<b>BCR-ABL fusion detected</b>'];
+                if (ablGE !== null) {
+                    lines.push(ablGE < -0.3
+                        ? `ABL1 knockout strongly reduces growth (${fmtGE(ablGE)}) &mdash; BCR-ABL-addicted, classic imatinib target.`
+                        : `ABL1 knockout has limited effect (${fmtGE(ablGE)}) &mdash; check for resistance mutations or bypass.`);
+                }
+                pathwayStatuses.push({
+                    name: 'BCR-ABL fusion',
+                    lines,
+                    synthesis: ablGE !== null && ablGE < -0.3 ? '<b>ABL TKI candidate</b> (imatinib, dasatinib, nilotinib).' : 'Fusion present but functional dependency unclear.',
+                    color: ablGE !== null && ablGE < -0.3 ? '#059669' : '#d97706'
+                });
+            }
+        }
+        {
+            const egfrMut = damHit('EGFR') || hotHit('EGFR');
+            const egfrGE = ge('EGFR');
+            if (egfrMut || (egfrGE !== null && egfrGE < -0.3)) {
+                const lines = [];
+                lines.push(`<b>${egfrMut ? 'EGFR mutated' : 'EGFR not mutated'}</b>`);
+                if (egfrGE !== null) {
+                    lines.push(egfrGE < -0.3
+                        ? `EGFR knockout strongly reduces growth (${fmtGE(egfrGE)}) &mdash; cell line is EGFR-dependent.`
+                        : `EGFR knockout is neutral (${fmtGE(egfrGE)}) &mdash; cell does not require EGFR.`);
+                }
+                let synthesis, color;
+                if (egfrMut && egfrGE !== null && egfrGE < -0.3) {
+                    synthesis = '<b>EGFR-addicted</b> &mdash; classic context for EGFR TKIs (erlotinib, gefitinib, osimertinib).';
+                    color = '#059669';
+                } else if (egfrMut) {
+                    synthesis = 'EGFR mutation present but cell may have escaped dependency.';
+                    color = '#d97706';
+                } else {
+                    synthesis = 'EGFR-dependent without an obvious activating mutation &mdash; possible amplification, autocrine ligand loop, or wild-type-driven dependency.';
+                    color = '#d97706';
+                }
+                pathwayStatuses.push({ name: 'EGFR signalling', lines, synthesis, color });
+            }
+        }
+
+        const pathwayStatusHtml = pathwayStatuses.map(p => `
+            <div style="margin-bottom:8px; padding:8px 12px; border-left:4px solid ${p.color}; background:${p.color}14; border-radius:0 4px 4px 0;">
+                <div style="font-weight:600; margin-bottom:4px; color:${p.color}; font-size:12px;">${p.name}</div>
+                <ul style="margin:0 0 4px 16px; padding:0; font-size:11px; color:#374151;">${p.lines.map(l => `<li>${l}</li>`).join('')}</ul>
+                <div style="font-size:11px; color:#374151; padding-top:4px; border-top:1px dashed #e5e7eb;">${p.synthesis}</div>
+            </div>`).join('');
+
         // Top hotspot genes
         const hotspotsMutated = [];
         if (this.mutations?.geneData) {
@@ -22033,6 +22271,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway scan</div>
                 <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">Each row below is a cancer-relevant pathway where at least one gene is mutated. Red = hotspot mutation (typically gain-of-function in oncogenes); orange = damaging mutation (typically loss-of-function in tumour suppressors).</p>
                 ${pathwayHtml}
+            </div>
+            <div style="margin-top:12px; padding-top:8px; border-top:1px solid #e5e7eb;">
+                <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway status (genotype + dependency)</div>
+                <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">A more refined view that combines what the genome says with how the cell line actually behaves in CRISPR knockout. Mutation status alone can be misleading: a TP53 wild-type cell whose growth is unaffected by TP53 knockout has a functionally inactive p53 pathway. Conversely, a wild-type cell that gains growth advantage when TP53 is removed is a true active-pathway cell &mdash; a candidate for p53-restoring therapies (MDM2 inhibitors). Each card synthesises the genotype, the relevant gene-effect read-outs, and a one-line interpretation.</p>
+                ${pathwayStatusHtml}
             </div>`;
 
         // --- Subtype hallmarks speculation ---
