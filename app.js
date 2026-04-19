@@ -22024,10 +22024,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                   <b style="color:#1e40af;">Typical for this subtype:</b> ${kb.expected}
                 </div>
                 ${hitLabels
-                    ? `<div style="padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a; margin-bottom:6px;"><b style="color:#15803d;">Hallmark genes with a mutation or fusion call in this cell line (${hitSet.size}/${kb.lookFor.length}):</b> ${hitLabels}</div>`
+                    ? `<div style="padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a; margin-bottom:6px;"><b style="color:#15803d;">Altered hallmark genes (${hitSet.size} of ${kb.lookFor.length}):</b> ${hitLabels}</div>`
                     : `<div style="padding:8px 10px; background:#fef2f2; border-left:3px solid #dc2626; margin-bottom:6px;"><b style="color:#991b1b;">No canonical subtype hallmarks observed in the mutation/fusion panel (0/${kb.lookFor.length}).</b> Could be: (a) atypical driver, (b) copy-number event our mutation panel doesn't capture (e.g. amplification, deletion, translocation missed by our fusion caller), or (c) possible cell-line misidentification &mdash; consider STR re-authentication.</div>`
                 }
-                ${missingKey.length && hitSet.size ? `<div style="font-size:10px; color:#6b7280; padding-left:4px;">Hallmark genes <i>without</i> a mutation or fusion call in this cell line (they&rsquo;re still present and expressed &mdash; just not flagged as altered): ${missingKey.join(', ')}</div>` : ''}`;
+                ${missingKey.length && hitSet.size ? `<div style="font-size:10px; color:#6b7280; padding-left:4px;">Hallmark genes without detected alterations: ${missingKey.join(', ')}</div>` : ''}`;
         } else {
             hallmarksHtml = `<em style="color:#6b7280;">No curated knowledge base for "${subKey}" yet. Hallmark speculation is only populated for ~30 common Oncotree subtypes so far.</em>`;
         }
