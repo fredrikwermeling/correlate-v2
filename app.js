@@ -17680,6 +17680,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         tbody.innerHTML = '';
 
         if (mode === 'tissue') {
+            // Always-top "All" aggregate row (computed fresh from current filtered data)
+            const fullData = this.getGETissueFilteredData ? this.getGETissueFilteredData() : (this.currentGeneEffect?.data || []);
+            if (fullData.length > 0) {
+                const vals = fullData.map(d => d.geneEffect).filter(v => !isNaN(v));
+                const n = vals.length;
+                if (n > 0) {
+                    const mean = vals.reduce((a, b) => a + b, 0) / n;
+                    const sd = n > 1 ? Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1)) : 0;
+                    tbody.innerHTML += `<tr class="clickable-row" data-group="_all" style="cursor: pointer; background: #f3f4f6; font-weight: 600; border-bottom: 2px solid #d1d5db;">
+                        <td>All</td>
+                        <td style="text-align: center;">${n}</td>
+                        <td style="text-align: center;">${mean.toFixed(2)}</td>
+                        <td style="text-align: center;">${sd.toFixed(2)}</td>
+                        <td style="text-align: center; color: #9ca3af;">&mdash;</td>
+                    </tr>`;
+                }
+            }
             stats.forEach(s => {
                 const color = s.pValue < 0.05 ? (s.mean < -0.5 ? '#dc2626' : s.mean > 0.5 ? '#16a34a' : '#374151') : '#6b7280';
                 const pStr = s.pValue < 0.001 ? '<0.001' : s.pValue.toFixed(3);
@@ -17833,12 +17850,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (pStr) statsParts.push(`p(WT vs 1+2): ${pStr}`);
             const statsText = statsParts.join('  |  ');
 
-            // Apply width ratio from slider (default 1.0 = full width)
+            // Square-ish plot area by default; sliders adjust width/height.
             const widthRatio = this.geChartWidthRatio || 1.0;
+            const heightRatio = this.geChartHeightRatio || 1.0;
+            const baseSize = 550;
+            const chartWidth = Math.round(baseSize * widthRatio);
+            const chartHeight = Math.round(baseSize * heightRatio);
             const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
-            const container = document.getElementById(plotId);
-            const containerWidth = container ? container.offsetWidth || 500 : 500;
-            const chartWidth = Math.round(containerWidth * widthRatio);
 
             const filterDesc = this._getGEFilterDescription() || 'All tissues';
             const layout = {
@@ -17854,8 +17872,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 yaxis: { automargin: true, tickfont: { size: 12 }, title: '' },
                 xaxis: { automargin: true, tickfont: { size: 12 }, title: '' },
                 showlegend: false,
-                height: 550,
-                width: Math.max(containerWidth * 0.95, 550),
+                height: chartHeight,
+                width: chartWidth,
                 margin: { t: 110, b: 85, l: 120, r: 30 },
                 paper_bgcolor: 'white',
                 plot_bgcolor: 'white'
@@ -17926,18 +17944,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         const statsText = statsAnnotations.join('<br>');
 
-        // Apply width ratio from slider (default 1.0 = full width)
+        // Square-ish plot area by default: both width and height derive from the
+        // same base size (500 px) so the plot is roughly square regardless of
+        // container width. Sliders still adjust each dimension independently.
         const widthRatio = this.geChartWidthRatio || 1.0;
+        const heightRatio = this.geChartHeightRatio || 1.0;
+        const baseSize = 500;
+        const chartWidth = Math.round(baseSize * widthRatio);
+        const chartHeight = Math.round(baseSize * heightRatio);
         const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
-        const container = document.getElementById(plotId);
-        const containerWidth = container ? container.offsetWidth || 500 : 500;
-        const chartWidth = Math.round(containerWidth * widthRatio);
 
         const layout = {
             title: { text: `${gene} gene effect in ${group}`, font: { size: 14 } },
             yaxis: { title: 'Gene Effect', zeroline: true, zerolinecolor: '#374151', zerolinewidth: 2 },
             showlegend: false,
-            height: 500,
+            height: chartHeight,
             width: chartWidth,
             margin: { t: 50, b: 140, l: 60, r: 30 },
             paper_bgcolor: 'white',
