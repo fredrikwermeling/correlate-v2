@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.pyc
+
+# Large source data files (offline inputs for scripts/*.py; not shipped with the app)
+REPURPOSING*.csv
+scripts/CRISPRInferredModelGrowthRate.csv
+scripts/Model_25Q3.csv
+scripts/OmicsProfiles.csv
+scripts/OmicsSomaticMutationsMatrixDamaging.csv
+scripts/hallmark_raw.json
+scripts/kegg_raw.json

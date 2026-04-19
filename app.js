@@ -50,6 +50,7 @@ class CorrelationExplorer {
         this.mutations = null;
         this.damagingMutations = null;
         this.translocations = null;
+        this.drugResponse = null;
         this.orthologs = null;
         this.geneEffects = null; // Float32Array [nGenes x nCellLines]
         this.nGenes = 0;
@@ -174,14 +175,15 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
             fetch('web_data/orthologs.json'),
             fetch('web_data/translocations.json').catch(() => null),
             fetch('web_data/damaging_mutations.json').catch(() => null),
-            Promise.resolve(null) // growth_rate.json disabled (v.54)
+            Promise.resolve(null), // growth_rate.json disabled (v.54)
+            fetch('web_data/drug_response.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -193,6 +195,9 @@ class CorrelationExplorer {
         }
         if (growthRateRes && growthRateRes.ok) {
             this.growthRateData = await growthRateRes.json();
+        }
+        if (drugRes && drugRes.ok) {
+            this.drugResponse = await drugRes.json();
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -22144,6 +22149,98 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             exprSigHtml = '<em style="color:#6b7280;">Expression data not loaded. Click any Analyze/Inspect action to load it.</em>';
         }
 
+        // --- Drug response (PRISM Repurposing Secondary) ---
+        let drugHtml;
+        if (!this.drugResponse?.compounds) {
+            drugHtml = '<em style="color:#6b7280;">Drug response data not loaded.</em>';
+        } else {
+            const dr = this.drugResponse;
+            const rows = [];
+            for (const c of dr.compounds) {
+                const v = c.auc[cellLineId];
+                if (v === undefined) continue;
+                const z = (c.sd > 0) ? (v - c.mean) / c.sd : 0;
+                rows.push({ ...c, v, z });
+            }
+            if (rows.length === 0) {
+                drugHtml = '<em style="color:#6b7280;">This cell line was not in the PRISM Repurposing Secondary screen.</em>';
+            } else {
+                rows.sort((a, b) => a.z - b.z);
+                const sensitive = rows.filter(r => r.z < -1).slice(0, 8);
+                const resistant = rows.slice().sort((a, b) => b.z - a.z).filter(r => r.z > 1).slice(0, 5);
+
+                const fmtCompound = (c, signClass) => {
+                    const zStr = c.z.toFixed(1);
+                    const color = signClass === 'sens' ? '#047857' : '#b91c1c';
+                    const bg = signClass === 'sens' ? '#ecfdf5' : '#fef2f2';
+                    return `<li style="padding:3px 0;"><span style="display:inline-block; min-width:170px; font-weight:600; color:${color};">${c.name}</span>
+                        <span style="font-size:10px; color:#6b7280;">${c.target} · ${c.moa}</span><br>
+                        <span style="padding-left:170px; font-size:10px;">AUC ${c.v.toFixed(3)} (panel mean ${c.mean.toFixed(3)}, z = <b style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;">${zStr}</b>) &mdash; <i>${c.indication}</i></span></li>`;
+                };
+
+                // Context-aware cross-checks based on what this wiki has already detected
+                const findByTarget = (targetKey) => rows.filter(r => r.target.toUpperCase().includes(targetKey.toUpperCase()));
+                const ctxSections = [];
+                // BRAF mutant → BRAF/MEK inhibitors
+                if (anyHit('BRAF')) {
+                    const hits = [...findByTarget('BRAF'), ...findByTarget('MEK')];
+                    if (hits.length) ctxSections.push({ label: 'BRAF-mutant → BRAF/MEK inhibitors', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
+                }
+                // EGFR mutant → EGFR TKI
+                if (anyHit('EGFR')) {
+                    const hits = findByTarget('EGFR');
+                    if (hits.length) ctxSections.push({ label: 'EGFR-mutant → EGFR TKI', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
+                }
+                // ALK/ROS1 fusion → ALK/ROS1 inhibitors
+                const alkFusion = this.translocations?.geneData?.['ALK']?.translocations?.[cellLineId] >= 1 ||
+                                  this.translocations?.geneData?.['ROS1']?.translocations?.[cellLineId] >= 1;
+                if (alkFusion) {
+                    const hits = [...findByTarget('ALK'), ...findByTarget('ROS1')];
+                    if (hits.length) ctxSections.push({ label: 'ALK/ROS1 fusion → ALK/ROS1 inhibitors', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
+                }
+                // BCR-ABL fusion → ABL TKI
+                const bcrAbl = (this.translocations?.geneData?.['ABL1']?.translocations?.[cellLineId] >= 1) ||
+                               (this.translocations?.geneData?.['BCR']?.translocations?.[cellLineId] >= 1);
+                if (bcrAbl) {
+                    const hits = findByTarget('BCR-ABL');
+                    if (hits.length) ctxSections.push({ label: 'BCR-ABL fusion → ABL TKI', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
+                }
+                // HR-deficient → PARP
+                if (hrHits.length > 0) {
+                    const hits = findByTarget('PARP');
+                    if (hits.length) ctxSections.push({ label: 'HR-deficient → PARP inhibitors', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
+                }
+                // MMR-deficient: no cell-line-panel relevant compound here (ICB is antibody), note instead
+                // TP53-WT → MDM2
+                if (!anyHit('TP53')) {
+                    const hits = findByTarget('MDM2');
+                    if (hits.length) ctxSections.push({ label: 'TP53-WT → MDM2 inhibitor candidate', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
+                }
+                // CDKN2A lost / cell cycle → CDK4/6
+                if (damHit('CDKN2A') || anyHit('CCND1')) {
+                    const hits = findByTarget('CDK4/6');
+                    if (hits.length) ctxSections.push({ label: 'CDKN2A loss / CCND1 → CDK4/6 inhibitors', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
+                }
+                // BTK / BCR pathway for lymphoid
+                if (lin === 'Lymphoid') {
+                    const hits = [...findByTarget('BTK'), ...findByTarget('BCL-2'), ...findByTarget('PI3K-DELTA')];
+                    if (hits.length) ctxSections.push({ label: 'Lymphoid → BCR/BCL2 axis', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
+                }
+
+                const ctxHtml = ctxSections.length
+                    ? '<div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;"><div style="font-weight:600; margin-bottom:6px; color:#374151;">Context-aware cross-checks</div>'
+                        + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6366f1; font-size:11px;"><b style="color:#4338ca;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => `<li><span style="font-weight:500;">${c.name}</span> &mdash; AUC ${c.v.toFixed(3)} (z = ${c.z >= 0 ? '+' : ''}${c.z.toFixed(1)}) &mdash; <i>${c.indication}</i></li>`).join('')}</ul></div>`).join('')
+                        + '</div>'
+                    : '';
+
+                drugHtml = `
+                    <p style="margin:0 0 6px; font-size:11px; color:#6b7280;">AUC (0 = complete kill, 1 = no effect). z-score computed against all ${dr.panelSize} compounds in the panel for this cell line. Scored on ${rows.length} compounds.</p>
+                    ${sensitive.length ? `<div><b style="color:#047857;">Standout sensitive (z &lt; −1):</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">No compounds show standout sensitivity (z &lt; −1).</div>'}
+                    ${resistant.length ? `<div><b style="color:#b91c1c;">Standout resistant (z &gt; +1):</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
+                    ${ctxHtml}`;
+            }
+        }
+
         // --- Authentication (STR) ---
         const authHtml = `
             <p style="margin:0 0 6px;">Cell line authenticity is standardly verified by <b>Short Tandem Repeat (STR) profiling</b> — a panel of polymorphic microsatellite loci unique to each individual. An authentic cell line should match the reference profile at every locus.</p>
@@ -22179,6 +22276,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             section('Fusion / translocation profile', fusionHtml, 'DepMap 25Q3 OmicsFusionFiltered. NOTE: fusion callers on hypermutated / highly-rearranged cancers produce many technical and passenger calls; counts &gt;30 are flagged for caution.'),
             section('Gene-effect signature (interpretive)', geSigHtml, 'DepMap 25Q3 CRISPRGeneEffect (CERES). Most essential = most depleted. Druggable dependencies cross-referenced against a curated panel of ~60 genes with approved or clinical-stage inhibitors. Tumor-suppressor enrichment flagged when canonical TSGs (TP53, RB1, PTEN, APC, NF1, VHL, BRCA1/2, STK11, CDKN2A, SMAD4) score positive on knockout.'),
             section('Expression signature (interpretive)', exprSigHtml, 'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). XIST and Y-markers lifted from the all-genes TPM CSV during offline preprocessing. Lineage-marker panels curated per Oncotree lineage (~15 markers each). Druggable targets flagged at log₂-TPM+1 &gt; 3.'),
+            section('Drug response (PRISM Repurposing Secondary)', drugHtml, (this.drugResponse?.dataSource || 'DepMap PRISM Repurposing Secondary.') + ' Curated panel of ' + (this.drugResponse?.panelSize || '~100') + ' clinically / mechanistically relevant compounds with editorial target / MOA / indication annotations. Z-scores computed per compound across the full PRISM panel. <b>Caveat:</b> in vitro viability ≠ clinical response. PRISM is a pooled barcoded screen — validate with orthogonal 2D/3D assays for anything clinically weighty.'),
             section('Authentication (STR profiling)', authHtml, 'Concept / panel descriptions: ANSI/ATCC ASN-0002-2011 standard, Promega PowerPlex panels, Eurofins Genomics cell-line authentication reports. Reference profiles: Cellosaurus.'),
             section('External resources', extHtml, 'Outbound links only — nothing is fetched live from inside this app.'),
         ].join('');
