@@ -1315,6 +1315,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.68.02 (2026-04-19)</strong></p>
+                <ul>
+                    <li>Pathway-scan section in the Mutation profile clarified. The intro now states explicitly that the scan is based on mutation calls only (copy-number, fusions and expression are excluded); drops the inaccurate "hotspot = oncogenic / damaging = tumour suppressor" shorthand; and explains the asterisk (gene carries both a hotspot and a damaging mutation). Pathway rows restructured so the name, plain-English description, and gene list each sit on their own line, with a clear "Mutated genes in panel:" label before the tags so the genes no longer run on directly after the description. Cryptic shorthand like "RTK (receptor tyr kinase) &mdash; receptor TKI targets &mdash; check amplification / fusion" is replaced with full sentences, e.g. a note on receptor tyrosine kinases explaining that the mutation panel misses amplifications and fusions &mdash; common driver mechanisms for this pathway &mdash; so a clean panel does not rule it out</li>
+                </ul>
                 <p><strong>v.67.92 (2026-04-19)</strong></p>
                 <ul>
                     <li>New <strong>Pathway status (genotype + dependency)</strong> sub-section in the Mutation profile. For 5 clinically-important pathways (p53, RB / cell cycle, RAS-MAPK, PI3K/AKT, EGFR + BCR-ABL when relevant) it combines mutation status with CRISPR knockout gene-effect to infer whether the pathway is functionally active. Catches the common mismatch where a TP53-wild-type cell line shows neutral TP53 knockout (pathway dormant despite WT genotype), or where TP53-WT cells with positive TP53 gene-effect are actively restraining growth and become MDM2-inhibitor candidates. Each card shows genotype, the relevant gene-effect read-outs, and a one-line interpretation</li>
@@ -1932,7 +1936,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.92</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.68.02</a>
     </div>
 
     <div class="main-content">

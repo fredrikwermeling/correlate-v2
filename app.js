@@ -21669,24 +21669,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // derivations computed in-app. Every section carries a source line.
 
     // Cancer pathway knowledge base. Each pathway lists marker genes and
-    // whether damaging LOF-type mutations or hotspot GOF-type mutations (or
-    // both) are informative. Evidence pooled from OncoKB / COSMIC / SIGNOR.
+    // a short, plain-language note about its role and therapeutic relevance.
+    // Evidence pooled from OncoKB / COSMIC / SIGNOR.
     _WIKI_PATHWAYS() {
         return {
-            'p53 / apoptosis':          { genes: ['TP53', 'MDM2', 'MDM4', 'CDKN2A', 'CDKN2B'], note: 'compromised apoptosis, genome instability' },
-            'Cell cycle / RB':          { genes: ['RB1', 'CDK4', 'CDK6', 'CCND1', 'CCND2', 'CCNE1', 'CDKN1B'], note: 'G1/S checkpoint loss — CDK4/6 inhibitor context' },
-            'RAS-MAPK':                 { genes: ['KRAS', 'NRAS', 'HRAS', 'BRAF', 'MAP2K1', 'MAP2K2', 'NF1', 'PTPN11', 'RAF1'], note: 'MEK/ERK signalling — MEK or RAF inhibitor targets' },
-            'PI3K / AKT / mTOR':        { genes: ['PIK3CA', 'PIK3CB', 'PIK3R1', 'PTEN', 'AKT1', 'AKT2', 'TSC1', 'TSC2', 'MTOR', 'STK11'], note: 'PI3K inhibitor / mTOR inhibitor target' },
-            'RTK (receptor tyr kinase)':{ genes: ['EGFR', 'ERBB2', 'ERBB3', 'MET', 'KIT', 'PDGFRA', 'PDGFRB', 'FGFR1', 'FGFR2', 'FGFR3', 'FGFR4', 'ALK', 'ROS1', 'RET', 'NTRK1', 'NTRK2', 'NTRK3', 'FLT3'], note: 'receptor TKI targets — check amplification / fusion' },
-            'WNT / beta-catenin':       { genes: ['APC', 'CTNNB1', 'AXIN1', 'AXIN2', 'RNF43'], note: 'WNT pathway activation' },
-            'MYC / MAX':                { genes: ['MYC', 'MYCN', 'MYCL', 'MAX'], note: 'MYC-driven proliferation — BET inhibitor / MYC-synthetic-lethal context' },
-            'SWI/SNF chromatin':        { genes: ['ARID1A', 'ARID1B', 'ARID2', 'SMARCA4', 'SMARCA2', 'SMARCB1', 'PBRM1', 'BRD7'], note: 'chromatin remodelling defect — SMARCA2 / EZH2 synthetic lethality' },
-            'Epigenetic writers':       { genes: ['KMT2A', 'KMT2B', 'KMT2C', 'KMT2D', 'CREBBP', 'EP300', 'EZH2', 'DNMT3A', 'TET2', 'ASXL1', 'IDH1', 'IDH2'], note: 'histone / DNA methylation dysregulation' },
-            'DNA damage repair (HR/FA)':{ genes: ['BRCA1', 'BRCA2', 'PALB2', 'ATM', 'ATR', 'CHEK1', 'CHEK2', 'RAD51', 'RAD51C', 'RAD51D', 'FANCA', 'FANCC', 'FANCD2', 'BRIP1', 'BARD1'], note: 'HR deficiency — PARP inhibitor context' },
-            'Mismatch repair (MMR)':    { genes: ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'], note: 'MSI-H → immune checkpoint inhibitor candidate' },
-            'NOTCH / HES':              { genes: ['NOTCH1', 'NOTCH2', 'NOTCH3', 'FBXW7', 'MAML2'], note: 'NOTCH activation (T-ALL) or inactivation (squamous)' },
-            'Hematopoietic / IG':       { genes: ['RUNX1', 'CEBPA', 'GATA2', 'IKZF1', 'PAX5', 'EBF1', 'IL7R', 'CRLF2', 'JAK1', 'JAK2', 'JAK3', 'STAT3', 'STAT5B'], note: 'hematopoietic transcription / cytokine signalling' },
-            'Telomere / aging':         { genes: ['TERT', 'TERC', 'POT1', 'ATRX', 'DAXX'], note: 'telomere maintenance — TERT promoter mutations or ALT' },
+            'p53 / apoptosis':          { genes: ['TP53', 'MDM2', 'MDM4', 'CDKN2A', 'CDKN2B'], note: 'Controls apoptosis and genome stability after damage. Loss is one of the commonest events in cancer.' },
+            'Cell cycle (RB / CDK4/6)': { genes: ['RB1', 'CDK4', 'CDK6', 'CCND1', 'CCND2', 'CCNE1', 'CDKN1B'], note: 'G1/S cell-cycle brake. Many tumours release this brake; CDK4/6 inhibitors target this axis.' },
+            'RAS / MAPK':               { genes: ['KRAS', 'NRAS', 'HRAS', 'BRAF', 'MAP2K1', 'MAP2K2', 'NF1', 'PTPN11', 'RAF1'], note: 'Major proliferation-signalling cascade. Targetable with MEK or RAF inhibitors.' },
+            'PI3K / AKT / mTOR':        { genes: ['PIK3CA', 'PIK3CB', 'PIK3R1', 'PTEN', 'AKT1', 'AKT2', 'TSC1', 'TSC2', 'MTOR', 'STK11'], note: 'Survival and growth signalling. Targetable with PI3K, AKT, or mTOR inhibitors.' },
+            'Receptor tyrosine kinases':{ genes: ['EGFR', 'ERBB2', 'ERBB3', 'MET', 'KIT', 'PDGFRA', 'PDGFRB', 'FGFR1', 'FGFR2', 'FGFR3', 'FGFR4', 'ALK', 'ROS1', 'RET', 'NTRK1', 'NTRK2', 'NTRK3', 'FLT3'], note: 'Cell-surface receptors. Often the upstream cause of MAPK or PI3K activation. Many have approved inhibitors. The mutation panel below misses gene amplification and fusions — both are common driver mechanisms here, so a clean panel does not rule the pathway out.' },
+            'WNT / beta-catenin':       { genes: ['APC', 'CTNNB1', 'AXIN1', 'AXIN2', 'RNF43'], note: 'Stem-cell-like proliferation. Hyperactivation drives most colorectal cancer.' },
+            'MYC / MAX':                { genes: ['MYC', 'MYCN', 'MYCL', 'MAX'], note: 'Master proliferation regulator. Often deregulated by translocation or amplification rather than point mutation.' },
+            'SWI/SNF chromatin':        { genes: ['ARID1A', 'ARID1B', 'ARID2', 'SMARCA4', 'SMARCA2', 'SMARCB1', 'PBRM1', 'BRD7'], note: 'Chromatin-remodelling complex. Loss of one subunit can create dependency on a paralog (synthetic lethality).' },
+            'Epigenetic writers':       { genes: ['KMT2A', 'KMT2B', 'KMT2C', 'KMT2D', 'CREBBP', 'EP300', 'EZH2', 'DNMT3A', 'TET2', 'ASXL1', 'IDH1', 'IDH2'], note: 'Histone and DNA methylation machinery. Dysregulation is especially common in haematological cancers.' },
+            'Homologous recombination repair': { genes: ['BRCA1', 'BRCA2', 'PALB2', 'ATM', 'ATR', 'CHEK1', 'CHEK2', 'RAD51', 'RAD51C', 'RAD51D', 'FANCA', 'FANCC', 'FANCD2', 'BRIP1', 'BARD1'], note: 'High-fidelity DNA double-strand break repair. Loss leads to PARP-inhibitor sensitivity.' },
+            'Mismatch repair':          { genes: ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'], note: 'Corrects DNA replication errors. Loss causes microsatellite instability and a hypermutated genome &mdash; classic checkpoint-immunotherapy responder.' },
+            'NOTCH':                    { genes: ['NOTCH1', 'NOTCH2', 'NOTCH3', 'FBXW7', 'MAML2'], note: 'Cell-fate signalling. Activating mutations in T-cell leukaemia; inactivating in squamous cancers.' },
+            'Haematopoietic transcription / JAK-STAT': { genes: ['RUNX1', 'CEBPA', 'GATA2', 'IKZF1', 'PAX5', 'EBF1', 'IL7R', 'CRLF2', 'JAK1', 'JAK2', 'JAK3', 'STAT3', 'STAT5B'], note: 'Transcription factors and cytokine signalling that govern blood-cell identity and survival.' },
+            'Telomere maintenance':     { genes: ['TERT', 'TERC', 'POT1', 'ATRX', 'DAXX'], note: 'Maintains chromosome ends. Cancers reactivate telomerase (TERT promoter mutations) or use the alternative ALT mechanism.' },
         };
     }
 
@@ -22007,7 +22007,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const color = isHot ? '#dc2626' : '#d97706';
                 return `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help; color:${color}; font-weight:500;">${label}</span>`;
             }).join(', ');
-            pathwayRows.push(`<div style="padding:4px 0; border-bottom:1px dashed #e5e7eb;"><span style="font-weight:600; color:#374151;">${name}</span> <span style="color:#6b7280; font-size:10px;">&mdash; ${info.note}</span><br><span style="padding-left:8px;">${tags}</span></div>`);
+            pathwayRows.push(`<div style="padding:6px 0; border-bottom:1px dashed #e5e7eb;"><div style="font-weight:600; color:#374151;">${name}</div><div style="padding:2px 0 4px; color:#6b7280; font-size:10px;">${info.note}</div><div style="padding-left:8px; font-size:11px;"><span style="color:#6b7280; font-size:10px;">Mutated genes in panel:</span> ${tags}</div></div>`);
         }
         const pathwayHtml = pathwayRows.length
             ? pathwayRows.join('')
@@ -22269,7 +22269,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ${topHotspots ? row('Top hotspot hits', topHotspots) : ''}
             <div style="margin-top:12px; padding-top:8px; border-top:1px solid #e5e7eb;">
                 <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway scan</div>
-                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">Each row below is a cancer-relevant pathway where at least one gene is mutated. Red = hotspot mutation (typically gain-of-function in oncogenes); orange = damaging mutation (typically loss-of-function in tumour suppressors).</p>
+                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">This scan is based on <b>mutation calls only</b> &mdash; copy-number changes, fusions, and expression are not counted here. Each row is a curated cancer pathway with at least one mutated gene in this cell line. <b style="color:#dc2626;">Red</b> = hotspot mutation (a residue recurrently mutated across tumours); <b style="color:#d97706;">orange</b> = damaging mutation (frameshift, nonsense, splice). An asterisk (<b>*</b>) marks a gene that carries <b>both</b> a hotspot and a damaging mutation.</p>
                 ${pathwayHtml}
             </div>
             <div style="margin-top:12px; padding-top:8px; border-top:1px solid #e5e7eb;">
