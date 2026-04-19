@@ -21887,12 +21887,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const code = get('oncotreeCode');
         const dmtype = get('depmapModelType');
         const psf = get('patientSubtypeFeatures');
+        const codeHtml = code
+            ? `<a href="https://oncotree.mskcc.org/?version=oncotree_latest_stable&search=${encodeURIComponent(code)}" target="_blank" rel="noopener" title="Open the Oncotree classification page for this code" style="text-decoration:none;"><code style="background:#f3f4f6; padding:1px 6px; border-radius:3px; border:1px solid #e5e7eb;">${code}</code> <span style="font-size:10px; color:#6366f1;">↗</span></a>`
+            : '';
         const classificationHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">How this tumour is classified in the Oncotree cancer-classification system, from broad tissue down to specific disease variant.</p>
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">How this tumour is classified in the <a href="https://oncotree.mskcc.org/" target="_blank" rel="noopener" style="color:#6366f1;">Oncotree</a> cancer-classification system, from broad tissue down to specific disease variant. Click the code to open Oncotree's page for this exact classification.</p>
             ${row('Tissue of origin', lin)}
             ${row('Broad disease', pd)}
             ${row('Specific subtype', sub)}
-            ${row('Oncotree code', code ? `<code>${code}</code>` : '')}
+            ${row('Oncotree code', codeHtml)}
             ${row('DepMap type', dmtype)}
             ${row('Molecular features', psf)}`;
 
@@ -22182,9 +22185,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     const color = signClass === 'sens' ? '#047857' : '#b91c1c';
                     const bg = signClass === 'sens' ? '#ecfdf5' : '#fef2f2';
                     const word = signClass === 'sens' ? 'below average' : 'above average';
+                    // Translate AUC into a plain-language survival fraction:
+                    //   AUC 0 = all cells killed, 1 = no killing at any dose.
+                    //   "surviving fraction" ≈ AUC (PRISM convention at screened dose range).
+                    const survivalLabel = c.v < 0.3 ? 'kills most cells' : c.v < 0.6 ? 'kills many cells' : c.v < 0.85 ? 'modest killing' : 'little effect';
                     return `<li style="padding:3px 0;"><span style="display:inline-block; min-width:170px; font-weight:600; color:${color};">${c.name}</span>
                         <span style="font-size:10px; color:#6b7280;">${c.target} &middot; ${c.moa}</span><br>
-                        <span style="padding-left:170px; font-size:10px;">AUC ${c.v.toFixed(3)} &mdash; <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span> &mdash; <i>${c.indication}</i></span></li>`;
+                        <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}) &mdash; <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span> &mdash; <i>${c.indication}</i></span></li>`;
                 };
 
                 // Context-aware cross-checks based on what this wiki has already detected
@@ -22238,7 +22245,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
                 const ctxHtml = ctxSections.length
                     ? '<div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;"><div style="font-weight:600; margin-bottom:6px; color:#374151;">Context-aware cross-checks</div>'
-                        + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6366f1; font-size:11px;"><b style="color:#4338ca;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => `<li><span style="font-weight:500;">${c.name}</span> &mdash; AUC ${c.v.toFixed(3)} (z = ${c.z >= 0 ? '+' : ''}${c.z.toFixed(1)}) &mdash; <i>${c.indication}</i></li>`).join('')}</ul></div>`).join('')
+                        + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6366f1; font-size:11px;"><b style="color:#4338ca;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => { const z = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1); const word = c.z < 0 ? 'below avg' : 'above avg'; return `<li><span style="font-weight:500;">${c.name}</span> &mdash; viability <b title="AUC: area under the dose-response curve. 0 = all cells killed; 1 = no killing.">${c.v.toFixed(2)}</b> (${z}σ ${word}) &mdash; <i>${c.indication}</i></li>`; }).join('')}</ul></div>`).join('')
                         + '</div>'
                     : '';
 
