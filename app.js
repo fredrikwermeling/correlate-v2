@@ -20909,6 +20909,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (e.target.id === 'clbInfoModal') e.target.style.display = 'none';
         });
 
+        // CLB cell-line Wiki modal
+        document.getElementById('clbWikiBtn')?.addEventListener('click', () => {
+            if (this._clbInspectedCellLine) this.openCellLineWiki(this._clbInspectedCellLine);
+        });
+        document.getElementById('clbWikiCloseBtn')?.addEventListener('click', () => {
+            document.getElementById('clbWikiModal').style.display = 'none';
+        });
+        document.getElementById('clbWikiModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'clbWikiModal') e.target.style.display = 'none';
+        });
+        // Gene-link clicks within the Wiki body open the GE modal (same UX as detail panel)
+        document.getElementById('clbWikiBody')?.addEventListener('click', (e) => {
+            const link = e.target.closest('.clb-gene-link');
+            if (!link) return;
+            this._geHighlightCellLine = this._clbInspectedCellLine;
+            this.openGeneEffectModal(link.dataset.gene, 'tissue');
+            this._applyParamFiltersToGEModal();
+        });
+
         document.getElementById('clbResetFilters').addEventListener('click', () => {
             document.getElementById('clbSearch').value = '';
             document.getElementById('clbTissueFilter').value = '';
@@ -21636,6 +21655,216 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     updateClbSelectionCount() {
         document.getElementById('clbSelectionCount').textContent = `${this._clbSelectedCellLines.size} selected`;
+    }
+
+    // ===== Cell Line Wiki =====
+    //
+    // Composes a deep-dive view for a single cell line. All data comes from
+    // DepMap 25Q3 (Model, CRISPRGeneEffect, Expression, Mutations, Fusions) and
+    // derivations computed in-app. Every section carries a source line.
+    openCellLineWiki(cellLineId) {
+        const name = this.getCellLineName(cellLineId);
+        const m = this.cellLineMetadata || {};
+        const get = (field) => m[field]?.[cellLineId] || '';
+
+        document.getElementById('clbWikiTitle').textContent = `${name} — Wiki`;
+        const rrid = get('rrid');
+        const summaryParts = [cellLineId];
+        if (rrid) summaryParts.push(`RRID: ${rrid}`);
+        const lin = get('lineage');
+        const pd = get('primaryDisease');
+        const sub = get('oncotreeSubtype') || get('subtype');
+        if (lin || pd) summaryParts.push([lin, pd, sub].filter(Boolean).join(' · '));
+        document.getElementById('clbWikiSubtitle').textContent = summaryParts.join('  |  ');
+
+        const body = document.getElementById('clbWikiBody');
+
+        // --- Section helpers ---
+        const section = (title, body, source) => `
+            <section style="margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #e5e7eb;">
+                <h4 style="margin:0 0 6px; font-size:13px; color:#15803d;">${title}</h4>
+                <div>${body}</div>
+                ${source ? `<div style="margin-top:6px; font-size:10px; color:#9ca3af;"><b>Source:</b> ${source}</div>` : ''}
+            </section>`;
+        const row = (label, value) => value ? `<div style="display:flex; gap:8px; padding:2px 0;"><span style="flex:0 0 180px; color:#6b7280;">${label}</span><span>${value}</span></div>` : '';
+        const pill = (text, color) => `<span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${color}22; color:${color}; font-weight:600; font-size:10px; margin-right:4px;">${text}</span>`;
+
+        // --- Classification ---
+        const code = get('oncotreeCode');
+        const dmtype = get('depmapModelType');
+        const psf = get('patientSubtypeFeatures');
+        const classificationHtml = `
+            ${row('Tissue lineage', lin)}
+            ${row('Primary disease', pd)}
+            ${row('Oncotree subtype', sub)}
+            ${row('Oncotree code', code ? `<code>${code}</code>` : '')}
+            ${row('DepMap type', dmtype)}
+            ${row('Subtype features', psf)}`;
+
+        // --- Patient/tumor origin ---
+        const originHtml = `
+            ${row('Age', get('age'))}
+            ${row('Age category', get('ageCategory'))}
+            ${row('Sex (annotation)', get('sex'))}
+            ${row('Race / ancestry', get('patientRace'))}
+            ${row('Primary vs metastasis', get('primaryOrMetastasis'))}
+            ${row('Collection site', get('sampleCollectionSite'))}
+            ${row('Tumor grade', get('patientTumorGrade'))}
+            ${row('Growth pattern in vitro', get('growthPattern'))}
+            ${row('Engineered model', get('engineeredModel'))}
+            ${row('Cultured resistance drug', get('culturedResistanceDrug'))}`;
+
+        // --- Sex analysis deep-dive ---
+        const sexInfo = this._getCellLineSex(cellLineId);
+        const sexExpDisplay = this._getSexExpressionDisplay(cellLineId);
+        let sexNarrative = '';
+        if (sexInfo.annotation === 'Male' && sexInfo.byExpression === 'male') {
+            sexNarrative = 'Annotation and expression agree — intact Y-chromosome expression, low/absent XIST.';
+        } else if (sexInfo.annotation === 'Female' && sexInfo.byExpression === 'female') {
+            sexNarrative = 'Annotation and expression agree — XIST active, low Y-marker expression.';
+        } else if (sexInfo.annotation === 'Male' && sexInfo.byExpression === 'unknown') {
+            sexNarrative = 'Annotated Male but Y-chromosome markers are silent and XIST is low — <b>likely Y-chromosome loss</b>, a common phenomenon in cancer (esp. advanced tumors and older male patients).';
+        } else if (sexInfo.annotation === 'Female' && sexInfo.byExpression === 'unknown') {
+            sexNarrative = 'Annotated Female but XIST is silent — <b>likely XIST silencing</b>, documented in many cancers (esp. breast, hematological, and some epithelial cancers). XIST loss is associated with X-reactivation and can drive oncogenic programs.';
+        } else if (sexInfo.annotation !== 'Unknown' && sexInfo.annotation.toLowerCase() !== sexInfo.byExpression) {
+            sexNarrative = `<span style="color:#b45309;"><b>Disagreement</b> — annotation says ${sexInfo.annotation.toLowerCase()} but expression pattern matches ${sexInfo.byExpression}. Possible cell-line mix-up or contamination; consider STR reauthentication.</span>`;
+        } else if (sexInfo.annotation === 'Unknown' && sexInfo.byExpression !== 'unknown') {
+            sexNarrative = `DepMap did not annotate sex but expression pattern indicates <b>likely ${sexInfo.byExpression}</b>.`;
+        } else {
+            sexNarrative = 'Neither annotation nor expression give a confident call (no Y-markers, XIST silent). Often indicates Y-loss + XIST silencing in the same cell, or low-quality expression data.';
+        }
+        const sexHtml = `
+            ${row('Sex (annotation)', sexInfo.annotation)}
+            ${row('Sex (expression)', sexExpDisplay)}
+            <div style="margin-top:6px; padding:8px 10px; background:#f9fafb; border-left:3px solid #10b981; font-size:11px;">${sexNarrative}</div>`;
+
+        // --- Mutation profile ---
+        const damagingCount = this._damagingCountByCL?.get(cellLineId) || 0;
+        const hotspotCount = this._hotspotCountByCL?.get(cellLineId) || 0;
+        const fusionCount = this._fusionCountByCL?.get(cellLineId) || 0;
+
+        const MMR_GENES = ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'];
+        const mmrHits = MMR_GENES.filter(g => this.damagingMutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1);
+
+        const flags = [];
+        if (mmrHits.length > 0) flags.push(pill(`MMR-deficient (${mmrHits.join(', ')} damaging) → likely hypermutator / MSI-H`, '#dc2626'));
+        if (damagingCount > 1000) flags.push(pill(`Ultra-hypermutated (${damagingCount} damaging mutations)`, '#dc2626'));
+        else if (damagingCount > 500) flags.push(pill(`Hypermutated (${damagingCount} damaging mutations)`, '#d97706'));
+
+        // Top hotspot genes
+        const hotspotsMutated = [];
+        if (this.mutations?.geneData) {
+            for (const g of Object.keys(this.mutations.geneData)) {
+                const lvl = this.mutations.geneData[g].mutations?.[cellLineId];
+                if (lvl >= 1) hotspotsMutated.push({ gene: g, level: lvl });
+            }
+        }
+        hotspotsMutated.sort((a, b) => b.level - a.level);
+        const topHotspots = hotspotsMutated.slice(0, 10).map(h => `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>`).join(', ');
+        const mutationHtml = `
+            ${flags.length ? `<div style="margin-bottom:8px;">${flags.join(' ')}</div>` : ''}
+            ${row('Damaging mutations (total)', damagingCount)}
+            ${row('Hotspot-mutated genes', hotspotCount)}
+            ${row('MMR gene damage', mmrHits.length ? mmrHits.join(', ') : 'None')}
+            ${topHotspots ? row('Top hotspot hits', topHotspots) : ''}`;
+
+        // --- Fusion profile ---
+        const fusionPartners = [];
+        if (this.translocations?.geneData) {
+            for (const g of Object.keys(this.translocations.geneData)) {
+                if (this.translocations.geneData[g].translocations?.[cellLineId] >= 1) fusionPartners.push(g);
+            }
+        }
+        const fusionCaveat = fusionCount > 30
+            ? `<div style="margin-top:6px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>⚠ High fusion count (${fusionCount}).</b> In highly rearranged / hypermutated cancer genomes, fusion callers produce many artifacts from read misalignment in repetitive regions and passenger rearrangements from chromothripsis. Treat individual calls with caution — cross-reference with karyotype or targeted sequencing where it matters.</div>`
+            : '';
+        const fusionHtml = `
+            ${row('Fusion/translocation partners', fusionCount)}
+            ${fusionPartners.length ? row('Partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20}</span>` : '')) : ''}
+            ${fusionCaveat}`;
+
+        // --- GE signature ---
+        const clIdx = this.metadata.cellLines.indexOf(cellLineId);
+        let geSigHtml = '<em style="color:#6b7280;">No GE data available.</em>';
+        if (clIdx >= 0) {
+            const geVals = [];
+            for (let g = 0; g < this.nGenes; g++) {
+                const v = this.geneEffects[g * this.nCellLines + clIdx];
+                if (!isNaN(v) && v !== -999) geVals.push({ gene: this.geneNames[g], val: v });
+            }
+            geVals.sort((a, b) => a.val - b.val);
+            const depleted = geVals.slice(0, 5).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
+            const enriched = geVals.slice(-5).reverse().map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
+            geSigHtml = `${row('Most essential (depleted)', depleted)}${row('Most enriched', enriched)}`;
+        }
+
+        // --- Expression signature ---
+        let exprSigHtml = '';
+        if (this.expressionLoaded && this.expressionData && this.expressionMetadata) {
+            const exprCLIndex = this.expressionMetadata.cellLines.indexOf(cellLineId);
+            if (exprCLIndex >= 0) {
+                const nExprCL = this.expressionMetadata.nCellLines;
+                const exprVals = [];
+                for (let g = 0; g < this.expressionMetadata.genes.length; g++) {
+                    const v = this.expressionData[g * nExprCL + exprCLIndex];
+                    if (!isNaN(v)) exprVals.push({ gene: this.expressionMetadata.genes[g], val: v });
+                }
+                exprVals.sort((a, b) => b.val - a.val);
+                const topExpr = exprVals.slice(0, 5).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
+                const xistRow = exprVals.find(e => e.gene === 'XIST');
+                const yMarkers = ['RPS4Y1', 'DDX3Y', 'EIF1AY', 'KDM5D', 'UTY', 'USP9Y'];
+                const yVals = yMarkers.map(g => exprVals.find(e => e.gene === g)?.val).filter(v => v !== undefined);
+                const yMean = yVals.length ? (yVals.reduce((a, b) => a + b, 0) / yVals.length) : null;
+                exprSigHtml = `
+                    ${row('Top expressed genes', topExpr)}
+                    ${xistRow ? row('XIST (log-TPM+1)', xistRow.val.toFixed(2) + (xistRow.val > 1.0 ? ' (active)' : ' (silenced)')) : ''}
+                    ${yMean !== null ? row('Y-marker mean', yMean.toFixed(2) + (yMean > 1.0 ? ' (Y active)' : ' (Y silent / lost)')) : ''}`;
+            } else {
+                exprSigHtml = '<em style="color:#6b7280;">Cell line not present in expression dataset.</em>';
+            }
+        } else {
+            exprSigHtml = '<em style="color:#6b7280;">Expression data not loaded. Click any Analyze/Inspect action to load it.</em>';
+        }
+
+        // --- Authentication (STR) ---
+        const authHtml = `
+            <p style="margin:0 0 6px;">Cell line authenticity is standardly verified by <b>Short Tandem Repeat (STR) profiling</b> — a panel of polymorphic microsatellite loci unique to each individual. An authentic cell line should match the reference profile at every locus.</p>
+            <p style="margin:0 0 6px;"><b>Common STR panels:</b></p>
+            <ul style="margin:0 0 6px 18px; padding:0;">
+              <li>ANSI/ATCC 9-marker: Amelogenin (sex), CSF1PO, D5S818, D7S820, D13S317, D16S539, TH01, TPOX, vWA.</li>
+              <li>Eurofins / Promega PowerPlex 16 extension adds: D3S1358, D8S1179, D18S51, D21S11, FGA, D19S433, D2S1338 (+ Penta D/E on some panels).</li>
+            </ul>
+            <p style="margin:0 0 6px;">The reference profile for this cell line (alleles at each locus) is maintained in <b>Cellosaurus</b>${rrid ? ' (RRID link below)' : ''}. When you send cells to Eurofins and they return a report like <code>CSF1PO: 11,12 · D5S818: 10,11 · TH01: 6,7 …</code>, compare allele-by-allele against the Cellosaurus reference. A perfect or 1-mismatch match authenticates the line; &gt;1 mismatch usually indicates misidentification or contamination.</p>`;
+
+        // --- External resources ---
+        const stripped = get('strippedCellLineName') || name.replace(/[^A-Za-z0-9]/g, '');
+        const depmapLink = `https://depmap.org/portal/cell_line/${cellLineId}`;
+        const cellosaurusLink = rrid ? `https://www.cellosaurus.org/${rrid}` : null;
+        const pubmedLink = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(name)}+cell+line`;
+        const atccLink = `https://www.atcc.org/search#q=${encodeURIComponent(stripped)}`;
+        const cosmic = `https://cancer.sanger.ac.uk/cell_lines/search?q=${encodeURIComponent(stripped)}`;
+        const linkStyle = 'display:inline-block; margin:3px 8px 3px 0; padding:4px 10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:4px; color:#15803d; text-decoration:none; font-size:11px;';
+        const extHtml = `
+            <a href="${depmapLink}" target="_blank" rel="noopener" style="${linkStyle}">DepMap Portal ↗</a>
+            ${cellosaurusLink ? `<a href="${cellosaurusLink}" target="_blank" rel="noopener" style="${linkStyle}">Cellosaurus (${rrid}) ↗</a>` : ''}
+            <a href="${cosmic}" target="_blank" rel="noopener" style="${linkStyle}">COSMIC ↗</a>
+            <a href="${pubmedLink}" target="_blank" rel="noopener" style="${linkStyle}">PubMed search ↗</a>
+            <a href="${atccLink}" target="_blank" rel="noopener" style="${linkStyle}">ATCC search ↗</a>`;
+
+        // --- Compose ---
+        body.innerHTML = [
+            section('Classification', classificationHtml, 'DepMap 25Q3 Model (OncotreeLineage, OncotreeSubtype, OncotreeCode, PatientSubtypeFeatures).'),
+            section('Patient / tumor origin', originHtml, 'DepMap 25Q3 Model table (patient-reported demographics and tissue metadata).'),
+            section('Sex', sexHtml, 'Annotation: DepMap Model. Expression: Correlate V2 classifier (Y-markers RPS4Y1/DDX3Y/EIF1AY/KDM5D/UTY/USP9Y + XIST; thresholds Y&gt;1.0 or XIST&gt;1.0 in log-TPM+1).'),
+            section('Mutation profile', mutationHtml, 'DepMap 25Q3 mutations (hotspot) and damaging mutations matrices. MMR-deficiency flag: any damaging mutation in MLH1/MSH2/MSH6/PMS2/EPCAM. Hypermutation thresholds: &gt;500 damaging = hypermutated, &gt;1000 = ultra-hypermutated (heuristic; confirm with targeted sequencing).'),
+            section('Fusion / translocation profile', fusionHtml, 'DepMap 25Q3 OmicsFusionFiltered. NOTE: fusion callers on hypermutated / highly-rearranged cancers produce many technical and passenger calls; counts &gt;30 are flagged for caution.'),
+            section('Gene-effect signature', geSigHtml, 'DepMap 25Q3 CRISPRGeneEffect (CERES). Most essential = most depleted (smallest effect score); most enriched = least essential / gain-of-function on depletion.'),
+            section('Expression signature', exprSigHtml, 'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1 units). XIST and Y-markers are lifted from the all-genes TPM CSV during offline preprocessing.'),
+            section('Authentication (STR profiling)', authHtml, 'Concept / panel descriptions: ANSI/ATCC ASN-0002-2011 standard, Promega PowerPlex panels, Eurofins Genomics cell-line authentication reports. Reference profiles: Cellosaurus.'),
+            section('External resources', extHtml, 'Outbound links only — nothing is fetched live from inside this app.'),
+        ].join('');
+
+        document.getElementById('clbWikiModal').style.display = 'flex';
     }
 
     async exportCellLineBrowserCSV(mode) {

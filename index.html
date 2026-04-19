@@ -1315,6 +1315,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.67.28 (2026-04-19)</strong></p>
+                <ul>
+                    <li>New <strong>Cell line Wiki</strong> modal (button in the CLB detail panel). Sections: Classification (Oncotree subtype/code + PatientSubtypeFeatures &mdash; exposes CLL/Burkitt/DLBCL/MCL etc. under Lymphoid), Patient/tumor origin (age, race, primary/metastasis, collection site, grade, growth pattern, engineered model), Sex deep-dive with Y-loss / XIST-silencing reasoning, Mutation profile with MMR-deficiency and hypermutation flags, Fusion profile with caveat for counts &gt;30 (hypermutated / chromothripsis artifacts), GE signature (top essential / enriched), Expression signature (top expressed, XIST, Y-mean), STR authentication explainer (ANSI/ATCC 9-marker + Promega PowerPlex 16 panel, Cellosaurus reference profiles), and outbound links to DepMap Portal, Cellosaurus, COSMIC, PubMed, ATCC</li>
+                    <li>Every section carries a Source citation line. No live scraping &mdash; outbound links only</li>
+                    <li><code>web_data/cellLineMetadata.json</code> enriched via new <code>scripts/enrich_cellline_metadata.py</code> with 14 new per-cell-line fields from Model 25Q3 (age, ageCategory, patientRace, primaryOrMetastasis, sampleCollectionSite, growthPattern, patientTumorGrade, depmapModelType, oncotreeSubtype, oncotreeCode, patientSubtypeFeatures, rrid, engineeredModel, culturedResistanceDrug)</li>
+                </ul>
                 <p><strong>v.67.27 (2026-04-19)</strong></p>
                 <ul>
                     <li>GE detailed view: width slider can no longer push the plot past the container edge &mdash; capped at <code>container.offsetWidth</code> so the stats table is always visible regardless of slider value</li>
@@ -1879,7 +1885,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.27</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.67.28</a>
     </div>
 
     <div class="main-content">
@@ -3364,6 +3370,20 @@
       </div>
     </div>
 
+    <!-- Cell Line Wiki Modal -->
+    <div id="clbWikiModal" style="display:none; position:fixed; inset:0; z-index:1200; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;">
+      <div style="background:#fff; width:100%; max-width:min(96vw, 1100px); max-height:calc(100vh - 40px); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg, #f0fdf4 0%, #fff 100%);">
+          <div>
+            <h3 id="clbWikiTitle" style="margin:0; font-size:17px; color:#15803d;">Cell Line Wiki</h3>
+            <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
+          </div>
+          <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+        </div>
+        <div id="clbWikiBody" style="padding:16px 20px; overflow-y:auto; font-size:12px; line-height:1.55; color:#374151;"></div>
+      </div>
+    </div>
+
     <!-- Cell Line Browser Help Modal -->
     <div id="clbInfoModal" style="display:none; position:fixed; inset:0; z-index:1150; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:40px;">
       <div style="background:#fff; max-width:720px; width:100%; max-height:80vh; overflow-y:auto; border-radius:8px; padding:20px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
@@ -3480,6 +3500,9 @@
             <div class="clb-detail-placeholder" id="clbDetailPlaceholder">Click a cell line to view details</div>
             <div id="clbDetailContent" style="display:none;">
               <div id="clbDetailTop"></div>
+              <div style="margin:6px 0;">
+                <button id="clbWikiBtn" class="btn btn-outline btn-sm" style="width:100%; font-size:11px; padding:4px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open the cell line Wiki (patient origin, classification, mutation profile, fusions, signatures, STR authentication)">Wiki &mdash; deep dive on this cell line</button>
+              </div>
               <div style="display:flex; align-items:center; gap:6px; margin:8px 0 4px 0;">
                 <label style="font-size:11px; color:var(--gray-500); white-space:nowrap;">Show top</label>
                 <select id="clbTopN" style="padding:2px 4px; font-size:11px; border:1px solid var(--gray-200); border-radius:3px;">
