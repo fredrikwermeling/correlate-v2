@@ -21992,7 +21992,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         hotspotsMutated.sort((a, b) => b.level - a.level);
         const topHotspots = hotspotsMutated.slice(0, 10).map(h => `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>`).join(', ');
         const mutationHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Summary of mutations detected in this cell line. <b>Damaging</b> mutations typically knock out a gene (frameshift, nonsense, splice). <b>Hotspot</b> mutations occur at positions known to be oncogenic drivers (for example BRAF V600E). Colored badges below call out clinically-relevant patterns.</p>
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Summary of mutations detected in this cell line. <b>Damaging</b> mutations typically inactivate a gene (frameshift, nonsense, splice). <b>Hotspot</b> mutations occur at specific residues that are recurrently mutated across tumours &mdash; some activate oncogenes (e.g. BRAF V600E, KRAS G12D), others recurrently alter tumour suppressors (e.g. TP53 R175H, R248Q). Colored badges below call out clinically-relevant patterns.</p>
             ${flags.length ? `<div style="margin-bottom:8px;">${flags.join(' ')}</div>` : ''}
             ${row('Damaging mutations (total)', damagingCount)}
             ${row('Hotspot-mutated genes', hotspotCount)}
