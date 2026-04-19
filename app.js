@@ -6265,7 +6265,7 @@ class CorrelationExplorer {
 
         // Apply current width ratio to container
         const container = document.getElementById('geChartContainer');
-        const ratio = this.geChartWidthRatio || 1.2;
+        const ratio = this.geChartWidthRatio || 1.0;
         if (container) {
             container.style.flex = `0 0 ${Math.round(ratio * 55)}%`;
         }
@@ -6372,7 +6372,7 @@ class CorrelationExplorer {
                 lineageFilter: this.mutationResults?.lineageFilter || '',
                 subLineageFilter: this.mutationResults?.subLineageFilter || '',
                 textSettings: this._capturePlotTextSettings('geneEffectPlot'),
-                geChartWidthRatio: this.geChartWidthRatio || 1.2,
+                geChartWidthRatio: this.geChartWidthRatio || 1.0,
                 oncoprintFilters: this._activeOncoprintFilters || null
             });
             const metaJson = JSON.stringify(meta);
@@ -17834,7 +17834,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const statsText = statsParts.join('  |  ');
 
             // Apply width ratio from slider (default 1.0 = full width)
-            const widthRatio = this.geChartWidthRatio || 1.2;
+            const widthRatio = this.geChartWidthRatio || 1.0;
             const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
             const container = document.getElementById(plotId);
             const containerWidth = container ? container.offsetWidth || 500 : 500;
@@ -17927,7 +17927,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const statsText = statsAnnotations.join('<br>');
 
         // Apply width ratio from slider (default 1.0 = full width)
-        const widthRatio = this.geChartWidthRatio || 1.2;
+        const widthRatio = this.geChartWidthRatio || 1.0;
         const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
         const container = document.getElementById(plotId);
         const containerWidth = container ? container.offsetWidth || 500 : 500;
