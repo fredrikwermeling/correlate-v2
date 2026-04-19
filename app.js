@@ -21948,20 +21948,52 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hotHit = (g) => this.mutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1;
         const anyHit = (g) => damHit(g) || hotHit(g);
 
-        const flags = [];
+        // Flag cards: each is a short titled block with a one-line plain-English
+        // explanation. Kept as a list so they stack cleanly and scan fast.
+        const flagCards = [];
         const MMR_GENES = ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'];
         const mmrHits = MMR_GENES.filter(damHit);
-        if (mmrHits.length > 0) flags.push(pill(`Mismatch-repair deficient (${mmrHits.join(', ')} damaged) → expected to be hypermutated / microsatellite-unstable → checkpoint-immunotherapy candidate`, '#dc2626'));
-        if (damagingCount > 1000) flags.push(pill(`Ultra-hypermutated (${damagingCount} damaging mutations)`, '#dc2626'));
-        else if (damagingCount > 500) flags.push(pill(`Hypermutated (${damagingCount} damaging mutations)`, '#d97706'));
-        // HR deficiency quick flag
+        if (mmrHits.length > 0) flagCards.push({
+            title: 'Mismatch repair is broken',
+            body: `Damaging mutation in ${mmrHits.map(g => `<b>${g}</b>`).join(', ')}. Cells can&rsquo;t correct replication errors, so they accumulate many mutations and show microsatellite instability. Typically a model for checkpoint-immunotherapy response.`,
+            color: '#dc2626'
+        });
+        if (damagingCount > 1000) flagCards.push({
+            title: 'Very high mutation burden',
+            body: `${damagingCount.toLocaleString()} damaging mutations &mdash; an exceptionally high count, usually from loss of DNA-repair machinery (mismatch repair, polymerase proofreading, etc.).`,
+            color: '#dc2626'
+        });
+        else if (damagingCount > 500) flagCards.push({
+            title: 'High mutation burden',
+            body: `${damagingCount.toLocaleString()} damaging mutations, well above a typical cell line.`,
+            color: '#d97706'
+        });
         const hrGenes = ['BRCA1', 'BRCA2', 'PALB2', 'RAD51C', 'RAD51D'];
         const hrHits = hrGenes.filter(damHit);
-        if (hrHits.length > 0) flags.push(pill(`Homologous-recombination deficient (${hrHits.join(', ')} damaged) → PARP-inhibitor candidate`, '#7c3aed'));
-        // p53 pathway
-        if (damHit('TP53') || hotHit('TP53')) flags.push(pill('TP53 mutated (tumour-suppressor lost)', '#dc2626'));
-        // RB / cell cycle
-        if (damHit('RB1') || damHit('CDKN2A')) flags.push(pill('Cell-cycle brake lost (RB1 or CDKN2A)', '#d97706'));
+        if (hrHits.length > 0) flagCards.push({
+            title: 'Homologous-recombination repair is broken',
+            body: `Damaging mutation in ${hrHits.map(g => `<b>${g}</b>`).join(', ')}. The cell can&rsquo;t accurately repair DNA double-strand breaks and often depends on backup pathways. Typically sensitive to PARP inhibitors.`,
+            color: '#7c3aed'
+        });
+        if (damHit('TP53') || hotHit('TP53')) flagCards.push({
+            title: 'TP53 is mutated',
+            body: 'The main p53 tumour-suppressor pathway is disrupted. Affects apoptosis, cell-cycle arrest after DNA damage, and response to many drugs.',
+            color: '#dc2626'
+        });
+        if (damHit('RB1') || damHit('CDKN2A')) {
+            const brk = damHit('RB1') ? 'RB1' : 'CDKN2A';
+            flagCards.push({
+                title: 'G1/S cell-cycle brake lost',
+                body: `Damaging mutation in <b>${brk}</b>. The normal checkpoint that holds cells in G1 before DNA replication is impaired &mdash; relevant to CDK4/6-inhibitor response.`,
+                color: '#d97706'
+            });
+        }
+
+        const flagsHtml = flagCards.map(c => `
+            <div style="margin-bottom:6px; padding:8px 12px; border-left:4px solid ${c.color}; background:${c.color}14; border-radius:0 4px 4px 0;">
+                <div style="font-weight:600; color:${c.color}; margin-bottom:2px; font-size:12px;">${c.title}</div>
+                <div style="font-size:11px; color:#374151;">${c.body}</div>
+            </div>`).join('');
 
         // Pathway scan
         const pathways = this._WIKI_PATHWAYS();
@@ -21993,7 +22025,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const topHotspots = hotspotsMutated.slice(0, 10).map(h => `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>`).join(', ');
         const mutationHtml = `
             <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Summary of mutations detected in this cell line. <b>Damaging</b> mutations typically inactivate a gene (frameshift, nonsense, splice). <b>Hotspot</b> mutations occur at specific residues that are recurrently mutated across tumours &mdash; some activate oncogenes (e.g. BRAF V600E, KRAS G12D), others recurrently alter tumour suppressors (e.g. TP53 R175H, R248Q). Colored badges below call out clinically-relevant patterns.</p>
-            ${flags.length ? `<div style="margin-bottom:8px;">${flags.join(' ')}</div>` : ''}
+            ${flagCards.length ? `<div style="margin-bottom:10px;">${flagsHtml}</div>` : ''}
             ${row('Damaging mutations (total)', damagingCount)}
             ${row('Hotspot-mutated genes', hotspotCount)}
             ${topHotspots ? row('Top hotspot hits', topHotspots) : ''}
