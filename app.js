@@ -21918,23 +21918,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const sexExpDisplay = this._getSexExpressionDisplay(cellLineId);
         let sexNarrative = '';
         if (sexInfo.annotation === 'Male' && sexInfo.byExpression === 'male') {
-            sexNarrative = 'Patient was male, and the cell line still expresses Y-chromosome genes normally. Everything consistent.';
+            sexNarrative = 'Annotated male, and the cell line still expresses Y-chromosome genes normally. Everything consistent.';
         } else if (sexInfo.annotation === 'Female' && sexInfo.byExpression === 'female') {
-            sexNarrative = 'Patient was female, and the cell line expresses XIST (the gene that silences the extra X chromosome in females). Everything consistent.';
+            sexNarrative = 'Annotated female, and the cell line expresses XIST (the gene that silences the extra X chromosome in females). Everything consistent.';
         } else if (sexInfo.annotation === 'Male' && sexInfo.byExpression === 'unknown') {
-            sexNarrative = 'Patient was male, but Y-chromosome genes are silent in this cell line. Almost certainly <b>loss of the Y chromosome</b> — a common event in cancer, especially in older male patients and advanced tumours.';
+            sexNarrative = 'Annotated male, but Y-chromosome genes are silent in this cell line. Almost certainly <b>loss of the Y chromosome</b> — a common event in cancer, especially in older male donors and advanced tumours.';
         } else if (sexInfo.annotation === 'Female' && sexInfo.byExpression === 'unknown') {
-            sexNarrative = 'Patient was female, but XIST expression is lost in this cell line. <b>XIST silencing</b> is well documented in many cancers (breast, blood cancers, some epithelial) and is thought to re-activate genes on the silent X chromosome.';
+            sexNarrative = 'Annotated female, but XIST expression is lost in this cell line. <b>XIST silencing</b> is well documented in many cancers (breast, blood cancers, some epithelial) and is thought to re-activate genes on the silent X chromosome.';
         } else if (sexInfo.annotation !== 'Unknown' && sexInfo.annotation.toLowerCase() !== sexInfo.byExpression) {
-            sexNarrative = `<span style="color:#b45309;"><b>Disagreement.</b> The patient sex recorded does not match what the cell-line expression pattern suggests. This can happen with cell-line mix-ups or contamination — re-authentication (see Authentication section below) is recommended.</span>`;
+            sexNarrative = `<span style="color:#b45309;"><b>Disagreement.</b> The annotation does not match what the cell-line expression pattern suggests. This can happen with cell-line mix-ups or contamination — re-authentication (see Authentication section below) is recommended.</span>`;
         } else if (sexInfo.annotation === 'Unknown' && sexInfo.byExpression !== 'unknown') {
-            sexNarrative = `Patient sex was not recorded, but the expression pattern points to <b>${sexInfo.byExpression === 'male' ? 'male' : 'female'}</b> origin.`;
+            sexNarrative = `Sex is not annotated, but the expression pattern points to <b>${sexInfo.byExpression === 'male' ? 'male' : 'female'}</b> origin.`;
         } else {
-            sexNarrative = 'Neither patient records nor expression give a confident call. Often means both Y-chromosome expression and XIST are silent (which can happen in aggressive tumours).';
+            sexNarrative = 'Neither the annotation nor the expression pattern give a confident call. Often means both Y-chromosome expression and XIST are silent (which can happen in aggressive tumours).';
         }
         const sexHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Two independent views: what the patient records say, and what the cell line's gene expression pattern suggests. Disagreements can indicate chromosomal loss, epigenetic silencing, or cell-line misidentification.</p>
-            ${row('From patient records', sexInfo.annotation)}
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Two independent views: the sex <b>annotation</b> supplied with the cell line (usually traced back to the donor's clinical record), and what the cell line's own <b>gene expression pattern</b> suggests. Disagreements can indicate chromosomal loss, epigenetic silencing, or cell-line misidentification.</p>
+            ${row('From annotation', sexInfo.annotation)}
             ${row('From gene expression', sexExpDisplay)}
             <div style="margin-top:6px; padding:8px 10px; background:#f9fafb; border-left:3px solid #10b981; font-size:11px;">${sexNarrative}</div>`;
 
