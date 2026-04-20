@@ -1324,6 +1324,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.69.6 (2026-04-20)</strong></p>
+                <ul>
+                    <li>PCA loadings sidecar now top-aligns with the plot. The &ldquo;Loadings (top 8)&rdquo; header sits at the same vertical position as the Plotly plot title, so the two axes boxes share a common top border.</li>
+                    <li>PNG and SVG export now include the loadings graph when it&rsquo;s visible. The plot SVG and the loadings SVG are composed into a single outer SVG (plot on the left, title + loadings on the right), then downloaded as SVG or rasterised to PNG at 2x. Previously the loadings were on screen only.</li>
+                    <li>New button under the plot: <strong>Select in list above</strong>. After lassoing a cluster, press it to tick those cell lines in the browser list &mdash; they then flow into <em>Export GE</em> and <em>Full Data Export</em>. Pairs naturally with the existing <em>Copy selected</em>.</li>
+                    <li>PNG, SVG and Aa buttons moved from the &ldquo;Display&rdquo; row (row 2) to the main Run/Reset row (row 1), with a small divider between them and the coloured action buttons. They&rsquo;re less buried now.</li>
+                </ul>
                 <p><strong>v.69.5 (2026-04-20)</strong></p>
                 <ul>
                     <li>UMAP/PCA point hover tooltip rebalanced. Instead of just &ldquo;Hotspot mutations: N&rdquo; (which on its own said little about genetic complexity), hover now shows <b>Hotspot N &middot; Damaging N &middot; Fusions N</b> side-by-side, so one glance compares the three mutation axes. A small &ldquo;click to inspect&rdquo; hint is also added.</li>
@@ -1974,7 +1981,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.6</a>
     </div>
 
     <div class="main-content">
@@ -3632,10 +3639,14 @@
                     <option value="subtissue">Color by subtype</option>
                 </select>
                 <span class="clb-umap-spacer"></span>
+                <button id="clbUmapPngBtn" class="clb-umap-btn" title="Export as PNG">PNG</button>
+                <button id="clbUmapSvgBtn" class="clb-umap-btn" title="Export as SVG">SVG</button>
+                <button id="clbUmapAaBtn" class="clb-umap-btn" title="Text & layout settings">Aa</button>
+                <span class="clb-umap-sep"></span>
                 <button id="clbUmapRunBtn" class="clb-umap-btn" style="background:#16a34a; color:white; border-color:#16a34a;">Run Analysis</button>
                 <button id="clbUmapResetBtn" class="clb-umap-btn" style="background:#ef4444; color:white; border-color:#ef4444;" title="Clear everything and start fresh">Reset</button>
             </div>
-            <!-- Row 2: Display — axes, size, output (shown once data is loaded) -->
+            <!-- Row 2: Display — axes, size (shown once data is loaded) -->
             <div id="clbUmapComponentRow" class="clb-umap-row" style="display:none;">
                 <span class="clb-umap-lbl">Axes</span>
                 <select id="clbUmapCompX" class="clb-umap-ctl"></select>
@@ -3649,9 +3660,6 @@
                 <span class="clb-umap-lbl">H</span>
                 <input type="number" id="clbUmapPlotHeight" class="clb-umap-ctl" value="500" min="250" max="1000" step="20" style="width:56px;" title="Plot height">
                 <span class="clb-umap-sep"></span>
-                <button id="clbUmapPngBtn" class="clb-umap-btn" title="Export as PNG">PNG</button>
-                <button id="clbUmapSvgBtn" class="clb-umap-btn" title="Export as SVG">SVG</button>
-                <button id="clbUmapAaBtn" class="clb-umap-btn" title="Text & layout settings">Aa</button>
                 <button id="clbUmapTopGenesBtn" class="clb-umap-btn" title="Show top genes correlated with axes">Top Genes</button>
                 <label id="clbUmapLoadingsToggle" class="clb-umap-lbl" style="display:none; cursor:pointer;">
                     <input type="checkbox" id="clbUmapShowLoadings" style="vertical-align:middle;"> Loadings
@@ -3701,10 +3709,11 @@
                 <div id="clbUmapLoadingsSidecar" style="display:none;"></div>
             </div>
             <div id="clbUmapSelectionControls" style="display:none; margin-top:8px; flex-direction:column; gap:4px; align-items:flex-start; flex-wrap:wrap;">
-                <div style="font-size:10px; color:#6b7280; line-height:1.4;">Draw a lasso on the plot to pick a cluster of cell lines, then copy their names to the clipboard for downstream analysis (e.g. paste into Custom CLs above, or into a new session / spreadsheet).</div>
+                <div style="font-size:10px; color:#6b7280; line-height:1.4;">Draw a lasso on the plot to pick a cluster of cell lines. You can then copy their names, or check them in the list above to include them in an Export GE / Full Data Export run.</div>
                 <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                     <button id="clbUmapSelectBtn" class="btn btn-sm btn-outline" style="font-size:10px;" title="Enable lasso mode on the plot, then drag to encircle points">Lasso select</button>
                     <button id="clbUmapCopyBtn" class="btn btn-sm btn-outline" style="font-size:10px;" title="Copy names of the currently-selected cell lines to the clipboard (one per line)">Copy selected</button>
+                    <button id="clbUmapSelectInListBtn" class="btn btn-sm btn-outline" style="font-size:10px;" title="Tick the currently-lassoed cell lines in the list above so they're picked up by Export GE / Full Data Export">Select in list above</button>
                     <span id="clbUmapSelectedCount" style="font-size:10px; color:#6b7280;"></span>
                 </div>
             </div>

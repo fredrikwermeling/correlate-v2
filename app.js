@@ -21066,6 +21066,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbUmapResetBtn').addEventListener('click', () => this._fullResetUmap());
         document.getElementById('clbUmapSelectBtn').addEventListener('click', () => this.clbUmapSelectMode());
         document.getElementById('clbUmapCopyBtn').addEventListener('click', () => this.clbUmapCopySelected());
+        document.getElementById('clbUmapSelectInListBtn').addEventListener('click', () => this.clbUmapSelectInList());
         // Component axis selectors
         document.getElementById('clbUmapCompX').addEventListener('change', () => this._onComponentChange());
         document.getElementById('clbUmapCompY').addEventListener('change', () => this._onComponentChange());
@@ -24666,41 +24667,89 @@ ${body}
         const filename = `${method}_plot`;
         const meta = this._buildExportMetadata(method.toLowerCase(), { dataType, colorBy });
         const metaJson = JSON.stringify(meta);
-        // Use actual layout dimensions so export matches screen
         const w = plotDiv.layout.width || plotDiv.offsetWidth;
         const h = plotDiv.layout.height || plotDiv.offsetHeight;
-        if (format === 'png') {
-            Plotly.toImage(plotDiv, { format: 'png', width: w * 2, height: h * 2, scale: 2 })
-                .then(async url => {
-                    const resp = await fetch(url);
-                    const buf = await resp.arrayBuffer();
-                    const bufMeta = this._addPngTextChunk(buf, 'correlate-meta', metaJson);
-                    const blob = new Blob([bufMeta], { type: 'image/png' });
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    a.download = `${filename}.png`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(a.href);
-                });
-        } else {
-            Plotly.toImage(plotDiv, { format: 'svg', width: w, height: h })
-                .then(async url => {
-                    let svgStr;
-                    if (url.indexOf('base64,') > -1) svgStr = atob(url.split('base64,')[1]);
-                    else svgStr = decodeURIComponent(url.split(',').slice(1).join(','));
-                    svgStr = svgStr.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
-                    svgStr = await this._finalizeSvgForExport(svgStr);
-                    const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+
+        // Always export via SVG so we can optionally append the loadings
+        // sidecar before rasterising. Previous path (PNG direct from Plotly)
+        // couldn't include the loadings graph.
+        Plotly.toImage(plotDiv, { format: 'svg', width: w, height: h })
+            .then(async url => {
+                let plotSvg;
+                if (url.indexOf('base64,') > -1) plotSvg = atob(url.split('base64,')[1]);
+                else plotSvg = decodeURIComponent(url.split(',').slice(1).join(','));
+                plotSvg = await this._finalizeSvgForExport(plotSvg);
+                const composed = this._composeUmapExportSvg(plotSvg, w, h);
+
+                if (format === 'svg') {
+                    const withMeta = composed.replace(/<\/svg>\s*$/, `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
+                    const blob = new Blob([withMeta], { type: 'image/svg+xml;charset=utf-8' });
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
                     a.download = `${filename}.svg`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                });
-        }
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    return;
+                }
+
+                // PNG: rasterise the composed SVG at 2x.
+                const svgBlob = new Blob([composed], { type: 'image/svg+xml;charset=utf-8' });
+                const svgUrl = URL.createObjectURL(svgBlob);
+                const img = new Image();
+                img.onload = async () => {
+                    const scale = 2;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth * scale;
+                    canvas.height = img.naturalHeight * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.scale(scale, scale);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(svgUrl);
+                    const pngUrl = canvas.toDataURL('image/png');
+                    const resp = await fetch(pngUrl);
+                    const buf = await resp.arrayBuffer();
+                    const withMeta = this._addPngTextChunk(buf, 'correlate-meta', metaJson);
+                    const blob = new Blob([withMeta], { type: 'image/png' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `${filename}.png`;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    URL.revokeObjectURL(a.href);
+                };
+                img.onerror = () => URL.revokeObjectURL(svgUrl);
+                img.src = svgUrl;
+            });
+    }
+
+    // If the PCA loadings sidecar is currently visible, wrap the plot SVG and
+    // the loadings SVG into a single outer SVG so downstream export (PNG or
+    // SVG) captures both. Returns the plot SVG unchanged if the sidecar is
+    // hidden or the SVG can't be parsed.
+    _composeUmapExportSvg(plotSvg, plotW, plotH) {
+        const sidecar = document.getElementById('clbUmapLoadingsSidecar');
+        if (!sidecar || sidecar.style.display === 'none') return plotSvg;
+        const loadingsSvgEl = sidecar.querySelector('svg');
+        if (!loadingsSvgEl) return plotSvg;
+
+        const loadW = parseInt(loadingsSvgEl.getAttribute('width')) || 182;
+        const loadH = parseInt(loadingsSvgEl.getAttribute('height')) || 182;
+        const titleH = 50;
+        const gap = 10;
+        const totalW = plotW + gap + loadW;
+        const totalH = Math.max(plotH, titleH + loadH);
+
+        const plotInner = plotSvg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+        const loadingsInner = loadingsSvgEl.innerHTML;
+
+        return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}">`
+            + `<rect width="${totalW}" height="${totalH}" fill="white"/>`
+            + `<g>${plotInner}</g>`
+            + `<g transform="translate(${plotW + gap}, 0)">`
+            +   `<text x="${loadW / 2}" y="${titleH - 12}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111827">Loadings (top 8)</text>`
+            +   `<g transform="translate(0, ${titleH})">${loadingsInner}</g>`
+            + `</g>`
+            + `</svg>`;
     }
 
     _resizeUmapPlot() {
@@ -24876,7 +24925,14 @@ ${body}
 
         if (sidecar) {
             sidecar.style.display = '';
-            sidecar.innerHTML = `<div style="font-size:11px; color:#6b7280; margin-bottom:4px; font-weight:600;">Loadings (top 8)</div>${svg}`;
+            // Push the loadings title down so it sits at the same vertical
+            // position as the Plotly plot's title annotation (margin.t = 50).
+            // The SVG box then lines up with the plot's axes box.
+            sidecar.innerHTML = `
+                <div style="height:50px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:8px;">
+                    <b style="font-size:14px; color:#111827;">Loadings (top 8)</b>
+                </div>
+                ${svg}`;
         }
     }
 
@@ -25085,6 +25141,23 @@ ${body}
         navigator.clipboard.writeText(lines).then(() => {
             this.showCopyNotification(`Copied ${this._clbUmapSelectedPoints.size} cell line names`);
         });
+    }
+
+    // Mark the lassoed UMAP/PCA points as selected in the browser list above,
+    // so they feed into Export GE / Full Data Export. Re-renders the list to
+    // reflect the new check state.
+    clbUmapSelectInList() {
+        if (!this._clbUmapSelectedPoints || this._clbUmapSelectedPoints.size === 0) {
+            this.showCopyNotification('No points selected. Use lasso or box select first.');
+            return;
+        }
+        let added = 0;
+        this._clbUmapSelectedPoints.forEach(cl => {
+            if (!this._clbSelectedCellLines.has(cl)) { this._clbSelectedCellLines.add(cl); added++; }
+        });
+        this.renderCellLineList();
+        this.updateClbSelectionCount();
+        this.showCopyNotification(`Ticked ${added} in list above (${this._clbSelectedCellLines.size} total selected)`);
     }
 
     applyUmapGeneColor() {
