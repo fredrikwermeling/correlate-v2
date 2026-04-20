@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.70.0 (2026-04-20)</strong></p>
+                <ul>
+                    <li>Cell Line Browser is now exit-safe. Previously a stray click on the dark backdrop <em>or</em> an Esc keystroke (e.g. while dismissing a gene tooltip) closed the whole browser, taking all filters, selections, and the current inspect state with it. The X in the upper-right corner is now the only exit path. Other dialogs that are cheap to reopen (Aa text settings, help popovers, etc.) still dismiss on outside click / Esc as before. Same change applied to V1 and CoExpress.</li>
+                </ul>
                 <p><strong>v.69.9 (2026-04-20)</strong></p>
                 <ul>
                     <li>Escape on a pinned gene tooltip was bubbling up and closing the Cell Line Browser (and any other modal that listens for Esc). The tooltip now intercepts Escape in the capture phase, stops propagation, and only dismisses itself &mdash; the underlying modal stays open. Ported to V1 and CoExpress as well.</li>
@@ -1993,7 +1997,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.9</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.0</a>
     </div>
 
     <div class="main-content">
