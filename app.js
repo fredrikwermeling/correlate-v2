@@ -21260,6 +21260,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         this._clbVisibleCellLines = filtered;
         this._updateClbActiveFilterLabel();
+        // Keep the UMAP/PCA "Visible in list above" option count in sync with
+        // the browser's current filter state.
+        const visOpt = document.querySelector('#clbUmapTissueFilter option[value="__visible__"]');
+        if (visOpt) visOpt.textContent = `Visible in list above (n=${filtered.length})`;
 
         const container = document.getElementById('clbList');
         if (filtered.length === 0) {
@@ -23295,7 +23299,21 @@ ${body}
 
     populateUmapFilters() {
         const tissueSelect = document.getElementById('clbUmapTissueFilter');
-        tissueSelect.innerHTML = '<option value="">All tissues</option>';
+        const prevValue = tissueSelect.value;
+        const visibleN = this._clbVisibleCellLines?.length || 0;
+        tissueSelect.innerHTML = '';
+        // "Visible in list above" uses the browser's currently-filtered cell lines
+        // as the UMAP/PCA input — handy when the user has narrowed by custom
+        // filters (mutation state, search, subtype) that don't map to the
+        // tissue dropdown directly.
+        const visOpt = document.createElement('option');
+        visOpt.value = '__visible__';
+        visOpt.textContent = `Visible in list above (n=${visibleN})`;
+        tissueSelect.appendChild(visOpt);
+        const allOpt = document.createElement('option');
+        allOpt.value = '';
+        allOpt.textContent = 'All tissues';
+        tissueSelect.appendChild(allOpt);
         if (this.lineageCounts) {
             Object.keys(this.lineageCounts).sort((a, b) => this.lineageCounts[b] - this.lineageCounts[a]).forEach(tissue => {
                 const opt = document.createElement('option');
@@ -23304,6 +23322,10 @@ ${body}
                 tissueSelect.appendChild(opt);
             });
         }
+        // Default to "Visible in list above" on first open; preserve user's
+        // choice otherwise.
+        if (prevValue) tissueSelect.value = prevValue;
+        else tissueSelect.value = '__visible__';
 
         // Tissue filter changes → populate subtypes
         tissueSelect.addEventListener('change', () => this._populateUmapSubtypeFilter());
@@ -23321,7 +23343,9 @@ ${body}
         const tissue = document.getElementById('clbUmapTissueFilter').value;
         const subtypeSelect = document.getElementById('clbUmapSubtypeFilter');
         subtypeSelect.innerHTML = '<option value="">All subtypes</option>';
-        if (!tissue) {
+        // Subtype filter only makes sense when a specific tissue is chosen;
+        // the "Visible in list above" option is an orthogonal cell-line set.
+        if (!tissue || tissue === '__visible__') {
             subtypeSelect.style.display = 'none';
             return;
         }
@@ -24293,10 +24317,21 @@ ${body}
         try {
             const allCellLines = this.metadata.cellLines;
             const cellLineIndices = [];
+            // When the user picks "Visible in list above", restrict to the
+            // cell lines currently rendered in the CLB list — this lets them
+            // drive the projection from whatever filters they have active
+            // upstairs (search, mutation, custom, etc.).
+            const visibleSet = (tissueFilter === '__visible__')
+                ? new Set(this._clbVisibleCellLines || [])
+                : null;
             for (let i = 0; i < allCellLines.length; i++) {
                 const cl = allCellLines[i];
-                if (tissueFilter && this.getCellLineLineage(cl) !== tissueFilter) continue;
-                if (subtypeFilter && (this.getCellLineSublineage(cl) || 'Unknown') !== subtypeFilter) continue;
+                if (visibleSet) {
+                    if (!visibleSet.has(cl)) continue;
+                } else {
+                    if (tissueFilter && this.getCellLineLineage(cl) !== tissueFilter) continue;
+                    if (subtypeFilter && (this.getCellLineSublineage(cl) || 'Unknown') !== subtypeFilter) continue;
+                }
                 cellLineIndices.push(i);
             }
 
