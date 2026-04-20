@@ -3079,17 +3079,20 @@ class CorrelationExplorer {
         });
         document.getElementById('geViewTissue')?.addEventListener('click', () => {
             if (this.geneEffectViewMode === 'mutation') {
-                // Switch from mutation inspect to full gene effect analysis
+                // Stay in mutation-analysis mode; re-render the same gene as
+                // a by-tissue plot without losing the mutation context.
                 const gene = document.getElementById('geneEffectSearch').value.trim().toUpperCase() || this.currentGeneEffectGene;
-                if (gene) this.openGeneEffectModal(gene, 'tissue');
+                if (gene) this._showMutationInspectByTissue(gene);
             } else {
                 this.switchGeneEffectView('tissue');
             }
         });
         document.getElementById('geViewHotspot')?.addEventListener('click', () => {
             if (this.geneEffectViewMode === 'mutation') {
+                // Stay in mutation-analysis mode; re-render the mutation-
+                // stratified (0/1/2) plot for the same gene.
                 const gene = document.getElementById('geneEffectSearch').value.trim().toUpperCase() || this.currentGeneEffectGene;
-                if (gene) this.openGeneEffectModal(gene, 'hotspot');
+                if (gene) this.showGeneEffectDistribution(gene);
             } else {
                 this.switchGeneEffectView('hotspot');
             }
@@ -6250,11 +6253,22 @@ class CorrelationExplorer {
         document.getElementById('geResetFiltersBtn').style.display = '';
         document.getElementById('geCompareByTranslocationBtn').style.display =
             this.translocations?.genes?.length > 0 ? '' : 'none';
-        document.getElementById('geViewTissue').style.display = 'none';
-        document.getElementById('geViewHotspot').style.display = 'none';
-        // Hide the "View:" label too (previous sibling span)
-        const viewLabel = document.getElementById('geViewTissue').previousElementSibling;
-        if (viewLabel && viewLabel.textContent.trim() === 'View:') viewLabel.style.display = 'none';
+        // Keep the view-toggle visible in mutation-analysis mode so the user
+        // can switch between the mutation-stratified plot (0/1/2 hotspot
+        // levels) and the same gene plotted by tissue, without leaving the
+        // mutation-analysis context. Highlight "By Hotspot" as the active
+        // view since showGeneEffectDistribution renders the hotspot plot.
+        const _tissueBtn = document.getElementById('geViewTissue');
+        const _hotBtn = document.getElementById('geViewHotspot');
+        _tissueBtn.style.display = '';
+        _hotBtn.style.display = '';
+        const _viewLabel = _tissueBtn.previousElementSibling;
+        if (_viewLabel && _viewLabel.textContent.trim() === 'View:') _viewLabel.style.display = '';
+        [_tissueBtn, _hotBtn].forEach(b => { b.style.background = ''; b.style.color = ''; b.classList.add('btn-secondary'); });
+        _hotBtn.style.background = '#5a9f4a';
+        _hotBtn.style.color = 'white';
+        _hotBtn.classList.remove('btn-secondary');
+        this.currentGEView = 'hotspot';
         if (!this._keepInlineCompare) {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         }
@@ -6303,6 +6317,81 @@ class CorrelationExplorer {
 
         // Show chart width and Y range controls
         this.updateShowAllButton();
+    }
+
+    // Mutation-analysis inspect ALT view: the same gene re-plotted by tissue
+    // instead of by 0/1/2 mutation level. We keep the mutation-analysis chrome
+    // (Δ Tissue / Δ Hotspot compare buttons, Export, filters) so the user can
+    // flip back to the hotspot view without losing context. All per-cell-line
+    // filters from the mutation analysis (lineageFilter, excludedTissues,
+    // subLineageFilter, custom CL list) stay in effect.
+    _showMutationInspectByTissue(gene) {
+        if (!this.mutationResults) return;
+        const geneUpper = (gene || '').toUpperCase();
+        const geneIdx = this.geneIndex.get(geneUpper);
+        if (geneIdx === undefined) {
+            alert(`Gene ${gene} not found`);
+            return;
+        }
+        const mr = this.mutationResults;
+        const geneData = this.getGeneData(geneIdx);
+        const cellLines = this.metadata.cellLines;
+        this.currentGeneEffectGene = geneUpper;
+        this.currentGeneEffect = { gene: geneUpper, data: [] };
+
+        for (let i = 0; i < this.nCellLines; i++) {
+            const cl = cellLines[i];
+            const val = geneData[i];
+            if (isNaN(val)) continue;
+            // Mirror the analysis-snapshot filters that showGeneEffectDistribution applies.
+            if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== mr.lineageFilter) continue;
+            if (mr.excludedTissues && mr.excludedTissues.size > 0) {
+                const lin = this.cellLineMetadata?.lineage?.[cl];
+                if (lin && mr.excludedTissues.has(lin)) continue;
+            }
+            if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) continue;
+            this.currentGeneEffect.data.push({
+                cellLineId: cl,
+                cellLineName: this.getCellLineName(cl),
+                lineage: this.getCellLineLineage(cl),
+                geneEffect: val
+            });
+        }
+
+        // Repopulate the tissue dropdown so the counts match this gene's data.
+        const tissueFilter = document.getElementById('geTissueFilter');
+        if (tissueFilter) {
+            const prev = tissueFilter.value;
+            const linCounts = {};
+            this.currentGeneEffect.data.forEach(d => { if (d.lineage) linCounts[d.lineage] = (linCounts[d.lineage] || 0) + 1; });
+            const linsSorted = Object.keys(linCounts).sort((a, b) => linCounts[b] - linCounts[a]);
+            tissueFilter.innerHTML = '<option value="">All tissues</option>';
+            linsSorted.forEach(l => {
+                const opt = document.createElement('option');
+                opt.value = l;
+                opt.textContent = `${l} (n=${linCounts[l]})`;
+                tissueFilter.appendChild(opt);
+            });
+            tissueFilter.value = prev || '';
+        }
+
+        // Swap which of the two chart containers is visible.
+        document.getElementById('geByTissueView').style.display = 'block';
+        document.getElementById('geByHotspotView').style.display = 'none';
+        document.getElementById('geTableContainer').style.display = '';
+        // In mutation-analysis mode the chart uses full width (no stats table
+        // alongside). Leave that layout alone.
+        this.currentGEView = 'tissue';
+
+        // Update toggle-button styling so "By Tissue" reads as active.
+        const tBtn = document.getElementById('geViewTissue');
+        const hBtn = document.getElementById('geViewHotspot');
+        [tBtn, hBtn].forEach(b => { b.style.background = ''; b.style.color = ''; b.classList.add('btn-secondary'); });
+        tBtn.style.background = '#5a9f4a';
+        tBtn.style.color = 'white';
+        tBtn.classList.remove('btn-secondary');
+
+        this.renderGeneEffectByTissue();
     }
 
     _exportMutationInspectChart(format) {
