@@ -24775,6 +24775,20 @@ ${body}
         this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene);
     }
 
+    // Clicking a point in the UMAP/PCA plot opens the inspect panel for that
+    // cell line (same UX as clicking its entry in the list above). From there
+    // the user can hit the Wiki button, copy the ID, etc.
+    _handleUmapPointClick(eventData) {
+        const pt = eventData?.points?.[0];
+        if (!pt || !pt.customdata) return;
+        const clId = pt.customdata;
+        this.showCellLineDetail(clId);
+        // Scroll the corresponding list entry into view so it's obvious which
+        // cell line was picked.
+        const entry = document.querySelector(`#clbList .clb-entry[data-clid="${CSS.escape(clId)}"]`);
+        if (entry) entry.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
     _addLoadingsArrows(plotDiv) {
         // Render the PCA loadings biplot into the sidecar next to the main plot.
         // Previously this was an absolute-positioned inset floating over the
@@ -24891,17 +24905,12 @@ ${body}
 
         const markerSize = parseInt(document.getElementById("clbUmapMarkerSize")?.value) || 9;
 
-        // Precompute mutation counts per cell line for hover
-        const mutCounts = {};
-        if (this.mutations?.genes) {
-            for (const cl of cellLines) {
-                let count = 0;
-                for (const gene of this.mutations.genes) {
-                    if (this.mutations.geneData[gene]?.mutations?.[cl]) count++;
-                }
-                if (count > 0) mutCounts[cl] = count;
-            }
-        }
+        // Hover text uses the precomputed per-cell-line counts (populated in
+        // _precomputeCellLineCounts) — showing all three numbers gives a quick
+        // read on genetic complexity rather than just the hotspot count alone.
+        const hotMap = this._hotspotCountByCL || new Map();
+        const damMap = this._damagingCountByCL || new Map();
+        const fusMap = this._fusionCountByCL || new Map();
 
         const makeHoverText = (idx) => {
             const cl = cellLines[idx];
@@ -24910,7 +24919,11 @@ ${body}
             const sub = this.getCellLineSublineage(cl);
             let text = `${name}<br>${lineage}${sub ? ' \u00b7 ' + sub : ''}`;
             if (mutStatus && splitGene) text += `<br>${splitGene}: ${mutStatus[idx] ? 'Mutated' : 'WT'}`;
-            if (mutCounts[cl]) text += `<br>Hotspot mutations: ${mutCounts[cl]}`;
+            const hot = hotMap.get(cl) || 0;
+            const dam = damMap.get(cl) || 0;
+            const fus = fusMap.get(cl) || 0;
+            text += `<br>Hotspot ${hot} &nbsp;&middot;&nbsp; Damaging ${dam} &nbsp;&middot;&nbsp; Fusions ${fus}`;
+            text += `<br><i style="color:#9ca3af;">click to inspect</i>`;
             return text;
         };
 
@@ -24991,6 +25004,7 @@ ${body}
                     this._clbUmapSelectedPoints = new Set();
                     document.getElementById('clbUmapSelectedCount').textContent = '';
                 });
+                div.on('plotly_click', (eventData) => this._handleUmapPointClick(eventData));
             });
         } else {
             // Single plot, colored by tissue/subtype
@@ -25044,6 +25058,7 @@ ${body}
                 this._clbUmapSelectedPoints = new Set();
                 document.getElementById('clbUmapSelectedCount').textContent = '';
             });
+            plotDiv.on('plotly_click', (eventData) => this._handleUmapPointClick(eventData));
             plotDiv.on('plotly_relayout', (data) => this._handleUmapGateShapeRelayout(data));
         }
     }

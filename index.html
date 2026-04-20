@@ -1324,6 +1324,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.69.5 (2026-04-20)</strong></p>
+                <ul>
+                    <li>UMAP/PCA point hover tooltip rebalanced. Instead of just &ldquo;Hotspot mutations: N&rdquo; (which on its own said little about genetic complexity), hover now shows <b>Hotspot N &middot; Damaging N &middot; Fusions N</b> side-by-side, so one glance compares the three mutation axes. A small &ldquo;click to inspect&rdquo; hint is also added.</li>
+                    <li>Clicking a point in the plot now opens the inspect panel for that cell line (same as clicking its row in the list above). The matching list entry is scrolled into view and highlighted, so you can jump straight into the Wiki, gene lists, etc. for any cell line you spot on the plot.</li>
+                </ul>
                 <p><strong>v.69.4 (2026-04-20)</strong></p>
                 <ul>
                     <li>Short explainer added above the Lasso select / Copy selected buttons under the UMAP/PCA plot: <em>draw a lasso on the plot to pick a cluster of cell lines, then copy their names for downstream use (paste into Custom CLs above, a new session, or a spreadsheet)</em>. Both buttons also gained descriptive tooltips.</li>
@@ -1969,7 +1974,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.4</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.5</a>
     </div>
 
     <div class="main-content">
