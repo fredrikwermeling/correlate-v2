@@ -20914,13 +20914,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (e.target.id === 'clbInfoModal') e.target.style.display = 'none';
         });
 
-        // CLB cell-line Wiki modal
-        document.getElementById('clbWikiBtn')?.addEventListener('click', () => {
-            if (this._clbInspectedCellLine) this.openCellLineWiki(this._clbInspectedCellLine);
-        });
+        // CLB cell-line Wiki modal. The open-button is wired inside openInspect
+        // (the button is rendered dynamically per cell line); the modal-close
+        // and in-modal handlers are wired once at startup below.
         document.getElementById('clbWikiCloseBtn')?.addEventListener('click', () => {
             document.getElementById('clbWikiModal').style.display = 'none';
         });
+        document.getElementById('clbWikiDownloadBtn')?.addEventListener('click', () => this.downloadCellLineWiki());
         document.getElementById('clbWikiModal')?.addEventListener('click', (e) => {
             if (e.target.id === 'clbWikiModal') e.target.style.display = 'none';
         });
@@ -21017,7 +21017,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         document.getElementById('clbExportMinimal').addEventListener('click', () => this.exportCellLineBrowserCSV('minimal'));
-        document.getElementById('clbExportFull').addEventListener('click', () => this.exportCellLineBrowserCSV('full'));
         document.getElementById('clbExportComprehensive')?.addEventListener('click', () => this.exportCellLineBrowserCSV('comprehensive'));
 
         // Gene tooltips on gene links in detail panel
@@ -21510,8 +21509,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
 
-        // Damaging mutation count (no gene list — per design)
-        const damagingCount = this._damagingCountByCL?.get(cellLineId) || 0;
+        // Damaging mutation genes in this cell line
+        const damagingGenes = [];
+        if (this.damagingMutations?.geneData) {
+            for (const gene of Object.keys(this.damagingMutations.geneData)) {
+                if (this.damagingMutations.geneData[gene].mutations?.[cellLineId] >= 1) damagingGenes.push(gene);
+            }
+        }
+        const damagingCount = this._damagingCountByCL?.get(cellLineId) || damagingGenes.length;
 
         // Count fusions
         const fusionGenes = [];
@@ -21520,6 +21525,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (this.translocations.geneData[gene].translocations?.[cellLineId] >= 1) fusionGenes.push(gene);
             }
         }
+
+        // Cancer-relevant gene set (from pathway panels) — used to prioritise which
+        // genes to show first when a cell line has very long lists.
+        if (!this._cancerPanelGenes) {
+            const set = new Set();
+            const pw = this._WIKI_PATHWAYS ? this._WIKI_PATHWAYS() : {};
+            for (const info of Object.values(pw)) {
+                for (const g of (info.genes || [])) set.add(g);
+            }
+            this._cancerPanelGenes = set;
+        }
+        const cancerSet = this._cancerPanelGenes;
+        const sortByRelevance = (genes) => {
+            return [...genes].sort((a, b) => {
+                const ac = cancerSet.has(a) ? 0 : 1;
+                const bc = cancerSet.has(b) ? 0 : 1;
+                if (ac !== bc) return ac - bc;
+                return a.localeCompare(b);
+            });
+        };
 
         // Gene effect stats
         const clIdx = this.metadata.cellLines.indexOf(cellLineId);
@@ -21544,6 +21569,28 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const expDisplay = this._getSexExpressionDisplay(cellLineId);
         const disagree = (sexAnn === 'Male' && sexExp === 'female') || (sexAnn === 'Female' && sexExp === 'male');
         const expStyle = disagree ? ' style="color:#b45309;" title="Expression disagrees with annotation"' : '';
+        // Render a gene list where the first `initial` cancer-relevant genes are
+        // always visible and the rest are hidden behind a "Show all" toggle.
+        const INITIAL_VISIBLE = 10;
+        const renderGeneList = (genes, toggleId) => {
+            if (genes.length === 0) return `<div style="color:var(--gray-500); font-size:11px;">None</div>`;
+            const sorted = sortByRelevance(genes);
+            const tagHtml = (g) => {
+                const hl = cancerSet.has(g) ? ' style="cursor:help; font-weight:600;"' : ' style="cursor:help;"';
+                return `<span class="gene-hover clb-gene-link" data-gene="${g}"${hl}>${g}</span>`;
+            };
+            if (sorted.length <= INITIAL_VISIBLE) {
+                return `<div style="color:var(--gray-500); font-size:11px;">${sorted.map(tagHtml).join(', ')}</div>`;
+            }
+            const visible = sorted.slice(0, INITIAL_VISIBLE).map(tagHtml).join(', ');
+            const hidden  = sorted.slice(INITIAL_VISIBLE).map(tagHtml).join(', ');
+            return `<div style="color:var(--gray-500); font-size:11px;">`
+                + `<span id="${toggleId}-visible">${visible}</span>`
+                + `<span id="${toggleId}-hidden" style="display:none;">, ${hidden}</span>`
+                + ` <a href="#" id="${toggleId}-btn" data-total="${sorted.length}" style="color:var(--green-700); text-decoration:none; font-size:10px; white-space:nowrap;">&#x25BE; show all ${sorted.length}</a>`
+                + `</div>`;
+        };
+
         let top = `<h4>${name}</h4>`;
         top += `<div class="clb-detail-id">${cellLineId}</div>`;
         top += `<div class="clb-detail-section">`;
@@ -21553,20 +21600,49 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex (expression)</span><span class="clb-stat-value"${expStyle}>${expDisplay}</span></div>`;
         top += `</div>`;
 
-        top += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutGenes.length})</strong>`;
-        top += `<div style="color:var(--gray-500); font-size:11px;">${mutGenes.length > 0 ? mutGenes.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') : 'None'}</div></div>`;
+        // Wiki entry-point sits at the top so the user lands on the deep-dive
+        // before scrolling through the summary lists.
+        top += `<div class="clb-detail-section" style="margin-bottom:12px;">`;
+        top += `<button id="clbWikiBtn" class="btn btn-outline btn-sm" style="width:100%; font-size:11px; padding:5px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open the cell line Wiki (patient origin, classification, mutation profile, fusions, signatures, STR authentication)">Wiki &mdash; deep dive on this cell line</button>`;
+        top += `</div>`;
 
-        top += `<div class="clb-detail-section"><strong>Damaging Mutations (${damagingCount})</strong></div>`;
+        top += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutGenes.length})</strong>`;
+        top += renderGeneList(mutGenes, 'clb-hotspot');
+        top += `</div>`;
+
+        top += `<div class="clb-detail-section"><strong>Damaging Mutations (${damagingCount})</strong>`;
+        top += renderGeneList(damagingGenes, 'clb-damaging');
+        top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Fusions (${fusionGenes.length})</strong>`;
-        top += `<div style="color:var(--gray-500); font-size:11px;">${fusionGenes.length > 0 ? fusionGenes.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') : 'None'}</div></div>`;
+        top += renderGeneList(fusionGenes, 'clb-fusion');
+        top += `</div>`;
 
-        top += `<div class="clb-detail-section"><strong>Gene Effect Stats</strong>`;
-        top += `<div class="clb-stat-row"><span class="clb-stat-label">Genes</span><span class="clb-stat-value">${count.toLocaleString()}</span></div>`;
-        top += `<div class="clb-stat-row"><span class="clb-stat-label">Mean GE</span><span class="clb-stat-value">${this.formatNum(mean)}</span></div>`;
+        // Gene Effect section — separator + combined stats + list headings.
+        top += `<div style="border-top:1px solid #e5e7eb; margin:12px 0 8px;"></div>`;
+        top += `<div class="clb-detail-section"><strong>Gene Effects</strong>`;
+        top += `<div class="clb-stat-row"><span class="clb-stat-label">Genes scored</span><span class="clb-stat-value">${count.toLocaleString()}</span></div>`;
+        top += `<div class="clb-stat-row"><span class="clb-stat-label">Mean</span><span class="clb-stat-value">${this.formatNum(mean)}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Range</span><span class="clb-stat-value">${count > 0 ? this.formatNum(min) + ' to ' + this.formatNum(max) : '-'}</span></div>`;
         top += `</div>`;
         document.getElementById('clbDetailTop').innerHTML = top;
+
+        // Wire the deep-dive entry point and gene-list toggles (re-wired on every
+        // re-render because the DOM is replaced in place).
+        document.getElementById('clbWikiBtn')?.addEventListener('click', () => this.openCellLineWiki(cellLineId));
+        ['clb-hotspot', 'clb-damaging', 'clb-fusion'].forEach(id => {
+            const btn = document.getElementById(id + '-btn');
+            if (!btn) return;
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const hidden = document.getElementById(id + '-hidden');
+                if (!hidden) return;
+                const nowHidden = hidden.style.display === 'none';
+                hidden.style.display = nowHidden ? '' : 'none';
+                const total = btn.dataset.total;
+                btn.innerHTML = nowHidden ? '&#x25B4; hide extras' : `&#x25BE; show all ${total}`;
+            });
+        });
 
         // Gene lists section
         const bottomN = geneVals.slice(0, N);
@@ -22608,6 +22684,36 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         ].join('');
 
         document.getElementById('clbWikiModal').style.display = 'flex';
+    }
+
+    // Save the currently-open Wiki as a standalone HTML file. Replaces the
+    // removed "Cell Line Detail Report" CSV export — a self-contained HTML
+    // file keeps the pill/card styling intact and prints cleanly.
+    downloadCellLineWiki() {
+        const title = document.getElementById('clbWikiTitle')?.textContent || 'Cell Line Wiki';
+        const subtitle = document.getElementById('clbWikiSubtitle')?.textContent || '';
+        const body = document.getElementById('clbWikiBody')?.innerHTML || '';
+        if (!body.trim()) { alert('Open a cell-line Wiki first.'); return; }
+        const safeName = title.replace(/[^A-Za-z0-9_-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        const date = new Date().toISOString().slice(0, 10);
+        const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${title}</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#374151; max-width:900px; margin:30px auto; padding:0 20px; line-height:1.55; font-size:13px; }
+  h1 { color:#15803d; margin:0 0 4px; font-size:20px; }
+  h4 { color:#15803d; font-size:14px; margin:0 0 6px; }
+  .subtitle { font-size:11px; color:#6b7280; margin-bottom:20px; }
+  section { margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #e5e7eb; }
+  a { color:#15803d; }
+  .wiki-footer { margin-top:24px; font-size:10px; color:#9ca3af; }
+</style>
+</head><body>
+<h1>${title}</h1>
+<div class="subtitle">${subtitle}</div>
+${body}
+<div class="wiki-footer">Generated ${date} by Correlate V2 — data from DepMap 25Q3 and Cellosaurus.</div>
+</body></html>`;
+        this.downloadFile(html, `${safeName || 'CellLineWiki'}_${date}.html`, 'text/html');
     }
 
     async exportCellLineBrowserCSV(mode) {

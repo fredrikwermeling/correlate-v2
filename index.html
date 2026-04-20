@@ -1062,9 +1062,9 @@
         .clb-detail .clb-detail-id { font-size: 10px; color: var(--gray-500); margin-bottom: 10px; word-break: break-all; }
         .clb-detail-section { margin-bottom: 10px; }
         .clb-detail-section strong { display: inline; margin-bottom: 2px; color: #374151; }
-        .clb-detail-section .clb-stat-row { display: flex; justify-content: space-between; padding: 1px 0; }
-        .clb-detail-section .clb-stat-label { color: var(--gray-500); }
-        .clb-detail-section .clb-stat-value { font-weight: 600; }
+        .clb-detail-section .clb-stat-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 1px 0; }
+        .clb-detail-section .clb-stat-label { color: var(--gray-500); flex-shrink: 0; }
+        .clb-detail-section .clb-stat-value { font-weight: 600; text-align: right; min-width: 0; word-break: break-word; }
         .clb-gene-link { color: var(--green-700); text-decoration: none; cursor: pointer; }
         .clb-gene-link:hover { text-decoration: underline; }
         .clb-enrichr-btn { font-size: 9px; padding: 1px 5px; background: none; border: 1px solid #9ca3af;
@@ -1315,6 +1315,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.69.0 (2026-04-20)</strong></p>
+                <ul>
+                    <li>Cell-line inspect panel reorganised for readability. Subtype and other long values no longer run flush against their labels on wrap (fixed with proper right-alignment and a label gap). Wiki deep-dive button moved to the top of the panel so it&rsquo;s visible before scrolling. Hotspot, Damaging and Fusion gene lists now show the first 10 cancer-panel genes (bold) with a <em>Show all</em> toggle for the rest &mdash; Jurkat&rsquo;s 658 damaging mutations and 48 fusions no longer dominate the panel. Gene Effect section separated from the mutation block by a thin divider and relabeled (&ldquo;Gene Effects&rdquo; with Genes scored / Mean / Range), which keeps Most Depleted and Most Enriched as clear sub-sections underneath. Removed the redundant &ldquo;Cell Line Detail Report&rdquo; CSV button (the Wiki already covers this and now has a <strong>Download</strong> button that saves a standalone, styled HTML file per cell line).</li>
+                    <li>Version scheme switched to single-decimal (v.69.0, v.69.1 &hellip; v.69.9, v.70.0). Small changes bump the tenths digit, large changes bump the integer.</li>
+                </ul>
                 <p><strong>v.68.02 (2026-04-19)</strong></p>
                 <ul>
                     <li>Pathway-scan section in the Mutation profile clarified. The intro now states explicitly that the scan is based on mutation calls only (copy-number, fusions and expression are excluded); drops the inaccurate "hotspot = oncogenic / damaging = tumour suppressor" shorthand; and explains the asterisk (gene carries both a hotspot and a damaging mutation). Pathway rows restructured so the name, plain-English description, and gene list each sit on their own line, with a clear "Mutated genes in panel:" label before the tags so the genes no longer run on directly after the description. Cryptic shorthand like "RTK (receptor tyr kinase) &mdash; receptor TKI targets &mdash; check amplification / fusion" is replaced with full sentences, e.g. a note on receptor tyrosine kinases explaining that the mutation panel misses amplifications and fusions &mdash; common driver mechanisms for this pathway &mdash; so a clean panel does not rule it out</li>
@@ -1936,7 +1941,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.68.02</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.0</a>
     </div>
 
     <div class="main-content">
@@ -3429,7 +3434,10 @@
             <h3 id="clbWikiTitle" style="margin:0; font-size:17px; color:#15803d;">Cell Line Wiki</h3>
             <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
           </div>
-          <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Save the Wiki as a standalone HTML file">Download</button>
+            <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+          </div>
         </div>
         <div id="clbWikiBody" style="padding:16px 20px; overflow-y:auto; font-size:12px; line-height:1.55; color:#374151;"></div>
       </div>
@@ -3529,7 +3537,6 @@
             <button id="clbSelectVisible" class="btn btn-outline btn-sm">Select Visible</button>
             <button id="clbDeselectAll" class="btn btn-outline btn-sm">Deselect All</button>
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="Gene Effect values for all genes × selected cell lines (CSV)">Export GE<br><span style="font-size:9px;font-weight:normal;">for selected CLs</span></button>
-            <button id="clbExportFull" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="Detailed report: metadata, mutations, top depleted/enriched genes, z-scores">Cell Line<br><span style="font-size:9px;font-weight:normal;">Detail Report</span></button>
             <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="All data per cell line: GE, Expression, Hotspot, Damaging, Translocation (genes × cell lines)">Full Data<br><span style="font-size:9px;font-weight:normal;">Export</span></button>
           </div>
         </div>
@@ -3551,9 +3558,6 @@
             <div class="clb-detail-placeholder" id="clbDetailPlaceholder">Click a cell line to view details</div>
             <div id="clbDetailContent" style="display:none;">
               <div id="clbDetailTop"></div>
-              <div style="margin:6px 0;">
-                <button id="clbWikiBtn" class="btn btn-outline btn-sm" style="width:100%; font-size:11px; padding:4px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open the cell line Wiki (patient origin, classification, mutation profile, fusions, signatures, STR authentication)">Wiki &mdash; deep dive on this cell line</button>
-              </div>
               <div style="display:flex; align-items:center; gap:6px; margin:8px 0 4px 0;">
                 <label style="font-size:11px; color:var(--gray-500); white-space:nowrap;">Show top</label>
                 <select id="clbTopN" style="padding:2px 4px; font-size:11px; border:1px solid var(--gray-200); border-radius:3px;">
