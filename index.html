@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.70.3 (2026-04-20)</strong></p>
+                <ul>
+                    <li>Third Gene-Effect view renamed to <strong>Mutation Inspect</strong> and reworked to reuse the existing mutational-analysis inspect layout instead of a separate simplified plot. Clicking <em>Mutation Inspect</em> surfaces a hotspot-gene picker; picking a gene bootstraps a minimal mutation-analysis context on the fly and hands off to <code>showGeneEffectDistribution</code> &mdash; the resulting view is identical to the Inspect opened from a mutation-analysis results table (full-width chart, hotspot / fusion filters, &Delta; Tissue / &Delta; Hotspot / &Delta; Fusion compare buttons, custom export). Clicking <em>By Tissue</em> or <em>By Hotspot</em> from that state cleanly restores the standalone GE layout. <em>By Hotspot (scan)</em> label reverted to <em>By Hotspot</em> now that the three views are clearly distinct. Removed the v.70.2 stand-alone &ldquo;By Mutation&rdquo; box plot (duplicated what mutation-analysis inspect already does better).</li>
+                </ul>
                 <p><strong>v.70.2 (2026-04-20)</strong></p>
                 <ul>
                     <li>Gene Effect inspect gains a third view: <strong>By Mutation</strong>. Pick a hotspot-mutated gene from the dropdown and the plot stratifies the current gene&rsquo;s effect by 0 / 1 / 2 mutation levels of that gene &mdash; the same view you get from &ldquo;Inspect&rdquo; in a mutation-analysis result table, now reachable from the standalone GE inspect. Rolled back v.70.1&rsquo;s attempt to share the toggle with the mutation-analysis inspect (&ldquo;By Hotspot&rdquo; means subtly different things there, which was more confusing than helpful). &ldquo;By Hotspot&rdquo; renamed to &ldquo;By Hotspot (scan)&rdquo; in the standalone inspect to make its scan-table semantics explicit. Mutation-analysis inspect is back to its original chromeless look.</li>
@@ -2005,7 +2009,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.2</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.3</a>
     </div>
 
     <div class="main-content">
@@ -2944,9 +2948,9 @@
                         </span>
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;" title="Box plot of gene effect grouped by tissue / lineage">By Tissue</button>
-                        <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan table: how each mutation-prone gene's hotspot (WT vs mutated) shifts this gene's effect">By Hotspot (scan)</button>
-                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Stratify this gene's effect by the 0/1/2 hotspot-mutation level of a chosen gene">By Mutation</button>
-                        <select id="geMutStratifyGene" style="display:none; font-size:11px; padding:2px 4px; max-width:130px;" title="Hotspot gene to stratify by"></select>
+                        <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan table: how each mutation-prone gene's hotspot (WT vs mutated) shifts this gene's effect">By Hotspot</button>
+                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Same layout as the mutational-analysis Inspect — pick one hotspot gene to stratify this gene's effect by 0 / 1 / 2 mutation levels">Mutation Inspect</button>
+                        <select id="geMutStratifyGene" style="display:none; font-size:11px; padding:2px 4px; max-width:150px;" title="Pick a hotspot gene to stratify by"></select>
                         <span style="display: inline-flex; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 6px; margin-left: 2px;">
                             <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle to define Gate A">Gate A</button>
                             <button class="btn btn-sm" id="geSetGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled title="Draw rectangle to define Gate B">Gate B</button>
@@ -3010,10 +3014,6 @@
                                 <strong>⚠️ Caution:</strong> Hotspot mutations are often enriched in specific cancer types. Observed differences in gene effect may reflect cancer type rather than the mutation itself.
                             </div>
                             <div id="geneEffectHotspotPlot" style="width: 100%; min-height: 400px;"></div>
-                        </div>
-                        <div id="geByMutationView" style="display: none;">
-                            <div id="geByMutationPlaceholder" style="padding:40px; text-align:center; color:#6b7280; font-size:12px;">Pick a hotspot-mutated gene from the dropdown above to stratify this gene&rsquo;s effect by 0/1/2 mutation level.</div>
-                            <div id="geneEffectMutationPlot" style="width: 100%; min-height: 400px; display:none;"></div>
                         </div>
                     </div>
 
