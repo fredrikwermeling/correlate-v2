@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.69.4 (2026-04-20)</strong></p>
+                <ul>
+                    <li>Short explainer added above the Lasso select / Copy selected buttons under the UMAP/PCA plot: <em>draw a lasso on the plot to pick a cluster of cell lines, then copy their names for downstream use (paste into Custom CLs above, a new session, or a spreadsheet)</em>. Both buttons also gained descriptive tooltips.</li>
+                </ul>
                 <p><strong>v.69.3 (2026-04-20)</strong></p>
                 <ul>
                     <li>Dimensionality-reduction tissue dropdown gains a new top option: &ldquo;Visible in list above (n=X)&rdquo;. Pick it to project only the cell lines currently rendered in the Cell Line Browser list &mdash; so whatever you&rsquo;ve filtered upstairs (search, custom CLs, mutation state, subtype, &hellip;) drives the UMAP/PCA directly. The count stays in sync with the list above, and selecting it hides the subtype dropdown (it would be meaningless against an arbitrary cell-line set). Default selection on open.</li>
@@ -1965,7 +1969,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.3</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.4</a>
     </div>
 
     <div class="main-content">
@@ -3691,10 +3695,13 @@
                 <div id="clbUmapPlot" style="min-height:50px;"></div>
                 <div id="clbUmapLoadingsSidecar" style="display:none;"></div>
             </div>
-            <div id="clbUmapSelectionControls" style="display:none; margin-top:6px; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button id="clbUmapSelectBtn" class="btn btn-sm btn-outline" style="font-size:10px;">Lasso select</button>
-                <button id="clbUmapCopyBtn" class="btn btn-sm btn-outline" style="font-size:10px;">Copy selected</button>
-                <span id="clbUmapSelectedCount" style="font-size:10px; color:#6b7280;"></span>
+            <div id="clbUmapSelectionControls" style="display:none; margin-top:8px; flex-direction:column; gap:4px; align-items:flex-start; flex-wrap:wrap;">
+                <div style="font-size:10px; color:#6b7280; line-height:1.4;">Draw a lasso on the plot to pick a cluster of cell lines, then copy their names to the clipboard for downstream analysis (e.g. paste into Custom CLs above, or into a new session / spreadsheet).</div>
+                <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                    <button id="clbUmapSelectBtn" class="btn btn-sm btn-outline" style="font-size:10px;" title="Enable lasso mode on the plot, then drag to encircle points">Lasso select</button>
+                    <button id="clbUmapCopyBtn" class="btn btn-sm btn-outline" style="font-size:10px;" title="Copy names of the currently-selected cell lines to the clipboard (one per line)">Copy selected</button>
+                    <span id="clbUmapSelectedCount" style="font-size:10px; color:#6b7280;"></span>
+                </div>
             </div>
             <!-- UMAP Gate Comparison Results -->
             <div id="clbUmapGatePanel" style="display:none; margin-top:10px; border:2px solid #5a9f4a; border-radius:8px; overflow:hidden;">
