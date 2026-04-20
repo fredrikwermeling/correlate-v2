@@ -3078,24 +3078,16 @@ class CorrelationExplorer {
             }
         });
         document.getElementById('geViewTissue')?.addEventListener('click', () => {
-            if (this.geneEffectViewMode === 'mutation') {
-                // Stay in mutation-analysis mode; re-render the same gene as
-                // a by-tissue plot without losing the mutation context.
-                const gene = document.getElementById('geneEffectSearch').value.trim().toUpperCase() || this.currentGeneEffectGene;
-                if (gene) this._showMutationInspectByTissue(gene);
-            } else {
-                this.switchGeneEffectView('tissue');
-            }
+            this.switchGeneEffectView('tissue');
         });
         document.getElementById('geViewHotspot')?.addEventListener('click', () => {
-            if (this.geneEffectViewMode === 'mutation') {
-                // Stay in mutation-analysis mode; re-render the mutation-
-                // stratified (0/1/2) plot for the same gene.
-                const gene = document.getElementById('geneEffectSearch').value.trim().toUpperCase() || this.currentGeneEffectGene;
-                if (gene) this.showGeneEffectDistribution(gene);
-            } else {
-                this.switchGeneEffectView('hotspot');
-            }
+            this.switchGeneEffectView('hotspot');
+        });
+        document.getElementById('geViewMutation')?.addEventListener('click', () => {
+            this.switchGeneEffectView('mutation');
+        });
+        document.getElementById('geMutStratifyGene')?.addEventListener('change', () => {
+            if (this.currentGEView === 'mutation') this.renderGeneEffectByMutation();
         });
         // Mutation filter (gene + WT/Mut selector)
         const geMutGeneInput = document.getElementById('geMutGeneFilter');
@@ -6253,22 +6245,15 @@ class CorrelationExplorer {
         document.getElementById('geResetFiltersBtn').style.display = '';
         document.getElementById('geCompareByTranslocationBtn').style.display =
             this.translocations?.genes?.length > 0 ? '' : 'none';
-        // Keep the view-toggle visible in mutation-analysis mode so the user
-        // can switch between the mutation-stratified plot (0/1/2 hotspot
-        // levels) and the same gene plotted by tissue, without leaving the
-        // mutation-analysis context. Highlight "By Hotspot" as the active
-        // view since showGeneEffectDistribution renders the hotspot plot.
-        const _tissueBtn = document.getElementById('geViewTissue');
-        const _hotBtn = document.getElementById('geViewHotspot');
-        _tissueBtn.style.display = '';
-        _hotBtn.style.display = '';
-        const _viewLabel = _tissueBtn.previousElementSibling;
-        if (_viewLabel && _viewLabel.textContent.trim() === 'View:') _viewLabel.style.display = '';
-        [_tissueBtn, _hotBtn].forEach(b => { b.style.background = ''; b.style.color = ''; b.classList.add('btn-secondary'); });
-        _hotBtn.style.background = '#5a9f4a';
-        _hotBtn.style.color = 'white';
-        _hotBtn.classList.remove('btn-secondary');
-        this.currentGEView = 'hotspot';
+        // Hide the standalone view buttons — mutation-analysis inspect has
+        // its own layout and the "By Hotspot" label in the standalone modal
+        // means something different (a scan table) from what this view shows
+        // (a 0/1/2-level plot for one mutation gene).
+        document.getElementById('geViewTissue').style.display = 'none';
+        document.getElementById('geViewHotspot').style.display = 'none';
+        document.getElementById('geViewMutation').style.display = 'none';
+        const _viewLabel = document.getElementById('geViewTissue').previousElementSibling;
+        if (_viewLabel && _viewLabel.textContent.trim() === 'View:') _viewLabel.style.display = 'none';
         if (!this._keepInlineCompare) {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         }
@@ -16758,6 +16743,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Restore view buttons (may have been hidden by mutation inspect)
         document.getElementById('geViewTissue').style.display = '';
         document.getElementById('geViewHotspot').style.display = '';
+        document.getElementById('geViewMutation').style.display = '';
         const viewLabel = document.getElementById('geViewTissue').previousElementSibling;
         if (viewLabel && viewLabel.textContent.trim() === 'View:') viewLabel.style.display = '';
 
@@ -16789,9 +16775,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Update button styles
         const tissueBtn = document.getElementById('geViewTissue');
         const hotspotBtn = document.getElementById('geViewHotspot');
+        const mutationBtn = document.getElementById('geViewMutation');
 
-        // Reset all button styles
-        [tissueBtn, hotspotBtn].forEach(btn => {
+        [tissueBtn, hotspotBtn, mutationBtn].forEach(btn => {
             if (btn) {
                 btn.style.background = '';
                 btn.style.color = '';
@@ -16799,31 +16785,130 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         });
 
-        // Highlight active button
-        const activeBtn = view === 'tissue' ? tissueBtn : hotspotBtn;
+        const activeBtn = view === 'tissue' ? tissueBtn : view === 'mutation' ? mutationBtn : hotspotBtn;
         if (activeBtn) {
             activeBtn.style.background = '#5a9f4a';
             activeBtn.style.color = 'white';
             activeBtn.classList.remove('btn-secondary');
         }
 
-        // Update statistics explanation text
         const statsExplanation = document.getElementById('geStatsExplanationText');
+        const mutStratifySel = document.getElementById('geMutStratifyGene');
+
+        const tissueView = document.getElementById('geByTissueView');
+        const hotspotView = document.getElementById('geByHotspotView');
+        const mutationView = document.getElementById('geByMutationView');
+        tissueView.style.display = 'none';
+        hotspotView.style.display = 'none';
+        mutationView.style.display = 'none';
+        if (mutStratifySel) mutStratifySel.style.display = 'none';
 
         if (view === 'tissue') {
-            document.getElementById('geByTissueView').style.display = 'block';
-            document.getElementById('geByHotspotView').style.display = 'none';
+            tissueView.style.display = 'block';
             if (statsExplanation) statsExplanation.textContent = "p-values: Welch's t-test comparing each cancer type vs all other cell lines.";
-            /* p-value filter visible in both views */
             this.renderGeneEffectByTissue();
+        } else if (view === 'mutation') {
+            mutationView.style.display = 'block';
+            if (mutStratifySel) {
+                this._populateGeMutStratifyGene();
+                mutStratifySel.style.display = '';
+            }
+            if (statsExplanation) statsExplanation.textContent = "Pick a gene to stratify by; plot shows this gene's effect at 0 (WT) vs 1 vs 2 hotspot mutations of the picked gene.";
+            this.renderGeneEffectByMutation();
         } else {
-            document.getElementById('geByTissueView').style.display = 'none';
-            document.getElementById('geByHotspotView').style.display = 'block';
-            if (statsExplanation) statsExplanation.textContent = "Shows 3 mutation levels: 0 (WT, blue), 1 (orange), 2 (red). p-value: Welch's t-test comparing 1+2 combined vs WT.";
-            /* p-value filter visible in both views */
+            hotspotView.style.display = 'block';
+            if (statsExplanation) statsExplanation.textContent = "Scan: 3 mutation levels 0 (WT) / 1 / 2 per hotspot gene. p-value: Welch's t-test comparing 1+2 combined vs WT.";
             this.renderGeneEffectByHotspot();
         }
         this._updateGEPlaceholderVisibility();
+    }
+
+    // Populate the "stratify by" gene dropdown with hotspot-mutated genes,
+    // sorted by #cell lines carrying the mutation so the most-informative
+    // genes surface first.
+    _populateGeMutStratifyGene() {
+        const sel = document.getElementById('geMutStratifyGene');
+        if (!sel) return;
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">— pick a gene —</option>';
+        if (!this.mutations?.genes) return;
+        const counts = {};
+        for (const g of this.mutations.genes) {
+            const md = this.mutations.geneData?.[g]?.mutations || {};
+            let n = 0;
+            for (const cl in md) if (md[cl] >= 1) n++;
+            counts[g] = n;
+        }
+        const genes = [...this.mutations.genes].sort((a, b) => counts[b] - counts[a]);
+        genes.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.textContent = `${g} (${counts[g]})`;
+            sel.appendChild(opt);
+        });
+        sel.value = prev || '';
+    }
+
+    // Render the current GE gene as a 0/1/2-level box plot stratified by the
+    // mutation level of the gene picked in `#geMutStratifyGene`. This is the
+    // standalone-modal analogue of the mutational-analysis "Inspect" view —
+    // users can reach the same plot without first running a mutation analysis.
+    renderGeneEffectByMutation() {
+        const plotEl = document.getElementById('geneEffectMutationPlot');
+        const placeholderEl = document.getElementById('geByMutationPlaceholder');
+        if (!plotEl || !placeholderEl) return;
+        const stratGene = (document.getElementById('geMutStratifyGene')?.value || '').toUpperCase();
+        if (!stratGene) {
+            plotEl.style.display = 'none';
+            placeholderEl.style.display = '';
+            return;
+        }
+        const mutData = this.mutations?.geneData?.[stratGene]?.mutations;
+        if (!this.currentGeneEffect || !mutData) {
+            plotEl.style.display = 'none';
+            placeholderEl.style.display = '';
+            placeholderEl.textContent = `No hotspot data for ${stratGene}.`;
+            return;
+        }
+        placeholderEl.style.display = 'none';
+        plotEl.style.display = '';
+
+        const gene = this.currentGeneEffect.gene;
+        const data = this.getGETissueFilteredData();
+        const wt = [], mut1 = [], mut2 = [];
+        data.forEach(d => {
+            const lvl = mutData[d.cellLineId] || 0;
+            const pt = { y: d.geneEffect, cl: d.cellLineName || d.cellLineId };
+            if (lvl === 0) wt.push(pt);
+            else if (lvl === 1) mut1.push(pt);
+            else mut2.push(pt);
+        });
+
+        const mkTrace = (pts, name, color) => ({
+            type: 'box', y: pts.map(p => p.y), text: pts.map(p => p.cl),
+            name: `${name} (n=${pts.length})`,
+            boxpoints: 'all', jitter: 0.5, pointpos: 0,
+            marker: { color, size: 5, opacity: 0.7 },
+            line: { color },
+            hovertemplate: '%{text}<br>GE: %{y:.2f}<extra></extra>'
+        });
+
+        const traces = [];
+        if (wt.length) traces.push(mkTrace(wt, 'WT (0)', '#2563eb'));
+        if (mut1.length) traces.push(mkTrace(mut1, `${stratGene} 1 mut`, '#f59e0b'));
+        if (mut2.length) traces.push(mkTrace(mut2, `${stratGene} 2 mut`, '#dc2626'));
+
+        const layout = {
+            title: { text: `${gene} gene effect &mdash; stratified by ${stratGene} hotspot mutation level`, font: { size: 13 } },
+            yaxis: { title: `${gene} gene effect`, zeroline: true, zerolinecolor: '#9ca3af' },
+            xaxis: { title: `${stratGene} mutation level` },
+            margin: { t: 50, r: 20, b: 60, l: 70 },
+            showlegend: false,
+            paper_bgcolor: 'white',
+            plot_bgcolor: '#fafafa',
+            height: 440
+        };
+        Plotly.newPlot(plotEl, traces, layout, { responsive: true, displaylogo: false });
     }
 
     filterGETable(searchTerm) {

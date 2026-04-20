@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.70.2 (2026-04-20)</strong></p>
+                <ul>
+                    <li>Gene Effect inspect gains a third view: <strong>By Mutation</strong>. Pick a hotspot-mutated gene from the dropdown and the plot stratifies the current gene&rsquo;s effect by 0 / 1 / 2 mutation levels of that gene &mdash; the same view you get from &ldquo;Inspect&rdquo; in a mutation-analysis result table, now reachable from the standalone GE inspect. Rolled back v.70.1&rsquo;s attempt to share the toggle with the mutation-analysis inspect (&ldquo;By Hotspot&rdquo; means subtly different things there, which was more confusing than helpful). &ldquo;By Hotspot&rdquo; renamed to &ldquo;By Hotspot (scan)&rdquo; in the standalone inspect to make its scan-table semantics explicit. Mutation-analysis inspect is back to its original chromeless look.</li>
+                </ul>
                 <p><strong>v.70.1 (2026-04-20)</strong></p>
                 <ul>
                     <li>Mutational-analysis inspect and gene-effect inspect are now the same modal with a stratify toggle. Previously they were two separate entry points (&ldquo;Inspect&rdquo; in the mutation-analysis results vs. clicking a gene name elsewhere) that looked similar but showed subtly different views &mdash; a recurring source of confusion. Now the mutation-analysis inspect keeps the existing <em>By Hotspot</em> look and feel (0/1/2 level plot, compare buttons, exports) but exposes the existing <strong>By Tissue | By Hotspot</strong> toggle, so the user can flip the stratification axis without leaving the mutation-analysis context. Switching to <em>By Tissue</em> re-plots the same gene grouped by lineage while keeping the mutation-analysis filters (lineage filter, excluded tissues, subLineage filter) in effect. Switching back to <em>By Hotspot</em> returns to the mutation-stratified plot exactly as before.</li>
@@ -2001,7 +2005,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.2</a>
     </div>
 
     <div class="main-content">
@@ -2939,8 +2943,10 @@
                             <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE per fusion gene" style="display: none;">Δ Fusion</button>
                         </span>
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
-                        <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;">By Tissue</button>
-                        <button class="btn btn-sm btn-secondary" id="geViewHotspot">By Hotspot</button>
+                        <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;" title="Box plot of gene effect grouped by tissue / lineage">By Tissue</button>
+                        <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan table: how each mutation-prone gene's hotspot (WT vs mutated) shifts this gene's effect">By Hotspot (scan)</button>
+                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Stratify this gene's effect by the 0/1/2 hotspot-mutation level of a chosen gene">By Mutation</button>
+                        <select id="geMutStratifyGene" style="display:none; font-size:11px; padding:2px 4px; max-width:130px;" title="Hotspot gene to stratify by"></select>
                         <span style="display: inline-flex; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 6px; margin-left: 2px;">
                             <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle to define Gate A">Gate A</button>
                             <button class="btn btn-sm" id="geSetGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled title="Draw rectangle to define Gate B">Gate B</button>
@@ -3004,6 +3010,10 @@
                                 <strong>⚠️ Caution:</strong> Hotspot mutations are often enriched in specific cancer types. Observed differences in gene effect may reflect cancer type rather than the mutation itself.
                             </div>
                             <div id="geneEffectHotspotPlot" style="width: 100%; min-height: 400px;"></div>
+                        </div>
+                        <div id="geByMutationView" style="display: none;">
+                            <div id="geByMutationPlaceholder" style="padding:40px; text-align:center; color:#6b7280; font-size:12px;">Pick a hotspot-mutated gene from the dropdown above to stratify this gene&rsquo;s effect by 0/1/2 mutation level.</div>
+                            <div id="geneEffectMutationPlot" style="width: 100%; min-height: 400px; display:none;"></div>
                         </div>
                     </div>
 
