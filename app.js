@@ -24978,8 +24978,8 @@ ${body}
             const hot = hotMap.get(cl) || 0;
             const dam = damMap.get(cl) || 0;
             const fus = fusMap.get(cl) || 0;
-            text += `<br>Hotspot ${hot} &nbsp;&middot;&nbsp; Damaging ${dam} &nbsp;&middot;&nbsp; Fusions ${fus}`;
-            text += `<br><i style="color:#9ca3af;">click to inspect</i>`;
+            text += `<br>Hotspot ${hot}  \u00B7  Damaging ${dam}  \u00B7  Fusions ${fus}`;
+            text += `<br><i>click to inspect</i>`;
             return text;
         };
 

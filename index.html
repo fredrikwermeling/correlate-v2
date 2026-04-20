@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.69.7 (2026-04-20)</strong></p>
+                <ul>
+                    <li>UMAP/PCA hover tooltip: <code>&amp;middot;</code> HTML entities were leaking through as literal text because Plotly&rsquo;s hover renderer doesn&rsquo;t parse named entities. Replaced with the actual Unicode middle-dot (&middot;). The &ldquo;click to inspect&rdquo; hint was also a washed-out grey that didn&rsquo;t read against the tooltip background &mdash; now shown in italic at the default tooltip text color so it&rsquo;s clearly visible.</li>
+                </ul>
                 <p><strong>v.69.6 (2026-04-20)</strong></p>
                 <ul>
                     <li>PCA loadings sidecar now top-aligns with the plot. The &ldquo;Loadings (top 8)&rdquo; header sits at the same vertical position as the Plotly plot title, so the two axes boxes share a common top border.</li>
@@ -1981,7 +1985,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.7</a>
     </div>
 
     <div class="main-content">
