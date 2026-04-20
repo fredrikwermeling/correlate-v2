@@ -1324,6 +1324,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.69.2 (2026-04-20)</strong></p>
+                <ul>
+                    <li>UMAP/PCA plot defaults to 500 &times; 500 (square) instead of 580 &times; 480, so the scaleanchor-constrained axes don&rsquo;t leave awkward dead space.</li>
+                    <li>PCA loadings moved from a floating inset to a proper sidecar next to the main plot, labeled &ldquo;Loadings (top 8)&rdquo;. Size bumped 30% (140 px &rarr; 182 px) with correspondingly bigger gene labels and axis tags. No more accidental cover-up of the PCA scatter.</li>
+                </ul>
                 <p><strong>v.69.1 (2026-04-20)</strong></p>
                 <ul>
                     <li>Dimensionality-reduction control panel reorganised from six ragged rows into three aligned ones. Row 1 is the compute inputs (method, data, tissue, subtype, color-by, Run, Reset); row 2 is display (axes, dot size, width/height, PNG/SVG/Aa/Top-Genes/Loadings); row 3 is overlays (Color-by-gene, Split, Gate-Compare). All controls share a common 24&nbsp;px height with a consistent 11&nbsp;px font, group dividers between related button clusters, and a flex-spacer that pushes Run/Reset to the right so the eye can find them in a fixed place</li>
@@ -1956,7 +1961,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.69.2</a>
     </div>
 
     <div class="main-content">
@@ -3627,9 +3632,9 @@
                 <span class="clb-umap-lbl">Size</span>
                 <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="9" style="width:60px; vertical-align:middle;" title="Marker size">
                 <span class="clb-umap-lbl">W</span>
-                <input type="number" id="clbUmapPlotWidth" class="clb-umap-ctl" value="580" min="300" max="1200" step="20" style="width:56px;" title="Plot width">
+                <input type="number" id="clbUmapPlotWidth" class="clb-umap-ctl" value="500" min="300" max="1200" step="20" style="width:56px;" title="Plot width">
                 <span class="clb-umap-lbl">H</span>
-                <input type="number" id="clbUmapPlotHeight" class="clb-umap-ctl" value="480" min="250" max="1000" step="20" style="width:56px;" title="Plot height">
+                <input type="number" id="clbUmapPlotHeight" class="clb-umap-ctl" value="500" min="250" max="1000" step="20" style="width:56px;" title="Plot height">
                 <span class="clb-umap-sep"></span>
                 <button id="clbUmapPngBtn" class="clb-umap-btn" title="Export as PNG">PNG</button>
                 <button id="clbUmapSvgBtn" class="clb-umap-btn" title="Export as SVG">SVG</button>
@@ -3678,7 +3683,10 @@
                 </div>
                 <div id="clbUmapTopGenesContent"></div>
             </div>
-            <div id="clbUmapPlot" style="min-height:50px;"></div>
+            <div id="clbUmapPlotWrap" style="display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+                <div id="clbUmapPlot" style="min-height:50px;"></div>
+                <div id="clbUmapLoadingsSidecar" style="display:none;"></div>
+            </div>
             <div id="clbUmapSelectionControls" style="display:none; margin-top:6px; gap:6px; align-items:center; flex-wrap:wrap;">
                 <button id="clbUmapSelectBtn" class="btn btn-sm btn-outline" style="font-size:10px;">Lasso select</button>
                 <button id="clbUmapCopyBtn" class="btn btn-sm btn-outline" style="font-size:10px;">Copy selected</button>

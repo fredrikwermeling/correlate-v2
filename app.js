@@ -23410,6 +23410,8 @@ ${body}
         this._clbUmapAllLoadings = null;
         this._clbUmapSelectedPoints = new Set();
         document.getElementById('clbUmapPlot').innerHTML = '';
+        const sidecar = document.getElementById('clbUmapLoadingsSidecar');
+        if (sidecar) { sidecar.innerHTML = ''; sidecar.style.display = 'none'; }
         document.getElementById('clbUmapSelectionControls').style.display = 'none';
         document.getElementById('clbUmapSelectedCount').textContent = '';
         document.getElementById('clbUmapSplitGene').value = '';
@@ -24669,14 +24671,14 @@ ${body}
     _resizeUmapPlot() {
         const plotDiv = document.getElementById('clbUmapPlot');
         if (!plotDiv?.layout) return;
-        const w = parseInt(document.getElementById('clbUmapPlotWidth').value) || 580;
-        const h = parseInt(document.getElementById('clbUmapPlotHeight').value) || 480;
+        const w = parseInt(document.getElementById('clbUmapPlotWidth').value) || 500;
+        const h = parseInt(document.getElementById('clbUmapPlotHeight').value) || 500;
         Plotly.relayout(plotDiv, { width: w, height: h });
     }
 
     _getUmapPlotDimensions() {
-        const w = parseInt(document.getElementById('clbUmapPlotWidth')?.value) || 580;
-        const h = parseInt(document.getElementById('clbUmapPlotHeight')?.value) || 480;
+        const w = parseInt(document.getElementById('clbUmapPlotWidth')?.value) || 500;
+        const h = parseInt(document.getElementById('clbUmapPlotHeight')?.value) || 500;
         return { width: w, height: h };
     }
 
@@ -24739,14 +24741,26 @@ ${body}
     }
 
     _addLoadingsArrows(plotDiv) {
-        // Remove old inset if exists
-        const oldInset = plotDiv.parentElement?.querySelector('.loadings-inset');
-        if (oldInset) oldInset.remove();
+        // Render the PCA loadings biplot into the sidecar next to the main plot.
+        // Previously this was an absolute-positioned inset floating over the
+        // plot; making it a sibling keeps it out of the plot area and lets us
+        // size it larger without stealing plot real-estate.
+        const sidecar = document.getElementById('clbUmapLoadingsSidecar');
+        if (sidecar) sidecar.innerHTML = '';
 
-        if (!this._clbUmapData || this._clbUmapData.method !== 'pca') return;
-        if (!this._clbUmapAllLoadings || !this._clbUmapData.geneNames) return;
+        if (!this._clbUmapData || this._clbUmapData.method !== 'pca') {
+            if (sidecar) sidecar.style.display = 'none';
+            return;
+        }
+        if (!this._clbUmapAllLoadings || !this._clbUmapData.geneNames) {
+            if (sidecar) sidecar.style.display = 'none';
+            return;
+        }
         const showLoadings = document.getElementById('clbUmapShowLoadings')?.checked;
-        if (!showLoadings) return;
+        if (!showLoadings) {
+            if (sidecar) sidecar.style.display = 'none';
+            return;
+        }
 
         const compX = parseInt(document.getElementById('clbUmapCompX').value) || 0;
         const compY = parseInt(document.getElementById('clbUmapCompY').value) || 1;
@@ -24762,83 +24776,59 @@ ${body}
         }));
         mags.sort((a, b) => b.mag - a.mag);
         const top = mags.slice(0, 8);
-        if (top.length === 0) return;
+        if (top.length === 0) {
+            if (sidecar) sidecar.style.display = 'none';
+            return;
+        }
 
-        const boxSize = 140;
+        // Sidecar size: 30% bigger than the previous 140-px inset.
+        const boxSize = 182;
         const cx = boxSize / 2, cy = boxSize / 2;
         const maxMag = top[0].mag || 1;
         const scale = (boxSize * 0.35) / maxMag;
 
-        // Build SVG inset
-        let svg = `<svg width="${boxSize}" height="${boxSize}" xmlns="http://www.w3.org/2000/svg" style="font-family:Arial,sans-serif;">`;
-        svg += `<rect width="${boxSize}" height="${boxSize}" fill="white" fill-opacity="0.92" stroke="#d1d5db" rx="4"/>`;
-        // Crosshairs
+        let svg = `<svg width="${boxSize}" height="${boxSize}" xmlns="http://www.w3.org/2000/svg" style="font-family:Arial,sans-serif; display:block;">`;
+        svg += `<rect width="${boxSize}" height="${boxSize}" fill="white" stroke="#d1d5db" rx="4"/>`;
         svg += `<line x1="${cx}" y1="4" x2="${cx}" y2="${boxSize - 4}" stroke="#e5e7eb" stroke-width="0.5"/>`;
         svg += `<line x1="4" y1="${cy}" x2="${boxSize - 4}" y2="${cy}" stroke="#e5e7eb" stroke-width="0.5"/>`;
         svg += `<defs><marker id="lah" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,1 L10,5 L0,9 z" fill="#b91c1c"/></marker></defs>`;
 
-        // Arrows + labels
         const labels = [];
         top.forEach(t => {
             const ex = cx + t.lx * scale;
-            const ey = cy - t.ly * scale; // SVG y is flipped
+            const ey = cy - t.ly * scale;
             if (Math.abs(t.lx * scale) < 1 && Math.abs(t.ly * scale) < 1) return;
-            svg += `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="#b91c1c" stroke-width="1.2" marker-end="url(#lah)"/>`;
-            // Label position: extend slightly past arrow tip
+            svg += `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="#b91c1c" stroke-width="1.4" marker-end="url(#lah)"/>`;
             const dist = Math.sqrt((ex - cx) ** 2 + (ey - cy) ** 2) || 1;
-            const lx = ex + (ex - cx) / dist * 6;
-            const ly = ey + (ey - cy) / dist * 6;
+            const lx = ex + (ex - cx) / dist * 7;
+            const ly = ey + (ey - cy) / dist * 7;
             const anchor = lx > cx ? 'start' : 'end';
             labels.push({ gene: t.gene, x: lx, y: ly, anchor });
         });
 
-        // Simple vertical collision resolution
         labels.sort((a, b) => a.y - b.y);
         for (let i = 1; i < labels.length; i++) {
-            if (labels[i].y - labels[i - 1].y < 9) {
-                labels[i].y = labels[i - 1].y + 9;
+            if (labels[i].y - labels[i - 1].y < 11) {
+                labels[i].y = labels[i - 1].y + 11;
             }
         }
 
         labels.forEach(l => {
             const clampX = Math.max(4, Math.min(boxSize - 4, l.x));
-            const clampY = Math.max(10, Math.min(boxSize - 4, l.y));
-            svg += `<text x="${clampX}" y="${clampY}" text-anchor="${l.anchor}" style="font-size:8px;fill:#374151;" stroke="white" stroke-width="2.5" paint-order="stroke">${l.gene}</text>`;
+            const clampY = Math.max(12, Math.min(boxSize - 4, l.y));
+            svg += `<text x="${clampX}" y="${clampY}" text-anchor="${l.anchor}" style="font-size:10px;fill:#374151;" stroke="white" stroke-width="3" paint-order="stroke">${l.gene}</text>`;
         });
 
-        // Axis labels
         const axX = this._clbUmapData.axisLabels?.[0]?.split('(')[0].trim() || `PC${compX + 1}`;
         const axY = this._clbUmapData.axisLabels?.[1]?.split('(')[0].trim() || `PC${compY + 1}`;
-        svg += `<text x="${boxSize - 4}" y="${cy - 3}" text-anchor="end" style="font-size:7px;fill:#9ca3af;">${axX}</text>`;
-        svg += `<text x="${cx + 3}" y="10" text-anchor="start" style="font-size:7px;fill:#9ca3af;">${axY}</text>`;
+        svg += `<text x="${boxSize - 4}" y="${cy - 3}" text-anchor="end" style="font-size:9px;fill:#9ca3af;">${axX}</text>`;
+        svg += `<text x="${cx + 3}" y="12" text-anchor="start" style="font-size:9px;fill:#9ca3af;">${axY}</text>`;
         svg += '</svg>';
 
-        // Create overlay div
-        const div = document.createElement('div');
-        div.className = 'loadings-inset';
-        div.style.cssText = 'position:absolute;top:50px;right:16px;z-index:10;cursor:move;opacity:0.95;';
-        div.innerHTML = svg;
-        div.title = 'PCA loadings biplot — drag to move';
-
-        // Make draggable
-        let dragging = false, startX, startY, origLeft, origTop;
-        div.addEventListener('mousedown', (e) => {
-            dragging = true;
-            startX = e.clientX; startY = e.clientY;
-            origLeft = div.offsetLeft; origTop = div.offsetTop;
-            e.preventDefault();
-        });
-        document.addEventListener('mousemove', (e) => {
-            if (!dragging) return;
-            div.style.left = (origLeft + e.clientX - startX) + 'px';
-            div.style.top = (origTop + e.clientY - startY) + 'px';
-            div.style.right = 'auto';
-        });
-        document.addEventListener('mouseup', () => { dragging = false; });
-
-        // Place relative to plot container
-        plotDiv.style.position = 'relative';
-        plotDiv.appendChild(div);
+        if (sidecar) {
+            sidecar.style.display = '';
+            sidecar.innerHTML = `<div style="font-size:11px; color:#6b7280; margin-bottom:4px; font-weight:600;">Loadings (top 8)</div>${svg}`;
+        }
     }
 
     _renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene) {
