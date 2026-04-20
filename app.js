@@ -18845,10 +18845,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (tooltip.contains(ev.target)) return;
                 this.hideGeneTooltip(true);
             };
-            const escDismiss = (ev) => { if (ev.key === 'Escape') this.hideGeneTooltip(true); };
+            const escDismiss = (ev) => {
+                if (ev.key !== 'Escape') return;
+                // Consume the Escape so it doesn't bubble up to modal-close
+                // handlers (e.g. the Cell Line Browser also dismisses on Esc).
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+                ev.preventDefault();
+                this.hideGeneTooltip(true);
+            };
             setTimeout(() => document.addEventListener('click', dismiss, { once: true }), 0);
-            document.addEventListener('keydown', escDismiss);
-            tooltip._cleanup = () => { document.removeEventListener('keydown', escDismiss); };
+            // `capture: true` lets us intercept Escape before any higher-level
+            // listeners (modals register their Esc handlers in bubble phase).
+            document.addEventListener('keydown', escDismiss, true);
+            tooltip._cleanup = () => { document.removeEventListener('keydown', escDismiss, true); };
         } else {
             // Quick-mode: pressing Shift while hovering upgrades to pinned.
             const upgrade = (ev) => {
