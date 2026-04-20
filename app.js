@@ -23420,7 +23420,7 @@ ${body}
         document.getElementById('clbUmapTissueFilter').value = '';
         document.getElementById('clbUmapSubtypeFilter').value = '';
         document.getElementById('clbUmapSubtypeFilter').style.display = 'none';
-        document.getElementById('clbUmapMarkerSize').value = '6';
+        document.getElementById('clbUmapMarkerSize').value = '9';
         document.getElementById('clbUmapComponentRow').style.display = 'none';
         document.getElementById('clbUmapLoadingsToggle').style.display = 'none';
         document.getElementById('clbUmapShowLoadings').checked = false;
@@ -23634,7 +23634,7 @@ ${body}
 
         const newTraces = [];
         const annotations = (plotDiv.layout.annotations || []).filter(a => !a._gateAnnotation);
-        const markerSize = parseInt(document.getElementById('clbUmapMarkerSize')?.value) || 6;
+        const markerSize = parseInt(document.getElementById("clbUmapMarkerSize")?.value) || 9;
 
         if (this._umapGateA?.length > 0) {
             const gateIdx = this._umapGateA.map(cl => clToIdx.get(cl)).filter(i => i !== undefined);
@@ -24843,6 +24843,15 @@ ${body}
 
     _renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene) {
         const plotDiv = document.getElementById('clbUmapPlot');
+        // Always start from a clean slate. Without this, re-rendering after a
+        // split-clear leaves the old umapWT / umapMut child divs in place
+        // (Plotly.newPlot on the parent doesn't purge nested Plotly instances).
+        ['umapAll', 'umapWT', 'umapMut'].forEach(id => {
+            const old = document.getElementById(id);
+            if (old && typeof Plotly !== 'undefined') { try { Plotly.purge(old); } catch (e) {} }
+        });
+        if (typeof Plotly !== 'undefined') { try { Plotly.purge(plotDiv); } catch (e) {} }
+        plotDiv.innerHTML = '';
         const dataTypeLabel = document.getElementById('clbUmapDataType').value === 'ge' ? 'Gene Effect' :
                               document.getElementById('clbUmapDataType').value === 'expr' ? 'Expression' : 'GE + Expression';
 
@@ -24855,7 +24864,7 @@ ${body}
             '#8ca252', '#b5cf6b', '#cedb9c', '#8c6d31', '#bd9e39'
         ];
 
-        const markerSize = parseInt(document.getElementById('clbUmapMarkerSize')?.value) || 6;
+        const markerSize = parseInt(document.getElementById("clbUmapMarkerSize")?.value) || 9;
 
         // Precompute mutation counts per cell line for hover
         const mutCounts = {};
