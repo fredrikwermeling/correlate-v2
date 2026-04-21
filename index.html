@@ -1324,6 +1324,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.70.5 (2026-04-21)</strong></p>
+                <ul>
+                    <li>Gene-Effect modal toolbar reorganised. <b>Row 2</b> is now a dedicated &ldquo;Filters:&rdquo; row (mirroring the &ldquo;Gene Effect:&rdquo; legend on row 1), ending at the compare buttons. <b>Row 3</b> is a dedicated &ldquo;View:&rdquo; row with the three mode buttons + &ldquo;Gates:&rdquo; group &mdash; so view buttons and gate buttons always sit together regardless of window width (no more wrapping apart).</li>
+                    <li>Third view button renamed from &ldquo;Mutation Inspect&rdquo; to <strong>Hotspot Mutation Inspect</strong> to make clear it&rsquo;s specifically the hotspot-mutation 0/1/2 stratification (not any mutation type).</li>
+                    <li>Hotspot-gene selector (the one next to Analyze, which sets the Y-axis stratification gene) now shows the mutation count per gene <em>under the currently-active filters</em> &mdash; e.g. <code>TP53 (88 mut)</code>. Options are also sorted descending by count so the most-informative genes surface first. Label changed to <b>Hotspot mutation (Y):</b>.</li>
+                </ul>
                 <p><strong>v.70.4 (2026-04-21)</strong></p>
                 <ul>
                     <li>Mutation Inspect refined. Only the mutation-analysis inspect&rsquo;s existing hotspot-gene selector (the one next to Analyze) is shown now &mdash; the extra dropdown next to the View toggle was redundant. Clicking Mutation Inspect defaults the hotspot gene to <b>TP53</b> (or the first available one) and hands off to the full mutational-analysis layout; change the stratifying gene in the selector next to the plot. The View toggle (By Tissue / By Hotspot / Mutation Inspect) now stays visible in all three states so the user can switch back to the standalone views from Mutation Inspect without closing the modal.</li>
@@ -2013,7 +2019,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.4</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.5</a>
     </div>
 
     <div class="main-content">
@@ -2907,16 +2913,17 @@
                         </div>
                         <span id="geHotspotGeneGroup" style="display: none;">
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Mutation:</label>
-                                <select id="geHotspotGeneSelect" class="form-control" style="width: 130px; font-size: 13px; padding: 6px 10px;"></select>
+                                <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;" title="Stratify the gene effect by 0 / 1 / 2 hotspot-mutation levels of this gene">Hotspot mutation (Y):</label>
+                                <select id="geHotspotGeneSelect" class="form-control" style="width: 170px; font-size: 13px; padding: 6px 10px;" title="Hotspot-mutated gene whose 0 / 1 / 2 mutation levels stratify the plot. Counts show mutated cell lines under the current filters."></select>
                             </div>
                         </span>
                         <button class="btn btn-success btn-sm" id="geneEffectSearchBtn" style="padding: 6px 16px;">Analyze</button>
                         <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
                         <span id="geneEffectCurrentGene" style="font-weight: 600; color: #5a9f4a;"></span>
                     </div>
-                    <!-- Row 2: Filters + Compare + View -->
+                    <!-- Row 2: Filters -->
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Filters:</label>
                         <button class="btn btn-sm btn-outline" id="geShowAllBtn" style="display: none;">← Show All</button>
                         <button class="btn btn-sm btn-secondary" id="geResetFiltersBtn" style="display: none; font-size: 11px; padding: 3px 8px;" title="Reset tissue and hotspot filters">Reset Filters</button>
                         <select id="geTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
@@ -2950,11 +2957,15 @@
                             <button class="btn btn-secondary btn-sm" id="geCompareByHotspotBtn" title="Show Δ GE per additional hotspot for this gene">Δ Hotspot</button>
                             <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE per fusion gene" style="display: none;">Δ Fusion</button>
                         </span>
-                        <span style="font-size: 12px; color: #6b7280;">View:</span>
+                    </div>
+                    <!-- Row 3: View + Gates -->
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px;">
+                        <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">View:</label>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;" title="Box plot of gene effect grouped by tissue / lineage">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan table: how each mutation-prone gene's hotspot (WT vs mutated) shifts this gene's effect">By Hotspot</button>
-                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Same layout as the mutational-analysis Inspect — pick one hotspot gene to stratify this gene's effect by 0 / 1 / 2 mutation levels. Change the hotspot gene in the selector next to the plot.">Mutation Inspect</button>
-                        <span style="display: inline-flex; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 6px; margin-left: 2px;">
+                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Same layout as the mutational-analysis Inspect — pick one hotspot-mutated gene to stratify this gene's effect by 0 / 1 / 2 hotspot-mutation levels. Change the hotspot gene in the selector above the plot.">Hotspot Mutation Inspect</button>
+                        <span style="display: inline-flex; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 8px; margin-left: 2px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #374151; white-space: nowrap;">Gates:</label>
                             <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle to define Gate A">Gate A</button>
                             <button class="btn btn-sm" id="geSetGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled title="Draw rectangle to define Gate B">Gate B</button>
                             <button class="btn btn-sm btn-secondary" id="geCompareGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Compare</button>

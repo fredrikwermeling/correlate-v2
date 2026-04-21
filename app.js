@@ -6212,7 +6212,10 @@ class CorrelationExplorer {
             fusionFilterEl.innerHTML = html;
         }
 
-        // Populate and show hotspot gene selector (Y axis mutation/fusion)
+        // Populate and show hotspot gene selector (Y axis mutation/fusion).
+        // Counts reflect cell lines mutated under the currently-active
+        // mutation-analysis filters (lineage, subLineage, excluded tissues)
+        // so the user knows whether a gene has enough samples to stratify by.
         const hotspotGeneSelectEl = document.getElementById('geHotspotGeneSelect');
         if (hotspotGeneSelectEl) {
             const geneList = isTranslocation
@@ -6220,10 +6223,37 @@ class CorrelationExplorer {
                 : isDamaging
                     ? (this.damagingMutations?.genes || [])
                     : (this.mutations?.genes || []);
-            let gHtml = '';
+            const src = isTranslocation ? this.translocations : (isDamaging ? this.damagingMutations : this.mutations);
+            const innerKey = isTranslocation ? 'translocations' : 'mutations';
+            // Pre-build a set of cell lines that pass mutation-analysis filters.
+            const eligibleCL = new Set();
+            for (const cl of this.metadata.cellLines) {
+                if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== mr.lineageFilter) continue;
+                if (mr.excludedTissues && mr.excludedTissues.size > 0) {
+                    const lin = this.cellLineMetadata?.lineage?.[cl];
+                    if (lin && mr.excludedTissues.has(lin)) continue;
+                }
+                if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) continue;
+                eligibleCL.add(cl);
+            }
+            const counts = {};
             for (const g of geneList) {
+                const inner = src?.geneData?.[g]?.[innerKey] || {};
+                let n = 0;
+                for (const cl in inner) {
+                    if (inner[cl] >= 1 && eligibleCL.has(cl)) n++;
+                }
+                counts[g] = n;
+            }
+            // Sort genes so the most-mutated option surfaces first — but keep
+            // the selected gene findable at its alpha position if the user
+            // expects alphabetical. A descending-count sort is more useful.
+            const sortedGenes = [...geneList].sort((a, b) => counts[b] - counts[a]);
+            let gHtml = '';
+            for (const g of sortedGenes) {
                 const sel = g === hotspotGene ? ' selected' : '';
-                gHtml += `<option value="${g}"${sel}>${g}</option>`;
+                const label = isTranslocation ? `${g} (${counts[g]} fused)` : `${g} (${counts[g]} mut)`;
+                gHtml += `<option value="${g}"${sel}>${label}</option>`;
             }
             hotspotGeneSelectEl.innerHTML = gHtml;
         }
