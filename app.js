@@ -6299,6 +6299,12 @@ class CorrelationExplorer {
         // lineage rather than the mutation itself.
         const _inspectBanner = document.getElementById('mutationCautionGEInspect');
         if (_inspectBanner) _inspectBanner.style.display = '';
+        // Gates only make sense on the mutation-inspect scatter plot (2D
+        // rectangle over gene effect × mutation-level positions). On the
+        // By Tissue box plot a gate rectangle silently ignored the Y axis
+        // and grabbed cells across all tissues at the matching GE value.
+        const _gatesGroup = document.getElementById('geGatesGroup');
+        if (_gatesGroup) _gatesGroup.style.display = 'inline-flex';
         if (!this._keepInlineCompare) {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         }
@@ -16775,6 +16781,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Banner is Mutation-Inspect-only; hide in standalone view.
         const _inspectBanner = document.getElementById('mutationCautionGEInspect');
         if (_inspectBanner) _inspectBanner.style.display = 'none';
+        // Gates are Mutation-Inspect-only — see showGeneEffectDistribution.
+        const _gatesGroup = document.getElementById('geGatesGroup');
+        if (_gatesGroup) _gatesGroup.style.display = 'none';
+        this.clearGEGates();
 
         // Populate and show fusion filter
         const fusionFilterEl = document.getElementById('geFusionFilter');

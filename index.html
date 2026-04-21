@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.70.9 (2026-04-21)</strong></p>
+                <ul>
+                    <li>Gates are now <b>Mutation-Inspect only</b>. The root problem: when a gate rectangle was drawn on the <em>By Tissue</em> box plot, the filtering code silently ignored the Y axis (<code>_geGatePlotData</code> is only populated for the mutation-inspect scatter) and matched cells across all tissues at the same gene-effect level &mdash; so a rectangle around 10 cells in one tissue returned hundreds of cells across all of them. The Gates UI now only appears in Mutation Inspect view, where the 2D rectangle <em>is</em> meaningful (gene effect &times; 0/1/2 mutation level). Switching to By Tissue or By Hotspot hides the group and clears any active gates.</li>
+                </ul>
                 <p><strong>v.70.8 (2026-04-21)</strong></p>
                 <ul>
                     <li>GE gate buttons: the <b>Compare</b> button sometimes stayed hidden after both gates were drawn. Cause: the show-handler set <code>style.display = ''</code> which clears the inline style but lets the stylesheet default take over, and in some render paths that default was resolving to <code>none</code> before the inline-flex parent recomputed. Set <code>display: inline-block</code> explicitly for both the <b>Compare</b> and <b>Clear</b> buttons on gate creation so they always show.</li>
@@ -2033,7 +2037,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.8</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.9</a>
     </div>
 
     <div class="main-content">
@@ -2972,10 +2976,10 @@
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;" title="Box plot of gene effect grouped by tissue / lineage">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan table: how each mutation-prone gene's hotspot (WT vs mutated) shifts this gene's effect">By Hotspot</button>
                         <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Same layout as the mutational-analysis Inspect — pick one hotspot-mutated gene to stratify this gene's effect by 0 / 1 / 2 hotspot-mutation levels. Change the hotspot gene in the selector above the plot.">Hotspot Mutation Inspect</button>
-                        <span style="display: inline-flex; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 8px; margin-left: 2px;">
+                        <span id="geGatesGroup" style="display: none; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 8px; margin-left: 2px;">
                             <label style="font-size: 12px; font-weight: 600; color: #374151; white-space: nowrap;">Gates:</label>
-                            <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle to define Gate A">Gate A</button>
-                            <button class="btn btn-sm" id="geSetGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled title="Draw rectangle to define Gate B">Gate B</button>
+                            <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle on the scatter plot to define Gate A">Gate A</button>
+                            <button class="btn btn-sm" id="geSetGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled title="Draw rectangle on the scatter plot to define Gate B">Gate B</button>
                             <button class="btn btn-sm btn-secondary" id="geCompareGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Compare</button>
                             <button class="btn btn-sm btn-outline" id="geClearGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Clear</button>
                         </span>
