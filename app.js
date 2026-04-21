@@ -17838,7 +17838,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (n > 0) {
                     const mean = vals.reduce((a, b) => a + b, 0) / n;
                     const sd = n > 1 ? Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1)) : 0;
-                    tbody.innerHTML += `<tr class="clickable-row" data-group="_all" style="cursor: pointer; background: #f3f4f6; font-weight: 600; border-bottom: 2px solid #d1d5db;">
+                    tbody.innerHTML += `<tr class="clickable-row" data-group="_all" title="Click to return to the all-tissues overview" style="cursor: pointer; background: #f3f4f6; font-weight: 600; border-bottom: 2px solid #d1d5db;">
                         <td>All</td>
                         <td style="text-align: center;">${n}</td>
                         <td style="text-align: center;">${mean.toFixed(2)}</td>
@@ -17879,10 +17879,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         }
 
-        // Add click handlers for detailed view (skip the pinned "All" row)
+        // Row click: jump into the per-group detailed view, or — for the
+        // pinned "All" row — jump BACK to the overview (only meaningful when
+        // a detailed view is currently active).
         tbody.querySelectorAll('.clickable-row').forEach(row => {
-            if (row.dataset.group === '_all') return;
             row.addEventListener('click', () => {
+                if (row.dataset.group === '_all') {
+                    if (this.geDetailedView) this.showAllGeneEffect();
+                    return;
+                }
                 const group = row.dataset.group;
                 this.showGEDetailedView(group, mode);
             });
