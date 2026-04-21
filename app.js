@@ -3092,21 +3092,12 @@ class CorrelationExplorer {
             else this.switchGeneEffectView('hotspot');
         });
         document.getElementById('geViewMutation')?.addEventListener('click', () => {
-            const sel = document.getElementById('geMutStratifyGene');
-            if (!sel) return;
-            this._populateGeMutStratifyGene();
-            sel.style.display = '';
-            if (!sel.value) {
-                // Nothing picked yet — just surface the picker and let the
-                // change handler fire the actual render.
-                this._highlightGEViewBtn('mutation');
-                return;
-            }
-            this._enterMutationInspectFromStandalone(sel.value);
-        });
-        document.getElementById('geMutStratifyGene')?.addEventListener('change', (e) => {
-            if (!e.target.value) return;
-            this._enterMutationInspectFromStandalone(e.target.value);
+            // Pick a sensible default hotspot gene — TP53 is the most common
+            // and informative starting point. Fall back to the first
+            // hotspot-mutated gene if TP53 isn't in the dataset.
+            const hasTP53 = !!this.mutations?.geneData?.TP53;
+            const defaultGene = hasTP53 ? 'TP53' : (this.mutations?.genes?.[0] || '');
+            this._enterMutationInspectFromStandalone(defaultGene);
         });
         // Mutation filter (gene + WT/Mut selector)
         const geMutGeneInput = document.getElementById('geMutGeneFilter');
@@ -6264,15 +6255,15 @@ class CorrelationExplorer {
         document.getElementById('geResetFiltersBtn').style.display = '';
         document.getElementById('geCompareByTranslocationBtn').style.display =
             this.translocations?.genes?.length > 0 ? '' : 'none';
-        // Hide the standalone view buttons — mutation-analysis inspect has
-        // its own layout and the "By Hotspot" label in the standalone modal
-        // means something different (a scan table) from what this view shows
-        // (a 0/1/2-level plot for one mutation gene).
-        document.getElementById('geViewTissue').style.display = 'none';
-        document.getElementById('geViewHotspot').style.display = 'none';
-        document.getElementById('geViewMutation').style.display = 'none';
+        // Keep the View toggle visible so the user can switch back to
+        // By Tissue / By Hotspot from Mutation Inspect without closing the
+        // modal. Highlight "Mutation Inspect" as the active view.
+        document.getElementById('geViewTissue').style.display = '';
+        document.getElementById('geViewHotspot').style.display = '';
+        document.getElementById('geViewMutation').style.display = '';
         const _viewLabel = document.getElementById('geViewTissue').previousElementSibling;
-        if (_viewLabel && _viewLabel.textContent.trim() === 'View:') _viewLabel.style.display = 'none';
+        if (_viewLabel && _viewLabel.textContent.trim() === 'View:') _viewLabel.style.display = '';
+        this._highlightGEViewBtn('mutation');
         if (!this._keepInlineCompare) {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         }
@@ -16794,8 +16785,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._highlightGEViewBtn(view);
 
         const statsExplanation = document.getElementById('geStatsExplanationText');
-        const mutStratifySel = document.getElementById('geMutStratifyGene');
-        if (mutStratifySel) mutStratifySel.style.display = 'none';
 
         if (view === 'tissue') {
             document.getElementById('geByTissueView').style.display = 'block';
@@ -16839,7 +16828,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const gene = this.currentGeneEffectGene || document.getElementById('geneEffectSearch')?.value.trim().toUpperCase();
         if (!gene) return;
         const hotspotGene = (pickedHotspotGene || '').toUpperCase();
-        if (!hotspotGene || !this.mutations?.geneData?.[hotspotGene]) return;
+        if (!hotspotGene || !this.mutations?.geneData?.[hotspotGene]) {
+            alert('No hotspot mutation data available to stratify by.');
+            return;
+        }
         this.mutationResults = {
             hotspotGene,
             pThreshold: 0.05,
@@ -16860,39 +16852,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             significantResults: []
         };
         this.showGeneEffectDistribution(gene);
-        // Keep the mutation picker visible in the view toggle so the user can
-        // switch hotspot gene without leaving this mode.
-        const sel = document.getElementById('geMutStratifyGene');
-        if (sel) { sel.style.display = ''; sel.value = hotspotGene; }
         this._highlightGEViewBtn('mutation');
     }
-
-    // Populate the "stratify by" gene dropdown with hotspot-mutated genes,
-    // sorted by #cell lines carrying the mutation so the most-informative
-    // genes surface first.
-    _populateGeMutStratifyGene() {
-        const sel = document.getElementById('geMutStratifyGene');
-        if (!sel) return;
-        const prev = sel.value;
-        sel.innerHTML = '<option value="">— pick a gene —</option>';
-        if (!this.mutations?.genes) return;
-        const counts = {};
-        for (const g of this.mutations.genes) {
-            const md = this.mutations.geneData?.[g]?.mutations || {};
-            let n = 0;
-            for (const cl in md) if (md[cl] >= 1) n++;
-            counts[g] = n;
-        }
-        const genes = [...this.mutations.genes].sort((a, b) => counts[b] - counts[a]);
-        genes.forEach(g => {
-            const opt = document.createElement('option');
-            opt.value = g;
-            opt.textContent = `${g} (${counts[g]})`;
-            sel.appendChild(opt);
-        });
-        sel.value = prev || '';
-    }
-
 
     filterGETable(searchTerm) {
         const tbody = document.getElementById('geneEffectTableBody');
