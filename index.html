@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.71.0 (2026-04-21)</strong></p>
+                <ul>
+                    <li>Gene Effect chart PNG / SVG export now matches the on-screen plot exactly. Previous code forced a minimum height of 650 / 550 + 40 &ldquo;for safety&rdquo; which stretched the exported plot taller than it appears on screen, <em>and</em> still cropped the stats annotations below the box plot (the Skin p-value line was cut off in the last report). The new path uses <code>_fullLayout.width / height</code> as rendered (which already includes Plotly&rsquo;s reserved bottom margin for annotations), then runs a post-pass <code>_expandSvgToContent</code> helper that measures the true content bounding box and enlarges the viewBox so nothing outside the nominal figure gets cropped. Applies to both formats.</li>
+                </ul>
                 <p><strong>v.70.9 (2026-04-21)</strong></p>
                 <ul>
                     <li>Gates are now <b>Mutation-Inspect only</b>. The root problem: when a gate rectangle was drawn on the <em>By Tissue</em> box plot, the filtering code silently ignored the Y axis (<code>_geGatePlotData</code> is only populated for the mutation-inspect scatter) and matched cells across all tissues at the same gene-effect level &mdash; so a rectangle around 10 cells in one tissue returned hundreds of cells across all of them. The Gates UI now only appears in Mutation Inspect view, where the 2D rectangle <em>is</em> meaningful (gene effect &times; 0/1/2 mutation level). Switching to By Tissue or By Hotspot hides the group and clears any active gates.</li>
@@ -2037,7 +2041,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.9</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.71.0</a>
     </div>
 
     <div class="main-content">

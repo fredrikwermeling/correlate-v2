@@ -18273,12 +18273,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (!this.currentGeneEffect) return;
         const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
         const plotEl = document.getElementById(plotId);
-        const chartWidth = plotEl?._fullLayout?.width || 800;
-        const chartHeight = Math.max(plotEl?.scrollHeight || 0, plotEl?._fullLayout?.height || 0, this.geDetailedView ? 650 : 550) + 40;
+        // Match what the user sees on screen exactly — Plotly's _fullLayout
+        // already accounts for the margin reserved for annotations below
+        // the plot (e.g. the stats text in the detailed By Tissue view).
+        // Previously an artificial "min 650/550 + 40" floor forced a taller
+        // aspect ratio than the screen and still cropped the stats text.
+        const chartWidth = plotEl?._fullLayout?.width || plotEl?.offsetWidth || 800;
+        const chartHeight = plotEl?._fullLayout?.height || plotEl?.offsetHeight || 500;
         const filename = `gene_effect_${this.currentGeneEffect.gene}_by_${this.currentGEView}`;
         const meta = this._buildExportMetadata('gene_effect', {
             gene: this.currentGeneEffect.gene, view: this.currentGEView,
-            textSettings: this._capturePlotTextSettings(this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot')
+            textSettings: this._capturePlotTextSettings(plotId)
         });
         const metaJson = JSON.stringify(meta);
 
@@ -18287,19 +18292,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (svgDataUrl.indexOf('base64,') > -1) svgStr = atob(svgDataUrl.split('base64,')[1]);
         else svgStr = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
 
-        const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+        // Expand viewBox to include any annotations that sit outside the
+        // figure's nominal box (Plotly sometimes renders annotations past
+        // the paper edge; without this they silently get cropped).
+        const expanded = this._expandSvgToContent(svgStr, chartWidth, chartHeight);
+
+        const svgBlob = new Blob([expanded.svg], { type: 'image/svg+xml;charset=utf-8' });
         const svgUrl = URL.createObjectURL(svgBlob);
         const img = new Image();
         img.onload = async () => {
             const scale = 4;
             const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth * scale;
-            canvas.height = img.naturalHeight * scale;
+            canvas.width = Math.round(expanded.width * scale);
+            canvas.height = Math.round(expanded.height * scale);
             const ctx = canvas.getContext('2d');
             ctx.scale(scale, scale);
             ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
-            ctx.drawImage(img, 0, 0);
+            ctx.fillRect(0, 0, expanded.width, expanded.height);
+            ctx.drawImage(img, 0, 0, expanded.width, expanded.height);
             URL.revokeObjectURL(svgUrl);
             const pngDataUrl = canvas.toDataURL('image/png');
             const pngResp = await fetch(pngDataUrl);
@@ -18317,17 +18327,62 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         img.src = svgUrl;
     }
 
+    // Expand an SVG's viewBox so nothing outside the nominal w × h gets
+    // cropped. Returns { svg, width, height }. If getBBox fails we leave
+    // the original dimensions unchanged. Safe to call for any Plotly-
+    // produced SVG.
+    _expandSvgToContent(svgStr, w, h) {
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(svgStr, 'image/svg+xml');
+        const svgEl = svgDoc.documentElement;
+
+        const measurer = document.createElement('div');
+        measurer.style.cssText = 'position:absolute;left:-99999px;top:-99999px;';
+        document.body.appendChild(measurer);
+        const measureSvg = svgEl.cloneNode(true);
+        measureSvg.style.overflow = 'visible';
+        measureSvg.querySelectorAll('[clip-path]').forEach(el => el.removeAttribute('clip-path'));
+        measurer.appendChild(measureSvg);
+
+        let newW = w, newH = h;
+        try {
+            const bbox = measureSvg.getBBox();
+            const pad = 10;
+            const nx = Math.min(0, bbox.x - pad);
+            const ny = Math.min(0, bbox.y - pad);
+            newW = Math.max(w, bbox.x + bbox.width + pad) - nx;
+            newH = Math.max(h, bbox.y + bbox.height + pad) - ny;
+            svgEl.setAttribute('viewBox', `${nx} ${ny} ${newW} ${newH}`);
+            svgEl.setAttribute('width', newW);
+            svgEl.setAttribute('height', newH);
+        } catch (e) { /* use original dimensions */ }
+        document.body.removeChild(measurer);
+
+        svgEl.querySelectorAll('clipPath').forEach(cp => {
+            const rect = cp.querySelector('rect');
+            if (rect && parseFloat(rect.getAttribute('x') || 0) === 0 && parseFloat(rect.getAttribute('y') || 0) === 0) {
+                rect.setAttribute('x', -500);
+                rect.setAttribute('width', parseFloat(rect.getAttribute('width') || 0) + 600);
+                rect.setAttribute('y', -50);
+                rect.setAttribute('height', parseFloat(rect.getAttribute('height') || 0) + 100);
+            }
+        });
+
+        return { svg: new XMLSerializer().serializeToString(svgEl), width: newW, height: newH };
+    }
+
     downloadGeneEffectChartSVG() {
         // Mutation inspect mode handled by downloadGeneEffectSVG
         if (this.geneEffectViewMode === 'mutation') return;
         if (!this.currentGeneEffect) return;
         const plotId = this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot';
         const plotEl = document.getElementById(plotId);
-        const chartWidth = plotEl?._fullLayout?.width || 800;
-        const chartHeight = Math.max(plotEl?.scrollHeight || 0, plotEl?._fullLayout?.height || 0, this.geDetailedView ? 650 : 550) + 40;
+        // Same principle as downloadGeneEffectChartPNG: match on-screen
+        // dimensions; expand viewBox in a post-pass to include annotations.
+        const chartWidth = plotEl?._fullLayout?.width || plotEl?.offsetWidth || 800;
+        const chartHeight = plotEl?._fullLayout?.height || plotEl?.offsetHeight || 500;
         const filename = `gene_effect_${this.currentGeneEffect.gene}_by_${this.currentGEView}`;
 
-        // Use toImage + post-process to expand viewBox and remove clipPaths that crop content
         Plotly.toImage(plotEl, {
             format: 'svg',
             width: chartWidth,
@@ -18340,50 +18395,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 svgString = decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
             }
 
-            const parser = new DOMParser();
-            const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
-            const svgEl = svgDoc.documentElement;
-
-            // Measure true bounding box by temporarily removing clipPaths
-            const measurer = document.createElement('div');
-            measurer.style.cssText = 'position:absolute;left:-99999px;top:-99999px;';
-            document.body.appendChild(measurer);
-            const measureSvg = svgEl.cloneNode(true);
-            measureSvg.style.overflow = 'visible';
-            measureSvg.querySelectorAll('[clip-path]').forEach(el => el.removeAttribute('clip-path'));
-            measurer.appendChild(measureSvg);
-
-            try {
-                const bbox = measureSvg.getBBox();
-                const pad = 10;
-                const newX = Math.min(0, bbox.x - pad);
-                const newY = Math.min(0, bbox.y - pad);
-                const newW = Math.max(chartWidth, bbox.x + bbox.width + pad) - newX;
-                const newH = Math.max(chartHeight, bbox.y + bbox.height + pad) - newY;
-                svgEl.setAttribute('viewBox', `${newX} ${newY} ${newW} ${newH}`);
-                svgEl.setAttribute('width', newW);
-                svgEl.setAttribute('height', newH);
-            } catch (e) {
-                // fallback: just use original dimensions
-            }
-            document.body.removeChild(measurer);
-
-            // Remove clipPaths on the plot area that crop y-axis labels
-            svgEl.querySelectorAll('clipPath').forEach(cp => {
-                const rect = cp.querySelector('rect');
-                if (rect && parseFloat(rect.getAttribute('x') || 0) === 0 && parseFloat(rect.getAttribute('y') || 0) === 0) {
-                    // This is likely the main plot clip — expand it
-                    rect.setAttribute('x', -500);
-                    rect.setAttribute('width', parseFloat(rect.getAttribute('width') || 0) + 600);
-                    rect.setAttribute('y', -50);
-                    rect.setAttribute('height', parseFloat(rect.getAttribute('height') || 0) + 100);
-                }
-            });
-
-            let finalSvg = new XMLSerializer().serializeToString(svgEl);
+            const expanded = this._expandSvgToContent(svgString, chartWidth, chartHeight);
+            let finalSvg = expanded.svg;
             const meta = this._buildExportMetadata('gene_effect', {
                 gene: this.currentGeneEffect?.gene, view: this.currentGEView,
-                textSettings: this._capturePlotTextSettings(this.currentGEView === 'tissue' ? 'geneEffectPlot' : 'geneEffectHotspotPlot')
+                textSettings: this._capturePlotTextSettings(plotId)
             });
             finalSvg = finalSvg.replace('</svg>', `<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata></svg>`);
             finalSvg = await this._finalizeSvgForExport(finalSvg);
