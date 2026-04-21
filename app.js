@@ -13477,7 +13477,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 document.getElementById('geSetGateBBtn').disabled = false;
                 document.getElementById('geGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
                 document.getElementById('geGateStatus').style.color = '#16a34a';
-                document.getElementById('geClearGatesBtn').style.display = '';
+                document.getElementById('geClearGatesBtn').style.display = 'inline-block';
             } else {
                 if (this._geGateBShapeIndex != null && this._geGateBShapeIndex !== currentShapes.length - 1) {
                     currentShapes.splice(this._geGateBShapeIndex, 1);
@@ -13499,7 +13499,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
                 document.getElementById('geSetGateBBtn').textContent = `Gate B (n=${cells.length})`;
                 document.getElementById('geSetGateBBtn').style.opacity = '0.7';
-                document.getElementById('geCompareGatesBtn').style.display = '';
+                document.getElementById('geCompareGatesBtn').style.display = 'inline-block';
                 document.getElementById('geGateStatus').textContent = `Gate A: ${this._geGateA.length}, Gate B: ${cells.length}. Click Compare.`;
                 document.getElementById('geGateStatus').style.color = '#16a34a';
             }
@@ -17088,13 +17088,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 document.getElementById('geSetGateABtn').textContent = `Gate A (n=${cells.length})`;
                 document.getElementById('geSetGateABtn').style.opacity = '0.7';
                 document.getElementById('geSetGateBBtn').disabled = false;
-                document.getElementById('geClearGatesBtn').style.display = '';
+                document.getElementById('geClearGatesBtn').style.display = 'inline-block';
                 document.getElementById('geGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
             } else {
                 this._geGateB = cells;
                 document.getElementById('geSetGateBBtn').textContent = `Gate B (n=${cells.length})`;
                 document.getElementById('geSetGateBBtn').style.opacity = '0.7';
-                document.getElementById('geCompareGatesBtn').style.display = '';
+                document.getElementById('geCompareGatesBtn').style.display = 'inline-block';
                 document.getElementById('geGateStatus').textContent = `Gate A: ${this._geGateA?.length || 0}, Gate B: ${cells.length}. Click Compare.`;
             }
 

@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.70.8 (2026-04-21)</strong></p>
+                <ul>
+                    <li>GE gate buttons: the <b>Compare</b> button sometimes stayed hidden after both gates were drawn. Cause: the show-handler set <code>style.display = ''</code> which clears the inline style but lets the stylesheet default take over, and in some render paths that default was resolving to <code>none</code> before the inline-flex parent recomputed. Set <code>display: inline-block</code> explicitly for both the <b>Compare</b> and <b>Clear</b> buttons on gate creation so they always show.</li>
+                </ul>
                 <p><strong>v.70.7 (2026-04-21)</strong></p>
                 <ul>
                     <li>By Hotspot scan: clicking a hotspot-gene row now hands off directly to <b>Hotspot Mutation Inspect</b> with that gene pre-selected (0/1/2 plot in the full mutation-analysis inspect layout), instead of rendering the old separate detailed graph. Same data, more useful chrome (compare buttons, custom exports, filter context).</li>
@@ -2029,7 +2033,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.7</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.70.8</a>
     </div>
 
     <div class="main-content">
