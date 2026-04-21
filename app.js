@@ -6294,6 +6294,11 @@ class CorrelationExplorer {
         const _viewLabel = document.getElementById('geViewTissue').previousElementSibling;
         if (_viewLabel && _viewLabel.textContent.trim() === 'View:') _viewLabel.style.display = '';
         this._highlightGEViewBtn('mutation');
+        // Mirror the By Hotspot scan caution: hotspot mutations are often
+        // enriched in specific cancer types, so differences can reflect
+        // lineage rather than the mutation itself.
+        const _inspectBanner = document.getElementById('mutationCautionGEInspect');
+        if (_inspectBanner) _inspectBanner.style.display = '';
         if (!this._keepInlineCompare) {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         }
@@ -16767,6 +16772,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         const warn = document.getElementById('geHotspotBiasWarning');
         if (warn) warn.style.display = 'none';
+        // Banner is Mutation-Inspect-only; hide in standalone view.
+        const _inspectBanner = document.getElementById('mutationCautionGEInspect');
+        if (_inspectBanner) _inspectBanner.style.display = 'none';
 
         // Populate and show fusion filter
         const fusionFilterEl = document.getElementById('geFusionFilter');
@@ -17879,9 +17887,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         }
 
-        // Row click: jump into the per-group detailed view, or — for the
-        // pinned "All" row — jump BACK to the overview (only meaningful when
-        // a detailed view is currently active).
+        // Row click behaviour:
+        //  - By Tissue row → drill into detailed view for that tissue.
+        //  - By Hotspot row → jump into Hotspot Mutation Inspect with that
+        //    gene pre-selected (the 0/1/2 plot is the same data in the more
+        //    useful mutation-analysis inspect layout).
+        //  - Pinned "All" row → jump back to the overview (only meaningful
+        //    when a detailed view is currently active).
         tbody.querySelectorAll('.clickable-row').forEach(row => {
             row.addEventListener('click', () => {
                 if (row.dataset.group === '_all') {
@@ -17889,7 +17901,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     return;
                 }
                 const group = row.dataset.group;
-                this.showGEDetailedView(group, mode);
+                if (mode === 'hotspot') {
+                    this._enterMutationInspectFromStandalone(group);
+                } else {
+                    this.showGEDetailedView(group, mode);
+                }
             });
         });
     }
