@@ -1324,6 +1324,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.72.2 (2026-04-22)</strong></p>
+                <ul>
+                    <li>Publication-quality export dialog now appears for <strong>every</strong> chart export, not just the Plotly-based ones. Added to the inspect scatter (was missing), the network PNG, the network SVG, and the UMAP/PCA export. Each respects the chosen size, DPI, and background; PNG outputs include the pHYs chunk so Word / Office / LaTeX honour the physical size, and SVG outputs use cm units on the outer tag.</li>
+                    <li>Removed the &ldquo;Solid white is recommended for PowerPoint / PDF&hellip;&rdquo; line from the export dialog &mdash; the app is for general use and shouldn&rsquo;t recommend specific downstream tools.</li>
+                </ul>
                 <p><strong>v.72.1 (2026-04-22)</strong></p>
                 <ul>
                     <li>&ldquo;Adjust graph size with Width/Height sliders&hellip;&rdquo; hint under the Gene Effect chart is now hidden whenever the sliders themselves are hidden (By Tissue overview + By Hotspot scan). It only appears in the detailed tissue view and Hotspot Mutation Inspect where the sliders actually exist.</li>
@@ -2064,7 +2069,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.2</a>
     </div>
 
     <div class="main-content">
@@ -3402,7 +3407,6 @@
                     <label style="display:block; font-weight:600; margin-bottom:4px;">Background</label>
                     <label style="margin-right:14px;"><input type="radio" name="exportOptBg" value="white" checked> White (solid)</label>
                     <label><input type="radio" name="exportOptBg" value="transparent"> Transparent</label>
-                    <div style="font-size:10px; color:#9ca3af; margin-top:4px;">Solid white is recommended for PowerPoint / PDF &mdash; transparent PNGs can cause faint composite lines.</div>
                 </div>
                 <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
                     <button class="btn btn-outline btn-sm" id="exportOptCancel">Cancel</button>
