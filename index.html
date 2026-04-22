@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.71.3 (2026-04-22)</strong></p>
+                <ul>
+                    <li>Caution banners in Hotspot Mutation Inspect, the By Hotspot scan, and the correlation-analysis mutation view now add a concrete recommendation: <em>For meaningful analysis, narrow down using the All tissues and subtype filters above so WT and mutated cell lines come from the same cancer context.</em> (Previously only warned about the confound, without telling the user what to do.)</li>
+                </ul>
                 <p><strong>v.71.2 (2026-04-22)</strong></p>
                 <ul>
                     <li>&ldquo;Draw rectangles on plot to define gates&rdquo; status text now lives inside the Gates group span, so it hides together with the gate buttons in By Tissue and By Hotspot views (where gates aren&rsquo;t available) and only shows in Hotspot Mutation Inspect.</li>
@@ -2049,7 +2053,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.71.2</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.71.3</a>
     </div>
 
     <div class="main-content">
@@ -3053,13 +3057,13 @@
                         <div id="geByTissueView" style="display: none;">
                             <!-- Shown only in Hotspot Mutation Inspect (mirrors the banner in the By Hotspot scan). -->
                             <div id="mutationCautionGEInspect" style="display:none; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; color: #92400e;">
-                                <strong>⚠️ Caution:</strong> Hotspot mutations are often enriched in specific cancer types. Observed differences in gene effect may reflect cancer type rather than the mutation itself.
+                                <strong>⚠️ Caution:</strong> Hotspot mutations are often enriched in specific cancer types. Observed differences in gene effect may reflect cancer type rather than the mutation itself. <b>For meaningful analysis</b>, narrow down using the <em>All tissues</em> and subtype filters above so WT and mutated cell lines come from the same cancer context.
                             </div>
                             <div id="geneEffectPlot" style="width: 100%; min-height: 400px;"></div>
                         </div>
                         <div id="geByHotspotView" style="display: none;">
                             <div id="mutationCautionGE" style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; color: #92400e;">
-                                <strong>⚠️ Caution:</strong> Hotspot mutations are often enriched in specific cancer types. Observed differences in gene effect may reflect cancer type rather than the mutation itself.
+                                <strong>⚠️ Caution:</strong> Hotspot mutations are often enriched in specific cancer types. Observed differences in gene effect may reflect cancer type rather than the mutation itself. <b>For meaningful analysis</b>, narrow down using the <em>All tissues</em> and subtype filters above so WT and mutated cell lines come from the same cancer context.
                             </div>
                             <div id="geneEffectHotspotPlot" style="width: 100%; min-height: 400px;"></div>
                         </div>
@@ -3318,7 +3322,7 @@
                         </div>
                         <div id="caByHotspotView" style="display: none;">
                             <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; color: #92400e;">
-                                <strong>⚠️ Caution:</strong> Hotspot mutations are often enriched in specific cancer types. Observed differences in correlation may reflect cancer type rather than the mutation itself.
+                                <strong>⚠️ Caution:</strong> Hotspot mutations are often enriched in specific cancer types. Observed differences in correlation may reflect cancer type rather than the mutation itself. <b>For meaningful analysis</b>, narrow down using the <em>All tissues</em> and subtype filters above so WT and mutated cell lines come from the same cancer context.
                             </div>
                             <div id="corrAnalysisHotspotPlot" style="width: 100%; min-height: 400px;"></div>
                         </div>
