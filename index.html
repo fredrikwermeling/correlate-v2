@@ -1324,6 +1324,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.72.3 (2026-04-22)</strong></p>
+                <ul>
+                    <li>Number boxes throughout the UI now have <b>−</b> / <b>+</b> step buttons on either side (matching the Plot Size / Axis Ranges pattern in the inspect modal). Wired up to: <em>Min Cell Lines</em> on the main page, <em>Highlight / Color font size</em> in the inspect modal, <em>Min n</em> in the Gene Effect modal, the export-options Width / Height / DPI fields, and the UMAP/PCA Width / Height. Backed by a new <code>app.adjustNumber(id, delta)</code> helper that respects each input&rsquo;s min/max/step and fires change events so re-renders run as expected.</li>
+                    <li>Default <em>Highlight / Color</em> font size in the inspect modal raised from 3 to <b>5</b> for better readability.</li>
+                    <li>Inspect (correlation) modal no longer closes on backdrop click <em>or</em> on Escape &mdash; same exit-safety policy as the Cell Line Browser. The X in the upper-right is the only exit; otherwise typed input or a stray click could lose all filter / gate / highlight state.</li>
+                </ul>
                 <p><strong>v.72.2 (2026-04-22)</strong></p>
                 <ul>
                     <li>Publication-quality export dialog now appears for <strong>every</strong> chart export, not just the Plotly-based ones. Added to the inspect scatter (was missing), the network PNG, the network SVG, and the UMAP/PCA export. Each respects the chosen size, DPI, and background; PNG outputs include the pHYs chunk so Word / Office / LaTeX honour the physical size, and SVG outputs use cm units on the outer tag.</li>
@@ -2069,7 +2075,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.2</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.3</a>
     </div>
 
     <div class="main-content">
@@ -2202,7 +2208,11 @@
                     <div style="display:flex; gap:8px;" id="minCellLinesPvalRow">
                         <div class="form-group" id="minCellLinesGroup" style="flex:1;">
                             <label class="form-label" style="font-size:11px; margin-bottom:2px;">Min Cell Lines:</label>
-                            <input type="number" id="minCellLines" class="form-control" value="25" min="3" max="500" style="width:100%; font-size:12px; padding:3px 6px;">
+                            <div style="display:flex; gap:3px; align-items:center;">
+                                <button onclick="app.adjustNumber('minCellLines', -5)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                                <input type="number" id="minCellLines" class="form-control" value="25" min="3" max="500" step="5" style="flex:1; min-width:0; font-size:12px; padding:3px 6px; text-align:center;">
+                                <button onclick="app.adjustNumber('minCellLines', 5)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                            </div>
                         </div>
                         <div class="form-group" id="pValueThresholdGroup" style="display:none; flex:1;">
                             <label class="form-label" style="font-size:11px; margin-bottom:2px;">P-value:</label>
@@ -2820,7 +2830,9 @@
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
                                     <span class="control-label" style="font-size:10px;">Highlight / Color</span>
                                     <div style="display:flex; align-items:center; gap:3px;">
-                                        <input type="number" id="scatterFontSize" value="3" min="1" max="10" style="width:24px; padding:0 1px; font-size:10px; text-align:center;">
+                                        <button onclick="app.adjustScatterFontSize(-1)" style="font-size:9px;padding:0 3px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">−</button>
+                                        <input type="number" id="scatterFontSize" value="5" min="1" max="20" style="width:30px; padding:0 1px; font-size:10px; text-align:center;">
+                                        <button onclick="app.adjustScatterFontSize(1)" style="font-size:9px;padding:0 3px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">+</button>
                                         <button class="btn btn-secondary btn-sm" id="clearHighlights" style="font-size:9px; padding:0 3px;">Clear</button>
                                     </div>
                                 </div>
@@ -2998,7 +3010,9 @@
                             <option value="">No fusion filter</option>
                         </select>
                         <span style="font-size:10px; color:#6b7280; white-space:nowrap;" title="Minimum cell lines per tissue group to display">Min n:</span>
-                        <input type="number" id="geMinGroupSize" value="1" min="1" max="50" style="width:40px; font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px;" title="Minimum cell lines per tissue to show" onchange="app.switchGeneEffectView(app.currentGEView || 'tissue')">
+                        <button onclick="app.adjustNumber('geMinGroupSize', -1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                        <input type="number" id="geMinGroupSize" value="1" min="1" max="50" style="width:36px; font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; text-align:center;" title="Minimum cell lines per tissue to show" onchange="app.switchGeneEffectView(app.currentGEView || 'tissue')">
+                        <button onclick="app.adjustNumber('geMinGroupSize', 1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                         <input type="text" id="geCellLineSearch" class="form-control" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span id="geOncoprintLabel" style="display:none; font-size:10px; gap:3px; align-items:center; flex-wrap:wrap;"></span>
                     </div>
@@ -3393,14 +3407,26 @@
             <div class="modal-body" style="padding:14px 18px; font-size:13px; color:#374151;">
                 <div style="margin-bottom:10px;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">Width (cm)</label>
-                    <input type="number" id="exportOptWidth" value="5" min="2" max="30" step="0.5" style="width:80px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px;">
+                    <span style="display:inline-flex; gap:3px; align-items:center;">
+                        <button onclick="app.adjustNumber('exportOptWidth', -0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                        <input type="number" id="exportOptWidth" value="5" min="2" max="30" step="0.5" style="width:60px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
+                        <button onclick="app.adjustNumber('exportOptWidth', 0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                    </span>
                     <label style="font-weight:600; margin:0 4px 0 16px;">Height (cm)</label>
-                    <input type="number" id="exportOptHeight" value="5" min="2" max="30" step="0.5" style="width:80px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px;">
+                    <span style="display:inline-flex; gap:3px; align-items:center;">
+                        <button onclick="app.adjustNumber('exportOptHeight', -0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                        <input type="number" id="exportOptHeight" value="5" min="2" max="30" step="0.5" style="width:60px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
+                        <button onclick="app.adjustNumber('exportOptHeight', 0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                    </span>
                     <div style="font-size:10px; color:#9ca3af; margin-top:4px;">Default aspect matches the current on-screen plot.</div>
                 </div>
                 <div id="exportOptDpiRow" style="margin-bottom:10px;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">DPI (PNG only)</label>
-                    <input type="number" id="exportOptDpi" value="300" min="72" max="600" step="50" style="width:80px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px;">
+                    <span style="display:inline-flex; gap:3px; align-items:center;">
+                        <button onclick="app.adjustNumber('exportOptDpi', -50)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                        <input type="number" id="exportOptDpi" value="300" min="72" max="600" step="50" style="width:60px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
+                        <button onclick="app.adjustNumber('exportOptDpi', 50)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                    </span>
                     <span style="margin-left:8px; font-size:10px; color:#9ca3af;">300 &ge; publication quality.</span>
                 </div>
                 <div style="margin-bottom:10px;">
@@ -3787,9 +3813,13 @@
                 <span class="clb-umap-lbl">Size</span>
                 <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="9" style="width:60px; vertical-align:middle;" title="Marker size">
                 <span class="clb-umap-lbl">W</span>
-                <input type="number" id="clbUmapPlotWidth" class="clb-umap-ctl" value="500" min="300" max="1200" step="20" style="width:56px;" title="Plot width">
+                <button onclick="app.adjustNumber('clbUmapPlotWidth', -20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">−</button>
+                <input type="number" id="clbUmapPlotWidth" class="clb-umap-ctl" value="500" min="300" max="1200" step="20" style="width:50px; text-align:center;" title="Plot width">
+                <button onclick="app.adjustNumber('clbUmapPlotWidth', 20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">+</button>
                 <span class="clb-umap-lbl">H</span>
-                <input type="number" id="clbUmapPlotHeight" class="clb-umap-ctl" value="500" min="250" max="1000" step="20" style="width:56px;" title="Plot height">
+                <button onclick="app.adjustNumber('clbUmapPlotHeight', -20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">−</button>
+                <input type="number" id="clbUmapPlotHeight" class="clb-umap-ctl" value="500" min="250" max="1000" step="20" style="width:50px; text-align:center;" title="Plot height">
+                <button onclick="app.adjustNumber('clbUmapPlotHeight', 20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">+</button>
                 <span class="clb-umap-sep"></span>
                 <button id="clbUmapTopGenesBtn" class="clb-umap-btn" title="Show top genes correlated with axes">Top Genes</button>
                 <label id="clbUmapLoadingsToggle" class="clb-umap-lbl" style="display:none; cursor:pointer;">
