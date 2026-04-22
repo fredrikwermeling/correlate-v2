@@ -17978,12 +17978,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         if (ratioControl) {
             // Show controls for detailed views AND mutation inspect views
-            ratioControl.style.display = (this.geDetailedView || isInspect) ? 'flex' : 'none';
+            const showRatio = !!(this.geDetailedView || isInspect);
+            ratioControl.style.display = showRatio ? 'flex' : 'none';
             // Height control only relevant for inspect plot (not tissue/hotspot overview)
             const heightControl = document.getElementById('geHeightControl');
             if (heightControl) {
                 heightControl.style.display = isInspect ? 'inline-flex' : 'none';
             }
+            // The "Adjust graph size…" hint is only truthful when the sliders
+            // are visible; keep them in lockstep.
+            const hint = document.getElementById('geChartHint');
+            if (hint) hint.style.display = showRatio ? '' : 'none';
         }
     }
 

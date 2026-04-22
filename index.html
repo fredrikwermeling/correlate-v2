@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.72.1 (2026-04-22)</strong></p>
+                <ul>
+                    <li>&ldquo;Adjust graph size with Width/Height sliders&hellip;&rdquo; hint under the Gene Effect chart is now hidden whenever the sliders themselves are hidden (By Tissue overview + By Hotspot scan). It only appears in the detailed tissue view and Hotspot Mutation Inspect where the sliders actually exist.</li>
+                </ul>
                 <p><strong>v.72.0 (2026-04-22)</strong></p>
                 <ul>
                     <li>Clicking any chart <b>PNG / SVG Export</b> button now opens a publication-quality export dialog. Defaults: <b>width 5 cm</b>, height auto-scaled to preserve the on-screen aspect ratio, <b>300 DPI</b> for PNG, and <b>solid white background</b>. Width / height / DPI / background are editable per export; the last chosen values are remembered for the session.</li>
@@ -2060,7 +2064,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.0</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.1</a>
     </div>
 
     <div class="main-content">
@@ -3053,7 +3057,7 @@
                         <div id="geZeroLineControl" style="display: none; margin-bottom: 6px; font-size: 11px;">
                             <label style="cursor:pointer; color:#374151;"><input type="checkbox" id="geShowZeroLine" checked style="margin:0 4px 0 0; vertical-align:middle;" onchange="app.showGeneEffectDistribution(app.currentGeneEffectGene)"> Zero line</label>
                         </div>
-                        <div style="font-size: 9px; color: #b0b0b0; margin-bottom: 4px;">Adjust graph size with Width/Height sliders. Change fonts with Aa. Drag title or axis labels to reposition if they overlap.</div>
+                        <div id="geChartHint" style="display:none; font-size: 9px; color: #b0b0b0; margin-bottom: 4px;">Adjust graph size with Width/Height sliders. Change fonts with Aa. Drag title or axis labels to reposition if they overlap.</div>
                         <!-- Placeholder: single source of truth for "no plot yet". Visibility owned by _updateGEPlaceholderVisibility(). -->
                         <div id="gePlotPlaceholder" style="display:flex; align-items:center; justify-content:center; min-height:400px; color:#6b7280; font-size:14px; text-align:center; padding:40px;">
                             <div>Type a gene name above and click <b>Analyze</b>.<br><br>
