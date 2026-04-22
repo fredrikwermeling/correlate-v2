@@ -1324,6 +1324,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.72.4 (2026-04-22)</strong></p>
+                <ul>
+                    <li>Default export DPI raised from 300 to <b>600</b>; max raised to 2400. Step is now 100 (with the &minus;/&plus; buttons). The hint reads &ldquo;300 = screen / draft; 600 = print; 1200+ = high-quality print&rdquo;. Existing exports were noticeably soft because the network is rasterised from a DOM canvas at screen density.</li>
+                    <li>Network legend frame is now opt-in. The faint gray box around the bottom legend is gone by default; the dialog gains a checkbox <em>Draw a thin frame around the legend</em> for users who want it back. Same toggle works for both PNG and SVG network exports.</li>
+                </ul>
                 <p><strong>v.72.3 (2026-04-22)</strong></p>
                 <ul>
                     <li>Number boxes throughout the UI now have <b>−</b> / <b>+</b> step buttons on either side (matching the Plot Size / Axis Ranges pattern in the inspect modal). Wired up to: <em>Min Cell Lines</em> on the main page, <em>Highlight / Color font size</em> in the inspect modal, <em>Min n</em> in the Gene Effect modal, the export-options Width / Height / DPI fields, and the UMAP/PCA Width / Height. Backed by a new <code>app.adjustNumber(id, delta)</code> helper that respects each input&rsquo;s min/max/step and fires change events so re-renders run as expected.</li>
@@ -2075,7 +2080,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.3</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.4</a>
     </div>
 
     <div class="main-content">
@@ -3423,16 +3428,19 @@
                 <div id="exportOptDpiRow" style="margin-bottom:10px;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">DPI (PNG only)</label>
                     <span style="display:inline-flex; gap:3px; align-items:center;">
-                        <button onclick="app.adjustNumber('exportOptDpi', -50)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
-                        <input type="number" id="exportOptDpi" value="300" min="72" max="600" step="50" style="width:60px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
-                        <button onclick="app.adjustNumber('exportOptDpi', 50)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                        <button onclick="app.adjustNumber('exportOptDpi', -100)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                        <input type="number" id="exportOptDpi" value="600" min="72" max="2400" step="100" style="width:70px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
+                        <button onclick="app.adjustNumber('exportOptDpi', 100)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                     </span>
-                    <span style="margin-left:8px; font-size:10px; color:#9ca3af;">300 &ge; publication quality.</span>
+                    <span style="margin-left:8px; font-size:10px; color:#9ca3af;">300 = screen / draft; 600 = print; 1200+ = high-quality print.</span>
                 </div>
                 <div style="margin-bottom:10px;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">Background</label>
                     <label style="margin-right:14px;"><input type="radio" name="exportOptBg" value="white" checked> White (solid)</label>
                     <label><input type="radio" name="exportOptBg" value="transparent"> Transparent</label>
+                </div>
+                <div id="exportOptLegendFrameRow" style="margin-bottom:10px; display:none;">
+                    <label style="cursor:pointer;"><input type="checkbox" id="exportOptLegendFrame"> Draw a thin frame around the legend</label>
                 </div>
                 <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
                     <button class="btn btn-outline btn-sm" id="exportOptCancel">Cancel</button>
