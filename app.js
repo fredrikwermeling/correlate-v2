@@ -8059,12 +8059,13 @@ Results:
         const padding = 30;
         const filterText = this._getNetworkFilterText();
         const bannerFs = this._netBannerFontSize || 20;
+        // Reserve a header strip ABOVE the network for the filter banner so
+        // it doesn't overlap nodes (matches the on-screen layout). Height
+        // scales with banner font size.
+        const headerH = filterText ? Math.round(bannerFs * 1.6 + 12) : 0;
         const totalWidth = cssWidth;
-        const totalHeight = cssHeight + legendHeight + padding;
+        const totalHeight = headerH + cssHeight + legendHeight + padding;
 
-        // Publication-quality export dialog: width/height in cm, DPI, bg.
-        // Network has a legend block at the bottom — expose the optional
-        // frame toggle.
         const dlg = await this._showExportDialog({ format: 'png', plotW: totalWidth, plotH: totalHeight, hasLegendFrame: true });
         if (!dlg) return;
         const { widthCm, heightCm, dpi, background, legendFrame } = dlg;
@@ -8081,36 +8082,44 @@ Results:
         const ctx = canvas.getContext('2d');
         ctx.scale(sx, sy);
 
-        // Draw background (skip for transparent)
         if (!transparentBg) {
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, totalWidth, totalHeight);
         }
 
-        // Draw network — account for device pixel ratio
-        const srcW = networkCanvas.width;
-        const srcH = networkCanvas.height;
-        ctx.drawImage(networkCanvas, 0, 0, srcW, srcH, 0, 0, cssWidth, cssHeight);
-
-        // Draw filter banner on top of network at its screen position
+        // Draw the filter banner inside its own header area at the top.
         if (filterText) {
+            // Light grey strip + thin separator, mirroring the on-screen
+            // header. Skip the strip fill in transparent mode so the export
+            // doesn't paint a coloured rectangle.
+            if (!transparentBg) {
+                ctx.fillStyle = '#f9fafb';
+                ctx.fillRect(0, 0, totalWidth, headerH);
+                ctx.strokeStyle = '#e5e7eb';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, headerH - 0.5); ctx.lineTo(totalWidth, headerH - 0.5); ctx.stroke();
+            }
             ctx.font = `${bannerFs}px Arial`;
             ctx.fillStyle = '#374151';
-            if (this._netBannerPos) {
-                ctx.textAlign = 'left';
-                ctx.fillText(filterText, this._netBannerPos.x, this._netBannerPos.y + bannerFs);
-            } else {
-                ctx.textAlign = 'center';
-                ctx.fillText(filterText, totalWidth / 2, bannerFs + 4);
-            }
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(filterText, totalWidth / 2, headerH / 2);
             ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
         }
+
+        // Draw the network canvas BELOW the header so banner and nodes don't
+        // overlap.
+        const srcW = networkCanvas.width;
+        const srcH = networkCanvas.height;
+        ctx.drawImage(networkCanvas, 0, 0, srcW, srcH, 0, headerH, cssWidth, cssHeight);
 
         // Draw legend frame only when the user opted in via the dialog —
         // the previous default of a gray-filled box was visually noisy on
         // the printed page. White background still gets the white canvas
         // fill from above; this just controls the legend block's frame.
-        const legendTop = cssHeight;
+        const legendTop = headerH + cssHeight;
         if (legendFrame && !transparentBg) {
             ctx.fillStyle = '#f9fafb';
             ctx.strokeStyle = '#e5e7eb';
@@ -8422,14 +8431,14 @@ Results:
         const container = document.getElementById('networkPlot');
         const width = container.clientWidth;
         const networkHeight = container.clientHeight;
-        const legendHeight = 160;  // Larger for publication
+        const legendHeight = 160;
         const filterText = this._getNetworkFilterText();
         const svgBannerFs = this._netBannerFontSize || 20;
-        const filterBannerHeight = filterText ? svgBannerFs + 14 : 0;
-        const totalHeight = networkHeight + legendHeight;
+        // Reserve a header strip ABOVE the network for the filter banner —
+        // mirrors the on-screen layout and the PNG export.
+        const headerH = filterText ? Math.round(svgBannerFs * 1.6 + 12) : 0;
+        const totalHeight = headerH + networkHeight + legendHeight;
 
-        // Publication-quality export dialog: ask for size + background.
-        // (DPI is ignored for SVG since it's vector.)
         const dlg = await this._showExportDialog({ format: 'svg', plotW: width, plotH: totalHeight, hasLegendFrame: true });
         if (!dlg) return;
         const { widthCm, heightCm, background, legendFrame } = dlg;
@@ -8441,7 +8450,8 @@ Results:
         for (const nodeId in positions) {
             const canvasPos = positions[nodeId];
             const domPos = this.network.canvasToDOM({ x: canvasPos.x, y: canvasPos.y });
-            domPositions[nodeId] = { x: domPos.x, y: domPos.y };
+            // Shift down by headerH so the network sits below the banner.
+            domPositions[nodeId] = { x: domPos.x, y: domPos.y + headerH };
         }
 
         let svg = `<?xml version="1.0" encoding="UTF-8"?>
@@ -8470,7 +8480,8 @@ Results:
   .legend-small { font-family: Arial, sans-serif; font-size: 13px; fill: #333; }
 </style>
 ${transparentBg ? '' : '<rect width="100%" height="100%" fill="white"/>'}
-${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2}" y="${this._netBannerPos ? this._netBannerPos.y + svgBannerFs : svgBannerFs + 4}" text-anchor="${this._netBannerPos ? 'start' : 'middle'}" style="font-family: Arial, sans-serif; font-size: ${svgBannerFs}px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
+${filterText && !transparentBg ? `<rect x="0" y="0" width="${width}" height="${headerH}" fill="#f9fafb"/><line x1="0" y1="${headerH - 0.5}" x2="${width}" y2="${headerH - 0.5}" stroke="#e5e7eb" stroke-width="1"/>` : ''}
+${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="middle" text-anchor="middle" style="font-family: Arial, sans-serif; font-size: ${svgBannerFs}px; fill: #374151;">${this.escapeXml(filterText)}</text>` : ''}
 `;
 
         // Get current scale for sizing elements
@@ -8507,7 +8518,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         // Draw legend - LARGER for publication
-        const legendTop = networkHeight;
+        const legendTop = headerH + networkHeight;
         const legendY = legendTop + 35;
 
         // Calculate total legend width to center it
