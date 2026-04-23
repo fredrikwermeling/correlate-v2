@@ -1325,6 +1325,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.74.2 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Cell Line Browser sort gains two features:
+                        <ul>
+                            <li><strong>Sort by Expression</strong> (in addition to Gene Effect). New option in the Sort dropdown; defaults to descending so highest-expressing lines surface first. Falls back to a name sort until expression data is loaded.</li>
+                            <li><strong>Multi-gene input</strong> &mdash; the Gene box now accepts one or more symbols (comma, semicolon, newline, or whitespace separated). Multiple genes are averaged per cell line, so you can rank cells by combined expression / dependency of a set. Useful for finding cell lines with the strongest signature across a pathway or marker panel.</li>
+                        </ul>
+                    </li>
+                </ul>
                 <p><strong>v.74.1 (2026-04-23)</strong></p>
                 <ul>
                     <li>Network PNG / SVG exports now match the on-screen layout: the filter banner sits in its own header strip <em>above</em> the network rather than being drawn over the upper nodes. Both formats reserve a header area sized to the banner font, paint a light-grey strip with a thin separator (matching the on-screen header), centre the filter text in it, and shift the network and legend down by the strip&rsquo;s height so nothing overlaps. Transparent-background mode keeps just the centred banner text without the grey strip.</li>
@@ -2163,7 +2172,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.2</a>
     </div>
 
     <div class="main-content">
@@ -3871,9 +3880,10 @@
             <option value="hotspot">Sort: Hotspot muts</option>
             <option value="damaging">Sort: Damaging muts</option>
             <option value="fusion">Sort: Fusions</option>
-            <option value="ge">Sort: GE for gene</option>
+            <option value="ge">Sort: GE for gene(s)</option>
+            <option value="expr">Sort: Expression of gene(s)</option>
           </select>
-          <input type="text" id="clbSortGene" placeholder="Gene..." style="width:100px; display:none;" title="Gene name for GE sort">
+          <input type="text" id="clbSortGene" placeholder="TP53, BRCA1, ..." style="width:170px; display:none;" title="One or more gene symbols (comma or newline separated). Multiple genes are averaged per cell line.">
           <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="padding:4px 6px; font-size:10px; display:none;">&#x25BC;</button>
           <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Reset all filters">Reset</button>
           <button id="clbInfoBtn" class="btn btn-outline btn-sm" title="What do these filters and sorts mean?" style="padding:4px 8px; font-weight:700;">?</button>

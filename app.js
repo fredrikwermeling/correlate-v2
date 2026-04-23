@@ -21403,12 +21403,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const updateSortControls = () => {
             const mode = clbSortBy.value;
             this._clbSortMode = mode;
-            clbSortGene.style.display = (mode === 'ge') ? '' : 'none';
-            // Show direction arrow unless mode is name or (mode=ge and no gene typed)
-            const showDir = mode !== 'name' && !(mode === 'ge' && !clbSortGene.value.trim());
+            const needsGene = (mode === 'ge' || mode === 'expr');
+            clbSortGene.style.display = needsGene ? '' : 'none';
+            // Show direction arrow unless mode is name or (gene sort with empty gene input)
+            const showDir = mode !== 'name' && !(needsGene && !clbSortGene.value.trim());
             clbSortDir.style.display = showDir ? '' : 'none';
-            // Default descending for count sorts (more-first), ascending for name/GE
-            if (mode === 'hotspot' || mode === 'damaging' || mode === 'fusion') {
+            // Default descending for count sorts and expression (highest-first
+            // is usually what the user wants for "cells with highest
+            // expression of gene X"). Ascending for name and gene-effect
+            // (lowest GE = most dependent, typical interest).
+            if (mode === 'hotspot' || mode === 'damaging' || mode === 'fusion' || mode === 'expr') {
                 this._clbSortAsc = false;
             } else {
                 this._clbSortAsc = true;
@@ -21763,17 +21767,44 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Build secondary comparator (the existing sort mode)
         let secondaryCmp;
-        if (mode === 'ge') {
-            const sortGene = document.getElementById('clbSortGene').value.trim().toUpperCase();
-            const sortGeneIdx = sortGene ? this.geneIndex.get(sortGene) : undefined;
-            if (sortGeneIdx !== undefined) {
+        if (mode === 'ge' || mode === 'expr') {
+            // Gene-effect or expression sort, on one OR more genes. Multiple
+            // genes (comma / newline / whitespace separated) are averaged
+            // per cell line so you can find "cells with highest combined
+            // expression of genes A and B".
+            const raw = document.getElementById('clbSortGene').value || '';
+            const tokens = raw.split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+            const clIdxMap = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
+
+            const isExpr = (mode === 'expr');
+            if (isExpr && !this.expressionLoaded) {
+                // Kick off expression load in the background; sort falls back
+                // to name for now. When expression arrives, user can switch
+                // the sort mode again to apply it.
+                try { this.loadExpressionData?.(); } catch (e) {}
+            }
+
+            const vecIdxs = [];
+            for (const gene of tokens) {
+                const idx = isExpr
+                    ? (this.expressionGeneIndex ? this.expressionGeneIndex.get(gene) : undefined)
+                    : this.geneIndex.get(gene);
+                if (idx !== undefined) vecIdxs.push(idx);
+            }
+
+            if (vecIdxs.length > 0) {
+                const source = isExpr ? this.expressionData : this.geneEffects;
+                const nCL = this.nCellLines;
                 geMap = new Map();
                 for (const cl of filtered) {
-                    const clIdx = this.metadata.cellLines.indexOf(cl);
-                    if (clIdx >= 0) {
-                        const val = this.geneEffects[sortGeneIdx * this.nCellLines + clIdx];
-                        geMap.set(cl, (!isNaN(val) && val !== -999) ? val : NaN);
+                    const ci = clIdxMap.get(cl);
+                    if (ci === undefined) { geMap.set(cl, NaN); continue; }
+                    let sum = 0, n = 0;
+                    for (const gi of vecIdxs) {
+                        const v = source[gi * nCL + ci];
+                        if (!isNaN(v) && v !== -999) { sum += v; n++; }
                     }
+                    geMap.set(cl, n > 0 ? sum / n : NaN);
                 }
                 secondaryCmp = (a, b) => {
                     const va = geMap.get(a), vb = geMap.get(b);
