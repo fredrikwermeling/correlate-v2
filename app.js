@@ -12400,61 +12400,130 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         geHits.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
         exprHits.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
-        const top = (arr) => arr.slice(0, 100);
 
-        const buildList = (rows, kind) => rows.map(r => `
-            <tr class="ic-row" data-gene="${r.gene}" data-kind="${kind}" style="cursor:pointer;">
-                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#15803d;">${r.gene}</td>
-                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; font-weight:600; color:${r.r < 0 ? '#dc2626' : '#2563eb'};">${r.r.toFixed(3)}</td>
-            </tr>`).join('');
+        // Stash hits so the threshold input and Enrichr buttons can re-filter
+        // without re-computing correlations.
+        this._inspectCorrelatesState = { geHits, exprHits, xGene, xType, xN, expressionLoaded: this.expressionLoaded };
 
         document.getElementById('inspectCorrelatesTitle').textContent = `Correlates of ${xGene} (${xType === 'ge' ? 'GE' : 'Expression'})`;
-        document.getElementById('inspectCorrelatesSubtitle').textContent = `n = ${xN} cell lines (after the inspect modal's current filters). Click a gene to put it on the Y axis.`;
+        document.getElementById('inspectCorrelatesSubtitle').textContent = `n = ${xN} cell lines (after the inspect modal's current filters). Click a gene to put it on the Y axis, or send the filtered list to Enrichr for pathway enrichment.`;
+
+        // Hard display cap guards the DOM when the user drops the threshold
+        // near zero — Enrichr still receives the full thresholded list.
+        const DISPLAY_CAP = 500;
+        const defaultThreshold = 0.3;
+
         document.getElementById('inspectCorrelatesBody').innerHTML = `
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:8px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:10px;">
+                <label style="font-weight:600; color:#374151;">|r| ≥
+                    <input type="number" id="icThreshold" value="${defaultThreshold}" min="0" max="1" step="0.05" style="width:64px; margin-left:6px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
+                </label>
+                <span style="color:#6b7280; font-size:11px;">Raise the cutoff to focus on the strongest correlates (recommended for enrichment).</span>
+            </div>
             <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
                 <div style="flex:1; min-width:0;">
-                    <div style="font-weight:600; color:#374151; margin-bottom:4px;">Top GE correlates</div>
-                    <div style="font-size:10px; color:#9ca3af; margin-bottom:6px;">Y axis will be set to GE.</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:4px;">
+                        <div style="font-weight:600; color:#374151;">Top GE correlates <span id="icGeCount" style="font-weight:400; color:#6b7280; font-size:11px;"></span></div>
+                        <button class="btn btn-secondary btn-sm" id="icEnrichrGe" style="font-size:10px; padding:2px 8px;" title="Send the filtered GE-correlate list to Enrichr for pathway enrichment">Enrichr</button>
+                    </div>
+                    <div style="font-size:10px; color:#9ca3af; margin-bottom:6px;">Click a gene to set it as the Y axis (GE).</div>
                     <div style="max-height:60vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;">
                         <table style="width:100%; border-collapse:collapse; font-size:11px;">
                             <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
                                 <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:left;">Gene</th>
                                 <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:center;">r</th>
                             </tr></thead>
-                            <tbody>${buildList(top(geHits), 'ge')}</tbody>
+                            <tbody id="icGeBody"></tbody>
                         </table>
                     </div>
                 </div>
                 <div style="flex:1; min-width:0;">
-                    <div style="font-weight:600; color:#374151; margin-bottom:4px;">Top Expression correlates</div>
-                    <div style="font-size:10px; color:#9ca3af; margin-bottom:6px;">${this.expressionLoaded ? 'Y axis will be set to Expression.' : 'Expression data not loaded.'}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:4px;">
+                        <div style="font-weight:600; color:#374151;">Top Expression correlates <span id="icExprCount" style="font-weight:400; color:#6b7280; font-size:11px;"></span></div>
+                        <button class="btn btn-secondary btn-sm" id="icEnrichrExpr" style="font-size:10px; padding:2px 8px;" ${this.expressionLoaded ? '' : 'disabled'} title="Send the filtered Expression-correlate list to Enrichr for pathway enrichment">Enrichr</button>
+                    </div>
+                    <div style="font-size:10px; color:#9ca3af; margin-bottom:6px;">${this.expressionLoaded ? 'Click a gene to set it as the Y axis (Expression).' : 'Expression data not loaded.'}</div>
                     <div style="max-height:60vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;">
                         <table style="width:100%; border-collapse:collapse; font-size:11px;">
                             <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
                                 <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:left;">Gene</th>
                                 <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:center;">r</th>
                             </tr></thead>
-                            <tbody>${buildList(top(exprHits), 'expr')}</tbody>
+                            <tbody id="icExprBody"></tbody>
                         </table>
                     </div>
                 </div>
             </div>`;
         document.getElementById('inspectCorrelatesModal').style.display = 'flex';
 
-        document.querySelectorAll('.ic-row').forEach(tr => {
-            tr.addEventListener('click', () => {
-                document.getElementById('inspectCorrelatesModal').style.display = 'none';
-                const yGene = tr.dataset.gene;
-                const yKind = tr.dataset.kind;
-                const yInput = document.getElementById('inspectGeneY');
-                const yType = document.getElementById('yAxisDataType');
-                if (yInput) yInput.value = yGene;
-                if (yType) yType.value = yKind;
-                this.updateInspectGenes();
+        const rowHtml = (r, kind) => `
+            <tr class="ic-row" data-gene="${r.gene}" data-kind="${kind}" style="cursor:pointer;">
+                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#15803d;">${r.gene}</td>
+                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; font-weight:600; color:${r.r < 0 ? '#dc2626' : '#2563eb'};">${r.r.toFixed(3)}</td>
+            </tr>`;
+
+        const filterByThreshold = (arr, t) => arr.filter(h => Math.abs(h.r) >= t);
+
+        const renderLists = () => {
+            const t = parseFloat(document.getElementById('icThreshold').value);
+            const thr = isFinite(t) && t >= 0 ? t : 0;
+            const geFiltered = filterByThreshold(geHits, thr);
+            const exprFiltered = filterByThreshold(exprHits, thr);
+            this._inspectCorrelatesState.geFiltered = geFiltered;
+            this._inspectCorrelatesState.exprFiltered = exprFiltered;
+
+            const geShown = geFiltered.slice(0, DISPLAY_CAP);
+            const exprShown = exprFiltered.slice(0, DISPLAY_CAP);
+            document.getElementById('icGeBody').innerHTML = geShown.map(r => rowHtml(r, 'ge')).join('');
+            document.getElementById('icExprBody').innerHTML = exprShown.map(r => rowHtml(r, 'expr')).join('');
+            document.getElementById('icGeCount').textContent =
+                `(${geFiltered.length}${geFiltered.length > DISPLAY_CAP ? `, showing top ${DISPLAY_CAP}` : ''})`;
+            document.getElementById('icExprCount').textContent =
+                `(${exprFiltered.length}${exprFiltered.length > DISPLAY_CAP ? `, showing top ${DISPLAY_CAP}` : ''})`;
+
+            document.querySelectorAll('#icGeBody .ic-row, #icExprBody .ic-row').forEach(tr => {
+                tr.addEventListener('click', () => {
+                    document.getElementById('inspectCorrelatesModal').style.display = 'none';
+                    const yGene = tr.dataset.gene;
+                    const yKind = tr.dataset.kind;
+                    const yInput = document.getElementById('inspectGeneY');
+                    const yType = document.getElementById('yAxisDataType');
+                    if (yInput) yInput.value = yGene;
+                    if (yType) yType.value = yKind;
+                    this.updateInspectGenes();
+                });
+                tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
+                tr.addEventListener('mouseleave', () => tr.style.background = '');
             });
-            tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
-            tr.addEventListener('mouseleave', () => tr.style.background = '');
-        });
+        };
+
+        document.getElementById('icThreshold').addEventListener('input', renderLists);
+        document.getElementById('icEnrichrGe').addEventListener('click', () => this._runInspectCorrelatesEnrichr('ge'));
+        document.getElementById('icEnrichrExpr').addEventListener('click', () => this._runInspectCorrelatesEnrichr('expr'));
+
+        renderLists();
+    }
+
+    async _runInspectCorrelatesEnrichr(kind) {
+        const st = this._inspectCorrelatesState;
+        if (!st) return;
+        const list = kind === 'ge' ? st.geFiltered : st.exprFiltered;
+        if (!list || list.length < 2) {
+            alert('Need at least 2 genes past the |r| cutoff to run Enrichr. Lower the threshold.');
+            return;
+        }
+        const genes = list.map(r => r.gene);
+        const modal = document.getElementById('enrichrModal');
+        const content = document.getElementById('enrichrContent');
+        const title = document.getElementById('enrichrTitle');
+        title.textContent = `Enrichr — ${genes.length} ${kind === 'ge' ? 'GE' : 'Expression'} correlates of ${st.xGene}`;
+        content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
+        modal.style.display = 'block';
+        try {
+            await this.submitToEnrichr(genes);
+        } catch (err) {
+            content.innerHTML = `<div style="text-align:center; padding:60px; color:#ef4444;">Failed to connect to Enrichr. Check internet connection.<br><small style="color:#888;">${err.message}</small></div>`;
+        }
     }
 
     async updateInspectGenes() {

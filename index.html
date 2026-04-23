@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.74.7 (2026-04-23)</strong></p>
+                <ul>
+                    <li><strong>Find correlates</strong> modal now has an <code>|r| ≥</code> threshold (default 0.3) that filters both the GE and Expression lists live. Each list shows its own count (and "showing top 500" when the full set exceeds the display cap).</li>
+                    <li>An <strong>Enrichr</strong> button next to each list sends the currently-thresholded correlates to Enrichr for pathway enrichment (GO:BP / MF / CC, KEGG, Reactome).</li>
+                </ul>
                 <p><strong>v.74.6 (2026-04-23)</strong></p>
                 <ul>
                     <li>CLB <strong>Export Genes CSV</strong>: dropped the <code>Sex_expression</code> column. The CSV now carries a single <code>Sex</code> column (annotated sex) alongside <code>Tissue</code> and <code>Subtype</code>.</li>
@@ -2192,7 +2197,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.7</a>
     </div>
 
     <div class="main-content">
