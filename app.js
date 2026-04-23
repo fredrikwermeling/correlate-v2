@@ -3062,6 +3062,25 @@ class CorrelationExplorer {
                 }
             }
         });
+        // Data-type toggle (GE / Expression). Re-analyze the current gene
+        // immediately when the user flips it. Updates the Gene Effect label
+        // to match the active data type.
+        const geDataTypeEl = document.getElementById('geDataType');
+        if (geDataTypeEl) {
+            geDataTypeEl.addEventListener('change', () => {
+                const labelEl = document.getElementById('geneEffectLabel');
+                if (labelEl) labelEl.textContent = geDataTypeEl.value === 'expr' ? 'Expression:' : 'Gene Effect:';
+                const gene = document.getElementById('geneEffectSearch').value.trim().toUpperCase() || this.currentGeneEffectGene;
+                if (!gene) return;
+                if (this.geneEffectViewMode === 'mutation' && this.mutationResults) {
+                    // Mutation-inspect layout is tied to gene-effect stratification;
+                    // switch back to the standalone view when the user picks expression.
+                    this.openGeneEffectModal(gene, this.currentGEView || 'tissue');
+                } else {
+                    this.showGeneEffectAnalysis(gene, this.currentGEView || 'tissue');
+                }
+            });
+        }
         // View toggle: "By Tissue" / "By Hotspot" / "Mutation Inspect".
         // When in Mutation-Inspect layout (geneEffectViewMode === 'mutation'),
         // Tissue / Hotspot clicks re-enter the standalone GE modal to reset
@@ -16485,31 +16504,62 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     openGeneEffectModal(gene, view = 'tissue') {
         const geneUpper = gene.toUpperCase();
-        if (!this.geneIndex.has(geneUpper)) {
-            alert(`Gene "${gene}" not found in the dataset.`);
+        // Read the data-type toggle (GE / Expression). The data field is
+        // still called "geneEffect" downstream for backwards compatibility —
+        // it holds whichever value the current data type specifies.
+        const dataType = document.getElementById('geDataType')?.value || 'ge';
+        this._geDataType = dataType;
+        const useExpr = dataType === 'expr';
+
+        // Validate gene is present in the relevant dataset.
+        if (!useExpr && !this.geneIndex.has(geneUpper)) {
+            alert(`Gene "${gene}" not found in the gene-effect dataset.`);
             return;
+        }
+        if (useExpr) {
+            if (!this.expressionLoaded) {
+                alert('Expression data is still loading — try again in a moment.');
+                try { this.loadExpressionData?.(); } catch (e) {}
+                return;
+            }
+            if (!this.expressionGeneIndex || this.expressionGeneIndex.get(geneUpper) === undefined) {
+                alert(`Gene "${gene}" not found in the expression dataset.`);
+                return;
+            }
         }
 
         // Store current gene and view
         this.currentGeneEffect = {
             gene: geneUpper,
-            data: []
+            data: [],
+            dataType
         };
         this.currentGeneEffectGene = geneUpper;
         this.currentGEView = view;
 
-        // Get gene effect data for all cell lines
-        const geneIdx = this.geneIndex.get(geneUpper);
-        const geneData = this.getGeneData(geneIdx);
+        // Source the values from either GE or expression. "geneEffect" is
+        // kept as the field name so renderGeneEffectByTissue / downstream
+        // consumers don't need to fork.
+        let rawValues;
+        if (useExpr) {
+            const gi = this.expressionGeneIndex.get(geneUpper);
+            rawValues = new Float32Array(this.nCellLines);
+            const off = gi * this.nCellLines;
+            for (let i = 0; i < this.nCellLines; i++) rawValues[i] = this.expressionData[off + i];
+        } else {
+            const geneIdx = this.geneIndex.get(geneUpper);
+            rawValues = this.getGeneData(geneIdx);
+        }
 
         for (let i = 0; i < this.nCellLines; i++) {
-            if (!isNaN(geneData[i])) {
+            const v = rawValues[i];
+            if (!isNaN(v) && v !== -999) {
                 const cellLine = this.metadata.cellLines[i];
                 this.currentGeneEffect.data.push({
                     cellLineId: cellLine,
                     cellLineName: this.getCellLineName(cellLine),
                     lineage: this.getCellLineLineage(cellLine),
-                    geneEffect: geneData[i]
+                    geneEffect: v
                 });
             }
         }
@@ -17256,6 +17306,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         filteredStats.sort((a, b) => a.mean - b.mean);
         this.currentGEStats = filteredStats;
 
+        // Metric label for hover (matches the axis/title). Determined up
+        // here so both box and highlight traces can reference the same
+        // string.
+        const isExprHover = this.currentGeneEffect?.dataType === 'expr' || this._geDataType === 'expr';
+        const hoverMetric = isGrowth ? 'Growth Rate' : isGeneSet ? 'Score' : (isExprHover ? 'Expression' : 'Gene Effect');
+
         // Selection highlight from the "Inspect Gene Effects" flow. Plotly
         // box plots don't expose per-point marker colors for boxpoints:'all',
         // so the highlight is drawn as a separate scatter trace overlaid on
@@ -17276,7 +17332,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             },
             line: { color: '#374151' },
             fillcolor: 'rgba(200,200,200,0.3)',
-            hovertemplate: `<b>%{text}</b><br>${isGrowth ? 'Growth Rate' : isGeneSet ? 'Score' : 'Gene Effect'}: %{x:.3f}<extra></extra>`
+            hovertemplate: `<b>%{text}</b><br>${hoverMetric}: %{x:.3f}<extra></extra>`
         }));
         if (hl && hl.size) {
             // One overlay scatter trace per tissue row so points line up on
@@ -17294,7 +17350,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     x: hlCells.map(c => c.geneEffect),
                     y: hlCells.map(() => `${s.group} (n=${s.n})`),
                     text: hlCells.map(c => c.cellLineName),
-                    hovertemplate: `<b>%{text}</b><br>${isGrowth ? 'Growth Rate' : isGeneSet ? 'Score' : 'Gene Effect'}: %{x:.3f}<br><span style="color:${hlColor};">Selected</span><extra></extra>`,
+                    hovertemplate: `<b>%{text}</b><br>${hoverMetric}: %{x:.3f}<br><span style="color:${hlColor};">Selected</span><extra></extra>`,
                     showlegend: false,
                     marker: {
                         color: hlColor,
@@ -17313,9 +17369,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const boxHeight = numEntries > 25 ? 22 : numEntries > 15 ? 26 : 32;
         const chartHeight = Math.max(400, numEntries * boxHeight + 100);
 
-        // Determine data type label
-        const dataLabel = isGrowth ? 'Growth Rate' : isGeneSet ? `${gene}` : `${gene} Gene Effect`;
-        const geTissueTitle = isGrowth ? 'Growth Rate' : isGeneSet ? gene : `${gene} Gene Effect`;
+        // Determine data type label. Data type is set by openGeneEffectModal
+        // from the GE/Expression toggle; fall back to GE when absent (e.g.
+        // analyses opened before the toggle existed).
+        const isExpr = this.currentGeneEffect?.dataType === 'expr' || this._geDataType === 'expr';
+        const metricLabel = isExpr ? 'Expression' : 'Gene Effect';
+        const dataLabel = isGrowth ? 'Growth Rate' : isGeneSet ? `${gene}` : `${gene} ${metricLabel}`;
+        const geTissueTitle = isGrowth ? 'Growth Rate' : isGeneSet ? gene : `${gene} ${metricLabel}`;
         const filterDesc = this._getGEFilterDescription();
         const subtitleParts = [`n=${data.length}`];
         if (filterDesc) subtitleParts.push(filterDesc);
