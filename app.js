@@ -12452,18 +12452,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const xGene = (document.getElementById('inspectGeneX')?.value || '').trim().toUpperCase();
         if (!xGene) { alert('Enter an X-axis gene first.'); return; }
         const xType = document.getElementById('xAxisDataType')?.value || 'ge';
-        // If the plot is already built, refresh _inspectFilteredCellLineIds
-        // so Find correlates sees whatever filters are set in the DOM right
-        // now — not a stale snapshot from the last Update click.
-        if (this.currentInspect) this.updateInspectPlot();
-        let clIds = this._inspectFilteredCellLineIds;
-        if (!Array.isArray(clIds) || clIds.length < 3) {
-            // Plot hasn't been built yet (e.g. user opened the correlation
-            // browser directly and set a tissue filter before entering
-            // genes). Compute the filter set straight from the DOM so Find
-            // correlates still honours the user's filters.
-            clIds = this._computeInspectFilteredIdsFromDOM();
-        }
+        // Compute the filter set directly from DOM every time. This matches
+        // the scatter's eventual cell-line set exactly — cells passing all
+        // inspect-modal filters, with no gene-validity pre-filter baked in.
+        // (Using _inspectFilteredCellLineIds here would bias the set by
+        // whichever Y gene was previously displayed, making Find correlates'
+        // r differ from the scatter's r after a click.)
+        let clIds = this._computeInspectFilteredIdsFromDOM();
         if (!Array.isArray(clIds) || clIds.length < 3) clIds = this.metadata.cellLines.slice();
         const clIndexOf = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
         const clIdxs = clIds.map(cl => clIndexOf.get(cl)).filter(i => i !== undefined);
@@ -12476,48 +12471,54 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (xIdx === undefined) { alert(`Gene "${xGene}" not found in ${xType === 'ge' ? 'gene-effect' : 'expression'} data.`); return; }
         const xSource = xType === 'ge' ? this.geneEffects : this.expressionData;
         if (xType === 'expr' && !this.expressionLoaded) { alert('Expression data is still loading.'); return; }
+        // Keep raw X values. For each Y gene we compute Pearson over the
+        // cells where BOTH X and Y are valid, re-centering X on that paired
+        // sample — matching the scatter's pearsonWithSlope. Previously the
+        // X-mean and X-SS were fixed over all filtered cells, which drifted
+        // from the scatter's r whenever Y had NaNs that X didn't.
         const n = clIdxs.length;
-        const xVec = new Float64Array(n);
+        const xRaw = new Float64Array(n);
         const xValid = new Uint8Array(n);
-        let xSum = 0, xN = 0;
+        let xN = 0;
         for (let k = 0; k < n; k++) {
             const v = xSource[xIdx * this.nCellLines + clIdxs[k]];
-            if (!isNaN(v) && v !== -999) { xVec[k] = v; xValid[k] = 1; xSum += v; xN++; }
+            if (!isNaN(v) && v !== -999) { xRaw[k] = v; xValid[k] = 1; xN++; }
         }
         if (xN < 3) { alert('X gene has too few valid values in the filtered cell lines.'); return; }
-        const xMean = xSum / xN;
-        let xSS = 0;
-        for (let k = 0; k < n; k++) if (xValid[k]) { const d = xVec[k] - xMean; xVec[k] = d; xSS += d * d; } else xVec[k] = 0;
-        const xNorm = Math.sqrt(xSS);
-        if (xNorm < 1e-12) { alert('X gene has zero variance in this subset.'); return; }
+
+        const pairedPearson = (yArr, yNaNSentinel) => {
+            // yNaNSentinel: extra sentinel to treat as invalid (e.g. -999 for GE).
+            let sX = 0, sY = 0, sXX = 0, sYY = 0, sXY = 0, nn = 0;
+            for (let k = 0; k < n; k++) {
+                if (!xValid[k]) continue;
+                const y = yArr[k];
+                if (isNaN(y)) continue;
+                if (yNaNSentinel !== undefined && y === yNaNSentinel) continue;
+                const x = xRaw[k];
+                sX += x; sY += y;
+                sXX += x * x; sYY += y * y;
+                sXY += x * y;
+                nn++;
+            }
+            if (nn < 3) return null;
+            const num = nn * sXY - sX * sY;
+            const denX = nn * sXX - sX * sX;
+            const denY = nn * sYY - sY * sY;
+            if (denX < 1e-18 || denY < 1e-18) return null;
+            const r = num / Math.sqrt(denX * denY);
+            return isFinite(r) ? r : null;
+        };
 
         // Pass 1: GE correlates.
         const geHits = [];
         const nG = this.nGenes;
+        const yBuf = new Float64Array(n);
         for (let g = 0; g < nG; g++) {
             if (g === (xType === 'ge' ? xIdx : -1)) continue;
             const off = g * this.nCellLines;
-            let s = 0, nn = 0;
-            for (let k = 0; k < n; k++) {
-                if (!xValid[k]) continue;
-                const v = this.geneEffects[off + clIdxs[k]];
-                if (isNaN(v) || v === -999) continue;
-                s += v; nn++;
-            }
-            if (nn < 3) continue;
-            const m = s / nn;
-            let dot = 0, ss = 0;
-            for (let k = 0; k < n; k++) {
-                if (!xValid[k]) continue;
-                const v = this.geneEffects[off + clIdxs[k]];
-                if (isNaN(v) || v === -999) continue;
-                const d = v - m;
-                dot += xVec[k] * d;
-                ss += d * d;
-            }
-            if (ss < 1e-12) continue;
-            const r = dot / (xNorm * Math.sqrt(ss));
-            if (isFinite(r)) geHits.push({ gene: this.geneNames[g], r });
+            for (let k = 0; k < n; k++) yBuf[k] = this.geneEffects[off + clIdxs[k]];
+            const r = pairedPearson(yBuf, -999);
+            if (r !== null) geHits.push({ gene: this.geneNames[g], r });
         }
 
         // Pass 2: Expression correlates (skip if expression not loaded).
@@ -12529,27 +12530,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const eg = this.expressionGeneIndex.get(gene);
                 if (eg === undefined) continue;
                 const off = eg * this.nCellLines;
-                let s = 0, nn = 0;
-                for (let k = 0; k < n; k++) {
-                    if (!xValid[k]) continue;
-                    const v = this.expressionData[off + clIdxs[k]];
-                    if (isNaN(v)) continue;
-                    s += v; nn++;
-                }
-                if (nn < 3) continue;
-                const m = s / nn;
-                let dot = 0, ss = 0;
-                for (let k = 0; k < n; k++) {
-                    if (!xValid[k]) continue;
-                    const v = this.expressionData[off + clIdxs[k]];
-                    if (isNaN(v)) continue;
-                    const d = v - m;
-                    dot += xVec[k] * d;
-                    ss += d * d;
-                }
-                if (ss < 1e-12) continue;
-                const r = dot / (xNorm * Math.sqrt(ss));
-                if (isFinite(r)) exprHits.push({ gene, r });
+                for (let k = 0; k < n; k++) yBuf[k] = this.expressionData[off + clIdxs[k]];
+                const r = pairedPearson(yBuf);
+                if (r !== null) exprHits.push({ gene, r });
             }
         }
 
