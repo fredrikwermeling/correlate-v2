@@ -24560,20 +24560,19 @@ ${body}
             return /[,"\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
         };
 
-        const header = ['CellLineID', 'CellLineName', 'Tissue', 'Subtype', 'Sex_annotation', 'Sex_expression'];
+        const header = ['CellLineID', 'CellLineName', 'Tissue', 'Subtype', 'Sex'];
         resolved.forEach(r => { header.push(`GE_${r.gene}`); header.push(`Expr_${r.gene}`); });
 
         const rows = [header.join(',')];
         for (const cl of ids) {
             const ci = clIndexOf.get(cl);
-            const sex = this._getCellLineSex ? this._getCellLineSex(cl) : { annotation: '', byExpression: '' };
+            const sex = this._getCellLineSex ? this._getCellLineSex(cl) : { annotation: '' };
             const row = [
                 csvEsc(cl),
                 csvEsc(this.getCellLineName(cl) || ''),
                 csvEsc(this.getCellLineLineage(cl) || ''),
                 csvEsc(this.getCellLineSublineage(cl) || ''),
-                csvEsc(sex.annotation || ''),
-                csvEsc(sex.byExpression || '')
+                csvEsc(sex.annotation || '')
             ];
             resolved.forEach(r => {
                 row.push(getGE(ci, r.geIdx));

@@ -1325,7 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.74.5 (2026-04-20)</strong></p>
+                <p><strong>v.74.6 (2026-04-23)</strong></p>
+                <ul>
+                    <li>CLB <strong>Export Genes CSV</strong>: dropped the <code>Sex_expression</code> column. The CSV now carries a single <code>Sex</code> column (annotated sex) alongside <code>Tissue</code> and <code>Subtype</code>.</li>
+                </ul>
+                <p><strong>v.74.5 (2026-04-23)</strong></p>
                 <ul>
                     <li>Correlation / cluster <strong>Export for AI</strong> now captures the filter state applied when the analysis ran &mdash; lineage, sub-lineage, excluded tissues, hotspot, fusion, oncoprint gates, selection label, and custom cell-line list &mdash; so the AI can see the cohort definition, not just the results.</li>
                     <li>Every <strong>Export for AI</strong> button now prompts for an optional question; the text is written into the JSON as <code>question</code>.</li>
@@ -2188,7 +2192,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.6</a>
     </div>
 
     <div class="main-content">
