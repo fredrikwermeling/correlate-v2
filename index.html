@@ -1324,6 +1324,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.72.5 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Export dialog gains three size presets &mdash; <b>Small</b> (5 cm), <b>Medium</b> (10 cm), <b>Large</b> (15 cm) &mdash; that set the width and auto-scale the height from the on-screen plot aspect. New <em>Lock aspect</em> checkbox (default on): when enabled, using +/− on Width or Height rescales the other dimension to preserve the plot aspect, so the figure doesn&rsquo;t stretch accidentally.</li>
+                </ul>
                 <p><strong>v.72.4 (2026-04-22)</strong></p>
                 <ul>
                     <li>Default export DPI raised from 300 to <b>600</b>; max raised to 2400. Step is now 100 (with the &minus;/&plus; buttons). The hint reads &ldquo;300 = screen / draft; 600 = print; 1200+ = high-quality print&rdquo;. Existing exports were noticeably soft because the network is rasterised from a DOM canvas at screen density.</li>
@@ -2080,7 +2084,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.4</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.5</a>
     </div>
 
     <div class="main-content">
@@ -3411,19 +3415,28 @@
             </div>
             <div class="modal-body" style="padding:14px 18px; font-size:13px; color:#374151;">
                 <div style="margin-bottom:10px;">
-                    <label style="display:block; font-weight:600; margin-bottom:4px;">Width (cm)</label>
+                    <label style="display:block; font-weight:600; margin-bottom:4px;">Size</label>
+                    <div style="display:flex; gap:4px; margin-bottom:6px;">
+                        <button type="button" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 10px;" onclick="app.applyExportSizePreset(5)">Small</button>
+                        <button type="button" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 10px;" onclick="app.applyExportSizePreset(10)">Medium</button>
+                        <button type="button" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 10px;" onclick="app.applyExportSizePreset(15)">Large</button>
+                    </div>
+                    <label style="font-weight:600; margin-right:4px;">Width (cm)</label>
                     <span style="display:inline-flex; gap:3px; align-items:center;">
-                        <button onclick="app.adjustNumber('exportOptWidth', -0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                        <button onclick="app.adjustExportSize('exportOptWidth', -0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
                         <input type="number" id="exportOptWidth" value="5" min="2" max="30" step="0.5" style="width:60px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
-                        <button onclick="app.adjustNumber('exportOptWidth', 0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                        <button onclick="app.adjustExportSize('exportOptWidth', 0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                     </span>
                     <label style="font-weight:600; margin:0 4px 0 16px;">Height (cm)</label>
                     <span style="display:inline-flex; gap:3px; align-items:center;">
-                        <button onclick="app.adjustNumber('exportOptHeight', -0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                        <button onclick="app.adjustExportSize('exportOptHeight', -0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
                         <input type="number" id="exportOptHeight" value="5" min="2" max="30" step="0.5" style="width:60px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
-                        <button onclick="app.adjustNumber('exportOptHeight', 0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                        <button onclick="app.adjustExportSize('exportOptHeight', 0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                     </span>
-                    <div style="font-size:10px; color:#9ca3af; margin-top:4px;">Default aspect matches the current on-screen plot.</div>
+                    <label style="margin-left:12px; font-size:11px; color:#374151; cursor:pointer;" title="When on, changing one dimension scales the other to keep the plot aspect ratio">
+                        <input type="checkbox" id="exportOptLockAspect" checked> Lock aspect
+                    </label>
+                    <div style="font-size:10px; color:#9ca3af; margin-top:4px;">Presets set the width; height auto-scales to match the on-screen plot aspect.</div>
                 </div>
                 <div id="exportOptDpiRow" style="margin-bottom:10px;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">DPI (PNG only)</label>
