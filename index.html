@@ -1324,6 +1324,19 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.73.0 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Cell Line Browser gains a <strong>Curated collections</strong> dropdown next to Tissue / Subtype. Multi-gene / phenotype groups that aren&rsquo;t well served by a single-gene filter:
+                        <ul>
+                            <li><b>DNA repair:</b> MMR-deficient (MSI-high), HR-deficient (BRCAness)</li>
+                            <li><b>Mutation burden:</b> Hypermutated (top decile)</li>
+                            <li><b>Chromatin:</b> SWI/SNF-deficient</li>
+                            <li><b>Oxidative-stress:</b> NRF2-activated</li>
+                            <li><b>Expression signature:</b> Neuroendocrine phenotype, EMT-high</li>
+                            <li><b>Breast subtype:</b> Triple-negative (TNBC), HR+ (luminal), HER2+ &mdash; calls are relative to breast-only thresholds</li>
+                        </ul>
+                        Memberships computed at load (mutation-based ones) and on expression-data load (signature / breast-subtype ones). Dropdown shows live count per collection and is grouped by category. (Inspect correlations / gene effects buttons for selected cell lines coming next.)</li>
+                </ul>
                 <p><strong>v.72.5 (2026-04-23)</strong></p>
                 <ul>
                     <li>Export dialog gains three size presets &mdash; <b>Small</b> (5 cm), <b>Medium</b> (10 cm), <b>Large</b> (15 cm) &mdash; that set the width and auto-scale the height from the on-screen plot aspect. New <em>Lock aspect</em> checkbox (default on): when enabled, using +/− on Width or Height rescales the other dimension to preserve the plot aspect, so the figure doesn&rsquo;t stretch accidentally.</li>
@@ -2084,7 +2097,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.72.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.0</a>
     </div>
 
     <div class="main-content">
@@ -3722,6 +3735,7 @@
           <input type="text" id="clbSearch" placeholder="Search cell lines...">
           <select id="clbTissueFilter"><option value="">All tissues</option></select>
           <select id="clbSubtypeFilter" style="display:none;"><option value="">All subtypes</option></select>
+          <select id="clbCollectionFilter" title="Curated multi-gene / phenotype collections"><option value="">All collections</option></select>
           <select id="clbSexFilter" style="font-size:12px;" title="Filter by sex — annotation (from DepMap) or expression (Y-markers + XIST) are independent axes">
             <option value="">All sexes</option>
             <option value="ann_male">Male (by annotation)</option>

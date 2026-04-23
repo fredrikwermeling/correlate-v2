@@ -223,6 +223,9 @@ class CorrelationExplorer {
 
         // Precompute per-cell-line counts (hotspot, damaging, fusion) for fast sort
         this._precomputeCellLineCounts();
+        // Compute curated-collection memberships (mutation-based subsets work
+        // now; expression-based ones fill in when expression loads).
+        this._computeCollectionMemberships();
         // synonymLookup loaded lazily when "Find Synonyms" is clicked
 
         this.nGenes = this.metadata.nGenes;
@@ -19614,6 +19617,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
 
             this.expressionLoaded = true;
+            // Re-run collection memberships now that expression-based
+            // collections (NE, EMT, breast subtypes) can be computed.
+            if (typeof this._computeCollectionMemberships === 'function') {
+                this._computeCollectionMemberships();
+                if (document.getElementById('clbCollectionFilter')) this._populateCollectionFilter();
+            }
             loadingEl.style.display = 'none';
             console.log(`Expression data loaded: ${this.expressionMetadata.nGenes} genes, ${this.expressionMetadata.nCellLines} cell lines. Mapped ${mapped}/${this.nCellLines} GE cell lines.`);
         } catch (error) {
@@ -20940,6 +20949,232 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         tally(this.translocations, d => d.translocations, this._fusionCountByCL);
     }
 
+    // Catalogue of curated multi-gene / phenotype cell-line collections.
+    // Each entry: { label, category, description, genes?: gene panel (for
+    // tooltip / UI only) }. Membership is computed by _computeCollectionMemberships.
+    // Kept as a plain map so we can add / tweak without touching the render code.
+    _curatedCollectionsCatalog() {
+        return {
+            msi: {
+                label: 'MMR-deficient / MSI-high',
+                category: 'DNA repair',
+                description: 'Damaging mutation in a core mismatch-repair gene (MLH1, MSH2, MSH6, PMS2, EPCAM). Typically hypermutated and microsatellite-unstable.'
+            },
+            hrd: {
+                label: 'HR-deficient / BRCAness',
+                category: 'DNA repair',
+                description: 'Damaging mutation in a homologous-recombination gene (BRCA1, BRCA2, PALB2, ATM, RAD51C, RAD51D, FANCA/C/D2, BRIP1).'
+            },
+            hypermutated: {
+                label: 'Hypermutated (top decile)',
+                category: 'Mutation burden',
+                description: 'Top 10 % of cell lines by count of damaging mutations. Data-driven; overlaps strongly with MMR-deficient but not identical.'
+            },
+            swi_snf: {
+                label: 'SWI/SNF-deficient',
+                category: 'Chromatin',
+                description: 'Damaging mutation in SWI/SNF complex subunits (ARID1A, ARID1B, ARID2, SMARCA4, SMARCB1, PBRM1).'
+            },
+            nrf2: {
+                label: 'NRF2-activated',
+                category: 'Oxidative-stress pathway',
+                description: 'Activating lesions in the KEAP1–NRF2 axis: hotspot or damaging mutation in NFE2L2, or damaging mutation in KEAP1.'
+            },
+            ne: {
+                label: 'Neuroendocrine phenotype',
+                category: 'Expression signature',
+                description: 'Top quintile for mean expression of the neuroendocrine marker panel (ASCL1, NEUROD1, CHGA, SYP). Captures SCLC-like and NE-transformed lines across lineages.'
+            },
+            emt: {
+                label: 'EMT-high',
+                category: 'Expression signature',
+                description: 'Mesenchymal-skewed: low CDH1 and high VIM / ZEB1 / SNAI1 / TWIST1 (composite z-score, top quintile).'
+            },
+            tnbc: {
+                label: 'Triple-negative breast (TNBC)',
+                category: 'Breast subtype',
+                description: 'Breast lineage with low ESR1 and PGR expression and ERBB2 not amplified / high.'
+            },
+            hr_pos_breast: {
+                label: 'HR+ breast (luminal)',
+                category: 'Breast subtype',
+                description: 'Breast lineage with high ESR1 or PGR expression.'
+            },
+            her2_pos_breast: {
+                label: 'HER2+ breast',
+                category: 'Breast subtype',
+                description: 'Breast lineage with high ERBB2 expression (top quintile among breast cell lines).'
+            }
+        };
+    }
+
+    // Compute which cell lines belong to each curated collection. Called
+    // once after the heavy data is loaded (by _precomputeCellLineCounts's
+    // caller). Expression-based collections are skipped when expression
+    // data isn't loaded; they'll be populated lazily the next time the
+    // browser opens after expression loads.
+    _computeCollectionMemberships() {
+        const mem = {};
+        const clLines = this.metadata?.cellLines || [];
+        if (!clLines.length) { this._collectionMembership = mem; return; }
+
+        const hasDamaging = (gene, cl) =>
+            this.damagingMutations?.geneData?.[gene]?.mutations?.[cl] >= 1;
+        const hasHotspot = (gene, cl) =>
+            this.mutations?.geneData?.[gene]?.mutations?.[cl] >= 1;
+
+        const msiGenes = ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'];
+        const hrdGenes = ['BRCA1', 'BRCA2', 'PALB2', 'ATM', 'RAD51C', 'RAD51D', 'FANCA', 'FANCC', 'FANCD2', 'BRIP1'];
+        const swsnfGenes = ['ARID1A', 'ARID1B', 'ARID2', 'SMARCA4', 'SMARCB1', 'PBRM1'];
+
+        mem.msi = new Set();
+        mem.hrd = new Set();
+        mem.swi_snf = new Set();
+        mem.nrf2 = new Set();
+        for (const cl of clLines) {
+            if (msiGenes.some(g => hasDamaging(g, cl))) mem.msi.add(cl);
+            if (hrdGenes.some(g => hasDamaging(g, cl))) mem.hrd.add(cl);
+            if (swsnfGenes.some(g => hasDamaging(g, cl))) mem.swi_snf.add(cl);
+            if (hasHotspot('NFE2L2', cl) || hasDamaging('NFE2L2', cl) || hasDamaging('KEAP1', cl)) mem.nrf2.add(cl);
+        }
+
+        // Hypermutated: top decile by damaging-mutation count.
+        const counts = clLines.map(cl => ({ cl, n: this._damagingCountByCL?.get(cl) || 0 }));
+        counts.sort((a, b) => b.n - a.n);
+        const top10pct = Math.max(1, Math.ceil(counts.length / 10));
+        mem.hypermutated = new Set(counts.slice(0, top10pct).map(c => c.cl));
+
+        // Expression-based collections (need expression data loaded).
+        if (this.expressionLoaded && this.expressionData && this.expressionGeneIndex) {
+            const nCL = this.nCellLines;
+            const exprFor = (gene, clIdx) => {
+                const gi = this.expressionGeneIndex.get(gene);
+                if (gi === undefined) return NaN;
+                return this.expressionData[gi * nCL + clIdx];
+            };
+
+            // Neuroendocrine: top-quintile mean expression of ASCL1/NEUROD1/CHGA/SYP.
+            const neGenes = ['ASCL1', 'NEUROD1', 'CHGA', 'SYP'];
+            const neScores = [];
+            for (let i = 0; i < nCL; i++) {
+                let s = 0, n = 0;
+                for (const g of neGenes) {
+                    const v = exprFor(g, i);
+                    if (!isNaN(v)) { s += v; n++; }
+                }
+                neScores.push({ cl: clLines[i], score: n > 0 ? s / n : -Infinity });
+            }
+            neScores.sort((a, b) => b.score - a.score);
+            const neCut = Math.ceil(neScores.length / 5);
+            mem.ne = new Set(neScores.slice(0, neCut).map(s => s.cl));
+
+            // EMT: composite z-score across population. High VIM/ZEB1/SNAI1/TWIST1
+            // minus CDH1. Top quintile.
+            const emtUp = ['VIM', 'ZEB1', 'SNAI1', 'TWIST1'];
+            const emtDn = ['CDH1'];
+            const zFor = (gene) => {
+                const gi = this.expressionGeneIndex.get(gene);
+                if (gi === undefined) return null;
+                const off = gi * nCL;
+                const vals = [];
+                for (let i = 0; i < nCL; i++) { const v = this.expressionData[off + i]; if (!isNaN(v)) vals.push(v); }
+                if (vals.length < 3) return null;
+                const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+                const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+                return { off, mean, sd };
+            };
+            const upZ = emtUp.map(zFor).filter(x => x && x.sd > 0);
+            const dnZ = emtDn.map(zFor).filter(x => x && x.sd > 0);
+            if (upZ.length) {
+                const emtScores = [];
+                for (let i = 0; i < nCL; i++) {
+                    let s = 0, n = 0;
+                    for (const z of upZ) { const v = this.expressionData[z.off + i]; if (!isNaN(v)) { s += (v - z.mean) / z.sd; n++; } }
+                    for (const z of dnZ) { const v = this.expressionData[z.off + i]; if (!isNaN(v)) { s -= (v - z.mean) / z.sd; n++; } }
+                    emtScores.push({ cl: clLines[i], score: n > 0 ? s / n : -Infinity });
+                }
+                emtScores.sort((a, b) => b.score - a.score);
+                mem.emt = new Set(emtScores.slice(0, Math.ceil(emtScores.length / 5)).map(s => s.cl));
+            } else {
+                mem.emt = new Set();
+            }
+
+            // Breast subtypes. Compute per-breast thresholds (median for
+            // ESR1/PGR, top quintile for ERBB2) so calls are relative to
+            // the breast population rather than pan-cancer.
+            const breastLines = [];
+            for (let i = 0; i < nCL; i++) {
+                const cl = clLines[i];
+                if ((this.cellLineMetadata?.lineage?.[cl] || '').toLowerCase().includes('breast')) breastLines.push({ cl, i });
+            }
+            const pick = (gene, rows) => {
+                const gi = this.expressionGeneIndex.get(gene);
+                if (gi === undefined) return [];
+                const off = gi * nCL;
+                return rows.map(r => ({ cl: r.cl, v: this.expressionData[off + r.i] })).filter(x => !isNaN(x.v));
+            };
+            const median = (arr) => {
+                if (!arr.length) return NaN;
+                const s = [...arr].sort((a, b) => a - b);
+                return s.length % 2 ? s[(s.length - 1) / 2] : 0.5 * (s[s.length / 2 - 1] + s[s.length / 2]);
+            };
+            const esr = pick('ESR1', breastLines);
+            const pgr = pick('PGR', breastLines);
+            const her = pick('ERBB2', breastLines);
+            const esrMed = median(esr.map(x => x.v));
+            const pgrMed = median(pgr.map(x => x.v));
+            // HER2+: top quintile of ERBB2 among breast lines.
+            const herSorted = [...her].sort((a, b) => b.v - a.v);
+            const herTop = new Set(herSorted.slice(0, Math.ceil(herSorted.length / 5)).map(x => x.cl));
+
+            mem.tnbc = new Set();
+            mem.hr_pos_breast = new Set();
+            mem.her2_pos_breast = new Set();
+            for (const { cl } of breastLines) {
+                const e = esr.find(x => x.cl === cl)?.v;
+                const p = pgr.find(x => x.cl === cl)?.v;
+                const isHer2 = herTop.has(cl);
+                const hrPos = (e !== undefined && e >= esrMed) || (p !== undefined && p >= pgrMed);
+                if (isHer2) mem.her2_pos_breast.add(cl);
+                if (hrPos && !isHer2) mem.hr_pos_breast.add(cl);
+                if (!hrPos && !isHer2) mem.tnbc.add(cl);
+            }
+        }
+
+        this._collectionMembership = mem;
+    }
+
+    // Populate the CLB collection dropdown from the catalog.
+    _populateCollectionFilter() {
+        const sel = document.getElementById('clbCollectionFilter');
+        if (!sel) return;
+        const prev = sel.value;
+        const catalog = this._curatedCollectionsCatalog();
+        const mem = this._collectionMembership || {};
+        // Group by category in <optgroup>s for readability.
+        const byCat = {};
+        for (const [id, def] of Object.entries(catalog)) {
+            if (!mem[id]) continue; // skip expression-based ones when not computed
+            const n = mem[id].size;
+            if (!n) continue;
+            (byCat[def.category] = byCat[def.category] || []).push({ id, def, n });
+        }
+        sel.innerHTML = '<option value="">All collections</option>';
+        for (const cat of Object.keys(byCat)) {
+            const og = document.createElement('optgroup');
+            og.label = cat;
+            for (const { id, def, n } of byCat[cat]) {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = `${def.label} (n=${n})`;
+                opt.title = def.description;
+                og.appendChild(opt);
+            }
+            sel.appendChild(og);
+        }
+        sel.value = prev || '';
+    }
+
     // Annotation and expression are two independent sex axes.
     // Returns { annotation, byExpression }
     //   annotation:   'Male' | 'Female' | 'Unknown'
@@ -21037,6 +21272,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.renderCellLineList();
         });
         document.getElementById('clbSubtypeFilter').addEventListener('change', () => this.renderCellLineList());
+        document.getElementById('clbCollectionFilter').addEventListener('change', () => this.renderCellLineList());
         document.getElementById('clbSexFilter').addEventListener('change', () => this.renderCellLineList());
         // Hotspot/translocation filters are now <input> + <datalist> — trigger on change and input
         const clbHotspotInput = document.getElementById('clbHotspotFilter');
@@ -21331,6 +21567,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbSubtypeFilter').style.display = 'none';
         document.getElementById('clbHotspotFilter').value = '';
         document.getElementById('clbTranslocationFilter').value = '';
+        document.getElementById('clbCollectionFilter').value = '';
+        this._populateCollectionFilter();
         document.getElementById('clbDetailPanel').classList.remove('active');
         document.getElementById('clbDetailContent').style.display = 'none';
         document.getElementById('clbDetailPlaceholder').style.display = '';
@@ -21365,17 +21603,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const search = document.getElementById('clbSearch').value.trim().toLowerCase();
         const tissue = document.getElementById('clbTissueFilter').value;
         const subtype = document.getElementById('clbSubtypeFilter').value;
+        const collection = document.getElementById('clbCollectionFilter')?.value || '';
         const sexFilter = document.getElementById('clbSexFilter').value;
         const hotspotGene = document.getElementById('clbHotspotFilter').value;
         const transGene = document.getElementById('clbTranslocationFilter').value;
 
-        // Pre-fetch mutation/translocation lookups for selected genes
         const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
         const transMuts = transGene && this.translocations?.geneData?.[transGene]?.translocations;
+        const collectionSet = collection ? this._collectionMembership?.[collection] : null;
 
         let filtered = this.metadata.cellLines.filter(cl => {
             if (tissue && this.getCellLineLineage(cl) !== tissue) return false;
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
+            if (collectionSet && !collectionSet.has(cl)) return false;
             if (sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
             if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
             if (transMuts && !(transMuts[cl] >= 1)) return false;
