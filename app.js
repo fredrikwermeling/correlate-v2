@@ -8006,6 +8006,10 @@ Results:
 
     _getNetworkFilterText() {
         const parts = [];
+        // When the analysis was launched from a CLB selection (via "Inspect
+        // gene effects" / "Inspect correlations" → Network), surface that
+        // context so the user doesn't forget what the network represents.
+        if (this._pendingSelectionLabel) parts.push(this._pendingSelectionLabel);
         const lineage = document.getElementById('lineageFilter')?.value;
         const subLineage = document.getElementById('subLineageFilter')?.value;
         if (lineage) {
@@ -17220,36 +17224,56 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         filteredStats.sort((a, b) => a.mean - b.mean);
         this.currentGEStats = filteredStats;
 
-        // When the user entered the GE modal via "Inspect Gene Effects for
-        // selected cell lines", highlight those cell lines in a vivid colour
-        // and larger size so they stand out from the rest of each box.
+        // Selection highlight from the "Inspect Gene Effects" flow. Plotly
+        // box plots don't expose per-point marker colors for boxpoints:'all',
+        // so the highlight is drawn as a separate scatter trace overlaid on
+        // top of each box (original box keeps default grey points).
         const hl = this._geSelectionHighlight instanceof Set ? this._geSelectionHighlight : null;
         const hlColor = '#dc2626';
-        const baseColor = 'rgba(80,80,80,0.5)';
-        const traces = filteredStats.map((s, idx) => {
-            const colors = hl ? s.cellData.map(c => hl.has(c.cellLineId) ? hlColor : baseColor) : baseColor;
-            const sizes = hl ? s.cellData.map(c => hl.has(c.cellLineId) ? 9 : 5) : 5;
-            return {
-                type: 'box',
-                name: `${s.group} (n=${s.n})`,
-                x: s.cellData.map(c => c.geneEffect),
-                text: s.cellData.map(c => c.cellLineName),
-                boxpoints: 'all',
-                jitter: 0.3,
-                pointpos: 0,
-                marker: {
-                    color: colors,
-                    size: sizes,
-                    line: hl ? {
-                        color: s.cellData.map(c => hl.has(c.cellLineId) ? '#7f1d1d' : 'rgba(0,0,0,0)'),
-                        width: s.cellData.map(c => hl.has(c.cellLineId) ? 1 : 0)
-                    } : undefined
-                },
-                line: { color: '#374151' },
-                fillcolor: 'rgba(200,200,200,0.3)',
-                hovertemplate: `<b>%{text}</b><br>${isGrowth ? 'Growth Rate' : isGeneSet ? 'Score' : 'Gene Effect'}: %{x:.3f}<extra></extra>`
-            };
-        });
+        const traces = filteredStats.map((s, idx) => ({
+            type: 'box',
+            name: `${s.group} (n=${s.n})`,
+            x: s.cellData.map(c => c.geneEffect),
+            text: s.cellData.map(c => c.cellLineName),
+            boxpoints: 'all',
+            jitter: 0.3,
+            pointpos: 0,
+            marker: {
+                color: 'rgba(80,80,80,0.5)',
+                size: 5
+            },
+            line: { color: '#374151' },
+            fillcolor: 'rgba(200,200,200,0.3)',
+            hovertemplate: `<b>%{text}</b><br>${isGrowth ? 'Growth Rate' : isGeneSet ? 'Score' : 'Gene Effect'}: %{x:.3f}<extra></extra>`
+        }));
+        if (hl && hl.size) {
+            // One overlay scatter trace per tissue row so points line up on
+            // the categorical y-axis that Plotly constructs from the box
+            // names.
+            const hlGroupCount = { total: 0 };
+            filteredStats.forEach((s) => {
+                const hlCells = s.cellData.filter(c => hl.has(c.cellLineId));
+                if (!hlCells.length) return;
+                hlGroupCount.total += hlCells.length;
+                traces.push({
+                    type: 'scatter',
+                    mode: 'markers',
+                    name: `Selected in ${s.group}`,
+                    x: hlCells.map(c => c.geneEffect),
+                    y: hlCells.map(() => `${s.group} (n=${s.n})`),
+                    text: hlCells.map(c => c.cellLineName),
+                    hovertemplate: `<b>%{text}</b><br>${isGrowth ? 'Growth Rate' : isGeneSet ? 'Score' : 'Gene Effect'}: %{x:.3f}<br><span style="color:${hlColor};">Selected</span><extra></extra>`,
+                    showlegend: false,
+                    marker: {
+                        color: hlColor,
+                        size: 10,
+                        symbol: 'diamond',
+                        line: { color: '#7f1d1d', width: 1.5 }
+                    }
+                });
+            });
+            hl.__shown = hlGroupCount.total;
+        }
 
         // Calculate dynamic sizing
         const numEntries = stats.length;
@@ -17263,7 +17287,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const filterDesc = this._getGEFilterDescription();
         const subtitleParts = [`n=${data.length}`];
         if (filterDesc) subtitleParts.push(filterDesc);
-        if (hl && hl.size > 0) subtitleParts.push(`<span style="color:${hlColor}">&#9679; ${hl.size} selected cell lines highlighted</span>`);
+        if (hl && hl.size > 0) {
+            const shown = hl.__shown ?? hl.size;
+            subtitleParts.push(`<span style="color:${hlColor}">&#9670; ${shown} selected cell lines highlighted</span>`);
+        }
         const layout = {
             annotations: [
                 { text: `<b>${geTissueTitle}</b>${subtitleParts.length ? '<br><span style="font-size:11px;color:#6b7280;">' + subtitleParts.join(' | ') + '</span>' : ''}`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 19 }, _tsRole: 'title' },
@@ -21493,6 +21520,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbExportComprehensive')?.addEventListener('click', () => this.exportCellLineBrowserCSV('comprehensive'));
         document.getElementById('clbInspectGEBtn')?.addEventListener('click', () => this.inspectSelectionGE());
         document.getElementById('clbInspectCorrBtn')?.addEventListener('click', () => this.inspectSelectionCorrelations());
+        document.getElementById('clbCopyNamesBtn')?.addEventListener('click', () => this.copyCellLineNames());
+        // Save / Open the selection-inspect results so a 5–10 min correlation
+        // run isn't a single-shot — user can return to it later.
+        document.getElementById('selectionInspectSave')?.addEventListener('click', () => this._saveSelectionInspect());
+        document.getElementById('clbOpenInspectBtn')?.addEventListener('click', () => {
+            document.getElementById('selectionInspectOpenInput')?.click();
+        });
+        document.getElementById('selectionInspectOpenInput')?.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (file) this._openSelectionInspect(file);
+            e.target.value = ''; // allow re-selecting the same file
+        });
         document.getElementById('selectionInspectClose')?.addEventListener('click', () => {
             document.getElementById('selectionInspectModal').style.display = 'none';
         });
@@ -23292,6 +23331,194 @@ ${body}
     // the rest of the dataset. Clicking a row opens the GE inspect modal
     // for that gene (By Tissue mode), which the user can then restrict
     // with their saved selection via Custom CLs.
+    // Copy the selected cell-line names (or, when nothing is selected, the
+    // currently visible list) to the clipboard, one per line — the exact
+    // format the Custom CLs textarea expects.
+    async copyCellLineNames() {
+        let ids = [...(this._clbSelectedCellLines || new Set())];
+        let source = 'selected';
+        if (!ids.length) {
+            ids = [...(this._clbVisibleCellLines || [])];
+            source = 'visible';
+        }
+        if (!ids.length) { alert('Nothing to copy — select cell lines or adjust filters first.'); return; }
+        const names = ids.map(cl => this.getCellLineName(cl) || cl).join('\n');
+        try {
+            await navigator.clipboard.writeText(names);
+            this.showCopyNotification(`Copied ${ids.length} ${source} cell line name${ids.length === 1 ? '' : 's'} — paste into Custom CLs`);
+        } catch (e) {
+            const ta = document.createElement('textarea');
+            ta.value = names;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            this.showCopyNotification(`Copied ${ids.length} ${source} cell line name${ids.length === 1 ? '' : 's'}`);
+        }
+    }
+
+    // Serialize the currently-displayed selection-inspect (GE or
+    // correlations) to a JSON file the user can re-open later via
+    // "Open saved Inspect". A 5–10 minute correlation run shouldn't
+    // be a single-shot.
+    _saveSelectionInspect() {
+        const kind = this._activeSelectionInspect?.kind;
+        const date = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        let payload;
+        let filename;
+        if (kind === 'corr' && this._corrInspectResults) {
+            const r = this._corrInspectResults;
+            payload = { kind: 'corr', version: 1, savedAt: new Date().toISOString(),
+                selected: r.selected, corrInSel: r.corrInSel, corrDiff: r.corrDiff };
+            filename = `correlate_inspect_corr_${r.selected.length}cl_${date}.json`;
+        } else if (kind === 'ge' && this._geInspectResults) {
+            const r = this._geInspectResults;
+            payload = { kind: 'ge', version: 1, savedAt: new Date().toISOString(),
+                selected: r.selected, rows: r.rows };
+            filename = `correlate_inspect_ge_${r.selected.length}cl_${date}.json`;
+        } else {
+            alert('Nothing to save yet.'); return;
+        }
+        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        this.showCopyNotification?.(`Saved ${kind === 'corr' ? 'correlations' : 'gene effects'} inspect → ${filename}`);
+    }
+
+    // Re-open a previously saved selection-inspect file. Restores the
+    // results into the instance and re-renders the modal — no recomputation.
+    async _openSelectionInspect(file) {
+        try {
+            const text = await file.text();
+            const payload = JSON.parse(text);
+            if (payload.kind === 'corr' && Array.isArray(payload.corrInSel) && Array.isArray(payload.corrDiff)) {
+                // Stub the result structure inspectSelectionCorrelations would
+                // have built. Open the modal and re-render via the same path.
+                this._corrInspectResults = {
+                    selected: payload.selected || [],
+                    corrInSel: payload.corrInSel,
+                    corrDiff: payload.corrDiff
+                };
+                this._activeSelectionInspect = { kind: 'corr' };
+                this._renderRestoredCorrInspect();
+            } else if (payload.kind === 'ge' && Array.isArray(payload.rows)) {
+                this._geInspectResults = {
+                    selected: payload.selected || [],
+                    rows: payload.rows
+                };
+                this._activeSelectionInspect = { kind: 'ge' };
+                this._renderRestoredGEInspect();
+            } else {
+                alert('Unrecognised file format. Expected a saved Inspect file.');
+            }
+        } catch (e) {
+            alert('Failed to read file: ' + e.message);
+        }
+    }
+
+    // Re-build the UI scaffolding for a restored Correlations inspect.
+    // Identical to the post-compute branch in inspectSelectionCorrelations.
+    _renderRestoredCorrInspect() {
+        const r = this._corrInspectResults;
+        const selected = r.selected || [];
+        const saveBtn = document.getElementById('selectionInspectSave');
+        if (saveBtn) saveBtn.style.display = '';
+        document.getElementById('selectionInspectTitle').textContent = `Inspect Correlations — ${selected.length} selected cell lines (restored)`;
+        document.getElementById('selectionInspectSubtitle').textContent = `Loaded from a saved file. Left: top correlations in the selection. Right: largest Δ vs all cells. Click any row to open the correlation inspect; cutoffs and Network buttons work as before.`;
+        document.getElementById('selectionInspectBody').innerHTML = `
+            <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+                        <div style="font-weight:600; color:#374151;">Top correlations in selection</div>
+                        <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
+                            <label>|r|&nbsp;&ge;</label>
+                            <input type="number" id="siLeftCutoff" min="0" max="1" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                            <button class="btn btn-outline btn-sm" id="siLeftNetwork" style="font-size:11px; padding:3px 8px;">Network</button>
+                        </div>
+                    </div>
+                    <div id="siLeftHint" style="font-size:10px; color:#9ca3af; margin-bottom:6px;"></div>
+                    <div id="siLeftBody" style="max-height:58vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;"></div>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+                        <div style="font-weight:600; color:#374151;">Most different vs rest (Δr)</div>
+                        <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
+                            <label>|Δ|&nbsp;&ge;</label>
+                            <input type="number" id="siRightCutoff" min="0" max="2" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                            <button class="btn btn-outline btn-sm" id="siRightNetwork" style="font-size:11px; padding:3px 8px;">Network</button>
+                        </div>
+                    </div>
+                    <div id="siRightHint" style="font-size:10px; color:#9ca3af; margin-bottom:6px;"></div>
+                    <div id="siRightBody" style="max-height:58vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;"></div>
+                </div>
+            </div>`;
+        document.getElementById('selectionInspectModal').style.display = 'flex';
+        const renderSides = () => this._renderCorrInspectTables();
+        document.getElementById('siLeftCutoff').addEventListener('input', renderSides);
+        document.getElementById('siRightCutoff').addEventListener('input', renderSides);
+        document.getElementById('siLeftNetwork').addEventListener('click', () => this._launchCorrelationNetwork('left'));
+        document.getElementById('siRightNetwork').addEventListener('click', () => this._launchCorrelationNetwork('right'));
+        renderSides();
+    }
+
+    // Re-build the UI scaffolding for a restored Gene Effects inspect.
+    _renderRestoredGEInspect() {
+        const r = this._geInspectResults;
+        const selected = r.selected || [];
+        const saveBtn = document.getElementById('selectionInspectSave');
+        if (saveBtn) saveBtn.style.display = '';
+        document.getElementById('selectionInspectTitle').textContent = `Inspect Gene Effects — ${selected.length} selected cell lines (restored)`;
+        document.getElementById('selectionInspectSubtitle').textContent = `Loaded from a saved file. Click any gene to open its GE inspect with the selected cell lines highlighted.`;
+        document.getElementById('selectionInspectBody').innerHTML = `
+            <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+                        <div style="font-weight:600; color:#374151;">Most depleted in selection</div>
+                        <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
+                            <label>|&Delta;|&nbsp;&ge;</label>
+                            <input type="number" id="geLeftDeltaCutoff" min="0" max="5" step="0.05" value="0" style="width:56px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                            <label>Top</label>
+                            <input type="number" id="geLeftN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                            <button class="btn btn-outline btn-sm" id="geLeftNetwork" style="font-size:11px; padding:3px 8px;">Network</button>
+                            <button class="btn btn-outline btn-sm" id="geLeftEnrichr" style="font-size:11px; padding:3px 8px;">Enrichr</button>
+                        </div>
+                    </div>
+                    <div id="geLeftHint" style="font-size:10px; color:#9ca3af; margin-bottom:6px;"></div>
+                    <div id="geLeftBody" style="max-height:58vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;"></div>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+                        <div style="font-weight:600; color:#374151;">Most different from rest</div>
+                        <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
+                            <label>|&Delta;|&nbsp;&ge;</label>
+                            <input type="number" id="geRightDeltaCutoff" min="0" max="5" step="0.05" value="0.1" style="width:56px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                            <label>Top</label>
+                            <input type="number" id="geRightN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                            <button class="btn btn-outline btn-sm" id="geRightNetwork" style="font-size:11px; padding:3px 8px;">Network</button>
+                            <button class="btn btn-outline btn-sm" id="geRightEnrichr" style="font-size:11px; padding:3px 8px;">Enrichr</button>
+                        </div>
+                    </div>
+                    <div id="geRightHint" style="font-size:10px; color:#9ca3af; margin-bottom:6px;"></div>
+                    <div id="geRightBody" style="max-height:58vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;"></div>
+                </div>
+            </div>`;
+        this._geInspectSort = { left: { key: 'meanSel', dir: 1 }, right: { key: 'delta', dir: 1 } };
+        document.getElementById('selectionInspectModal').style.display = 'flex';
+        const renderSides = () => this._renderGEInspectTables();
+        document.getElementById('geLeftDeltaCutoff').addEventListener('input', renderSides);
+        document.getElementById('geRightDeltaCutoff').addEventListener('input', renderSides);
+        document.getElementById('geLeftN').addEventListener('input', renderSides);
+        document.getElementById('geRightN').addEventListener('input', renderSides);
+        document.getElementById('geLeftNetwork').addEventListener('click', () => this._launchGENetwork('left'));
+        document.getElementById('geRightNetwork').addEventListener('click', () => this._launchGENetwork('right'));
+        document.getElementById('geLeftEnrichr').addEventListener('click', () => this._launchGEEnrichr('left'));
+        document.getElementById('geRightEnrichr').addEventListener('click', () => this._launchGEEnrichr('right'));
+        renderSides();
+    }
+
     inspectSelectionGE() {
         const selected = [...(this._clbSelectedCellLines || new Set())];
         if (selected.length < 3) {
@@ -23326,8 +23553,11 @@ ${body}
         }
 
         // Cache the full per-gene stats on the instance so sort / filter /
-        // Network actions don't need to recompute.
+        // Network / Save actions don't need to recompute.
         this._geInspectResults = { rows, selected };
+        this._activeSelectionInspect = { kind: 'ge' };
+        const saveBtn = document.getElementById('selectionInspectSave');
+        if (saveBtn) saveBtn.style.display = '';
 
         document.getElementById('selectionInspectTitle').textContent = `Inspect Gene Effects — ${selected.length} selected cell lines`;
         document.getElementById('selectionInspectSubtitle').textContent = `Left: most depleted in selection (ranked by Mean GE in the selection). Right: largest &Delta; (selection &minus; rest). Columns are sortable; change the |&Delta;| or row-count filters below. Click any gene to open its GE inspect; use Network to build a correlation network from the displayed genes.`;
@@ -23342,6 +23572,7 @@ ${body}
                             <label>Top</label>
                             <input type="number" id="geLeftN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <button class="btn btn-outline btn-sm" id="geLeftNetwork" style="font-size:11px; padding:3px 8px;" title="Build a correlation network from the displayed genes, restricted to the selected cell lines">Network</button>
+                            <button class="btn btn-outline btn-sm" id="geLeftEnrichr" style="font-size:11px; padding:3px 8px;" title="Send the displayed genes to Enrichr for pathway / ontology enrichment">Enrichr</button>
                         </div>
                     </div>
                     <div id="geLeftHint" style="font-size:10px; color:#9ca3af; margin-bottom:6px;"></div>
@@ -23356,6 +23587,7 @@ ${body}
                             <label>Top</label>
                             <input type="number" id="geRightN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <button class="btn btn-outline btn-sm" id="geRightNetwork" style="font-size:11px; padding:3px 8px;" title="Build a correlation network from the displayed genes, restricted to the selected cell lines">Network</button>
+                            <button class="btn btn-outline btn-sm" id="geRightEnrichr" style="font-size:11px; padding:3px 8px;" title="Send the displayed genes to Enrichr for pathway / ontology enrichment">Enrichr</button>
                         </div>
                     </div>
                     <div id="geRightHint" style="font-size:10px; color:#9ca3af; margin-bottom:6px;"></div>
@@ -23378,7 +23610,28 @@ ${body}
         document.getElementById('geRightN').addEventListener('input', renderSides);
         document.getElementById('geLeftNetwork').addEventListener('click', () => this._launchGENetwork('left'));
         document.getElementById('geRightNetwork').addEventListener('click', () => this._launchGENetwork('right'));
+        document.getElementById('geLeftEnrichr').addEventListener('click', () => this._launchGEEnrichr('left'));
+        document.getElementById('geRightEnrichr').addEventListener('click', () => this._launchGEEnrichr('right'));
         renderSides();
+    }
+
+    // Submit the genes currently displayed on the requested side of the
+    // Inspect GE modal to Enrichr. Reuses the existing Enrichr modal.
+    _launchGEEnrichr(side) {
+        if (!this._geInspectResults) return;
+        const list = side === 'left' ? this._geInspectResults.leftDisplayed : this._geInspectResults.rightDisplayed;
+        if (!list || list.length < 2) { alert('Need at least 2 genes for Enrichr.'); return; }
+        const genes = list.map(r => r.gene);
+        const modal = document.getElementById('enrichrModal');
+        const content = document.getElementById('enrichrContent');
+        const title = document.getElementById('enrichrTitle');
+        if (!modal || !content) { alert('Enrichr UI not available.'); return; }
+        title.textContent = `Enrichr — ${genes.length} genes (${side === 'left' ? 'most depleted in selection' : 'most different vs rest'})`;
+        content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
+        modal.style.display = 'block';
+        this.submitToEnrichr(genes).catch(err => {
+            content.innerHTML = `<div style="text-align:center; padding:60px; color:#ef4444;">Failed to connect to Enrichr.<br><small style="color:#888;">${err.message}</small></div>`;
+        });
     }
 
     // Render the two GE inspect tables with current sort + filter state.
@@ -23510,6 +23763,8 @@ ${body}
 
         document.getElementById('selectionInspectModal').style.display = 'none';
         document.getElementById('cellLineBrowserModal').style.display = 'none';
+
+        this._pendingSelectionLabel = `Selection (${selected.length} cell line${selected.length === 1 ? '' : 's'})`;
 
         const taEl = document.getElementById('geneTextarea');
         if (taEl) taEl.value = list.map(r => r.gene).join('\n');
@@ -23681,8 +23936,12 @@ ${body}
 
         // Stash full result sets (unfiltered by cutoff) on the instance so
         // the cutoff input can re-filter without re-running the heavy math,
-        // and the "Network" button can read from whichever side triggered it.
+        // the "Network" button can read from whichever side triggered it,
+        // and "Save" can dump the whole thing to a JSON file.
         this._corrInspectResults = { selected, corrInSel, corrDiff };
+        this._activeSelectionInspect = { kind: 'corr' };
+        const saveBtn = document.getElementById('selectionInspectSave');
+        if (saveBtn) saveBtn.style.display = '';
 
         document.getElementById('selectionInspectTitle').textContent = `Inspect Correlations — ${selected.length} selected cell lines`;
         document.getElementById('selectionInspectSubtitle').textContent = `Left: strongest gene-pair correlations in the selection. Right: largest Δ (selection r − rest r). Click a row to open the correlation inspect for that pair; use the r-cutoff or the Network button to drill in.`;
@@ -23764,10 +24023,11 @@ ${body}
 
         document.querySelectorAll('.si-row').forEach(tr => {
             tr.addEventListener('click', () => {
-                document.getElementById('selectionInspectModal').style.display = 'none';
-                // Open the correlation inspect directly with a lightweight
-                // correlation stub — we don't require a prior analysis to
-                // have run and populated this.results.correlations.
+                // Keep the selection-inspect modal open so the user can
+                // return to the list after viewing a pair — the
+                // correlation popup has a higher z-index and overlays it.
+                // Closing was costing them a 10-minute recompute when they
+                // wanted to inspect a second pair.
                 this.openInspect({ gene1: tr.dataset.g1, gene2: tr.dataset.g2, correlation: null });
             });
             tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
@@ -23809,6 +24069,10 @@ ${body}
         // Close the modals so the user sees the main analysis view.
         document.getElementById('selectionInspectModal').style.display = 'none';
         document.getElementById('cellLineBrowserModal').style.display = 'none';
+
+        // Tag the pending analysis so the network banner labels the cell-line
+        // filter as "Selection (n)".
+        this._pendingSelectionLabel = `Selection (${selected.length} cell line${selected.length === 1 ? '' : 's'})`;
 
         // Populate the main gene-list textarea.
         const taEl = document.getElementById('geneTextarea');

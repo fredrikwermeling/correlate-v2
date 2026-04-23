@@ -1324,6 +1324,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.73.5 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Selection-Inspect (GE / Correlations) results can now be <b>saved</b> to a JSON file and <b>re-opened</b> later — no more losing a 5–10 minute correlation run if you wanted to look at a different pair afterwards. <em>Save</em> button appears in the modal header once results are computed; <em>Open Saved Inspect</em> button next to the Inspect Correlations button on the CLB toolbar pops a file picker, restores the result table, and re-wires all interactivity (sort, cutoff, Network, Enrichr).</li>
+                    <li>Clicking a correlation row in <em>Inspect Correlations</em> used to close the inspect modal AND open the correlation popup behind the Cell Line Browser, leaving it invisible. Two fixes: the inspect modal now stays open (it's still useful), and the correlation popup z-index was raised above the CLB so it surfaces on top.</li>
+                </ul>
                 <p><strong>v.73.4 (2026-04-23)</strong></p>
                 <ul>
                     <li>Curated collections dropdown moved to its own row below the main CLB toolbar with a <b>?</b> info button that opens a reference modal listing each collection&rsquo;s inclusion criteria + current dataset count. Adding / editing collections in the catalog automatically updates both the dropdown and the reference modal.</li>
@@ -2131,7 +2136,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.4</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.5</a>
     </div>
 
     <div class="main-content">
@@ -2787,7 +2792,7 @@
     </div> <!-- end main-content -->
 
     <!-- Inspect Modal -->
-    <div class="modal-overlay" id="inspectModal">
+    <div class="modal-overlay" id="inspectModal" style="z-index:1300;">
         <div class="modal">
             <div class="modal-header">
                 <h3 id="inspectTitle">Correlation: Gene1 vs Gene2</h3>
@@ -3469,11 +3474,16 @@
                     <h3 id="selectionInspectTitle" style="margin:0; font-size:17px; color:#15803d;">Inspect selection</h3>
                     <div id="selectionInspectSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
                 </div>
-                <button id="selectionInspectClose" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <button id="selectionInspectSave" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; display:none;" title="Save these results to a JSON file you can re-open later without re-running the analysis">Save</button>
+                    <button id="selectionInspectClose" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+                </div>
             </div>
             <div id="selectionInspectBody" style="padding:14px 18px; overflow-y:auto; font-size:12px; color:#374151;"></div>
         </div>
     </div>
+    <!-- Hidden file input for re-loading saved selection-inspect results -->
+    <input type="file" id="selectionInspectOpenInput" accept="application/json,.json" style="display:none;">
 
     <!-- Progress overlay used by long-running analyses (correlation inspect). -->
     <div id="progressOverlay" style="display:none; position:fixed; inset:0; z-index:1400; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
@@ -3842,8 +3852,10 @@
           <div style="margin-left:auto; display:flex; gap:6px;">
             <button id="clbSelectVisible" class="btn btn-outline btn-sm">Select Visible</button>
             <button id="clbDeselectAll" class="btn btn-outline btn-sm">Deselect All</button>
+            <button id="clbCopyNamesBtn" class="btn btn-outline btn-sm" title="Copy the names of the selected cell lines (one per line) to the clipboard — ready to paste into Custom CLs">Copy Names</button>
             <button id="clbInspectGEBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Top gene-effect hits in the selected cell lines — and top Δ vs the rest. Fast (~seconds).">Inspect<br><span style="font-size:9px;font-weight:normal;">Gene Effects</span></button>
-            <button id="clbInspectCorrBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Unbiased all-vs-all gene correlations in the selected cell lines. Slow — can take 1–3 minutes depending on selection size and hardware.">Inspect<br><span style="font-size:9px;font-weight:normal;">Correlations</span></button>
+            <button id="clbInspectCorrBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Unbiased all-vs-all gene correlations in the selected cell lines. Slow — can take 5–10 minutes depending on selection size and hardware.">Inspect<br><span style="font-size:9px;font-weight:normal;">Correlations</span></button>
+            <button id="clbOpenInspectBtn" class="btn btn-outline btn-sm" style="line-height:1.2; padding:4px 8px;" title="Re-open a previously saved selection-inspect (Gene Effects or Correlations) JSON file without re-running the analysis">Open<br><span style="font-size:9px;font-weight:normal;">Saved Inspect</span></button>
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="Gene Effect values for all genes × selected cell lines (CSV)">Export GE<br><span style="font-size:9px;font-weight:normal;">for selected CLs</span></button>
             <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="All data per cell line: GE, Expression, Hotspot, Damaging, Translocation (genes × cell lines)">Full Data<br><span style="font-size:9px;font-weight:normal;">Export</span></button>
           </div>
