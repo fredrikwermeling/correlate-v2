@@ -2978,6 +2978,10 @@ class CorrelationExplorer {
         document.getElementById('compareAllTranslocationsBtn')?.addEventListener('click', () => this.showCompareAllTranslocations());
         document.getElementById('compareAllCancerTypesBtn')?.addEventListener('click', () => this.showCompareAllCancerTypes());
         document.getElementById('updateInspectGenes')?.addEventListener('click', () => this.updateInspectGenes());
+        document.getElementById('inspectFindCorrelatesBtn')?.addEventListener('click', () => this.findInspectCorrelates());
+        document.getElementById('inspectCorrelatesClose')?.addEventListener('click', () => {
+            document.getElementById('inspectCorrelatesModal').style.display = 'none';
+        });
 
         // Plot size controls
         ['plotWidth', 'plotHeight'].forEach(id => {
@@ -10699,6 +10703,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Single panel color mode
+        // Stash the filtered cell-line IDs so "Find correlates" can use the
+        // same set without re-running the filter logic.
+        this._inspectFilteredCellLineIds = filteredData.map(d => d.cellLineId);
         this.renderSinglePanelPlot(filteredData, gene1, gene2, hotspotGene, hotspotMode, searchTerms, fontSize, filterDesc, transOverlayGene, transOverlayMode, colorByCategory);
     }
 
@@ -12181,6 +12188,167 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         this.setupSortableTable('compareTranslocationsTable');
+    }
+
+    // Find top GE and Expression correlates of the current X-axis gene
+    // across the cell lines that pass the inspect modal's filters. Two
+    // lists. Click a row to put that gene on the Y axis.
+    async findInspectCorrelates() {
+        const xGene = (document.getElementById('inspectGeneX')?.value || '').trim().toUpperCase();
+        if (!xGene) { alert('Enter an X-axis gene first.'); return; }
+        const xType = document.getElementById('xAxisDataType')?.value || 'ge';
+        // Use filteredData from the current scatter — it already reflects
+        // tissue / hotspot / fusion / custom-CL filters. Fall back to
+        // all cell lines if the plot hasn't been built yet.
+        let clIds = this._inspectFilteredCellLineIds;
+        if (!Array.isArray(clIds) || clIds.length < 3) {
+            clIds = this.metadata.cellLines.slice();
+        }
+        const clIndexOf = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
+        const clIdxs = clIds.map(cl => clIndexOf.get(cl)).filter(i => i !== undefined);
+        if (clIdxs.length < 3) { alert('Need ≥ 3 cell lines after filters.'); return; }
+
+        // Build the X-vector from the selected data type.
+        const xIdx = xType === 'ge'
+            ? this.geneIndex.get(xGene)
+            : (this.expressionGeneIndex ? this.expressionGeneIndex.get(xGene) : undefined);
+        if (xIdx === undefined) { alert(`Gene "${xGene}" not found in ${xType === 'ge' ? 'gene-effect' : 'expression'} data.`); return; }
+        const xSource = xType === 'ge' ? this.geneEffects : this.expressionData;
+        if (xType === 'expr' && !this.expressionLoaded) { alert('Expression data is still loading.'); return; }
+        const n = clIdxs.length;
+        const xVec = new Float64Array(n);
+        const xValid = new Uint8Array(n);
+        let xSum = 0, xN = 0;
+        for (let k = 0; k < n; k++) {
+            const v = xSource[xIdx * this.nCellLines + clIdxs[k]];
+            if (!isNaN(v) && v !== -999) { xVec[k] = v; xValid[k] = 1; xSum += v; xN++; }
+        }
+        if (xN < 3) { alert('X gene has too few valid values in the filtered cell lines.'); return; }
+        const xMean = xSum / xN;
+        let xSS = 0;
+        for (let k = 0; k < n; k++) if (xValid[k]) { const d = xVec[k] - xMean; xVec[k] = d; xSS += d * d; } else xVec[k] = 0;
+        const xNorm = Math.sqrt(xSS);
+        if (xNorm < 1e-12) { alert('X gene has zero variance in this subset.'); return; }
+
+        // Pass 1: GE correlates.
+        const geHits = [];
+        const nG = this.nGenes;
+        for (let g = 0; g < nG; g++) {
+            if (g === (xType === 'ge' ? xIdx : -1)) continue;
+            const off = g * this.nCellLines;
+            let s = 0, nn = 0;
+            for (let k = 0; k < n; k++) {
+                if (!xValid[k]) continue;
+                const v = this.geneEffects[off + clIdxs[k]];
+                if (isNaN(v) || v === -999) continue;
+                s += v; nn++;
+            }
+            if (nn < 3) continue;
+            const m = s / nn;
+            let dot = 0, ss = 0;
+            for (let k = 0; k < n; k++) {
+                if (!xValid[k]) continue;
+                const v = this.geneEffects[off + clIdxs[k]];
+                if (isNaN(v) || v === -999) continue;
+                const d = v - m;
+                dot += xVec[k] * d;
+                ss += d * d;
+            }
+            if (ss < 1e-12) continue;
+            const r = dot / (xNorm * Math.sqrt(ss));
+            if (isFinite(r)) geHits.push({ gene: this.geneNames[g], r });
+        }
+
+        // Pass 2: Expression correlates (skip if expression not loaded).
+        const exprHits = [];
+        if (this.expressionLoaded && this.expressionData && this.expressionGeneIndex) {
+            const exprGenes = Array.from(this.expressionGeneIndex.keys());
+            for (const gene of exprGenes) {
+                if (xType === 'expr' && gene === xGene) continue;
+                const eg = this.expressionGeneIndex.get(gene);
+                if (eg === undefined) continue;
+                const off = eg * this.nCellLines;
+                let s = 0, nn = 0;
+                for (let k = 0; k < n; k++) {
+                    if (!xValid[k]) continue;
+                    const v = this.expressionData[off + clIdxs[k]];
+                    if (isNaN(v)) continue;
+                    s += v; nn++;
+                }
+                if (nn < 3) continue;
+                const m = s / nn;
+                let dot = 0, ss = 0;
+                for (let k = 0; k < n; k++) {
+                    if (!xValid[k]) continue;
+                    const v = this.expressionData[off + clIdxs[k]];
+                    if (isNaN(v)) continue;
+                    const d = v - m;
+                    dot += xVec[k] * d;
+                    ss += d * d;
+                }
+                if (ss < 1e-12) continue;
+                const r = dot / (xNorm * Math.sqrt(ss));
+                if (isFinite(r)) exprHits.push({ gene, r });
+            }
+        }
+
+        geHits.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+        exprHits.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+        const top = (arr) => arr.slice(0, 100);
+
+        const buildList = (rows, kind) => rows.map(r => `
+            <tr class="ic-row" data-gene="${r.gene}" data-kind="${kind}" style="cursor:pointer;">
+                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#15803d;">${r.gene}</td>
+                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; font-weight:600; color:${r.r < 0 ? '#dc2626' : '#2563eb'};">${r.r.toFixed(3)}</td>
+            </tr>`).join('');
+
+        document.getElementById('inspectCorrelatesTitle').textContent = `Correlates of ${xGene} (${xType === 'ge' ? 'GE' : 'Expression'})`;
+        document.getElementById('inspectCorrelatesSubtitle').textContent = `n = ${xN} cell lines (after the inspect modal's current filters). Click a gene to put it on the Y axis.`;
+        document.getElementById('inspectCorrelatesBody').innerHTML = `
+            <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; color:#374151; margin-bottom:4px;">Top GE correlates</div>
+                    <div style="font-size:10px; color:#9ca3af; margin-bottom:6px;">Y axis will be set to GE.</div>
+                    <div style="max-height:60vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;">
+                        <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                            <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
+                                <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:left;">Gene</th>
+                                <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:center;">r</th>
+                            </tr></thead>
+                            <tbody>${buildList(top(geHits), 'ge')}</tbody>
+                        </table>
+                    </div>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; color:#374151; margin-bottom:4px;">Top Expression correlates</div>
+                    <div style="font-size:10px; color:#9ca3af; margin-bottom:6px;">${this.expressionLoaded ? 'Y axis will be set to Expression.' : 'Expression data not loaded.'}</div>
+                    <div style="max-height:60vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;">
+                        <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                            <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
+                                <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:left;">Gene</th>
+                                <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:center;">r</th>
+                            </tr></thead>
+                            <tbody>${buildList(top(exprHits), 'expr')}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        document.getElementById('inspectCorrelatesModal').style.display = 'flex';
+
+        document.querySelectorAll('.ic-row').forEach(tr => {
+            tr.addEventListener('click', () => {
+                document.getElementById('inspectCorrelatesModal').style.display = 'none';
+                const yGene = tr.dataset.gene;
+                const yKind = tr.dataset.kind;
+                const yInput = document.getElementById('inspectGeneY');
+                const yType = document.getElementById('yAxisDataType');
+                if (yInput) yInput.value = yGene;
+                if (yType) yType.value = yKind;
+                this.updateInspectGenes();
+            });
+            tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
+            tr.addEventListener('mouseleave', () => tr.style.background = '');
+        });
     }
 
     async updateInspectGenes() {
@@ -21614,6 +21782,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         document.getElementById('clbExportMinimal').addEventListener('click', () => this.exportCellLineBrowserCSV('minimal'));
         document.getElementById('clbExportComprehensive')?.addEventListener('click', () => this.exportCellLineBrowserCSV('comprehensive'));
+        document.getElementById('clbExportGenesBtn')?.addEventListener('click', () => this.exportCellLineBrowserGenesCSV());
         document.getElementById('clbInspectGEBtn')?.addEventListener('click', () => this.inspectSelectionGE());
         document.getElementById('clbInspectCorrBtn')?.addEventListener('click', () => this.inspectSelectionCorrelations());
         document.getElementById('clbCopyNamesBtn')?.addEventListener('click', () => this.copyCellLineNames());
@@ -24225,6 +24394,98 @@ ${body}
 
         // Kick off the analysis — this renders the network.
         document.getElementById('runAnalysis')?.click();
+    }
+
+    // One row per selected (or visible) cell line, columns: CellLineID,
+    // CellLineName, Tissue, Subtype, Sex (annotation), Sex (expression),
+    // then GE_<gene> and Expr_<gene> for every gene the user types in.
+    // Aimed at quickly pulling a tidy table to explore or plot outside the
+    // app.
+    exportCellLineBrowserGenesCSV() {
+        const input = prompt(
+            'Enter one or more gene symbols (comma, semicolon, newline, or whitespace separated).\n\n' +
+            'Each gene adds two columns — GE (gene effect) and Expr (log₂-TPM+1) — per row.',
+            'TP53, MDM2'
+        );
+        if (input === null) return;
+        const genes = input.split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+        if (!genes.length) return;
+
+        // Rows: prefer the current selection; fall back to the visible list
+        // so it still works when the user hasn't ticked anything.
+        let ids = [...(this._clbSelectedCellLines || new Set())];
+        let source = 'selected';
+        if (!ids.length) {
+            ids = [...(this._clbVisibleCellLines || [])];
+            source = 'visible';
+        }
+        if (!ids.length) { alert('No cell lines to export.'); return; }
+
+        // Resolve gene indices in both datasets up front.
+        const resolved = genes.map(g => ({
+            gene: g,
+            geIdx: this.geneIndex.get(g),
+            exprIdx: this.expressionGeneIndex ? this.expressionGeneIndex.get(g) : undefined
+        }));
+        const missing = resolved.filter(r => r.geIdx === undefined && r.exprIdx === undefined);
+        if (missing.length) {
+            alert(`Not found: ${missing.map(m => m.gene).join(', ')}. These columns will be empty.`);
+        }
+        if (!this.expressionLoaded && resolved.some(r => r.exprIdx !== undefined)) {
+            // Shouldn't normally hit this, but just in case.
+            alert('Expression data is still loading — expression columns will be empty.');
+        }
+
+        const clIndexOf = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
+        const getGE = (clIdx, gIdx) => {
+            if (gIdx === undefined || clIdx === undefined) return '';
+            const v = this.geneEffects[gIdx * this.nCellLines + clIdx];
+            return (!isNaN(v) && v !== -999) ? v.toFixed(4) : '';
+        };
+        const getExpr = (clIdx, eIdx) => {
+            if (eIdx === undefined || clIdx === undefined || !this.expressionLoaded) return '';
+            const v = this.expressionData[eIdx * this.nCellLines + clIdx];
+            return (!isNaN(v)) ? v.toFixed(3) : '';
+        };
+
+        const csvEsc = (s) => {
+            if (s == null) return '';
+            const str = String(s);
+            return /[,"\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+        };
+
+        const header = ['CellLineID', 'CellLineName', 'Tissue', 'Subtype', 'Sex_annotation', 'Sex_expression'];
+        resolved.forEach(r => { header.push(`GE_${r.gene}`); header.push(`Expr_${r.gene}`); });
+
+        const rows = [header.join(',')];
+        for (const cl of ids) {
+            const ci = clIndexOf.get(cl);
+            const sex = this._getCellLineSex ? this._getCellLineSex(cl) : { annotation: '', byExpression: '' };
+            const row = [
+                csvEsc(cl),
+                csvEsc(this.getCellLineName(cl) || ''),
+                csvEsc(this.getCellLineLineage(cl) || ''),
+                csvEsc(this.getCellLineSublineage(cl) || ''),
+                csvEsc(sex.annotation || ''),
+                csvEsc(sex.byExpression || '')
+            ];
+            resolved.forEach(r => {
+                row.push(getGE(ci, r.geIdx));
+                row.push(getExpr(ci, r.exprIdx));
+            });
+            rows.push(row.join(','));
+        }
+
+        const date = new Date().toISOString().slice(0, 10);
+        const nGenes = resolved.length;
+        const filename = `correlate_CLB_${source}_${ids.length}cl_${nGenes}gene${nGenes === 1 ? '' : 's'}_${date}.csv`;
+        const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        this.showCopyNotification?.(`Exported ${ids.length} cell lines × ${nGenes} gene${nGenes === 1 ? '' : 's'} → ${filename}`);
     }
 
     async exportCellLineBrowserCSV(mode) {

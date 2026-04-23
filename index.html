@@ -1325,6 +1325,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.74.4 (2026-04-23)</strong></p>
+                <ul>
+                    <li>CLB <b>?</b> help text updated with the new sort options: <em>GE for gene(s)</em> and <em>Expression of gene(s)</em>. Explains that multiple gene symbols are averaged per cell line (comma / semicolon / newline / whitespace separators).</li>
+                    <li>New <strong>Export Genes CSV</strong> button in the CLB toolbar. Prompts for one or more gene symbols and exports a tidy CSV with one row per selected cell line (or per visible cell line if nothing is selected). Columns: <code>CellLineID, CellLineName, Tissue, Subtype, Sex_annotation, Sex_expression, GE_&lt;gene&gt;, Expr_&lt;gene&gt;</code> &mdash; two data columns per gene.</li>
+                    <li>New <strong>Find correlates</strong> button in the correlation / inspect scatter modal. Takes the X-axis gene (GE or Expression, as selected), applies the current inspect filters (tissue / hotspot / fusion / custom-CL), and returns two lists side-by-side: top GE correlates and top Expression correlates (|r|-sorted, n=100 each). Click any gene to set it as the Y axis with the matching data type and redraw the scatter.</li>
+                </ul>
                 <p><strong>v.74.3 (2026-04-23)</strong></p>
                 <ul>
                     <li>Gene Effect analysis modal can now plot expression instead of gene effect. New <b>GE / Expression</b> toggle next to the gene input; switching re-analyses the current gene against the expression matrix (log2-TPM+1) and redraws the By Tissue box plot. The label, axis title, and hover read <em>Expression</em> in expression mode. Switching from the mutation-inspect layout to Expression falls back to the standalone view (0/1/2 stratification is tied to GE).</li>
@@ -2176,7 +2182,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.3</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.4</a>
     </div>
 
     <div class="main-content">
@@ -2859,6 +2865,7 @@
                                     <option value="expr">Expr</option>
                                 </select>
                                 <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px;">Update</button>
+                                <button class="btn btn-outline btn-sm" id="inspectFindCorrelatesBtn" style="font-size: 10px; padding: 2px 6px; color:#5a9f4a; border-color:#5a9f4a;" title="Find top GE and Expression correlates of the X-axis gene across the currently-filtered cell lines. Click a result to put it on the Y axis.">Find correlates</button>
                             </div>
                         </div>
 
@@ -3502,6 +3509,20 @@
         </div>
     </div>
 
+    <!-- Top GE + Expression correlates of the inspect X gene -->
+    <div id="inspectCorrelatesModal" style="display:none; position:fixed; inset:0; z-index:1400; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;">
+        <div style="background:#fff; width:100%; max-width:min(96vw,1100px); max-height:calc(100vh - 40px); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg,#f0fdf4 0%,#fff 100%);">
+                <div>
+                    <h3 id="inspectCorrelatesTitle" style="margin:0; font-size:17px; color:#15803d;">Top correlates</h3>
+                    <div id="inspectCorrelatesSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
+                </div>
+                <button id="inspectCorrelatesClose" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+            </div>
+            <div id="inspectCorrelatesBody" style="padding:14px 18px; overflow-y:auto; font-size:12px; color:#374151;"></div>
+        </div>
+    </div>
+
     <!-- Curated-collections reference -->
     <div id="collectionsInfoModal" style="display:none; position:fixed; inset:0; z-index:1250; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;">
         <div style="background:#fff; width:100%; max-width:min(94vw,760px); max-height:calc(100vh - 40px); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
@@ -3842,8 +3863,10 @@
             <li><b>Hotspot muts</b> &mdash; number of hotspot-mutated genes per cell line (descending by default).</li>
             <li><b>Damaging muts</b> &mdash; number of genes with damaging (deleterious / loss-of-function) somatic mutations per cell line (descending). Source: DepMap <code>OmicsSomaticMutationsMatrixDamaging</code>.</li>
             <li><b>Fusions</b> &mdash; number of distinct fusion/translocation partner genes per cell line (descending).</li>
-            <li><b>GE for gene</b> &mdash; enter a gene; cells sorted by its CRISPR gene effect (CERES score) value.</li>
+            <li><b>GE for gene(s)</b> &mdash; enter one or more genes; cells sorted by CRISPR gene effect (Chronos score). For multiple genes the mean across the panel is used &mdash; rank cells by combined essentiality.</li>
+            <li><b>Expression of gene(s)</b> &mdash; enter one or more genes; cells sorted by log&#8322;(TPM+1) expression (descending by default, so highest-expressing cells surface first). Multiple genes are averaged, so a panel like <code>CDKN2A, RB1</code> or <code>ASCL1, NEUROD1, CHGA, SYP</code> finds cells with the strongest combined signature.</li>
           </ul>
+          <p style="color:#6b7280;"><b>Gene-sort input:</b> comma, semicolon, newline or whitespace can separate multiple symbols.</p>
           <p style="color:#6b7280; margin-bottom:0;"><b>Data source:</b> DepMap 25Q3. All filters and sorts use the data currently loaded in the browser; changing tissue / subtype filters narrows the visible set that subsequent sorts operate on.</p>
         </div>
       </div>
@@ -3904,6 +3927,7 @@
             <button id="clbInspectGEBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Top gene-effect hits in the selected cell lines — and top Δ vs the rest. Fast (~seconds).">Inspect<br><span style="font-size:9px;font-weight:normal;">Gene Effects</span></button>
             <button id="clbInspectCorrBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Unbiased all-vs-all gene correlations in the selected cell lines. Slow — can take 5–10 minutes depending on selection size and hardware.">Inspect<br><span style="font-size:9px;font-weight:normal;">Correlations</span></button>
             <button id="clbOpenInspectBtn" class="btn btn-outline btn-sm" style="line-height:1.2; padding:4px 8px;" title="Re-open a previously saved selection-inspect (Gene Effects or Correlations) JSON file without re-running the analysis">Open<br><span style="font-size:9px;font-weight:normal;">Saved Inspect</span></button>
+            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="CSV with one row per selected cell line — metadata (tissue, subtype, sex) plus GE and Expression for the gene(s) you type in">Export<br><span style="font-size:9px;font-weight:normal;">Genes CSV</span></button>
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="Gene Effect values for all genes × selected cell lines (CSV)">Export GE<br><span style="font-size:9px;font-weight:normal;">for selected CLs</span></button>
             <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="All data per cell line: GE, Expression, Hotspot, Damaging, Translocation (genes × cell lines)">Full Data<br><span style="font-size:9px;font-weight:normal;">Export</span></button>
           </div>
