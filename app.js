@@ -10293,6 +10293,121 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.showByTissueModal();
     }
 
+    _computeInspectFilteredIdsFromDOM() {
+        // Mirror the filter stack in updateInspectPlot, but applied from
+        // scratch to all cell lines. Used when the inspect plot hasn't
+        // been built yet but the user wants Find correlates to honour the
+        // tissue / mutation / fusion / custom-CL filters they set.
+        const cells = this.metadata?.cellLines || [];
+        const cancerFilter = document.getElementById('scatterCancerFilter')?.value || '';
+        const subtypeFilter = document.getElementById('scatterSubtypeFilter')?.value || '';
+        const mutFilterGene = document.getElementById('mutationFilterGene')?.value || '';
+        const mutFilterLevel = document.getElementById('mutationFilterLevel')?.value || 'all';
+        const transFilterGene = document.getElementById('translocationFilterGene')?.value || '';
+        const transFilterLevel = document.getElementById('translocationFilterLevel')?.value || 'all';
+        const mutData = mutFilterGene ? (this.mutations?.geneData?.[mutFilterGene]?.mutations || this.damagingMutations?.geneData?.[mutFilterGene]?.mutations || {}) : null;
+        const transData = transFilterGene ? (this.translocations?.geneData?.[transFilterGene]?.translocations || {}) : null;
+        const out = [];
+        for (const cl of cells) {
+            if (cancerFilter && this.cellLineMetadata?.lineage?.[cl] !== cancerFilter) continue;
+            if (subtypeFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subtypeFilter) continue;
+            if (mutData && mutFilterLevel !== 'all') {
+                const ml = mutData[cl] || 0;
+                if (mutFilterLevel === '0' && ml !== 0) continue;
+                if (mutFilterLevel === '1' && ml !== 1) continue;
+                if (mutFilterLevel === '2' && ml < 2) continue;
+                if (mutFilterLevel === '1+2' && ml < 1) continue;
+            }
+            if (transData && transFilterLevel !== 'all') {
+                const fl = transData[cl] || 0;
+                if (transFilterLevel === '0' && fl !== 0) continue;
+                if (transFilterLevel === '1+2' && fl < 1) continue;
+            }
+            if (this._customCellLineFilter && !this._customCellLineFilter.has(cl)) continue;
+            out.push(cl);
+        }
+        return out;
+    }
+
+    _prepopulateInspectFiltersStandalone() {
+        // When the correlation browser is opened directly (no genes yet),
+        // populate the tissue / mutation / fusion filter dropdowns across
+        // all cell lines so the user can start filtering before picking
+        // genes. openInspect will preserve the selection on Update.
+        const cells = this.metadata?.cellLines || [];
+        if (!cells.length) return;
+
+        const lineageCounts = {};
+        cells.forEach(cl => {
+            const l = this.cellLineMetadata?.lineage?.[cl];
+            if (l) lineageCounts[l] = (lineageCounts[l] || 0) + 1;
+        });
+        const lineages = Object.keys(lineageCounts).sort((a, b) => lineageCounts[b] - lineageCounts[a]);
+
+        const cancerFilter = document.getElementById('scatterCancerFilter');
+        const cancerBox = document.getElementById('cancerFilterBox');
+        if (cancerFilter && lineages.length) {
+            const prev = cancerFilter.value;
+            cancerFilter.innerHTML = `<option value="">All tissues (n=${cells.length})</option>` +
+                lineages.map(l => `<option value="${l}">${l} (n=${lineageCounts[l]})</option>`).join('');
+            if (prev && lineages.includes(prev)) cancerFilter.value = prev;
+            if (cancerBox) cancerBox.style.display = 'block';
+        }
+
+        const mutFilterGene = document.getElementById('mutationFilterGene');
+        if (mutFilterGene && this.mutations?.genes?.length) {
+            const prevMut = mutFilterGene.value;
+            mutFilterGene.innerHTML = '<option value="">No filter</option>' +
+                this.mutations.genes.map(g => {
+                    const mutData = this.mutations.geneData?.[g]?.mutations || {};
+                    let count = 0;
+                    for (const cl of cells) if (mutData[cl] > 0) count++;
+                    return `<option value="${g}">${g} (${count} mut)</option>`;
+                }).join('');
+            if (prevMut) mutFilterGene.value = prevMut;
+            document.getElementById('mutationFilterBox').style.display = 'block';
+            // Hotspot overlay box lives with mutation; expose it too.
+            const hotspotSelect = document.getElementById('hotspotGene');
+            if (hotspotSelect) {
+                const prevHot = hotspotSelect.value;
+                hotspotSelect.innerHTML = '<option value="">Select gene...</option>' +
+                    this.mutations.genes.map(g => {
+                        const mutData = this.mutations.geneData?.[g]?.mutations || {};
+                        let count = 0;
+                        for (const cl of cells) if (mutData[cl] > 0) count++;
+                        return `<option value="${g}">${g} (${count} mut)</option>`;
+                    }).join('');
+                if (prevHot) hotspotSelect.value = prevHot;
+            }
+            document.getElementById('mutationBox').style.display = 'block';
+        }
+
+        if (this.translocations?.genes?.length) {
+            const transGeneDatalist = document.getElementById('translocationGeneList');
+            const transFilterGeneDatalist = document.getElementById('translocationFilterGeneList');
+            if (transGeneDatalist && transFilterGeneDatalist) {
+                const geneCounts = [];
+                for (const g of this.translocations.genes) {
+                    const d = this.translocations.geneData?.[g]?.translocations || {};
+                    let count = 0;
+                    for (const cl of cells) if (d[cl] && d[cl] > 0) count++;
+                    if (count > 0) geneCounts.push({ gene: g, count });
+                }
+                geneCounts.sort((a, b) => {
+                    const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
+                    const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
+                    if (aPri !== bPri) return bPri - aPri;
+                    return b.count - a.count;
+                });
+                const html = geneCounts.map(({ gene, count }) => `<option value="${gene}">${gene} (${count} fused)</option>`).join('');
+                transGeneDatalist.innerHTML = html;
+                transFilterGeneDatalist.innerHTML = html;
+                document.getElementById('translocationBox').style.display = 'block';
+                document.getElementById('translocationFilterBox').style.display = 'block';
+            }
+        }
+    }
+
     openInspect(c) {
         // Clear any instruction text from direct access
         const scatterEl = document.getElementById('scatterPlot');
@@ -10383,21 +10498,30 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
         const lineages = Object.keys(lineageCounts).sort((a, b) => lineageCounts[b] - lineageCounts[a]);
         if (lineages.length > 0) {
+            // Preserve any selection the user made before clicking Update
+            // (e.g., when they opened the correlation browser directly and
+            // set the tissue filter ahead of entering genes).
+            const existingCancer = cancerFilter.value;
+            const existingSubtype = document.getElementById('scatterSubtypeFilter')?.value || '';
             cancerFilter.innerHTML = `<option value="">All tissues (n=${plotData.length})</option>`;
             lineages.forEach(l => {
                 cancerFilter.innerHTML += `<option value="${l}">${l} (n=${lineageCounts[l]})</option>`;
             });
-            // Pre-select the lineage filter from parameters if it exists
-            if (paramLineageFilter && lineages.includes(paramLineageFilter)) {
+            if (existingCancer && lineages.includes(existingCancer)) {
+                cancerFilter.value = existingCancer;
+                this.updateScatterSubtypeFilter();
+                const subEl = document.getElementById('scatterSubtypeFilter');
+                if (subEl && existingSubtype && [...subEl.options].some(o => o.value === existingSubtype)) {
+                    subEl.value = existingSubtype;
+                }
+            } else if (paramLineageFilter && lineages.includes(paramLineageFilter)) {
                 cancerFilter.value = paramLineageFilter;
                 this.updateScatterSubtypeFilter();
-                // Also pre-select subtype from parameters
                 const paramSubtype = document.getElementById('subLineageFilter')?.value;
                 if (paramSubtype) {
                     document.getElementById('scatterSubtypeFilter').value = paramSubtype;
                 }
             } else {
-                // Reset subtype filter
                 document.getElementById('scatterSubtypeFilter').innerHTML = '<option value="">All subtypes</option>';
                 document.getElementById('scatterSubtypeFilter').style.display = 'none';
             }
@@ -12328,13 +12452,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const xGene = (document.getElementById('inspectGeneX')?.value || '').trim().toUpperCase();
         if (!xGene) { alert('Enter an X-axis gene first.'); return; }
         const xType = document.getElementById('xAxisDataType')?.value || 'ge';
-        // Use filteredData from the current scatter — it already reflects
-        // tissue / hotspot / fusion / custom-CL filters. Fall back to
-        // all cell lines if the plot hasn't been built yet.
+        // If the plot is already built, refresh _inspectFilteredCellLineIds
+        // so Find correlates sees whatever filters are set in the DOM right
+        // now — not a stale snapshot from the last Update click.
+        if (this.currentInspect) this.updateInspectPlot();
         let clIds = this._inspectFilteredCellLineIds;
         if (!Array.isArray(clIds) || clIds.length < 3) {
-            clIds = this.metadata.cellLines.slice();
+            // Plot hasn't been built yet (e.g. user opened the correlation
+            // browser directly and set a tissue filter before entering
+            // genes). Compute the filter set straight from the DOM so Find
+            // correlates still honours the user's filters.
+            clIds = this._computeInspectFilteredIdsFromDOM();
         }
+        if (!Array.isArray(clIds) || clIds.length < 3) clIds = this.metadata.cellLines.slice();
         const clIndexOf = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
         const clIdxs = clIds.map(cl => clIndexOf.get(cl)).filter(i => i !== undefined);
         if (clIdxs.length < 3) { alert('Need ≥ 3 cell lines after filters.'); return; }
@@ -21941,6 +22071,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const plotEl = document.getElementById('scatterPlot');
             if (!this.currentInspect) {
                 plotEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:400px;color:#6b7280;font-size:14px;text-align:center;padding:40px;"><div>Enter two gene names in the <b>Genes (X/Y)</b> fields above<br>and click <b>Update</b>.<br><br><span style="font-size:12px;">Shows the correlation between two genes\' effects across cell lines.<br>Use tissue and mutation filters to explore subgroups.<br><br><span style="color:#9ca3af;">Try: <b>TP53</b> vs <b>MDM2</b>, <b>BRAF</b> vs <b>MAP2K1</b>, <b>BRCA1</b> vs <b>BRCA2</b></span></span></div></div>';
+                // Pre-populate filter dropdowns across all cell lines so the
+                // user can pick a tissue / mutation filter before entering
+                // genes. openInspect will preserve whatever they selected.
+                this._prepopulateInspectFiltersStandalone();
             }
         });
         document.getElementById('clbCloseBtn').addEventListener('click', () => this.closeCellLineBrowser());
