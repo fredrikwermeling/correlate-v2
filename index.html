@@ -1324,6 +1324,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.73.1 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Two new buttons in the Cell Line Browser toolbar: <strong>Inspect Gene Effects</strong> and <strong>Inspect Correlations</strong>, operating on the currently-selected cell lines.
+                        <ul>
+                            <li><em>Inspect Gene Effects</em> &mdash; fast (&lt; 1 s for typical selections). Two panels: most depleted in selection (lowest mean GE) and largest &Delta; vs the rest (most differentially essential). Click a row to open Gene Effect inspect for that gene.</li>
+                            <li><em>Inspect Correlations</em> &mdash; unbiased all-vs-all Pearson correlation across the selection. Shows a size estimate + confirmation first; during compute a progress bar with ETA and a Cancel button. Two panels: strongest pair correlations in the selection and largest &Delta;r (selection r &minus; rest r). Click a row to open the correlation inspect for that gene pair.</li>
+                        </ul>
+                        Helpers <code>_showProgress</code> / <code>_hideProgress</code> wrap a generic cancellable progress overlay that&rsquo;s ready for future long-running analyses.</li>
+                </ul>
                 <p><strong>v.73.0 (2026-04-23)</strong></p>
                 <ul>
                     <li>Cell Line Browser gains a <strong>Curated collections</strong> dropdown next to Tissue / Subtype. Multi-gene / phenotype groups that aren&rsquo;t well served by a single-gene filter:
@@ -2097,7 +2106,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.0</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.1</a>
     </div>
 
     <div class="main-content">
@@ -3419,6 +3428,34 @@
         </div>
     </div>
 
+    <!-- Selection Inspect (GE / Correlations for selected cell lines) -->
+    <div id="selectionInspectModal" style="display:none; position:fixed; inset:0; z-index:1250; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;">
+        <div style="background:#fff; width:100%; max-width:min(96vw,1200px); max-height:calc(100vh - 40px); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg,#f0fdf4 0%,#fff 100%);">
+                <div>
+                    <h3 id="selectionInspectTitle" style="margin:0; font-size:17px; color:#15803d;">Inspect selection</h3>
+                    <div id="selectionInspectSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
+                </div>
+                <button id="selectionInspectClose" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+            </div>
+            <div id="selectionInspectBody" style="padding:14px 18px; overflow-y:auto; font-size:12px; color:#374151;"></div>
+        </div>
+    </div>
+
+    <!-- Progress overlay used by long-running analyses (correlation inspect). -->
+    <div id="progressOverlay" style="display:none; position:fixed; inset:0; z-index:1400; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
+        <div style="background:#fff; max-width:420px; width:90%; border-radius:8px; padding:20px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);">
+            <div id="progressTitle" style="font-size:14px; font-weight:600; color:#15803d; margin-bottom:6px;">Working&hellip;</div>
+            <div id="progressStatus" style="font-size:12px; color:#374151; margin-bottom:10px;">Preparing&hellip;</div>
+            <div style="background:#e5e7eb; height:10px; border-radius:5px; overflow:hidden;">
+                <div id="progressBar" style="background:#5a9f4a; height:100%; width:0%; transition:width 0.15s;"></div>
+            </div>
+            <div style="text-align:right; margin-top:10px;">
+                <button id="progressCancelBtn" class="btn btn-outline btn-sm">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Publication-quality export options -->
     <div class="modal-overlay" id="exportOptionsModal" style="display:none; z-index:1300;">
         <div class="modal" style="max-width:420px;">
@@ -3768,6 +3805,8 @@
           <div style="margin-left:auto; display:flex; gap:6px;">
             <button id="clbSelectVisible" class="btn btn-outline btn-sm">Select Visible</button>
             <button id="clbDeselectAll" class="btn btn-outline btn-sm">Deselect All</button>
+            <button id="clbInspectGEBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Top gene-effect hits in the selected cell lines — and top Δ vs the rest. Fast (~seconds).">Inspect<br><span style="font-size:9px;font-weight:normal;">Gene Effects</span></button>
+            <button id="clbInspectCorrBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Unbiased all-vs-all gene correlations in the selected cell lines. Slow — can take 1–3 minutes depending on selection size and hardware.">Inspect<br><span style="font-size:9px;font-weight:normal;">Correlations</span></button>
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="Gene Effect values for all genes × selected cell lines (CSV)">Export GE<br><span style="font-size:9px;font-weight:normal;">for selected CLs</span></button>
             <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="All data per cell line: GE, Expression, Hotspot, Damaging, Translocation (genes × cell lines)">Full Data<br><span style="font-size:9px;font-weight:normal;">Export</span></button>
           </div>
