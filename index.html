@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.74.9 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Find correlates &mdash; <strong>Search</strong> field filters both lists by gene-symbol substring.</li>
+                    <li>Find correlates &mdash; column headers are now clickable to sort. <em>Gene</em> toggles alphabetical asc/desc; <em>r</em> toggles signed desc/asc. Default sort is still |r| descending.</li>
+                </ul>
                 <p><strong>v.74.8 (2026-04-23)</strong></p>
                 <ul>
                     <li>Find correlates &mdash; clicking a result now preserves the inspect modal's filters (tissue / subtype / mutation / fusion / custom-CL list). Previously, selecting a suggested gene rebuilt the scatter from the <em>main</em> parameter filters and dropped the inspect-local ones, so the r shown on the new plot was computed on a different cell-line set and didn't match the value in the correlate list. The r now matches.</li>
@@ -2201,7 +2206,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.8</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.9</a>
     </div>
 
     <div class="main-content">

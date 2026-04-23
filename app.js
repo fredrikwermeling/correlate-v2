@@ -12413,12 +12413,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const DISPLAY_CAP = 500;
         const defaultThreshold = 0.3;
 
+        // Per-list sort state. Default matches the pre-sort order: |r| desc.
+        // `col` is 'gene' | 'r' | 'absR'; `asc` is the direction.
+        const sortState = { ge: { col: 'absR', asc: false }, expr: { col: 'absR', asc: false } };
+        const arrow = (s, col) => s.col === col ? (s.asc ? ' ▲' : ' ▼') : '';
+        const thStyle = 'padding:6px 8px; border-bottom:2px solid #d1d5db; cursor:pointer; user-select:none;';
+
         document.getElementById('inspectCorrelatesBody').innerHTML = `
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:8px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:10px;">
                 <label style="font-weight:600; color:#374151;">|r| ≥
                     <input type="number" id="icThreshold" value="${defaultThreshold}" min="0" max="1" step="0.05" style="width:64px; margin-left:6px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
                 </label>
-                <span style="color:#6b7280; font-size:11px;">Raise the cutoff to focus on the strongest correlates (recommended for enrichment).</span>
+                <label style="font-weight:600; color:#374151;">Search
+                    <input type="text" id="icSearch" placeholder="Gene symbol…" style="width:140px; margin-left:6px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
+                </label>
+                <span style="color:#6b7280; font-size:11px;">Raise the cutoff to focus on the strongest correlates. Click column headers to sort.</span>
             </div>
             <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
                 <div style="flex:1; min-width:0;">
@@ -12430,8 +12439,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <div style="max-height:60vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;">
                         <table style="width:100%; border-collapse:collapse; font-size:11px;">
                             <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
-                                <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:left;">Gene</th>
-                                <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:center;">r</th>
+                                <th id="icGeHeadGene" style="${thStyle} text-align:left;">Gene<span id="icGeArrowGene"></span></th>
+                                <th id="icGeHeadR" style="${thStyle} text-align:center;">r<span id="icGeArrowR"></span></th>
                             </tr></thead>
                             <tbody id="icGeBody"></tbody>
                         </table>
@@ -12446,8 +12455,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <div style="max-height:60vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;">
                         <table style="width:100%; border-collapse:collapse; font-size:11px;">
                             <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
-                                <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:left;">Gene</th>
-                                <th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:center;">r</th>
+                                <th id="icExprHeadGene" style="${thStyle} text-align:left;">Gene<span id="icExprArrowGene"></span></th>
+                                <th id="icExprHeadR" style="${thStyle} text-align:center;">r<span id="icExprArrowR"></span></th>
                             </tr></thead>
                             <tbody id="icExprBody"></tbody>
                         </table>
@@ -12464,22 +12473,39 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const filterByThreshold = (arr, t) => arr.filter(h => Math.abs(h.r) >= t);
 
+        const sortRows = (arr, s) => {
+            const copy = arr.slice();
+            if (s.col === 'gene') copy.sort((a, b) => s.asc ? a.gene.localeCompare(b.gene) : b.gene.localeCompare(a.gene));
+            else if (s.col === 'r') copy.sort((a, b) => s.asc ? a.r - b.r : b.r - a.r);
+            else copy.sort((a, b) => s.asc ? Math.abs(a.r) - Math.abs(b.r) : Math.abs(b.r) - Math.abs(a.r));
+            return copy;
+        };
+
         const renderLists = () => {
             const t = parseFloat(document.getElementById('icThreshold').value);
             const thr = isFinite(t) && t >= 0 ? t : 0;
-            const geFiltered = filterByThreshold(geHits, thr);
-            const exprFiltered = filterByThreshold(exprHits, thr);
+            const q = (document.getElementById('icSearch')?.value || '').trim().toUpperCase();
+            const nameMatch = (h) => !q || h.gene.toUpperCase().includes(q);
+            const geFiltered = filterByThreshold(geHits, thr).filter(nameMatch);
+            const exprFiltered = filterByThreshold(exprHits, thr).filter(nameMatch);
             this._inspectCorrelatesState.geFiltered = geFiltered;
             this._inspectCorrelatesState.exprFiltered = exprFiltered;
 
-            const geShown = geFiltered.slice(0, DISPLAY_CAP);
-            const exprShown = exprFiltered.slice(0, DISPLAY_CAP);
+            const geSorted = sortRows(geFiltered, sortState.ge);
+            const exprSorted = sortRows(exprFiltered, sortState.expr);
+            const geShown = geSorted.slice(0, DISPLAY_CAP);
+            const exprShown = exprSorted.slice(0, DISPLAY_CAP);
             document.getElementById('icGeBody').innerHTML = geShown.map(r => rowHtml(r, 'ge')).join('');
             document.getElementById('icExprBody').innerHTML = exprShown.map(r => rowHtml(r, 'expr')).join('');
             document.getElementById('icGeCount').textContent =
                 `(${geFiltered.length}${geFiltered.length > DISPLAY_CAP ? `, showing top ${DISPLAY_CAP}` : ''})`;
             document.getElementById('icExprCount').textContent =
                 `(${exprFiltered.length}${exprFiltered.length > DISPLAY_CAP ? `, showing top ${DISPLAY_CAP}` : ''})`;
+
+            document.getElementById('icGeArrowGene').textContent = arrow(sortState.ge, 'gene');
+            document.getElementById('icGeArrowR').textContent = sortState.ge.col === 'r' ? arrow(sortState.ge, 'r') : arrow(sortState.ge, 'absR');
+            document.getElementById('icExprArrowGene').textContent = arrow(sortState.expr, 'gene');
+            document.getElementById('icExprArrowR').textContent = sortState.expr.col === 'r' ? arrow(sortState.expr, 'r') : arrow(sortState.expr, 'absR');
 
             document.querySelectorAll('#icGeBody .ic-row, #icExprBody .ic-row').forEach(tr => {
                 tr.addEventListener('click', async () => {
@@ -12545,8 +12571,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
 
         document.getElementById('icThreshold').addEventListener('input', renderLists);
+        document.getElementById('icSearch').addEventListener('input', renderLists);
         document.getElementById('icEnrichrGe').addEventListener('click', () => this._runInspectCorrelatesEnrichr('ge'));
         document.getElementById('icEnrichrExpr').addEventListener('click', () => this._runInspectCorrelatesEnrichr('expr'));
+
+        // Header clicks cycle sort direction. The r column toggles between
+        // signed r and |r| so the user can see most-positive, most-negative,
+        // and strongest-magnitude orderings without a separate control.
+        const toggleSort = (s, col) => {
+            if (col === 'gene') {
+                if (s.col === 'gene') s.asc = !s.asc; else { s.col = 'gene'; s.asc = true; }
+            } else {
+                if (s.col === 'r') s.asc = !s.asc; else { s.col = 'r'; s.asc = false; }
+            }
+        };
+        document.getElementById('icGeHeadGene').addEventListener('click', () => { toggleSort(sortState.ge, 'gene'); renderLists(); });
+        document.getElementById('icGeHeadR').addEventListener('click', () => { toggleSort(sortState.ge, 'r'); renderLists(); });
+        document.getElementById('icExprHeadGene').addEventListener('click', () => { toggleSort(sortState.expr, 'gene'); renderLists(); });
+        document.getElementById('icExprHeadR').addEventListener('click', () => { toggleSort(sortState.expr, 'r'); renderLists(); });
 
         renderLists();
     }
