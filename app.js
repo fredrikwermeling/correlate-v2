@@ -7033,11 +7033,6 @@ class CorrelationExplorer {
             banner.textContent = filterText;
             banner.style.fontSize = (this._netBannerFontSize || 20) + 'px';
             container.appendChild(banner);
-            // Pan the network view down so the banner doesn't overlap the
-            // top nodes after vis.js's initial physics + fit settle.
-            this.network.once('afterDrawing', () => {
-                try { this.network.moveTo({ offset: { x: 0, y: -40 }, animation: false }); } catch (e) {}
-            });
 
             // Make banner draggable
             let dragOffsetX = 0, dragOffsetY = 0, isDragging = false;
@@ -7100,6 +7095,11 @@ class CorrelationExplorer {
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
             this.network.fit({ animation: false });
+            // Pan the view down so the filter banner doesn't sit on top of
+            // the upper nodes. Done AFTER fit so it isn't reset.
+            if (this._getNetworkFilterText()) {
+                try { this.network.moveTo({ offset: { x: 0, y: -50 }, animation: false }); } catch (e) {}
+            }
             if (nodeCount > 30) {
                 this.network.setOptions({ physics: { enabled: false } });
                 this.physicsEnabled = false;
@@ -24035,11 +24035,18 @@ ${body}
 
         document.querySelectorAll('.si-row').forEach(tr => {
             tr.addEventListener('click', () => {
+                // Pre-populate the scatter's highlight list with the
+                // selected cell-line NAMES so they're labelled in red on
+                // the correlation scatter (the inspect's existing
+                // highlight mechanism). Cleared on the inspect's "Clear"
+                // or "Reset Filters" button.
+                const sel = (this._corrInspectResults?.selected || []);
+                const names = sel.map(cl => this.getCellLineName(cl) || cl);
+                const search = document.getElementById('scatterCellSearch');
+                if (search && names.length) search.value = names.join('\n');
                 // Keep the selection-inspect modal open so the user can
                 // return to the list after viewing a pair — the
                 // correlation popup has a higher z-index and overlays it.
-                // Closing was costing them a 10-minute recompute when they
-                // wanted to inspect a second pair.
                 this.openInspect({ gene1: tr.dataset.g1, gene2: tr.dataset.g2, correlation: null });
             });
             tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');

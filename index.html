@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.73.7 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Network filter banner pan: the previous offset was being reset by a <code>fit()</code> call inside the stabilization callback. Moved the pan into the same callback, after the fit, so the top nodes really do drop below the banner now.</li>
+                    <li>Clicking a correlation row from the CLB inspect-correlations modal now also pre-populates the scatter&rsquo;s highlight list with the selected cell-line names &mdash; so the cells driving the result show up <span style="color:#dc2626;">labelled in red</span> on the correlation scatter, set against the rest of the dataset.</li>
+                </ul>
                 <p><strong>v.73.6 (2026-04-23)</strong></p>
                 <ul>
                     <li>Network filter banner cleaned up. When the analysis was launched from a CLB selection, the trailing &ldquo;n=1186&rdquo; (the full dataset size) used to appear after the &ldquo;Selection (58 cell lines)&rdquo; tag, contradicting it. Suppressed when a selection label is present, since the count is already in the label.</li>
@@ -2142,7 +2147,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.7</a>
     </div>
 
     <div class="main-content">
