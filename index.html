@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.74.0 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Network filter banner moved out of the canvas overlay and into a dedicated header strip above the network plot. The earlier overlay kept landing on top of nodes whatever pan was applied because vis.js&rsquo;s physics + fit re-centred the layout. With a strip outside the canvas, the network has the full plot area and the banner is unambiguously above it. PNG / SVG exports still draw the filter text inline at the top of the figure (no change to the export look).</li>
+                </ul>
                 <p><strong>v.73.9 (2026-04-23)</strong></p>
                 <ul>
                     <li>Correlation scatter highlights are no longer an unreadable blob when many cell lines are selected. Two-tier behaviour: when up to 12 cells are highlighted, each is labelled with just its name (lineage dropped from the label, since it&rsquo;s already in the hover); when more than 12, the per-point labels are dropped entirely &mdash; the orange markers stay, hover still shows each name, and a small caption pinned in the upper-left says &ldquo;● N cell lines highlighted (hover to see names)&rdquo;.</li>
@@ -2155,7 +2159,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.9</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.74.0</a>
     </div>
 
     <div class="main-content">
@@ -2594,12 +2598,15 @@
                         </div>
                     </div>
 
-                    <div class="network-container" id="networkPlot">
-                        <div style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; height: 100%; padding-top: 10%; color: var(--gray-500); text-align: center; line-height: 1.8;">
-                            <div>New to Correlate?</div>
-                            <div style="margin-top: 8px;">Click <span style="color: #5a9f4a; font-weight: 600;">Test Genes</span> and then <span style="color: #5a9f4a; font-weight: 600;">Run ▶</span></div>
-                            <div style="font-size: 0.9em;">(both in "2. Input Genes")</div>
-                            <div style="margin-top: 14px; font-size: 0.85em; line-height: 1.6; max-width: 380px;">Next, double-click nodes and edges in the generated network for more functions. Decrease correlation cutoff and press Run again to identify interactions of weaker strength.</div>
+                    <div id="networkWrap" style="display:flex; flex-direction:column; height:440px; border:1px solid var(--gray-200); border-radius:6px; background:white;">
+                        <div id="networkHeader" style="display:none; padding:8px 14px; border-bottom:1px solid var(--gray-200); background:#f9fafb; font-size:11px; color:#374151;"></div>
+                        <div class="network-container" id="networkPlot" style="flex:1; min-height:0; border:none; border-radius:0;">
+                            <div style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; height: 100%; padding-top: 10%; color: var(--gray-500); text-align: center; line-height: 1.8;">
+                                <div>New to Correlate?</div>
+                                <div style="margin-top: 8px;">Click <span style="color: #5a9f4a; font-weight: 600;">Test Genes</span> and then <span style="color: #5a9f4a; font-weight: 600;">Run ▶</span></div>
+                                <div style="font-size: 0.9em;">(both in "2. Input Genes")</div>
+                                <div style="margin-top: 14px; font-size: 0.85em; line-height: 1.6; max-width: 380px;">Next, double-click nodes and edges in the generated network for more functions. Decrease correlation cutoff and press Run again to identify interactions of weaker strength.</div>
+                            </div>
                         </div>
                     </div>
 

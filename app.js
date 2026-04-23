@@ -7025,40 +7025,30 @@ class CorrelationExplorer {
         this.network = new vis.Network(container, data, options);
         this.networkData = data;
 
-        // Add filter banner after vis.Network has set up its canvas
+        // Render the filter banner into the header strip ABOVE the network
+        // canvas, not as an overlay. Overlaying was always at risk of
+        // covering top nodes whatever pan we tried; a strip outside the
+        // canvas is unambiguous and accessible. The strip auto-shows when
+        // there's a banner and stays hidden otherwise.
         const filterText = this._getNetworkFilterText();
-        if (filterText) {
-            const banner = document.createElement('div');
-            banner.className = 'network-filter-banner';
-            banner.textContent = filterText;
-            banner.style.fontSize = (this._netBannerFontSize || 20) + 'px';
-            container.appendChild(banner);
-
-            // Make banner draggable
-            let dragOffsetX = 0, dragOffsetY = 0, isDragging = false;
-            banner.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                const rect = banner.getBoundingClientRect();
-                dragOffsetX = e.clientX - rect.left;
-                dragOffsetY = e.clientY - rect.top;
-                // Remove centering transform once dragging starts
-                banner.style.transform = 'none';
-                banner.style.left = rect.left - container.getBoundingClientRect().left + 'px';
-                banner.style.top = rect.top - container.getBoundingClientRect().top + 'px';
-                e.preventDefault();
-            });
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                const containerRect = container.getBoundingClientRect();
-                const newLeft = e.clientX - containerRect.left - dragOffsetX;
-                const newTop = e.clientY - containerRect.top - dragOffsetY;
-                banner.style.left = newLeft + 'px';
-                banner.style.top = newTop + 'px';
-                // Store position for export
-                this._netBannerPos = { x: newLeft, y: newTop };
-            });
-            document.addEventListener('mouseup', () => { isDragging = false; });
+        const headerEl = document.getElementById('networkHeader');
+        // Clear any old overlay banner (back-compat with saved layouts).
+        const oldBanner = container.querySelector('.network-filter-banner');
+        if (oldBanner) oldBanner.remove();
+        if (headerEl) {
+            if (filterText) {
+                const fs = this._netBannerFontSize || 12;
+                headerEl.style.display = 'block';
+                headerEl.style.fontSize = fs + 'px';
+                headerEl.textContent = filterText;
+            } else {
+                headerEl.style.display = 'none';
+                headerEl.textContent = '';
+            }
         }
+        // Position state cleared so PNG/SVG export rebuilds it from the
+        // header strip rather than from a stale draggable overlay.
+        this._netBannerPos = null;
 
         this.hiddenNodes = [];
         this.removeMode = false;
@@ -7095,11 +7085,6 @@ class CorrelationExplorer {
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
             this.network.fit({ animation: false });
-            // Pan the view down so the filter banner doesn't sit on top of
-            // the upper nodes. Done AFTER fit so it isn't reset.
-            if (this._getNetworkFilterText()) {
-                try { this.network.moveTo({ offset: { x: 0, y: -50 }, animation: false }); } catch (e) {}
-            }
             if (nodeCount > 30) {
                 this.network.setOptions({ physics: { enabled: false } });
                 this.physicsEnabled = false;
