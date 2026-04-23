@@ -5536,9 +5536,20 @@ class CorrelationExplorer {
         this.downloadFile(csv, filename, 'text/csv');
     }
 
-    exportForAI(source) {
-        let data;
+    async exportForAI(source) {
+        // Ask for an optional question up front so it can be included in the
+        // exported JSON. Empty input still exports (with no question block).
+        const question = prompt(
+            'Ask the AI a specific question about this analysis (optional).\n\n' +
+            'The exported JSON will include your question plus a PNG snapshot of the current view. ' +
+            'The AI is instructed to show that image back in its reply, so you get a clear record of ' +
+            'what you were looking at when you asked.',
+            ''
+        );
+        // prompt returns null when cancelled.
+        if (question === null) return;
 
+        let data;
         if (source === 'mutations') {
             data = this._buildMutationAIExport();
         } else if (source === 'gates') {
@@ -5553,6 +5564,19 @@ class CorrelationExplorer {
 
         if (!data) { alert('No data to export.'); return; }
 
+        // Embed a PNG snapshot of the relevant view and AI instructions so
+        // the assistant can restate context and "show" what the user was
+        // looking at when they asked.
+        const image = await this._captureAISnapshot(source);
+        if (image) data.snapshot = image;
+        if (question && question.trim()) data.question = question.trim();
+        data.aiInstructions =
+            'You are given a chart snapshot (data:image/png;base64 in the `snapshot` field) plus ' +
+            'a structured data object. When replying, begin with: "You were looking at this chart:" ' +
+            'followed by a Markdown image reference ![chart](<paste the snapshot data URI here>) ' +
+            'and, if a `question` field is present, restate it: "and asked: <question>". ' +
+            'Then answer grounded in the data object. Do not invent data not present in the export.';
+
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -5561,6 +5585,34 @@ class CorrelationExplorer {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
+    }
+
+    // Capture a PNG of the view that matches `source` as a data URI.
+    // Falls back to null when no chart is visible. The snapshot is used in
+    // AI exports so the assistant can restate context visually.
+    async _captureAISnapshot(source) {
+        try {
+            if (source === 'correlations' || source === 'clusters') {
+                const canvas = document.querySelector('#networkPlot canvas');
+                if (canvas) return canvas.toDataURL('image/png');
+            }
+            if (source === 'gates' || source === 'exprCorrelates' || source === 'mutations') {
+                // Use Plotly.toImage on whichever plot element applies.
+                const candidates = [
+                    source === 'exprCorrelates' ? 'exprCorrelateScatterPlot' : null,
+                    'scatterPlot', 'geneEffectPlot', 'geneEffectHotspotPlot', 'byTissueChart'
+                ].filter(Boolean);
+                for (const id of candidates) {
+                    const el = document.getElementById(id);
+                    if (el && el.data) {
+                        const w = el._fullLayout?.width || el.offsetWidth || 800;
+                        const h = el._fullLayout?.height || el.offsetHeight || 500;
+                        return await Plotly.toImage(el, { format: 'png', width: w, height: h });
+                    }
+                }
+            }
+        } catch (e) { /* fall through */ }
+        return null;
     }
 
     _buildMutationAIExport() {
@@ -5694,6 +5746,42 @@ class CorrelationExplorer {
         const cutoff = this.results.cutoff;
         const geneList = this.getGeneList();
 
+        // Capture the filters that were applied when the analysis was run —
+        // these define which cell lines went into the correlation. Without
+        // this, the AI has no way to know the cohort was e.g. "breast TNBC
+        // with TP53 mutation". Pulled straight from the main DOM to match
+        // what the user sees.
+        const filters = [];
+        const lineage = document.getElementById('lineageFilter')?.value;
+        const subLineage = document.getElementById('subLineageFilter')?.value;
+        if (lineage) filters.push(subLineage ? `Tissue / Subtype: ${lineage} / ${subLineage}` : `Tissue: ${lineage}`);
+        if (this.excludedTissues && this.excludedTissues.size > 0) {
+            filters.push(`Excluded tissues: ${[...this.excludedTissues].join(', ')}`);
+        }
+        const hotspotGene = document.getElementById('paramHotspotGene')?.value;
+        const hotspotLevel = document.getElementById('paramHotspotLevel')?.value;
+        if (hotspotGene) {
+            const levelLabel = hotspotLevel === '1+2' ? 'Mut (1+2)' : hotspotLevel === '0' ? 'WT' : `level ${hotspotLevel}`;
+            filters.push(`Hotspot: ${hotspotGene} ${levelLabel}`);
+        }
+        const translocGene = document.getElementById('paramTranslocationGene')?.value;
+        const translocLevel = document.getElementById('paramTranslocationLevel')?.value;
+        if (translocGene) {
+            const levelLabel = translocLevel === '1+2' ? 'Fused' : translocLevel === '0' ? 'Not fused' : `level ${translocLevel}`;
+            filters.push(`Fusion: ${translocGene} ${levelLabel}`);
+        }
+        if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
+            for (const f of this._activeOncoprintFilters) {
+                filters.push(`Oncoprint: ${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`);
+            }
+        }
+        if (this._pendingSelectionLabel) filters.push(this._pendingSelectionLabel);
+        // Custom cell-line filter — record the count, not the full list, to
+        // keep the JSON readable.
+        if (this._customCellLineFilter && this._customCellLineFilter.size) {
+            filters.push(`Custom cell-line list (n=${this._customCellLineFilter.size})`);
+        }
+
         return {
             analysis: {
                 type: 'correlation_analysis',
@@ -5703,6 +5791,7 @@ class CorrelationExplorer {
                 nCorrelations: this.results.correlations.length,
                 nClusters: this.results.clusters?.length || 0,
                 nCellLines: this.results.nCellLines,
+                filters: filters,
                 dataSource: 'DepMap 25Q3 CRISPRGeneEffect',
                 app: 'Correlate V2',
                 date: new Date().toISOString().slice(0, 10)
@@ -5713,13 +5802,29 @@ class CorrelationExplorer {
                 slope: parseFloat(c.slope?.toFixed(4)),
                 n: c.n
             })),
-            summary: `${mode === 'design' ? 'Design' : 'Analysis'} mode correlation analysis with cutoff ${cutoff}. ${geneList.length} input genes, ${this.results.correlations.length} correlations found, ${this.results.clusters?.length || 0} genes in network.`,
-            promptSuggestion: `These genes show correlated CRISPR gene effects across ${this.results.nCellLines} cell lines. What biological pathways or complexes connect these correlated genes? Are there known protein-protein interactions among the most strongly correlated pairs?`
+            summary: `${mode === 'design' ? 'Design' : 'Analysis'} mode correlation analysis with cutoff ${cutoff}. ${geneList.length} input genes, ${this.results.correlations.length} correlations found, ${this.results.clusters?.length || 0} genes in network. n=${this.results.nCellLines} cell lines${filters.length ? '. Filters: ' + filters.join('; ') : ''}.`,
+            promptSuggestion: `These genes show correlated CRISPR gene effects across ${this.results.nCellLines} cell lines${filters.length ? ' (' + filters.join('; ') + ')' : ''}. What biological pathways or complexes connect these correlated genes? Are there known protein-protein interactions among the most strongly correlated pairs?`
         };
     }
 
     _buildClusterAIExport() {
         if (!this.results?.clusters) return null;
+
+        // Same cohort-defining filters as the correlation export.
+        const filters = [];
+        const lineage = document.getElementById('lineageFilter')?.value;
+        const subLineage = document.getElementById('subLineageFilter')?.value;
+        if (lineage) filters.push(subLineage ? `Tissue / Subtype: ${lineage} / ${subLineage}` : `Tissue: ${lineage}`);
+        if (this.excludedTissues && this.excludedTissues.size > 0) filters.push(`Excluded tissues: ${[...this.excludedTissues].join(', ')}`);
+        const hotspotGene = document.getElementById('paramHotspotGene')?.value;
+        const hotspotLevel = document.getElementById('paramHotspotLevel')?.value;
+        if (hotspotGene) filters.push(`Hotspot: ${hotspotGene} ${hotspotLevel === '1+2' ? 'Mut' : hotspotLevel === '0' ? 'WT' : hotspotLevel}`);
+        const translocGene = document.getElementById('paramTranslocationGene')?.value;
+        const translocLevel = document.getElementById('paramTranslocationLevel')?.value;
+        if (translocGene) filters.push(`Fusion: ${translocGene} ${translocLevel === '1+2' ? 'Fused' : translocLevel === '0' ? 'Not fused' : translocLevel}`);
+        if (this._activeOncoprintFilters) { for (const f of this._activeOncoprintFilters) filters.push(`Oncoprint: ${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`); }
+        if (this._pendingSelectionLabel) filters.push(this._pendingSelectionLabel);
+        if (this._customCellLineFilter && this._customCellLineFilter.size) filters.push(`Custom cell-line list (n=${this._customCellLineFilter.size})`);
 
         return {
             analysis: {
@@ -5728,6 +5833,7 @@ class CorrelationExplorer {
                 correlationCutoff: this.results.cutoff,
                 nGenes: this.results.clusters.length,
                 nCellLines: this.results.nCellLines,
+                filters: filters,
                 dataSource: 'DepMap 25Q3 CRISPRGeneEffect',
                 app: 'Correlate V2',
                 date: new Date().toISOString().slice(0, 10)
