@@ -1324,6 +1324,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.73.3 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Inspect Correlations: refactored the inner loop. The previous implementation did a full first pass to build the top-<em>r</em>-in-selected list, then a second pass that recomputed the same values while also computing r-in-rest. Now it&rsquo;s a single pass that emits both top lists in one go. Baseline changed from <em>selected vs rest</em> to <em>selected vs all cells</em>; the all-cells centred-vector matrix is cached on the instance so subsequent inspect runs skip that setup entirely. Warning updated to be honest about cost: up to 5&ndash;10 minutes on a typical laptop.</li>
+                    <li>Clicking a gene pair in the inspect-correlations results used to require an analysis to have been run already (the old path tried to find the pair in <code>this.results.correlations</code> and silently failed when it wasn&rsquo;t there). Now it opens the correlation inspect directly with a synthetic correlation stub &mdash; always works.</li>
+                    <li>Clicking a gene in <em>Inspect Gene Effects</em> now highlights the selected cell lines in the By-Tissue box plot in <span style="color:#dc2626; font-weight:600;">red</span> with a larger marker and a dark outline, so you can see where the selected lines fall within each tissue. The subtitle picks up a small &ldquo;&#9679; N selected cell lines highlighted&rdquo; note. Highlight clears when you close the GE modal.</li>
+                </ul>
                 <p><strong>v.73.2 (2026-04-23)</strong></p>
                 <ul>
                     <li>CLB dropdowns now show <b>n=X</b> per option with live scaling to all active filters &mdash; the <em>Sex</em> dropdown and <em>Curated collections</em> dropdown are now joined to the tissue / subtype / hotspot / fusion / custom-CL filter state (previously only tissue / subtype / hotspot / fusion had live counts). Counts exclude the dropdown&rsquo;s own selection when computing its labels so switching is predictable.</li>
@@ -2112,7 +2118,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.2</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.3</a>
     </div>
 
     <div class="main-content">
