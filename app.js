@@ -12482,15 +12482,62 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 `(${exprFiltered.length}${exprFiltered.length > DISPLAY_CAP ? `, showing top ${DISPLAY_CAP}` : ''})`;
 
             document.querySelectorAll('#icGeBody .ic-row, #icExprBody .ic-row').forEach(tr => {
-                tr.addEventListener('click', () => {
+                tr.addEventListener('click', async () => {
                     document.getElementById('inspectCorrelatesModal').style.display = 'none';
+                    // Snapshot the inspect-modal-local filter state so it can
+                    // be restored after openInspect rebuilds the modal (which
+                    // otherwise reverts to the main parameter filters and
+                    // produces an r computed over more cells than Find
+                    // correlates used).
+                    const snap = {
+                        cancer: document.getElementById('scatterCancerFilter')?.value || '',
+                        subtype: document.getElementById('scatterSubtypeFilter')?.value || '',
+                        mutGene: document.getElementById('mutationFilterGene')?.value || '',
+                        mutLevel: document.getElementById('mutationFilterLevel')?.value || 'all',
+                        transGene: document.getElementById('translocationFilterGene')?.value || '',
+                        transLevel: document.getElementById('translocationFilterLevel')?.value || 'all',
+                        customCL: this._customCellLineFilter,
+                        customCLText: document.getElementById('customCellLineFilter')?.value || '',
+                        customCLCountText: document.getElementById('customCLFilterCount')?.textContent || ''
+                    };
                     const yGene = tr.dataset.gene;
                     const yKind = tr.dataset.kind;
                     const yInput = document.getElementById('inspectGeneY');
                     const yType = document.getElementById('yAxisDataType');
                     if (yInput) yInput.value = yGene;
                     if (yType) yType.value = yKind;
-                    this.updateInspectGenes();
+                    await this.updateInspectGenes();
+
+                    const cancerEl = document.getElementById('scatterCancerFilter');
+                    if (cancerEl && snap.cancer && [...cancerEl.options].some(o => o.value === snap.cancer)) {
+                        cancerEl.value = snap.cancer;
+                        this.updateScatterSubtypeFilter?.();
+                        const subEl = document.getElementById('scatterSubtypeFilter');
+                        if (subEl && snap.subtype && [...subEl.options].some(o => o.value === snap.subtype)) {
+                            subEl.value = snap.subtype;
+                        }
+                    }
+                    const mutGeneEl = document.getElementById('mutationFilterGene');
+                    if (mutGeneEl && snap.mutGene && [...mutGeneEl.options].some(o => o.value === snap.mutGene)) {
+                        mutGeneEl.value = snap.mutGene;
+                        const mutLevelEl = document.getElementById('mutationFilterLevel');
+                        if (mutLevelEl) mutLevelEl.value = snap.mutLevel;
+                    }
+                    const transGeneEl = document.getElementById('translocationFilterGene');
+                    if (transGeneEl && snap.transGene) {
+                        transGeneEl.value = snap.transGene;
+                        const transLevelEl = document.getElementById('translocationFilterLevel');
+                        if (transLevelEl) transLevelEl.value = snap.transLevel;
+                    }
+                    if (snap.customCL && snap.customCL.size) {
+                        this._customCellLineFilter = snap.customCL;
+                        const txt = document.getElementById('customCellLineFilter');
+                        if (txt) txt.value = snap.customCLText;
+                        const ccEl = document.getElementById('customCLFilterCount');
+                        if (ccEl) ccEl.textContent = snap.customCLCountText;
+                    }
+                    this._styleActiveFilters?.();
+                    this.updateInspectPlot();
                 });
                 tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
                 tr.addEventListener('mouseleave', () => tr.style.background = '');
