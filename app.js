@@ -7033,6 +7033,11 @@ class CorrelationExplorer {
             banner.textContent = filterText;
             banner.style.fontSize = (this._netBannerFontSize || 20) + 'px';
             container.appendChild(banner);
+            // Pan the network view down so the banner doesn't overlap the
+            // top nodes after vis.js's initial physics + fit settle.
+            this.network.once('afterDrawing', () => {
+                try { this.network.moveTo({ offset: { x: 0, y: -40 }, animation: false }); } catch (e) {}
+            });
 
             // Make banner draggable
             let dragOffsetX = 0, dragOffsetY = 0, isDragging = false;
@@ -8009,7 +8014,10 @@ Results:
         // When the analysis was launched from a CLB selection (via "Inspect
         // gene effects" / "Inspect correlations" → Network), surface that
         // context so the user doesn't forget what the network represents.
-        if (this._pendingSelectionLabel) parts.push(this._pendingSelectionLabel);
+        // The selection label already carries the cell-line count, so the
+        // trailing pan-dataset n= would just be confusing — suppress it.
+        const fromSelection = !!this._pendingSelectionLabel;
+        if (fromSelection) parts.push(this._pendingSelectionLabel);
         const lineage = document.getElementById('lineageFilter')?.value;
         const subLineage = document.getElementById('subLineageFilter')?.value;
         if (lineage) {
@@ -8043,6 +8051,10 @@ Results:
             }
         }
         if (parts.length === 0) return null;
+        // Skip the trailing dataset n= when the analysis was driven by a
+        // CLB selection — the selection label already states the count, and
+        // the dataset-level n= here would otherwise contradict it.
+        if (fromSelection) return `Filters: ${parts.join('  \u00b7  ')}`;
         return `Filters: ${parts.join('  \u00b7  ')}  \u00b7  n=${this.results.nCellLines}`;
     }
 

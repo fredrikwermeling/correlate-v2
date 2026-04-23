@@ -662,19 +662,20 @@
         }
         .network-filter-banner {
             position: absolute;
-            top: 4px;
+            top: 16px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            background: rgba(255,255,255,0.9);
+            background: #ffffff;
             border: 1px solid #d1d5db;
             border-radius: 4px;
-            padding: 3px 10px;
+            padding: 5px 14px;
             font-size: 10px;
             color: #374151;
             white-space: nowrap;
             cursor: move;
             user-select: none;
+            box-shadow: 0 4px 10px -4px rgba(0,0,0,0.18);
         }
 
         /* New horizontal grid layout for network controls */
@@ -1324,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.73.6 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Network filter banner cleaned up. When the analysis was launched from a CLB selection, the trailing &ldquo;n=1186&rdquo; (the full dataset size) used to appear after the &ldquo;Selection (58 cell lines)&rdquo; tag, contradicting it. Suppressed when a selection label is present, since the count is already in the label.</li>
+                    <li>Banner now sits a bit lower with an opaque white background and a subtle shadow so it doesn&rsquo;t blend into the network. The network view also pans down ~40 px after the initial physics settle, giving the top nodes breathing room below the banner.</li>
+                </ul>
                 <p><strong>v.73.5 (2026-04-23)</strong></p>
                 <ul>
                     <li>Selection-Inspect (GE / Correlations) results can now be <b>saved</b> to a JSON file and <b>re-opened</b> later — no more losing a 5–10 minute correlation run if you wanted to look at a different pair afterwards. <em>Save</em> button appears in the modal header once results are computed; <em>Open Saved Inspect</em> button next to the Inspect Correlations button on the CLB toolbar pops a file picker, restores the result table, and re-wires all interactivity (sort, cutoff, Network, Enrichr).</li>
@@ -2136,7 +2142,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.6</a>
     </div>
 
     <div class="main-content">
