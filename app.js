@@ -10866,24 +10866,48 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         }
 
-        // Build annotations for highlighted cell labels (draggable)
+        // Build annotations for highlighted cell labels (draggable). Plotly
+        // doesn't do collision-avoidance for annotations, so when many cells
+        // are highlighted (e.g. via the CLB selection inspect flow) the
+        // labels stack into an unreadable blob. Two-tier strategy:
+        //   - up to 12 highlighted cells   → label every one, name only
+        //   - more than 12                  → no per-point labels, just the
+        //     orange markers; hover shows the name. A note is dropped on
+        //     the plot so the user knows highlights are present.
         const highlightAnnotations = [];
-        highlightData.forEach(d => {
-            const saved = this._userLabelPositions.get(d.cellLineName);
-            highlightAnnotations.push({
-                x: d.x, y: d.y,
-                xref: 'x', yref: 'y',
-                text: `${d.cellLineName} (${d.lineage || 'Unknown'})`,
-                showarrow: true,
-                arrowhead: 0,
-                arrowcolor: '#999',
-                ax: saved ? saved.ax : 0,
-                ay: saved ? saved.ay : -25,
-                font: { size: fontSize * 3, color: '#000' },
-                bgcolor: 'rgba(255,255,255,0.7)',
-                borderpad: 2
+        const LABEL_LIMIT = 12;
+        if (highlightData.length <= LABEL_LIMIT) {
+            highlightData.forEach(d => {
+                const saved = this._userLabelPositions.get(d.cellLineName);
+                highlightAnnotations.push({
+                    x: d.x, y: d.y,
+                    xref: 'x', yref: 'y',
+                    text: d.cellLineName,
+                    showarrow: true,
+                    arrowhead: 0,
+                    arrowcolor: '#999',
+                    ax: saved ? saved.ax : 0,
+                    ay: saved ? saved.ay : -25,
+                    font: { size: fontSize * 3, color: '#000' },
+                    bgcolor: 'rgba(255,255,255,0.7)',
+                    borderpad: 2
+                });
             });
-        });
+        } else {
+            // Too many to label legibly — pin a small caption in the corner
+            // so the user knows what the orange markers represent.
+            highlightAnnotations.push({
+                x: 0.02, y: 0.98, xref: 'paper', yref: 'paper',
+                xanchor: 'left', yanchor: 'top',
+                text: `&#9679; ${highlightData.length} cell lines highlighted (hover to see names)`,
+                showarrow: false,
+                font: { size: Math.max(11, fontSize * 2.4), color: '#b45309' },
+                bgcolor: 'rgba(255,255,255,0.85)',
+                bordercolor: '#f59e0b',
+                borderwidth: 1,
+                borderpad: 4
+            });
+        }
 
         // Add regression line
         if (!isNaN(allStats.slope) && document.getElementById('showCorrelationLine')?.checked !== false) {
