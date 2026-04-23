@@ -3361,8 +3361,33 @@ class CorrelationExplorer {
             btn.textContent = orig;
             btn.disabled = false;
         };
-        document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => _aiExportWithLoading('mutAnalyzeWithAI', 'mutation'));
-        document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => _aiExportWithLoading('scatterAnalyzeWithAI', 'scatter'));
+        // Scatter and mutation buttons ask for an optional question via
+        // prompt() (the shared dialog lives inside the GE section and can't
+        // be shown cleanly over other views), stash it into the aiQuestion
+        // textarea that exportFullAIAnalysis reads, then export.
+        const _aiExportWithQuestion = async (btnId, source) => {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            const q = prompt(
+                'Ask the AI a specific question about this analysis (optional).\n\n' +
+                'The export also embeds a PNG snapshot of the current chart and an instruction ' +
+                'telling the AI to show the snapshot back in its reply.',
+                ''
+            );
+            if (q === null) return;
+            const ta = document.getElementById('aiQuestion');
+            if (ta) ta.value = q;
+            const orig = btn.textContent;
+            btn.textContent = 'Exporting...';
+            btn.disabled = true;
+            this._aiExportSource = source;
+            await new Promise(r => setTimeout(r, 50));
+            await this.exportFullAIAnalysis();
+            btn.textContent = orig;
+            btn.disabled = false;
+        };
+        document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => _aiExportWithQuestion('mutAnalyzeWithAI', 'mutation'));
+        document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => _aiExportWithQuestion('scatterAnalyzeWithAI', 'scatter'));
         document.getElementById('aiExportBtn')?.addEventListener('click', () => _aiExportWithLoading('aiExportBtn', this._aiExportSource || 'ge'));
 
         // Chart width control — works for both inspect and detailed views
@@ -18992,9 +19017,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // AI export still dumped all 1147 cell lines.
             return this.getGETissueFilteredData().map(d => d.cellLineId);
         } else if (source === 'scatter') {
-            // Scatter inspect — currentInspect.data is filter-aware (built by
-            // updateInspectPlot with tissue/subtype/mutation/fusion filters applied).
-            const data = this.currentInspect?.data || this._currentFilteredData || [];
+            // Prefer _inspectFilteredCellLineIds — that's set by
+            // updateInspectPlot AFTER tissue/subtype/mutation/fusion/custom-CL
+            // filters are applied. currentInspect.data is the unfiltered plot
+            // data built in openInspect and would leak in cells outside the
+            // user's inspect-modal filter stack.
+            if (Array.isArray(this._inspectFilteredCellLineIds) && this._inspectFilteredCellLineIds.length > 0) {
+                return this._inspectFilteredCellLineIds.slice();
+            }
+            const data = this._currentFilteredData || this.currentInspect?.data || [];
             return data.map(d => d.cellLineId);
         } else if (source === 'mutation') {
             const mr = this.mutationResults;
@@ -19080,19 +19111,47 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         } else if (source === 'scatter') {
             const ci = this.currentInspect;
             const cancerF = document.getElementById('scatterCancerFilter')?.value || '';
+            const subF = document.getElementById('scatterSubtypeFilter')?.value || '';
+            const mutGeneF = document.getElementById('mutationFilterGene')?.value || '';
+            const mutLevelF = document.getElementById('mutationFilterLevel')?.value || 'all';
+            const transGeneF = document.getElementById('translocationFilterGene')?.value || '';
+            const transLevelF = document.getElementById('translocationFilterLevel')?.value || 'all';
+            const hotspotOverlayF = document.getElementById('hotspotGene')?.value || '';
+            const transOverlayF = document.getElementById('translocationGene')?.value || '';
+            const customCLCount = this._customCellLineFilter?.size || 0;
             context = {
                 type: 'scatter_correlation', gene1: ci?.gene1, gene2: ci?.gene2,
                 correlation: ci?.correlation, xType: ci?.xType, yType: ci?.yType,
-                plotType: 'scatter', stratification: 'none', cancerFilter: cancerF
+                plotType: 'scatter', stratification: 'none',
+                cancerFilter: cancerF,
+                subtypeFilter: subF,
+                mutationFilter: mutGeneF && mutLevelF !== 'all' ? `${mutGeneF} ${mutLevelF}` : '',
+                fusionFilter: transGeneF && transLevelF !== 'all' ? `${transGeneF} ${transLevelF}` : '',
+                hotspotOverlayGene: hotspotOverlayF,
+                fusionOverlayGene: transOverlayF,
+                customCellLineListCount: customCLCount
             };
-            description = `Scatter plot of ${ci?.gene1} vs ${ci?.gene2} gene effect${cancerF ? ' in ' + cancerF : ''}.`;
+            const parts = [
+                cancerF,
+                subF,
+                context.mutationFilter,
+                context.fusionFilter,
+                customCLCount ? `custom CL list (n=${customCLCount})` : ''
+            ].filter(Boolean);
+            description = `Scatter of ${ci?.gene1} vs ${ci?.gene2}${parts.length ? ' filtered by ' + parts.join(', ') : ''}.`;
         } else if (source === 'mutation') {
+            const excludedList = mr?.excludedTissues?.size ? [...mr.excludedTissues] : [];
             context = {
                 type: 'mutation_analysis', hotspotGene: mr?.hotspotGene,
                 isTranslocation: mr?.isTranslocation || false, isDamaging: mr?.isDamaging || false,
                 nWT: mr?.nWT, nMutated: mr?.nMut, pValueThreshold: mr?.pThreshold,
                 plotType: 'mutation_table', stratification: mr?.hotspotGene,
-                lineageFilter: mr?.lineageFilter || '', subLineageFilter: mr?.subLineageFilter || ''
+                lineageFilter: mr?.lineageFilter || '', subLineageFilter: mr?.subLineageFilter || '',
+                excludedTissues: excludedList,
+                additionalHotspot: mr?.additionalHotspot && mr?.additionalHotspotLevel !== 'all'
+                    ? `${mr.additionalHotspot} ${mr.additionalHotspotLevel}` : '',
+                oncoprintFilters: this._activeOncoprintFilters?.map(f => `${f.gene} ${f.state}`) || [],
+                customCellLineListCount: this._customCellLineFilter?.size || 0
             };
             // Cell line groups for mutation analysis
             if (mr?.hotspotGene) {
@@ -19235,6 +19294,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }));
         }
 
+        // Capture a PNG snapshot of the current view so the AI can restate
+        // the visual context. Scatter uses the inspect scatter plot, GE uses
+        // whichever plot is currently populated, mutation views have no
+        // native chart so the snapshot is skipped.
+        let snapshot = null;
+        try {
+            const plotIdsBySource = {
+                scatter: ['scatterPlot'],
+                ge: ['geneEffectPlot', 'geneEffectHotspotPlot', 'byTissueChart']
+            };
+            for (const id of (plotIdsBySource[source] || [])) {
+                const el = document.getElementById(id);
+                if (el && el.data && el.offsetParent !== null) {
+                    const w = el._fullLayout?.width || el.offsetWidth || 800;
+                    const h = el._fullLayout?.height || el.offsetHeight || 500;
+                    snapshot = await Plotly.toImage(el, { format: 'png', width: w, height: h });
+                    break;
+                }
+            }
+        } catch (e) { /* skip snapshot on failure */ }
+
         // Assemble the export
         setStatus('Compressing...');
         await new Promise(r => setTimeout(r, 50));
@@ -19265,6 +19345,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ],
             context,
             question: question || null,
+            snapshot: snapshot,
+            aiInstructions: snapshot ? (
+                'A PNG chart snapshot (data:image/png;base64) is in the `snapshot` field. ' +
+                'Begin your reply with: "You were looking at this chart:" followed by a Markdown ' +
+                'image reference ![chart](<paste the snapshot data URI here>). ' +
+                'If a `question` field is present, restate it: "and asked: <question>". ' +
+                'Then answer grounded in the data. Filters applied to the cohort are in `context` — ' +
+                'honour them when describing what the user sees. Do not invent data not present.'
+            ) : null,
             cellLineOrder: cellLines,
             cellLineGroups: Object.keys(cellLineGroups).length > 0 ? cellLineGroups : undefined,
             cellLineMetadata: clMeta,
