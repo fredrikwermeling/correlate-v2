@@ -21011,54 +21011,54 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     _curatedCollectionsCatalog() {
         return {
             msi: {
-                label: 'MMR-deficient / MSI-high',
-                category: 'DNA repair',
-                description: 'Damaging mutation in a core mismatch-repair gene (MLH1, MSH2, MSH6, PMS2, EPCAM). Typically hypermutated and microsatellite-unstable.'
+                label: 'MMR-deficient (likely MSI-high)',
+                category: 'DNA repair — mismatch repair',
+                description: '<b>Inclusion:</b> at least one damaging mutation (frameshift / nonsense / splice) in any of <b>MLH1, MSH2, MSH6, PMS2, EPCAM</b> &mdash; the canonical Lynch-syndrome / mismatch-repair gene panel. <b>Mechanism:</b> loss of MMR activity causes microsatellite instability and a hypermutated genome; classic checkpoint-immunotherapy-responder background. <b>Caveat:</b> the most common sporadic cause of MMR-deficiency is <em>MLH1 promoter hypermethylation</em>, which is not captured here — so this set under-counts MSI lines. Conversely, a single damaging mutation without biallelic loss does not always abolish MMR, so it may include some still-MMR-competent lines.'
             },
             hrd: {
                 label: 'HR-deficient / BRCAness',
-                category: 'DNA repair',
-                description: 'Damaging mutation in a homologous-recombination gene (BRCA1, BRCA2, PALB2, ATM, RAD51C, RAD51D, FANCA/C/D2, BRIP1).'
+                category: 'DNA repair — homologous recombination',
+                description: '<b>Inclusion:</b> damaging mutation in any of <b>BRCA1, BRCA2, PALB2, ATM, RAD51C, RAD51D, FANCA, FANCC, FANCD2, BRIP1</b> — the validated double-strand-break / Fanconi-anaemia repair pathway. <b>Mechanism:</b> loss of accurate homologous-recombination repair, classically associated with PARP-inhibitor sensitivity. <b>Caveat:</b> we do not require biallelic loss or LOH, so heterozygous carriers that retain HR competence may be included. Functional HR-deficiency assays (e.g. RAD51 foci) would be a more direct readout.'
             },
             hypermutated: {
                 label: 'Hypermutated (top decile)',
                 category: 'Mutation burden',
-                description: 'Top 10 % of cell lines by count of damaging mutations. Data-driven; overlaps strongly with MMR-deficient but not identical.'
+                description: '<b>Inclusion:</b> the top 10 % of cell lines ranked by total count of damaging mutations in this dataset. <b>Why:</b> a data-driven catch-all for high-TMB lines regardless of mechanism. <b>Caveat:</b> this is dataset-relative, not an absolute mut/Mb cutoff. Strongly overlaps with the MMR-deficient set and with POLE-mutated lineages but also captures hypermutators of unknown mechanism.'
             },
             swi_snf: {
-                label: 'SWI/SNF-deficient',
-                category: 'Chromatin',
-                description: 'Damaging mutation in SWI/SNF complex subunits (ARID1A, ARID1B, ARID2, SMARCA4, SMARCB1, PBRM1).'
+                label: 'SWI/SNF (BAF/PBAF) complex deficient',
+                category: 'Chromatin remodelling — SWI/SNF complex',
+                description: '<b>Inclusion:</b> damaging mutation in any of <b>ARID1A, ARID1B, ARID2, SMARCA4, SMARCB1, PBRM1</b> — the cancer-relevant tumour-suppressor subunits of the SWI/SNF (BAF / PBAF) ATP-dependent nucleosome-remodelling complex. <b>Mechanism:</b> loss of one subunit disrupts complex assembly and gene-expression regulation, often creating a synthetic-lethal dependency on a paralog (e.g. SMARCA4-mutant lines depend on SMARCA2). <b>Scope caveat:</b> this is <em>one specific complex</em>, not the whole chromatin machinery — histone writers / readers / erasers (KMTs, KDMs, HATs, HDACs, BRDs), DNA-methylation enzymes (DNMTs, TETs), etc. are not captured here.'
             },
             nrf2: {
-                label: 'NRF2-activated',
-                category: 'Oxidative-stress pathway',
-                description: 'Activating lesions in the KEAP1–NRF2 axis: hotspot or damaging mutation in NFE2L2, or damaging mutation in KEAP1.'
+                label: 'KEAP1–NRF2 pathway activated',
+                category: 'Oxidative-stress response',
+                description: '<b>Inclusion:</b> activating lesions in the KEAP1–NRF2 axis — hotspot or damaging mutation in <b>NFE2L2</b> (NRF2), or damaging mutation in <b>KEAP1</b>. <b>Mechanism:</b> KEAP1 normally targets NRF2 for degradation; loss of KEAP1 or NRF2 mutations that escape KEAP1 binding produce constitutive antioxidant-pathway activity. Confers resistance to chemo- and radiotherapy. <b>Caveat:</b> NFE2L2 amplification (also activating) is not captured here since copy-number is not in this dataset.'
             },
             ne: {
-                label: 'Neuroendocrine phenotype',
+                label: 'Neuroendocrine phenotype (NE-high)',
                 category: 'Expression signature',
-                description: 'Top quintile for mean expression of the neuroendocrine marker panel (ASCL1, NEUROD1, CHGA, SYP). Captures SCLC-like and NE-transformed lines across lineages.'
+                description: '<b>Inclusion:</b> top 20 % of cell lines by mean expression of the canonical neuroendocrine marker panel <b>ASCL1, NEUROD1, CHGA, SYP</b>. <b>Why:</b> captures small-cell lung carcinoma and NE-transformed lines (e.g. NEPC) across lineages. <b>Caveat:</b> the cutoff is dataset-relative, not an absolute clinical threshold; lineages without true NE biology can occasionally land in the top 20 % if they happen to express one of the panel genes.'
             },
             emt: {
-                label: 'EMT-high',
+                label: 'EMT-high (mesenchymal-skewed)',
                 category: 'Expression signature',
-                description: 'Mesenchymal-skewed: low CDH1 and high VIM / ZEB1 / SNAI1 / TWIST1 (composite z-score, top quintile).'
+                description: '<b>Inclusion:</b> top 20 % of cell lines by composite mesenchymal z-score: positive contribution from <b>VIM, ZEB1, SNAI1, TWIST1</b> and negative contribution from <b>CDH1</b> (E-cadherin). <b>Why:</b> identifies cell lines on the mesenchymal end of the EMT axis, irrespective of tissue lineage. <b>Caveat:</b> this is a small canonical-marker panel — full EMT signatures (Hallmark, Tan / Mak) cover hundreds of genes; this is a quick proxy.'
             },
             tnbc: {
-                label: 'Triple-negative breast (TNBC)',
-                category: 'Breast subtype',
-                description: 'Breast lineage with low ESR1 and PGR expression and ERBB2 not amplified / high.'
+                label: 'Triple-negative breast (approximate)',
+                category: 'Breast — receptor subtype',
+                description: '<b>Inclusion:</b> breast lineage AND ESR1 expression below the breast-line median AND PGR expression below the breast-line median AND ERBB2 expression NOT in the top 20 % of breast lines. <b>Why:</b> approximates TNBC by transcript-level surrogates of ER, PR, HER2 status. <b>Caveat:</b> clinical TNBC is defined by IHC (and FISH for HER2) — transcript and protein don\'t always agree. Breast-only thresholds avoid mis-classifying receptor-low lines from other lineages, but a borderline breast line may shift class with small expression changes.'
             },
             hr_pos_breast: {
-                label: 'HR+ breast (luminal)',
-                category: 'Breast subtype',
-                description: 'Breast lineage with high ESR1 or PGR expression.'
+                label: 'HR+ breast (luminal-like)',
+                category: 'Breast — receptor subtype',
+                description: '<b>Inclusion:</b> breast lineage AND ESR1 OR PGR expression at or above the breast-line median AND ERBB2 expression NOT in the top 20 % of breast lines. <b>Why:</b> approximates ER+/PR+/HER2&minus; (luminal A/B) breast cancer by transcript surrogates. <b>Caveat:</b> see TNBC entry — transcript-based receptor status is approximate, not clinical.'
             },
             her2_pos_breast: {
-                label: 'HER2+ breast',
-                category: 'Breast subtype',
-                description: 'Breast lineage with high ERBB2 expression (top quintile among breast cell lines).'
+                label: 'HER2+ breast (approximate)',
+                category: 'Breast — receptor subtype',
+                description: '<b>Inclusion:</b> breast lineage AND ERBB2 expression in the top 20 % of breast lines. <b>Why:</b> approximates HER2-amplified breast cancer by transcript level. <b>Caveat:</b> clinical HER2+ status is defined by IHC 3+ or FISH amplification — high transcript expression is correlated but not equivalent. Without copy-number data here, this is a surrogate.'
             }
         };
     }

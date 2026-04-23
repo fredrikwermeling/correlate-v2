@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.73.8 (2026-04-23)</strong></p>
+                <ul>
+                    <li>Curated-collection descriptions rewritten to be honest about what each set captures and what it doesn&rsquo;t. Each entry now has a structured <em>Inclusion</em> / <em>Mechanism</em> / <em>Caveat</em> block with the explicit gene panel, the biology, and the limitations (e.g. SWI/SNF-deficient now scoped specifically to the BAF/PBAF complex subunits, with a caveat that the broader chromatin machinery — histone writers/readers/erasers, DNMTs, etc. — is not captured). Categories also tightened: &ldquo;Chromatin&rdquo; → &ldquo;Chromatin remodelling — SWI/SNF complex&rdquo;; &ldquo;DNA repair&rdquo; split into &ldquo;mismatch repair&rdquo; and &ldquo;homologous recombination&rdquo;; &ldquo;Breast subtype&rdquo; → &ldquo;Breast — receptor subtype&rdquo; with explicit &ldquo;approximate&rdquo; tags reminding the reader that transcript-based receptor calls are not clinical IHC/FISH.</li>
+                </ul>
                 <p><strong>v.73.7 (2026-04-23)</strong></p>
                 <ul>
                     <li>Network filter banner pan: the previous offset was being reset by a <code>fit()</code> call inside the stabilization callback. Moved the pan into the same callback, after the fit, so the top nodes really do drop below the banner now.</li>
@@ -2147,7 +2151,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.7</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.73.8</a>
     </div>
 
     <div class="main-content">
