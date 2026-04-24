@@ -26064,15 +26064,30 @@ ${body}
 
         await new Promise(r => setTimeout(r, 10));
 
+        // 2x2 chi² p-value for (in-category vs not) × (Gate A vs Gate B).
+        // Same approximation used for mutation enrichment so the numbers are
+        // consistent across tabs.
+        const chi2P = (inA, inB, totalA, totalB) => {
+            const a = inA, b = inB, c = totalA - inA, d = totalB - inB;
+            const n = a + b + c + d;
+            if (n <= 0) return 1;
+            const chi2 = Math.pow(a * d - b * c, 2) * n / ((a + b) * (c + d) * (a + c) * (b + d) || 1);
+            return Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
+        };
+
         // 1. Tissue enrichment
         const tissueA = {}, tissueB = {};
         this._umapGateA.forEach(cl => { const t = this.getCellLineLineage(cl) || 'Unknown'; tissueA[t] = (tissueA[t] || 0) + 1; });
         this._umapGateB.forEach(cl => { const t = this.getCellLineLineage(cl) || 'Unknown'; tissueB[t] = (tissueB[t] || 0) + 1; });
         const allTissues = [...new Set([...Object.keys(tissueA), ...Object.keys(tissueB)])].sort();
-        const tissueStats = allTissues.map(t => ({
-            tissue: t, nA: tissueA[t] || 0, pctA: (tissueA[t] || 0) / nA * 100,
-            nB: tissueB[t] || 0, pctB: (tissueB[t] || 0) / nB * 100
-        }));
+        const tissueStats = allTissues.map(t => {
+            const nAt = tissueA[t] || 0, nBt = tissueB[t] || 0;
+            return {
+                tissue: t, nA: nAt, pctA: nAt / nA * 100,
+                nB: nBt, pctB: nBt / nB * 100,
+                pValue: chi2P(nAt, nBt, nA, nB)
+            };
+        });
         tissueStats.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
 
         // 1b. Subtissue enrichment
@@ -26080,10 +26095,14 @@ ${body}
         this._umapGateA.forEach(cl => { const st = this.getCellLineSublineage(cl) || this.getCellLineLineage(cl) || 'Unknown'; subtissueA[st] = (subtissueA[st] || 0) + 1; });
         this._umapGateB.forEach(cl => { const st = this.getCellLineSublineage(cl) || this.getCellLineLineage(cl) || 'Unknown'; subtissueB[st] = (subtissueB[st] || 0) + 1; });
         const allSubtissues = [...new Set([...Object.keys(subtissueA), ...Object.keys(subtissueB)])].sort();
-        const subtissueStats = allSubtissues.map(st => ({
-            tissue: st, nA: subtissueA[st] || 0, pctA: (subtissueA[st] || 0) / nA * 100,
-            nB: subtissueB[st] || 0, pctB: (subtissueB[st] || 0) / nB * 100
-        }));
+        const subtissueStats = allSubtissues.map(st => {
+            const nAt = subtissueA[st] || 0, nBt = subtissueB[st] || 0;
+            return {
+                tissue: st, nA: nAt, pctA: nAt / nA * 100,
+                nB: nBt, pctB: nBt / nB * 100,
+                pValue: chi2P(nAt, nBt, nA, nB)
+            };
+        });
         subtissueStats.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
 
         // 2. Mutation enrichment
@@ -26198,8 +26217,10 @@ ${body}
             const data = [...r.tissueStats];
             this._sortUmapGateData(data, {
                 tissue: d => d.tissue.toLowerCase(), nA: d => d.nA, pctA: d => d.pctA,
-                nB: d => d.nB, pctB: d => d.pctB, delta: d => d.pctA - d.pctB, absDelta: d => Math.abs(d.pctA - d.pctB)
+                nB: d => d.nB, pctB: d => d.pctB, delta: d => d.pctA - d.pctB, absDelta: d => Math.abs(d.pctA - d.pctB),
+                pValue: d => d.pValue ?? 1
             });
+            const fmtP = (p) => p == null || !isFinite(p) ? 'n/a' : p < 0.001 ? p.toExponential(1) : p.toFixed(3);
             let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="${sortFn('tissue')}">Tissue${sortIcon('tissue')}</th>
@@ -26208,6 +26229,7 @@ ${body}
                     <th style="${thStyle}text-align:center;" onclick="${sortFn('nB')}">Gate B${sortIcon('nB')}</th>
                     <th style="${thStyle}text-align:center;" onclick="${sortFn('pctB')}">%B${sortIcon('pctB')}</th>
                     <th style="${thStyle}text-align:center;" onclick="${sortFn('absDelta')}">|Δ%|${sortIcon('absDelta')}</th>
+                    <th style="${thStyle}text-align:center;" onclick="${sortFn('pValue')}" title="2×2 χ² test of tissue presence vs gate assignment">p-value${sortIcon('pValue')}</th>
                 </tr></thead><tbody>`;
             data.forEach(t => {
                 const delta = t.pctA - t.pctB;
@@ -26219,6 +26241,7 @@ ${body}
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.nB}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.pctB.toFixed(1)}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${t.pValue != null && t.pValue < 0.05 ? 'font-weight:600;' : ''}">${fmtP(t.pValue)}</td>
                 </tr>`;
             });
             html += '</tbody></table>';
@@ -26228,7 +26251,7 @@ ${body}
                 html += `<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;">
                     <div style="font-size:11px;font-weight:600;margin-bottom:6px;color:#374151;">Subtissue</div>
                     <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
-                    <thead><tr style="background:#f3f4f6;"><th style="padding:5px;text-align:left;">Subtype</th><th style="padding:5px;text-align:center;">Gate A</th><th style="padding:5px;text-align:center;">%A</th><th style="padding:5px;text-align:center;">Gate B</th><th style="padding:5px;text-align:center;">%B</th><th style="padding:5px;text-align:center;">|Δ%|</th></tr></thead><tbody>`;
+                    <thead><tr style="background:#f3f4f6;"><th style="padding:5px;text-align:left;">Subtype</th><th style="padding:5px;text-align:center;">Gate A</th><th style="padding:5px;text-align:center;">%A</th><th style="padding:5px;text-align:center;">Gate B</th><th style="padding:5px;text-align:center;">%B</th><th style="padding:5px;text-align:center;">|Δ%|</th><th style="padding:5px;text-align:center;" title="2×2 χ² test of subtype presence vs gate assignment">p-value</th></tr></thead><tbody>`;
                 subData.forEach(t => {
                     const delta = t.pctA - t.pctB;
                     const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
@@ -26237,7 +26260,8 @@ ${body}
                         <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.pctA.toFixed(1)}</td>
                         <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.nB}</td>
                         <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.pctB.toFixed(1)}</td>
-                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td></tr>`;
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${t.pValue != null && t.pValue < 0.05 ? 'font-weight:600;' : ''}">${fmtP(t.pValue)}</td></tr>`;
                 });
                 html += '</tbody></table></div>';
             }
