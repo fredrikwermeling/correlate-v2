@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.76.0 (2026-04-24)</strong></p>
+                <ul>
+                    <li>Inspect modal <em>Genes (X/Y)</em> row &mdash; the controls now wrap inside the box instead of pushing <em>Find correlates</em> outside it. Button widths reduced, the swap button sits between the X and Y fields, and the row uses <code>flex-wrap</code> so narrow modals stack cleanly.</li>
+                </ul>
                 <p><strong>v.75.9 (2026-04-24)</strong></p>
                 <ul>
                     <li>CLB PCA loadings now appear in <strong>gene-color</strong> mode too, not only when colouring by tissue / subtype. The loadings sidecar describes the PCA axes (which don't change when you recolour), so it stays useful alongside any colour scheme.</li>
@@ -2258,7 +2262,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.75.9</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.76.0</a>
     </div>
 
     <div class="main-content">
@@ -2929,20 +2933,20 @@
                         <!-- Row 1: Genes (full width) -->
                         <div class="control-box-compact" style="grid-column: span 2; padding: 4px 8px;">
                             <span class="control-label" style="margin-bottom: 2px;">Genes (X/Y)</span>
-                            <div style="display: flex; gap: 4px; align-items: center;">
-                                <input type="text" id="inspectGeneX" class="form-control" style="flex: 1; min-width: 80px; font-size: 12px; padding: 3px 8px;" placeholder="X gene">
+                            <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+                                <input type="text" id="inspectGeneX" class="form-control" style="flex: 1 1 70px; min-width: 60px; font-size: 12px; padding: 3px 8px;" placeholder="X gene">
                                 <select id="xAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;">
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
                                 </select>
-                                <input type="text" id="inspectGeneY" class="form-control" style="flex: 1; min-width: 80px; font-size: 12px; padding: 3px 8px;" placeholder="Y gene">
+                                <button class="btn btn-outline btn-sm" id="inspectSwapAxes" style="font-size: 11px; padding: 2px 6px; min-width: 26px;" title="Swap X and Y axes (gene names + data types)">&#8644;</button>
+                                <input type="text" id="inspectGeneY" class="form-control" style="flex: 1 1 70px; min-width: 60px; font-size: 12px; padding: 3px 8px;" placeholder="Y gene">
                                 <select id="yAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;">
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
                                 </select>
-                                <button class="btn btn-outline btn-sm" id="inspectSwapAxes" style="font-size: 11px; padding: 2px 8px; min-width: 28px;" title="Swap X and Y axes (gene names + data types)">&#8644;</button>
-                                <button class="btn btn-primary btn-sm" id="updateInspectGenes" style="font-size: 11px; padding: 4px 16px; min-width: 110px; font-weight: 600;">Update</button>
-                                <button class="btn btn-outline btn-sm" id="inspectFindCorrelatesBtn" style="font-size: 11px; padding: 4px 16px; min-width: 110px; color:#5a9f4a; border-color:#5a9f4a;" title="Find top GE and Expression correlates of the X-axis gene across the currently-filtered cell lines. Click a result to put it on the Y axis.">Find correlates</button>
+                                <button class="btn btn-primary btn-sm" id="updateInspectGenes" style="font-size: 11px; padding: 3px 12px; min-width: 92px; font-weight: 600;">Update</button>
+                                <button class="btn btn-outline btn-sm" id="inspectFindCorrelatesBtn" style="font-size: 11px; padding: 3px 12px; min-width: 92px; color:#5a9f4a; border-color:#5a9f4a;" title="Find top GE and Expression correlates of the X-axis gene across the currently-filtered cell lines. Click a result to put it on the Y axis.">Find correlates</button>
                             </div>
                         </div>
 
