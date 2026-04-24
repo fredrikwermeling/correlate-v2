@@ -22341,6 +22341,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbUmapColorGeneBtn').addEventListener('click', () => this.applyUmapGeneColor());
         document.getElementById('clbUmapColorGeneClear').addEventListener('click', () => this.clearUmapGeneColor());
         document.getElementById('clbUmapTopGenesBtn').addEventListener('click', () => this.toggleUmapTopGenes());
+        document.getElementById('clbUmapClusterStatsBtn')?.addEventListener('click', () => this.showUmapClusterStats());
+        document.getElementById('clbUmapClearLabelsBtn')?.addEventListener('click', () => this._clearUmapLabels());
+        document.getElementById('clbUmapClusterGroupBy')?.addEventListener('change', () => {
+            // Different grouping renders a different set of rows — drop any
+            // active highlight from the old mode so the plot doesn't keep a
+            // tissue highlighted while the table shows subtypes.
+            if (this._clbUmapHighlightGroup) {
+                this._clbUmapHighlightGroup = null;
+                document.getElementById('clbUmapClusterClearHighlightBtn').style.display = 'none';
+                if (this._clbUmapData) {
+                    const { x, y, cellLines, categories, mutStatus, splitGene } = this._clbUmapData;
+                    const colorBy = document.getElementById('clbUmapColorBy')?.value || 'tissue';
+                    this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene);
+                }
+            }
+            this._renderUmapClusterStats();
+        });
+        document.getElementById('clbUmapClusterClearHighlightBtn')?.addEventListener('click', () => {
+            this._clbUmapHighlightGroup = null;
+            document.getElementById('clbUmapClusterClearHighlightBtn').style.display = 'none';
+            if (this._clbUmapData) {
+                const { x, y, cellLines, categories, mutStatus, splitGene } = this._clbUmapData;
+                const colorBy = document.getElementById('clbUmapColorBy')?.value || 'tissue';
+                this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene);
+            }
+            this._renderUmapClusterStats();
+        });
 
         // Custom gene list (PCA/UMAP features) + highlight dropdown
         const geneListInput = document.getElementById('clbUmapGeneList');
@@ -25725,6 +25752,12 @@ ${body}
         const geneListClear = document.getElementById('clbUmapGeneListClear');
         if (geneListClear) geneListClear.style.display = 'none';
         this._populateUmapHighlightGeneDropdown(null);
+        this._clbUmapClickedLabels = new Set();
+        this._clbUmapHighlightGroup = null;
+        const clusterPanel = document.getElementById('clbUmapClusterStatsPanel');
+        if (clusterPanel) clusterPanel.style.display = 'none';
+        const clearLbls = document.getElementById('clbUmapClearLabelsBtn');
+        if (clearLbls) clearLbls.style.display = 'none';
         this.clearUmapGates();
     }
 
@@ -26664,6 +26697,12 @@ ${body}
             document.getElementById('clbUmapLoadingsLabel').style.display = 'none';
             document.getElementById('clbUmapGatePanel').style.display = 'none';
             document.getElementById('clbUmapShowLoadings').checked = false;
+            this._clbUmapClickedLabels = new Set();
+            this._clbUmapHighlightGroup = null;
+            const _clusterPanelEl = document.getElementById('clbUmapClusterStatsPanel');
+            if (_clusterPanelEl) _clusterPanelEl.style.display = 'none';
+            const _clearLblsEl = document.getElementById('clbUmapClearLabelsBtn');
+            if (_clearLblsEl) _clearLblsEl.style.display = 'none';
 
             if (method === 'pca') {
                 const pca = this._computePCA(matrix, 5);
@@ -26737,6 +26776,170 @@ ${body}
             out.push(g);
         }
         return out.length ? out : null;
+    }
+
+    _computeUmapClusterStats(groupMode) {
+        // Silhouette per point in the current 2D projection, grouped by
+        // tissue or subtype. Returns per-group mean silhouette + n.
+        if (!this._clbUmapData) return null;
+        const { cellLines, x, y } = this._clbUmapData;
+        const n = cellLines.length;
+        if (n < 4) return null;
+        const groupOf = new Array(n);
+        for (let i = 0; i < n; i++) {
+            const cl = cellLines[i];
+            if (groupMode === 'subtype') {
+                groupOf[i] = this.getCellLineSublineage(cl) || this.getCellLineLineage(cl) || 'Unknown';
+            } else {
+                groupOf[i] = this.getCellLineLineage(cl) || 'Unknown';
+            }
+        }
+        const groups = [...new Set(groupOf)];
+        if (groups.length < 2) return { groupMode, rows: [], overall: 0 };
+        const idxByGroup = new Map(groups.map(g => [g, []]));
+        for (let i = 0; i < n; i++) idxByGroup.get(groupOf[i]).push(i);
+
+        const sil = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+            const my = idxByGroup.get(groupOf[i]);
+            if (my.length <= 1) { sil[i] = 0; continue; }
+            let aSum = 0;
+            for (const j of my) if (j !== i) {
+                const dx = x[i] - x[j], dy = y[i] - y[j];
+                aSum += Math.sqrt(dx * dx + dy * dy);
+            }
+            const a = aSum / (my.length - 1);
+            let bMin = Infinity;
+            for (const g of groups) {
+                if (g === groupOf[i]) continue;
+                const pts = idxByGroup.get(g);
+                if (!pts.length) continue;
+                let s = 0;
+                for (const j of pts) {
+                    const dx = x[i] - x[j], dy = y[i] - y[j];
+                    s += Math.sqrt(dx * dx + dy * dy);
+                }
+                const mean = s / pts.length;
+                if (mean < bMin) bMin = mean;
+            }
+            if (!isFinite(bMin)) { sil[i] = 0; continue; }
+            const denom = Math.max(a, bMin);
+            sil[i] = denom > 0 ? (bMin - a) / denom : 0;
+        }
+
+        const rows = groups.map(g => {
+            const pts = idxByGroup.get(g);
+            let s = 0;
+            for (const i of pts) s += sil[i];
+            return { group: g, n: pts.length, silhouette: pts.length ? s / pts.length : 0 };
+        }).filter(r => r.n >= 2);
+        rows.sort((a, b) => b.silhouette - a.silhouette);
+
+        let overall = 0, totalN = 0;
+        for (let i = 0; i < n; i++) { overall += sil[i]; totalN++; }
+        overall = totalN ? overall / totalN : 0;
+
+        return { groupMode, rows, overall };
+    }
+
+    showUmapClusterStats() {
+        if (!this._clbUmapData) { alert('Run PCA/UMAP first.'); return; }
+        const panel = document.getElementById('clbUmapClusterStatsPanel');
+        if (!panel) return;
+        if (!panel.dataset.positioned) {
+            const plotRect = document.getElementById('clbUmapPlot')?.getBoundingClientRect();
+            if (plotRect) {
+                const preferLeft = plotRect.right + 10;
+                const clampedLeft = Math.min(preferLeft, Math.max(8, window.innerWidth - 390));
+                panel.style.left = `${Math.round(clampedLeft)}px`;
+                panel.style.top = `${Math.round(Math.max(10, plotRect.top))}px`;
+            }
+            panel.dataset.positioned = '1';
+            // Inline drag via header; matches the Top Genes panel pattern.
+            const handle = document.getElementById('clbUmapClusterStatsDragHandle');
+            let dragging = false, startX, startY, origLeft, origTop;
+            handle?.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+                dragging = true;
+                startX = e.clientX; startY = e.clientY;
+                origLeft = panel.offsetLeft; origTop = panel.offsetTop;
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!dragging) return;
+                panel.style.left = (origLeft + e.clientX - startX) + 'px';
+                panel.style.top = (origTop + e.clientY - startY) + 'px';
+            });
+            document.addEventListener('mouseup', () => { dragging = false; });
+        }
+        panel.style.display = 'block';
+        this._renderUmapClusterStats();
+    }
+
+    _closeUmapClusterStats() {
+        const panel = document.getElementById('clbUmapClusterStatsPanel');
+        if (panel) panel.style.display = 'none';
+    }
+
+    _renderUmapClusterStats() {
+        const mode = document.getElementById('clbUmapClusterGroupBy')?.value || 'tissue';
+        const stats = this._computeUmapClusterStats(mode);
+        const subtitleEl = document.getElementById('clbUmapClusterStatsSubtitle');
+        const contentEl = document.getElementById('clbUmapClusterStatsContent');
+        if (!stats || !stats.rows.length) {
+            if (subtitleEl) subtitleEl.textContent = '';
+            if (contentEl) contentEl.innerHTML = '<div style="padding:8px; color:#6b7280;">Not enough groups with ≥ 2 cells to score.</div>';
+            return;
+        }
+        if (subtitleEl) subtitleEl.textContent = `overall silhouette ${stats.overall.toFixed(3)} (n=${this._clbUmapData.cellLines.length})`;
+        const highlightGroup = this._clbUmapHighlightGroup?.group;
+        const rowHtml = stats.rows.map(r => {
+            const s = r.silhouette;
+            const bar = Math.max(0, Math.min(1, (s + 1) / 2));
+            const barColor = s >= 0.25 ? '#16a34a' : s >= 0 ? '#f59e0b' : '#dc2626';
+            const bg = r.group === highlightGroup ? '#dcfce7' : '';
+            return `
+                <tr class="clb-umap-cs-row" data-group="${r.group}" style="cursor:pointer; background:${bg};">
+                    <td style="padding:4px 6px; border-bottom:1px solid #f3f4f6;">${r.group}</td>
+                    <td style="padding:4px 6px; border-bottom:1px solid #f3f4f6; text-align:right; color:#6b7280;">${r.n}</td>
+                    <td style="padding:4px 6px; border-bottom:1px solid #f3f4f6; text-align:right; font-weight:600; color:${barColor};">${s.toFixed(3)}</td>
+                    <td style="padding:4px 6px; border-bottom:1px solid #f3f4f6; width:80px;">
+                        <div style="position:relative; height:8px; background:#f3f4f6; border-radius:2px; overflow:hidden;">
+                            <div style="position:absolute; left:50%; top:0; height:100%; width:1px; background:#9ca3af;"></div>
+                            <div style="position:absolute; ${s >= 0 ? 'left:50%' : `right:${(1 - bar) * 100}%`}; top:0; height:100%; width:${Math.abs(s) * 50}%; background:${barColor}; opacity:0.85;"></div>
+                        </div>
+                    </td>
+                </tr>`;
+        }).join('');
+        contentEl.innerHTML = `
+            <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                <thead style="background:#f9fafb;"><tr>
+                    <th style="padding:6px; border-bottom:2px solid #d1d5db; text-align:left;">${mode === 'subtype' ? 'Subtype' : 'Tissue'}</th>
+                    <th style="padding:6px; border-bottom:2px solid #d1d5db; text-align:right;">n</th>
+                    <th style="padding:6px; border-bottom:2px solid #d1d5db; text-align:right;">silhouette</th>
+                    <th style="padding:6px; border-bottom:2px solid #d1d5db;"></th>
+                </tr></thead>
+                <tbody>${rowHtml}</tbody>
+            </table>`;
+        contentEl.querySelectorAll('.clb-umap-cs-row').forEach(tr => {
+            tr.addEventListener('click', () => this._highlightUmapGroup(mode, tr.dataset.group));
+        });
+    }
+
+    _highlightUmapGroup(mode, group) {
+        if (!this._clbUmapData) return;
+        const prev = this._clbUmapHighlightGroup;
+        if (prev && prev.mode === mode && prev.group === group) {
+            this._clbUmapHighlightGroup = null;
+        } else {
+            this._clbUmapHighlightGroup = { mode, group };
+        }
+        const clearBtn = document.getElementById('clbUmapClusterClearHighlightBtn');
+        if (clearBtn) clearBtn.style.display = this._clbUmapHighlightGroup ? '' : 'none';
+        const { x, y, cellLines, categories, mutStatus, splitGene } = this._clbUmapData;
+        const colorBy = document.getElementById('clbUmapColorBy')?.value || 'tissue';
+        this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene);
+        this._renderUmapClusterStats();
     }
 
     _populateUmapHighlightGeneDropdown(genes) {
@@ -27213,11 +27416,42 @@ ${body}
         const pt = eventData?.points?.[0];
         if (!pt || !pt.customdata) return;
         const clId = pt.customdata;
+        if (!this._clbUmapClickedLabels) this._clbUmapClickedLabels = new Set();
+        if (this._clbUmapClickedLabels.has(clId)) this._clbUmapClickedLabels.delete(clId);
+        else this._clbUmapClickedLabels.add(clId);
+        this._updateUmapLabelAnnotations();
         this.showCellLineDetail(clId);
-        // Scroll the corresponding list entry into view so it's obvious which
-        // cell line was picked.
         const entry = document.querySelector(`#clbList .clb-entry[data-clid="${CSS.escape(clId)}"]`);
         if (entry) entry.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    _updateUmapLabelAnnotations() {
+        const plotDiv = document.getElementById('clbUmapPlot');
+        if (!plotDiv?.layout || !this._clbUmapData) return;
+        const base = this._clbUmapData.baseAnnotations || [];
+        const { cellLines, x, y } = this._clbUmapData;
+        const clicked = this._clbUmapClickedLabels || new Set();
+        const labels = [];
+        for (let i = 0; i < cellLines.length; i++) {
+            if (!clicked.has(cellLines[i])) continue;
+            labels.push({
+                x: x[i], y: y[i],
+                text: this.getCellLineName(cellLines[i]),
+                showarrow: false, yshift: 12,
+                font: { size: 10, color: '#111827' },
+                bgcolor: 'rgba(255,255,255,0.92)',
+                bordercolor: '#9ca3af', borderwidth: 0.5, borderpad: 2,
+                _isCellLineLabel: true
+            });
+        }
+        Plotly.relayout(plotDiv, { annotations: [...base, ...labels] });
+        const clearBtn = document.getElementById('clbUmapClearLabelsBtn');
+        if (clearBtn) clearBtn.style.display = clicked.size > 0 ? '' : 'none';
+    }
+
+    _clearUmapLabels() {
+        this._clbUmapClickedLabels = new Set();
+        this._updateUmapLabelAnnotations();
     }
 
     _addLoadingsArrows(plotDiv) {
@@ -27447,7 +27681,36 @@ ${body}
         } else {
             // Single plot, colored by tissue/subtype
             const allIdx = cellLines.map((_, i) => i);
-            const traces = buildCategoryTraces(allIdx, true);
+            const highlight = this._clbUmapHighlightGroup;
+            let traces;
+            if (highlight && highlight.group) {
+                // Highlight mode: target group in green, everyone else gray.
+                const matchIdx = [], otherIdx = [];
+                const groupOf = (i) => highlight.mode === 'subtype'
+                    ? (this.getCellLineSublineage(cellLines[i]) || this.getCellLineLineage(cellLines[i]) || 'Unknown')
+                    : (this.getCellLineLineage(cellLines[i]) || 'Unknown');
+                allIdx.forEach(i => (groupOf(i) === highlight.group ? matchIdx : otherIdx).push(i));
+                traces = [
+                    {
+                        x: otherIdx.map(i => x[i]), y: otherIdx.map(i => y[i]),
+                        text: otherIdx.map(i => makeHoverText(i)),
+                        customdata: otherIdx.map(i => cellLines[i]),
+                        mode: 'markers', type: 'scattergl', name: `Other (${otherIdx.length})`,
+                        marker: { size: markerSize, color: '#d1d5db', opacity: 0.55 },
+                        hoverinfo: 'text', showlegend: true
+                    },
+                    {
+                        x: matchIdx.map(i => x[i]), y: matchIdx.map(i => y[i]),
+                        text: matchIdx.map(i => makeHoverText(i)),
+                        customdata: matchIdx.map(i => cellLines[i]),
+                        mode: 'markers', type: 'scattergl', name: `${highlight.group} (${matchIdx.length})`,
+                        marker: { size: markerSize + 1, color: '#16a34a', opacity: 0.95, line: { width: 0.6, color: '#14532d' } },
+                        hoverinfo: 'text', showlegend: true
+                    }
+                ];
+            } else {
+                traces = buildCategoryTraces(allIdx, true);
+            }
             const dims = this._getUmapPlotDimensions();
             const method = this._clbUmapData?.method === 'pca' ? 'PCA' : 'UMAP';
             const titleText = `${method} \u2014 ${dataTypeLabel} (${cellLines.length} cell lines)`;
@@ -27485,6 +27748,8 @@ ${body}
                 modeBarButtonsToAdd: ['select2d', 'lasso2d'], displaylogo: false,
                 edits: { annotationPosition: true }
             });
+            if (this._clbUmapData) this._clbUmapData.baseAnnotations = [umapTitleAnn, umapXAnn, umapYAnn];
+            this._updateUmapLabelAnnotations();
             this._addLoadingsArrows(plotDiv);
             plotDiv.on('plotly_selected', (eventData) => {
                 this._clbUmapSelectedPoints = new Set();
