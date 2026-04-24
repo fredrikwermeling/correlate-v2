@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.75.8 (2026-04-24)</strong></p>
+                <ul>
+                    <li>Inspect / correlation browser &mdash; <strong>Update</strong> is now the primary (filled) button, the same size as <em>Find correlates</em>, so the main action is visually obvious.</li>
+                    <li>New <strong>&#8644;</strong> swap button next to the gene inputs exchanges the X and Y axes (both gene symbols and the GE / Expression types) and re-renders in one click.</li>
+                </ul>
                 <p><strong>v.75.7 (2026-04-24)</strong></p>
                 <ul>
                     <li>CLB PCA / UMAP &mdash; the <em>data area</em> of the plot (not just the outer canvas) is now square. Canvas height is derived from the width minus the fixed margins, so the scatter box you see between the axes is a true square at any size. The H input is auto-synced to the computed value.</li>
@@ -2248,7 +2253,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.75.7</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.75.8</a>
     </div>
 
     <div class="main-content">
@@ -2930,8 +2935,9 @@
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
                                 </select>
-                                <button class="btn btn-outline btn-sm" id="updateInspectGenes" style="font-size: 10px; padding: 2px 6px;">Update</button>
-                                <button class="btn btn-outline btn-sm" id="inspectFindCorrelatesBtn" style="font-size: 10px; padding: 2px 6px; color:#5a9f4a; border-color:#5a9f4a;" title="Find top GE and Expression correlates of the X-axis gene across the currently-filtered cell lines. Click a result to put it on the Y axis.">Find correlates</button>
+                                <button class="btn btn-outline btn-sm" id="inspectSwapAxes" style="font-size: 11px; padding: 2px 8px; min-width: 28px;" title="Swap X and Y axes (gene names + data types)">&#8644;</button>
+                                <button class="btn btn-primary btn-sm" id="updateInspectGenes" style="font-size: 11px; padding: 4px 16px; min-width: 110px; font-weight: 600;">Update</button>
+                                <button class="btn btn-outline btn-sm" id="inspectFindCorrelatesBtn" style="font-size: 11px; padding: 4px 16px; min-width: 110px; color:#5a9f4a; border-color:#5a9f4a;" title="Find top GE and Expression correlates of the X-axis gene across the currently-filtered cell lines. Click a result to put it on the Y axis.">Find correlates</button>
                             </div>
                         </div>
 

@@ -2979,6 +2979,25 @@ class CorrelationExplorer {
         document.getElementById('compareAllCancerTypesBtn')?.addEventListener('click', () => this.showCompareAllCancerTypes());
         document.getElementById('updateInspectGenes')?.addEventListener('click', () => this.updateInspectGenes());
         document.getElementById('inspectFindCorrelatesBtn')?.addEventListener('click', () => this.findInspectCorrelates());
+        document.getElementById('inspectSwapAxes')?.addEventListener('click', () => {
+            const gX = document.getElementById('inspectGeneX');
+            const gY = document.getElementById('inspectGeneY');
+            const tX = document.getElementById('xAxisDataType');
+            const tY = document.getElementById('yAxisDataType');
+            if (!gX || !gY) return;
+            const tmpGene = gX.value;
+            gX.value = gY.value;
+            gY.value = tmpGene;
+            if (tX && tY) {
+                const tmpType = tX.value;
+                tX.value = tY.value;
+                tY.value = tmpType;
+            }
+            // Only re-render if we actually have two genes (or pseudo-axes)
+            // to avoid throwing the "Please enter genes" alert on swap.
+            const nonEmpty = (el) => el && (el.value.trim() || (el.id === 'inspectGeneX' ? tX?.value : tY?.value) === 'growth' || (el.id === 'inspectGeneX' ? tX?.value : tY?.value) === 'geneset');
+            if (nonEmpty(gX) && nonEmpty(gY)) this.updateInspectGenes();
+        });
         document.getElementById('inspectCorrelatesClose')?.addEventListener('click', () => {
             document.getElementById('inspectCorrelatesModal').style.display = 'none';
         });
