@@ -27369,15 +27369,28 @@ ${body}
     _resizeUmapPlot() {
         const plotDiv = document.getElementById('clbUmapPlot');
         if (!plotDiv?.layout) return;
-        const w = parseInt(document.getElementById('clbUmapPlotWidth').value) || 500;
-        const h = parseInt(document.getElementById('clbUmapPlotHeight').value) || 500;
-        Plotly.relayout(plotDiv, { width: w, height: h });
+        // Go through _getUmapPlotDimensions so the data area stays square when
+        // the user changes W or H — the H input is overwritten to match.
+        const { width, height } = this._getUmapPlotDimensions();
+        Plotly.relayout(plotDiv, { width, height });
     }
 
     _getUmapPlotDimensions() {
+        // Treat the W input as the canvas width and derive height so that the
+        // data area (canvas minus left+right margin for tissue legend /
+        // colorbar and top+bottom margin for title / axis) is actually square.
+        // Keep the H input in sync so the slider reflects the real number.
+        const LEFT = 60, RIGHT = 170, TOP = 50, BOTTOM = 50;
+        const MIN_SIDE = 200;
         const w = parseInt(document.getElementById('clbUmapPlotWidth')?.value) || 500;
-        const h = parseInt(document.getElementById('clbUmapPlotHeight')?.value) || 500;
-        return { width: w, height: h };
+        const dataSide = Math.max(MIN_SIDE, w - LEFT - RIGHT);
+        const width = dataSide + LEFT + RIGHT;
+        const height = dataSide + TOP + BOTTOM;
+        const hEl = document.getElementById('clbUmapPlotHeight');
+        if (hEl && parseInt(hEl.value) !== height) hEl.value = height;
+        const wEl = document.getElementById('clbUmapPlotWidth');
+        if (wEl && parseInt(wEl.value) !== width) wEl.value = width;
+        return { width, height };
     }
 
     _populateComponentSelectors(nComponents, prefix, explained) {
