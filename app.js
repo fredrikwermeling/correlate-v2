@@ -13810,6 +13810,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const gateA = this._gateA;
         const gateB = this._gateB;
+        const fmtP = (p) => !isFinite(p) ? 'n/a' : p < 0.001 ? p.toExponential(1) : p.toFixed(3);
+        // Chi² p-value used in the gate-compare mutation table; re-used here
+        // so the plot title matches what the user saw in the row.
+        const chi2P = (a, b, c, d) => {
+            const n = a + b + c + d;
+            if (n <= 0) return 1;
+            const chi2 = Math.pow(a * d - b * c, 2) * n / ((a + b) * (c + d) * (a + c) * (b + d) || 1);
+            return Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
+        };
 
         if (type === 'mutation') {
             // Stacked bar chart: % mutated vs WT in Gate A vs Gate B
@@ -13878,8 +13887,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     hovertemplate: `Gate B WT: ${wtB}/${gateB.length} (${pctWtB.toFixed(1)}%)<extra></extra>`
                 }
             ];
+            const deltaPct = pctMutA - pctMutB;
+            const pValue = chi2P(mutA, mutB, wtA, wtB);
             const layout = {
-                title: { text: `${gene} — Mutation Frequency`, font: { size: 13 } },
+                title: { text: `${gene} — Mutation Frequency (Δ%=${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}, p=${fmtP(pValue)})`, font: { size: 13 } },
                 barmode: 'stack',
                 yaxis: { title: '% of cells', range: [0, 105] },
                 width: 300,
@@ -13940,8 +13951,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ];
             const meanA = geValsA.length ? geValsA.reduce((a, b) => a + b, 0) / geValsA.length : 0;
             const meanB = geValsB.length ? geValsB.reduce((a, b) => a + b, 0) / geValsB.length : 0;
+            const pValue = (geValsA.length >= 2 && geValsB.length >= 2) ? this.welchTTest(geValsA, geValsB).p : NaN;
             const layout = {
-                title: { text: `${gene} — Gene Effect (\u0394=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
+                title: { text: `${gene} — Gene Effect (\u0394=${(meanA - meanB).toFixed(3)}, p=${fmtP(pValue)})`, font: { size: 13 } },
                 yaxis: { title: 'Gene Effect (CERES)' },
                 width: 300,
                 height: 300,
@@ -14011,8 +14023,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ];
             const meanA = exprValsA.length ? exprValsA.reduce((a, b) => a + b, 0) / exprValsA.length : 0;
             const meanB = exprValsB.length ? exprValsB.reduce((a, b) => a + b, 0) / exprValsB.length : 0;
+            const pValue = (exprValsA.length >= 2 && exprValsB.length >= 2) ? this.welchTTest(exprValsA, exprValsB).p : NaN;
             const layout = {
-                title: { text: `${gene} — Expression (\u0394=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
+                title: { text: `${gene} — Expression (\u0394=${(meanA - meanB).toFixed(3)}, p=${fmtP(pValue)})`, font: { size: 13 } },
                 yaxis: { title: 'Expression (log2 TPM+1)' },
                 width: 300,
                 height: 300,
@@ -14691,6 +14704,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const gateA = this._geGateA;
         const gateB = this._geGateB;
+        const fmtP = (p) => !isFinite(p) ? 'n/a' : p < 0.001 ? p.toExponential(1) : p.toFixed(3);
+        const chi2P = (a, b, c, d) => {
+            const n = a + b + c + d;
+            if (n <= 0) return 1;
+            const chi2 = Math.pow(a * d - b * c, 2) * n / ((a + b) * (c + d) * (a + c) * (b + d) || 1);
+            return Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
+        };
 
         if (type === 'mutation') {
             let mutData = null;
@@ -14758,8 +14778,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     hovertemplate: `Gate B WT: ${wtB}/${gateB.length} (${pctWtB.toFixed(1)}%)<extra></extra>`
                 }
             ];
+            const deltaPct = pctMutA - pctMutB;
+            const pValueMut = chi2P(mutA, mutB, wtA, wtB);
             Plotly.newPlot(plotDiv, traces, {
-                title: { text: `${gene} \u2014 Mutation Frequency`, font: { size: 13 } },
+                title: { text: `${gene} \u2014 Mutation Frequency (\u0394%=${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}, p=${fmtP(pValueMut)})`, font: { size: 13 } },
                 barmode: 'stack', yaxis: { title: '% of cells', range: [0, 105] },
                 width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 },
                 showlegend: true, legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 9 } }
@@ -14783,11 +14805,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             const meanA = valsA.length ? valsA.reduce((a, b) => a + b, 0) / valsA.length : 0;
             const meanB = valsB.length ? valsB.reduce((a, b) => a + b, 0) / valsB.length : 0;
+            const pValueGE = (valsA.length >= 2 && valsB.length >= 2) ? this.welchTTest(valsA, valsB).p : NaN;
             Plotly.newPlot(plotDiv, [
                 { y: valsA, x: valsA.map(() => 'Gate A'), type: 'box', name: `Gate A (n=${valsA.length})`, marker: { color: '#2563eb' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true },
                 { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true }
             ], {
-                title: { text: `${gene} \u2014 Gene Effect (\u0394=${(meanA - meanB).toFixed(3)})<br><span style="font-size:9px;color:#9ca3af;">n=${valsA.length}/${gateA.length} vs ${valsB.length}/${gateB.length} with data</span>`, font: { size: 13 } },
+                title: { text: `${gene} \u2014 Gene Effect (\u0394=${(meanA - meanB).toFixed(3)}, p=${fmtP(pValueGE)})<br><span style="font-size:9px;color:#9ca3af;">n=${valsA.length}/${gateA.length} vs ${valsB.length}/${gateB.length} with data</span>`, font: { size: 13 } },
                 yaxis: { title: 'Gene Effect (CERES)' }, width: 300, height: 300, margin: { t: 55, b: 60, l: 60, r: 30 }, showlegend: false
             }, { displayModeBar: false, responsive: true });
 
@@ -14815,11 +14838,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             const meanA = valsA.length ? valsA.reduce((a, b) => a + b, 0) / valsA.length : 0;
             const meanB = valsB.length ? valsB.reduce((a, b) => a + b, 0) / valsB.length : 0;
+            const pValueExpr = (valsA.length >= 2 && valsB.length >= 2) ? this.welchTTest(valsA, valsB).p : NaN;
             Plotly.newPlot(plotDiv, [
                 { y: valsA, x: valsA.map(() => 'Gate A'), type: 'box', name: `Gate A (n=${valsA.length})`, marker: { color: '#2563eb' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true },
                 { y: valsB, x: valsB.map(() => 'Gate B'), type: 'box', name: `Gate B (n=${valsB.length})`, marker: { color: '#dc2626' }, boxpoints: 'all', jitter: 0.4, pointpos: 0, boxmean: true }
             ], {
-                title: { text: `${gene} \u2014 Expression (\u0394=${(meanA - meanB).toFixed(3)})`, font: { size: 13 } },
+                title: { text: `${gene} \u2014 Expression (\u0394=${(meanA - meanB).toFixed(3)}, p=${fmtP(pValueExpr)})`, font: { size: 13 } },
                 yaxis: { title: 'Expression (log2 TPM+1)' }, width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 }, showlegend: false
             }, { displayModeBar: false, responsive: true });
         }
