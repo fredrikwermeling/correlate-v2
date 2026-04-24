@@ -22342,6 +22342,34 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbUmapColorGeneClear').addEventListener('click', () => this.clearUmapGeneColor());
         document.getElementById('clbUmapTopGenesBtn').addEventListener('click', () => this.toggleUmapTopGenes());
 
+        // Custom gene list (PCA/UMAP features) + highlight dropdown
+        const geneListInput = document.getElementById('clbUmapGeneList');
+        const geneListClear = document.getElementById('clbUmapGeneListClear');
+        if (geneListInput && geneListClear) {
+            const syncClearVisibility = () => {
+                geneListClear.style.display = geneListInput.value.trim() ? '' : 'none';
+            };
+            geneListInput.addEventListener('input', syncClearVisibility);
+            geneListClear.addEventListener('click', () => {
+                geneListInput.value = '';
+                syncClearVisibility();
+                this._populateUmapHighlightGeneDropdown(null);
+            });
+            syncClearVisibility();
+        }
+        document.getElementById('clbUmapHighlightGene')?.addEventListener('change', (e) => {
+            const g = e.target.value;
+            if (!g) return;
+            const colorInput = document.getElementById('clbUmapColorGene');
+            const typeSel = document.getElementById('clbUmapColorGeneType');
+            if (colorInput) colorInput.value = g;
+            if (typeSel) {
+                const dt = document.getElementById('clbUmapDataType')?.value;
+                typeSel.value = dt === 'expr' ? 'expr' : 'ge';
+            }
+            this.applyUmapGeneColor();
+        });
+
         // UMAP gate events
         document.getElementById('clbUmapSetGateA').addEventListener('click', () => this.startUmapGateSelection('A'));
         document.getElementById('clbUmapSetGateB').addEventListener('click', () => this.startUmapGateSelection('B'));
@@ -25692,6 +25720,11 @@ ${body}
         document.getElementById('clbUmapColorGeneClear').style.display = 'none';
         document.getElementById('clbUmapColorGeneStatus').textContent = '';
         document.getElementById('clbUmapLoadingsLabel').style.display = 'none';
+        const geneListEl = document.getElementById('clbUmapGeneList');
+        if (geneListEl) geneListEl.value = '';
+        const geneListClear = document.getElementById('clbUmapGeneListClear');
+        if (geneListClear) geneListClear.style.display = 'none';
+        this._populateUmapHighlightGeneDropdown(null);
         this.clearUmapGates();
     }
 
@@ -26428,16 +26461,17 @@ ${body}
 
             const nCL = cellLineIndices.length;
             const N_TOP_GENES = 1000;
+            const customGeneList = this._parseUmapGeneList();
             let matrix = [];
             let geneNames = [];
 
             if (dataType === 'ge' || dataType === 'both') {
-                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'ge', true);
+                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'ge', true, customGeneList);
                 matrix = result.matrix;
                 geneNames = result.geneNames;
             }
             if (dataType === 'expr' || dataType === 'both') {
-                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'expr', true);
+                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'expr', true, customGeneList);
                 if (dataType === 'both' && matrix.length > 0) {
                     for (let i = 0; i < nCL; i++) matrix[i] = matrix[i].concat(result.matrix[i]);
                     geneNames = geneNames.concat(result.geneNames);
@@ -26451,6 +26485,11 @@ ${body}
                 document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">No valid features.</div>';
                 return;
             }
+            if (customGeneList && customGeneList.length && geneNames.length < 2) {
+                document.getElementById('clbUmapPlot').innerHTML = `<div style="padding:20px;text-align:center;color:#ef4444;">Need at least 2 usable genes from your list (found ${geneNames.length}).</div>`;
+                return;
+            }
+            this._populateUmapHighlightGeneDropdown(customGeneList && customGeneList.length ? geneNames : null);
 
             let x, y, axisLabels, pcaLoadings = null;
 
@@ -26579,16 +26618,17 @@ ${body}
 
             const nCL = cellLineIndices.length;
             const N_TOP_GENES = 1000;
+            const customGeneList = this._parseUmapGeneList();
             let matrix = [];
             let geneNames = [];
 
             if (dataType === 'ge' || dataType === 'both') {
-                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'ge', true);
+                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'ge', true, customGeneList);
                 matrix = result.matrix;
                 geneNames = result.geneNames;
             }
             if (dataType === 'expr' || dataType === 'both') {
-                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'expr', true);
+                const result = this._buildVariableGeneMatrix(cellLineIndices, N_TOP_GENES, 'expr', true, customGeneList);
                 if (dataType === 'both' && matrix.length > 0) {
                     for (let i = 0; i < nCL; i++) matrix[i] = matrix[i].concat(result.matrix[i]);
                     geneNames = geneNames.concat(result.geneNames);
@@ -26599,7 +26639,14 @@ ${body}
             }
 
             if (matrix.length === 0 || matrix[0].length === 0) {
-                document.getElementById('clbUmapPlot').innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">No valid features found.</div>';
+                const msg = customGeneList && customGeneList.length
+                    ? `None of the ${customGeneList.length} gene(s) you entered were found in ${dataType === 'expr' ? 'expression' : dataType === 'both' ? 'GE or expression' : 'gene-effect'} data.`
+                    : 'No valid features found.';
+                document.getElementById('clbUmapPlot').innerHTML = `<div style="padding:20px;text-align:center;color:#ef4444;">${msg}</div>`;
+                return;
+            }
+            if (customGeneList && customGeneList.length && geneNames.length < 2) {
+                document.getElementById('clbUmapPlot').innerHTML = `<div style="padding:20px;text-align:center;color:#ef4444;">Need at least 2 usable genes from your list (found ${geneNames.length}). Add more genes or leave the list empty.</div>`;
                 return;
             }
 
@@ -26613,6 +26660,7 @@ ${body}
             document.getElementById('clbUmapColorGene').value = '';
             document.getElementById('clbUmapColorGeneClear').style.display = 'none';
             document.getElementById('clbUmapColorGeneStatus').textContent = '';
+            this._populateUmapHighlightGeneDropdown(customGeneList && customGeneList.length ? geneNames : null);
             document.getElementById('clbUmapLoadingsLabel').style.display = 'none';
             document.getElementById('clbUmapGatePanel').style.display = 'none';
             document.getElementById('clbUmapShowLoadings').checked = false;
@@ -26675,6 +26723,35 @@ ${body}
             console.error(`${method} error:`, err);
             document.getElementById('clbUmapPlot').innerHTML = `<div style="padding:20px;text-align:center;color:#ef4444;">Computation failed: ${err.message}</div>`;
         }
+    }
+
+    _parseUmapGeneList() {
+        const raw = document.getElementById('clbUmapGeneList')?.value || '';
+        if (!raw.trim()) return null;
+        const out = [];
+        const seen = new Set();
+        for (const s of raw.split(/[\s,;]+/)) {
+            const g = s.trim().toUpperCase();
+            if (!g || seen.has(g)) continue;
+            seen.add(g);
+            out.push(g);
+        }
+        return out.length ? out : null;
+    }
+
+    _populateUmapHighlightGeneDropdown(genes) {
+        const sel = document.getElementById('clbUmapHighlightGene');
+        if (!sel) return;
+        if (!genes || !genes.length) {
+            sel.innerHTML = '<option value="">Highlight gene…</option>';
+            sel.style.display = 'none';
+            return;
+        }
+        const unique = [...new Set(genes)];
+        unique.sort();
+        sel.innerHTML = `<option value="">Highlight gene (${unique.length})…</option>` +
+            unique.map(g => `<option value="${g}">${g}</option>`).join('');
+        sel.style.display = '';
     }
 
     _computePCA(matrix, nComp = 5) {
@@ -26798,7 +26875,7 @@ ${body}
         return { eigenvalues, eigenvectors };
     }
 
-    _buildVariableGeneMatrix(cellLineIndices, nTopGenes, type, returnGeneNames = false) {
+    _buildVariableGeneMatrix(cellLineIndices, nTopGenes, type, returnGeneNames = false, customGeneList = null) {
         const nCL = cellLineIndices.length;
         let nGenes, getData, allGeneNames;
 
@@ -26822,31 +26899,50 @@ ${body}
             };
         }
 
-        const sampleSize = Math.min(nCL, 100);
-        const sampleIndices = [];
-        if (sampleSize < nCL) {
-            const step = nCL / sampleSize;
-            for (let i = 0; i < sampleSize; i++) sampleIndices.push(cellLineIndices[Math.floor(i * step)]);
-        } else {
-            for (let i = 0; i < nCL; i++) sampleIndices.push(cellLineIndices[i]);
-        }
-
-        const variances = new Float32Array(nGenes);
-        for (let g = 0; g < nGenes; g++) {
-            let sum = 0, sumSq = 0, count = 0;
-            for (let s = 0; s < sampleIndices.length; s++) {
-                const val = getData(g, sampleIndices[s]);
-                if (val !== null) { sum += val; sumSq += val * val; count++; }
+        let topGenes;
+        if (customGeneList && customGeneList.length > 0) {
+            // Caller supplied an explicit gene list. Use those that exist in
+            // the current data source (in list order), skip the variance
+            // ranking entirely. Genes missing from the source are dropped
+            // silently; the caller gets the resolved list back via
+            // returnGeneNames.
+            const nameSet = allGeneNames instanceof Set ? allGeneNames : new Set(allGeneNames);
+            const nameIdx = new Map();
+            allGeneNames.forEach((g, i) => nameIdx.set(g, i));
+            topGenes = [];
+            const seen = new Set();
+            for (const g of customGeneList) {
+                if (!g || seen.has(g)) continue;
+                seen.add(g);
+                if (nameIdx.has(g)) topGenes.push(nameIdx.get(g));
             }
-            if (count > 1) { const mean = sum / count; variances[g] = (sumSq / count) - (mean * mean); }
-        }
+        } else {
+            const sampleSize = Math.min(nCL, 100);
+            const sampleIndices = [];
+            if (sampleSize < nCL) {
+                const step = nCL / sampleSize;
+                for (let i = 0; i < sampleSize; i++) sampleIndices.push(cellLineIndices[Math.floor(i * step)]);
+            } else {
+                for (let i = 0; i < nCL; i++) sampleIndices.push(cellLineIndices[i]);
+            }
 
-        const geneRanking = [];
-        for (let g = 0; g < nGenes; g++) {
-            if (variances[g] > 0) geneRanking.push({ idx: g, v: variances[g] });
+            const variances = new Float32Array(nGenes);
+            for (let g = 0; g < nGenes; g++) {
+                let sum = 0, sumSq = 0, count = 0;
+                for (let s = 0; s < sampleIndices.length; s++) {
+                    const val = getData(g, sampleIndices[s]);
+                    if (val !== null) { sum += val; sumSq += val * val; count++; }
+                }
+                if (count > 1) { const mean = sum / count; variances[g] = (sumSq / count) - (mean * mean); }
+            }
+
+            const geneRanking = [];
+            for (let g = 0; g < nGenes; g++) {
+                if (variances[g] > 0) geneRanking.push({ idx: g, v: variances[g] });
+            }
+            geneRanking.sort((a, b) => b.v - a.v);
+            topGenes = geneRanking.slice(0, nTopGenes).map(r => r.idx);
         }
-        geneRanking.sort((a, b) => b.v - a.v);
-        const topGenes = geneRanking.slice(0, nTopGenes).map(r => r.idx);
 
         // Build raw matrix, track missing values per gene
         const rawMatrix = [];

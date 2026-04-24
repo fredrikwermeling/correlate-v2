@@ -1325,6 +1325,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.75.3 (2026-04-24)</strong></p>
+                <ul>
+                    <li>CLB Dimensionality Reduction now defaults to <strong>PCA</strong> instead of UMAP.</li>
+                    <li>New <strong>Genes</strong> input next to the method selector. If you enter a list (comma / semicolon / whitespace separated), the projection is computed from those genes only; leave it empty to keep the previous top-variance behaviour. Unknown symbols are skipped silently.</li>
+                    <li>When a custom gene list is used, a <strong>Highlight gene</strong> dropdown appears next to the <em>Color by gene</em> row. Pick any gene from your list to color points by that gene's GE (or Expression, when the analysis is run on expression data), without having to type the symbol back into the color-by box.</li>
+                </ul>
                 <p><strong>v.75.2 (2026-04-23)</strong></p>
                 <ul>
                     <li>Find correlates &mdash; r now matches the scatter r for the same pair. Two bugs were feeding the discrepancy: (1) the X-mean and X-variance were fixed over the whole filtered set, but correlation with a candidate Y was computed on the cells where <em>that</em> Y was valid — a classical mismatch when Y had NaNs that X didn't. Fixed by recomputing Pearson pair-completely for each candidate. (2) The starting cell-line set was <code>_inspectFilteredCellLineIds</code>, which also excludes cells where the <em>previously displayed</em> Y gene was NaN. After clicking a suggestion the scatter rebuilt with a different cell set. Fixed by taking the filter set directly from DOM with no gene-validity pre-filter.</li>
@@ -2222,7 +2228,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.75.2</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.75.3</a>
     </div>
 
     <div class="main-content">
@@ -4018,14 +4024,16 @@
             <!-- Row 1: Compute — what to analyse + run -->
             <div class="clb-umap-row">
                 <select id="clbUmapMethod" class="clb-umap-ctl">
+                    <option value="pca" selected>PCA</option>
                     <option value="umap">UMAP</option>
-                    <option value="pca">PCA</option>
                 </select>
                 <select id="clbUmapDataType" class="clb-umap-ctl">
                     <option value="ge">Gene Effect</option>
                     <option value="expr">Expression</option>
                     <option value="both">GE + Expression</option>
                 </select>
+                <input type="text" id="clbUmapGeneList" class="clb-umap-ctl" placeholder="Genes (optional)" title="Optional: restrict the analysis to this gene list (comma / semicolon / whitespace separated). Leave empty to use the top-variance genes across the dataset." style="width:160px;" autocomplete="off">
+                <button id="clbUmapGeneListClear" class="clb-umap-btn" style="display:none;" title="Clear custom gene list">&times;</button>
                 <select id="clbUmapTissueFilter" class="clb-umap-ctl" style="max-width:180px;">
                     <option value="">All tissues</option>
                 </select>
@@ -4078,6 +4086,9 @@
                 </select>
                 <button id="clbUmapColorGeneBtn" class="clb-umap-btn" style="background:#6b7280; color:white; border-color:#6b7280;">Apply</button>
                 <button id="clbUmapColorGeneClear" class="clb-umap-btn" style="display:none;">Clear</button>
+                <select id="clbUmapHighlightGene" class="clb-umap-ctl" style="display:none; max-width:140px;" title="Highlight one of the input genes by coloring points">
+                    <option value="">Highlight gene…</option>
+                </select>
                 <span id="clbUmapColorGeneStatus" class="clb-umap-lbl"></span>
                 <span class="clb-umap-sep"></span>
                 <span class="clb-umap-lbl">Split</span>
