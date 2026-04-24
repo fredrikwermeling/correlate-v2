@@ -1325,6 +1325,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.75.6 (2026-04-24)</strong></p>
+                <ul>
+                    <li>CLB PCA / UMAP &mdash; plot area is now the same across tissue / subtype / gene-color / cluster-highlight views. The right margin is fixed at 170&nbsp;px and the legend (or colorbar) is pinned at x=1.02, so toggling the coloring mode no longer resizes the main plot.</li>
+                    <li>Gene-color colorbar title is placed <em>above</em> the bar (horizontal) instead of rotated on the right, and the tick font size is reduced, so long <code>GENE_SYMBOL / Gene Effect</code> titles no longer clip at the right edge of the figure.</li>
+                    <li>The <em>Color by</em> dropdown (tissue / subtype) is now live: changing it drops any active gene-color overlay or cluster highlight and re-renders with the new grouping. Previously you had to press <em>Clear</em> on the gene-color row first.</li>
+                    <li>Click-to-label and the label layer now work in gene-color mode too; previously clicking a point in gene-color view opened the cell-line detail but didn't place a label on the plot.</li>
+                </ul>
                 <p><strong>v.75.5 (2026-04-24)</strong></p>
                 <ul>
                     <li>CLB PCA / UMAP &mdash; clicking a point now labels that cell line on the plot (same behaviour as the correlation scatter). Click again to remove the label, or use the <em>Clear labels</em> button that appears once at least one label is placed.</li>
@@ -2237,7 +2244,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.75.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.75.6</a>
     </div>
 
     <div class="main-content">

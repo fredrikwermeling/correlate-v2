@@ -22337,6 +22337,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('clbUmapUmapFromGate').textContent = m === 'pca' ? 'PCA from Gate A' : 'UMAP from Gate A';
         });
 
+        // Color-by dropdown (tissue / subtype). Changing it while a
+        // gene-color or cluster-highlight is active should drop those and
+        // re-render with the new grouping, so the user has a one-click path
+        // back to the default view.
+        document.getElementById('clbUmapColorBy')?.addEventListener('change', () => {
+            if (!this._clbUmapData) return;
+            this._clbUmapGeneColorActive = null;
+            this._clbUmapHighlightGroup = null;
+            document.getElementById('clbUmapColorGeneStatus').textContent = '';
+            document.getElementById('clbUmapColorGeneClear').style.display = 'none';
+            const clearHl = document.getElementById('clbUmapClusterClearHighlightBtn');
+            if (clearHl) clearHl.style.display = 'none';
+            const colorBy = document.getElementById('clbUmapColorBy').value;
+            const { x, y, cellLines, mutStatus, splitGene } = this._clbUmapData;
+            const categories = cellLines.map(cl => {
+                if (colorBy === 'subtissue') return this.getCellLineSublineage(cl) || this.getCellLineLineage(cl) || 'Unknown';
+                return this.getCellLineLineage(cl) || 'Unknown';
+            });
+            this._clbUmapData.categories = categories;
+            this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene);
+            // Refresh cluster-stats panel if open — the Group by in that
+            // panel is independent, so only re-render if grouping matches.
+            if (document.getElementById('clbUmapClusterStatsPanel')?.style.display === 'block') {
+                this._renderUmapClusterStats();
+            }
+        });
+
         // Gene color overlay + top genes
         document.getElementById('clbUmapColorGeneBtn').addEventListener('click', () => this.applyUmapGeneColor());
         document.getElementById('clbUmapColorGeneClear').addEventListener('click', () => this.clearUmapGeneColor());
@@ -25754,6 +25781,7 @@ ${body}
         this._populateUmapHighlightGeneDropdown(null);
         this._clbUmapClickedLabels = new Set();
         this._clbUmapHighlightGroup = null;
+        this._clbUmapGeneColorActive = null;
         const clusterPanel = document.getElementById('clbUmapClusterStatsPanel');
         if (clusterPanel) clusterPanel.style.display = 'none';
         const clearLbls = document.getElementById('clbUmapClearLabelsBtn');
@@ -26699,6 +26727,7 @@ ${body}
             document.getElementById('clbUmapShowLoadings').checked = false;
             this._clbUmapClickedLabels = new Set();
             this._clbUmapHighlightGroup = null;
+            this._clbUmapGeneColorActive = null;
             const _clusterPanelEl = document.getElementById('clbUmapClusterStatsPanel');
             if (_clusterPanelEl) _clusterPanelEl.style.display = 'none';
             const _clearLblsEl = document.getElementById('clbUmapClearLabelsBtn');
@@ -27739,9 +27768,14 @@ ${body}
                 xaxis: { ...baseLayout.xaxis, title: undefined },
                 yaxis: { ...baseLayout.yaxis, title: undefined },
                 annotations: [umapTitleAnn, umapXAnn, umapYAnn],
-                margin: { t: 50, r: 10, b: 50, l: 60, autoexpand: false },
+                // Keep the right margin constant across tissue / subtype / gene-color
+                // / highlight views so the plot area doesn't shrink or grow when
+                // the user toggles the coloring mode. 170 leaves room for long
+                // tissue names or a horizontal-title colorbar without overlapping
+                // the axis.
+                margin: { t: 50, r: 170, b: 50, l: 60, autoexpand: false },
                 height: dims.height, width: dims.width,
-                legend: { font: { size: 9 }, itemsizing: 'constant', tracegroupgap: 2, y: 0.5, yanchor: 'middle' }
+                legend: { font: { size: 9 }, itemsizing: 'constant', tracegroupgap: 2, x: 1.02, xanchor: 'left', y: 0.5, yanchor: 'middle' }
             };
             Plotly.newPlot(plotDiv, traces, layout, {
                 responsive: true, displayModeBar: true,
@@ -27871,7 +27905,16 @@ ${body}
                 size: parseInt(document.getElementById('clbUmapMarkerSize')?.value) || 6,
                 color: colors, colorscale: [[0, '#2166ac'], [0.5, '#f7f7f7'], [1, '#b2182b']],
                 cmin: vMin, cmax: vMax, opacity: 0.85,
-                colorbar: { title: `${gene}<br>${typeLabel}`, thickness: 15, len: 0.6 }
+                // Horizontal title (side: 'top') so long gene / type labels
+                // don't get cropped by the right margin. Pin x explicitly so
+                // the colorbar sits in the same spot as the tissue legend —
+                // keeps the plot area consistent across coloring modes.
+                colorbar: {
+                    title: { text: `${gene}<br>${typeLabel}`, side: 'top', font: { size: 11 } },
+                    thickness: 15, len: 0.6,
+                    x: 1.02, xanchor: 'left', y: 0.5, yanchor: 'middle',
+                    tickfont: { size: 10 }
+                }
             },
             hoverinfo: 'text', showlegend: false
         };
@@ -27897,29 +27940,37 @@ ${body}
             xaxis: { zeroline: false, showgrid: false },
             yaxis: { zeroline: false, showgrid: false, scaleanchor: 'x', scaleratio: 1 },
             annotations: [geneColorTitleAnn, geneColorXAnn, geneColorYAnn],
-            margin: { t: 50, r: 80, b: 50, l: 60, autoexpand: false },
+            margin: { t: 50, r: 170, b: 50, l: 60, autoexpand: false },
             height: this._getUmapPlotDimensions().height, width: this._getUmapPlotDimensions().width,
             hovermode: 'closest', dragmode: 'lasso',
             paper_bgcolor: 'white', plot_bgcolor: '#fafafa'
         };
 
         Plotly.newPlot(plotDiv, [trace], layout, { responsive: true, displayModeBar: true, displaylogo: false, edits: { annotationPosition: true } });
+        // Keep labels and click-to-label working in gene-color mode too.
+        if (this._clbUmapData) this._clbUmapData.baseAnnotations = [geneColorTitleAnn, geneColorXAnn, geneColorYAnn];
+        this._updateUmapLabelAnnotations();
         plotDiv.on('plotly_selected', (eventData) => {
             this._clbUmapSelectedPoints = new Set();
             if (eventData?.points) eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });
             document.getElementById('clbUmapSelectedCount').textContent = this._clbUmapSelectedPoints.size > 0 ? `${this._clbUmapSelectedPoints.size} selected` : '';
         });
+        plotDiv.on('plotly_click', (eventData) => this._handleUmapPointClick(eventData));
         plotDiv.on('plotly_relayout', (data) => this._handleUmapGateShapeRelayout(data));
 
         statusEl.textContent = `Colored by ${gene} (${typeLabel})`;
         statusEl.style.color = '#7c3aed';
         document.getElementById('clbUmapColorGeneClear').style.display = 'inline';
+        // Remember that gene-color mode is active so the Color-by dropdown
+        // can cleanly drop it when the user switches back to tissue/subtype.
+        this._clbUmapGeneColorActive = { gene, colorType };
     }
 
     clearUmapGeneColor() {
         if (!this._clbUmapData) return;
         document.getElementById('clbUmapColorGeneStatus').textContent = '';
         document.getElementById('clbUmapColorGeneClear').style.display = 'none';
+        this._clbUmapGeneColorActive = null;
         const { x, y, cellLines, categories, mutStatus, splitGene } = this._clbUmapData;
         const colorBy = document.getElementById('clbUmapColorBy').value;
         this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene);
