@@ -22595,6 +22595,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const dir = this._clbSortAsc ? 1 : -1;
         let geMap = null;
         let countMap = null; // used for hotspot/damaging/fusion to display counts inline
+        let geValueLabel = ''; // short "GE" / "Expr" tag for the inline value
+        let geValueTooltip = '';
+        let geGenesLabel = '';
 
         // Build secondary comparator (the existing sort mode)
         let secondaryCmp;
@@ -22637,6 +22640,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     }
                     geMap.set(cl, n > 0 ? sum / n : NaN);
                 }
+                geGenesLabel = tokens.join(', ');
+                geValueLabel = isExpr ? 'Expr' : 'GE';
+                const avgNote = tokens.length > 1 ? ` averaged over ${tokens.length} genes (${geGenesLabel})` : ` of ${geGenesLabel}`;
+                geValueTooltip = isExpr
+                    ? `Expression (log2 TPM+1)${avgNote}. Higher = more expressed.`
+                    : `Gene Effect (CERES)${avgNote}. Negative = essential for cell survival.`;
                 secondaryCmp = (a, b) => {
                     const va = geMap.get(a), vb = geMap.get(b);
                     if (isNaN(va) && isNaN(vb)) return 0;
@@ -22688,6 +22697,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return;
         }
 
+        // Caption line above the list so the inline numbers read unambiguously.
+        let caption = '';
+        if (geMap && geValueLabel) {
+            const fullLabel = geValueLabel === 'Expr' ? 'Expression (log2 TPM+1)' : 'Gene Effect (CERES)';
+            const direction = geValueLabel === 'GE' ? ' — lower = more essential' : ' — higher = more expressed';
+            caption = `<div style="padding:4px 10px; font-size:10px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+                Values shown: <b>${fullLabel}</b> for <b>${geGenesLabel}</b>${direction}.
+            </div>`;
+        } else if (countMap) {
+            const lbl = mode === 'hotspot' ? 'Hotspot-mutation count' : mode === 'damaging' ? 'Damaging-mutation count' : 'Fusion count';
+            caption = `<div style="padding:4px 10px; font-size:10px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+                Values shown: <b>${lbl}</b> per cell line.
+            </div>`;
+        }
+
         const html = filtered.map(cl => {
             const name = this.getCellLineName(cl);
             const lin = this.getCellLineLineage(cl);
@@ -22700,10 +22724,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             let sortValStr = '';
             if (geMap) {
                 const v = geMap.get(cl);
-                if (v !== undefined && !isNaN(v)) sortValStr = `<span style="font-size:10px; color:#666; margin-left:auto; flex-shrink:0;">${v.toFixed(2)}</span>`;
+                if (v !== undefined && !isNaN(v)) {
+                    // Colour the GE value so essentiality (negative) reads at a
+                    // glance — red for strong dependency, neutral otherwise.
+                    const colour = geValueLabel === 'GE'
+                        ? (v < -0.5 ? '#dc2626' : v < -0.2 ? '#b45309' : '#374151')
+                        : '#374151';
+                    sortValStr = `<span style="font-size:10px; color:${colour}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${geValueTooltip}"><span style="color:#9ca3af;">${geValueLabel}</span> ${v.toFixed(2)}</span>`;
+                }
             } else if (countMap) {
                 const v = countMap.get(cl) || 0;
-                sortValStr = `<span style="font-size:10px; color:#666; margin-left:auto; flex-shrink:0;" title="${mode} count">${v}</span>`;
+                const unitLbl = mode === 'hotspot' ? 'hs' : mode === 'damaging' ? 'dmg' : 'fus';
+                sortValStr = `<span style="font-size:10px; color:#374151; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode} count"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
             }
             const sx = this._getSexSymbol(cl);
             const sxStyle = `color:${sx.color}; font-weight:700; margin-right:4px;${sx.italic ? ' font-style:italic;' : ''}`;
@@ -22715,7 +22747,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 `<span class="clb-entry-name">${name}</span>` +
                 `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${sortValStr}</div>`;
         }).join('');
-        container.innerHTML = html;
+        container.innerHTML = caption + html;
 
         this.updateClbFilterCounts();
     }
