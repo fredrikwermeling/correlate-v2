@@ -5615,11 +5615,14 @@ class CorrelationExplorer {
         if (image) data.snapshot = image;
         if (question && question.trim()) data.question = question.trim();
         data.aiInstructions =
-            'You are given a chart snapshot (data:image/png;base64 in the `snapshot` field) plus ' +
-            'a structured data object. When replying, begin with: "You were looking at this chart:" ' +
-            'followed by a Markdown image reference ![chart](<paste the snapshot data URI here>) ' +
-            'and, if a `question` field is present, restate it: "and asked: <question>". ' +
-            'Then answer grounded in the data object. Do not invent data not present in the export.';
+            'BEFORE DOING ANY ANALYSIS, open your reply with two paragraphs, in this order:\n\n' +
+            '1) "You were looking at this chart:" followed by a Markdown image reference ' +
+            '![chart](<paste the `snapshot` data URI here, exactly as provided>). Then, on the next line, one or two ' +
+            'plain-English sentences describing what the chart shows, derived from the `analysis` / `context` fields ' +
+            '(analysis type, cohort size, filters applied).\n\n' +
+            '2) "You asked:" followed by a verbatim quote of the `question` field. If `question` is empty or null, ' +
+            'skip this paragraph entirely.\n\n' +
+            'Only then proceed with the analysis. Stay grounded in the exported data; do not invent values not present.';
 
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
@@ -19478,14 +19481,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             context,
             question: question || null,
             snapshot: snapshot,
-            aiInstructions: snapshot ? (
-                'A PNG chart snapshot (data:image/png;base64) is in the `snapshot` field. ' +
-                'Begin your reply with: "You were looking at this chart:" followed by a Markdown ' +
-                'image reference ![chart](<paste the snapshot data URI here>). ' +
-                'If a `question` field is present, restate it: "and asked: <question>". ' +
-                'Then answer grounded in the data. Filters applied to the cohort are in `context` — ' +
-                'honour them when describing what the user sees. Do not invent data not present.'
-            ) : null,
+            aiInstructions: (
+                'BEFORE DOING ANY ANALYSIS, open your reply with these two paragraphs, in this order:\n\n' +
+                (snapshot
+                    ? '1) "You were looking at this chart:" followed by a Markdown image reference ' +
+                      '![chart](<paste the `snapshot` data URI here, exactly as provided>). ' +
+                      'Then, on the next line, write one or two plain-English sentences describing what the chart shows. ' +
+                      'Derive the description from the `context` field: name the analysis type (' +
+                      'e.g. "scatter of GENE1 vs GENE2 gene effect", "differential gene effect for GENE mutant vs WT", ' +
+                      '"expression correlates of GENE"), state the cohort size (`context.nCellLines`), and list the filters ' +
+                      'that were applied (tissue / subtype / hotspot / fusion / oncoprint / custom cell-line list — any field ' +
+                      'present in `context`).\n\n'
+                    : '1) One or two plain-English sentences describing what the user was looking at, derived from the ' +
+                      '`context` field: analysis type, cohort size (`context.nCellLines`), and the filters that were applied ' +
+                      '(tissue / subtype / hotspot / fusion / oncoprint / custom cell-line list — any field present in `context`).\n\n'
+                ) +
+                '2) "You asked:" followed by a verbatim quote of the `question` field. If `question` is empty or null, ' +
+                'skip this paragraph entirely.\n\n' +
+                'Only after those two paragraphs, proceed with the analysis following `_analysisInstructions`. ' +
+                'Stay grounded in the exported data; do not invent values that are not present.'
+            ),
             cellLineOrder: cellLines,
             cellLineGroups: Object.keys(cellLineGroups).length > 0 ? cellLineGroups : undefined,
             cellLineMetadata: clMeta,
