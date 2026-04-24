@@ -26983,6 +26983,38 @@ ${body}
             matrix.push(row);
         }
 
+        // When the caller supplied an explicit gene list, z-score each
+        // column (gene) to unit variance. Without this, a single gene with
+        // a larger dynamic range — e.g. a tumour-suppressor at ±3 vs a
+        // partner at ±0.5 — dominates PC1/PC2 and the plot shows a perfect
+        // gradient along that gene with the rest contributing noise.
+        // Variance-ranked top-gene selection already picks genes with
+        // broadly comparable magnitudes, so skip scaling there to keep the
+        // previous default behaviour.
+        if (customGeneList && customGeneList.length > 0 && keptIndices.length > 0) {
+            const nG = keptIndices.length;
+            const colMean2 = new Float64Array(nG);
+            const colSd = new Float64Array(nG);
+            for (let k = 0; k < nG; k++) {
+                let s = 0;
+                for (let i = 0; i < nCL; i++) s += matrix[i][k];
+                colMean2[k] = s / nCL;
+            }
+            for (let k = 0; k < nG; k++) {
+                let ss = 0;
+                for (let i = 0; i < nCL; i++) {
+                    const d = matrix[i][k] - colMean2[k];
+                    ss += d * d;
+                }
+                colSd[k] = Math.sqrt(ss / Math.max(1, nCL - 1));
+            }
+            for (let i = 0; i < nCL; i++) {
+                for (let k = 0; k < nG; k++) {
+                    matrix[i][k] = colSd[k] > 1e-12 ? (matrix[i][k] - colMean2[k]) / colSd[k] : 0;
+                }
+            }
+        }
+
         if (returnGeneNames) {
             const geneNames = keptIndices.map(j => allGeneNames[topGenes[j]]);
             return { matrix, geneNames };
