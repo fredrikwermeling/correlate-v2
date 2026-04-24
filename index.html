@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.75.9 (2026-04-24)</strong></p>
+                <ul>
+                    <li>CLB PCA loadings now appear in <strong>gene-color</strong> mode too, not only when colouring by tissue / subtype. The loadings sidecar describes the PCA axes (which don't change when you recolour), so it stays useful alongside any colour scheme.</li>
+                    <li>Long gene symbols in the loadings sidecar are no longer cropped. The SVG widens based on the longest label (measured with <code>canvas.measureText</code>), the 182&times;182 axis square stays centred, and both anchor positions (<em>start</em> on the right, <em>end</em> on the left) have room to spell out the full symbol.</li>
+                </ul>
                 <p><strong>v.75.8 (2026-04-24)</strong></p>
                 <ul>
                     <li>Inspect / correlation browser &mdash; <strong>Update</strong> is now the primary (filled) button, the same size as <em>Find correlates</em>, so the main action is visually obvious.</li>
@@ -2253,7 +2258,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.75.8</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.75.9</a>
     </div>
 
     <div class="main-content">

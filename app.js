@@ -27556,16 +27556,34 @@ ${body}
             return;
         }
 
-        // Sidecar size: 30% bigger than the previous 140-px inset.
+        // Measure the longest gene label so the SVG can be widened enough to
+        // hold it without clipping. The axis square itself stays 182×182;
+        // we extend the SVG horizontally on both sides to give labels room
+        // and center the square in the middle.
         const boxSize = 182;
-        const cx = boxSize / 2, cy = boxSize / 2;
+        const mctx = (document.createElement('canvas')).getContext('2d');
+        mctx.font = '10px Arial, sans-serif';
+        let maxLabelW = 0;
+        for (const t of top) {
+            const w = mctx.measureText(t.gene).width;
+            if (w > maxLabelW) maxLabelW = w;
+        }
+        // Each side needs room for the longest label plus a small gap. 24 px
+        // floor covers short symbols; at most 80 px on each side so a
+        // pathological 20-char gene doesn't blow the layout.
+        const sidePad = Math.min(80, Math.max(24, Math.ceil(maxLabelW) + 6));
+        const svgW = boxSize + 2 * sidePad;
+        const svgH = boxSize;
+        const cx = svgW / 2, cy = svgH / 2;
+        const boxLeft = cx - boxSize / 2;
+        const boxRight = cx + boxSize / 2;
         const maxMag = top[0].mag || 1;
         const scale = (boxSize * 0.35) / maxMag;
 
-        let svg = `<svg width="${boxSize}" height="${boxSize}" xmlns="http://www.w3.org/2000/svg" style="font-family:Arial,sans-serif; display:block;">`;
-        svg += `<rect width="${boxSize}" height="${boxSize}" fill="white" stroke="#d1d5db" rx="4"/>`;
+        let svg = `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" style="font-family:Arial,sans-serif; display:block; overflow:visible;">`;
+        svg += `<rect x="${boxLeft}" y="0" width="${boxSize}" height="${boxSize}" fill="white" stroke="#d1d5db" rx="4"/>`;
         svg += `<line x1="${cx}" y1="4" x2="${cx}" y2="${boxSize - 4}" stroke="#e5e7eb" stroke-width="0.5"/>`;
-        svg += `<line x1="4" y1="${cy}" x2="${boxSize - 4}" y2="${cy}" stroke="#e5e7eb" stroke-width="0.5"/>`;
+        svg += `<line x1="${boxLeft + 4}" y1="${cy}" x2="${boxRight - 4}" y2="${cy}" stroke="#e5e7eb" stroke-width="0.5"/>`;
         svg += `<defs><marker id="lah" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,1 L10,5 L0,9 z" fill="#b91c1c"/></marker></defs>`;
 
         const labels = [];
@@ -27589,14 +27607,14 @@ ${body}
         }
 
         labels.forEach(l => {
-            const clampX = Math.max(4, Math.min(boxSize - 4, l.x));
-            const clampY = Math.max(12, Math.min(boxSize - 4, l.y));
+            const clampX = Math.max(2, Math.min(svgW - 2, l.x));
+            const clampY = Math.max(12, Math.min(svgH - 2, l.y));
             svg += `<text x="${clampX}" y="${clampY}" text-anchor="${l.anchor}" style="font-size:10px;fill:#374151;" stroke="white" stroke-width="3" paint-order="stroke">${l.gene}</text>`;
         });
 
         const axX = this._clbUmapData.axisLabels?.[0]?.split('(')[0].trim() || `PC${compX + 1}`;
         const axY = this._clbUmapData.axisLabels?.[1]?.split('(')[0].trim() || `PC${compY + 1}`;
-        svg += `<text x="${boxSize - 4}" y="${cy - 3}" text-anchor="end" style="font-size:9px;fill:#9ca3af;">${axX}</text>`;
+        svg += `<text x="${boxRight - 4}" y="${cy - 3}" text-anchor="end" style="font-size:9px;fill:#9ca3af;">${axX}</text>`;
         svg += `<text x="${cx + 3}" y="12" text-anchor="start" style="font-size:9px;fill:#9ca3af;">${axY}</text>`;
         svg += '</svg>';
 
@@ -27982,6 +28000,11 @@ ${body}
         // Keep labels and click-to-label working in gene-color mode too.
         if (this._clbUmapData) this._clbUmapData.baseAnnotations = [geneColorTitleAnn, geneColorXAnn, geneColorYAnn];
         this._updateUmapLabelAnnotations();
+        // Loadings sidecar should also appear in gene-color mode — it's
+        // tied to the PCA axes, not the coloring, so the user can read off
+        // which genes pull points along PC1/PC2 while simultaneously
+        // colouring by a gene of interest.
+        this._addLoadingsArrows(plotDiv);
         plotDiv.on('plotly_selected', (eventData) => {
             this._clbUmapSelectedPoints = new Set();
             if (eventData?.points) eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });
