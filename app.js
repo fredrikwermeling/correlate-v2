@@ -3418,78 +3418,96 @@ class CorrelationExplorer {
         document.getElementById('downloadGETableCSV')?.addEventListener('click', () => this.downloadGETableCSV());
         document.getElementById('downloadGECellLineCSV')?.addEventListener('click', () => this.downloadGECellLineCSV());
 
-        // AI Analysis — all views share the same dialog and export method
+        // AI export dialog — shared fixed-position modal at body level (see
+        // index.html). All eight ".json.gz" / "Export for AI" buttons open
+        // this same dialog so the user always sees: source name, cohort
+        // size, exactly what data is going into the file, an optional
+        // question textarea, and an LLM upload suggestion. Replaces the
+        // mix of inline panels and prompt() calls used per source.
+        const aiSourceLabels = {
+            ge: 'Gene effect — current view',
+            scatter: 'Scatter inspect — gene1 vs gene2',
+            mutation: 'Mutation analysis — differential GE',
+            gates: 'Gate compare — two-population scatter',
+            correlations: 'Correlation analysis — input gene set',
+            clusters: 'Cluster network — correlation network',
+            exprCorrelates: 'Expression correlates — target gene'
+        };
         const aiShowDialog = (source) => {
             this._aiExportSource = source;
             const dialog = document.getElementById('aiAnalysisDialog');
-            dialog.style.display = 'block';
-            // Scroll dialog into view
-            dialog.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            // Determine cell lines and show tier info
+            if (!dialog) return;
+            // Reset textarea content from any previous open.
+            const ta = document.getElementById('aiQuestion');
+            if (ta) ta.value = '';
+            dialog.style.display = 'flex';
+
             const cls = this._getAICellLines(source);
             const n = cls.length;
-            // Matches the unified exporter tiers. Results-only sources
-            // (correlations / clusters / exprCorrelates) skip the matrices
-            // entirely — the result table is what the AI needs to interpret.
+            const sourceEl = document.getElementById('aiDialogSource');
+            if (sourceEl) sourceEl.textContent = `${aiSourceLabels[source] || source}  ·  ${n} cell line${n === 1 ? '' : 's'} in cohort`;
+
+            // Tier description matches the unified exporter. Results-only
+            // sources (correlations / clusters / exprCorrelates) skip the
+            // matrices — the result table is what the AI needs to interpret.
             const resultsOnly = (source === 'correlations' || source === 'clusters' || source === 'exprCorrelates');
             let tierText;
-            if (resultsOnly) {
-                tierText = `<b>${n} cell lines</b> — Result tables + cell-line metadata + mutations / fusions / inferred / signatures. Matrices skipped (the analysis result is what the AI needs to interpret this view).`;
+            if (n === 0) {
+                tierText = `<b style="color:#dc2626;">No cell lines in cohort.</b> Adjust filters or run the analysis first.`;
+            } else if (resultsOnly) {
+                tierText = `<b>What's in the file:</b> result tables (correlation pairs / cluster genes / per-gene r-values), per-cell-line metadata, mutations, clinical fusions, inferred subtypes, genome signatures. <b>Matrices skipped</b> — for this view the analysis result is what the AI needs, the raw data would just be redundant.`;
             } else if (n <= 100) {
-                tierText = `<b>${n} cell lines</b> — Full: all GE + all expression + mutations + clinical fusions + inferred subtypes + signatures.`;
+                tierText = `<b>What's in the file:</b> full GE + full expression + mutations + clinical fusions + inferred subtypes + genome signatures. No filtering at this cohort size.`;
             } else if (n <= 500) {
-                tierText = `<b>${n} cell lines</b> — GE |val|>0.2; expression mean>1.0 OR sd>0.5; mutations / fusions / inferred / signatures full.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.2 (drops near-zero genes); expression filtered to mean>1.0 OR sd>0.5; mutations / fusions / inferred / signatures full.`;
             } else if (n <= 1000) {
-                tierText = `<b>${n} cell lines</b> — GE |val|>0.3; expression mean>2.0 OR sd>0.5; mutations / fusions / inferred / signatures full.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.3; expression filtered to mean>2.0 OR sd>0.5; mutations / fusions / inferred / signatures full.`;
             } else if (n <= 1500) {
-                tierText = `<b>${n} cell lines</b> — GE |val|>0.5 (essential genes only); expression mean>2.5 OR sd>0.8; mutations / fusions / inferred / signatures full.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essential genes only); expression filtered to mean>2.5 OR sd>0.8; mutations / fusions / inferred / signatures full.`;
             } else {
-                tierText = `<b>${n} cell lines</b> — GE |val|>0.5; expression mean>3.0 OR sd>1.0; mutations / fusions / inferred / signatures full.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5; expression filtered to mean>3.0 OR sd>1.0; mutations / fusions / inferred / signatures full. Large cohort &mdash; expect a 20&ndash;30 MB file.`;
             }
             document.getElementById('aiDataTierInfo').innerHTML = tierText;
             document.getElementById('aiExportStatus').textContent = '';
         };
+
+        // Wire the dialog's close button (X) and outside-click dismiss.
+        document.getElementById('aiAnalysisDialogClose')?.addEventListener('click', () => {
+            const dlg = document.getElementById('aiAnalysisDialog');
+            if (dlg) dlg.style.display = 'none';
+        });
+        document.getElementById('aiAnalysisDialog')?.addEventListener('click', (e) => {
+            if (e.target.id === 'aiAnalysisDialog') e.target.style.display = 'none';
+        });
+
+        // Wire all eight source entry points to the same dialog.
         document.getElementById('geAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('ge'));
-        const _aiExportWithLoading = async (btnId, source) => {
-            const btn = document.getElementById(btnId);
+        document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('scatter'));
+        document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('mutation'));
+        // Stash the helper so exportForAI (gates / correlations / clusters /
+        // exprCorrelates menu entries) can reach the same dialog.
+        this._aiShowDialog = aiShowDialog;
+
+        // Export button inside the dialog — closes the dialog and runs the
+        // unified exporter with whatever question / source the user picked.
+        document.getElementById('aiExportBtn')?.addEventListener('click', async () => {
+            const btn = document.getElementById('aiExportBtn');
             if (!btn) return;
-            const orig = btn.textContent;
-            btn.textContent = 'Exporting...';
+            const orig = btn.innerHTML;
+            btn.innerHTML = 'Exporting...';
             btn.disabled = true;
-            this._aiExportSource = source;
             await new Promise(r => setTimeout(r, 50));
             await this.exportFullAIAnalysis();
-            btn.textContent = orig;
+            btn.innerHTML = orig;
             btn.disabled = false;
-        };
-        // Scatter and mutation buttons ask for an optional question via
-        // prompt() (the shared dialog lives inside the GE section and can't
-        // be shown cleanly over other views), stash it into the aiQuestion
-        // textarea that exportFullAIAnalysis reads, then export.
-        const _aiExportWithQuestion = async (btnId, source) => {
-            const btn = document.getElementById(btnId);
-            if (!btn) return;
-            const q = prompt(
-                'Ask the AI a specific question about this analysis (optional).\n\n' +
-                'The export also embeds a PNG snapshot of the current chart and an instruction ' +
-                'telling the AI to show the snapshot back in its reply.',
-                ''
-            );
-            if (q === null) return;
-            const ta = document.getElementById('aiQuestion');
-            if (ta) ta.value = q;
-            const orig = btn.textContent;
-            btn.textContent = 'Exporting...';
-            btn.disabled = true;
-            this._aiExportSource = source;
-            await new Promise(r => setTimeout(r, 50));
-            await this.exportFullAIAnalysis();
-            btn.textContent = orig;
-            btn.disabled = false;
-        };
-        document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => _aiExportWithQuestion('mutAnalyzeWithAI', 'mutation'));
-        document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => _aiExportWithQuestion('scatterAnalyzeWithAI', 'scatter'));
-        document.getElementById('aiExportBtn')?.addEventListener('click', () => _aiExportWithLoading('aiExportBtn', this._aiExportSource || 'ge'));
+            // Auto-close on success (status pane shows "Compressing..." then
+            // clears once the download fires; if there was an error the
+            // status text persists and we keep the dialog open).
+            const status = document.getElementById('aiExportStatus')?.textContent || '';
+            if (!status.toLowerCase().includes('no cell')) {
+                document.getElementById('aiAnalysisDialog').style.display = 'none';
+            }
+        });
 
         // Chart width control — works for both inspect and detailed views
         document.getElementById('geAspectRatio')?.addEventListener('input', (e) => {
@@ -5662,22 +5680,13 @@ class CorrelationExplorer {
         this.downloadFile(csv, filename, 'text/csv');
     }
 
-    // Phase 3 — exportForAI is now a thin shim that prompts for an optional
-    // question, stashes it in the shared aiQuestion textarea, then routes
-    // every source through the unified exportFullAIAnalysis. Output is the
-    // single gzipped Correlate V2 schema (was: 5 different uncompressed JSON
-    // shapes per source).
+    // Phase 3 — exportForAI now opens the shared AI export dialog. Same
+    // dialog every other source uses, so the user always sees the cohort
+    // size, what data will be exported, the question textarea, and the
+    // upload-to-LLM suggestion. Replaces the bare prompt() that hid all
+    // that context.
     async exportForAI(source) {
-        const question = prompt(
-            'Ask the AI a specific question about this analysis (optional).\n\n' +
-            'The exported file is a gzipped JSON with the full data the AI needs (cell line metadata, mutations, fusions, gene-effect matrix, expression matrix where applicable, plus source-specific extras like differential analysis or correlation pairs). The `context` field tells the AI which view this came from and the question is restated up top.',
-            ''
-        );
-        if (question === null) return;
-        const ta = document.getElementById('aiQuestion');
-        if (ta) ta.value = question;
-        this._aiExportSource = source;
-        await this.exportFullAIAnalysis();
+        if (this._aiShowDialog) this._aiShowDialog(source);
     }
 
 

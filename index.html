@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.80.2 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI export dialog unified across all 8 source views (gene effect / scatter / mutation analysis / gate compare / correlation / cluster / expression correlate / GE-modal). The four sources that previously used a bare browser <code>prompt()</code> for the question (mutation, scatter, plus the four "Export for AI" menu items in correlation / cluster / gate / expression correlate panels) now open the same fixed-position modal as the GE-modal export. Every export path now shows: source name, cell-line cohort size, exactly what's getting written into the file (matrices vs results-only, with the active tier filters spelled out), the question textarea, and an "After download" suggestion pointing at <a href="https://claude.ai">claude.ai</a> for the actual analysis (the embedded <code>aiInstructions</code> are tuned for it; ChatGPT / Gemini also accept <code>.json.gz</code>). Dialog dismisses on close button, outside click, or after a successful export.</li>
+                </ul>
                 <p><strong>v.80.1 (2026-04-27)</strong></p>
                 <ul>
                     <li>AI <code>.json.gz</code> export &mdash; size fixes after a real export from the correlation analysis on all 1186 cell lines came out at 74 MB (claude.ai's attachment limit is ~30 MB).
@@ -2356,7 +2360,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.2</a>
     </div>
 
     <div class="main-content">
@@ -3466,19 +3470,12 @@
                     <button class="btn btn-sm" id="toggleExprCorrelatesBtn" style="background: #5a9f4a; color: white; display: none;">Expression Correlates</button>
                 </div>
 
-                <!-- AI Analysis Dialog (shared, positioned here but used by all views) -->
-                <div id="aiAnalysisDialog" style="display:none; margin-top:10px; padding:12px; background:#f0f9ff; border:1px solid #7dd3fc; border-radius:8px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span style="font-weight:600; color:#0369a1; font-size:13px;">Full Export (.json.gz)</span>
-                        <button class="btn btn-outline btn-sm" onclick="document.getElementById('aiAnalysisDialog').style.display='none'" style="padding:1px 6px;">&times;</button>
-                    </div>
-                    <div id="aiDataTierInfo" style="font-size:11px; color:#374151; margin:0 0 8px; padding:6px; background:white; border-radius:4px;"></div>
-                    <textarea id="aiQuestion" placeholder="Optional: describe what you want the AI to investigate..." style="width:100%; height:50px; font-size:11px; padding:6px; border:1px solid #d1d5db; border-radius:4px; resize:vertical;"></textarea>
-                    <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
-                        <button class="btn btn-sm" id="aiExportBtn" style="background:#0369a1; color:white;">Export (.json.gz)</button>
-                        <span id="aiExportStatus" style="font-size:10px; color:#6b7280;"></span>
-                    </div>
-                </div>
+                <!-- Inline placeholder retained so the GE modal still has a
+                     vertical anchor; the actual dialog lives at body level
+                     below as a fixed overlay so it works for all 8 source
+                     buttons (gene effect / scatter / mutation / gates /
+                     correlations / clusters / expression correlates). -->
+                <div id="aiAnalysisDialogAnchor" style="display:none;"></div>
 
                 <!-- Expression Correlates Panel -->
                 <div id="exprCorrelatesPanel" style="display: none; margin-top: 15px; border: 2px solid #5a9f4a; border-radius: 8px; overflow: hidden;">
@@ -4438,6 +4435,41 @@
         <div id="textSettingsBody" style="padding:10px; max-height:500px; overflow-y:auto;"></div>
     </div>
 
-    <script src="app.js?v=v80_1"></script>
+    <!-- Shared AI export dialog. Fixed-position overlay so it works on top
+         of any source view (gene effect modal, scatter inspect, mutation
+         analysis, correlation modal, etc.). All 8 ".json.gz" / "Export for
+         AI" buttons open this same dialog. -->
+    <div id="aiAnalysisDialog" style="display:none; position:fixed; inset:0; z-index:2500; background:rgba(0,0,0,0.5); justify-content:center; align-items:flex-start; padding:60px 20px; overflow-y:auto;">
+      <div style="background:#fff; max-width:560px; width:100%; border-radius:8px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid #e5e7eb;">
+          <span style="font-weight:600; color:#0369a1; font-size:14px;">Export <code>.json.gz</code> for LLM analysis</span>
+          <button id="aiAnalysisDialogClose" style="background:none; border:none; font-size:22px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+        </div>
+        <div style="padding:14px 18px;">
+          <!-- Source + cohort summary -->
+          <div id="aiDialogSource" style="font-size:12px; color:#0369a1; font-weight:600; margin-bottom:6px;"></div>
+          <!-- Tier / scope info — what's actually getting exported -->
+          <div id="aiDataTierInfo" style="font-size:11px; color:#374151; margin:0 0 10px; padding:8px 10px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:4px; line-height:1.5;"></div>
+
+          <label for="aiQuestion" style="display:block; font-size:11px; font-weight:600; color:#374151; margin-bottom:4px;">Question for the LLM <span style="color:#6b7280; font-weight:400;">(optional)</span></label>
+          <textarea id="aiQuestion" placeholder="What do you want the LLM to investigate? e.g. 'What pathway connects the top differential GE hits between gates A and B?'" style="width:100%; height:56px; font-size:11px; padding:6px 8px; border:1px solid #d1d5db; border-radius:4px; resize:vertical; box-sizing:border-box;"></textarea>
+
+          <!-- LLM upload suggestion. Claude.ai is the natural fit because the
+               aiInstructions in the export are tuned for its analysis style;
+               other LLMs that accept .json.gz attachments work too. -->
+          <div style="margin-top:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a; border-radius:0 4px 4px 0; font-size:11px; line-height:1.5;">
+            <div style="font-weight:600; color:#15803d; margin-bottom:3px;">After download:</div>
+            Upload the <code>.json.gz</code> to an LLM that accepts attachments — <a href="https://claude.ai" target="_blank" rel="noopener" style="color:#15803d; text-decoration:underline;">claude.ai ↗</a> is the natural fit (the embedded <code>aiInstructions</code> are tuned for its analysis style; ChatGPT / Gemini also work). The LLM will open with a one-line description of what you exported, restate your question, then run the analysis.
+          </div>
+
+          <div style="display:flex; gap:8px; align-items:center; margin-top:12px;">
+            <button class="btn btn-sm" id="aiExportBtn" style="background:#0369a1; color:white;">Export <code>.json.gz</code></button>
+            <span id="aiExportStatus" style="font-size:10px; color:#6b7280;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js?v=v80_2"></script>
 </body>
 </html>
