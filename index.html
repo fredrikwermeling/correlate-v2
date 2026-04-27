@@ -1325,6 +1325,20 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.80.5 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI <code>.json.gz</code> export &mdash; second round after another Opus 4.7 review of the v.80.4 NEDD8 export. The reviewer's ranked five all done. Schema bumped to <strong>2.2</strong>.
+                        <ul>
+                            <li><strong>New <code>topCoessentials</code> field</strong> &mdash; top 30 GE-vs-GE Pearson correlates of the focal gene, parallel to the existing <code>topCorrelates</code> (which is GE-vs-expression). Positive r means co-essentiality buffering (lines that depend more on partner depend less on focal); negative r means same-pathway co-essentiality. Reviewer flagged this as the more biologically central question for many gene-effect views (the NEDD8 example: the proteasome / cullin / Hippo co-essentiality story was the most informative finding and required a hand-rolled GE-vs-GE scan).</li>
+                            <li><strong>Pathway-partner whitelist for the focal gene's expression.</strong> Curated complex / machinery memberships for common analysis targets bypass the variance filter so housekeeping-ish pathway components are present in the expression matrix. Initial coverage: Neddylation/CRL (NEDD8 + UBA3, NAE1, UBE2M, UBE2F, RBX1/2, SKP1, CUL1-5, CAND1, COPS5/6, DCUN1D1/5), Proteasome (PSMA/B/C/D/POMP/ADRM1/USP14), Hippo/YAP-TAZ, MYC network, TP53/MDM2, BRCA/HR, mTOR/PI3K, BCL2 family, mRNA splicing core. Easy to extend in <code>_FOCAL_GENE_COMPLEX_PARTNERS</code>. Plus the existing wiki cancer pathways still feed into the always-include set when the focal gene is in one.</li>
+                            <li><strong>New <code>extras.focalGeneMutationSummary</code></strong> &mdash; per common driver gene (~70 curated), Welch's t comparing focal-gene GE in mutated vs WT cell lines. Top 30 by |delta|. Saves the LLM from running per-gene t-tests by hand (the reviewer had to do TP53/KRAS/BRAF/etc. manually for the NEDD8 question).</li>
+                            <li><strong><code>bySubtype</code> gated at n &ge; 5</strong> (was 3). At n=3 the SD/z is noise and tempts the LLM to over-interpret. Tissue-level (<code>byTissue</code>) stays at n &ge; 3 since tissue groups are typically larger.</li>
+                            <li><strong><code>topCorrelates</code> polarity guidance now in <code>_analysisInstructions</code> step 1.</strong> Was only in <code>dataStructure</code> before, so an LLM following only the analysis steps could misread sign. Step 1 now explicitly says: "topCoessentials (GE-vs-GE) … positive r = co-essentiality buffering within a complex, negative r = same-pathway co-essentiality. topCorrelates (GE-vs-expression) … positive r = high partner expression covaries with WEAKER focal-gene essentiality. Read both fields before running your own correlations." Step 3 also nudges the LLM to use <code>extras</code> before scanning the matrix.</li>
+                            <li>Top-level <code>nTotal</code> field added (= length of <code>cellLineOrder</code>) so the LLM knows the cohort denominator without having to count.</li>
+                            <li><code>dataStructure._method</code> block added documenting the z-score formula, the topCorrelates / topCoessentials Pearson method, and the focalGeneMutationSummary Welch's t methodology &mdash; reviewer flagged that without provenance, citing numbers required guesswork.</li>
+                        </ul>
+                    </li>
+                </ul>
                 <p><strong>v.80.4 (2026-04-27)</strong></p>
                 <ul>
                     <li>AI <code>.json.gz</code> export &mdash; round of fixes after a real Opus 4.7 review of a NEDD8 export. The reviewer caught real gaps: NEDD8's own expression had been dropped by the variance filter, the neddylation machinery (UBA3, NAE1, UBE2M) wasn't in the expression matrix despite being the most informative genes for the question, and the AI had to hand-roll tissue rollups to discover that the Bone signal was entirely Ewing sarcoma. Schema bumped to <strong>2.1</strong>.
@@ -2386,7 +2400,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.4</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.5</a>
     </div>
 
     <div class="main-content">
@@ -4496,6 +4510,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v80_4"></script>
+    <script src="app.js?v=v80_5"></script>
 </body>
 </html>

@@ -19442,13 +19442,61 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             topCorrelates = correlates.slice(0, 30);
         }
 
+        // Top GE-vs-GE co-essentials of the focal gene. Parallel to
+        // topCorrelates but using gene effect on both sides — answers
+        // "which genes' essentiality co-varies with the focal gene's
+        // essentiality across the cohort". Reviewer feedback: this is the
+        // more biologically central question for many gene-effect views,
+        // and it's cheap to compute on data we already have in memory.
+        let topCoessentials = null;
+        if (analysisGene && this.geneIndex.has(analysisGene.toUpperCase())) {
+            setStatus('Computing top GE co-essentials...');
+            await new Promise(r => setTimeout(r, 50));
+            const targetIdx = this.geneIndex.get(analysisGene.toUpperCase());
+            const targetData = this.getGeneData(targetIdx);
+            const targetVals = geCLIndices.map(i => i >= 0 ? targetData[i] : NaN);
+            const coess = [];
+            for (let gi = 0; gi < this.nGenes; gi++) {
+                if (gi === targetIdx) continue;
+                const x = [], y = [];
+                for (let j = 0; j < cellLines.length; j++) {
+                    const idx = geCLIndices[j];
+                    if (idx === -1) continue;
+                    const tv = targetVals[j];
+                    const ov = this.geneEffects[gi * this.nCellLines + idx];
+                    if (!isNaN(tv) && !isNaN(ov)) { x.push(tv); y.push(ov); }
+                }
+                if (x.length >= 10) {
+                    const stats = this.pearsonWithSlope(x, y);
+                    if (!isNaN(stats.correlation)) coess.push({ gene: this.metadata.genes[gi], r: parseFloat(stats.correlation.toFixed(4)), n: x.length });
+                }
+            }
+            coess.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+            topCoessentials = coess.slice(0, 30);
+        }
+
         // Genes whose expression we ALWAYS include regardless of the variance
         // filter: focal gene itself, the second focal gene (scatter view),
-        // and the genes that surfaced in the expression-correlate scan.
+        // the genes that surfaced in the expression-correlate scan, AND the
+        // focal gene's curated complex partners (e.g. NEDD8 → UBA3, NAE1,
+        // UBE2M, etc.). The complex-partner carve-out closes the gap a
+        // reviewing LLM kept hitting: housekeeping-ish pathway components
+        // were below the variance threshold, so the most informative
+        // expression context for the focal gene was missing from the file.
         const alwaysIncludeExpr = new Set();
         if (analysisGene) alwaysIncludeExpr.add(analysisGene.toUpperCase());
         if (focalGene2) alwaysIncludeExpr.add(focalGene2);
         if (topCorrelates) for (const c of topCorrelates) alwaysIncludeExpr.add(c.gene.toUpperCase());
+        const partners = analysisGene ? (this._FOCAL_GENE_COMPLEX_PARTNERS()[analysisGene.toUpperCase()] || []) : [];
+        for (const p of partners) alwaysIncludeExpr.add(p.toUpperCase());
+        // Also pull genes from any wiki pathway that contains the focal gene.
+        if (analysisGene && this._WIKI_PATHWAYS) {
+            for (const info of Object.values(this._WIKI_PATHWAYS())) {
+                if ((info.genes || []).includes(analysisGene.toUpperCase())) {
+                    for (const g of info.genes) alwaysIncludeExpr.add(g.toUpperCase());
+                }
+            }
+        }
 
         let exprMatrix = null;
         if (includeExpr && this.expressionData && this.expressionMetadata) {
@@ -19534,8 +19582,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     out.sort((a, b) => a.mean - b.mean);
                     return out;
                 };
+                // n>=3 for tissues (often few entries per tissue, want them all);
+                // n>=5 for subtypes — at n=3 the SD/z is noise per the reviewer's
+                // feedback ("Kidney | Rhabdoid Cancer n=5 z=-0.99 was right at
+                // the edge of interesting tip vs noise").
                 const tissueSummary = summarise(tissueBuckets, 3);
-                const subtypeSummary = summarise(subtypeBuckets, 3);
+                const subtypeSummary = summarise(subtypeBuckets, 5);
                 if (tissueSummary.length || subtypeSummary.length) {
                     extras = extras || {};
                     extras.focalGeneTissueSummary = {
@@ -19546,6 +19598,66 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         byTissue: tissueSummary,
                         bySubtype: subtypeSummary
                     };
+                }
+
+                // Mutation summary for the focal gene's GE: per common driver
+                // gene, compare GE in mutated vs WT cell lines (Welch's t).
+                // Saves the LLM from having to scan the mutation matrix
+                // gene-by-gene to find which mutations shift the focal gene's
+                // dependency. Top 200 driver-class genes considered.
+                const driverGenes = new Set([
+                    'TP53','KRAS','NRAS','HRAS','BRAF','EGFR','PIK3CA','PTEN','APC','NF1','NF2',
+                    'CDKN2A','RB1','MYC','MYCN','ALK','MET','ERBB2','FGFR1','FGFR2','FGFR3',
+                    'IDH1','IDH2','SF3B1','U2AF1','DNMT3A','TET2','ASXL1','RUNX1','FLT3','NPM1',
+                    'JAK2','MPL','CALR','BCR','ABL1','BCL2','BCL6','CCND1','MLL','KMT2A','KMT2D',
+                    'SMARCA4','SMARCB1','ARID1A','ARID2','PBRM1','BAP1','SETD2','VHL','STK11',
+                    'KEAP1','SMAD4','BRCA1','BRCA2','PALB2','ATM','ATR','CHEK2','CTNNB1',
+                    'FBXW7','NOTCH1','NOTCH2','EZH2','MED12','SPOP','FOXA1','GATA3','CDH1','ESR1','AR'
+                ]);
+                const welch = (x, y) => {
+                    if (x.length < 3 || y.length < 3) return null;
+                    const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+                    const variance = a => { const m = mean(a); return a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1); };
+                    const mx = mean(x), my = mean(y), vx = variance(x), vy = variance(y);
+                    const se = Math.sqrt(vx / x.length + vy / y.length);
+                    if (se <= 0) return null;
+                    const t = (mx - my) / se;
+                    const df = (vx / x.length + vy / y.length) ** 2 / ((vx / x.length) ** 2 / (x.length - 1) + (vy / y.length) ** 2 / (y.length - 1));
+                    // Two-sided p via normal approximation (Welch t -> normal for large df).
+                    const z = Math.abs(t);
+                    const p = 2 * (1 - 0.5 * (1 + (1 - Math.exp(-(2 * z * z / Math.PI))) ** 0.5));
+                    return { t: parseFloat(t.toFixed(3)), df: parseFloat(df.toFixed(1)), p: parseFloat(p.toFixed(4)), mx: parseFloat(mx.toFixed(3)), my: parseFloat(my.toFixed(3)) };
+                };
+                const mutSummary = [];
+                for (const g of driverGenes) {
+                    const hotData = this.mutations?.geneData?.[g]?.mutations;
+                    const dmgData = this.damagingMutations?.geneData?.[g]?.mutations;
+                    if (!hotData && !dmgData) continue;
+                    const mut = [], wt = [];
+                    for (let j = 0; j < cellLines.length; j++) {
+                        const cl = cellLines[j];
+                        const idx = geCLIndices[j];
+                        if (idx === -1) continue;
+                        const v = targetData[idx];
+                        if (isNaN(v)) continue;
+                        const isMut = (hotData?.[cl] >= 1) || (dmgData?.[cl] >= 1);
+                        (isMut ? mut : wt).push(v);
+                    }
+                    if (mut.length < 3 || wt.length < 3) continue;
+                    const w = welch(mut, wt);
+                    if (!w) continue;
+                    mutSummary.push({
+                        gene: g,
+                        n_mut: mut.length, n_wt: wt.length,
+                        mean_mut: w.mx, mean_wt: w.my,
+                        delta: parseFloat((w.mx - w.my).toFixed(3)),
+                        t: w.t, p: w.p
+                    });
+                }
+                mutSummary.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+                if (mutSummary.length > 0) {
+                    extras = extras || {};
+                    extras.focalGeneMutationSummary = mutSummary.slice(0, 30);
                 }
             }
         }
@@ -19558,15 +19670,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const exportData = {
             _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
-            schemaVersion: '2.1',
+            schemaVersion: '2.2',
+            nTotal: cellLines.length,
             dataStructure: {
-                cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices.',
+                cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices. Length = nTotal.',
                 cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy).',
                 geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores aligned to cellLineOrder. Negative = essential. null = missing. The focal gene of the analysis is always included regardless of variance threshold.',
-                expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. The focal gene and the genes that surfaced in topCorrelates are always included regardless of variance threshold.',
-                topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n (effective sample size after dropping cell lines missing focal-gene GE or partner expression — n can vary per gene because expression coverage is per-gene non-uniform) }.',
+                expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. The focal gene, the genes that surfaced in topCorrelates, and a curated list of complex / pathway partners for the focal gene (e.g. NEDD8 → UBA3, NAE1, UBE2M, UBE2F, RBX1, SKP1, CUL1-5, CAND1, COPS5/6) are always included regardless of variance threshold.',
+                topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n (effective sample size after dropping cell lines missing focal-gene GE or partner expression — n can vary per gene because expression coverage is per-gene non-uniform) }. Polarity: positive r means high partner expression covaries with weaker focal-gene dependency (less negative GE).',
+                topCoessentials: 'Optional. Top 30 GE-vs-GE co-essentials of the focal gene: { gene, r (Pearson, focal-gene GE vs partner GE across the cohort), n }. Polarity: positive r means lines that depend more on the partner depend less on the focal gene (classic co-essentiality buffering pattern). Negative r means partner and focal gene are co-essential — both required by the same lines.',
                 cellLineGroups: 'Optional. Cell line IDs grouped by analysis stratification (WT/mut1/mut2 for mutation, gateA/gateB for gate comparison, etc.).',
-                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), clusterGenes (clusters), expressionCorrelates (exprCorrelates), focalGeneTissueSummary (per-tissue mean / sd / n / z-vs-overall for the focal gene\'s GE — saves the LLM from scanning the matrix to find tissue-level signals).'
+                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), clusterGenes (clusters), expressionCorrelates (exprCorrelates), focalGeneTissueSummary (per-tissue/subtype mean / sd / n / zVsOverall for the focal gene\'s GE — saves the LLM from scanning the matrix to find tissue-level signals; subtypes gated at n>=5), focalGeneMutationSummary (top driver genes by |delta| with Welch\'s t, comparing mutated vs WT lines on focal-gene GE; saves the LLM from doing the per-gene t-test scan by hand).',
+                _method: {
+                    'tissue/subtype zVsOverall': '(group_mean - overall_mean) / overall_sd, where overall_sd is the SD of focal-gene GE across all valid cell lines in cellLineOrder.',
+                    'topCorrelates / topCoessentials r': 'Pearson on complete-pair vectors (cell lines with both values present). Sorted by |r| descending, top 30.',
+                    'focalGeneMutationSummary': 'Welch\'s two-sample t-test on focal-gene GE values, mutated (hotspot OR damaging hit in the gene) vs WT. p-value via normal approximation (Welch t -> N for large df). Sorted by |delta| descending, top 30 of ~70 curated driver genes.'
+                }
             },
             _instructions: [
                 'CRISPR gene effect: negative = essential for cell survival. 0 = no effect.',
@@ -19578,9 +19697,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 'Use cellLineOrder as the shared index for geneEffect and expression arrays.'
             ],
             _analysisInstructions: [
-                "Step 1 - Overview: Briefly survey the data. Summarize key groups, sample sizes, and the target gene's effect distribution. Run a quick unbiased scan of the top 10 gene effect co-correlates and anti-correlates, noting their likely pathway/function.",
+                "Step 1 - Overview: Briefly survey the data. Summarize key groups, sample sizes, and the target gene's effect distribution. For gene-effect views, the export precomputes two unbiased scans you should USE before recomputing anything: topCoessentials (GE-vs-GE Pearson — which other genes' essentiality co-varies with the focal gene's; positive r = co-essentiality BUFFERING within a complex, negative r = same-pathway co-essentiality) and topCorrelates (GE-vs-expression Pearson — which genes' expression predicts focal-gene dependency; positive r = high partner expression covaries with WEAKER focal-gene essentiality). Read both fields before running your own correlations.",
                 "Step 2 - Confirm scope (judgment call): If the question is open-ended ('explain the variability', 'what drives X'), present the overview to the user with 2-3 candidate analytical angles and ask which to pursue. If the question is specific and self-contained ('what is the top correlate of NEDD8', 'compare gates A and B on differential GE'), skip this step and go straight to the analysis — don't pad with friction.",
-                "Step 3 - Deep analysis: Work data-first. Characterize unbiased genome-wide hits and annotate by pathway before testing hypothesis-driven candidate gene lists. After finding one explanatory model, actively search for alternative or complementary axes. Report all major signals, not just the first plausible one."
+                "Step 3 - Deep analysis: Work data-first. Use the precomputed extras (focalGeneTissueSummary for per-tissue/subtype means, focalGeneMutationSummary for driver-mutation effects) before scanning the matrix gene-by-gene. Characterize unbiased genome-wide hits and annotate by pathway before testing hypothesis-driven candidate gene lists. After finding one explanatory model, actively search for alternative or complementary axes. Report all major signals, not just the first plausible one."
             ],
             context,
             aiInstructions: (
@@ -19598,6 +19717,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (Object.keys(geMatrix).length > 0) exportData.geneEffect = geMatrix;
         if (exprMatrix && Object.keys(exprMatrix).length > 0) exportData.expression = exprMatrix;
         if (topCorrelates && topCorrelates.length > 0) exportData.topCorrelates = topCorrelates;
+        if (topCoessentials && topCoessentials.length > 0) exportData.topCoessentials = topCoessentials;
         if (extras) exportData.extras = extras;
 
         const jsonStr = JSON.stringify(exportData);
@@ -23545,6 +23665,73 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Cancer pathway knowledge base. Each pathway lists marker genes and
     // a short, plain-language note about its role and therapeutic relevance.
     // Evidence pooled from OncoKB / COSMIC / SIGNOR.
+    // Curated complex / machinery partner sets keyed off the focal gene.
+    // Used by the AI export to carry pathway-partner expression through
+    // the variance filter regardless of how stably expressed those partners
+    // are — for a NEDD8 GE export we want UBA3 / NAE1 / UBE2M / etc. in the
+    // expression matrix even though they're housekeeping-ish and the
+    // variance filter would otherwise drop them. Each value is the list of
+    // partners (excluding the focal gene itself; the export logic already
+    // adds the focal gene). Extend by editing the COMPLEX arrays below.
+    _FOCAL_GENE_COMPLEX_PARTNERS() {
+        if (this._focalGenePartnersCache) return this._focalGenePartnersCache;
+        const COMPLEXES = {
+            'Neddylation / CRL': [
+                'NEDD8','UBA3','NAE1','UBE2M','UBE2F','RBX1','RBX2','SKP1',
+                'CUL1','CUL2','CUL3','CUL4A','CUL4B','CUL5','CUL7','CAND1',
+                'COPS5','COPS6','COPS3','DCUN1D1','DCUN1D5'
+            ],
+            'Proteasome': [
+                'PSMA1','PSMA2','PSMA3','PSMA4','PSMA5','PSMA6','PSMA7',
+                'PSMB1','PSMB2','PSMB3','PSMB4','PSMB5','PSMB6','PSMB7',
+                'PSMC1','PSMC2','PSMC3','PSMC4','PSMC5','PSMC6',
+                'PSMD1','PSMD2','PSMD3','PSMD4','PSMD6','PSMD7','PSMD8',
+                'PSMD11','PSMD12','PSMD13','PSMD14','POMP','ADRM1','USP14'
+            ],
+            'Hippo / YAP-TAZ': [
+                'WWTR1','YAP1','TEAD1','TEAD2','TEAD3','TEAD4',
+                'LATS1','LATS2','STK3','STK4','SAV1','MOB1A','MOB1B','NF2',
+                'MERTK','AMOT','AMOTL1','AMOTL2'
+            ],
+            'MYC network': ['MYC','MYCN','MYCL','MAX','MNT','MGA','ZBTB17'],
+            'TP53 / MDM2': [
+                'TP53','MDM2','MDM4','ATM','ATR','CHEK1','CHEK2',
+                'CDKN1A','CDKN2A','TP53BP1'
+            ],
+            'BRCA / HR': [
+                'BRCA1','BRCA2','PALB2','RAD51','RAD51B','RAD51C','RAD51D',
+                'XRCC2','XRCC3','BARD1','BRIP1','FANCA','FANCC','FANCD2',
+                'ATM','ATR','PARP1','PARP2'
+            ],
+            'mTOR / PI3K': [
+                'MTOR','PIK3CA','PIK3CB','PIK3R1','AKT1','AKT2','PTEN',
+                'TSC1','TSC2','RPTOR','RICTOR','RHEB','STK11'
+            ],
+            'BCL2 family': [
+                'BCL2','BCL2L1','MCL1','BAX','BAK1','BAD','BID','BIM','BCL2L11',
+                'PUMA','BBC3','NOXA','PMAIP1','BOK'
+            ],
+            'mRNA splicing core': [
+                'SF3B1','U2AF1','U2AF2','SRSF1','SRSF2','SRSF3','ZRSR2',
+                'PRPF8','EFTUD2','SNRPA','SNRPB','SNRPD1','SNRPD2','SNRPD3',
+                'PRPF31','PRPF40A','HNRNPC','HNRNPK'
+            ]
+        };
+        const map = {};
+        for (const members of Object.values(COMPLEXES)) {
+            const set = new Set(members);
+            for (const g of members) {
+                map[g] = map[g] || new Set();
+                for (const m of members) if (m !== g) map[g].add(m);
+            }
+        }
+        // Convert sets to sorted arrays for deterministic output.
+        const out = {};
+        for (const [g, s] of Object.entries(map)) out[g] = [...s].sort();
+        this._focalGenePartnersCache = out;
+        return out;
+    }
+
     _WIKI_PATHWAYS() {
         return {
             'p53 / apoptosis':          { genes: ['TP53', 'MDM2', 'MDM4', 'CDKN2A', 'CDKN2B'], note: 'Controls apoptosis and genome stability after damage. Loss is one of the commonest events in cancer.' },
