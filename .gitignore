@@ -4,6 +4,9 @@ __pycache__/
 
 # Large source data files (offline inputs for scripts/*.py; not shipped with the app)
 REPURPOSING*.csv
+OmicsFusionFiltered.csv
+OmicsFusionFilteredSupplementary.csv
+OmicsInferredMolecularSubtypes.csv
 scripts/CRISPRInferredModelGrowthRate.csv
 scripts/Model_25Q3.csv
 scripts/OmicsProfiles.csv

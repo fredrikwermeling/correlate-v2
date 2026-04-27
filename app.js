@@ -50,6 +50,7 @@ class CorrelationExplorer {
         this.mutations = null;
         this.damagingMutations = null;
         this.translocations = null;
+        this.clinicalFusions = null;
         this.drugResponse = null;
         this.orthologs = null;
         this.geneEffects = null; // Float32Array [nGenes x nCellLines]
@@ -175,7 +176,7 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
@@ -183,7 +184,8 @@ class CorrelationExplorer {
             fetch('web_data/translocations.json').catch(() => null),
             fetch('web_data/damaging_mutations.json').catch(() => null),
             Promise.resolve(null), // growth_rate.json disabled (v.54)
-            fetch('web_data/drug_response.json').catch(() => null)
+            fetch('web_data/drug_response.json').catch(() => null),
+            fetch('web_data/clinical_fusions.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -198,6 +200,9 @@ class CorrelationExplorer {
         }
         if (drugRes && drugRes.ok) {
             this.drugResponse = await drugRes.json();
+        }
+        if (clinicalFusionsRes && clinicalFusionsRes.ok) {
+            this.clinicalFusions = await clinicalFusionsRes.json();
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -23135,8 +23140,46 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         top += renderGeneList(damagingGenes, 'clb-damaging');
         top += `</div>`;
 
-        top += `<div class="clb-detail-section"><strong>Fusions (${fusionGenes.length})</strong>`;
-        top += renderGeneList(fusionGenes, 'clb-fusion');
+        // Clinical fusions — curated driver fusions with orthogonal evidence (lineage,
+        // partner expression, partner dependency). Shown prominently. The full noisy
+        // raw fusion list is collapsed underneath with a "Show all" toggle.
+        const clinicalCalls = this.clinicalFusions?.byCellLine?.[cellLineId] || [];
+        const tierColor = { high: '#16a34a', medium: '#ca8a04', low: '#dc2626' };
+        const tierLabel = { high: 'high', medium: 'med', low: 'low' };
+        if (clinicalCalls.length > 0) {
+            const sortedCalls = [...clinicalCalls].sort((a, b) => {
+                const order = { high: 0, medium: 1, low: 2 };
+                return (order[a.tier] - order[b.tier]) || a.fusion.localeCompare(b.fusion);
+            });
+            top += `<div class="clb-detail-section"><strong>Clinical Fusions (${clinicalCalls.length})</strong>`;
+            top += `<div style="font-size:11px; line-height:1.7;">`;
+            sortedCalls.forEach(c => {
+                const color = tierColor[c.tier] || '#6b7280';
+                const atypical = c.atypicalLineage
+                    ? ` <span style="color:#b45309; font-size:10px;" title="Atypical lineage for this fusion (kept by orthogonal evidence)">⚠ atypical</span>`
+                    : '';
+                top += `<div style="margin:2px 0;"><span style="font-weight:600;">${c.fusion}</span>`
+                    + ` <span style="color:${color}; border:1px solid ${color}; border-radius:8px; padding:0 5px; font-size:10px; margin-left:4px;">${tierLabel[c.tier] || c.tier}</span>`
+                    + atypical
+                    + `</div>`;
+            });
+            top += `</div></div>`;
+        }
+
+        // Raw fusion list — the full noisy long tail. Collapsed by default with
+        // a toggle so it doesn't dominate when a line has 50+ fusions, most of
+        // which are passenger calls in chromothriptic regions.
+        const fusionSectionTitle = clinicalCalls.length > 0 ? 'All fusions (raw)' : 'Fusions';
+        top += `<div class="clb-detail-section">`;
+        top += `<strong>${fusionSectionTitle} (${fusionGenes.length})</strong>`;
+        if (fusionGenes.length > 0) {
+            top += ` <a href="#" id="clb-rawfusion-toggle" style="color:var(--green-700); text-decoration:none; font-size:10px; white-space:nowrap;">&#x25BE; show</a>`;
+            top += `<div id="clb-rawfusion-body" style="display:none;">`;
+            top += renderGeneList(fusionGenes, 'clb-fusion');
+            top += `</div>`;
+        } else {
+            top += renderGeneList(fusionGenes, 'clb-fusion');
+        }
         top += `</div>`;
 
         // Gene Effect section — separator + combined stats + list headings.
@@ -23164,6 +23207,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 btn.innerHTML = nowHidden ? '&#x25B4; hide extras' : `&#x25BE; show all ${total}`;
             });
         });
+        // Raw-fusion section toggle (separate from per-list "show all" because the
+        // whole raw fusion block is collapsed by default when clinical fusions exist).
+        const rawFusionToggle = document.getElementById('clb-rawfusion-toggle');
+        const rawFusionBody = document.getElementById('clb-rawfusion-body');
+        if (rawFusionToggle && rawFusionBody) {
+            rawFusionToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                const nowHidden = rawFusionBody.style.display === 'none';
+                rawFusionBody.style.display = nowHidden ? '' : 'none';
+                rawFusionToggle.innerHTML = nowHidden ? '&#x25B4; hide' : '&#x25BE; show';
+            });
+        }
 
         // Gene lists section
         const bottomN = geneVals.slice(0, N);

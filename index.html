@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.77.0 (2026-04-27)</strong></p>
+                <ul>
+                    <li>Clinical Fusions &mdash; new curated driver-fusion classifier. Built from a 51-fusion anchor list (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, TMPRSS2-ERG, etc. plus 7 KMT2A partners), each entry validated per cell line with three orthogonal signals: lineage match, partner expression z-score vs lineage-matched negatives, and partner dependency (CRISPR gene effect) z-score. Tier rules consider only the signals the curator marked as informative (e.g. BCR-ABL1 doesn't elevate ABL1 mRNA, so expression isn't checked &mdash; the call rests on the strong ABL1 dependency). Lineage is a <em>modifier</em> not a gate: a solid call in an atypical tissue (e.g. EML4-ALK in a Bowel line with ALK exprZ=51) keeps its tier and gets an "atypical" badge instead of being hidden. Cell-line browser detail panel now shows a <strong>Clinical Fusions</strong> block with green/amber/red tier chips, and the long noisy raw fusion list (formerly the only source) is collapsed under "Show all fusions" so it doesn't dominate. New <code>scripts/clinical_fusions_anchor.json</code> + <code>scripts/process_clinical_fusions.py</code> &mdash; pipeline reads the higher-quality <code>OmicsFusionFilteredSupplementary.csv</code> (Arriba-annotated), filters to <code>confidence: high</code> and drops read-through transcripts. Output: <code>web_data/clinical_fusions.json</code>. First run produced 84 calls across 24 fusions: 51 high, 29 medium, 4 low; 8 atypical-lineage calls (e.g. EWSR1-FLI1 in a CNS/Brain line, EML4-ALK in a Bowel line) preserved with their tier and a flag.</li>
+                </ul>
                 <p><strong>v.76.6 (2026-04-24)</strong></p>
                 <ul>
                     <li>CLB cell-line list &mdash; when sorted by GE / Expression / mutation count, the inline number is now prefixed with a small grey unit tag (<code>GE 0.45</code>, <code>Expr 4.12</code>, <code>hs 2</code>), carries a tooltip that spells out the metric + gene(s) + direction ("negative = essential" / "higher = more expressed"), and GE values are tinted red when essential (&lt; &minus;0.5) or amber (&lt; &minus;0.2). A one-line caption above the list repeats what the numbers represent and which gene(s) they average.</li>
@@ -2287,7 +2291,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.76.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.77.0</a>
     </div>
 
     <div class="main-content">
