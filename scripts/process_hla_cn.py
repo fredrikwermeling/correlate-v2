@@ -80,11 +80,23 @@ def main():
     with open(src, encoding="utf-8") as f:
         reader = csv.reader(f)
         header = next(reader)
-        # First column is ModelID; remaining are gene columns.
-        gene_cols = header[1:]
-        gene_lookup = {}
-        for i, raw in enumerate(gene_cols):
-            g = parse_gene_column_name(raw)
+        # The DepMap CN matrix has several metadata columns before gene data.
+        # Locate the ModelID and IsDefaultEntryForModel columns by name.
+        try:
+            model_idx = header.index("ModelID")
+        except ValueError:
+            sys.exit("CSV is missing a 'ModelID' column.")
+        try:
+            default_idx = header.index("IsDefaultEntryForModel")
+        except ValueError:
+            default_idx = None
+        # Anything after the metadata block is a gene column.
+        first_gene_col = max([i for i, c in enumerate(header)
+                              if c in {"ModelID", "SequencingID", "IsDefaultEntryForModel",
+                                        "ModelConditionID", "IsDefaultEntryForMC"} or c == ""]) + 1
+        gene_lookup = {}  # absolute_column_index -> gene_symbol
+        for i in range(first_gene_col, len(header)):
+            g = parse_gene_column_name(header[i])
             if g in panel_set:
                 gene_lookup[i] = g
         print(f"  matched {len(gene_lookup)} of {len(panel_set)} panel genes in CSV header")
@@ -92,14 +104,19 @@ def main():
             missing = panel_set - set(gene_lookup.values())
             print(f"  missing from CSV: {sorted(missing)}")
 
+        n_skipped_non_default = 0
         for row in reader:
             n_rows += 1
-            cl = row[0].strip()
-            if cl not in valid_cell_lines:
+            if default_idx is not None and len(row) > default_idx:
+                if (row[default_idx] or "").strip().lower() != "yes":
+                    n_skipped_non_default += 1
+                    continue
+            cl = row[model_idx].strip() if len(row) > model_idx else ""
+            if not cl or cl not in valid_cell_lines:
                 continue
             entry = {}
             for i, g in gene_lookup.items():
-                v = row[i + 1].strip() if i + 1 < len(row) else ""
+                v = row[i].strip() if i < len(row) else ""
                 if not v or v.lower() in {"nan", "na", "none", ""}:
                     continue
                 try:
@@ -111,14 +128,25 @@ def main():
                     sample_values.append(fv)
             if entry:
                 by_cl[cl] = entry
+        if n_skipped_non_default:
+            print(f"  skipped {n_skipped_non_default} non-default-for-model entries")
 
-    # Detect format: log2-ratio (most values |<2|, near 0 = diploid) vs
-    # absolute (mostly 0–6, near 2 = diploid).
+    # Detect format. DepMap's OmicsCNGene.csv ships RELATIVE copy number
+    # where 1.0 = diploid (PortalOmicsCNGeneLog2 is the log2(x+1) variant).
+    # Detection heuristic: values mostly non-negative, B2M median ≈ 1.0
+    # (B2M is on chr15, clean reference, almost always diploid).
     if sample_values:
         n_neg = sum(1 for v in sample_values if v < 0)
-        n_le2 = sum(1 for v in sample_values if v <= 2)
-        looks_log2 = (n_neg / len(sample_values) > 0.1) and (n_le2 / len(sample_values) > 0.9)
-        cn_format = "log2_ratio" if looks_log2 else "absolute"
+        if n_neg / len(sample_values) > 0.1:
+            cn_format = "log2_ratio"
+        else:
+            # Distinguish relative_cn (centered ≈ 1) from absolute (≈ 2).
+            b2m_vals = [e['B2M'] for e in by_cl.values() if 'B2M' in e]
+            if b2m_vals:
+                b2m_med = sorted(b2m_vals)[len(b2m_vals) // 2]
+                cn_format = "relative_cn" if b2m_med < 1.5 else "absolute"
+            else:
+                cn_format = "relative_cn"
     else:
         cn_format = "unknown"
     print(f"  detected CN format: {cn_format}")
@@ -134,12 +162,16 @@ def main():
         "cnFormat": cn_format,
         "panel": HLA_PANEL,
         "thresholds": {
+            "relative_cn": {
+                "suggestive_loss_normalized_to_b2m": 0.7,
+                "strong_loss_normalized_to_b2m": 0.5,
+                "note": "Use HLA / B2M ratios per cell line, not raw HLA values. Short-read WGS systematically under-maps HLA-C (median ~0.22 in this dataset, not because cells lack HLA-C but because reads from non-reference alleles fail to map). HLA-A is the least biased of the three. B2M is on chr15 and is a clean diploid reference. The ratio HLA-A/B2M < 0.5 in a cell line with diploid B2M is more reliable evidence of HLA loss than the raw HLA-A value alone."
+            },
             "log2_ratio": {
                 "suggestive_loss": -0.4,
                 "strong_loss": -0.7,
                 "deep_deletion": -1.0
-            },
-            "note": "If cnFormat is 'absolute', subtract 2 and divide by 2 to get approximate log2-ratio."
+            }
         },
         "byCellLine": by_cl,
     }

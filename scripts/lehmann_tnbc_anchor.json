@@ -1,0 +1,50 @@
+{
+  "_description": "Curated TNBC molecular-subtype classifications from Lehmann et al., JCI 2011 (PMID: 21633166) and the 2016 reclassification (Lehmann et al., PLOS ONE 2016, PMID: 27310713). The 2011 paper defined six subtypes from gene-expression deconvolution: BL1 (basal-like 1, DNA damage response), BL2 (basal-like 2, growth-factor signaling), IM (immunomodulatory), M (mesenchymal), MSL (mesenchymal stem-like), and LAR (luminal androgen receptor). The 2016 update collapsed this to four (TNBCtype-4): BL1, BL2, M, LAR — IM and MSL were re-attributed to infiltrating immune / stromal contamination rather than being distinct tumour-cell subtypes. We carry both labels per cell line so users can choose which framework to apply. Lehmann's published cell-line panel covered ~25 TNBC lines; this anchor list is restricted to lines with explicit assignments in the original tables. Cell-line names use stripped-uppercase form for lookup; the processing script maps to DepMap ACH IDs via cellLineMetadata.strippedCellLineName.",
+  "source_2011": "Lehmann et al. JCI 2011 PMID 21633166, Table 4 + Supplementary Table S5 (TNBCtype-6 classifications)",
+  "source_2016": "Lehmann et al. PLOS ONE 2016 PMID 27310713 (TNBCtype-4 reclassification)",
+  "subtypes_2011": {
+    "BL1": "Basal-like 1: cell cycle, DNA damage response, ATR/BRCA pathway. Often platinum/PARP-sensitive.",
+    "BL2": "Basal-like 2: growth-factor signaling (EGF, NGF, MET, IGF1R, Wnt/β-catenin), glycolysis/gluconeogenesis. Often growth-factor-receptor-targetable.",
+    "IM": "Immunomodulatory: immune-cell signaling (Th1/Th2, NK, B-cell, antigen processing). Largely an infiltrate-derived signal — re-attributed in 2016.",
+    "M": "Mesenchymal: cell-motility, EMT, ECM-receptor interaction, growth-factor receptors.",
+    "MSL": "Mesenchymal stem-like: shares M signature plus low proliferation, growth-factor signaling, claudin-low. Re-attributed to stromal infiltration in 2016.",
+    "LAR": "Luminal androgen receptor: AR-driven, often PIK3CA mutant. Bicalutamide / enzalutamide candidate."
+  },
+  "subtypes_2016": {
+    "BL1": "Basal-like 1 (TNBCtype-4 retained).",
+    "BL2": "Basal-like 2 (TNBCtype-4 retained).",
+    "M": "Mesenchymal (TNBCtype-4 retained; absorbed most MSL).",
+    "LAR": "Luminal androgen receptor (TNBCtype-4 retained)."
+  },
+  "cellLines": [
+    { "name": "BT20",        "tnbcType6": "BL1",  "tnbcType4": "BL1" },
+    { "name": "BT549",       "tnbcType6": "M",    "tnbcType4": "M"   },
+    { "name": "CAL51",       "tnbcType6": "M",    "tnbcType4": "M"   },
+    { "name": "CAL120",      "tnbcType6": "M",    "tnbcType4": "M"   },
+    { "name": "CAL148",      "tnbcType6": "BL2",  "tnbcType4": "BL2" },
+    { "name": "CAL851",      "tnbcType6": "BL2",  "tnbcType4": "BL2" },
+    { "name": "DU4475",      "tnbcType6": "IM",   "tnbcType4": null  },
+    { "name": "HCC1143",     "tnbcType6": "BL1",  "tnbcType4": "BL1" },
+    { "name": "HCC1187",     "tnbcType6": "IM",   "tnbcType4": null  },
+    { "name": "HCC1395",     "tnbcType6": "IM",   "tnbcType4": null  },
+    { "name": "HCC1599",     "tnbcType6": "BL1",  "tnbcType4": "BL1" },
+    { "name": "HCC1806",     "tnbcType6": "BL2",  "tnbcType4": "BL2" },
+    { "name": "HCC1937",     "tnbcType6": "BL1",  "tnbcType4": "BL1" },
+    { "name": "HCC2157",     "tnbcType6": "BL1",  "tnbcType4": "BL1" },
+    { "name": "HCC2185",     "tnbcType6": "LAR",  "tnbcType4": "LAR" },
+    { "name": "HCC38",       "tnbcType6": "BL1",  "tnbcType4": "BL1" },
+    { "name": "HCC70",       "tnbcType6": "BL2",  "tnbcType4": "BL2" },
+    { "name": "HDQP1",       "tnbcType6": "BL2",  "tnbcType4": "BL2" },
+    { "name": "HS578T",      "tnbcType6": "MSL",  "tnbcType4": "M"   },
+    { "name": "MDAMB157",    "tnbcType6": "MSL",  "tnbcType4": "M"   },
+    { "name": "MDAMB231",    "tnbcType6": "M",    "tnbcType4": "M"   },
+    { "name": "MDAMB436",    "tnbcType6": "M",    "tnbcType4": "M"   },
+    { "name": "MDAMB453",    "tnbcType6": "LAR",  "tnbcType4": "LAR" },
+    { "name": "MDAMB468",    "tnbcType6": "BL1",  "tnbcType4": "BL1" },
+    { "name": "MFM223",      "tnbcType6": "LAR",  "tnbcType4": "LAR" },
+    { "name": "SUM149PT",    "tnbcType6": "BL2",  "tnbcType4": "BL2" },
+    { "name": "SUM159PT",    "tnbcType6": "MSL",  "tnbcType4": "M"   },
+    { "name": "SUM185PE",    "tnbcType6": "LAR",  "tnbcType4": "LAR" },
+    { "name": "KPL1",        "tnbcType6": "LAR",  "tnbcType4": "LAR" }
+  ]
+}

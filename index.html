@@ -1325,6 +1325,18 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.5 (2026-04-27)</strong></p>
+                <ul>
+                    <li><strong>HLA copy-number ingested + class-I inference activated</strong>. Ran <code>scripts/process_hla_cn.py</code> against the downloaded <code>OmicsCNGeneWGS.csv</code> (~400 MB DepMap WGS CN matrix); output <code>web_data/hla_cn.json</code> (190 KB) covers 830 cell lines for HLA-A/B/C, B2M, and antigen-processing-machinery genes. Two corrections during ingestion:
+                        <ul>
+                            <li>The CSV format is DepMap's <em>relative copy number</em> (1.0 = diploid), not log2 ratio or absolute &mdash; format detection rewritten to recognise this from the B2M reference distribution.</li>
+                            <li>Short-read WGS systematically under-maps HLA-C in the polymorphic region (cohort median ~0.22, not real loss). The class-I CN inference now uses <strong>HLA-A/B normalised to B2M</strong> per cell line (B2M sits on chr15, clean diploid reference). Ratio &lt; 0.5 = strong loss, &lt; 0.7 = suggestive loss. Catches HLA-specific copy loss while controlling for sample-level mappability and the HLA-C reference bias.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Lehmann TNBC subtype annotation</strong>. The Oncotree subtypes (Breast Invasive Ductal Carcinoma, Triple-Negative Breast Cancer, etc.) don't capture the Lehmann TNBC molecular axis (BL1, BL2, IM, M, MSL, LAR) and our previous user-flagged: "the cell-line browser TNBC labels don't match Lehmann's classifications." Added curated subtype assignments from Lehmann <em>JCI</em> 2011 (PMID 21633166) plus the 2016 reclassification (PMID 27310713; collapsed to four classes &mdash; BL1, BL2, M, LAR &mdash; with IM and MSL re-attributed to immune / stromal infiltrate). New <code>scripts/lehmann_tnbc_anchor.json</code> + <code>scripts/process_lehmann_tnbc.py</code>; output <code>web_data/lehmann_tnbc.json</code> covers 22 of 29 panel cell lines (the other 7 aren't in DepMap 25Q3). Surfaced as a small purple chip next to the Subtype row in the cell-line browser detail panel (e.g. "Lehmann BL1" or "Lehmann MSL → M" when 2016 reclassified). Hover for full definitions of the six classes. Also embedded per cell line in the AI <code>.json.gz</code> export as <code>cellLineMetadata.&lt;cl&gt;.lehmannTnbc</code>.</li>
+                    <li>Reference Data card on main page updated to list HLA CN and Lehmann TNBC under the curated-annotations bucket.</li>
+                    <li>schemaVersion 3.0 → 3.1.</li>
+                </ul>
                 <p><strong>v.81.4 (2026-04-27)</strong></p>
                 <ul>
                     <li><strong>Class-I antigen-presentation inference</strong> per cell line. Three integrated signals — none alone is conclusive, hence the integration:
@@ -2490,7 +2502,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.4</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.5</a>
     </div>
 
     <div class="main-content">
@@ -2534,6 +2546,8 @@
                             <ul style="margin: 4px 0 0 0; padding-left: 16px;">
                                 <li>Clinically relevant fusions <span style="color:#999;">(51 driver fusions + 7 KMT2A partners; COSMIC; validated per cell line)</span></li>
                                 <li>Subtype hallmarks KB <span style="color:#999;">(WHO 5th ed. 2022, COSMIC, OncoKB, NCCN; ~40 Oncotree subtypes)</span></li>
+                                <li>Lehmann TNBC subtypes <span style="color:#999;">(Lehmann <em>JCI</em> 2011 + 2016 update; BL1/BL2/IM/M/MSL/LAR for ~22 TNBC lines)</span></li>
+                                <li>HLA copy number <span style="color:#999;">(extracted from <code>OmicsCNGeneWGS.csv</code>; B2M-normalized to control for HLA-C mapping bias)</span></li>
                                 <li>STR profiles <span style="color:#999;">(Cellosaurus reference panels)</span></li>
                             </ul>
                             <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data; CORUM and Reactome have their own attribution requirements.</p>
@@ -4621,6 +4635,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_4"></script>
+    <script src="app.js?v=v81_5"></script>
 </body>
 </html>
