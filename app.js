@@ -19368,9 +19368,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // keep the top N. The cap is what bounds the file size — the
         // variance threshold alone was empirically not enough at 1186 cells
         // (~9000 genes passed → 64 MB file).
+        // Focal-gene carve-out: when the export has a focal gene (ge / scatter /
+        // mutation views), the focal gene itself is always kept regardless of
+        // its max-abs — for a NEDD8 GE export we want NEDD8's own GE row even
+        // if its max-abs sits below the tier cutoff for some reason.
+        const focalGene = (context.gene || context.hotspotGene || '').toUpperCase();
+        const focalGene2 = (context.gene2 || '').toUpperCase();
         const geGenes = this.metadata.genes;
         const geCLIndices = cellLines.map(cl => this.metadata.cellLines.indexOf(cl));
-        const geCandidates = []; // { gene, vals, maxAbs }
+        const geCandidates = []; // { gene, vals, maxAbs, isFocal }
         for (let gi = 0; gi < this.nGenes; gi++) {
             const vals = [];
             let hasData = false, maxAbs = 0;
@@ -19381,11 +19387,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 else vals.push(null);
             }
             if (!hasData) continue;
-            if (geCutoff > 0 && maxAbs < geCutoff) continue;
-            geCandidates.push({ gene: geGenes[gi], vals, maxAbs });
+            const geneName = geGenes[gi];
+            const isFocal = (geneName.toUpperCase() === focalGene || geneName.toUpperCase() === focalGene2);
+            if (!isFocal && geCutoff > 0 && maxAbs < geCutoff) continue;
+            geCandidates.push({ gene: geneName, vals, maxAbs, isFocal });
         }
         if (Number.isFinite(geneCap) && geCandidates.length > geneCap) {
-            geCandidates.sort((a, b) => b.maxAbs - a.maxAbs);
+            // Sort by max-abs but always keep focal genes at the top.
+            geCandidates.sort((a, b) => (b.isFocal - a.isFocal) || (b.maxAbs - a.maxAbs));
             geCandidates.length = geneCap;
         }
         const geMatrix = {};
@@ -19396,41 +19405,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Catches tissue-restricted markers like AFP (low overall mean, high
         // SD because it's only highly expressed in liver lines) which the AND
         // version would silently drop.
-        let exprMatrix = null;
-        if (includeExpr && this.expressionData && this.expressionMetadata) {
-            setStatus('Building expression matrix...');
-            await new Promise(r => setTimeout(r, 50));
-            const exprGenes = this.expressionMetadata.genes;
-            const nExprCL = this.expressionMetadata.nCellLines;
-            const exprCLMap = new Map();
-            this.expressionMetadata.cellLines.forEach((cl, i) => exprCLMap.set(cl, i));
-            const exprCLIndices = cellLines.map(cl => exprCLMap.get(cl) ?? -1);
-            const exprCandidates = []; // { gene, vals, sd }
-            for (let gi = 0; gi < exprGenes.length; gi++) {
-                const vals = [];
-                let hasData = false, sum = 0, count = 0, ssq = 0;
-                for (const clIdx of exprCLIndices) {
-                    if (clIdx === -1) { vals.push(null); continue; }
-                    const v = this.expressionData[gi * nExprCL + clIdx];
-                    if (!isNaN(v)) { vals.push(parseFloat(v.toFixed(3))); hasData = true; sum += v; count++; }
-                    else vals.push(null);
-                }
-                if (!hasData || count < 3) continue;
-                const mean = sum / count;
-                vals.forEach(v => { if (v !== null) ssq += (v - mean) ** 2; });
-                const sd = Math.sqrt(ssq / count);
-                if (mean < exprMeanMin && sd < exprSdMin) continue;
-                exprCandidates.push({ gene: exprGenes[gi], vals, sd });
-            }
-            if (Number.isFinite(geneCap) && exprCandidates.length > geneCap) {
-                exprCandidates.sort((a, b) => b.sd - a.sd);
-                exprCandidates.length = geneCap;
-            }
-            exprMatrix = {};
-            for (const c of exprCandidates) exprMatrix[c.gene] = c.vals;
-        }
-
-        // Precomputed top correlates (#4)
+        // Compute top expression correlates of the focal gene's GE FIRST so
+        // we can guarantee the genes that turn up in the correlate list are
+        // also present in the expression matrix below — addresses the issue
+        // where NEDD8's own expression and the neddylation machinery
+        // (UBA3 / UBE2M / NAE1) all got dropped by the variance filter even
+        // though they were the most informative genes for the question.
+        // The result format: { gene, r (Pearson, focal-gene GE vs gene
+        // expression across the cohort), n (effective sample size after
+        // dropping cell lines missing focal-gene GE or partner expression) }.
         let topCorrelates = null;
         const analysisGene = context.gene || context.hotspotGene || '';
         if (analysisGene && this.geneIndex.has(analysisGene.toUpperCase()) && includeExpr && this.expressionData) {
@@ -19459,10 +19442,113 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             topCorrelates = correlates.slice(0, 30);
         }
 
+        // Genes whose expression we ALWAYS include regardless of the variance
+        // filter: focal gene itself, the second focal gene (scatter view),
+        // and the genes that surfaced in the expression-correlate scan.
+        const alwaysIncludeExpr = new Set();
+        if (analysisGene) alwaysIncludeExpr.add(analysisGene.toUpperCase());
+        if (focalGene2) alwaysIncludeExpr.add(focalGene2);
+        if (topCorrelates) for (const c of topCorrelates) alwaysIncludeExpr.add(c.gene.toUpperCase());
+
+        let exprMatrix = null;
+        if (includeExpr && this.expressionData && this.expressionMetadata) {
+            setStatus('Building expression matrix...');
+            await new Promise(r => setTimeout(r, 50));
+            const exprGenes = this.expressionMetadata.genes;
+            const nExprCL = this.expressionMetadata.nCellLines;
+            const exprCLMap = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, i) => exprCLMap.set(cl, i));
+            const exprCLIndices = cellLines.map(cl => exprCLMap.get(cl) ?? -1);
+            const exprCandidates = []; // { gene, vals, sd, isAlways }
+            for (let gi = 0; gi < exprGenes.length; gi++) {
+                const vals = [];
+                let hasData = false, sum = 0, count = 0, ssq = 0;
+                for (const clIdx of exprCLIndices) {
+                    if (clIdx === -1) { vals.push(null); continue; }
+                    const v = this.expressionData[gi * nExprCL + clIdx];
+                    if (!isNaN(v)) { vals.push(parseFloat(v.toFixed(3))); hasData = true; sum += v; count++; }
+                    else vals.push(null);
+                }
+                if (!hasData || count < 3) continue;
+                const mean = sum / count;
+                vals.forEach(v => { if (v !== null) ssq += (v - mean) ** 2; });
+                const sd = Math.sqrt(ssq / count);
+                const geneName = exprGenes[gi];
+                const isAlways = alwaysIncludeExpr.has(geneName.toUpperCase());
+                if (!isAlways && mean < exprMeanMin && sd < exprSdMin) continue;
+                exprCandidates.push({ gene: geneName, vals, sd, isAlways });
+            }
+            if (Number.isFinite(geneCap) && exprCandidates.length > geneCap) {
+                // Sort by SD but always keep focal/correlate genes at the top.
+                exprCandidates.sort((a, b) => (b.isAlways - a.isAlways) || (b.sd - a.sd));
+                exprCandidates.length = geneCap;
+            }
+            exprMatrix = {};
+            for (const c of exprCandidates) exprMatrix[c.gene] = c.vals;
+        }
+
         // Phase 1 — snapshot dropped from gzipped exports. The AI was told to
         // ignore it anyway, it inflated parse cost (~30% of file size for a
         // typical scatter), and the `context` block already gives the model
         // everything it needs to restate what the user was viewing.
+
+        // Tissue / subtype summaries for the focal gene's GE distribution.
+        // Adds per-tissue mean / sd / n / z-vs-overall-mean to extras so the
+        // AI doesn't have to scan the matrix to find tissue-level signals
+        // (the LLM-review feedback said this had to be done by hand).
+        // Only computed when there's a focal gene whose GE we can summarise.
+        if (analysisGene && this.geneIndex.has(analysisGene.toUpperCase())) {
+            const targetIdx = this.geneIndex.get(analysisGene.toUpperCase());
+            const targetData = this.getGeneData(targetIdx);
+            const tissueBuckets = {};
+            const subtypeBuckets = {};
+            let allValues = [];
+            for (let j = 0; j < cellLines.length; j++) {
+                const cl = cellLines[j];
+                const clIdx = geCLIndices[j];
+                if (clIdx === -1) continue;
+                const v = targetData[clIdx];
+                if (isNaN(v)) continue;
+                allValues.push(v);
+                const tissue = this.getCellLineLineage(cl) || 'Unknown';
+                const subtype = this.cellLineMetadata?.primaryDisease?.[cl] || 'Unknown';
+                (tissueBuckets[tissue] = tissueBuckets[tissue] || []).push(v);
+                (subtypeBuckets[`${tissue} | ${subtype}`] = subtypeBuckets[`${tissue} | ${subtype}`] || []).push(v);
+            }
+            if (allValues.length > 0) {
+                const overallMean = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+                const overallSd = Math.sqrt(allValues.reduce((s, x) => s + (x - overallMean) ** 2, 0) / allValues.length) || 1;
+                const summarise = (buckets, minN) => {
+                    const out = [];
+                    for (const [k, vs] of Object.entries(buckets)) {
+                        if (vs.length < minN) continue;
+                        const mean = vs.reduce((a, b) => a + b, 0) / vs.length;
+                        const sd = Math.sqrt(vs.reduce((s, x) => s + (x - mean) ** 2, 0) / vs.length);
+                        out.push({
+                            group: k, n: vs.length,
+                            mean: parseFloat(mean.toFixed(3)),
+                            sd: parseFloat(sd.toFixed(3)),
+                            zVsOverall: parseFloat(((mean - overallMean) / overallSd).toFixed(3))
+                        });
+                    }
+                    out.sort((a, b) => a.mean - b.mean);
+                    return out;
+                };
+                const tissueSummary = summarise(tissueBuckets, 3);
+                const subtypeSummary = summarise(subtypeBuckets, 3);
+                if (tissueSummary.length || subtypeSummary.length) {
+                    extras = extras || {};
+                    extras.focalGeneTissueSummary = {
+                        gene: analysisGene,
+                        overallMean: parseFloat(overallMean.toFixed(3)),
+                        overallSd: parseFloat(overallSd.toFixed(3)),
+                        n: allValues.length,
+                        byTissue: tissueSummary,
+                        bySubtype: subtypeSummary
+                    };
+                }
+            }
+        }
 
         // Phase 2 — assemble the export. Schema-version stamped, null fields
         // omitted entirely (was: emitted as null with documentation that an
@@ -19472,14 +19558,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const exportData = {
             _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
-            schemaVersion: '2.0',
+            schemaVersion: '2.1',
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices.',
                 cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy).',
-                geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores aligned to cellLineOrder. Negative = essential. null = missing.',
-                expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing.',
+                geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores aligned to cellLineOrder. Negative = essential. null = missing. The focal gene of the analysis is always included regardless of variance threshold.',
+                expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. The focal gene and the genes that surfaced in topCorrelates are always included regardless of variance threshold.',
+                topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n (effective sample size after dropping cell lines missing focal-gene GE or partner expression — n can vary per gene because expression coverage is per-gene non-uniform) }.',
                 cellLineGroups: 'Optional. Cell line IDs grouped by analysis stratification (WT/mut1/mut2 for mutation, gateA/gateB for gate comparison, etc.).',
-                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), clusterGenes (clusters), expressionCorrelates (exprCorrelates).'
+                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), clusterGenes (clusters), expressionCorrelates (exprCorrelates), focalGeneTissueSummary (per-tissue mean / sd / n / z-vs-overall for the focal gene\'s GE — saves the LLM from scanning the matrix to find tissue-level signals).'
             },
             _instructions: [
                 'CRISPR gene effect: negative = essential for cell survival. 0 = no effect.',
@@ -19492,8 +19579,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ],
             _analysisInstructions: [
                 "Step 1 - Overview: Briefly survey the data. Summarize key groups, sample sizes, and the target gene's effect distribution. Run a quick unbiased scan of the top 10 gene effect co-correlates and anti-correlates, noting their likely pathway/function.",
-                "Step 2 - Confirm scope: Present this overview to the user together with their question (from the 'question' field). Propose 2-3 specific analytical angles suggested by the unbiased hits. Ask the user to confirm, adjust, or redirect before proceeding with deep analysis.",
-                "Step 3 - Deep analysis: After user confirmation, work data-first. Characterize unbiased genome-wide hits and annotate by pathway before testing hypothesis-driven candidate gene lists. After finding one explanatory model, actively search for alternative or complementary axes. Report all major signals, not just the first plausible one."
+                "Step 2 - Confirm scope (judgment call): If the question is open-ended ('explain the variability', 'what drives X'), present the overview to the user with 2-3 candidate analytical angles and ask which to pursue. If the question is specific and self-contained ('what is the top correlate of NEDD8', 'compare gates A and B on differential GE'), skip this step and go straight to the analysis — don't pad with friction.",
+                "Step 3 - Deep analysis: Work data-first. Characterize unbiased genome-wide hits and annotate by pathway before testing hypothesis-driven candidate gene lists. After finding one explanatory model, actively search for alternative or complementary axes. Report all major signals, not just the first plausible one."
             ],
             context,
             aiInstructions: (

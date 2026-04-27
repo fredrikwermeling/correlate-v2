@@ -1325,6 +1325,18 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.80.4 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI <code>.json.gz</code> export &mdash; round of fixes after a real Opus 4.7 review of a NEDD8 export. The reviewer caught real gaps: NEDD8's own expression had been dropped by the variance filter, the neddylation machinery (UBA3, NAE1, UBE2M) wasn't in the expression matrix despite being the most informative genes for the question, and the AI had to hand-roll tissue rollups to discover that the Bone signal was entirely Ewing sarcoma. Schema bumped to <strong>2.1</strong>.
+                        <ul>
+                            <li><strong>Focal gene always included</strong> in both matrices regardless of variance threshold. For a NEDD8 GE export, the NEDD8 row of <code>geneEffect</code> and <code>expression</code> are guaranteed present.</li>
+                            <li><strong>Genes surfaced in <code>topCorrelates</code> are always included in the expression matrix.</strong> The expression-correlate scan runs <em>before</em> the expression matrix is filtered, and any gene that turns up in the top 30 is added to the always-include set. So the neddylation E1/E2/CRL components that drive co-essentiality with NEDD8 are now present in expression even if they're stable housekeeping-ish genes that the variance filter would otherwise drop.</li>
+                            <li><strong>New <code>extras.focalGeneTissueSummary</code></strong> &mdash; precomputed per-tissue and per-subtype mean / sd / n / z-vs-overall for the focal gene's GE, sorted by mean. The reviewer had to discover by hand that "Bone = Ewing sarcoma", "Eye includes 5 RPE1 non-cancerous lines", "PNS = neuroblastoma"; this surfaces all of that automatically.</li>
+                            <li><strong>Schema docs updated</strong> &mdash; <code>topCorrelates</code> now has an explicit description (Pearson, focal-gene GE vs partner expression, with a note that <code>n</code> can vary per gene because expression coverage isn't uniform). The reviewer was confused enough by the missing description to recompute everything from scratch.</li>
+                            <li><strong>Step 2 confirmation gate softened</strong>: the analysis instructions now explicitly tell the LLM to skip the "ask the user to confirm" step when the question is specific and self-contained, only triggering it for open-ended questions like "explain the variability". Prevents the friction the reviewer flagged.</li>
+                        </ul>
+                    </li>
+                </ul>
                 <p><strong>v.80.3 (2026-04-27)</strong></p>
                 <ul>
                     <li>AI <code>.json.gz</code> export &mdash; fixes after a real export from the Gene Effect browser on all 1186 cell lines came out at 64 MB. Variance threshold alone wasn't tight enough at large n: ~9000 genes still passed <code>|GE|&gt;0.5</code> in 1186 cells, dominating file size. Added a <strong>per-matrix gene cap</strong> on top of the variance filter — after the threshold, genes are sorted by relevance (max-abs for GE, sd for expression) and the top N kept:
@@ -2374,7 +2386,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.3</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.4</a>
     </div>
 
     <div class="main-content">
@@ -4484,6 +4496,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v80_3"></script>
+    <script src="app.js?v=v80_4"></script>
 </body>
 </html>
