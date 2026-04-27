@@ -5343,11 +5343,15 @@ class CorrelationExplorer {
         const hasTranslocations = this.translocations?.genes?.length > 0;
         document.getElementById('mutCompareByFusionBtn').style.display = hasTranslocations ? '' : 'none';
 
+        const polymorphicCaveat = this._polymorphicCaveatText();
         results.forEach(r => {
             const row = document.createElement('tr');
+            const polymorphicMark = this._isPolymorphicLocus(r.gene)
+                ? ` <span style="color:#b45309; cursor:help;" title="${polymorphicCaveat.replace(/"/g, '&quot;')}">⚠</span>`
+                : '';
             let html = `
                 <td><a href="#" class="inspect-link" onclick="app.showGeneEffectDistribution('${r.gene}'); return false;">Inspect</a></td>
-                <td class="gene-hover" data-gene="${r.gene}"><a href="#" style="color: var(--green-700); text-decoration: none; cursor: pointer;" onclick="app.openGeneEffectModal('${r.gene}', 'tissue'); return false;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${r.gene}</a></td>
+                <td class="gene-hover" data-gene="${r.gene}"><a href="#" style="color: var(--green-700); text-decoration: none; cursor: pointer;" onclick="app.openGeneEffectModal('${r.gene}', 'tissue'); return false;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${r.gene}</a>${polymorphicMark}</td>
                 <td style="border-left: 2px solid #2563eb;">${r.n_wt}</td>
                 <td>${r.mean_wt.toFixed(2)}</td>
                 <td style="border-left: 2px solid #f97316;">${r.n_mut}</td>
@@ -19419,6 +19423,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     if (level > 0) (mutations[g] = mutations[g] || {}).damaging = true;
                 }
             }
+            // Tag polymorphic loci (HLA / MIC / KIR) so the LLM knows the
+            // call is suspect — these regions accumulate "mutations" that
+            // are mostly germline allelic divergence from GRCh38, not
+            // somatic events.
+            for (const g of Object.keys(mutations)) {
+                if (this._isPolymorphicLocus(g)) mutations[g].caveat = 'polymorphic_locus';
+            }
             if (Object.keys(mutations).length > 0) entry.mutations = mutations;
 
             // Curated driver fusions (clinical_fusions.json) — per-cell-line
@@ -20035,11 +20046,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const exportData = {
             _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
-            schemaVersion: '2.8',
+            schemaVersion: '2.9',
             nTotal: cellLines.length,
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices. Length = nTotal.',
-                cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy).',
+                cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool, caveat?: "polymorphic_locus"}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy). The `caveat: "polymorphic_locus"` flag marks HLA / MIC / KIR genes — calls in these highly polymorphic regions typically reflect germline allelic divergence from GRCh38, not somatic events. Treat such hotspot/damaging calls as suspect unless paired with expression loss + LOH.',
                 geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores aligned to cellLineOrder. Negative = essential. null = missing. The focal gene of the analysis is always included regardless of variance threshold.',
                 expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. The focal gene, the genes surfaced in topCorrelates, and the focal gene\'s pathway / complex partners are always included regardless of variance threshold. Partner sources are layered: hand-curated high-value complexes (NEDD8/CRL, Proteasome, Hippo, MYC, TP53, BRCA, mTOR, BCL2, splicing) → CORUM physical protein complexes (~5000 human genes) → wiki cancer pathways (RAS/MAPK, PI3K, RTK family, etc.) → Reactome pathway / signalling-cascade co-members (~10000 human genes; broad parents filtered out, only pathways with 5-100 genes kept). So for SMARCA4 you get the BAF subunits via CORUM; for MCM4 the MCM2-7 helicase; for IL4R the JAK/STAT cascade via Reactome; for arbitrary genes you typically get something useful from at least one of the four layers.',
                 topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n }. Gated at n >= max(50, 0.6 * cohortSize) to drop partial-coverage genes. Polarity: positive r means high partner expression covaries with weaker focal-gene dependency (less negative GE).',
@@ -23702,8 +23713,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this._cancerPanelGenes = set;
         }
         const cancerSet = this._cancerPanelGenes;
+        // Sort: cancer-panel genes first, then everything else, polymorphic
+        // loci (HLA / MIC / KIR) pushed to the end so the noisy calls don't
+        // hog the always-visible top-10 slots in the hotspot / damaging
+        // mutation lists. Still visible after the "Show all" expansion.
         const sortByRelevance = (genes) => {
             return [...genes].sort((a, b) => {
+                const aPoly = this._isPolymorphicLocus(a) ? 1 : 0;
+                const bPoly = this._isPolymorphicLocus(b) ? 1 : 0;
+                if (aPoly !== bPoly) return aPoly - bPoly;
                 const ac = cancerSet.has(a) ? 0 : 1;
                 const bc = cancerSet.has(b) ? 0 : 1;
                 if (ac !== bc) return ac - bc;
@@ -23766,11 +23784,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const renderGeneList = (genes, toggleId, variantMap) => {
             if (genes.length === 0) return `<div style="color:var(--gray-500); font-size:11px;">None</div>`;
             const sorted = sortByRelevance(genes);
+            const polymorphicCaveat = this._polymorphicCaveatText();
             const tagHtml = (g) => {
                 const hl = cancerSet.has(g) ? ' style="cursor:help; font-weight:600;"' : ' style="cursor:help;"';
                 const variant = variantMap?.[g];
                 const suffix = variant ? ` <span style="color:#16a34a; font-weight:500;">(${variant})</span>` : '';
-                return `<span class="gene-hover clb-gene-link" data-gene="${g}"${hl}>${g}</span>${suffix}`;
+                // Polymorphic-locus caveat marker (HLA / MIC / KIR) — calls
+                // in these genes are typically allelic divergence from
+                // GRCh38, not somatic events.
+                const caveat = this._isPolymorphicLocus(g)
+                    ? ` <span style="color:#b45309; font-size:10px; cursor:help;" title="${polymorphicCaveat.replace(/"/g, '&quot;')}">⚠</span>`
+                    : '';
+                return `<span class="gene-hover clb-gene-link" data-gene="${g}"${hl}>${g}</span>${suffix}${caveat}`;
             };
             if (sorted.length <= INITIAL_VISIBLE) {
                 return `<div style="color:var(--gray-500); font-size:11px;">${sorted.map(tagHtml).join(', ')}</div>`;
@@ -24145,6 +24170,44 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         for (const [g, s] of Object.entries(map)) out[g] = [...s].sort();
         this._focalGenePartnersCache = out;
         return out;
+    }
+
+    // Genes in the HLA region (and a few similar polymorphic loci) where
+    // somatic-vs-germline mutation calling is unreliable. Variants in these
+    // genes typically reflect allelic divergence from GRCh38 rather than
+    // somatic events: HLA-A alone has >7,000 known alleles, gnomAD coverage
+    // of the region is patchy, and recurrence-based "hotspot" definitions
+    // pick up polymorphism as if it were driver mutation. Real cancer-
+    // relevant HLA events do exist (immune escape via class-I LoF + LOH,
+    // especially in MSI-high tumours) but should be inferred from
+    // expression loss + LOH rather than the raw hotspot matrix.
+    // Used to tag hotspot displays with a caveat marker.
+    _POLYMORPHIC_LOCI() {
+        if (!this._polymorphicLociCache) {
+            this._polymorphicLociCache = new Set([
+                // Classical class-I HLA
+                'HLA-A', 'HLA-B', 'HLA-C',
+                // Non-classical class-I
+                'HLA-E', 'HLA-F', 'HLA-G',
+                // Class-II HLA
+                'HLA-DPA1', 'HLA-DPB1', 'HLA-DQA1', 'HLA-DQB1',
+                'HLA-DRA', 'HLA-DRB1', 'HLA-DRB3', 'HLA-DRB4', 'HLA-DRB5',
+                'HLA-DMA', 'HLA-DMB', 'HLA-DOA', 'HLA-DOB',
+                // MIC family — same chr6p21 region, similar polymorphism
+                'MICA', 'MICB',
+                // KIR family — chr19, also extremely polymorphic
+                'KIR2DL1', 'KIR2DL2', 'KIR2DL3', 'KIR2DL4', 'KIR2DL5A',
+                'KIR2DS1', 'KIR2DS2', 'KIR2DS3', 'KIR2DS4', 'KIR2DS5',
+                'KIR3DL1', 'KIR3DL2', 'KIR3DL3', 'KIR3DS1'
+            ]);
+        }
+        return this._polymorphicLociCache;
+    }
+    _isPolymorphicLocus(gene) {
+        return this._POLYMORPHIC_LOCI().has((gene || '').toUpperCase());
+    }
+    _polymorphicCaveatText() {
+        return 'Polymorphic locus — calls in this gene often reflect allelic divergence from the GRCh38 reference, not somatic events. Real cancer-relevant HLA / KIR loss is better inferred from expression loss and LOH than the raw hotspot matrix.';
     }
 
     _WIKI_PATHWAYS() {
