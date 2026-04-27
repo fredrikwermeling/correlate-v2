@@ -19405,15 +19405,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Catches tissue-restricted markers like AFP (low overall mean, high
         // SD because it's only highly expressed in liver lines) which the AND
         // version would silently drop.
-        // Compute top expression correlates of the focal gene's GE FIRST so
-        // we can guarantee the genes that turn up in the correlate list are
-        // also present in the expression matrix below — addresses the issue
-        // where NEDD8's own expression and the neddylation machinery
-        // (UBA3 / UBE2M / NAE1) all got dropped by the variance filter even
-        // though they were the most informative genes for the question.
-        // The result format: { gene, r (Pearson, focal-gene GE vs gene
-        // expression across the cohort), n (effective sample size after
-        // dropping cell lines missing focal-gene GE or partner expression) }.
+        // Compute top expression correlates of the focal gene's GE. Computed
+        // up-front so the genes it surfaces can be added to the always-
+        // include set for the expression matrix below.
+        // Minimum-n gate (60% of cohort, floor 50): without it, expression
+        // genes with partial coverage produce spurious top-r entries.
+        // Format: { gene, r (Pearson, focal-gene GE vs gene expression
+        // across the cohort), n (effective sample size after dropping
+        // cell lines missing focal-gene GE or partner expression) }.
         let topCorrelates = null;
         const analysisGene = context.gene || context.hotspotGene || '';
         if (analysisGene && this.geneIndex.has(analysisGene.toUpperCase()) && includeExpr && this.expressionData) {
@@ -19422,32 +19421,43 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const targetIdx = this.geneIndex.get(analysisGene.toUpperCase());
             const targetData = this.getGeneData(targetIdx);
             const targetVals = geCLIndices.map(i => i >= 0 ? targetData[i] : NaN);
-            const exprCLMap2 = new Map();
-            this.expressionMetadata.cellLines.forEach((cl, i) => exprCLMap2.set(cl, i));
-            const correlates = [];
-            for (let gi = 0; gi < this.expressionMetadata.genes.length; gi++) {
-                const x = [], y = [];
-                for (let j = 0; j < cellLines.length; j++) {
-                    const ecl = exprCLMap2.get(cellLines[j]);
-                    if (ecl === undefined || isNaN(targetVals[j])) continue;
-                    const ev = this.expressionData[gi * this.expressionMetadata.nCellLines + ecl];
-                    if (!isNaN(ev)) { x.push(targetVals[j]); y.push(ev); }
-                }
-                if (x.length >= 10) {
+            const validTarget = targetVals.filter(v => !isNaN(v));
+            const targetMean = validTarget.length > 0 ? validTarget.reduce((a, b) => a + b, 0) / validTarget.length : 0;
+            const targetSd = validTarget.length > 0 ? Math.sqrt(validTarget.reduce((s, v) => s + (v - targetMean) ** 2, 0) / validTarget.length) : 0;
+            if (targetSd < 0.05) {
+                topCorrelates = []; // focal-gene variance ~0 — every correlate would be noise
+            } else {
+                const minN = Math.max(50, Math.floor(0.6 * cellLines.length));
+                const exprCLMap2 = new Map();
+                this.expressionMetadata.cellLines.forEach((cl, i) => exprCLMap2.set(cl, i));
+                const correlates = [];
+                for (let gi = 0; gi < this.expressionMetadata.genes.length; gi++) {
+                    const x = [], y = [];
+                    for (let j = 0; j < cellLines.length; j++) {
+                        const ecl = exprCLMap2.get(cellLines[j]);
+                        if (ecl === undefined || isNaN(targetVals[j])) continue;
+                        const ev = this.expressionData[gi * this.expressionMetadata.nCellLines + ecl];
+                        if (!isNaN(ev)) { x.push(targetVals[j]); y.push(ev); }
+                    }
+                    if (x.length < minN) continue;
                     const stats = this.pearsonWithSlope(x, y);
                     if (!isNaN(stats.correlation)) correlates.push({ gene: this.expressionMetadata.genes[gi], r: parseFloat(stats.correlation.toFixed(4)), n: x.length });
                 }
+                correlates.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+                topCorrelates = correlates.slice(0, 30);
             }
-            correlates.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
-            topCorrelates = correlates.slice(0, 30);
         }
 
         // Top GE-vs-GE co-essentials of the focal gene. Parallel to
         // topCorrelates but using gene effect on both sides — answers
         // "which genes' essentiality co-varies with the focal gene's
-        // essentiality across the cohort". Reviewer feedback: this is the
-        // more biologically central question for many gene-effect views,
-        // and it's cheap to compute on data we already have in memory.
+        // essentiality across the cohort".
+        // Minimum-n gate is critical: ~65 genes in the GE matrix have
+        // partial coverage (only assayed in a screen-batch subset, n≈24);
+        // without an n-floor, the top-30 list was entirely dominated by
+        // these 24-line spurious correlations, which drowned out the real
+        // pan-cohort signal (POMP, UBE2M, UBA3, SKP1, etc. for NEDD8).
+        // Threshold: 60% of cohort with a 50-line floor for tiny cohorts.
         let topCoessentials = null;
         if (analysisGene && this.geneIndex.has(analysisGene.toUpperCase())) {
             setStatus('Computing top GE co-essentials...');
@@ -19455,24 +19465,53 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const targetIdx = this.geneIndex.get(analysisGene.toUpperCase());
             const targetData = this.getGeneData(targetIdx);
             const targetVals = geCLIndices.map(i => i >= 0 ? targetData[i] : NaN);
-            const coess = [];
-            for (let gi = 0; gi < this.nGenes; gi++) {
-                if (gi === targetIdx) continue;
-                const x = [], y = [];
-                for (let j = 0; j < cellLines.length; j++) {
-                    const idx = geCLIndices[j];
-                    if (idx === -1) continue;
-                    const tv = targetVals[j];
-                    const ov = this.geneEffects[gi * this.nCellLines + idx];
-                    if (!isNaN(tv) && !isNaN(ov)) { x.push(tv); y.push(ov); }
-                }
-                if (x.length >= 10) {
+            // Sanity: if focal-gene GE has near-zero variance across the
+            // cohort, emit nothing — every correlation will be noise.
+            const validTarget = targetVals.filter(v => !isNaN(v));
+            const targetMean = validTarget.length > 0 ? validTarget.reduce((a, b) => a + b, 0) / validTarget.length : 0;
+            const targetSd = validTarget.length > 0 ? Math.sqrt(validTarget.reduce((s, v) => s + (v - targetMean) ** 2, 0) / validTarget.length) : 0;
+            if (targetSd < 0.05) {
+                topCoessentials = []; // emit empty so dataStructure description still tells the story
+            } else {
+                const minN = Math.max(50, Math.floor(0.6 * cellLines.length));
+                const coess = [];
+                for (let gi = 0; gi < this.nGenes; gi++) {
+                    if (gi === targetIdx) continue;
+                    const x = [], y = [];
+                    for (let j = 0; j < cellLines.length; j++) {
+                        const idx = geCLIndices[j];
+                        if (idx === -1) continue;
+                        const tv = targetVals[j];
+                        const ov = this.geneEffects[gi * this.nCellLines + idx];
+                        if (!isNaN(tv) && !isNaN(ov)) { x.push(tv); y.push(ov); }
+                    }
+                    if (x.length < minN) continue;
                     const stats = this.pearsonWithSlope(x, y);
                     if (!isNaN(stats.correlation)) coess.push({ gene: this.metadata.genes[gi], r: parseFloat(stats.correlation.toFixed(4)), n: x.length });
                 }
+                coess.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+                topCoessentials = coess.slice(0, 30);
             }
-            coess.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
-            topCoessentials = coess.slice(0, 30);
+        }
+
+        // Make sure every gene named in topCoessentials is present in the
+        // geneEffect matrix — otherwise the LLM can't verify the correlation
+        // by recomputing from the file. Genes that didn't pass the variance
+        // filter (e.g. broadly-essential common-essentials with little
+        // variance) get added back here.
+        if (topCoessentials && topCoessentials.length > 0 && this.geneIndex) {
+            for (const c of topCoessentials) {
+                if (geMatrix[c.gene]) continue;
+                const idx = this.geneIndex.get(c.gene.toUpperCase());
+                if (idx === undefined) continue;
+                const vals = [];
+                for (const clIdx of geCLIndices) {
+                    if (clIdx === -1) { vals.push(null); continue; }
+                    const v = this.geneEffects[idx * this.nCellLines + clIdx];
+                    vals.push(isNaN(v) ? null : parseFloat(v.toFixed(3)));
+                }
+                geMatrix[c.gene] = vals;
+            }
         }
 
         // Genes whose expression we ALWAYS include regardless of the variance
@@ -19602,18 +19641,31 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
                 // Mutation summary for the focal gene's GE: per common driver
                 // gene, compare GE in mutated vs WT cell lines (Welch's t).
-                // Saves the LLM from having to scan the mutation matrix
-                // gene-by-gene to find which mutations shift the focal gene's
-                // dependency. Top 200 driver-class genes considered.
-                const driverGenes = new Set([
-                    'TP53','KRAS','NRAS','HRAS','BRAF','EGFR','PIK3CA','PTEN','APC','NF1','NF2',
-                    'CDKN2A','RB1','MYC','MYCN','ALK','MET','ERBB2','FGFR1','FGFR2','FGFR3',
-                    'IDH1','IDH2','SF3B1','U2AF1','DNMT3A','TET2','ASXL1','RUNX1','FLT3','NPM1',
-                    'JAK2','MPL','CALR','BCR','ABL1','BCL2','BCL6','CCND1','MLL','KMT2A','KMT2D',
-                    'SMARCA4','SMARCB1','ARID1A','ARID2','PBRM1','BAP1','SETD2','VHL','STK11',
-                    'KEAP1','SMAD4','BRCA1','BRCA2','PALB2','ATM','ATR','CHEK2','CTNNB1',
+                // Two passes — `core` always shows the canonical drivers
+                // even when their effect on the focal gene is small (the
+                // useful answer for "did TP53 / KRAS / BRAF matter here?"
+                // is "no" if Δ is small, but the LLM needs to see that
+                // explicitly), `top` shows the strongest hits by
+                // significance from the broader curated panel.
+                const CORE_DRIVERS = ['TP53','KRAS','NRAS','BRAF','EGFR','PIK3CA','PTEN','APC','RB1','CDKN2A','NF1','NF2','STK11','SMAD4','MYC','IDH1','ARID1A','SMARCA4','KMT2D'];
+                const EXTENDED_DRIVERS = [
+                    'HRAS','MYCN','ALK','MET','ERBB2','FGFR1','FGFR2','FGFR3',
+                    'IDH2','SF3B1','U2AF1','DNMT3A','TET2','ASXL1','RUNX1','FLT3','NPM1',
+                    'JAK2','MPL','CALR','BCR','ABL1','BCL2','BCL6','CCND1','KMT2A',
+                    'SMARCB1','ARID2','PBRM1','BAP1','SETD2','VHL','KEAP1',
+                    'BRCA1','BRCA2','PALB2','ATM','ATR','CHEK2','CTNNB1',
                     'FBXW7','NOTCH1','NOTCH2','EZH2','MED12','SPOP','FOXA1','GATA3','CDH1','ESR1','AR'
-                ]);
+                ];
+                // Abramowitz & Stegun 26.2.17 normal-CDF approximation —
+                // accurate to ~7.5e-8, never returns 0 for finite z (the
+                // previous approximation produced p=0 for |t|>~7 which was
+                // a literal printable bug).
+                const _normCDF = (z) => {
+                    const t = 1 / (1 + 0.2316419 * Math.abs(z));
+                    const d = 0.3989422804 * Math.exp(-z * z / 2);
+                    const p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+                    return z >= 0 ? 1 - p : p;
+                };
                 const welch = (x, y) => {
                     if (x.length < 3 || y.length < 3) return null;
                     const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
@@ -19621,18 +19673,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     const mx = mean(x), my = mean(y), vx = variance(x), vy = variance(y);
                     const se = Math.sqrt(vx / x.length + vy / y.length);
                     if (se <= 0) return null;
-                    const t = (mx - my) / se;
+                    const tStat = (mx - my) / se;
                     const df = (vx / x.length + vy / y.length) ** 2 / ((vx / x.length) ** 2 / (x.length - 1) + (vy / y.length) ** 2 / (y.length - 1));
-                    // Two-sided p via normal approximation (Welch t -> normal for large df).
-                    const z = Math.abs(t);
-                    const p = 2 * (1 - 0.5 * (1 + (1 - Math.exp(-(2 * z * z / Math.PI))) ** 0.5));
-                    return { t: parseFloat(t.toFixed(3)), df: parseFloat(df.toFixed(1)), p: parseFloat(p.toFixed(4)), mx: parseFloat(mx.toFixed(3)), my: parseFloat(my.toFixed(3)) };
+                    let p = 2 * _normCDF(-Math.abs(tStat));
+                    if (!Number.isFinite(p) || p < 1e-300) p = 1e-300;
+                    return { t: parseFloat(tStat.toFixed(3)), df: parseFloat(df.toFixed(1)), p, mx: parseFloat(mx.toFixed(3)), my: parseFloat(my.toFixed(3)) };
                 };
-                const mutSummary = [];
-                for (const g of driverGenes) {
+                const computeRow = (g, options) => {
                     const hotData = this.mutations?.geneData?.[g]?.mutations;
                     const dmgData = this.damagingMutations?.geneData?.[g]?.mutations;
-                    if (!hotData && !dmgData) continue;
+                    if (!hotData && !dmgData) return null;
                     const mut = [], wt = [];
                     for (let j = 0; j < cellLines.length; j++) {
                         const cl = cellLines[j];
@@ -19643,21 +19693,45 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         const isMut = (hotData?.[cl] >= 1) || (dmgData?.[cl] >= 1);
                         (isMut ? mut : wt).push(v);
                     }
-                    if (mut.length < 3 || wt.length < 3) continue;
+                    if (mut.length < (options?.minMut ?? 10) || wt.length < 3) return null;
                     const w = welch(mut, wt);
-                    if (!w) continue;
-                    mutSummary.push({
+                    if (!w) return null;
+                    const callType = (hotData && dmgData) ? 'hotspot+damaging'
+                        : hotData ? 'hotspot' : 'damaging';
+                    return {
                         gene: g,
+                        callType,
                         n_mut: mut.length, n_wt: wt.length,
                         mean_mut: w.mx, mean_wt: w.my,
                         delta: parseFloat((w.mx - w.my).toFixed(3)),
-                        t: w.t, p: w.p
-                    });
+                        t: w.t,
+                        p: parseFloat(w.p.toExponential(3))
+                    };
+                };
+                // Core drivers always shown (n_mut >= 5 — relaxed from 10
+                // because we want them in the report even when mutation
+                // frequency in this cohort is low; the small-n caveat is
+                // visible from n_mut directly).
+                const coreRows = [];
+                for (const g of CORE_DRIVERS) {
+                    const row = computeRow(g, { minMut: 5 });
+                    if (row) coreRows.push(row);
                 }
-                mutSummary.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-                if (mutSummary.length > 0) {
+                // Top hits from the extended panel, ranked by |t| (significance,
+                // not just |delta|). n_mut >= 10 to keep entries interpretable.
+                const extRows = [];
+                for (const g of EXTENDED_DRIVERS) {
+                    if (CORE_DRIVERS.includes(g)) continue;
+                    const row = computeRow(g, { minMut: 10 });
+                    if (row) extRows.push(row);
+                }
+                extRows.sort((a, b) => Math.abs(b.t) - Math.abs(a.t));
+                if (coreRows.length > 0 || extRows.length > 0) {
                     extras = extras || {};
-                    extras.focalGeneMutationSummary = mutSummary.slice(0, 30);
+                    extras.focalGeneMutationSummary = {
+                        coreDrivers: coreRows.sort((a, b) => Math.abs(b.t) - Math.abs(a.t)),
+                        topByEffect: extRows.slice(0, 20)
+                    };
                 }
             }
         }
@@ -19670,22 +19744,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const exportData = {
             _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
-            schemaVersion: '2.2',
+            schemaVersion: '2.3',
             nTotal: cellLines.length,
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices. Length = nTotal.',
                 cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy).',
                 geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores aligned to cellLineOrder. Negative = essential. null = missing. The focal gene of the analysis is always included regardless of variance threshold.',
                 expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. The focal gene, the genes that surfaced in topCorrelates, and a curated list of complex / pathway partners for the focal gene (e.g. NEDD8 → UBA3, NAE1, UBE2M, UBE2F, RBX1, SKP1, CUL1-5, CAND1, COPS5/6) are always included regardless of variance threshold.',
-                topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n (effective sample size after dropping cell lines missing focal-gene GE or partner expression — n can vary per gene because expression coverage is per-gene non-uniform) }. Polarity: positive r means high partner expression covaries with weaker focal-gene dependency (less negative GE).',
-                topCoessentials: 'Optional. Top 30 GE-vs-GE co-essentials of the focal gene: { gene, r (Pearson, focal-gene GE vs partner GE across the cohort), n }. Polarity: positive r means lines that depend more on the partner depend less on the focal gene (classic co-essentiality buffering pattern). Negative r means partner and focal gene are co-essential — both required by the same lines.',
+                topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n }. Gated at n >= max(50, 0.6 * cohortSize) to drop partial-coverage genes. Polarity: positive r means high partner expression covaries with weaker focal-gene dependency (less negative GE).',
+                topCoessentials: 'Optional. Top 30 GE-vs-GE co-essentials of the focal gene: { gene, r (Pearson, focal-gene GE vs partner GE across the cohort), n }. Same n-gate as topCorrelates. Every gene named here is also present in the geneEffect matrix (added back if the variance filter dropped it), so the LLM can verify by recomputing. Polarity: positive r means lines that depend more on the partner depend less on the focal gene (classic co-essentiality buffering pattern within a complex). Negative r means partner and focal gene are co-essential — both required by the same lines (same-pathway dependency).',
                 cellLineGroups: 'Optional. Cell line IDs grouped by analysis stratification (WT/mut1/mut2 for mutation, gateA/gateB for gate comparison, etc.).',
-                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), clusterGenes (clusters), expressionCorrelates (exprCorrelates), focalGeneTissueSummary (per-tissue/subtype mean / sd / n / zVsOverall for the focal gene\'s GE — saves the LLM from scanning the matrix to find tissue-level signals; subtypes gated at n>=5), focalGeneMutationSummary (top driver genes by |delta| with Welch\'s t, comparing mutated vs WT lines on focal-gene GE; saves the LLM from doing the per-gene t-test scan by hand).',
-                _method: {
-                    'tissue/subtype zVsOverall': '(group_mean - overall_mean) / overall_sd, where overall_sd is the SD of focal-gene GE across all valid cell lines in cellLineOrder.',
-                    'topCorrelates / topCoessentials r': 'Pearson on complete-pair vectors (cell lines with both values present). Sorted by |r| descending, top 30.',
-                    'focalGeneMutationSummary': 'Welch\'s two-sample t-test on focal-gene GE values, mutated (hotspot OR damaging hit in the gene) vs WT. p-value via normal approximation (Welch t -> N for large df). Sorted by |delta| descending, top 30 of ~70 curated driver genes.'
-                }
+                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), clusterGenes (clusters), expressionCorrelates (exprCorrelates), focalGeneTissueSummary (per-tissue/subtype mean / sd / n / zVsOverall for the focal gene\'s GE — saves the LLM from scanning the matrix to find tissue-level signals; subtypes gated at n>=5), focalGeneMutationSummary ({ coreDrivers: canonical drivers always shown regardless of effect size with n_mut>=5; topByEffect: top 20 from extended panel ranked by |t| with n_mut>=10 } — Welch\'s t comparing mutated vs WT lines on focal-gene GE), _method (block documenting how every summary was computed).',
+                _method: 'Same content as extras._method — duplicated here at schema level so it\'s available even when extras is omitted (e.g. for views without precomputed source-specific extras).'
             },
             _instructions: [
                 'CRISPR gene effect: negative = essential for cell survival. 0 = no effect.',
@@ -19718,7 +19788,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (exprMatrix && Object.keys(exprMatrix).length > 0) exportData.expression = exprMatrix;
         if (topCorrelates && topCorrelates.length > 0) exportData.topCorrelates = topCorrelates;
         if (topCoessentials && topCoessentials.length > 0) exportData.topCoessentials = topCoessentials;
-        if (extras) exportData.extras = extras;
+        if (extras) {
+            // Mirror the methods block into extras so it's discoverable
+            // alongside the precomputed summaries (reviewer feedback: when
+            // it lived only in dataStructure, an LLM scanning for "how was
+            // this computed?" wouldn't find it next to the values it cares
+            // about).
+            extras._method = {
+                'tissue/subtype zVsOverall': '(group_mean - overall_mean) / overall_sd, where overall_sd is the SD of focal-gene GE across all valid cell lines in cellLineOrder. byTissue gated at n>=3, bySubtype at n>=5.',
+                'topCorrelates / topCoessentials': 'Pearson on complete-pair vectors. topCorrelates = focal-gene GE vs partner expression. topCoessentials = focal-gene GE vs partner GE. Both gated at n >= max(50, 0.6 * cohortSize) to drop partial-coverage genes (~65 GE genes have screen-batch-only coverage with n≈24). Sorted by |r| descending, top 30. Suppressed when focal-gene SD < 0.05.',
+                'focalGeneMutationSummary': "Welch's two-sample t-test on focal-gene GE values, mutated (hotspot OR damaging hit) vs WT. p via Abramowitz & Stegun 26.2.17 normal-CDF approximation (floor 1e-300). coreDrivers always shown (n_mut >= 5) regardless of effect size, sorted by |t|. topByEffect = top 20 from the extended panel (n_mut >= 10), sorted by |t| (significance, not |delta|, so small-n large-effect noise doesn't outrank well-powered drivers). callType field marks hotspot / damaging / hotspot+damaging."
+            };
+            exportData.extras = extras;
+        }
 
         const jsonStr = JSON.stringify(exportData);
         const compressed = pako.gzip(jsonStr);

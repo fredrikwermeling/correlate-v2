@@ -1325,6 +1325,25 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.80.6 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI <code>.json.gz</code> export &mdash; bug fixes after a third Opus 4.7 review of v.80.5. Two precomputed summaries had real bugs that were actively misleading the LLM (worse than not having the summaries at all per the reviewer). Schema bumped to <strong>2.3</strong>.
+                        <ul>
+                            <li><strong><code>topCoessentials</code> n-gate</strong>. The list was entirely noise &mdash; every entry computed on n=23 or 24 cell lines because ~65 GE genes have screen-batch-only partial coverage and there was no minimum-n filter. Now gated at <code>n &gt;= max(50, 0.6 &times; cohortSize)</code>. The real biology (POMP, UBE2M, UBA3, SKP1 for NEDD8) should now surface as the actual top hits.</li>
+                            <li><strong><code>topCoessentials</code> partner genes added back to the geneEffect matrix</strong> if they were dropped by the variance filter, so the LLM can verify the correlation by recomputing from the file (in v.80.5 the partner genes weren't in the matrix at all, making the values unreproducible).</li>
+                            <li><strong>Same n-gate applied to <code>topCorrelates</code></strong> for consistency.</li>
+                            <li><strong>Both correlate sets suppressed when focal-gene SD &lt; 0.05</strong> &mdash; near-zero focal variance produces only noise correlations, so emit empty rather than 30 spurious entries.</li>
+                            <li><strong><code>focalGeneMutationSummary</code> rewritten</strong>. Was ranking by |&Delta;| which floated meaningless n=3 entries (BCL6 with n_mut=3, p=0) above canonical drivers. Now split into two:
+                                <ul>
+                                    <li><code>coreDrivers</code>: TP53, KRAS, NRAS, BRAF, EGFR, PIK3CA, PTEN, APC, RB1, CDKN2A, NF1, NF2, STK11, SMAD4, MYC, IDH1, ARID1A, SMARCA4, KMT2D &mdash; <em>always shown</em> (n_mut &ge; 5) so "did TP53 status matter?" answers itself even when &Delta; is small.</li>
+                                    <li><code>topByEffect</code>: top 20 from the extended panel (n_mut &ge; 10), ranked by <strong>|t|</strong> not |&Delta;| so small-n large-effect noise no longer outranks well-powered drivers.</li>
+                                </ul>
+                                Each row now has a <code>callType</code> field (hotspot / damaging / hotspot+damaging). <strong>p-value approximation fixed</strong> &mdash; using Abramowitz &amp; Stegun 26.2.17 normal-CDF (was a worse approximation that returned p=0 for |t|&gt;~7, the literal printable bug the reviewer caught).</li>
+                            <li><strong><code>extras._method</code> block added</strong> with concrete formulas for every precomputed summary (mirrored at <code>dataStructure._method</code> for cases where extras is omitted). Reviewer wanted it next to the values it documents.</li>
+                        </ul>
+                    </li>
+                </ul>
+                <p style="color:#6b7280; font-size:11px;">Deferred: generalising the pathway-partner whitelist away from hand-curated complexes to CORUM / Reactome / STRING (separate task with its own data file).</p>
                 <p><strong>v.80.5 (2026-04-27)</strong></p>
                 <ul>
                     <li>AI <code>.json.gz</code> export &mdash; second round after another Opus 4.7 review of the v.80.4 NEDD8 export. The reviewer's ranked five all done. Schema bumped to <strong>2.2</strong>.
@@ -2400,7 +2419,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.6</a>
     </div>
 
     <div class="main-content">
@@ -4510,6 +4529,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v80_5"></script>
+    <script src="app.js?v=v80_6"></script>
 </body>
 </html>
