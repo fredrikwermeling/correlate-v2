@@ -19253,6 +19253,47 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         n: c.n
                     }))
                 };
+                // Tissue-stratified breakdown for the top 20 correlation pairs.
+                // Catches lineage-driven artifacts: if the cross-cohort r is
+                // 0.5 but vanishes within every individual tissue, the
+                // correlation is just lineage segregation, not biology.
+                const topPairs = [...this.results.correlations]
+                    .sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation))
+                    .slice(0, 20);
+                const tissueByCl = {};
+                for (const cl of cellLines) tissueByCl[cl] = this.getCellLineLineage(cl) || 'Unknown';
+                const tissueGroups = {};
+                for (const cl of cellLines) (tissueGroups[tissueByCl[cl]] = tissueGroups[tissueByCl[cl]] || []).push(cl);
+                const stratified = [];
+                for (const pair of topPairs) {
+                    const i1 = this.geneIndex?.get(pair.gene1.toUpperCase());
+                    const i2 = this.geneIndex?.get(pair.gene2.toUpperCase());
+                    if (i1 === undefined || i2 === undefined) continue;
+                    const byTissue = [];
+                    for (const [tissue, cls] of Object.entries(tissueGroups)) {
+                        if (cls.length < 10) continue;
+                        const x = [], y = [];
+                        for (const cl of cls) {
+                            const ci = this.metadata.cellLines.indexOf(cl);
+                            if (ci === -1) continue;
+                            const v1 = this.geneEffects[i1 * this.nCellLines + ci];
+                            const v2 = this.geneEffects[i2 * this.nCellLines + ci];
+                            if (!isNaN(v1) && !isNaN(v2)) { x.push(v1); y.push(v2); }
+                        }
+                        if (x.length < 5) continue;
+                        const stats = this.pearsonWithSlope(x, y);
+                        if (!isNaN(stats.correlation)) {
+                            byTissue.push({ tissue, r: parseFloat(stats.correlation.toFixed(3)), n: x.length });
+                        }
+                    }
+                    byTissue.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+                    stratified.push({
+                        gene1: pair.gene1, gene2: pair.gene2,
+                        overall_r: parseFloat((pair.correlation ?? 0).toFixed(3)),
+                        byTissue
+                    });
+                }
+                if (stratified.length) extras.tissueStratifiedCorrelations = stratified;
             } else if (source === 'clusters' && this.results?.clusters) {
                 extras = {
                     clusterGenes: this.results.clusters.map(c => ({
@@ -19263,6 +19304,44 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         sdEffect: parseFloat((c.sdEffect ?? 0).toFixed(3))
                     }))
                 };
+                // Per-cluster pathway annotation. For each cluster, list the
+                // wiki cancer pathways and CORUM / Reactome complexes whose
+                // gene set overlaps with the cluster members. Saves the LLM
+                // from having to look up each cluster gene's pathway by
+                // hand and tells it whether a cluster is biologically
+                // coherent or a grab-bag.
+                const wikiPathways = this._WIKI_PATHWAYS ? this._WIKI_PATHWAYS() : {};
+                const clusterMembers = {};
+                for (const c of this.results.clusters) (clusterMembers[c.cluster] = clusterMembers[c.cluster] || []).push(c.gene.toUpperCase());
+                const annotations = [];
+                for (const [clusterId, members] of Object.entries(clusterMembers)) {
+                    const memSet = new Set(members);
+                    // Wiki pathway overlaps (≥2 members shared)
+                    const wikiHits = [];
+                    for (const [pw, info] of Object.entries(wikiPathways)) {
+                        const overlap = (info.genes || []).filter(g => memSet.has(g.toUpperCase()));
+                        if (overlap.length >= 2) wikiHits.push({ pathway: pw, overlap, n: overlap.length });
+                    }
+                    wikiHits.sort((a, b) => b.n - a.n);
+                    // CORUM complex overlaps via partner lookup — for each
+                    // cluster gene find partners and tally how many cluster
+                    // genes share at least one complex.
+                    const sharedCorum = new Map(); // partner gene → count of cluster members sharing
+                    for (const g of members) {
+                        const corumMembers = this.corumPartners?.partners?.[g] || [];
+                        for (const p of corumMembers) {
+                            if (memSet.has(p)) sharedCorum.set(p, (sharedCorum.get(p) || 0) + 1);
+                        }
+                    }
+                    annotations.push({
+                        cluster: parseInt(clusterId, 10) || clusterId,
+                        nMembers: members.length,
+                        wikiPathwayOverlaps: wikiHits.slice(0, 5),
+                        nCorumCoMembers: sharedCorum.size
+                    });
+                }
+                annotations.sort((a, b) => a.cluster - b.cluster);
+                if (annotations.length) extras.clusterAnnotations = annotations;
             }
         } else if (source === 'exprCorrelates') {
             const ctx = this._exprCorrelateContext || {};
@@ -19956,7 +20035,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const exportData = {
             _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
-            schemaVersion: '2.7',
+            schemaVersion: '2.8',
             nTotal: cellLines.length,
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices. Length = nTotal.',
@@ -19967,7 +20046,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 topCoessentials: 'Optional. Top 30 GE-vs-GE co-essentials of the focal gene: { gene, r (Pearson, focal-gene GE vs partner GE across the cohort), n }. Same n-gate as topCorrelates. Every gene named here is also present in the geneEffect matrix (added back if the variance filter dropped it), so the LLM can verify by recomputing. Polarity: positive r means lines that depend more on the partner depend less on the focal gene (classic co-essentiality buffering pattern within a complex). Negative r means partner and focal gene are co-essential — both required by the same lines (same-pathway dependency).',
                 topExpressionCorrelates: 'Optional. Top 30 expression-vs-expression correlates of the focal gene: { gene, r (Pearson, focal-gene expression vs partner expression across the cohort), n }. Same n-gate as topCorrelates. Every gene named here is in the expression matrix (the always-include set carries them through the variance filter). Polarity: positive r means partner expression is co-regulated with focal-gene expression (often shared transcriptional program / phenotype state / lineage marker); negative r means anti-correlated (often a competing program). Note: in homogeneous filtered cohorts, top hits often reflect transcriptional state / phenotype switches rather than direct mechanistic links. Suppressed when the focal gene\'s expression has near-zero variance in the cohort (SD < 0.05).',
                 cellLineGroups: 'Optional. Cell line IDs grouped by analysis stratification (WT/mut1/mut2 for mutation, gateA/gateB for gate comparison, etc.).',
-                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), clusterGenes (clusters), expressionCorrelates (exprCorrelates), focalGeneTissueSummary (per-tissue/subtype mean / sd / n / zVsOverall for the focal gene\'s GE — saves the LLM from scanning the matrix to find tissue-level signals; subtypes gated at n>=5), focalGeneMutationSummary ({ coreDrivers: canonical drivers always shown regardless of effect size with n_mut>=5; topByEffect: top 20 from extended panel ranked by |t| with n_mut>=10 } — Welch\'s t comparing mutated vs WT lines on focal-gene GE), focalGeneVarianceWarning ({ geneEffect: ..., expression: ... } — emitted only when the focal axis sits in cohort noise, e.g. mean GE near 0 with no essential lines, or expression SD < 0.5; warns the LLM not to chase phantom biology in noise-driven correlations), pairCorrelation (scatter views — actual Pearson + Spearman + n + two-sided p between the two scatter axes in the filtered cohort), _method (block documenting how every summary was computed).',
+                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), tissueStratifiedCorrelations (correlations — top 20 pairs broken out by tissue, each tissue with n>=10 cell lines reports its own r; flags lineage-driven artifacts where overall r vanishes within tissues), clusterGenes (clusters), clusterAnnotations (clusters — per-cluster wiki cancer-pathway overlaps with >=2 shared genes plus CORUM co-member count; tells the LLM whether a cluster is biologically coherent or a grab-bag), expressionCorrelates (exprCorrelates), focalGeneTissueSummary (per-tissue/subtype mean / sd / n / zVsOverall for the focal gene\'s GE — saves the LLM from scanning the matrix to find tissue-level signals; subtypes gated at n>=5), focalGeneMutationSummary ({ coreDrivers: canonical drivers always shown regardless of effect size with n_mut>=5; topByEffect: top 20 from extended panel ranked by |t| with n_mut>=10 } — Welch\'s t comparing mutated vs WT lines on focal-gene GE), focalGeneVarianceWarning ({ geneEffect: ..., expression: ... } — emitted only when the focal axis sits in cohort noise, e.g. mean GE near 0 with no essential lines, or expression SD < 0.5; warns the LLM not to chase phantom biology in noise-driven correlations), pairCorrelation (scatter views — actual Pearson + Spearman + n + two-sided p between the two scatter axes in the filtered cohort), _method (block documenting how every summary was computed).',
                 _method: 'Same content as extras._method — duplicated here at schema level so it\'s available even when extras is omitted (e.g. for views without precomputed source-specific extras).'
             },
             _instructions: [

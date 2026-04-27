@@ -1325,6 +1325,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.2 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI <code>.json.gz</code> export &mdash; precomputed extras for the remaining view types that were lagging behind <em>gene_effect</em> / <em>scatter</em> (Priority 5 of the recent brief). Schema bumped to <strong>2.8</strong>.
+                        <ul>
+                            <li><strong>Correlation view: new <code>extras.tissueStratifiedCorrelations</code></strong> &mdash; top 20 correlation pairs by |r|, each broken out into per-tissue r values for tissues with n &ge; 10 cell lines. Catches the most common artifact in cross-cohort correlation analysis: a cohort-wide r that's actually lineage segregation rather than biology. If a pair's overall r is 0.5 but the per-tissue r is near zero in every tissue, the LLM can flag it as lineage-driven before reading anything into the relationship.</li>
+                            <li><strong>Cluster view: new <code>extras.clusterAnnotations</code></strong> &mdash; per-cluster pathway overlap with the wiki cancer pathway KB (pathway must share &ge;2 genes with the cluster) plus a CORUM co-member count. Tells the LLM whether a cluster is biologically coherent (e.g. "cluster 3 has 5/8 members in PI3K/AKT/mTOR") or a grab-bag without obvious functional unity.</li>
+                            <li>Gate-comparison view already shipped most of the relevant precomputed extras (<code>differentialGeneEffect</code>, <code>differentialExpression</code>, <code>tissueEnrichment</code>, <code>subtissueEnrichment</code>, <code>mutationEnrichment</code>) via <code>_gateCompareResults</code>; left unchanged.</li>
+                        </ul>
+                    </li>
+                </ul>
                 <p><strong>v.81.1 (2026-04-27)</strong></p>
                 <ul>
                     <li>AI <code>.json.gz</code> export &mdash; three additions from a Claude Code brief targeting the scatter view (Priorities 1&ndash;2 of the brief). Schema bumped to <strong>2.7</strong>.
@@ -2457,7 +2467,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.2</a>
     </div>
 
     <div class="main-content">
@@ -4588,6 +4598,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_1"></script>
+    <script src="app.js?v=v81_2"></script>
 </body>
 </html>
