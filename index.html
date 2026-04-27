@@ -1325,6 +1325,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.80.0 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI JSON export — major refactor (Phases 1+2+3 from the colleague-Claude review brief). All eight "Analyze with AI" buttons (gene-effect, scatter, mutation analysis, gate compare, correlation, cluster, expression correlate, plus the existing GE-modal export) now produce the <strong>same gzipped schema</strong>. Source-specific result tables (gate enrichment, correlation pairs, cluster genes, expression correlate r values, differential GE for mutation analysis) live under a single <code>extras</code> field; the <code>context</code> field tells the AI which view it came from.</li>
+                    <li><strong>Phase 1 — size + tiering:</strong> the 400-cell-line hard cap is gone. New tier table: ≤100 full / 100&ndash;500 GE&gt;0.2 + expr mean&gt;1.0 OR sd&gt;0.5 / 500&ndash;1500 GE&gt;0.3 + expr mean&gt;2.0 OR sd&gt;0.5 / &gt;1500 GE&gt;0.5 + expr mean&gt;2.0 OR sd&gt;1.0. Mutations, clinical fusions, inferred subtypes, and global signatures are <em>always</em> full (they're tiny relative to the matrices and most useful at large n where stratification power matters). Expression filter switched from AND to OR so tissue-restricted markers (low overall mean, high SD &mdash; e.g. AFP in liver lines, MITF in melanoma) survive instead of being silently dropped. GE values now rounded to 3 decimals (was 4) &mdash; ~25% gzipped-size reduction with no analytical loss. Snapshot PNG dropped from gzipped exports (the AI was told to ignore it anyway, it inflated parse cost ~30% for a typical scatter, and the <code>context</code> field already gives the model everything it needs to restate the view).</li>
+                    <li><strong>Phase 2 — schema cleanup:</strong> per-cell-line mutations unified from <code>hotspotMutations: {gene:level}</code> + <code>damagingMutations: {gene:level}</code> into a single <code>mutations: {gene: {hotspot: 0|1|2, damaging: bool}}</code>. New per-cell-line layers: <code>clinicalFusions</code> (curated driver fusion calls with tier), <code>inferred</code> (DepMap inferred subtypes &mdash; specificVariants like KRAS p.G12D, namedFusions, functionalLoss covering CDKN2A/RB1/PTEN/etc., msi binary), <code>signatures</code> (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy from PureCN + MSIsensor2 + Ben-David). Added top-level <code>schemaVersion: "2.0"</code>. Null fields (<code>topCorrelates</code>, <code>cellLineGroups</code>, <code>extras</code>, <code>question</code>) are now omitted when not applicable rather than emitted as <code>null</code> with documentation that an LLM had to disambiguate "not applicable" from "computation failed".</li>
+                    <li><strong>Phase 3 — unified export paths:</strong> the five <code>_buildXxxAIExport</code> builders (mutation / gates / correlations / clusters / exprCorrelates) and the separate uncompressed JSON output are gone. <code>exportForAI()</code> is now a thin shim that prompts for an optional question, stashes it in the shared aiQuestion textarea, and routes through <code>exportFullAIAnalysis</code>. <code>_getAICellLines</code> extended to handle all eight sources: GE / scatter / mutation use existing logic; gates returns gateA &cup; gateB with stratification under <code>cellLineGroups</code>; correlations / clusters re-derive the main-panel filtered cohort via <code>getFilteredCellLineIndices</code>; exprCorrelates uses <code>_exprCorrelateContext.subgroupIndices</code>. Source-specific <code>context</code> blocks added per source so the AI can describe what the user was looking at regardless of view.</li>
+                </ul>
                 <p><strong>v.79.2 (2026-04-27)</strong></p>
                 <ul>
                     <li>Cache-bust the <code>app.js</code> script tag (was <code>?v=20260224v1</code> from a February release; bumped to <code>?v=v79_1</code>). Without this, browsers happily kept the cached old <code>app.js</code> while loading the fresh <code>index.html</code>, producing weird state where some buttons worked (their handlers hadn't changed) but the cell-line browser didn't open (the cached old JS referenced DOM IDs that no longer exist in the new HTML). Will re-bump on every JS release going forward.</li>
@@ -2339,7 +2346,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.79.2</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.0</a>
     </div>
 
     <div class="main-content">
@@ -4421,6 +4428,6 @@
         <div id="textSettingsBody" style="padding:10px; max-height:500px; overflow-y:auto;"></div>
     </div>
 
-    <script src="app.js?v=v79_1"></script>
+    <script src="app.js?v=v80_0"></script>
 </body>
 </html>

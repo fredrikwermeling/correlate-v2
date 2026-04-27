@@ -3428,15 +3428,19 @@ class CorrelationExplorer {
             // Determine cell lines and show tier info
             const cls = this._getAICellLines(source);
             const n = cls.length;
+            // Tier description matches the unified exporter (no hard cap;
+            // mutations / fusions / inferred subtypes / signatures always
+            // full; matrices tightened with cohort size; expression filter
+            // is OR-not-AND so tissue-restricted markers survive).
             let tierText;
             if (n <= 100) {
-                tierText = `<b>${n} cell lines</b> — Full: all GE + expression + mutations + metadata`;
-            } else if (n <= 200) {
-                tierText = `<b>${n} cell lines</b> — Filtered: GE (|val|>0.2) + expression (mean>1.0) + mutations`;
-            } else if (n <= 400) {
-                tierText = `<b>${n} cell lines</b> — Filtered: GE (|val|>0.3) + expression (mean>2.0, SD>0.5) + hotspot mutations`;
+                tierText = `<b>${n} cell lines</b> — Full: all GE + all expression + mutations + clinical fusions + inferred subtypes + signatures.`;
+            } else if (n <= 500) {
+                tierText = `<b>${n} cell lines</b> — GE |val|>0.2; expression mean>1.0 OR sd>0.5; mutations / fusions / inferred / signatures full.`;
+            } else if (n <= 1500) {
+                tierText = `<b>${n} cell lines</b> — GE |val|>0.3; expression mean>2.0 OR sd>0.5; mutations / fusions / inferred / signatures full.`;
             } else {
-                tierText = `<b>${n} cell lines (capped at 400)</b> — Strict: essential GE only + high-variance expression + hotspot mutations`;
+                tierText = `<b>${n} cell lines</b> — GE |val|>0.5 (essential genes only); expression mean>2.0 OR sd>1.0; mutations / fusions / inferred / signatures full.`;
             }
             document.getElementById('aiDataTierInfo').innerHTML = tierText;
             document.getElementById('aiExportStatus').textContent = '';
@@ -5654,349 +5658,24 @@ class CorrelationExplorer {
         this.downloadFile(csv, filename, 'text/csv');
     }
 
+    // Phase 3 — exportForAI is now a thin shim that prompts for an optional
+    // question, stashes it in the shared aiQuestion textarea, then routes
+    // every source through the unified exportFullAIAnalysis. Output is the
+    // single gzipped Correlate V2 schema (was: 5 different uncompressed JSON
+    // shapes per source).
     async exportForAI(source) {
-        // Ask for an optional question up front so it can be included in the
-        // exported JSON. Empty input still exports (with no question block).
         const question = prompt(
             'Ask the AI a specific question about this analysis (optional).\n\n' +
-            'The exported JSON will include your question plus a PNG snapshot of the current view. ' +
-            'The AI is instructed to show that image back in its reply, so you get a clear record of ' +
-            'what you were looking at when you asked.',
+            'The exported file is a gzipped JSON with the full data the AI needs (cell line metadata, mutations, fusions, gene-effect matrix, expression matrix where applicable, plus source-specific extras like differential analysis or correlation pairs). The `context` field tells the AI which view this came from and the question is restated up top.',
             ''
         );
-        // prompt returns null when cancelled.
         if (question === null) return;
-
-        let data;
-        if (source === 'mutations') {
-            data = this._buildMutationAIExport();
-        } else if (source === 'gates') {
-            data = this._buildGateAIExport();
-        } else if (source === 'correlations') {
-            data = this._buildCorrelationAIExport();
-        } else if (source === 'clusters') {
-            data = this._buildClusterAIExport();
-        } else if (source === 'exprCorrelates') {
-            data = this._buildExprCorrelateAIExport();
-        }
-
-        if (!data) { alert('No data to export.'); return; }
-
-        // Embed a PNG snapshot of the relevant view and AI instructions so
-        // the assistant can restate context and "show" what the user was
-        // looking at when they asked.
-        const image = await this._captureAISnapshot(source);
-        if (image) data.snapshot = image;
-        if (question && question.trim()) data.question = question.trim();
-        data.aiInstructions =
-            'BEFORE DOING ANY ANALYSIS, open your reply with these two short paragraphs:\n\n' +
-            '1) A one-line description of the chart the user was looking at. Derive it from the `analysis` / `context` ' +
-            'fields: analysis type, cohort size, applied filters (only list filters that are non-empty). Do NOT paste ' +
-            'or render the `snapshot` field, do NOT output the base64 data URI, and do NOT include a Markdown image tag. ' +
-            'The snapshot is metadata, not something to display.\n\n' +
-            '2) "You asked:" followed by a verbatim quote of the `question` field. If `question` is empty or null, ' +
-            'skip this paragraph.\n\n' +
-            'Then proceed with the analysis. Stay grounded in the exported data; do not invent values not present.';
-
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `correlate_${source}_AI.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
+        const ta = document.getElementById('aiQuestion');
+        if (ta) ta.value = question;
+        this._aiExportSource = source;
+        await this.exportFullAIAnalysis();
     }
 
-    // Capture a PNG of the view that matches `source` as a data URI.
-    // Falls back to null when no chart is visible. The snapshot is used in
-    // AI exports so the assistant can restate context visually.
-    async _captureAISnapshot(source) {
-        try {
-            if (source === 'correlations' || source === 'clusters') {
-                const canvas = document.querySelector('#networkPlot canvas');
-                if (canvas) return canvas.toDataURL('image/png');
-            }
-            if (source === 'gates' || source === 'exprCorrelates' || source === 'mutations') {
-                // Use Plotly.toImage on whichever plot element applies.
-                const candidates = [
-                    source === 'exprCorrelates' ? 'exprCorrelateScatterPlot' : null,
-                    'scatterPlot', 'geneEffectPlot', 'geneEffectHotspotPlot', 'byTissueChart'
-                ].filter(Boolean);
-                for (const id of candidates) {
-                    const el = document.getElementById(id);
-                    if (el && el.data) {
-                        const w = el._fullLayout?.width || el.offsetWidth || 800;
-                        const h = el._fullLayout?.height || el.offsetHeight || 500;
-                        return await Plotly.toImage(el, { format: 'png', width: w, height: h });
-                    }
-                }
-            }
-        } catch (e) { /* fall through */ }
-        return null;
-    }
-
-    _buildMutationAIExport() {
-        const mr = this.mutationResults;
-        if (!mr) return null;
-
-        const allResults = mr.allResults || [];
-        const sigResults = mr.significantResults || [];
-
-        // Build filter description
-        const filters = [];
-        if (mr.lineageFilter) filters.push(`Lineage: ${mr.lineageFilter}`);
-        if (mr.subLineageFilter) filters.push(`Subtype: ${mr.subLineageFilter}`);
-        if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-            const ll = {'0':'WT','1':'Mut','2':'Mut','1+2':'Mut'};
-            filters.push(`${mr.additionalHotspot} ${ll[mr.additionalHotspotLevel] || mr.additionalHotspotLevel}`);
-        }
-        if (this._activeOncoprintFilters) {
-            for (const f of this._activeOncoprintFilters) {
-                filters.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`);
-            }
-        }
-
-        const topDepleted = sigResults.filter(r => r.diff_mut < 0).slice(0, 10).map(r => `${r.gene} (Δ=${r.diff_mut.toFixed(2)})`);
-        const topEnriched = sigResults.filter(r => r.diff_mut > 0).slice(0, 10).map(r => `${r.gene} (Δ=${r.diff_mut.toFixed(2)})`);
-
-        return {
-            analysis: {
-                type: 'mutation_analysis',
-                description: `Differential gene effect analysis comparing ${mr.hotspotGene}-mutated vs wild-type cell lines`,
-                hotspotGene: mr.hotspotGene,
-                isTranslocation: mr.isTranslocation || false,
-                isDamaging: mr.isDamaging || false,
-                nWT: mr.nWT,
-                nMutated: mr.nMut,
-                n2Mutations: mr.n2,
-                pValueThreshold: mr.pThreshold,
-                minCellLines: mr.minN,
-                filters: filters,
-                nSignificant: sigResults.length,
-                nTotalTested: allResults.length,
-                growthRateAvailable: !!this.growthRateData,
-                dataSource: 'DepMap 25Q3 CRISPRGeneEffect',
-                app: 'Correlate V2',
-                date: new Date().toISOString().slice(0, 10)
-            },
-            results: allResults.map(r => ({
-                gene: r.gene,
-                n_wt: r.n_wt, mean_wt: parseFloat(r.mean_wt?.toFixed(4)),
-                n_mut: r.n_mut, mean_mut: parseFloat(r.mean_mut?.toFixed(4)),
-                delta_ge_1plus2_vs_0: parseFloat(r.diff_mut?.toFixed(4)),
-                p_value_1plus2_vs_0: r.p_mut,
-                n_2: r.n_2, mean_2: isNaN(r.mean_2) ? null : parseFloat(r.mean_2?.toFixed(4)),
-                delta_ge_2_vs_0: isNaN(r.diff_2) ? null : parseFloat(r.diff_2?.toFixed(4)),
-                p_value_2_vs_0: isNaN(r.p_2) ? null : r.p_2,
-                delta_ge_2_vs_1: isNaN(r.diff_2v1) ? null : parseFloat(r.diff_2v1?.toFixed(4)),
-                p_value_2_vs_1: isNaN(r.p_2v1) ? null : r.p_2v1,
-                significant: r.p_mut < mr.pThreshold || r.p_2 < mr.pThreshold || r.p_2v1 < mr.pThreshold
-            })),
-            summary: `Mutation analysis of ${mr.hotspotGene} ${mr.isTranslocation ? 'fusions' : mr.isDamaging ? 'damaging mutations' : 'hotspot mutations'}. ${mr.nWT} WT vs ${mr.nMut} mutated cell lines${filters.length > 0 ? ' (' + filters.join(', ') + ')' : ''}. ${sigResults.length} genes with p < ${mr.pThreshold}. Top depleted: ${topDepleted.slice(0,5).join(', ') || 'none'}. Top enriched: ${topEnriched.slice(0,5).join(', ') || 'none'}.`,
-            promptSuggestion: `Analyze these differential gene effects between ${mr.hotspotGene}-mutated and wild-type cell lines. Which biological pathways are most affected? Are the top depleted genes known ${mr.hotspotGene} pathway members or synthetic lethal partners?`
-        };
-    }
-
-    _buildGateAIExport() {
-        const r = this._gateCompareResults;
-        if (!r) return null;
-        const gateA = this._gateA || [];
-        const gateB = this._gateB || [];
-        const ci = this.currentInspect;
-
-        const filters = [];
-        const cancerFilter = document.getElementById('scatterCancerFilter')?.value;
-        if (cancerFilter) filters.push(`Tissue: ${cancerFilter}`);
-        if (this._activeOncoprintFilters) {
-            for (const f of this._activeOncoprintFilters) filters.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`);
-        }
-
-        return {
-            analysis: {
-                type: 'gate_comparison',
-                description: `Comparing two populations from ${ci?.gene1 || '?'} vs ${ci?.gene2 || '?'} scatter plot`,
-                gene1: ci?.gene1, gene2: ci?.gene2,
-                xAxis: ci?.xType || 'ge', yAxis: ci?.yType || 'ge',
-                gateA: {
-                    n: gateA.length,
-                    xRange: this._gateAShape ? [this._gateAShape.x0, this._gateAShape.x1] : null,
-                    yRange: this._gateAShape ? [this._gateAShape.y0, this._gateAShape.y1] : null
-                },
-                gateB: {
-                    n: gateB.length,
-                    xRange: this._gateBShape ? [this._gateBShape.x0, this._gateBShape.x1] : null,
-                    yRange: this._gateBShape ? [this._gateBShape.y0, this._gateBShape.y1] : null
-                },
-                filters: filters,
-                dataSource: 'DepMap 25Q3',
-                app: 'Correlate V2',
-                date: new Date().toISOString().slice(0, 10)
-            },
-            cellLines: {
-                gateA: gateA.map(d => ({
-                    id: d.cellLineId, name: d.cellLineName || this.getCellLineName(d.cellLineId),
-                    tissue: d.lineage, x: d.x, y: d.y,
-                    growthRate: this.growthRateData?.[d.cellLineId] ?? null
-                })),
-                gateB: gateB.map(d => ({
-                    id: d.cellLineId, name: d.cellLineName || this.getCellLineName(d.cellLineId),
-                    tissue: d.lineage, x: d.x, y: d.y,
-                    growthRate: this.growthRateData?.[d.cellLineId] ?? null
-                }))
-            },
-            tissueEnrichment: r.tissueStats,
-            subtissueEnrichment: r.subtissueStats,
-            mutationEnrichment: r.mutStats?.slice(0, 200),
-            differentialGeneEffect: r.diffGE?.map(g => ({
-                gene: g.gene, meanA: parseFloat(g.meanA?.toFixed(4)), meanB: parseFloat(g.meanB?.toFixed(4)),
-                delta: parseFloat(g.diff?.toFixed(4)), pValue: g.pValue, nA: g.nA, nB: g.nB
-            })),
-            differentialExpression: r.diffExpr?.length > 0 ? r.diffExpr.map(g => ({
-                gene: g.gene, meanA: parseFloat(g.meanA?.toFixed(4)), meanB: parseFloat(g.meanB?.toFixed(4)),
-                delta: parseFloat(g.diff?.toFixed(4)), pValue: g.pValue, nA: g.nA, nB: g.nB
-            })) : null,
-            summary: `Gate comparison on ${ci?.gene1} vs ${ci?.gene2}: Gate A (${gateA.length} cells) vs Gate B (${gateB.length} cells)${filters.length > 0 ? '. Filters: ' + filters.join(', ') : ''}. ${r.diffGE?.filter(g => g.pValue < 0.001).length || 0} genes with differential GE (p<0.001). ${r.diffExpr?.filter(g => g.pValue < 0.001).length || 0} genes with differential expression. Top tissue enrichment: ${r.tissueStats?.[0]?.tissue || 'N/A'} (A=${r.tissueStats?.[0]?.pctA?.toFixed(0)}% B=${r.tissueStats?.[0]?.pctB?.toFixed(0)}%).`,
-            promptSuggestion: `Two populations of cell lines were defined by gating on ${ci?.gene1} and ${ci?.gene2} gene effects. Analyze the differential gene effects and expression between the two gates. What biological processes distinguish these populations? Are there enriched mutations that explain the phenotype?`
-        };
-    }
-
-    _buildCorrelationAIExport() {
-        if (!this.results?.correlations) return null;
-        const mode = this.results.mode;
-        const cutoff = this.results.cutoff;
-        const geneList = this.getGeneList();
-
-        // Capture the filters that were applied when the analysis was run —
-        // these define which cell lines went into the correlation. Without
-        // this, the AI has no way to know the cohort was e.g. "breast TNBC
-        // with TP53 mutation". Pulled straight from the main DOM to match
-        // what the user sees.
-        const filters = [];
-        const lineage = document.getElementById('lineageFilter')?.value;
-        const subLineage = document.getElementById('subLineageFilter')?.value;
-        if (lineage) filters.push(subLineage ? `Tissue / Subtype: ${lineage} / ${subLineage}` : `Tissue: ${lineage}`);
-        if (this.excludedTissues && this.excludedTissues.size > 0) {
-            filters.push(`Excluded tissues: ${[...this.excludedTissues].join(', ')}`);
-        }
-        const hotspotGene = document.getElementById('paramHotspotGene')?.value;
-        const hotspotLevel = document.getElementById('paramHotspotLevel')?.value;
-        if (hotspotGene) {
-            const levelLabel = hotspotLevel === '1+2' ? 'Mut (1+2)' : hotspotLevel === '0' ? 'WT' : `level ${hotspotLevel}`;
-            filters.push(`Hotspot: ${hotspotGene} ${levelLabel}`);
-        }
-        const translocGene = document.getElementById('paramTranslocationGene')?.value;
-        const translocLevel = document.getElementById('paramTranslocationLevel')?.value;
-        if (translocGene) {
-            const levelLabel = translocLevel === '1+2' ? 'Fused' : translocLevel === '0' ? 'Not fused' : `level ${translocLevel}`;
-            filters.push(`Fusion: ${translocGene} ${levelLabel}`);
-        }
-        if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
-            for (const f of this._activeOncoprintFilters) {
-                filters.push(`Oncoprint: ${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`);
-            }
-        }
-        if (this._pendingSelectionLabel) filters.push(this._pendingSelectionLabel);
-        // Custom cell-line filter — record the count, not the full list, to
-        // keep the JSON readable.
-        if (this._customCellLineFilter && this._customCellLineFilter.size) {
-            filters.push(`Custom cell-line list (n=${this._customCellLineFilter.size})`);
-        }
-
-        return {
-            analysis: {
-                type: 'correlation_analysis',
-                mode: mode,
-                correlationCutoff: cutoff,
-                inputGenes: geneList,
-                nCorrelations: this.results.correlations.length,
-                nClusters: this.results.clusters?.length || 0,
-                nCellLines: this.results.nCellLines,
-                filters: filters,
-                dataSource: 'DepMap 25Q3 CRISPRGeneEffect',
-                app: 'Correlate V2',
-                date: new Date().toISOString().slice(0, 10)
-            },
-            correlations: this.results.correlations.map(c => ({
-                gene1: c.gene1, gene2: c.gene2,
-                correlation: parseFloat(c.correlation?.toFixed(4)),
-                slope: parseFloat(c.slope?.toFixed(4)),
-                n: c.n
-            })),
-            summary: `${mode === 'design' ? 'Design' : 'Analysis'} mode correlation analysis with cutoff ${cutoff}. ${geneList.length} input genes, ${this.results.correlations.length} correlations found, ${this.results.clusters?.length || 0} genes in network. n=${this.results.nCellLines} cell lines${filters.length ? '. Filters: ' + filters.join('; ') : ''}.`,
-            promptSuggestion: `These genes show correlated CRISPR gene effects across ${this.results.nCellLines} cell lines${filters.length ? ' (' + filters.join('; ') + ')' : ''}. What biological pathways or complexes connect these correlated genes? Are there known protein-protein interactions among the most strongly correlated pairs?`
-        };
-    }
-
-    _buildClusterAIExport() {
-        if (!this.results?.clusters) return null;
-
-        // Same cohort-defining filters as the correlation export.
-        const filters = [];
-        const lineage = document.getElementById('lineageFilter')?.value;
-        const subLineage = document.getElementById('subLineageFilter')?.value;
-        if (lineage) filters.push(subLineage ? `Tissue / Subtype: ${lineage} / ${subLineage}` : `Tissue: ${lineage}`);
-        if (this.excludedTissues && this.excludedTissues.size > 0) filters.push(`Excluded tissues: ${[...this.excludedTissues].join(', ')}`);
-        const hotspotGene = document.getElementById('paramHotspotGene')?.value;
-        const hotspotLevel = document.getElementById('paramHotspotLevel')?.value;
-        if (hotspotGene) filters.push(`Hotspot: ${hotspotGene} ${hotspotLevel === '1+2' ? 'Mut' : hotspotLevel === '0' ? 'WT' : hotspotLevel}`);
-        const translocGene = document.getElementById('paramTranslocationGene')?.value;
-        const translocLevel = document.getElementById('paramTranslocationLevel')?.value;
-        if (translocGene) filters.push(`Fusion: ${translocGene} ${translocLevel === '1+2' ? 'Fused' : translocLevel === '0' ? 'Not fused' : translocLevel}`);
-        if (this._activeOncoprintFilters) { for (const f of this._activeOncoprintFilters) filters.push(`Oncoprint: ${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`); }
-        if (this._pendingSelectionLabel) filters.push(this._pendingSelectionLabel);
-        if (this._customCellLineFilter && this._customCellLineFilter.size) filters.push(`Custom cell-line list (n=${this._customCellLineFilter.size})`);
-
-        return {
-            analysis: {
-                type: 'cluster_analysis',
-                mode: this.results.mode,
-                correlationCutoff: this.results.cutoff,
-                nGenes: this.results.clusters.length,
-                nCellLines: this.results.nCellLines,
-                filters: filters,
-                dataSource: 'DepMap 25Q3 CRISPRGeneEffect',
-                app: 'Correlate V2',
-                date: new Date().toISOString().slice(0, 10)
-            },
-            genes: this.results.clusters.map(c => ({
-                gene: c.gene,
-                cluster: c.cluster,
-                inInputList: c.inGeneList || false,
-                meanEffect: parseFloat(c.meanEffect?.toFixed(4)),
-                sdEffect: parseFloat(c.sdEffect?.toFixed(4))
-            })),
-            summary: `${this.results.clusters.length} genes in the correlation network. ${this.results.clusters.filter(c => c.inGeneList).length} from the input gene list, ${this.results.clusters.filter(c => !c.inGeneList).length} discovered by correlation.`,
-            promptSuggestion: `These genes form a correlated network based on CRISPR gene effects. Analyze the biological functions of each cluster. Which genes are the most central or essential?`
-        };
-    }
-
-    _buildExprCorrelateAIExport() {
-        if (!this.expressionCorrelateResults) return null;
-        const ctx = this._exprCorrelateContext;
-
-        return {
-            analysis: {
-                type: 'expression_correlate',
-                targetGene: ctx?.targetGene,
-                hotspotGene: ctx?.hotspotGene,
-                subgroup: ctx?.subgroup,
-                nCellLines: ctx?.subgroupIndices?.length,
-                dataSource: 'DepMap 25Q3',
-                app: 'Correlate V2',
-                date: new Date().toISOString().slice(0, 10)
-            },
-            results: this.expressionCorrelateResults.map(r => ({
-                gene: r.gene,
-                correlation: parseFloat(r.r?.toFixed(4)),
-                slope: parseFloat(r.slope?.toFixed(4)),
-                n: r.n,
-                pValue: r.p
-            })),
-            summary: `Expression correlates of ${ctx?.targetGene} gene effect. ${this.expressionCorrelateResults.length} genes tested. Top positive: ${this.expressionCorrelateResults.filter(r => r.r > 0).slice(0, 3).map(r => r.gene).join(', ')}. Top negative: ${this.expressionCorrelateResults.filter(r => r.r < 0).slice(-3).map(r => r.gene).join(', ')}.`,
-            promptSuggestion: `These genes' expression levels correlate with ${ctx?.targetGene} CRISPR gene effect. Which expression patterns predict dependency on ${ctx?.targetGene}? Are there biomarkers that could identify cell lines sensitive to ${ctx?.targetGene} loss?`
-        };
-    }
 
     showGeneEffectDistribution(gene, tissueOverride, inspectHotspotOverride) {
         if (!this.mutationResults) return;
@@ -19239,6 +18918,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     _getAICellLines(source) {
+        // Normalize source aliases.
+        if (source === 'mutations') source = 'mutation';
+        if (source === 'gate') source = 'gates';
+
         if (source === 'ge') {
             // Mutation inspect mode — currentGeneEffectData is already filter-aware
             // (populated by showGeneEffectDistribution with tissue/subtype/hotspot/fusion filters applied).
@@ -19248,26 +18931,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Regular GE analysis / gene-set mode — always route through
             // getGETissueFilteredData() so the CURRENT toolbar filters
             // (tissue, subtype, hotspot, fusion, mut gene, oncoprint, custom CL list)
-            // are applied. Fixes: user could filter down to one subtype but the
-            // AI export still dumped all 1147 cell lines.
+            // are applied.
             return this.getGETissueFilteredData().map(d => d.cellLineId);
-        } else if (source === 'scatter') {
-            // Prefer _inspectFilteredCellLineIds — that's set by
-            // updateInspectPlot AFTER tissue/subtype/mutation/fusion/custom-CL
-            // filters are applied. currentInspect.data is the unfiltered plot
-            // data built in openInspect and would leak in cells outside the
-            // user's inspect-modal filter stack.
+        }
+        if (source === 'scatter') {
+            // Prefer _inspectFilteredCellLineIds — set by updateInspectPlot
+            // AFTER tissue/subtype/mutation/fusion/custom-CL filters apply.
             if (Array.isArray(this._inspectFilteredCellLineIds) && this._inspectFilteredCellLineIds.length > 0) {
                 return this._inspectFilteredCellLineIds.slice();
             }
             const data = this._currentFilteredData || this.currentInspect?.data || [];
             return data.map(d => d.cellLineId);
-        } else if (source === 'mutation') {
+        }
+        if (source === 'mutation') {
             const mr = this.mutationResults;
             if (!mr) return [];
             const allResults = mr.allResults || mr.significantResults || [];
             if (allResults.length === 0) return [];
-            // Apply same filter stack the mutation analysis used.
             const cls = new Set();
             this.metadata.cellLines.forEach(cl => {
                 if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== mr.lineageFilter) return;
@@ -19279,6 +18959,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
             return [...cls];
         }
+        if (source === 'gates') {
+            // Gate A ∪ Gate B — the comparison cohort. Stratification handled
+            // separately in cellLineGroups.
+            const cls = [];
+            const seen = new Set();
+            const push = (d) => { if (d?.cellLineId && !seen.has(d.cellLineId)) { seen.add(d.cellLineId); cls.push(d.cellLineId); } };
+            (this._gateA || []).forEach(push);
+            (this._gateB || []).forEach(push);
+            return cls;
+        }
+        if (source === 'correlations' || source === 'clusters') {
+            // Re-derive the main-panel filtered cohort. Same stack the
+            // correlation analysis ran over: lineage / subLineage / excluded
+            // tissues / hotspot / translocation / oncoprint / custom CL.
+            const idxs = this.getFilteredCellLineIndices ? this.getFilteredCellLineIndices() : null;
+            if (Array.isArray(idxs) && idxs.length > 0) {
+                return idxs.map(i => this.metadata.cellLines[i]).filter(Boolean);
+            }
+            return [];
+        }
+        if (source === 'exprCorrelates') {
+            const ctx = this._exprCorrelateContext;
+            if (Array.isArray(ctx?.subgroupIndices) && ctx.subgroupIndices.length > 0) {
+                return ctx.subgroupIndices.map(i => this.metadata.cellLines[i]).filter(Boolean);
+            }
+            return [];
+        }
         return [];
     }
 
@@ -19287,33 +18994,50 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const setStatus = (msg) => { if (statusEl) statusEl.textContent = msg; };
         setStatus('Collecting data...');
 
-        const source = this._aiExportSource || 'ge';
+        // Normalize source aliases (Phase 3 — same exporter for all 8 sources).
+        let source = this._aiExportSource || 'ge';
+        if (source === 'mutations') source = 'mutation';
+        if (source === 'gate') source = 'gates';
+
         const allCLs = this._getAICellLines(source);
         if (!allCLs.length) { setStatus('No cell lines to export.'); return; }
 
-        // Cap at 400
-        const cellLines = allCLs.slice(0, 400);
+        // Phase 1 — no hard cell-line cap. The new tiers keep the file
+        // shippable up to ~1500 cell lines by tightening the matrix filters,
+        // but mutations / fusions / inferred-subtype data are always kept
+        // because they're tiny and most useful at large n (where stratification
+        // power matters most).
+        const cellLines = allCLs;
         const n = cellLines.length;
 
-        // Tiered data inclusion (suggestion #7)
-        let geTier, exprTier, tierLabel, dropDamaging = false;
+        // Tier table:
+        //   ≤100      full GE + full expression
+        //   100–500   |GE|>0.2  + (expr mean>1.0  OR sd>0.5)
+        //   500–1500  |GE|>0.3  + (expr mean>2.0  OR sd>0.5)
+        //   >1500     |GE|>0.5  + (expr mean>2.0  OR sd>1.0)
+        // Mutations / fusions / LoF / global signatures ALWAYS included.
+        // Expression filter switched from AND to OR so tissue-restricted
+        // markers (low overall mean, high SD) survive.
+        let geCutoff, exprMeanMin, exprSdMin, tierLabel;
         if (n <= 100) {
-            geTier = 'all'; exprTier = 'all';
-            tierLabel = 'full (GE + expression + mutations)';
-        } else if (n <= 200) {
-            geTier = 'filter_02'; exprTier = 'filter_mean1';
-            tierLabel = 'filtered GE (|val|>0.2) + filtered expression (mean>1.0)';
-        } else if (n <= 400) {
-            geTier = 'filter_03'; exprTier = 'filter_sd05';
-            tierLabel = n > 200 ? 'filtered GE (|val|>0.3) + filtered expression (mean>2.0, SD>0.5)' : tierLabel;
-            dropDamaging = n > 200;
+            geCutoff = 0; exprMeanMin = -Infinity; exprSdMin = -Infinity;
+            tierLabel = 'full (no GE / expression filtering)';
+        } else if (n <= 500) {
+            geCutoff = 0.2; exprMeanMin = 1.0; exprSdMin = 0.5;
+            tierLabel = 'GE |val|>0.2; expression mean>1.0 OR sd>0.5; mutations / fusions / LoF / signatures full';
+        } else if (n <= 1500) {
+            geCutoff = 0.3; exprMeanMin = 2.0; exprSdMin = 0.5;
+            tierLabel = 'GE |val|>0.3; expression mean>2.0 OR sd>0.5; mutations / fusions / LoF / signatures full';
         } else {
-            geTier = 'filter_strict'; exprTier = 'filter_strict';
-            tierLabel = 'strict filtered (essential GE only, high-variance expression only)';
-            dropDamaging = true;
+            geCutoff = 0.5; exprMeanMin = 2.0; exprSdMin = 1.0;
+            tierLabel = 'GE |val|>0.5 (essential genes only); expression mean>2.0 OR sd>1.0; mutations / fusions / LoF / signatures full';
         }
-        const includeGE = true; // always include, just filtered
         const includeExpr = this.expressionLoaded;
+
+        // Source-specific extras populated by the per-source branches below.
+        // Kept off the main exportData object until composition so we can
+        // omit them when null.
+        let extras = null;
 
         // Build context (#2 — richer analysis context)
         let context, cellLineGroups = {}, description = '';
@@ -19397,6 +19121,135 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             const filterParts = [mr?.lineageFilter, mr?.subLineageFilter].filter(Boolean).join(', ');
             description = `Differential gene effect analysis for ${mr?.hotspotGene} ${mr?.isTranslocation ? 'fusion' : mr?.isDamaging ? 'damaging mutation' : 'hotspot mutation'}${filterParts ? ' in ' + filterParts : ''}.`;
+            // Source-specific extras: per-gene differential analysis results.
+            if (mr?.allResults) {
+                extras = {
+                    differentialGeneEffect: mr.allResults.map(r => ({
+                        gene: r.gene,
+                        n_wt: r.n_wt, n_mut: r.n_mut,
+                        delta_ge: parseFloat((r.diff_mut ?? 0).toFixed(3)),
+                        p_value: r.p_mut,
+                        compositeScore: r.p_mut > 0 ? parseFloat((r.diff_mut * -Math.log10(r.p_mut)).toFixed(3)) : 0
+                    }))
+                };
+            }
+        } else if (source === 'gates') {
+            const ci = this.currentInspect;
+            const gA = this._gateA || [];
+            const gB = this._gateB || [];
+            const gAShape = this._gateAShape || null;
+            const gBShape = this._gateBShape || null;
+            const filterParts = [];
+            const cancerF = document.getElementById('scatterCancerFilter')?.value;
+            if (cancerF) filterParts.push(`Tissue: ${cancerF}`);
+            if (this._activeOncoprintFilters) for (const f of this._activeOncoprintFilters) filterParts.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`);
+            context = {
+                type: 'gate_comparison',
+                gene1: ci?.gene1, gene2: ci?.gene2,
+                xType: ci?.xType || 'ge', yType: ci?.yType || 'ge',
+                gateA: { n: gA.length, xRange: gAShape ? [gAShape.x0, gAShape.x1] : null, yRange: gAShape ? [gAShape.y0, gAShape.y1] : null },
+                gateB: { n: gB.length, xRange: gBShape ? [gBShape.x0, gBShape.x1] : null, yRange: gBShape ? [gBShape.y0, gBShape.y1] : null },
+                filters: filterParts,
+                plotType: 'scatter_with_gates', stratification: 'gateA_vs_gateB'
+            };
+            // Stratification — gates are the analysis axis here.
+            cellLineGroups = { gateA: gA.map(d => d.cellLineId), gateB: gB.map(d => d.cellLineId) };
+            description = `Two-population gate comparison on ${ci?.gene1} (${ci?.xType || 'ge'}) vs ${ci?.gene2} (${ci?.yType || 'ge'}).`;
+            // Source-specific extras: precomputed enrichment + diff results
+            // from the gate-compare run, if available.
+            const gr = this._gateCompareResults;
+            if (gr) {
+                extras = {
+                    tissueEnrichment: gr.tissueStats,
+                    subtissueEnrichment: gr.subtissueStats,
+                    mutationEnrichment: gr.mutStats?.slice(0, 200),
+                    differentialGeneEffect: gr.diffGE?.map(g => ({
+                        gene: g.gene,
+                        meanA: parseFloat((g.meanA ?? 0).toFixed(3)),
+                        meanB: parseFloat((g.meanB ?? 0).toFixed(3)),
+                        delta: parseFloat((g.diff ?? 0).toFixed(3)),
+                        pValue: g.pValue, nA: g.nA, nB: g.nB
+                    })),
+                    differentialExpression: gr.diffExpr?.length ? gr.diffExpr.map(g => ({
+                        gene: g.gene,
+                        meanA: parseFloat((g.meanA ?? 0).toFixed(3)),
+                        meanB: parseFloat((g.meanB ?? 0).toFixed(3)),
+                        delta: parseFloat((g.diff ?? 0).toFixed(3)),
+                        pValue: g.pValue, nA: g.nA, nB: g.nB
+                    })) : undefined
+                };
+            }
+        } else if (source === 'correlations' || source === 'clusters') {
+            const filterParts = [];
+            const lineage = document.getElementById('lineageFilter')?.value;
+            const subLineage = document.getElementById('subLineageFilter')?.value;
+            if (lineage) filterParts.push(subLineage ? `Tissue / Subtype: ${lineage} / ${subLineage}` : `Tissue: ${lineage}`);
+            if (this.excludedTissues?.size > 0) filterParts.push(`Excluded tissues: ${[...this.excludedTissues].join(', ')}`);
+            const hotspotGene = document.getElementById('paramHotspotGene')?.value;
+            const hotspotLevel = document.getElementById('paramHotspotLevel')?.value;
+            if (hotspotGene) filterParts.push(`Hotspot: ${hotspotGene} ${hotspotLevel === '1+2' ? 'Mut' : hotspotLevel === '0' ? 'WT' : `level ${hotspotLevel}`}`);
+            const transGene = document.getElementById('paramTranslocationGene')?.value;
+            const transLevel = document.getElementById('paramTranslocationLevel')?.value;
+            if (transGene) filterParts.push(`Fusion: ${transGene} ${transLevel === '1+2' ? 'Fused' : transLevel === '0' ? 'Not fused' : `level ${transLevel}`}`);
+            if (this._activeOncoprintFilters) for (const f of this._activeOncoprintFilters) filterParts.push(`Oncoprint: ${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`);
+            if (this._customCellLineFilter?.size) filterParts.push(`Custom CL list (n=${this._customCellLineFilter.size})`);
+            const inputGenes = (this.getGeneList && this.getGeneList()) || [];
+            context = {
+                type: source === 'correlations' ? 'correlation_analysis' : 'cluster_analysis',
+                mode: this.results?.mode,
+                correlationCutoff: this.results?.cutoff,
+                inputGenes,
+                nCorrelations: this.results?.correlations?.length || 0,
+                nClusters: this.results?.clusters?.length || 0,
+                filters: filterParts,
+                plotType: source === 'correlations' ? 'correlation_table' : 'cluster_network',
+                stratification: 'none'
+            };
+            description = source === 'correlations'
+                ? `Correlation analysis (${this.results?.mode || ''}, cutoff ${this.results?.cutoff || ''}) on ${inputGenes.length} input genes.`
+                : `Cluster network from correlation analysis (${this.results?.clusters?.length || 0} genes).`;
+            // Source-specific extras
+            if (source === 'correlations' && this.results?.correlations) {
+                extras = {
+                    correlationPairs: this.results.correlations.map(c => ({
+                        gene1: c.gene1, gene2: c.gene2,
+                        r: parseFloat((c.correlation ?? 0).toFixed(3)),
+                        slope: parseFloat((c.slope ?? 0).toFixed(3)),
+                        n: c.n
+                    }))
+                };
+            } else if (source === 'clusters' && this.results?.clusters) {
+                extras = {
+                    clusterGenes: this.results.clusters.map(c => ({
+                        gene: c.gene,
+                        cluster: c.cluster,
+                        inInputList: c.inGeneList || false,
+                        meanEffect: parseFloat((c.meanEffect ?? 0).toFixed(3)),
+                        sdEffect: parseFloat((c.sdEffect ?? 0).toFixed(3))
+                    }))
+                };
+            }
+        } else if (source === 'exprCorrelates') {
+            const ctx = this._exprCorrelateContext || {};
+            context = {
+                type: 'expression_correlate',
+                targetGene: ctx.targetGene,
+                hotspotGene: ctx.hotspotGene,
+                subgroup: ctx.subgroup,
+                plotType: 'expression_correlate_table', stratification: 'none'
+            };
+            description = `Expression correlates of ${ctx.targetGene || '?'} gene effect${ctx.subgroup ? ` (${ctx.subgroup})` : ''}.`;
+            if (Array.isArray(this.expressionCorrelateResults)) {
+                extras = {
+                    expressionCorrelates: this.expressionCorrelateResults.map(r => ({
+                        gene: r.gene,
+                        r: parseFloat((r.r ?? 0).toFixed(3)),
+                        slope: parseFloat((r.slope ?? 0).toFixed(3)),
+                        n: r.n,
+                        pValue: r.p
+                    }))
+                };
+            }
         }
         context.description = description;
         context.nCellLines = n;
@@ -19416,17 +19269,67 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         setStatus(`Building metadata for ${n} cell lines...`);
         await new Promise(r => setTimeout(r, 50));
 
+        // Phase 2 — unified mutation shape: one `mutations` object per cell
+        // line, keyed by gene, with `hotspot` (0/1/2) and `damaging` (bool).
+        // Replaces the old hotspotMutations + damagingMutations split which
+        // had inconsistent value shapes ({gene:level} vs the historic flat
+        // list described in the colleague-Claude review).
+        // Mutations always included (the old `dropDamaging` tier flag is
+        // gone — even at 1500+ cell lines mutation data is tiny and most
+        // useful at large n where stratification power matters most).
         const clMeta = {};
         for (const cl of cellLines) {
-            const entry = { name: this.getCellLineName(cl), tissue: this.getCellLineLineage(cl), subtype: this.cellLineMetadata?.primaryDisease?.[cl] || '' };
-            const hotspotMuts = {};
-            if (this.mutations?.genes) { for (const g of this.mutations.genes) { const level = this.mutations.geneData[g]?.mutations?.[cl] || 0; if (level > 0) hotspotMuts[g] = level; } }
-            if (Object.keys(hotspotMuts).length > 0) entry.hotspotMutations = hotspotMuts;
-            if (!dropDamaging) {
-                const dmgMuts = {};
-                if (this.damagingMutations?.genes) { for (const g of this.damagingMutations.genes) { const level = this.damagingMutations.geneData[g]?.mutations?.[cl] || 0; if (level > 0) dmgMuts[g] = level; } }
-                if (Object.keys(dmgMuts).length > 0) entry.damagingMutations = dmgMuts;
+            const entry = {
+                name: this.getCellLineName(cl),
+                tissue: this.getCellLineLineage(cl),
+                subtype: this.cellLineMetadata?.primaryDisease?.[cl] || ''
+            };
+            const mutations = {};
+            if (this.mutations?.genes) {
+                for (const g of this.mutations.genes) {
+                    const level = this.mutations.geneData[g]?.mutations?.[cl] || 0;
+                    if (level > 0) (mutations[g] = mutations[g] || {}).hotspot = level;
+                }
             }
+            if (this.damagingMutations?.genes) {
+                for (const g of this.damagingMutations.genes) {
+                    const level = this.damagingMutations.geneData[g]?.mutations?.[cl] || 0;
+                    if (level > 0) (mutations[g] = mutations[g] || {}).damaging = true;
+                }
+            }
+            if (Object.keys(mutations).length > 0) entry.mutations = mutations;
+
+            // Curated driver fusions (clinical_fusions.json) — per-cell-line
+            // tier-validated calls. Tiny relative to matrices.
+            const cfCalls = this.clinicalFusions?.byCellLine?.[cl];
+            if (cfCalls?.length) entry.clinicalFusions = cfCalls;
+
+            // DepMap inferred subtypes — specific hotspot variants, named
+            // driver fusions, integrated LoF (CN+mut+expr), MSI binary.
+            const isub = this.inferredSubtypes?.byCellLine?.[cl];
+            if (isub) {
+                const ent = {};
+                if (isub.hotspots?.length) ent.specificVariants = isub.hotspots;
+                if (isub.fusions?.length) ent.namedFusions = isub.fusions;
+                if (isub.lof?.length) ent.functionalLoss = isub.lof;
+                if (isub.msi === true) ent.msi = true;
+                if (Object.keys(ent).length) entry.inferred = ent;
+            }
+
+            // Global genome-wide signatures (PureCN ploidy/WGD/CIN/LoH +
+            // MSIsensor2 + Ben-David aneuploidy).
+            const gs = this.globalSignatures?.byCellLine?.[cl];
+            if (gs) {
+                const ent = {};
+                if (gs.Ploidy != null) ent.ploidy = gs.Ploidy;
+                if (gs.WGD === true) ent.wgd = true;
+                if (gs.CIN != null) ent.cin = gs.CIN;
+                if (gs.LoHFraction != null) ent.lohFraction = gs.LoHFraction;
+                if (gs.MSIScore != null) ent.msiScore = gs.MSIScore;
+                if (gs.Aneuploidy != null) ent.aneuploidy = gs.Aneuploidy;
+                if (Object.keys(ent).length) entry.signatures = ent;
+            }
+
             clMeta[cl] = entry;
         }
 
@@ -19434,6 +19337,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         setStatus('Building gene effect matrix...');
         await new Promise(r => setTimeout(r, 50));
 
+        // Phase 1 — round GE values to 3 decimals (was 4). Trims ~25% off
+        // the gzipped size with no analytical loss for correlation work.
         const geGenes = this.metadata.genes;
         const geCLIndices = cellLines.map(cl => this.metadata.cellLines.indexOf(cl));
         const geMatrix = {};
@@ -19443,18 +19348,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             for (const clIdx of geCLIndices) {
                 if (clIdx === -1) { vals.push(null); continue; }
                 const v = this.geneEffects[gi * this.nCellLines + clIdx];
-                if (!isNaN(v)) { vals.push(parseFloat(v.toFixed(4))); hasData = true; maxAbs = Math.max(maxAbs, Math.abs(v)); }
+                if (!isNaN(v)) { vals.push(parseFloat(v.toFixed(3))); hasData = true; maxAbs = Math.max(maxAbs, Math.abs(v)); }
                 else vals.push(null);
             }
             if (!hasData) continue;
-            // Tier filtering
-            if (geTier === 'filter_02' && maxAbs < 0.2) continue;
-            if (geTier === 'filter_03' && maxAbs < 0.3) continue;
-            if (geTier === 'filter_strict' && maxAbs < 0.5) continue;
+            if (geCutoff > 0 && maxAbs < geCutoff) continue;
             geMatrix[geGenes[gi]] = vals;
         }
 
-        // Build expression matrix with tier filtering (#7)
+        // Phase 1 — expression matrix with the new OR-not-AND filter:
+        // include the gene if mean ≥ exprMeanMin OR sd ≥ exprSdMin (was AND).
+        // Catches tissue-restricted markers like AFP (low overall mean, high
+        // SD because it's only highly expressed in liver lines) which the AND
+        // version would silently drop.
         let exprMatrix = null;
         if (includeExpr && this.expressionData && this.expressionMetadata) {
             setStatus('Building expression matrix...');
@@ -19476,13 +19382,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
                 if (!hasData || count < 3) continue;
                 const mean = sum / count;
-                if (exprTier !== 'all') {
-                    vals.forEach(v => { if (v !== null) ssq += (v - mean) ** 2; });
-                    const sd = Math.sqrt(ssq / count);
-                    if (exprTier === 'filter_mean1' && mean < 1.0) continue;
-                    if (exprTier === 'filter_sd05' && (mean < 2.0 || sd < 0.5)) continue;
-                    if (exprTier === 'filter_strict' && (mean < 2.0 || sd < 1.0)) continue;
-                }
+                vals.forEach(v => { if (v !== null) ssq += (v - mean) ** 2; });
+                const sd = Math.sqrt(ssq / count);
+                if (mean < exprMeanMin && sd < exprSdMin) continue;
                 exprMatrix[exprGenes[gi]] = vals;
             }
         }
@@ -19516,91 +19418,59 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             topCorrelates = correlates.slice(0, 30);
         }
 
-        // Mutation analysis results with composite score (#5) and common essentials flag (#6)
-        let mutationResults = null;
-        if (source === 'mutation' && mr?.allResults) {
-            mutationResults = mr.allResults.map(r => ({
-                gene: r.gene,
-                delta_ge: parseFloat(r.diff_mut?.toFixed(4)),
-                p_value: r.p_mut,
-                compositeScore: r.p_mut > 0 ? parseFloat((r.diff_mut * -Math.log10(r.p_mut)).toFixed(4)) : 0,
-                isCommonEssential: this._commonEssentials.has(r.gene),
-                n_wt: r.n_wt, n_mut: r.n_mut
-            }));
-        }
+        // Phase 1 — snapshot dropped from gzipped exports. The AI was told to
+        // ignore it anyway, it inflated parse cost (~30% of file size for a
+        // typical scatter), and the `context` block already gives the model
+        // everything it needs to restate what the user was viewing.
 
-        // Capture a PNG snapshot of the current view so the AI can restate
-        // the visual context. Scatter uses the inspect scatter plot, GE uses
-        // whichever plot is currently populated, mutation views have no
-        // native chart so the snapshot is skipped.
-        let snapshot = null;
-        try {
-            const plotIdsBySource = {
-                scatter: ['scatterPlot'],
-                ge: ['geneEffectPlot', 'geneEffectHotspotPlot', 'byTissueChart']
-            };
-            for (const id of (plotIdsBySource[source] || [])) {
-                const el = document.getElementById(id);
-                if (el && el.data && el.offsetParent !== null) {
-                    const w = el._fullLayout?.width || el.offsetWidth || 800;
-                    const h = el._fullLayout?.height || el.offsetHeight || 500;
-                    snapshot = await Plotly.toImage(el, { format: 'png', width: w, height: h });
-                    break;
-                }
-            }
-        } catch (e) { /* skip snapshot on failure */ }
-
-        // Assemble the export
+        // Phase 2 — assemble the export. Schema-version stamped, null fields
+        // omitted entirely (was: emitted as null with documentation that an
+        // LLM had to disambiguate "not applicable" from "computation failed").
         setStatus('Compressing...');
         await new Promise(r => setTimeout(r, 50));
 
         const exportData = {
-            _description: 'Correlate V2 — Full Data Export (compressed)',
-            // #3 — Data structure description
+            _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
+            schemaVersion: '2.0',
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices.',
-                cellLineMetadata: 'Object keyed by cell line ID. Contains name, tissue, subtype, hotspotMutations (1=het, 2=hom), damagingMutations.',
-                geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores, one per cell line in cellLineOrder. Negative = essential. null = missing.',
-                expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values, one per cell line in cellLineOrder. null = missing.',
-                cellLineGroups: 'Cell line IDs grouped by analysis stratification (e.g. WT, mut1, mut2).',
-                topCorrelates: 'Top 30 genes whose expression most correlates with the analyzed gene\'s gene effect.',
-                mutationResults: 'Per-gene differential analysis with compositeScore = delta × -log10(p) and isCommonEssential flag.'
+                cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy).',
+                geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores aligned to cellLineOrder. Negative = essential. null = missing.',
+                expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing.',
+                cellLineGroups: 'Optional. Cell line IDs grouped by analysis stratification (WT/mut1/mut2 for mutation, gateA/gateB for gate comparison, etc.).',
+                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), clusterGenes (clusters), expressionCorrelates (exprCorrelates).'
             },
             _instructions: [
                 'CRISPR gene effect: negative = essential for cell survival. 0 = no effect.',
                 'Expression: log2(TPM+1). Higher = more expressed.',
-                'Hotspot mutations: 1 = heterozygous, 2 = homozygous/multi-hit.',
+                'Mutations: hotspot 1 = heterozygous, 2 = homozygous / multi-hit. damaging = likely loss-of-function variant call.',
+                'Clinical fusions: only the curated driver list (BCR-ABL1, EWSR1-FLI1, EML4-ALK, …) — validated per cell line on lineage match + partner expression z-score + partner CRISPR dependency z-score. Tier ∈ {high, medium, low}.',
+                'Inferred functional loss: integrated CN+mutation+expression call from DepMap, catches deletion-driven tumour-suppressor losses (CDKN2A homo-del, RB1 deep deletion) that the damaging-mutation matrix alone misses.',
                 `Data tier: ${tierLabel}.`,
-                'Use cellLineOrder as shared index for geneEffect and expression arrays.'
+                'Use cellLineOrder as the shared index for geneEffect and expression arrays.'
             ],
             _analysisInstructions: [
-                'Step 1 - Overview: Briefly survey the data. Summarize key groups, sample sizes, and the target gene\'s effect distribution. Run a quick unbiased scan of the top 10 gene effect co-correlates and anti-correlates, noting their likely pathway/function.',
-                'Step 2 - Confirm scope: Present this overview to the user together with their question (from the \'question\' field). Propose 2-3 specific analytical angles suggested by the unbiased hits. Ask the user to confirm, adjust, or redirect before proceeding with deep analysis.',
-                'Step 3 - Deep analysis: After user confirmation, work data-first. Characterize unbiased genome-wide hits and annotate by pathway before testing hypothesis-driven candidate gene lists. After finding one explanatory model, actively search for alternative or complementary axes. Report all major signals, not just the first plausible one.'
+                "Step 1 - Overview: Briefly survey the data. Summarize key groups, sample sizes, and the target gene's effect distribution. Run a quick unbiased scan of the top 10 gene effect co-correlates and anti-correlates, noting their likely pathway/function.",
+                "Step 2 - Confirm scope: Present this overview to the user together with their question (from the 'question' field). Propose 2-3 specific analytical angles suggested by the unbiased hits. Ask the user to confirm, adjust, or redirect before proceeding with deep analysis.",
+                "Step 3 - Deep analysis: After user confirmation, work data-first. Characterize unbiased genome-wide hits and annotate by pathway before testing hypothesis-driven candidate gene lists. After finding one explanatory model, actively search for alternative or complementary axes. Report all major signals, not just the first plausible one."
             ],
             context,
-            question: question || null,
-            snapshot: snapshot,
             aiInstructions: (
                 'BEFORE DOING ANY ANALYSIS, open your reply with these two short paragraphs:\n\n' +
-                '1) A one-line description of the chart the user was looking at. Derive it from the `context` field. ' +
-                'Format: "You were looking at a [plotType] of [gene1] [xType] vs [gene2] [yType], filtered by ' +
-                '[cancerFilter] / [subtypeFilter] / [mutationFilter] / [fusionFilter] (only list filters that are non-empty), ' +
-                'n=[nCellLines] cell lines." Translate xType/yType codes into plain English: "ge" = "gene effect", ' +
-                '"expr" = "expression". Do NOT paste or render the `snapshot` field, do NOT output the base64 data URI, ' +
-                'and do NOT include a Markdown image tag. The snapshot is metadata, not something to display.\n\n' +
-                '2) "You asked:" followed by a verbatim quote of the `question` field. If `question` is empty or null, ' +
-                'skip this paragraph.\n\n' +
+                '1) A one-line description of what the user was looking at. Derive it from the `context` field — `type` tells you the view, `description` is a ready-to-use summary, and `gene1/gene2/xType/yType/filters/gateA/gateB/etc.` give the specifics. xType/yType codes: "ge" = gene effect, "expr" = expression.\n\n' +
+                '2) "You asked:" followed by a verbatim quote of the `question` field. If `question` is missing or empty, skip this paragraph.\n\n' +
                 'Then proceed with the analysis per `_analysisInstructions`.'
             ),
             cellLineOrder: cellLines,
-            cellLineGroups: Object.keys(cellLineGroups).length > 0 ? cellLineGroups : undefined,
             cellLineMetadata: clMeta,
-            topCorrelates: topCorrelates,
-            mutationResults: mutationResults,
-            geneEffect: geMatrix,
-            expression: exprMatrix
+            geneEffect: geMatrix
         };
+        // Conditional fields — omit when not applicable instead of emitting null.
+        if (question) exportData.question = question;
+        if (Object.keys(cellLineGroups).length > 0) exportData.cellLineGroups = cellLineGroups;
+        if (exprMatrix && Object.keys(exprMatrix).length > 0) exportData.expression = exprMatrix;
+        if (topCorrelates && topCorrelates.length > 0) exportData.topCorrelates = topCorrelates;
+        if (extras) exportData.extras = extras;
 
         const jsonStr = JSON.stringify(exportData);
         const compressed = pako.gzip(jsonStr);
