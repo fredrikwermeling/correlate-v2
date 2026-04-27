@@ -1325,6 +1325,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.0 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI <code>.json.gz</code> export &mdash; the precomputed-summary discipline (topCoessentials / topCorrelates / focalGeneTissueSummary / focalGeneMutationSummary / pathway-partner whitelist) was silently scoped to the <em>gene-effect</em> view because the focal-gene resolver only checked <code>context.gene</code>. Scatter / mutation / expression-correlate exports were quietly emitting empty extras while the <code>_analysisInstructions</code> still told the LLM to use those fields. Fixed: the resolver now falls back through <code>context.gene</code> &rarr; <code>context.hotspotGene</code> &rarr; <code>context.targetGene</code> &rarr; <code>context.gene1</code>, so every view that has a single focal gene now produces all the same precomputed summaries (caught when an Opus 4.7 review of a FAM167A scatter export found none of the extras present).</li>
+                    <li><strong>New <code>extras.focalGeneVarianceWarning</code></strong> &mdash; emitted when the focal gene sits in screen noise (|mean GE| &lt; 0.3, SD &lt; 0.15, fewer than 5% of cohort lines essential). Stops the LLM from confidently inventing biology from noise-driven correlations &mdash; FAM167A in 74 Skin lines (mean=&minus;0.05, SD=0.11, 0/74 essential) is the canonical case where this warning fires. Step 0 of <code>_analysisInstructions</code> now tells the LLM to read this warning first and recommend stratification before pattern-hunting.</li>
+                    <li>Scatter view <strong>description rewritten</strong>. Was producing tautological text like "Scatter of FAM167A vs FAM167A filtered by Skin" when both axes were the same gene with different types (GE vs expression). Now: "Scatter of FAM167A gene effect (x) vs FAM167A expression (y), filtered by Skin." &mdash; explicit about which axis carries which data type.</li>
+                    <li><code>_analysisInstructions</code> revised: Step 1 now says the precomputed scans are present "when the export includes them (gene-effect / scatter / mutation / expression-correlate views with a single focal gene)" rather than asserting they're always there. Multi-gene views (correlation / cluster / gate-comparison) are explicitly told to recompute. Eliminates the silent failure where an LLM following the instructions for an unsupported view kept hitting empty fields.</li>
+                    <li>schemaVersion 2.5 &rarr; 2.6.</li>
+                </ul>
                 <p><strong>v.80.9 (2026-04-27)</strong></p>
                 <ul>
                     <li>"Reference Data" card &mdash; was eating the entire upper-left of the homepage after v.80.8 added all the new sources to the visible bullet lists. Collapsed back down to three named-source one-liners (DepMap 25Q3 &middot; CORUM + Reactome &middot; in-app curated KBs) with a "&#9662; show files &amp; details" toggle that expands the full per-bucket file / KB list when needed. The Cell Lines / Gene Effect / Correlation / Open / Reset buttons are now visible without scrolling again.</li>
@@ -2438,7 +2446,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.9</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.0</a>
     </div>
 
     <div class="main-content">
@@ -4569,6 +4577,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v80_9"></script>
+    <script src="app.js?v=v81_0"></script>
 </body>
 </html>

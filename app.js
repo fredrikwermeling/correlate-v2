@@ -19118,6 +19118,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 fusionOverlayGene: transOverlayF,
                 customCellLineListCount: customCLCount
             };
+            // Description with explicit axis labels — earlier version
+            // produced "Scatter of FAM167A vs FAM167A" when both axes were
+            // the same gene with different types (GE vs expr), which read
+            // as a redundant tautology rather than the actual analysis.
+            const typeLabel = (t) => t === 'expr' ? 'expression' : t === 'ge' ? 'gene effect' : (t || 'gene effect');
+            const xLabel = `${ci?.gene1 || '?'} ${typeLabel(ci?.xType)}`;
+            const yLabel = `${ci?.gene2 || '?'} ${typeLabel(ci?.yType)}`;
             const parts = [
                 cancerF,
                 subF,
@@ -19125,7 +19132,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 context.fusionFilter,
                 customCLCount ? `custom CL list (n=${customCLCount})` : ''
             ].filter(Boolean);
-            description = `Scatter of ${ci?.gene1} vs ${ci?.gene2}${parts.length ? ' filtered by ' + parts.join(', ') : ''}.`;
+            description = `Scatter of ${xLabel} (x) vs ${yLabel} (y)${parts.length ? ', filtered by ' + parts.join(', ') : ''}.`;
         } else if (source === 'mutation') {
             const excludedList = mr?.excludedTissues?.size ? [...mr.excludedTissues] : [];
             context = {
@@ -19382,7 +19389,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // mutation views), the focal gene itself is always kept regardless of
         // its max-abs — for a NEDD8 GE export we want NEDD8's own GE row even
         // if its max-abs sits below the tier cutoff for some reason.
-        const focalGene = (context.gene || context.hotspotGene || '').toUpperCase();
+        // Focal gene resolution — view-aware. Reviewer flagged that scatter
+        // exports were silently missing every focal-gene summary because the
+        // resolver only checked context.gene (gene_effect) / context.hotspotGene
+        // (mutation). Now also picks up scatter (gene1) and exprCorrelate
+        // (targetGene) contexts so the precomputed summaries fire for every
+        // view that has a single focal gene.
+        const focalGene = (context.gene || context.hotspotGene || context.targetGene || context.gene1 || '').toUpperCase();
         const focalGene2 = (context.gene2 || '').toUpperCase();
         const geGenes = this.metadata.genes;
         const geCLIndices = cellLines.map(cl => this.metadata.cellLines.indexOf(cl));
@@ -19424,7 +19437,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // across the cohort), n (effective sample size after dropping
         // cell lines missing focal-gene GE or partner expression) }.
         let topCorrelates = null;
-        const analysisGene = context.gene || context.hotspotGene || '';
+        // Same view-aware fallback as focalGene above.
+        const analysisGene = context.gene || context.hotspotGene || context.targetGene || context.gene1 || '';
         if (analysisGene && this.geneIndex.has(analysisGene.toUpperCase()) && includeExpr && this.expressionData) {
             setStatus('Computing top expression correlates...');
             await new Promise(r => setTimeout(r, 50));
@@ -19641,6 +19655,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     };
                 }
 
+                // Variance warning — flag when the focal gene sits in screen
+                // noise so the LLM doesn't hunt for biology in random
+                // fluctuation. Triggered when |overall mean| < 0.3 AND SD is
+                // small AND essentially no cell lines are essential
+                // (GE < -0.5). For a FAM167A export with mean -0.05, SD 0.11,
+                // 0/74 lines essential, this would have prevented the AI from
+                // confidently inventing a story from noise-driven correlations.
+                const nEssential = allValues.filter(v => v < -0.5).length;
+                const fracEssential = allValues.length > 0 ? nEssential / allValues.length : 0;
+                if (Math.abs(overallMean) < 0.3 && overallSd < 0.15 && fracEssential < 0.05) {
+                    extras = extras || {};
+                    extras.focalGeneVarianceWarning = {
+                        gene: analysisGene,
+                        message: `${analysisGene} GE in this cohort is mean=${overallMean.toFixed(2)}, SD=${overallSd.toFixed(2)}, ${nEssential}/${allValues.length} lines essential (GE<-0.5). The "variability" you see may be screen noise rather than biology — at small SD and near-zero mean, top genome-wide correlations will look impressive but be noise-driven. Stratify or compare to a cohort-where-${analysisGene}-is-essential before chasing pathway stories from this view.`,
+                        criteria: { absMean: 0.3, sdMax: 0.15, fracEssentialMax: 0.05 }
+                    };
+                }
+
                 // Mutation summary for the focal gene's GE: per common driver
                 // gene, compare GE in mutated vs WT cell lines (Welch's t).
                 // Two passes — `core` always shows the canonical drivers
@@ -19746,7 +19778,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const exportData = {
             _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
-            schemaVersion: '2.5',
+            schemaVersion: '2.6',
             nTotal: cellLines.length,
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices. Length = nTotal.',
@@ -19769,7 +19801,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 'Use cellLineOrder as the shared index for geneEffect and expression arrays.'
             ],
             _analysisInstructions: [
-                "Step 1 - Overview: Briefly survey the data. Summarize key groups, sample sizes, and the target gene's effect distribution. For gene-effect views, the export precomputes two unbiased scans you should USE before recomputing anything: topCoessentials (GE-vs-GE Pearson — which other genes' essentiality co-varies with the focal gene's; positive r = co-essentiality BUFFERING within a complex, negative r = same-pathway co-essentiality) and topCorrelates (GE-vs-expression Pearson — which genes' expression predicts focal-gene dependency; positive r = high partner expression covaries with WEAKER focal-gene essentiality). Read both fields before running your own correlations.",
+                "Step 0 - Sanity check: Look for extras.focalGeneVarianceWarning. If present, the focal gene sits in screen noise in this cohort — top genome-wide correlations will be noise-driven. Read the warning aloud to the user, suggest stratification or a wider cohort, and treat any pattern hunting in this export as exploratory, not load-bearing.",
+                "Step 1 - Overview: Briefly survey the data. Summarize key groups, sample sizes, and the target gene's effect distribution. When the export includes them (gene-effect / scatter / mutation / expression-correlate views with a single focal gene), USE these precomputed scans before recomputing anything: topCoessentials (GE-vs-GE Pearson — which other genes' essentiality co-varies with the focal gene's; positive r = co-essentiality BUFFERING within a complex, negative r = same-pathway co-essentiality) and topCorrelates (GE-vs-expression Pearson — which genes' expression predicts focal-gene dependency; positive r = high partner expression covaries with WEAKER focal-gene essentiality). If those fields are not present (e.g. multi-gene views like correlation / cluster / gate-comparison), recompute against the matrix yourself.",
                 "Step 2 - Confirm scope (judgment call): If the question is open-ended ('explain the variability', 'what drives X'), present the overview to the user with 2-3 candidate analytical angles and ask which to pursue. If the question is specific and self-contained ('what is the top correlate of NEDD8', 'compare gates A and B on differential GE'), skip this step and go straight to the analysis — don't pad with friction.",
                 "Step 3 - Deep analysis: Work data-first. Use the precomputed extras (focalGeneTissueSummary for per-tissue/subtype means, focalGeneMutationSummary for driver-mutation effects) before scanning the matrix gene-by-gene. Characterize unbiased genome-wide hits and annotate by pathway before testing hypothesis-driven candidate gene lists. After finding one explanatory model, actively search for alternative or complementary axes. Report all major signals, not just the first plausible one."
             ],
