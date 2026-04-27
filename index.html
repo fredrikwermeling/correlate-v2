@@ -1325,6 +1325,20 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.80.3 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI <code>.json.gz</code> export &mdash; fixes after a real export from the Gene Effect browser on all 1186 cell lines came out at 64 MB. Variance threshold alone wasn't tight enough at large n: ~9000 genes still passed <code>|GE|&gt;0.5</code> in 1186 cells, dominating file size. Added a <strong>per-matrix gene cap</strong> on top of the variance filter — after the threshold, genes are sorted by relevance (max-abs for GE, sd for expression) and the top N kept:
+                        <ul>
+                            <li>≤100 cells: no cap</li>
+                            <li>100&ndash;500: cap 12 000</li>
+                            <li>500&ndash;1000: cap 6 000</li>
+                            <li>1000&ndash;1500: cap 3 500 (your case &mdash; should now be ~20&ndash;25 MB)</li>
+                            <li>&gt;1500: cap 2 500</li>
+                        </ul>
+                    </li>
+                    <li>AI export <strong>file shape unified across all sources</strong>. v.80.1 had results-only sources (correlations / clusters / expression correlates) skip the matrices entirely, which produced very different files between e.g. the Gene Effect browser (64 MB with full matrices) and the Correlation browser (~2 MB metadata-only). With the gene cap, every source now ships the same shape — capped GE matrix + capped expression matrix + cell-line metadata + source-specific extras. Comparing files between sources should feel consistent now.</li>
+                    <li>AI dialog tier description updated to reflect the new "variance filter + cap" rules.</li>
+                </ul>
                 <p><strong>v.80.2 (2026-04-27)</strong></p>
                 <ul>
                     <li>AI export dialog unified across all 8 source views (gene effect / scatter / mutation analysis / gate compare / correlation / cluster / expression correlate / GE-modal). The four sources that previously used a bare browser <code>prompt()</code> for the question (mutation, scatter, plus the four "Export for AI" menu items in correlation / cluster / gate / expression correlate panels) now open the same fixed-position modal as the GE-modal export. Every export path now shows: source name, cell-line cohort size, exactly what's getting written into the file (matrices vs results-only, with the active tier filters spelled out), the question textarea, and an "After download" suggestion pointing at <a href="https://claude.ai">claude.ai</a> for the actual analysis (the embedded <code>aiInstructions</code> are tuned for it; ChatGPT / Gemini also accept <code>.json.gz</code>). Dialog dismisses on close button, outside click, or after a successful export.</li>
@@ -2360,7 +2374,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.2</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.3</a>
     </div>
 
     <div class="main-content">
@@ -4470,6 +4484,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v80_2"></script>
+    <script src="app.js?v=v80_3"></script>
 </body>
 </html>

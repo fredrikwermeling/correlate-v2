@@ -3447,25 +3447,22 @@ class CorrelationExplorer {
             const sourceEl = document.getElementById('aiDialogSource');
             if (sourceEl) sourceEl.textContent = `${aiSourceLabels[source] || source}  ·  ${n} cell line${n === 1 ? '' : 's'} in cohort`;
 
-            // Tier description matches the unified exporter. Results-only
-            // sources (correlations / clusters / exprCorrelates) skip the
-            // matrices — the result table is what the AI needs to interpret.
-            const resultsOnly = (source === 'correlations' || source === 'clusters' || source === 'exprCorrelates');
+            // Tier description — same structure for every source so users
+            // see consistent file shapes. Variance filter + per-matrix gene
+            // cap to fit claude.ai's ~30 MB attachment limit.
             let tierText;
             if (n === 0) {
                 tierText = `<b style="color:#dc2626;">No cell lines in cohort.</b> Adjust filters or run the analysis first.`;
-            } else if (resultsOnly) {
-                tierText = `<b>What's in the file:</b> result tables (correlation pairs / cluster genes / per-gene r-values), per-cell-line metadata, mutations, clinical fusions, inferred subtypes, genome signatures. <b>Matrices skipped</b> — for this view the analysis result is what the AI needs, the raw data would just be redundant.`;
             } else if (n <= 100) {
                 tierText = `<b>What's in the file:</b> full GE + full expression + mutations + clinical fusions + inferred subtypes + genome signatures. No filtering at this cohort size.`;
             } else if (n <= 500) {
-                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.2 (drops near-zero genes); expression filtered to mean>1.0 OR sd>0.5; mutations / fusions / inferred / signatures full.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.2; expression filtered to mean>1.0 OR sd>0.5; up to 12 000 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras (correlation pairs / cluster genes / differential GE / etc.).`;
             } else if (n <= 1000) {
-                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.3; expression filtered to mean>2.0 OR sd>0.5; mutations / fusions / inferred / signatures full.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.3; expression filtered to mean>2.0 OR sd>0.5; up to 6 000 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras.`;
             } else if (n <= 1500) {
-                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essential genes only); expression filtered to mean>2.5 OR sd>0.8; mutations / fusions / inferred / signatures full.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essentials); expression filtered to mean>2.5 OR sd>0.8; up to 3 500 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras.`;
             } else {
-                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5; expression filtered to mean>3.0 OR sd>1.0; mutations / fusions / inferred / signatures full. Large cohort &mdash; expect a 20&ndash;30 MB file.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essentials); expression filtered to mean>3.0 OR sd>1.0; up to 2 500 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras. Large cohort &mdash; expect ~20 MB.`;
             }
             document.getElementById('aiDataTierInfo').innerHTML = tierText;
             document.getElementById('aiExportStatus').textContent = '';
@@ -19023,33 +19020,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cellLines = allCLs;
         const n = cellLines.length;
 
-        // Tier table — tightened after empirical 74 MB at 1186 cells in the
-        // 500–1500 band. Split into 500–1000 and 1000–1500 with the upper
-        // band keeping only essential genes (|GE|>0.5) so the file fits
-        // claude.ai's ~30 MB attachment limit.
-        //   ≤100        full GE + full expression
-        //   100–500     |GE|>0.2  + (expr mean>1.0  OR sd>0.5)
-        //   500–1000    |GE|>0.3  + (expr mean>2.0  OR sd>0.5)
-        //   1000–1500   |GE|>0.5  + (expr mean>2.5  OR sd>0.8)
-        //   >1500       |GE|>0.5  + (expr mean>3.0  OR sd>1.0)
-        // Mutations / fusions / LoF / global signatures ALWAYS included.
-        // Expression filter is OR (tissue-restricted markers survive).
-        let geCutoff, exprMeanMin, exprSdMin, tierLabel;
+        // Tier table — variance filter + per-matrix gene cap so the file
+        // fits claude.ai's ~30 MB attachment limit at any cohort size.
+        // Empirically the variance filter alone wasn't enough at large n
+        // (1186 cells with GE>0.5 + expr mean>2.5 OR sd>0.8 produced 64 MB
+        // because ~9000 genes still passed per matrix).
+        //   ≤100         no filter / no cap
+        //   100–500      GE>0.2  + expr (mean>1.0 OR sd>0.5)  + cap 12000
+        //   500–1000     GE>0.3  + expr (mean>2.0 OR sd>0.5)  + cap  6000
+        //   1000–1500    GE>0.5  + expr (mean>2.5 OR sd>0.8)  + cap  3500
+        //   >1500        GE>0.5  + expr (mean>3.0 OR sd>1.0)  + cap  2500
+        // After the tier filter, genes are sorted by relevance (max-abs for
+        // GE, sd for expression) and the top `geneCap` are kept. Mutations
+        // / fusions / LoF / global signatures always included unfiltered.
+        let geCutoff, exprMeanMin, exprSdMin, geneCap, tierLabel;
         if (n <= 100) {
-            geCutoff = 0; exprMeanMin = -Infinity; exprSdMin = -Infinity;
-            tierLabel = 'full (no GE / expression filtering)';
+            geCutoff = 0; exprMeanMin = -Infinity; exprSdMin = -Infinity; geneCap = Infinity;
+            tierLabel = 'full (no filter, no cap)';
         } else if (n <= 500) {
-            geCutoff = 0.2; exprMeanMin = 1.0; exprSdMin = 0.5;
-            tierLabel = 'GE |val|>0.2; expression mean>1.0 OR sd>0.5; mutations / fusions / LoF / signatures full';
+            geCutoff = 0.2; exprMeanMin = 1.0; exprSdMin = 0.5; geneCap = 12000;
+            tierLabel = 'GE |val|>0.2; expression mean>1.0 OR sd>0.5; up to 12 000 genes per matrix; mutations / fusions / LoF / signatures full';
         } else if (n <= 1000) {
-            geCutoff = 0.3; exprMeanMin = 2.0; exprSdMin = 0.5;
-            tierLabel = 'GE |val|>0.3; expression mean>2.0 OR sd>0.5; mutations / fusions / LoF / signatures full';
+            geCutoff = 0.3; exprMeanMin = 2.0; exprSdMin = 0.5; geneCap = 6000;
+            tierLabel = 'GE |val|>0.3; expression mean>2.0 OR sd>0.5; up to 6 000 genes per matrix; mutations / fusions / LoF / signatures full';
         } else if (n <= 1500) {
-            geCutoff = 0.5; exprMeanMin = 2.5; exprSdMin = 0.8;
-            tierLabel = 'GE |val|>0.5 (essential genes only); expression mean>2.5 OR sd>0.8; mutations / fusions / LoF / signatures full';
+            geCutoff = 0.5; exprMeanMin = 2.5; exprSdMin = 0.8; geneCap = 3500;
+            tierLabel = 'GE |val|>0.5 (essentials); expression mean>2.5 OR sd>0.8; up to 3 500 genes per matrix; mutations / fusions / LoF / signatures full';
         } else {
-            geCutoff = 0.5; exprMeanMin = 3.0; exprSdMin = 1.0;
-            tierLabel = 'GE |val|>0.5 (essential genes only); expression mean>3.0 OR sd>1.0; mutations / fusions / LoF / signatures full';
+            geCutoff = 0.5; exprMeanMin = 3.0; exprSdMin = 1.0; geneCap = 2500;
+            tierLabel = 'GE |val|>0.5 (essentials); expression mean>3.0 OR sd>1.0; up to 2 500 genes per matrix; mutations / fusions / LoF / signatures full';
         }
         const includeExpr = this.expressionLoaded;
 
@@ -19276,19 +19275,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         context.dataSource = 'DepMap 25Q3';
         context.date = new Date().toISOString().slice(0, 10);
 
-        // Results-only sources — the analytical output is the result table
-        // (correlation pairs, cluster genes, expression-correlate r values),
-        // which is already in `extras`. The AI doesn't need to re-derive
-        // anything from the raw matrices, so we skip them entirely. Without
-        // this, exporting all 1186 cell lines from a correlation analysis
-        // produced a 74 MB file (matrices dominated) that wouldn't upload to
-        // claude.ai. The AI still gets cell-line metadata, mutations,
-        // clinical fusions, inferred subtypes, signatures — enough to reason
-        // about the cohort and the result.
-        const includeMatrices = !(source === 'correlations' || source === 'clusters' || source === 'exprCorrelates');
-        if (!includeMatrices) {
-            tierLabel = 'metadata + extras only — matrices skipped (the analysis result, not the raw data, is what the AI needs to interpret this view)';
-        }
+        // Every source includes matrices now (with the same tier filter +
+        // gene cap). Earlier we had a "results-only" path for correlations /
+        // clusters / exprCorrelates that skipped matrices entirely; that
+        // produced files with very different shapes between sources (the
+        // user noticed). With the gene cap, even a 1186-cell correlation
+        // export fits comfortably under the 30 MB limit while still giving
+        // the AI matrix context.
         context.dataTier = tierLabel;
 
         const question = document.getElementById('aiQuestion')?.value?.trim() || '';
@@ -19370,28 +19363,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         setStatus('Building gene effect matrix...');
         await new Promise(r => setTimeout(r, 50));
 
-        // Phase 1 — round GE values to 3 decimals (was 4). Trims ~25% off
-        // the gzipped size with no analytical loss for correlation work.
-        // Skipped entirely for results-only sources (correlations / clusters /
-        // exprCorrelates) — see comment near the includeMatrices flag above.
+        // Phase 1 — round GE values to 3 decimals (was 4). Variance filter
+        // first; then if more genes pass than `geneCap`, sort by max-abs and
+        // keep the top N. The cap is what bounds the file size — the
+        // variance threshold alone was empirically not enough at 1186 cells
+        // (~9000 genes passed → 64 MB file).
         const geGenes = this.metadata.genes;
         const geCLIndices = cellLines.map(cl => this.metadata.cellLines.indexOf(cl));
-        const geMatrix = {};
-        if (includeMatrices) {
-            for (let gi = 0; gi < this.nGenes; gi++) {
-                const vals = [];
-                let hasData = false, maxAbs = 0;
-                for (const clIdx of geCLIndices) {
-                    if (clIdx === -1) { vals.push(null); continue; }
-                    const v = this.geneEffects[gi * this.nCellLines + clIdx];
-                    if (!isNaN(v)) { vals.push(parseFloat(v.toFixed(3))); hasData = true; maxAbs = Math.max(maxAbs, Math.abs(v)); }
-                    else vals.push(null);
-                }
-                if (!hasData) continue;
-                if (geCutoff > 0 && maxAbs < geCutoff) continue;
-                geMatrix[geGenes[gi]] = vals;
+        const geCandidates = []; // { gene, vals, maxAbs }
+        for (let gi = 0; gi < this.nGenes; gi++) {
+            const vals = [];
+            let hasData = false, maxAbs = 0;
+            for (const clIdx of geCLIndices) {
+                if (clIdx === -1) { vals.push(null); continue; }
+                const v = this.geneEffects[gi * this.nCellLines + clIdx];
+                if (!isNaN(v)) { vals.push(parseFloat(v.toFixed(3))); hasData = true; maxAbs = Math.max(maxAbs, Math.abs(v)); }
+                else vals.push(null);
             }
+            if (!hasData) continue;
+            if (geCutoff > 0 && maxAbs < geCutoff) continue;
+            geCandidates.push({ gene: geGenes[gi], vals, maxAbs });
         }
+        if (Number.isFinite(geneCap) && geCandidates.length > geneCap) {
+            geCandidates.sort((a, b) => b.maxAbs - a.maxAbs);
+            geCandidates.length = geneCap;
+        }
+        const geMatrix = {};
+        for (const c of geCandidates) geMatrix[c.gene] = c.vals;
 
         // Phase 1 — expression matrix with the new OR-not-AND filter:
         // include the gene if mean ≥ exprMeanMin OR sd ≥ exprSdMin (was AND).
@@ -19399,7 +19397,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // SD because it's only highly expressed in liver lines) which the AND
         // version would silently drop.
         let exprMatrix = null;
-        if (includeMatrices && includeExpr && this.expressionData && this.expressionMetadata) {
+        if (includeExpr && this.expressionData && this.expressionMetadata) {
             setStatus('Building expression matrix...');
             await new Promise(r => setTimeout(r, 50));
             const exprGenes = this.expressionMetadata.genes;
@@ -19407,7 +19405,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const exprCLMap = new Map();
             this.expressionMetadata.cellLines.forEach((cl, i) => exprCLMap.set(cl, i));
             const exprCLIndices = cellLines.map(cl => exprCLMap.get(cl) ?? -1);
-            exprMatrix = {};
+            const exprCandidates = []; // { gene, vals, sd }
             for (let gi = 0; gi < exprGenes.length; gi++) {
                 const vals = [];
                 let hasData = false, sum = 0, count = 0, ssq = 0;
@@ -19422,8 +19420,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 vals.forEach(v => { if (v !== null) ssq += (v - mean) ** 2; });
                 const sd = Math.sqrt(ssq / count);
                 if (mean < exprMeanMin && sd < exprSdMin) continue;
-                exprMatrix[exprGenes[gi]] = vals;
+                exprCandidates.push({ gene: exprGenes[gi], vals, sd });
             }
+            if (Number.isFinite(geneCap) && exprCandidates.length > geneCap) {
+                exprCandidates.sort((a, b) => b.sd - a.sd);
+                exprCandidates.length = geneCap;
+            }
+            exprMatrix = {};
+            for (const c of exprCandidates) exprMatrix[c.gene] = c.vals;
         }
 
         // Precomputed top correlates (#4)
