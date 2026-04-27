@@ -1325,6 +1325,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.79.0 (2026-04-27)</strong></p>
+                <ul>
+                    <li>Cell line Wiki restructured for clarity. Sections regrouped into four buckets: <em>Identity</em> (Cancer classification &middot; Patient &amp; sample origin &middot; Sex), <em>Genome state</em> (NEW &mdash; <strong>Genome signatures</strong>), <em>Driver landscape</em> (Expected drivers for this subtype &middot; Driver mutations &middot; <strong>Functional loss</strong> NEW &middot; Fusion landscape), <em>Functional behaviour</em> (CRISPR dependencies &middot; Expression profile &middot; Drug response), and <em>Lab use</em> (STR authentication &middot; External resources). Headers shortened, each section opens with one short sentence saying what it contains, then the data, then a small grey "Source:" footer.</li>
+                    <li><strong>Genome signatures</strong> section &mdash; Ploidy, WGD (in red when positive), Aneuploidy score (Ben-David 0&ndash;39), CIN, LoH fraction, and MSI score (MSI-high lines flagged red). One-liner per metric explaining what it means. WGD-positive lines (~58% of the panel) and MSI-high lines (~6%) are systematically different in many comparisons, so this is interpretive context that affects how every section below should be read.</li>
+                    <li><strong>Functional loss</strong> section &mdash; new red-bordered chips for tumor suppressors that are functionally inactivated by integrated CN + mutation + expression evidence (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC). Catches deletion-driven losses (CDKN2A homo-del in 445 lines panel-wide, RB1 deep deletion) that the damaging-mutation matrix alone is blind to.</li>
+                    <li><strong>Driver mutations</strong> &mdash; the top-hotspots line now shows the specific variant in green next to the gene symbol (e.g. <code>KRAS</code> <span style="color:#16a34a;">(p.G12D)</span>) when DepMap's inferred-subtype pipeline calls a specific codon (KRAS p.G12D/G12C, BRAF V600E, EGFR L858R, JAK2 V617F, EGFR exon-19 del, plus generic group-level calls).</li>
+                    <li><strong>Fusion landscape</strong> &mdash; clinically relevant fusions (BCR-ABL1 high, EWSR1-FLI1 high, &hellip;) now appear at the top of the section with green/amber/red tier chips and the &#9888; atypical badge where applicable, before the noisy raw partner list. Source footer points at the curated list provenance and the per-cell-line orthogonal validation.</li>
+                </ul>
                 <p><strong>v.78.1 (2026-04-27)</strong></p>
                 <ul>
                     <li>CLB fusion filter dropdown &mdash; the n= count was getting truncated by Safari's narrow datalist subtitle row (showed "★ EWSR1-" rather than "★ EWSR1-FLI1 (n=14)"). Moved the full label (★ marker, fusion / gene name, n= count) into the option's <code>value</code> attribute so it renders as the only line. Filter lookup gained a small helper that strips the ★ prefix and the (n=N) suffix to recover the underlying name, applied everywhere the value is used (cell-line filter, GE-modal forwarding, active-filter badges, CSV export labels). Free-typing a canonical name like "BCR-ABL1" still works, with or without the (n=11) suffix.</li>
@@ -2315,7 +2323,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.78.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.79.0</a>
     </div>
 
     <div class="main-content">

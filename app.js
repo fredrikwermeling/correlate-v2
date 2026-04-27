@@ -23655,6 +23655,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const m = this.cellLineMetadata || {};
         const get = (field) => m[field]?.[cellLineId] || '';
 
+        // Per-cell-line lookups for the integrated DepMap-derived layers.
+        // infSub: specific hotspot variants (KRAS p.G12D ...), named driver
+        //         fusions, integrated LoF (CN+mutation+expression), MSI binary.
+        // gs    : PureCN ploidy/WGD/CIN/LoH, MSIsensor2 score, Ben-David
+        //         aneuploidy. Genome-wide structural / stability metrics.
+        // clinicalFusions: per-cell-line list of curated driver fusion calls
+        //         with tier (high/medium/low) and atypical-lineage flag.
+        const infSub = this.inferredSubtypes?.byCellLine?.[cellLineId] || {};
+        const gs = this.globalSignatures?.byCellLine?.[cellLineId] || null;
+        const clinicalFusionCalls = this.clinicalFusions?.byCellLine?.[cellLineId] || [];
+
+        // gene → most-specific variant string (KRAS p.G12D wins over generic
+        // KRAS p.G12 when both are positive). "Hotspot" suffix (the ALK column)
+        // is suppressed because rendering "(Hotspot)" reads as redundant.
+        const geneVariant = {};
+        const SPECIFIC_HOTSPOTS = new Set(['KRAS p.G12D', 'KRAS p.G12C', 'BRAF p.V600E', 'EGFR p.L858R', 'JAK2 p.V617F']);
+        for (const h of (infSub.hotspots || [])) {
+            const gene = h.split(' ')[0];
+            const variant = h.slice(gene.length + 1);
+            if (variant === 'Hotspot') continue;
+            if (SPECIFIC_HOTSPOTS.has(h)) {
+                geneVariant[gene] = variant;
+            } else if (!geneVariant[gene] || !SPECIFIC_HOTSPOTS.has(`${gene} ${geneVariant[gene]}`)) {
+                geneVariant[gene] = variant;
+            }
+        }
+
         document.getElementById('clbWikiTitle').textContent = `${name} — Wiki`;
         const rrid = get('rrid');
         const summaryParts = [cellLineId];
@@ -24054,7 +24081,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
         hotspotsMutated.sort((a, b) => b.level - a.level);
-        const topHotspots = hotspotsMutated.slice(0, 10).map(h => `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>`).join(', ');
+        const topHotspots = hotspotsMutated.slice(0, 10).map(h => {
+            const variant = geneVariant[h.gene];
+            const variantSuffix = variant ? ` <span style="color:#16a34a; font-weight:500;">(${variant})</span>` : '';
+            return `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>${variantSuffix}`;
+        }).join(', ');
         const mutationHtml = `
             <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Summary of mutations detected in this cell line. <b>Damaging</b> mutations typically inactivate a gene (frameshift, nonsense, splice). <b>Hotspot</b> mutations occur at specific residues that are recurrently mutated across tumours &mdash; some activate oncogenes (e.g. BRAF V600E, KRAS G12D), others recurrently alter tumour suppressors (e.g. TP53 R175H, R248Q). Colored badges below call out clinically-relevant patterns.</p>
             ${flagCards.length ? `<div style="margin-bottom:10px;">${flagsHtml}</div>` : ''}
@@ -24111,11 +24142,86 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const fusionCaveat = fusionCount > 30
             ? `<div style="margin-top:6px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>⚠ Very high fusion count (${fusionCount}).</b> When a cancer has a chaotic, highly rearranged genome, fusion-detection software tends to produce many false positives. Some of these calls are real driver fusions; many are technical artifacts or bystander events. Treat individual calls with caution &mdash; cross-reference with karyotype or targeted sequencing before acting on any single fusion.</div>`
             : '';
+        // Clinically relevant fusions block — curated calls (BCR-ABL1, etc.)
+        // surfaced first, with tier chips. The full noisy raw partner list
+        // remains as a secondary view.
+        const tierColor = { high: '#16a34a', medium: '#ca8a04', low: '#dc2626' };
+        const tierLabel = { high: 'high', medium: 'med', low: 'low' };
+        const sortedClinicalFusions = [...clinicalFusionCalls].sort((a, b) => {
+            const order = { high: 0, medium: 1, low: 2 };
+            return (order[a.tier] - order[b.tier]) || a.fusion.localeCompare(b.fusion);
+        });
+        const clinicalFusionHtml = sortedClinicalFusions.length > 0
+            ? sortedClinicalFusions.map(c => {
+                const color = tierColor[c.tier] || '#6b7280';
+                const atypical = c.atypicalLineage
+                    ? ` <span style="color:#b45309; font-size:10px;" title="Atypical lineage for this fusion — kept by orthogonal evidence (partner expression and/or dependency)">⚠ atypical</span>`
+                    : '';
+                return `<div style="margin:3px 0;"><b>${c.fusion}</b>`
+                    + ` <span style="color:${color}; border:1px solid ${color}; border-radius:8px; padding:0 5px; font-size:10px; margin-left:4px;">${tierLabel[c.tier] || c.tier}</span>`
+                    + atypical + `</div>`;
+            }).join('')
+            : '';
         const fusionHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Gene fusions (also called translocations) happen when two chromosomes break and join incorrectly, creating a chimeric gene. Many hematological cancers are driven by specific fusions (BCR-ABL in CML, EWSR1-FLI1 in Ewing sarcoma, etc.). In solid tumours with complex genomes the fusion calls are noisier.</p>
-            ${row('Fusion partners (total)', fusionCount)}
-            ${fusionPartners.length ? row('Partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20} more</span>` : '')) : ''}
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Gene fusions (also called translocations) happen when two chromosomes break and join incorrectly, producing a chimeric gene. Some are textbook drivers (BCR-ABL1 in CML, EWSR1-FLI1 in Ewing sarcoma); many calls in solid tumours with chaotic genomes are passenger events or technical artifacts.</p>
+            ${clinicalFusionHtml ? `<div style="margin-bottom:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a;"><b style="color:#15803d;">Clinically relevant fusions</b> <span style="font-size:10px; color:#6b7280;">(curated drivers, validated per cell line on lineage + partner expression + partner dependency)</span>${clinicalFusionHtml}</div>` : ''}
+            ${row('Fusion partners (total, raw)', fusionCount)}
+            ${fusionPartners.length ? row('Raw partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20} more</span>` : '')) : ''}
             ${fusionCaveat}`;
+
+        // --- Genome signatures (PureCN + MSIsensor2 + Ben-David aneuploidy) ---
+        let genomeSigHtml;
+        if (gs) {
+            const wgdLabel = gs.WGD === true
+                ? '<span style="color:#dc2626; font-weight:600;">Yes</span> <span style="font-size:10px; color:#6b7280;">— genome doubled at some point in tumour evolution; common (~58% of panel) and shapes downstream interpretation</span>'
+                : 'No';
+            const msiVal = gs.MSIScore;
+            const msiLabel = (msiVal != null)
+                ? (msiVal >= 20
+                    ? `<span style="color:#dc2626; font-weight:600;">${msiVal.toFixed(1)} (MSI-high)</span> <span style="font-size:10px; color:#6b7280;">— mismatch repair lost; hypermutated, classic ICB responder</span>`
+                    : `${msiVal.toFixed(1)} <span style="font-size:10px; color:#6b7280;">(microsatellite stable)</span>`)
+                : '';
+            const ploidyLabel = gs.Ploidy != null
+                ? `${gs.Ploidy.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(diploid ≈ 2.0; values &gt;3 indicate WGD or near-tetraploidy)</span>` : '';
+            const aneupLabel = gs.Aneuploidy != null
+                ? `${gs.Aneuploidy} <span style="font-size:10px; color:#6b7280;">/39 (Ben-David 2021 score; higher = more chromosomal disruption)</span>` : '';
+            const cinLabel = gs.CIN != null
+                ? `${gs.CIN.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(chromosomal instability — fraction of genome subject to copy-number change)</span>` : '';
+            const lohLabel = gs.LoHFraction != null
+                ? `${gs.LoHFraction.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(fraction of genome that has lost heterozygosity)</span>` : '';
+            genomeSigHtml = `
+                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Genome-wide structural and stability metrics. Useful interpretive context — WGD-positive lines and MSI-high lines behave systematically differently in many comparisons.</p>
+                ${row('Whole-genome doubling (WGD)', wgdLabel)}
+                ${row('Ploidy', ploidyLabel)}
+                ${row('Aneuploidy score', aneupLabel)}
+                ${row('Chromosomal instability', cinLabel)}
+                ${row('Loss of heterozygosity', lohLabel)}
+                ${row('MSI score', msiLabel)}`;
+        } else {
+            genomeSigHtml = '<em style="color:#6b7280;">No genome signatures available for this cell line.</em>';
+        }
+
+        // --- Functional loss (integrated CN + mutation + expression) ---
+        const lofGenes = (infSub.lof || []).slice().sort();
+        let lofHtml;
+        if (this.inferredSubtypes?.byCellLine?.[cellLineId] != null) {
+            if (lofGenes.length > 0) {
+                const chips = lofGenes.map(g =>
+                    `<span class="gene-hover clb-gene-link" data-gene="${g}" `
+                    + `style="cursor:help; font-weight:600; color:#dc2626; border:1px solid #dc2626; `
+                    + `border-radius:8px; padding:1px 7px; margin-right:6px; display:inline-block; margin-bottom:4px;">`
+                    + `${g}</span>`).join('');
+                lofHtml = `
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Tumor suppressors that have been functionally lost in this cell line, integrating three signals: low copy number (homozygous deletion), likely loss-of-function mutation, or near-zero expression. Catches deletion-driven losses (CDKN2A homo-del, RB1 deep deletion) that the damaging-mutation matrix alone is blind to.</p>
+                    <div style="line-height:1.9;">${chips}</div>`;
+            } else {
+                lofHtml = `
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Tumor suppressors that have been functionally lost in this cell line. None of the eight scanned tumour suppressors (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC) are flagged as lost &mdash; this line has retained the canonical TSG functions tested.</p>
+                    <div style="color:#6b7280; font-size:11px;">No functional loss in the scanned tumour-suppressor panel.</div>`;
+            }
+        } else {
+            lofHtml = '<em style="color:#6b7280;">No integrated functional-loss data available for this cell line.</em>';
+        }
 
         // --- GE signature (interpretive) ---
         const clIdx = this.metadata.cellLines.indexOf(cellLineId);
@@ -24387,18 +24493,60 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             <a href="${atccLink}" target="_blank" rel="noopener" style="${linkStyle}">ATCC search ↗</a>`;
 
         // --- Compose ---
+        // Sections are grouped: identity (who is this cell line) → genome
+        // (structural state) → drivers (what makes it cancer) → function
+        // (how does it behave) → lab use (authentication, links). Each
+        // section's intro paragraph already explains its scope; the section()
+        // helper adds a "Source:" footer below the body.
         body.innerHTML = [
-            section('Classification', classificationHtml, 'DepMap 25Q3 Model (OncotreeLineage, OncotreeSubtype, OncotreeCode, PatientSubtypeFeatures).'),
-            section('Patient / tumor origin', originHtml, 'DepMap 25Q3 Model table (patient-reported demographics and tissue metadata).'),
-            section('Sex', sexHtml, 'Annotation: DepMap Model. Expression: Correlate V2 classifier (Y-markers RPS4Y1/DDX3Y/EIF1AY/KDM5D/UTY/USP9Y + XIST; thresholds Y&gt;1.0 or XIST&gt;1.0 in log-TPM+1).'),
-            section(`Subtype hallmarks — <i>${subKey || 'unclassified'}</i>`, hallmarksHtml, 'Curated from WHO classification of haematolymphoid tumours (5th ed., 2022), COSMIC Cancer Gene Census, OncoKB, NCCN guidelines. Coverage: ~30 common Oncotree subtypes. Hit detection uses DepMap hotspot / damaging / fusion data.'),
-            section('Mutation profile', mutationHtml, 'DepMap 25Q3 mutations (hotspot) and damaging mutations matrices. Pathway KB: ~14 pathways × ~90 genes curated from OncoKB / COSMIC / SIGNOR. Flags: MMR-deficiency (damaging hit in MLH1/MSH2/MSH6/PMS2/EPCAM → MSI-H / ICB candidate); HR-deficiency (BRCA1/2/PALB2/RAD51C/D damaging → PARP inhibitor candidate); hypermutation (&gt;500 damaging = hypermutated, &gt;1000 = ultra, heuristic).'),
-            section('Fusion / translocation profile', fusionHtml, 'DepMap 25Q3 OmicsFusionFiltered. NOTE: fusion callers on hypermutated / highly-rearranged cancers produce many technical and passenger calls; counts &gt;30 are flagged for caution.'),
-            section('Gene-effect signature (interpretive)', geSigHtml, 'DepMap 25Q3 CRISPRGeneEffect (CERES). Most essential = most depleted. Druggable dependencies cross-referenced against a curated panel of ~60 genes with approved or clinical-stage inhibitors. Tumor-suppressor enrichment flagged when canonical TSGs (TP53, RB1, PTEN, APC, NF1, VHL, BRCA1/2, STK11, CDKN2A, SMAD4) score positive on knockout.'),
-            section('Expression signature (interpretive)', exprSigHtml, 'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). XIST and Y-markers lifted from the all-genes TPM CSV during offline preprocessing. Lineage-marker panels curated per Oncotree lineage (~15 markers each). Druggable targets flagged at log₂-TPM+1 &gt; 3.'),
-            section('Drug response (PRISM Repurposing Secondary)', drugHtml, (this.drugResponse?.dataSource || 'DepMap PRISM Repurposing Secondary.') + ' Curated panel of ' + (this.drugResponse?.panelSize || '~100') + ' clinically / mechanistically relevant compounds with editorial target / MOA / indication annotations. Z-scores computed per compound across the full PRISM panel. <b>Caveat:</b> in vitro viability ≠ clinical response. PRISM is a pooled barcoded screen — validate with orthogonal 2D/3D assays for anything clinically weighty.'),
-            section('Authentication (STR profiling)', authHtml, 'Concept / panel descriptions: ANSI/ATCC ASN-0002-2011 standard, Promega PowerPlex panels, Eurofins Genomics cell-line authentication reports. Reference profiles: Cellosaurus.'),
-            section('External resources', extHtml, 'Outbound links only — nothing is fetched live from inside this app.'),
+            // ── Identity ──────────────────────────────────────────────────
+            section('Cancer classification',
+                classificationHtml,
+                'DepMap 25Q3 Model table (Oncotree lineage / subtype / code, patient-tumour features).'),
+            section('Patient & sample origin',
+                originHtml,
+                'DepMap 25Q3 Model table — donor demographics and tissue collection metadata.'),
+            section('Sex (annotation vs expression)',
+                sexHtml,
+                'Annotation: DepMap Model. Expression: Correlate V2 classifier on Y-markers (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y) and XIST, thresholds 1.0 log-TPM+1.'),
+
+            // ── Genome state ──────────────────────────────────────────────
+            section('Genome signatures',
+                genomeSigHtml,
+                'DepMap 25Q3 OmicsGlobalSignatures — PureCN ploidy / WGD / CIN / LoH, MSIsensor2, Ben-David 2021 aneuploidy.'),
+
+            // ── Driver landscape ──────────────────────────────────────────
+            section(`Expected drivers for this subtype <span style="font-size:11px; color:#6b7280;">— ${subKey || 'unclassified'}</span>`,
+                hallmarksHtml,
+                'Curated from WHO classification of haematolymphoid tumours (5th ed., 2022), COSMIC Cancer Gene Census, OncoKB, NCCN guidelines. ~30 common Oncotree subtypes covered.'),
+            section('Driver mutations',
+                mutationHtml,
+                'DepMap 25Q3 hotspot + damaging mutation matrices. Specific variants (KRAS p.G12D, BRAF p.V600E …) sourced from OmicsInferredMolecularSubtypes. Pathway scan KB: ~14 pathways × ~90 genes from OncoKB / COSMIC / SIGNOR.'),
+            section('Functional loss <span style="font-size:11px; color:#6b7280;">— integrated tumour-suppressor inactivation</span>',
+                lofHtml,
+                'DepMap 25Q3 OmicsInferredMolecularSubtypes. A gene is "lost" if any of: WGS copy number &lt; 0.3, likely loss-of-function mutation with allele frequency &gt; 0.5, or expression &lt; 0.1 log-TPM. Catches deletion-driven losses (CDKN2A homo-del, RB1 deep deletion) that the damaging-mutation matrix alone misses.'),
+            section('Fusion landscape',
+                fusionHtml,
+                'Clinically relevant fusions: curated 51-driver list validated per cell line on lineage match + partner expression z-score + partner CRISPR dependency z-score (this app). Raw partner list: DepMap 25Q3 OmicsFusionFiltered — fusion callers on hypermutated / highly rearranged cancers produce many technical and passenger calls (counts &gt;30 are flagged).'),
+
+            // ── Functional behaviour ──────────────────────────────────────
+            section('CRISPR dependencies <span style="font-size:11px; color:#6b7280;">— what this cell line needs to survive</span>',
+                geSigHtml,
+                'DepMap 25Q3 CRISPRGeneEffect (Chronos). Most essential = most negative. Druggable dependencies cross-referenced against a ~60-gene panel with approved or clinical-stage inhibitors.'),
+            section('Expression profile <span style="font-size:11px; color:#6b7280;">— which genes are switched on</span>',
+                exprSigHtml,
+                'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Lineage-marker panels curated per Oncotree lineage (~15 markers each). Druggable targets flagged at log₂-TPM+1 &gt; 3.'),
+            section('Drug response <span style="font-size:11px; color:#6b7280;">— PRISM Repurposing</span>',
+                drugHtml,
+                (this.drugResponse?.dataSource || 'DepMap PRISM Repurposing Secondary.') + ' Curated panel of ' + (this.drugResponse?.panelSize || '~100') + ' compounds. Z-scores computed per compound across the full PRISM panel. <b>Caveat:</b> in vitro viability ≠ clinical response — validate any clinically weighty hit with orthogonal 2D/3D assays.'),
+
+            // ── Lab use ───────────────────────────────────────────────────
+            section('STR authentication',
+                authHtml,
+                'Panel definitions: ANSI/ATCC ASN-0002-2011, Promega PowerPlex, Eurofins Genomics. Reference profiles: Cellosaurus.'),
+            section('External resources',
+                extHtml,
+                'Outbound links only — no data is fetched live from this app.'),
         ].join('');
 
         document.getElementById('clbWikiModal').style.display = 'flex';
