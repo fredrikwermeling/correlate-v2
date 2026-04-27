@@ -1325,6 +1325,18 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.4 (2026-04-27)</strong></p>
+                <ul>
+                    <li><strong>Class-I antigen-presentation inference</strong> per cell line. Three integrated signals — none alone is conclusive, hence the integration:
+                        <ol>
+                            <li><strong>B2M damaging mutation</strong> &mdash; β2-microglobulin truncation knocks out the entire class-I antigen-presentation system regardless of HLA status. Strongest single signal.</li>
+                            <li><strong>HLA-A/B/C expression</strong> &mdash; z-score vs the full cohort. Very low expression of all three implies functional loss (transcriptional silencing OR LOH; we can't distinguish without phased reads).</li>
+                            <li><strong>HLA-A/B/C copy number</strong> &mdash; from <code>web_data/hla_cn.json</code> (extracted from DepMap's WGS CN matrix). log2-ratio &lt; &minus;0.4 in all three suggests one-copy loss.</li>
+                        </ol>
+                        Status tier: <em>likely_lost</em> (B2M damaging hit, OR strong reduction in two independent signals), <em>reduced</em> (one signal), <em>intact</em> (data available, no signals), <em>unknown</em> (data missing). Surfaces as a small red / amber chip next to the cell-line ID in the browser detail panel, with a hover tooltip listing the specific evidence. Also embedded in the AI <code>.json.gz</code> export per cell line as <code>cellLineMetadata.&lt;cl&gt;.class1AntigenPresentation</code> (only emitted when status is non-trivial). Schema bumped to <strong>3.0</strong>.</li>
+                    <li>Important caveat: this is a <strong>functional inference</strong>, not allele-specific HLA-LOH detection. Real LOH calls would need phased reads (LOHHLA) on raw BAMs, which DepMap doesn't redistribute. The integration here catches the same class of immune-escape-candidate cell lines for biology purposes &mdash; tooltip and AI-export field both spell that out.</li>
+                    <li>New <code>scripts/process_hla_cn.py</code> &mdash; takes a downloaded <code>OmicsCNGeneWGS.csv</code> (~400 MB), extracts copy number for HLA-A/B/C, B2M, antigen-processing-machinery genes (TAP1/2, TAPBP, ERAP1/2, NLRC5), and class-II HLA. Output: <code>web_data/hla_cn.json</code> (~50 KB). The CN file isn't bundled (gitignored); download it once from DepMap, run the script, commit the resulting JSON.</li>
+                </ul>
                 <p><strong>v.81.3 (2026-04-27)</strong></p>
                 <ul>
                     <li><strong>HLA / polymorphic-locus caveat</strong>. The HLA region (chr 6p21) is the most polymorphic in the human genome &mdash; HLA-A alone has &gt;7,000 known alleles &mdash; and gnomAD-based germline filtering leaks here. So "hotspot" calls in HLA / MIC / KIR genes typically reflect allelic divergence from the GRCh38 reference, not somatic events. Real cancer-relevant HLA loss exists (immune escape via class-I LoF + LOH, especially in MSI-high tumours) but should be inferred from expression loss + LOH, not the raw hotspot matrix.
@@ -2478,7 +2490,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.3</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.4</a>
     </div>
 
     <div class="main-content">
@@ -4609,6 +4621,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_3"></script>
+    <script src="app.js?v=v81_4"></script>
 </body>
 </html>

@@ -55,6 +55,7 @@ class CorrelationExplorer {
         this.globalSignatures = null;
         this.corumPartners = null;
         this.reactomePartners = null;
+        this.hlaCn = null;
         this.drugResponse = null;
         this.orthologs = null;
         this.geneEffects = null; // Float32Array [nGenes x nCellLines]
@@ -180,7 +181,7 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
@@ -193,7 +194,8 @@ class CorrelationExplorer {
             fetch('web_data/inferred_subtypes.json').catch(() => null),
             fetch('web_data/global_signatures.json').catch(() => null),
             fetch('web_data/corum_partners.json').catch(() => null),
-            fetch('web_data/reactome_partners.json').catch(() => null)
+            fetch('web_data/reactome_partners.json').catch(() => null),
+            fetch('web_data/hla_cn.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -223,6 +225,9 @@ class CorrelationExplorer {
         }
         if (reactomeRes && reactomeRes.ok) {
             this.reactomePartners = await reactomeRes.json();
+        }
+        if (hlaCnRes && hlaCnRes.ok) {
+            this.hlaCn = await hlaCnRes.json();
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -19449,6 +19454,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (Object.keys(ent).length) entry.inferred = ent;
             }
 
+            // Class-I antigen-presentation status (B2M damaging + HLA-A/B/C
+            // expression z + HLA CN). Functional inference, not allele-
+            // specific LOH detection. Only emit when status is non-trivial
+            // (skip 'intact' and 'unknown' to keep the JSON tight).
+            const classOneStatus = this._classOnePresentation(cl);
+            if (classOneStatus.status === 'likely_lost' || classOneStatus.status === 'reduced') {
+                entry.class1AntigenPresentation = {
+                    status: classOneStatus.status,
+                    reasons: classOneStatus.reasons,
+                    evidence: classOneStatus.evidence
+                };
+            }
+
             // Global genome-wide signatures (PureCN ploidy/WGD/CIN/LoH +
             // MSIsensor2 + Ben-David aneuploidy).
             const gs = this.globalSignatures?.byCellLine?.[cl];
@@ -20046,11 +20064,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const exportData = {
             _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
-            schemaVersion: '2.9',
+            schemaVersion: '3.0',
             nTotal: cellLines.length,
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices. Length = nTotal.',
-                cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool, caveat?: "polymorphic_locus"}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy). The `caveat: "polymorphic_locus"` flag marks HLA / MIC / KIR genes — calls in these highly polymorphic regions typically reflect germline allelic divergence from GRCh38, not somatic events. Treat such hotspot/damaging calls as suspect unless paired with expression loss + LOH.',
+                cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool, caveat?: "polymorphic_locus"}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy), class1AntigenPresentation ({ status: "reduced" | "likely_lost", reasons: [...], evidence: { b2mDamaging?, classOneExprMeanZ?, classOneCn? } } — functional inference combining B2M damaging mutations + HLA-A/B/C expression z-score vs cohort + HLA copy number; only emitted when class-I presentation looks compromised; NOT allele-specific LOH detection). The `caveat: "polymorphic_locus"` flag marks HLA / MIC / KIR genes — calls in these highly polymorphic regions typically reflect germline allelic divergence from GRCh38, not somatic events.',
                 geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores aligned to cellLineOrder. Negative = essential. null = missing. The focal gene of the analysis is always included regardless of variance threshold.',
                 expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. The focal gene, the genes surfaced in topCorrelates, and the focal gene\'s pathway / complex partners are always included regardless of variance threshold. Partner sources are layered: hand-curated high-value complexes (NEDD8/CRL, Proteasome, Hippo, MYC, TP53, BRCA, mTOR, BCL2, splicing) → CORUM physical protein complexes (~5000 human genes) → wiki cancer pathways (RAS/MAPK, PI3K, RTK family, etc.) → Reactome pathway / signalling-cascade co-members (~10000 human genes; broad parents filtered out, only pathways with 5-100 genes kept). So for SMARCA4 you get the BAF subunits via CORUM; for MCM4 the MCM2-7 helicase; for IL4R the JAK/STAT cascade via Reactome; for arbitrary genes you typically get something useful from at least one of the four layers.',
                 topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n }. Gated at n >= max(50, 0.6 * cohortSize) to drop partial-coverage genes. Polarity: positive r means high partner expression covaries with weaker focal-gene dependency (less negative GE).',
@@ -23814,8 +23832,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const msiBadge = infSub.msi === true
             ? ` <span style="background:#dc2626; color:#fff; font-size:10px; font-weight:600; padding:1px 6px; border-radius:8px; margin-left:6px;" title="Microsatellite instability — MSIsensor2 score ≥ 20">MSI</span>`
             : '';
+        // Class-I antigen-presentation badge — fires when integrated B2M /
+        // expression / CN evidence suggests likely or partial loss. Lets
+        // the user spot immune-escape candidates without scrolling.
+        const classOne = this._classOnePresentation(cellLineId);
+        let classOneBadge = '';
+        if (classOne.status === 'likely_lost' || classOne.status === 'reduced') {
+            const tooltip = `Class-I antigen presentation: ${classOne.status === 'likely_lost' ? 'likely lost' : 'reduced'}.\n• ${classOne.reasons.join('\n• ')}\n\nNote: this is a functional inference, not allele-specific HLA-LOH detection (which would need raw BAMs + LOHHLA).`;
+            const colour = classOne.status === 'likely_lost' ? '#dc2626' : '#ca8a04';
+            classOneBadge = ` <span style="background:${colour}; color:#fff; font-size:10px; font-weight:600; padding:1px 6px; border-radius:8px; margin-left:6px;" title="${tooltip.replace(/"/g, '&quot;')}">Class-I ${classOne.status === 'likely_lost' ? 'lost' : 'reduced'}</span>`;
+        }
         let top = `<h4>${name}</h4>`;
-        top += `<div class="clb-detail-id">${cellLineId}${msiBadge}</div>`;
+        top += `<div class="clb-detail-id">${cellLineId}${msiBadge}${classOneBadge}</div>`;
         top += `<div class="clb-detail-section">`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Subtype</span><span class="clb-stat-value">${sublineage || '-'}</span></div>`;
@@ -24205,6 +24233,145 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
     _isPolymorphicLocus(gene) {
         return this._POLYMORPHIC_LOCI().has((gene || '').toUpperCase());
+    }
+
+    // Class-I antigen-presentation inference for a single cell line.
+    // Three integrated signals — none alone is conclusive:
+    //   1. B2M damaging mutation. β2-microglobulin truncation knocks out
+    //      the entire class-I antigen-presentation system.
+    //   2. HLA-A/B/C expression. Z-score vs the full cohort (precomputed
+    //      lazily). Very low expression of all three implies functional
+    //      loss (transcriptional silencing OR LOH, not distinguishable
+    //      from gene-level data alone).
+    //   3. HLA-A/B/C copy number (when web_data/hla_cn.json is present).
+    //      log2-ratio < -0.4 in all three suggests one-copy loss.
+    //
+    // This is NOT allele-specific LOH detection — that needs phased reads
+    // (LOHHLA). It's a functional-loss inference that catches the same
+    // class of cell lines for biology purposes.
+    //
+    // Returns: { status, reasons, evidence }
+    //   status:   'intact' | 'reduced' | 'likely_lost' | 'unknown'
+    //   reasons:  array of human-readable strings
+    //   evidence: structured fields for the AI export
+    _classOnePresentation(cellLineId) {
+        const out = { status: 'unknown', reasons: [], evidence: {} };
+        if (!cellLineId) return out;
+
+        // Signal 1: B2M damaging mutation (always available when damaging
+        // mutation matrix is loaded).
+        const b2mDmg = this.damagingMutations?.geneData?.['B2M']?.mutations?.[cellLineId];
+        const b2mDamaging = (b2mDmg || 0) >= 1;
+        if (b2mDamaging) {
+            out.evidence.b2mDamaging = true;
+            out.reasons.push('B2M damaging mutation (knocks out all class-I presentation)');
+        }
+
+        // Signal 2: HLA-A/B/C expression z-score vs cohort. Lazily cache
+        // the per-gene mean/SD across all cell lines so this is cheap.
+        if (this.expressionLoaded && this.expressionData && this.expressionMetadata) {
+            if (!this._classOneExprStats) {
+                this._classOneExprStats = {};
+                const nE = this.expressionMetadata.nCellLines;
+                for (const g of ['HLA-A', 'HLA-B', 'HLA-C']) {
+                    const gi = this.expressionMetadata.genes.indexOf(g);
+                    if (gi < 0) continue;
+                    const vals = [];
+                    for (let i = 0; i < nE; i++) {
+                        const v = this.expressionData[gi * nE + i];
+                        if (!isNaN(v)) vals.push(v);
+                    }
+                    if (vals.length < 10) continue;
+                    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+                    const sd = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length) || 1;
+                    this._classOneExprStats[g] = { mean, sd, gi };
+                }
+            }
+            const eMap = this._classOneExprMap || (this._classOneExprMap = (() => {
+                const m = new Map();
+                this.expressionMetadata.cellLines.forEach((cl, i) => m.set(cl, i));
+                return m;
+            })());
+            const ei = eMap.get(cellLineId);
+            const zs = {};
+            const zList = [];
+            if (ei !== undefined) {
+                const nE = this.expressionMetadata.nCellLines;
+                for (const g of ['HLA-A', 'HLA-B', 'HLA-C']) {
+                    const stats = this._classOneExprStats[g];
+                    if (!stats) continue;
+                    const v = this.expressionData[stats.gi * nE + ei];
+                    if (isNaN(v)) continue;
+                    const z = (v - stats.mean) / stats.sd;
+                    zs[g] = parseFloat(z.toFixed(2));
+                    zList.push(z);
+                }
+            }
+            if (zList.length > 0) {
+                const meanZ = zList.reduce((a, b) => a + b, 0) / zList.length;
+                out.evidence.classOneExprZ = zs;
+                out.evidence.classOneExprMeanZ = parseFloat(meanZ.toFixed(2));
+                if (meanZ < -1.5) {
+                    out.reasons.push(`HLA-A/B/C expression strongly reduced (mean z = ${meanZ.toFixed(1)} vs cohort)`);
+                } else if (meanZ < -1.0) {
+                    out.reasons.push(`HLA-A/B/C expression reduced (mean z = ${meanZ.toFixed(1)} vs cohort)`);
+                }
+            }
+        }
+
+        // Signal 3: HLA-A/B/C copy number (only if hla_cn.json is loaded).
+        if (this.hlaCn?.byCellLine?.[cellLineId]) {
+            const cnEntry = this.hlaCn.byCellLine[cellLineId];
+            const fmt = this.hlaCn.cnFormat;
+            const class1 = ['HLA-A', 'HLA-B', 'HLA-C'].map(g => cnEntry[g]).filter(v => v != null);
+            if (class1.length >= 2) {
+                const meanCn = class1.reduce((a, b) => a + b, 0) / class1.length;
+                out.evidence.classOneCn = {
+                    'HLA-A': cnEntry['HLA-A'] ?? null,
+                    'HLA-B': cnEntry['HLA-B'] ?? null,
+                    'HLA-C': cnEntry['HLA-C'] ?? null,
+                    mean: parseFloat(meanCn.toFixed(3)),
+                    format: fmt,
+                };
+                // Flag thresholds depend on format (log2 ratio vs absolute CN).
+                let cnLossSuggestive = false, cnLossStrong = false;
+                if (fmt === 'log2_ratio') {
+                    cnLossSuggestive = meanCn < -0.4;
+                    cnLossStrong = meanCn < -0.7;
+                } else if (fmt === 'absolute') {
+                    cnLossSuggestive = meanCn < 1.6;
+                    cnLossStrong = meanCn < 1.2;
+                }
+                if (cnLossStrong) {
+                    out.reasons.push(`HLA-A/B/C copy-number loss (mean ${fmt} = ${meanCn.toFixed(2)})`);
+                } else if (cnLossSuggestive) {
+                    out.reasons.push(`HLA-A/B/C copy-number reduced (mean ${fmt} = ${meanCn.toFixed(2)})`);
+                }
+            }
+        }
+
+        // Tier the call. likely_lost requires either a B2M hit OR two
+        // independent reduced/loss signals (expression + CN). reduced
+        // requires one signal. intact = data available, no signals.
+        const hasExprData = out.evidence.classOneExprMeanZ !== undefined;
+        const hasCnData = out.evidence.classOneCn !== undefined;
+        const exprStrong = hasExprData && out.evidence.classOneExprMeanZ < -1.5;
+        const exprAny = hasExprData && out.evidence.classOneExprMeanZ < -1.0;
+        const cnStrong = out.reasons.some(r => r.startsWith('HLA-A/B/C copy-number loss'));
+        const cnAny = out.reasons.some(r => r.startsWith('HLA-A/B/C copy-number'));
+
+        if (b2mDamaging) {
+            out.status = 'likely_lost';
+        } else if ((exprStrong && cnAny) || (cnStrong && exprAny)) {
+            out.status = 'likely_lost';
+        } else if (exprAny || cnAny) {
+            out.status = 'reduced';
+        } else if (hasExprData || hasCnData) {
+            out.status = 'intact';
+        } else {
+            out.status = 'unknown';
+        }
+        return out;
     }
     _polymorphicCaveatText() {
         return 'Polymorphic locus — calls in this gene often reflect allelic divergence from the GRCh38 reference, not somatic events. Real cancer-relevant HLA / KIR loss is better inferred from expression loss and LOH than the raw hotspot matrix.';

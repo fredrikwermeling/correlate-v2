@@ -8,6 +8,7 @@ OmicsFusionFiltered.csv
 OmicsFusionFilteredSupplementary.csv
 OmicsInferredMolecularSubtypes.csv
 OmicsGlobalSignatures.csv
+OmicsCNGeneWGS.csv
 humanComplexes.txt
 humanComplexes.txt.zip
 allComplexes.txt
