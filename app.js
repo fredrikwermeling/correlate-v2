@@ -29698,6 +29698,22 @@ ${body}
 const app = new CorrelationExplorer();
 window.app = app;
 
+// Reference Data card — collapsible "show files & details" toggle.
+// Lives outside the class because the card markup is rendered statically by
+// index.html before the app instance does anything DOM-related.
+document.addEventListener('DOMContentLoaded', () => {
+    const tgl = document.getElementById('referenceDetailsToggle');
+    const body = document.getElementById('referenceDetailsBody');
+    if (tgl && body) {
+        tgl.addEventListener('click', (e) => {
+            e.preventDefault();
+            const open = body.style.display !== 'none';
+            body.style.display = open ? 'none' : '';
+            tgl.innerHTML = open ? '▾ show files &amp; details' : '▴ hide details';
+        });
+    }
+});
+
 // ============================================================================
 // Dev helper: stress-test GE modal layout invariants across slider values.
 // Call from DevTools: await _geStressTest()
