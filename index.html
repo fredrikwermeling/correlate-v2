@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.80.8 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI <code>.json.gz</code> export &mdash; <strong>Reactome integration</strong>. Layered as a fourth tier in the focal-gene partner lookup, after CORUM. Catches pathway / signalling-cascade relationships CORUM doesn't cover &mdash; e.g. for IL4R, CORUM gives the receptor complex (IL13, IL13RA1, IL2RG, IL4) while Reactome adds the JAK/STAT cascade (STAT1, STAT5A, STAT5B, STAT6, plus PIK3CA and SOCS members from the broader signalling neighbourhood). New <code>scripts/process_reactome.py</code> fetches the GMT (~290 KB) directly from <a href="https://reactome.org/">reactome.org</a> via its public download URL (no auth, no manual intervention), filters to specific pathways (size 5&ndash;100 genes &mdash; drops broad parents like "Signal Transduction" with 2,600+ members), caps per-gene partners at 120 most-co-occurring. Output: <code>web_data/reactome_partners.json</code> (~6 MB; covers ~10,000 human genes &mdash; about half the protein-coding genome). Schema bumped to <strong>2.5</strong>.</li>
+                    <li>"Reference Data" card on the main page restructured to show all data sources in three buckets: <em>Cell-line data</em> (DepMap files, expanded to include the new CSVs we ingest &mdash; OmicsInferredMolecularSubtypes, OmicsGlobalSignatures, OmicsFusionFilteredSupplementary, PRISM Repurposing), <em>Pathway / complex memberships</em> (CORUM + Reactome + in-app curated KBs), <em>Curated annotations</em> (clinical fusions, subtype hallmarks, STR profiles). Clearer attribution for CORUM and Reactome alongside the existing DepMap acknowledgement note.</li>
+                </ul>
                 <p><strong>v.80.7 (2026-04-27)</strong></p>
                 <ul>
                     <li>AI <code>.json.gz</code> export &mdash; <strong>CORUM integration</strong>. The pathway-partner expression carve-out is no longer hand-curated for ~9 complexes; it now layers three sources so any focal gene gets meaningful partners:
@@ -2429,7 +2434,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.7</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.8</a>
     </div>
 
     <div class="main-content">
@@ -2443,19 +2448,31 @@
                     <div id="referenceStatus" class="status-box status-warning">
                         Loading data...
                     </div>
-                    <div style="font-size: 10px; color: #666; margin-top: 8px; line-height: 1.4;">
-                        <p style="margin: 0;">Data from <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a>:</p>
+                    <div style="font-size: 10px; color: #666; margin-top: 8px; line-height: 1.45;">
+                        <p style="margin: 0; font-weight:600; color:#374151;">Cell-line data — <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a></p>
                         <ul style="margin: 4px 0 0 0; padding-left: 16px;">
                             <li>CRISPRGeneEffect.csv <span style="color:#999;">(gene effects)</span></li>
-                            <li>Model.csv <span style="color:#999;">(cell line metadata)</span></li>
-                            <li>OmicsSomaticMutationsMatrixHotspot.csv <span style="color:#999;">(hotspot mutations)</span></li>
-                            <li>OmicsSomaticMutationsMatrixDamaging.csv <span style="color:#999;">(damaging mutations)</span></li>
-                            <li>OmicsFusionFiltered.csv <span style="color:#999;">(translocations/fusions)</span></li>
                             <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
-                            <!-- Growth rate hidden (v.67) -->
-                            <!-- Pathway signatures hidden (v.67) -->
+                            <li>OmicsSomaticMutationsMatrixHotspot.csv / Damaging.csv <span style="color:#999;">(mutations)</span></li>
+                            <li>OmicsFusionFiltered{Supplementary}.csv <span style="color:#999;">(fusions, Arriba)</span></li>
+                            <li>OmicsInferredMolecularSubtypes.csv <span style="color:#999;">(specific variants, integrated LoF, MSI)</span></li>
+                            <li>OmicsGlobalSignatures.csv <span style="color:#999;">(WGD, ploidy, CIN, aneuploidy)</span></li>
+                            <li>Model.csv <span style="color:#999;">(cell-line metadata)</span></li>
+                            <li>PRISM Repurposing Secondary <span style="color:#999;">(drug response, curated panel of ~90 compounds)</span></li>
                         </ul>
-                        <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data.</p>
+                        <p style="margin: 8px 0 0 0; font-weight:600; color:#374151;">Pathway / complex memberships</p>
+                        <ul style="margin: 4px 0 0 0; padding-left: 16px;">
+                            <li><a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" style="color:#0066cc;">CORUM</a> <span style="color:#999;">(manually curated mammalian protein complexes; ~5,000 human genes)</span></li>
+                            <li><a href="https://reactome.org/" target="_blank" style="color:#0066cc;">Reactome</a> <span style="color:#999;">(curated human pathways &amp; signalling cascades; pathways of size 5&ndash;100)</span></li>
+                            <li>Curated cancer-pathway and complex KBs <span style="color:#999;">(in-app, edit in <code>app.js</code> &mdash; <code>_WIKI_PATHWAYS</code> + <code>_FOCAL_GENE_COMPLEX_PARTNERS</code>)</span></li>
+                        </ul>
+                        <p style="margin: 8px 0 0 0; font-weight:600; color:#374151;">Curated annotations (in this app)</p>
+                        <ul style="margin: 4px 0 0 0; padding-left: 16px;">
+                            <li>Clinically relevant fusions <span style="color:#999;">(51 driver fusions + 7 KMT2A partners; COSMIC fusion gene census; validated per cell line)</span></li>
+                            <li>Subtype hallmarks KB <span style="color:#999;">(WHO 5th ed. 2022, COSMIC, OncoKB, NCCN; ~40 Oncotree subtypes)</span></li>
+                            <li>STR profiles <span style="color:#999;">(Cellosaurus reference panels)</span></li>
+                        </ul>
+                        <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data; CORUM and Reactome have their own attribution requirements.</p>
                     </div>
                     <div style="display:flex; gap:6px; margin-top:10px;">
                         <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="flex:1; color:var(--green-700); border-color:var(--green-400);">Cell Lines</button>
@@ -4539,6 +4556,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v80_7"></script>
+    <script src="app.js?v=v80_8"></script>
 </body>
 </html>
