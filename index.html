@@ -1325,6 +1325,18 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.79.1 (2026-04-27)</strong></p>
+                <ul>
+                    <li>CLB <strong>fusion filter</strong> dropdown rebuilt as a custom multi-line component &mdash; Safari truncates native datalist options to the input width, which was hiding the n= and clipping fusion names mid-word ("★ KMT2A-", "★ EWSR1-", and rendering several option rows visibly empty). The new dropdown shows two lines per entry: bold name with n=, then disease context for clinical fusions ("Ewing sarcoma", "CML / Ph+ B-ALL", &hellip;) or "any fusion involving this gene" for the gene-based long tail. Auto-completes as you type, capped at 200 visible items, click to commit a clean canonical name to the input.</li>
+                    <li>CLB <strong>toolbar buttons grouped</strong> with vertical separators: <em>selection</em> (Select Visible · Deselect All · Copy Names) | <em>inspect</em> (Inspect Gene Effects · Inspect Correlations · Open Saved Inspect &mdash; all green-tinted, run analyses on the selected cell lines) | <em>export</em> (Export Genes CSV · GE matrix CSV · All matrices CSV &mdash; now purple-tinted, raw-data exports). The three exports remain because they have non-overlapping scopes (typed gene panel vs genome-wide GE only vs all matrices); the wiki download (per-cell-line HTML) is a different artifact entirely.</li>
+                    <li>Cell-line wiki <strong>"Expected drivers" section reworked</strong> for clarity. Was confusing when the Oncotree subtype label itself contained a fusion name &mdash; users were reading "Chronic Myeloid Leukemia, BCR-ABL1+" as a positive call about the cell line rather than the disease classification. Now two clearly separated blocks:
+                        <ul>
+                            <li><b>Observed in this cell line</b> (green) &mdash; pulls from every integrated layer: specific driver variants (KRAS p.G12D), driver fusions with tier badges, functional-loss tumour suppressors, top hotspot-mutated genes, MSI-high flag, WGD flag.</li>
+                            <li><b>Typical for this disease subtype</b> (blue, was the old block) &mdash; the curated knowledge-base description, plus the intersection with what's actually mutated in the line.</li>
+                        </ul>
+                        Section header explains that the subtype label is a disease classification, not a per-cell-line call. When no curated KB entry exists for the subtype, the observed block still gives actionable info instead of just an "uncovered" message.</li>
+                    <li>Subtype knowledge base extended with 9 new entries: <em>Chronic Myelogenous Leukemia (BCR-ABL1+)</em>, <em>Chronic Myeloid Leukemia (BCR-ABL1+)</em>, <em>Acute Promyelocytic Leukemia with PML-RARA</em>, <em>Diffuse Glioma</em>, <em>Cutaneous Squamous Cell Carcinoma</em>, <em>Esophageal Adenocarcinoma</em>, <em>Esophageal Squamous Cell Carcinoma</em>, <em>Stomach Adenocarcinoma</em>, <em>Endometrial Carcinoma</em>.</li>
+                </ul>
                 <p><strong>v.79.0 (2026-04-27)</strong></p>
                 <ul>
                     <li>Cell line Wiki restructured for clarity. Sections regrouped into four buckets: <em>Identity</em> (Cancer classification &middot; Patient &amp; sample origin &middot; Sex), <em>Genome state</em> (NEW &mdash; <strong>Genome signatures</strong>), <em>Driver landscape</em> (Expected drivers for this subtype &middot; Driver mutations &middot; <strong>Functional loss</strong> NEW &middot; Fusion landscape), <em>Functional behaviour</em> (CRISPR dependencies &middot; Expression profile &middot; Drug response), and <em>Lab use</em> (STR authentication &middot; External resources). Headers shortened, each section opens with one short sentence saying what it contains, then the data, then a small grey "Source:" footer.</li>
@@ -2323,7 +2335,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.79.0</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.79.1</a>
     </div>
 
     <div class="main-content">
@@ -4065,8 +4077,14 @@
             <datalist id="clbHotspotList"></datalist>
             <button id="clbOncoprintBtn" type="button" style="padding:3px 6px; font-size:9px; background:#5a9f4a; color:white; border:none; border-radius:3px; cursor:pointer; white-space:nowrap;" title="Show oncoprint of hotspot mutations for filtered cell lines">Oncoprint</button>
           </span>
-          <input type="text" id="clbTranslocationFilter" list="clbTranslocationList" placeholder="Fusion filter" autocomplete="off" style="width:120px;">
-          <datalist id="clbTranslocationList"></datalist>
+          <!-- Fusion filter — custom two-line dropdown (clinically relevant
+               pairs at top with name + n + disease context, then gene-based
+               long tail). Replaces a native datalist that Safari truncated to
+               the input width and rendered unreadably. -->
+          <div id="clbFusionFilterWrap" style="position:relative; display:inline-block;">
+            <input type="text" id="clbTranslocationFilter" placeholder="Fusion filter" autocomplete="off" style="width:140px;">
+            <div id="clbTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+          </div>
           <select id="clbSortBy" style="font-size:12px;" title="Sort the cell line list">
             <option value="name">Sort: Name</option>
             <option value="tissue">Sort: Tissue + Subtype</option>
@@ -4082,16 +4100,28 @@
           <button id="clbInfoBtn" class="btn btn-outline btn-sm" title="What do these filters and sorts mean?" style="padding:4px 8px; font-weight:700;">?</button>
           <span id="clbSelectionCount" class="clb-selection-count">0 selected</span>
           <div id="clbActiveFilters" style="display:none; font-size:10px; color:#374151; padding:2px 0; gap:4px; flex-wrap:wrap; align-items:center; width:100%;"></div>
-          <div style="margin-left:auto; display:flex; gap:6px;">
+          <!-- Action buttons grouped by intent: selection · inspect · export.
+               Vertical separator bars distinguish the groups so the user can
+               find the right action without scanning all 9 buttons. -->
+          <div style="margin-left:auto; display:flex; gap:6px; align-items:center;">
+            <!-- Selection group -->
             <button id="clbSelectVisible" class="btn btn-outline btn-sm">Select Visible</button>
             <button id="clbDeselectAll" class="btn btn-outline btn-sm">Deselect All</button>
             <button id="clbCopyNamesBtn" class="btn btn-outline btn-sm" title="Copy the names of the selected cell lines (one per line) to the clipboard — ready to paste into Custom CLs">Copy Names</button>
+
+            <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
+
+            <!-- Inspect group (analysis on selected cell lines) -->
             <button id="clbInspectGEBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Top gene-effect hits in the selected cell lines — and top Δ vs the rest. Fast (~seconds).">Inspect<br><span style="font-size:9px;font-weight:normal;">Gene Effects</span></button>
             <button id="clbInspectCorrBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Unbiased all-vs-all gene correlations in the selected cell lines. Slow — can take 5–10 minutes depending on selection size and hardware.">Inspect<br><span style="font-size:9px;font-weight:normal;">Correlations</span></button>
-            <button id="clbOpenInspectBtn" class="btn btn-outline btn-sm" style="line-height:1.2; padding:4px 8px;" title="Re-open a previously saved selection-inspect (Gene Effects or Correlations) JSON file without re-running the analysis">Open<br><span style="font-size:9px;font-weight:normal;">Saved Inspect</span></button>
-            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="CSV with one row per selected cell line — metadata (tissue, subtype, sex) plus GE and Expression for the gene(s) you type in">Export<br><span style="font-size:9px;font-weight:normal;">Genes CSV</span></button>
-            <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="Gene Effect values for all genes × selected cell lines (CSV)">Export GE<br><span style="font-size:9px;font-weight:normal;">for selected CLs</span></button>
-            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--green-700); border-color:var(--green-400); line-height:1.2; padding:4px 8px;" title="All data per cell line: GE, Expression, Hotspot, Damaging, Translocation (genes × cell lines)">Full Data<br><span style="font-size:9px;font-weight:normal;">Export</span></button>
+            <button id="clbOpenInspectBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Re-open a previously saved selection-inspect (Gene Effects or Correlations) JSON file without re-running the analysis">Open<br><span style="font-size:9px;font-weight:normal;">Saved Inspect</span></button>
+
+            <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
+
+            <!-- Export group (raw data CSVs for selected cell lines) -->
+            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="CSV with one row per selected cell line — metadata (tissue, subtype, sex) plus GE and Expression for the gene(s) you type in">Export<br><span style="font-size:9px;font-weight:normal;">Genes CSV</span></button>
+            <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="Gene Effect values for all genes × selected cell lines (CSV)">GE matrix<br><span style="font-size:9px;font-weight:normal;">CSV</span></button>
+            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="Everything for selected cell lines: GE + Expression + Hotspot + Damaging + Fusion matrices (CSVs zipped)">All matrices<br><span style="font-size:9px;font-weight:normal;">CSV</span></button>
           </div>
         </div>
         <!-- Row 2: Curated collections + help -->

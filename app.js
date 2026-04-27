@@ -2386,12 +2386,62 @@ class CorrelationExplorer {
     }
 
     // Recover the underlying fusion / gene name from a CLB fusion-filter input
-    // value. The dropdown decorates options with a ★ marker (clinical pair) and
-    // a (n=N) suffix so the count shows in Safari's narrow datalist subtitle —
-    // we strip both so lookup keys match the backing data.
+    // value. The custom dropdown writes the canonical name on click, but a
+    // user can also type freely — and old saved-state strings might still
+    // carry the legacy "★ NAME (n=N)" decoration we briefly used.
     _stripFusionFilterDecoration(raw) {
         if (!raw) return '';
         return raw.replace(/^★\s+/, '').replace(/\s*\(n=\d+\)\s*$/, '').trim();
+    }
+
+    // Re-render the custom fusion-filter dropdown. Two-line entries: name + n
+    // on the top line, disease context (or "any-fusion") on the second line.
+    // Optionally narrowed by the current input text — case-insensitive prefix
+    // and substring match against the canonical name.
+    _renderFusionFilterDropdown(filter) {
+        const dd = document.getElementById('clbTranslocationDropdown');
+        if (!dd) return;
+        const items = this._fusionFilterItems || [];
+        const q = (filter || '').toLowerCase().trim();
+        const stripped = this._stripFusionFilterDecoration(filter || '').toLowerCase();
+        const matches = items.filter(it => {
+            if (!q) return true;
+            const v = it.value.toLowerCase();
+            return v.includes(q) || v.includes(stripped);
+        });
+        if (matches.length === 0) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No matching fusion or fusion-partner gene.</div>`;
+            return;
+        }
+        // Cap at 200 items to keep DOM light; user can refine by typing.
+        const visible = matches.slice(0, 200);
+        dd.innerHTML = visible.map(it => {
+            const tone = it.kind === 'clinical' ? '#15803d' : '#374151';
+            const subTone = it.kind === 'clinical' ? '#15803d' : '#9ca3af';
+            return `<div class="clb-fusion-opt" data-value="${it.value}" `
+                + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
+                + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
+                + `<div style="font-weight:600; color:${tone};">${it.primary} `
+                + `<span style="color:#6b7280; font-weight:400; font-size:10px;">n=${it.count}</span></div>`
+                + `<div style="font-size:10px; color:${subTone}; opacity:0.85;">${it.secondary}</div>`
+                + `</div>`;
+        }).join('');
+        // Wire each item — clicking sets the canonical value on the input,
+        // hides the dropdown, and triggers the filter render.
+        const input = document.getElementById('clbTranslocationFilter');
+        dd.querySelectorAll('.clb-fusion-opt').forEach(el => {
+            el.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // prevent input blur before our click handler
+            });
+            el.addEventListener('click', () => {
+                if (input) {
+                    input.value = el.dataset.value;
+                    input.dispatchEvent(new Event('change'));
+                }
+                dd.style.display = 'none';
+                this.renderCellLineList();
+            });
+        });
     }
 
     getGeneData(geneIndex) {
@@ -22167,7 +22217,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const clbTransInput = document.getElementById('clbTranslocationFilter');
         clbTransInput.addEventListener('change', () => this.renderCellLineList());
         clbTransInput.addEventListener('input', () => {
+            // Re-render dropdown with current typed text as filter, and apply
+            // the cell-line filter when the input is cleared.
+            this._renderFusionFilterDropdown(clbTransInput.value);
+            const dd = document.getElementById('clbTranslocationDropdown');
+            if (dd) dd.style.display = '';
             if (!clbTransInput.value) this.renderCellLineList();
+        });
+        clbTransInput.addEventListener('focus', () => {
+            this._renderFusionFilterDropdown(clbTransInput.value);
+            const dd = document.getElementById('clbTranslocationDropdown');
+            if (dd) dd.style.display = '';
+        });
+        // Hide on outside click; small timeout so a click on a dropdown item
+        // can fire before the menu is hidden.
+        document.addEventListener('click', (e) => {
+            const wrap = document.getElementById('clbFusionFilterWrap');
+            const dd = document.getElementById('clbTranslocationDropdown');
+            if (!wrap || !dd) return;
+            if (!wrap.contains(e.target)) dd.style.display = 'none';
         });
 
         // Sort controls: mode dropdown + gene input (only when mode==ge) + direction arrow
@@ -23017,58 +23085,72 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             hotspotInput.value = hotspotVal;
         }
 
-        // Update translocation filter counts. Two sections in the dropdown:
-        //   (a) Clinically relevant fusion pairs at the top with a ★ marker
-        //       and n= — selecting one filters to the curated cell-line set.
-        //   (b) Gene-based list below (selecting "ABL1" returns any line with
-        //       any ABL1 fusion).
-        // The full label (with ★ and n=) goes into the `value` attribute so
-        // it's the single line each option renders as — Safari truncates
-        // datalist subtitles, which previously hid the n= for clinical pairs.
-        // The filter lookup strips the decoration to recover the underlying
-        // fusion / gene name.
+        // Custom fusion-filter dropdown — multi-line entries (Safari's native
+        // datalist truncates options to the input width, hiding the n= and
+        // distinguishing detail). Stores both clinical fusion pairs (★) and
+        // gene-based options. Each item shows: name + n= on line 1, context
+        // (disease for clinical pairs, "any-fusion" for genes) on line 2.
         if (this.translocations?.geneData) {
             const transBase = getBaseSet('translocation');
             const transBaseSet = new Set(transBase);
-            const transInput = document.getElementById('clbTranslocationFilter');
-            const transList = document.getElementById('clbTranslocationList');
-            const transVal = transInput.value;
-            let transHtml = '';
+            const dropdown = document.getElementById('clbTranslocationDropdown');
+            if (dropdown) {
+                const items = [];
 
-            if (this.clinicalFusions?.fusionData) {
-                const pairCounts = [];
-                for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
-                    let n = 0;
-                    for (const cl of Object.keys(fd.cellLines || {})) {
-                        if (transBaseSet.has(cl)) n++;
+                // (a) Clinically relevant fusion pairs first, with disease context.
+                if (this.clinicalFusions?.fusionData) {
+                    const pairCounts = [];
+                    for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
+                        let n = 0;
+                        for (const cl of Object.keys(fd.cellLines || {})) {
+                            if (transBaseSet.has(cl)) n++;
+                        }
+                        if (n > 0) {
+                            pairCounts.push({
+                                fname, n,
+                                context: fd.diseaseContext || 'clinically relevant',
+                            });
+                        }
                     }
-                    if (n > 0) pairCounts.push({ fname, n });
-                }
-                pairCounts.sort((a, b) => b.n - a.n);
-                for (const { fname, n } of pairCounts) {
-                    transHtml += `<option value="★ ${fname} (n=${n})">`;
-                }
-            }
-
-            if (this._fusionGeneCounts) {
-                const transCounts = [];
-                this._fusionGeneCounts.forEach(({ gene }) => {
-                    const td = this.translocations.geneData[gene]?.translocations;
-                    if (!td) return;
-                    let n = 0;
-                    for (const [cl, v] of Object.entries(td)) {
-                        if (v >= 1 && transBaseSet.has(cl)) n++;
+                    pairCounts.sort((a, b) => b.n - a.n);
+                    for (const { fname, n, context } of pairCounts) {
+                        items.push({
+                            value: fname,
+                            kind: 'clinical',
+                            primary: `★ ${fname}`,
+                            count: n,
+                            secondary: context,
+                        });
                     }
-                    if (n > 0) transCounts.push({ gene, n });
-                });
-                transCounts.sort((a, b) => b.n - a.n);
-                for (const { gene, n } of transCounts) {
-                    transHtml += `<option value="${gene} (n=${n})">`;
                 }
-            }
 
-            transList.innerHTML = transHtml;
-            transInput.value = transVal;
+                // (b) Gene-based list — any fusion involving this gene.
+                if (this._fusionGeneCounts) {
+                    const transCounts = [];
+                    this._fusionGeneCounts.forEach(({ gene }) => {
+                        const td = this.translocations.geneData[gene]?.translocations;
+                        if (!td) return;
+                        let n = 0;
+                        for (const [cl, v] of Object.entries(td)) {
+                            if (v >= 1 && transBaseSet.has(cl)) n++;
+                        }
+                        if (n > 0) transCounts.push({ gene, n });
+                    });
+                    transCounts.sort((a, b) => b.n - a.n);
+                    for (const { gene, n } of transCounts) {
+                        items.push({
+                            value: gene,
+                            kind: 'gene',
+                            primary: gene,
+                            count: n,
+                            secondary: 'any fusion involving this gene',
+                        });
+                    }
+                }
+
+                this._fusionFilterItems = items;
+                this._renderFusionFilterDropdown();
+            }
         }
     }
 
@@ -23603,6 +23685,42 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'Renal Clear Cell Carcinoma': {
                 expected: 'Near-universal VHL loss (chr 3p) → HIF pathway activation. PBRM1 (~40%), BAP1 (~15%, worse prognosis), SETD2 (~15%).',
                 lookFor: ['VHL', 'PBRM1', 'BAP1', 'SETD2', 'KDM5C', 'MTOR', 'TP53']
+            },
+            'Chronic Myelogenous Leukemia, BCR-ABL1+': {
+                expected: 'Defining lesion: BCR-ABL1 fusion from t(9;22) (Philadelphia chromosome). Disease is essentially diagnostic of the fusion. Progression to blast crisis often adds TP53 mutation, p16/CDKN2A deletion, RUNX1 mutation, or extra chromosome alterations. Imatinib / dasatinib / nilotinib (BCR-ABL TKIs) are the standard of care.',
+                lookFor: ['BCR', 'ABL1', 'TP53', 'CDKN2A', 'RUNX1', 'IKZF1']
+            },
+            'Chronic Myeloid Leukemia, BCR-ABL1+': {
+                expected: 'Same disease as Chronic Myelogenous Leukemia, BCR-ABL1+ (alternate Oncotree label). Defining lesion: BCR-ABL1 fusion from t(9;22). Imatinib / dasatinib / nilotinib are standard of care.',
+                lookFor: ['BCR', 'ABL1', 'TP53', 'CDKN2A', 'RUNX1', 'IKZF1']
+            },
+            'Acute Promyelocytic Leukemia with PML-RARA': {
+                expected: 'Defining fusion: PML-RARA from t(15;17). Treated with all-trans retinoic acid (ATRA) + arsenic trioxide — a curable subtype.',
+                lookFor: ['PML', 'RARA', 'FLT3']
+            },
+            'Diffuse Glioma': {
+                expected: 'IDH1/2 mutation (~70% of LGG, secondary GBM), TP53, ATRX (loss → ALT pathway), 1p/19q codeletion (oligodendroglioma), TERT promoter mutations. Pediatric variants: H3F3A K27M (DIPG), H3F3A G34, BRAF V600E (PXA), BRAF-KIAA1549 fusion (pilocytic astrocytoma).',
+                lookFor: ['IDH1', 'IDH2', 'TP53', 'ATRX', 'TERT', 'EGFR', 'CDKN2A', 'PTEN', 'NF1', 'BRAF', 'H3F3A']
+            },
+            'Cutaneous Squamous Cell Carcinoma': {
+                expected: 'TP53 ~95%, CDKN2A loss, NOTCH1/2/3 (~75% inactivating), HRAS/KRAS, EGFR amplification. UV-signature very high mutation burden.',
+                lookFor: ['TP53', 'CDKN2A', 'NOTCH1', 'NOTCH2', 'NOTCH3', 'HRAS', 'KRAS', 'EGFR']
+            },
+            'Esophageal Adenocarcinoma': {
+                expected: 'TP53 ~80%, CDKN2A loss, ERBB2 amp ~15% (HER2+ → trastuzumab), KRAS, SMAD4, ARID1A, MYC. Often arises from Barrett oesophagus.',
+                lookFor: ['TP53', 'CDKN2A', 'ERBB2', 'KRAS', 'SMAD4', 'ARID1A', 'MYC']
+            },
+            'Esophageal Squamous Cell Carcinoma': {
+                expected: 'TP53 ~90%, CDKN2A loss, NOTCH1, PIK3CA, FAT1, NFE2L2, FBXW7, KMT2D.',
+                lookFor: ['TP53', 'CDKN2A', 'NOTCH1', 'PIK3CA', 'FAT1', 'NFE2L2', 'FBXW7', 'KMT2D']
+            },
+            'Stomach Adenocarcinoma': {
+                expected: 'Heterogeneous: MSI subtype (~20% — MMR loss, hypermutated), CIN subtype (TP53 ~70%, ERBB2 amp), genomically stable (CDH1 — diffuse type), EBV+ (~10% — PIK3CA, ARID1A, PD-L1 amp).',
+                lookFor: ['TP53', 'CDH1', 'ERBB2', 'PIK3CA', 'ARID1A', 'KRAS', 'SMAD4', 'CTNNB1', 'KMT2D']
+            },
+            'Endometrial Carcinoma': {
+                expected: 'Four subtypes: POLE-mutant (hypermutated, best prognosis), MSI (MMR-loss, hypermutated), copy-number low (PTEN, PIK3CA, KRAS, CTNNB1, ARID1A), copy-number high serous-like (TP53 ~90%, FBXW7, PIK3CA).',
+                lookFor: ['PTEN', 'PIK3CA', 'KRAS', 'CTNNB1', 'ARID1A', 'TP53', 'FBXW7', 'POLE', 'MSH2', 'MLH1']
             }
         };
     }
@@ -24103,11 +24221,48 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 ${pathwayStatusHtml}
             </div>`;
 
-        // --- Subtype hallmarks speculation ---
+        // --- Subtype hallmarks vs observed alterations ---
+        // Two-block layout that makes "expected for the disease" clearly
+        // distinct from "actually observed in this cell line", because the
+        // Oncotree subtype label sometimes contains a fusion name (e.g.
+        // "Chronic Myeloid Leukemia, BCR-ABL1+") and users were reading that
+        // as a positive call about the cell line, not a disease classification.
         const subtypeKB = this._WIKI_SUBTYPE_HALLMARKS();
         const subKey = sub || pd;
         const kb = subtypeKB[subKey] || subtypeKB[pd];
-        let hallmarksHtml;
+
+        // "Observed" block — uses every layer of evidence we already have for
+        // this cell line, not just the KB lookFor list. Always rendered, even
+        // when no KB entry exists.
+        const observedSpecificHotspots = (infSub.hotspots || []).filter(h => h.split(' ').slice(1).join(' ') !== 'Hotspot');
+        const observedNamedFusions = clinicalFusionCalls.map(c => `${c.fusion} <span style="font-size:9px; color:#6b7280;">[${c.tier}${c.atypicalLineage ? ' · atypical' : ''}]</span>`);
+        const observedLoF = (infSub.lof || []).slice().sort();
+        const observedTopHotspotGenes = hotspotsMutated.slice(0, 8).map(h => {
+            const variant = geneVariant[h.gene];
+            return variant ? `${h.gene} <span style="color:#16a34a; font-weight:500; font-size:10px;">(${variant})</span>` : h.gene;
+        });
+        const observedRows = [];
+        if (observedSpecificHotspots.length > 0) observedRows.push(`<div style="margin:3px 0;"><b style="color:#15803d;">Specific driver variants:</b> ${observedSpecificHotspots.map(h => `<span style="color:#16a34a; font-weight:500;">${h}</span>`).join(', ')}</div>`);
+        if (observedNamedFusions.length > 0) observedRows.push(`<div style="margin:3px 0;"><b style="color:#15803d;">Driver fusions:</b> ${observedNamedFusions.join(', ')}</div>`);
+        if (observedLoF.length > 0) observedRows.push(`<div style="margin:3px 0;"><b style="color:#15803d;">Functional loss (TSGs):</b> ${observedLoF.join(', ')}</div>`);
+        if (observedTopHotspotGenes.length > 0) observedRows.push(`<div style="margin:3px 0;"><b style="color:#15803d;">Top hotspot-mutated genes:</b> ${observedTopHotspotGenes.join(', ')}</div>`);
+        if (gs?.MSIScore != null && gs.MSIScore >= 20) observedRows.push(`<div style="margin:3px 0;"><b style="color:#dc2626;">MSI-high</b> — mismatch repair lost, hypermutated phenotype.</div>`);
+        if (gs?.WGD === true) observedRows.push(`<div style="margin:3px 0;"><b>Whole-genome doubling</b> &mdash; ploidy ≈ ${gs.Ploidy?.toFixed(2) || '?'}.</div>`);
+        const observedHtml = observedRows.length > 0
+            ? `<div style="padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a; margin-bottom:8px;">
+                <div style="font-weight:600; color:#15803d; margin-bottom:4px;">Observed in this cell line</div>
+                <div style="font-size:11px;">${observedRows.join('')}</div>
+               </div>`
+            : `<div style="padding:8px 10px; background:#fefce8; border-left:3px solid #ca8a04; margin-bottom:8px;">
+                <div style="font-weight:600; color:#854d0e; margin-bottom:4px;">Observed in this cell line</div>
+                <div style="font-size:11px; color:#92400e;">No specific driver variants, named fusions, functional-loss calls or hotspot mutations detected from the integrated panels.</div>
+               </div>`;
+
+        // "Expected" block — the curated KB intro + the intersection with
+        // observed mutation / fusion data. When no KB entry exists, fall back
+        // to a one-liner naming the subtype and noting that the curated KB is
+        // not populated; the observed block above still provides actionable info.
+        let expectedHtml;
         if (kb) {
             const observedHits = kb.lookFor.filter(anyHit);
             const observedFus = kb.lookFor.filter(g => this.translocations?.geneData?.[g]?.translocations?.[cellLineId] >= 1);
@@ -24119,18 +24274,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 return `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help; color:#059669; font-weight:600;">${g}</span> <span style="font-size:9px; color:#6b7280;">[${kind}]</span>`;
             }).join(', ');
             const missingKey = kb.lookFor.filter(g => !hitSet.has(g));
-            hallmarksHtml = `
-                <div style="padding:8px 10px; background:#eff6ff; border-left:3px solid #2563eb; margin-bottom:8px;">
-                  <b style="color:#1e40af;">Typical for this subtype:</b> ${kb.expected}
+            expectedHtml = `
+                <div style="padding:8px 10px; background:#eff6ff; border-left:3px solid #2563eb; margin-bottom:6px;">
+                  <div style="font-weight:600; color:#1e40af; margin-bottom:4px;">Typical for this disease subtype</div>
+                  <div style="font-size:11px;">${kb.expected}</div>
                 </div>
-                ${hitLabels
-                    ? `<div style="padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a; margin-bottom:6px;"><b style="color:#15803d;">Altered hallmark genes (${hitSet.size} of ${kb.lookFor.length}):</b> ${hitLabels}</div>`
-                    : `<div style="padding:8px 10px; background:#fef2f2; border-left:3px solid #dc2626; margin-bottom:6px;"><b style="color:#991b1b;">No canonical subtype hallmarks observed in the mutation/fusion panel (0/${kb.lookFor.length}).</b> Could be: (a) atypical driver, (b) copy-number event our mutation panel doesn't capture (e.g. amplification, deletion, translocation missed by our fusion caller), or (c) possible cell-line misidentification &mdash; consider STR re-authentication.</div>`
-                }
-                ${missingKey.length && hitSet.size ? `<div style="font-size:10px; color:#6b7280; padding-left:4px;">Hallmark genes without detected alterations: ${missingKey.join(', ')}</div>` : ''}`;
+                <div style="padding:8px 10px; background:${hitLabels ? '#f0fdf4' : '#fef2f2'}; border-left:3px solid ${hitLabels ? '#16a34a' : '#dc2626'}; margin-bottom:6px;">
+                  <div style="font-weight:600; color:${hitLabels ? '#15803d' : '#991b1b'}; margin-bottom:4px;">Hallmark genes detected here ${hitLabels ? `(${hitSet.size} of ${kb.lookFor.length})` : `(0 of ${kb.lookFor.length})`}</div>
+                  <div style="font-size:11px;">${hitLabels || `<span style="color:#991b1b;">None of the canonical hallmark genes show mutations or fusions in this cell line. Possibilities: atypical driver, copy-number / amplification event our panel doesn't capture, or cell-line misidentification &mdash; consider STR re-authentication.</span>`}</div>
+                  ${missingKey.length && hitSet.size ? `<div style="font-size:10px; color:#6b7280; margin-top:4px;">Hallmark genes without alterations: ${missingKey.join(', ')}</div>` : ''}
+                </div>`;
         } else {
-            hallmarksHtml = `<em style="color:#6b7280;">No curated knowledge base for "${subKey}" yet. Hallmark speculation is only populated for ~30 common Oncotree subtypes so far.</em>`;
+            expectedHtml = `<div style="padding:8px 10px; background:#f9fafb; border-left:3px solid #9ca3af; margin-bottom:6px; font-size:11px; color:#6b7280;">No curated knowledge base for "${subKey}" yet (covers ~40 common Oncotree subtypes). The "Observed in this cell line" block above lists what we found from the integrated DepMap data — use that as the primary view.</div>`;
         }
+
+        const hallmarksHtml = `
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Two views: what's <b>actually present</b> in this cell line per the integrated DepMap data, and what's <b>typical</b> for this Oncotree subtype. Note that some Oncotree labels include a fusion name (e.g. "Chronic Myeloid Leukemia, BCR-ABL1+") &mdash; that's how the disease is classified by definition, not a per-cell-line call.</p>
+            ${observedHtml}
+            ${expectedHtml}`;
 
         // --- Fusion profile ---
         const fusionPartners = [];
