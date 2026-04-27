@@ -1325,6 +1325,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.77.1 (2026-04-27)</strong></p>
+                <ul>
+                    <li>Clinically relevant fusions &mdash; renamed (was "Clinical Fusions" which sounded off). Tier rules refined to add <em>soft-pass</em> logic: a strong signal in one channel + a directionally supportive signal in the other (in correct direction at half-magnitude) now reaches <em>high</em>, not just both-strong. This fixes the canonical EWSR1-FLI1 lines like A-673 (exprZ=1.9 strong, depZ=&minus;0.42 supportive) which previously landed at <em>medium</em> only because FLI1 is broadly used in many lineages so absolute dependency z-scores stay small even when the call is genuinely fusion-driven. Atypical-with-no-support cases (e.g. BCR-ABL1 in an Ovary line, depZ=&minus;0.08) still land at <em>low</em> because the supportive threshold is not crossed. Run now: 57 high / 23 medium / 4 low (was 51 / 29 / 4).</li>
+                    <li>Cell-line browser fusion filter dropdown now lists the clinically relevant fusion <strong>pairs</strong> first (★ BCR-ABL1 (n=11), ★ EWSR1-FLI1 (n=14), &hellip;) with live n= scaled to the active cohort filters (tissue / subtype / hotspot / etc.), followed by a separator and the existing gene-based long tail. Selecting a pair filters the cell-line list to the exact curated validated set; selecting a gene keeps the original behaviour (any line with any fusion of that gene). Filter and dropdown both honour the dual lookup so the n= counts and the resulting cell-line list always agree.</li>
+                    <li>CLB <b>?</b> help modal &mdash; new section explaining what clinically relevant fusions mean, what the high/medium/low tiers are based on, why the &#9888; atypical badge appears, and what data source the calls come from.</li>
+                </ul>
                 <p><strong>v.77.0 (2026-04-27)</strong></p>
                 <ul>
                     <li>Clinical Fusions &mdash; new curated driver-fusion classifier. Built from a 51-fusion anchor list (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, TMPRSS2-ERG, etc. plus 7 KMT2A partners), each entry validated per cell line with three orthogonal signals: lineage match, partner expression z-score vs lineage-matched negatives, and partner dependency (CRISPR gene effect) z-score. Tier rules consider only the signals the curator marked as informative (e.g. BCR-ABL1 doesn't elevate ABL1 mRNA, so expression isn't checked &mdash; the call rests on the strong ABL1 dependency). Lineage is a <em>modifier</em> not a gate: a solid call in an atypical tissue (e.g. EML4-ALK in a Bowel line with ALK exprZ=51) keeps its tier and gets an "atypical" badge instead of being hidden. Cell-line browser detail panel now shows a <strong>Clinical Fusions</strong> block with green/amber/red tier chips, and the long noisy raw fusion list (formerly the only source) is collapsed under "Show all fusions" so it doesn't dominate. New <code>scripts/clinical_fusions_anchor.json</code> + <code>scripts/process_clinical_fusions.py</code> &mdash; pipeline reads the higher-quality <code>OmicsFusionFilteredSupplementary.csv</code> (Arriba-annotated), filters to <code>confidence: high</code> and drops read-through transcripts. Output: <code>web_data/clinical_fusions.json</code>. First run produced 84 calls across 24 fusions: 51 high, 29 medium, 4 low; 8 atypical-lineage calls (e.g. EWSR1-FLI1 in a CNS/Brain line, EML4-ALK in a Bowel line) preserved with their tier and a flag.</li>
@@ -2291,7 +2297,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.77.0</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.77.1</a>
     </div>
 
     <div class="main-content">
@@ -3945,8 +3951,18 @@
             <li><b>Tissue / Subtype</b> &mdash; DepMap OncotreeLineage and primary disease subtype.</li>
             <li><b>Sex</b> &mdash; annotation and expression are two independent axes (see below).</li>
             <li><b>Hotspot filter</b> &mdash; only show cell lines mutated in this gene at a hotspot position.</li>
-            <li><b>Fusion filter</b> &mdash; only show cell lines with this gene as a fusion/translocation partner.</li>
+            <li><b>Fusion filter</b> &mdash; the dropdown lists <b>clinically relevant fusion pairs</b> first (★ BCR-ABL1, ★ EWSR1-FLI1, &hellip;) followed by the gene-based long tail. Selecting a pair filters to the curated set; selecting a gene returns any line with any fusion involving that gene.</li>
             <li><b>Oncoprint</b> &mdash; mutation heatmap across filtered cell lines.</li>
+          </ul>
+          <p style="margin-top:14px;"><strong>Clinically relevant fusions</strong> &mdash; shown as green/amber/red chips in the cell line detail panel.</p>
+          <ul style="margin:4px 0 10px 20px;">
+            <li>Curated list of ~50 well-validated driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, TMPRSS2-ERG, &hellip;) sourced from COSMIC fusion gene census.</li>
+            <li>Each call is validated per cell line on three orthogonal signals: <b>lineage match</b>, <b>partner expression</b> z-score vs lineage-matched negatives, and <b>partner dependency</b> (CRISPR gene effect) z-score. Only the signals the curator marked as informative for that fusion are scored &mdash; e.g. BCR-ABL1 doesn't elevate ABL1 mRNA, so expression isn't checked and the call rests on the strong ABL1 dependency.</li>
+            <li><span style="color:#16a34a; font-weight:600;">high</span> &mdash; both informative signals support the call (or one strong + the other directionally supportive).</li>
+            <li><span style="color:#ca8a04; font-weight:600;">med</span> &mdash; partial orthogonal support, or curated + lineage match without orthogonal validation.</li>
+            <li><span style="color:#dc2626; font-weight:600;">low</span> &mdash; neither signal supports and lineage doesn't match the canonical disease &mdash; suspect, often artifact.</li>
+            <li><span style="color:#b45309; font-weight:600;">&#9888; atypical</span> &mdash; the cell line's tissue isn't the canonical context for this fusion (e.g. EML4-ALK in a Bowel line). Lineage is a <em>modifier</em>, not a gate: when orthogonal evidence is strong the call is kept and flagged, not hidden &mdash; could be a misclassified line or a genuine rare event worth investigating.</li>
+            <li>Source: Arriba-annotated fusion calls from <code>OmicsFusionFilteredSupplementary.csv</code>, filtered to confidence=high with read-through transcripts dropped.</li>
           </ul>
           <p><strong>Sex</strong> &mdash; two independent axes:</p>
           <ul style="margin:4px 0 10px 20px;">

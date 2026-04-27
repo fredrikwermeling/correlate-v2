@@ -65,8 +65,15 @@ import sys
 from collections import defaultdict
 
 
-EXPR_Z_THRESHOLD = 1.5     # partner overexpression
-DEP_Z_THRESHOLD = -1.0     # partner more essential than baseline (lower GE = more essential)
+EXPR_Z_THRESHOLD = 1.5     # partner overexpression — strong signal
+DEP_Z_THRESHOLD = -1.0     # partner more essential than baseline — strong signal
+EXPR_Z_SOFT = 0.75         # at-least-directionally-supportive expression
+DEP_Z_SOFT = -0.3          # at-least-directionally-supportive dependency
+# Soft thresholds catch transcription-factor fusions like EWSR1-FLI1 where the
+# partner gene (FLI1) is broadly used, so absolute z-scores stay small even
+# when the call is genuinely fusion-driven (e.g. A-673, the canonical Ewing
+# line, has FLI1 exprZ=1.9 but depZ=-0.42 — the strict rule sends it to medium
+# despite both signals being in the right direction).
 
 
 def load_int16_matrix(bin_path, n_rows, n_cols, scale_factor, na_value):
@@ -294,26 +301,41 @@ def main():
                     others = [partner_ge_row[ge_cl_idx[c]] for c in pool_cls]
                     dep_z = zscore_for_value(val, others)
 
-            expr_match = expr_z is not None and expr_z >= EXPR_Z_THRESHOLD
-            dep_match = dep_z is not None and dep_z <= DEP_Z_THRESHOLD
+            expr_strong = expr_z is not None and expr_z >= EXPR_Z_THRESHOLD
+            dep_strong = dep_z is not None and dep_z <= DEP_Z_THRESHOLD
+            expr_soft = expr_z is not None and expr_z >= EXPR_Z_SOFT
+            dep_soft = dep_z is not None and dep_z <= DEP_Z_SOFT
 
             # Tier rules — only count signals the curator marked as informative
             # (validateExpression / validateDependency). Lineage is a modifier,
-            # not a gate: strong orthogonal evidence keeps the call even when
-            # the cell line's tissue is atypical for the canonical disease.
+            # not a gate. A "strong" signal crosses the main threshold; a "soft"
+            # signal is in the correct direction at half-magnitude — enough to
+            # be supportive but not by itself decisive.
             n_enabled = int(validate_expr) + int(validate_dep)
-            n_passed = (int(expr_match) if validate_expr else 0) + (int(dep_match) if validate_dep else 0)
+            expr_pass_for_call = expr_strong if validate_expr else False
+            dep_pass_for_call = dep_strong if validate_dep else False
+            expr_supportive = expr_soft if validate_expr else False
+            dep_supportive = dep_soft if validate_dep else False
 
             if n_enabled == 2:
-                if n_passed == 2:
+                if expr_pass_for_call and dep_pass_for_call:
                     tier = "high"
-                elif n_passed == 1:
+                elif (expr_pass_for_call and dep_supportive) or (dep_pass_for_call and expr_supportive):
+                    # one strong signal + the other directionally supportive
+                    tier = "high"
+                elif expr_pass_for_call or dep_pass_for_call:
+                    # one strong, the other neither passed nor supportive
+                    tier = "medium"
+                elif expr_supportive and dep_supportive:
+                    # both directionally supportive but neither crossed threshold
                     tier = "medium"
                 else:
                     tier = "medium" if not atypical else "low"
             elif n_enabled == 1:
-                if n_passed == 1:
+                if expr_pass_for_call or dep_pass_for_call:
                     tier = "high"
+                elif expr_supportive or dep_supportive:
+                    tier = "medium"
                 else:
                     tier = "medium" if not atypical else "low"
             else:  # neither signal informative — call rests on curated + lineage only

@@ -22575,7 +22575,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const transGene = document.getElementById('clbTranslocationFilter').value;
 
         const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
-        const transMuts = transGene && this.translocations?.geneData?.[transGene]?.translocations;
+        // The fusion filter accepts either a gene symbol ("ABL1" -> any line
+        // with any ABL1 fusion) or a clinically relevant fusion pair name
+        // ("BCR-ABL1" -> only the curated set with that exact validated pair).
+        const clinicalPairCells = transGene && this.clinicalFusions?.fusionData?.[transGene]?.cellLines;
+        const transMuts = transGene && !clinicalPairCells && this.translocations?.geneData?.[transGene]?.translocations;
         const collectionSet = collection ? this._collectionMembership?.[collection] : null;
 
         let filtered = this.metadata.cellLines.filter(cl => {
@@ -22584,6 +22588,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (collectionSet && !collectionSet.has(cl)) return false;
             if (sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
             if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
+            if (clinicalPairCells && !(cl in clinicalPairCells)) return false;
             if (transMuts && !(transMuts[cl] >= 1)) return false;
             if (!this._cellLinePassesOncoprintFilters(cl)) return false;
             if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) return false;
@@ -22829,7 +22834,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const transGene = document.getElementById('clbTranslocationFilter').value;
 
         const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
-        const transMuts = transGene && this.translocations?.geneData?.[transGene]?.translocations;
+        // Same dual lookup as in the main filter — gene symbol (any fusion of
+        // that gene) or clinical fusion pair name (curated cell-line set).
+        const clinicalPairCells = transGene && this.clinicalFusions?.fusionData?.[transGene]?.cellLines;
+        const transMuts = transGene && !clinicalPairCells && this.translocations?.geneData?.[transGene]?.translocations;
         const collectionSet = collection ? this._collectionMembership?.[collection] : null;
         const allCls = this.metadata.cellLines;
 
@@ -22844,6 +22852,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (excludeFilter !== 'collection' && collectionSet && !collectionSet.has(cl)) return false;
                 if (excludeFilter !== 'sex' && sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
                 if (excludeFilter !== 'hotspot' && hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
+                if (excludeFilter !== 'translocation' && clinicalPairCells && !(cl in clinicalPairCells)) return false;
                 if (excludeFilter !== 'translocation' && transMuts && !(transMuts[cl] >= 1)) return false;
                 if (excludeFilter !== 'oncoprint' && !this._cellLinePassesOncoprintFilters(cl)) return false;
                 if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) return false;
@@ -22982,28 +22991,60 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             hotspotInput.value = hotspotVal;
         }
 
-        // Update translocation filter counts
-        if (this._fusionGeneCounts && this.translocations?.geneData) {
+        // Update translocation filter counts. Two sections in the dropdown:
+        //   (a) Clinically relevant fusion pairs (BCR-ABL1, EWSR1-FLI1, ...)
+        //       at the top, each with n= scaled to the current cohort filters
+        //       — selecting one filters the cell-line list to the curated set.
+        //   (b) The original gene-based list below, unchanged behaviour
+        //       (selecting "ABL1" returns any line with any ABL1 fusion).
+        if (this.translocations?.geneData) {
             const transBase = getBaseSet('translocation');
             const transBaseSet = new Set(transBase);
             const transInput = document.getElementById('clbTranslocationFilter');
             const transList = document.getElementById('clbTranslocationList');
             const transVal = transInput.value;
-            const transCounts = [];
-            this._fusionGeneCounts.forEach(({ gene }) => {
-                const td = this.translocations.geneData[gene]?.translocations;
-                if (!td) return;
-                let n = 0;
-                for (const [cl, v] of Object.entries(td)) {
-                    if (v >= 1 && transBaseSet.has(cl)) n++;
-                }
-                if (n > 0) transCounts.push({ gene, n });
-            });
-            transCounts.sort((a, b) => b.n - a.n);
             let transHtml = '';
-            for (const { gene, n } of transCounts) {
-                transHtml += `<option value="${gene}">${gene} (n=${n})</option>`;
+
+            // (a) Clinically relevant fusion pairs — counts scaled to active
+            // cohort filters (tissue / subtype / hotspot / etc.).
+            if (this.clinicalFusions?.fusionData) {
+                const pairCounts = [];
+                for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
+                    let n = 0;
+                    for (const cl of Object.keys(fd.cellLines || {})) {
+                        if (transBaseSet.has(cl)) n++;
+                    }
+                    if (n > 0) pairCounts.push({ fname, n });
+                }
+                pairCounts.sort((a, b) => b.n - a.n);
+                if (pairCounts.length > 0) {
+                    for (const { fname, n } of pairCounts) {
+                        transHtml += `<option value="${fname}">★ ${fname} (n=${n}) — clinically relevant</option>`;
+                    }
+                    // Visual separator that's also a no-op match (selecting it
+                    // produces no filter — cleared by the input change handler).
+                    transHtml += `<option value="" disabled>──────────</option>`;
+                }
             }
+
+            // (b) Gene-based filter, original behaviour.
+            if (this._fusionGeneCounts) {
+                const transCounts = [];
+                this._fusionGeneCounts.forEach(({ gene }) => {
+                    const td = this.translocations.geneData[gene]?.translocations;
+                    if (!td) return;
+                    let n = 0;
+                    for (const [cl, v] of Object.entries(td)) {
+                        if (v >= 1 && transBaseSet.has(cl)) n++;
+                    }
+                    if (n > 0) transCounts.push({ gene, n });
+                });
+                transCounts.sort((a, b) => b.n - a.n);
+                for (const { gene, n } of transCounts) {
+                    transHtml += `<option value="${gene}">${gene} (n=${n})</option>`;
+                }
+            }
+
             transList.innerHTML = transHtml;
             transInput.value = transVal;
         }
@@ -23140,9 +23181,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         top += renderGeneList(damagingGenes, 'clb-damaging');
         top += `</div>`;
 
-        // Clinical fusions — curated driver fusions with orthogonal evidence (lineage,
-        // partner expression, partner dependency). Shown prominently. The full noisy
-        // raw fusion list is collapsed underneath with a "Show all" toggle.
+        // Clinically relevant fusions — curated driver fusions with orthogonal
+        // evidence (lineage, partner expression, partner dependency). Shown
+        // prominently; the full noisy raw fusion list is collapsed underneath.
         const clinicalCalls = this.clinicalFusions?.byCellLine?.[cellLineId] || [];
         const tierColor = { high: '#16a34a', medium: '#ca8a04', low: '#dc2626' };
         const tierLabel = { high: 'high', medium: 'med', low: 'low' };
@@ -23151,7 +23192,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const order = { high: 0, medium: 1, low: 2 };
                 return (order[a.tier] - order[b.tier]) || a.fusion.localeCompare(b.fusion);
             });
-            top += `<div class="clb-detail-section"><strong>Clinical Fusions (${clinicalCalls.length})</strong>`;
+            top += `<div class="clb-detail-section"><strong>Clinically relevant fusions (${clinicalCalls.length})</strong>`;
             top += `<div style="font-size:11px; line-height:1.7;">`;
             sortedCalls.forEach(c => {
                 const color = tierColor[c.tier] || '#6b7280';
