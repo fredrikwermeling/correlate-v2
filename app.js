@@ -19472,6 +19472,59 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
 
+        // Top expression-vs-expression correlates of the focal gene's
+        // expression. Parallel to topCorrelates (GE-vs-expression), but
+        // answers a different axis: "which other genes' expression covaries
+        // with the focal gene's expression in this cohort?". Most useful for
+        // scatter / expression-correlate views where the focal axis is
+        // expression. Computed here so its genes can be added to the
+        // expression matrix's always-include set below.
+        let topExpressionCorrelates = null;
+        if (analysisGene && includeExpr && this.expressionData && this.expressionMetadata) {
+            const _exprMetaMap = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, i) => _exprMetaMap.set(cl, i));
+            const focalExprIdx = this.expressionMetadata.genes.indexOf(analysisGene.toUpperCase());
+            if (focalExprIdx >= 0) {
+                setStatus('Computing top expression-vs-expression correlates...');
+                await new Promise(r => setTimeout(r, 50));
+                const nExprCL = this.expressionMetadata.nCellLines;
+                const focalVals = cellLines.map(cl => {
+                    const ei = _exprMetaMap.get(cl);
+                    if (ei === undefined) return NaN;
+                    const v = this.expressionData[focalExprIdx * nExprCL + ei];
+                    return isNaN(v) ? NaN : v;
+                });
+                const validFocal = focalVals.filter(v => !isNaN(v));
+                if (validFocal.length > 0) {
+                    const fMean = validFocal.reduce((a, b) => a + b, 0) / validFocal.length;
+                    const fSd = Math.sqrt(validFocal.reduce((s, v) => s + (v - fMean) ** 2, 0) / validFocal.length);
+                    if (fSd >= 0.05) {
+                        const minN = Math.max(50, Math.floor(0.6 * cellLines.length));
+                        const exprCorrs = [];
+                        for (let gi = 0; gi < this.expressionMetadata.genes.length; gi++) {
+                            if (gi === focalExprIdx) continue;
+                            const x = [], y = [];
+                            for (let j = 0; j < cellLines.length; j++) {
+                                const ei = _exprMetaMap.get(cellLines[j]);
+                                if (ei === undefined || isNaN(focalVals[j])) continue;
+                                const ev = this.expressionData[gi * nExprCL + ei];
+                                if (!isNaN(ev)) { x.push(focalVals[j]); y.push(ev); }
+                            }
+                            if (x.length < minN) continue;
+                            const stats = this.pearsonWithSlope(x, y);
+                            if (!isNaN(stats.correlation)) {
+                                exprCorrs.push({ gene: this.expressionMetadata.genes[gi], r: parseFloat(stats.correlation.toFixed(4)), n: x.length });
+                            }
+                        }
+                        exprCorrs.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+                        topExpressionCorrelates = exprCorrs.slice(0, 30);
+                    } else {
+                        topExpressionCorrelates = []; // focal expression invariant — emit empty
+                    }
+                }
+            }
+        }
+
         // Top GE-vs-GE co-essentials of the focal gene. Parallel to
         // topCorrelates but using gene effect on both sides — answers
         // "which genes' essentiality co-varies with the focal gene's
@@ -19538,6 +19591,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
 
+        // (topExpressionCorrelates moved earlier — see block right after topCorrelates)
+
         // Genes whose expression we ALWAYS include regardless of the variance
         // filter: focal gene itself, the second focal gene (scatter view),
         // the genes that surfaced in the expression-correlate scan, AND the
@@ -19549,6 +19604,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (analysisGene) alwaysIncludeExpr.add(analysisGene.toUpperCase());
         if (focalGene2) alwaysIncludeExpr.add(focalGene2);
         if (topCorrelates) for (const c of topCorrelates) alwaysIncludeExpr.add(c.gene.toUpperCase());
+        if (topExpressionCorrelates) for (const c of topExpressionCorrelates) alwaysIncludeExpr.add(c.gene.toUpperCase());
         if (analysisGene) {
             for (const p of this._getFocalGenePartners(analysisGene)) alwaysIncludeExpr.add(p);
         }
@@ -19666,11 +19722,45 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const fracEssential = allValues.length > 0 ? nEssential / allValues.length : 0;
                 if (Math.abs(overallMean) < 0.3 && overallSd < 0.15 && fracEssential < 0.05) {
                     extras = extras || {};
-                    extras.focalGeneVarianceWarning = {
+                    extras.focalGeneVarianceWarning = extras.focalGeneVarianceWarning || {};
+                    extras.focalGeneVarianceWarning.geneEffect = {
                         gene: analysisGene,
                         message: `${analysisGene} GE in this cohort is mean=${overallMean.toFixed(2)}, SD=${overallSd.toFixed(2)}, ${nEssential}/${allValues.length} lines essential (GE<-0.5). The "variability" you see may be screen noise rather than biology — at small SD and near-zero mean, top genome-wide correlations will look impressive but be noise-driven. Stratify or compare to a cohort-where-${analysisGene}-is-essential before chasing pathway stories from this view.`,
                         criteria: { absMean: 0.3, sdMax: 0.15, fracEssentialMax: 0.05 }
                     };
+                }
+
+                // Expression-axis variance warning — fires when the focal
+                // gene's expression has near-zero variance in the cohort
+                // (e.g. silenced or stably high everywhere). At low SD the
+                // expression-vs-GE / expression-vs-expression correlations
+                // are noise-dominated even when n is large.
+                if (includeExpr && this.expressionData && this.expressionMetadata) {
+                    const eMap = new Map();
+                    this.expressionMetadata.cellLines.forEach((cl, i) => eMap.set(cl, i));
+                    const eIdx = this.expressionMetadata.genes.indexOf(analysisGene.toUpperCase());
+                    if (eIdx >= 0) {
+                        const eVals = [];
+                        for (const cl of cellLines) {
+                            const ei = eMap.get(cl);
+                            if (ei === undefined) continue;
+                            const v = this.expressionData[eIdx * this.expressionMetadata.nCellLines + ei];
+                            if (!isNaN(v)) eVals.push(v);
+                        }
+                        if (eVals.length >= 5) {
+                            const eMean = eVals.reduce((a, b) => a + b, 0) / eVals.length;
+                            const eSd = Math.sqrt(eVals.reduce((s, v) => s + (v - eMean) ** 2, 0) / eVals.length);
+                            if (eSd < 0.5 || eMean < 0.5) {
+                                extras = extras || {};
+                                extras.focalGeneVarianceWarning = extras.focalGeneVarianceWarning || {};
+                                extras.focalGeneVarianceWarning.expression = {
+                                    gene: analysisGene,
+                                    message: `${analysisGene} expression in this cohort is mean=${eMean.toFixed(2)}, SD=${eSd.toFixed(2)} (log2(TPM+1)). The expression axis has little or no variation — ${eMean < 0.5 ? 'gene is silent in most lines' : 'gene is uniformly expressed'}. Expression-vs-GE / expression-vs-expression correlations will be noise-dominated. Treat any top hits as exploratory only.`,
+                                    criteria: { sdMin: 0.5, meanMin: 0.5 }
+                                };
+                            }
+                        }
+                    }
                 }
 
                 // Mutation summary for the focal gene's GE: per common driver
@@ -19770,6 +19860,94 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
 
+        // Scatter-specific extras: the actual correlation between the two
+        // axes the user was looking at. Reviewer flagged that context.correlation
+        // is null in scatter exports — the most basic precomputed thing for
+        // a scatter view, missing entirely. Pearson + Spearman + n + p,
+        // computed over the filtered cohort. Reactome-quality; trivial.
+        if (source === 'scatter' && context.gene1 && context.gene2 && context.xType && context.yType) {
+            const getAxisVals = (gene, type) => {
+                const G = gene.toUpperCase();
+                if (type === 'ge') {
+                    const gi = this.geneIndex?.get(G);
+                    if (gi === undefined) return null;
+                    const out = [];
+                    for (const clIdx of geCLIndices) {
+                        if (clIdx === -1) { out.push(NaN); continue; }
+                        const v = this.geneEffects[gi * this.nCellLines + clIdx];
+                        out.push(isNaN(v) ? NaN : v);
+                    }
+                    return out;
+                }
+                if (type === 'expr' && this.expressionData && this.expressionMetadata) {
+                    const eIdx = this.expressionMetadata.genes.indexOf(G);
+                    if (eIdx === -1) return null;
+                    const eMap = new Map();
+                    this.expressionMetadata.cellLines.forEach((cl, i) => eMap.set(cl, i));
+                    const out = [];
+                    for (const cl of cellLines) {
+                        const ei = eMap.get(cl);
+                        if (ei === undefined) { out.push(NaN); continue; }
+                        const v = this.expressionData[eIdx * this.expressionMetadata.nCellLines + ei];
+                        out.push(isNaN(v) ? NaN : v);
+                    }
+                    return out;
+                }
+                return null;
+            };
+            const xs = getAxisVals(context.gene1, context.xType);
+            const ys = getAxisVals(context.gene2, context.yType);
+            if (xs && ys) {
+                const px = [], py = [];
+                for (let j = 0; j < xs.length; j++) {
+                    if (!isNaN(xs[j]) && !isNaN(ys[j])) { px.push(xs[j]); py.push(ys[j]); }
+                }
+                if (px.length >= 5) {
+                    // Pearson (re-use existing helper).
+                    const pearsonStats = this.pearsonWithSlope(px, py);
+                    // Spearman = Pearson on ranks. Ranks computed with average-rank
+                    // ties handling.
+                    const rank = (arr) => {
+                        const idx = arr.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
+                        const ranks = new Array(arr.length);
+                        let i = 0;
+                        while (i < idx.length) {
+                            let j = i;
+                            while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++;
+                            const avg = (i + j) / 2 + 1;
+                            for (let k = i; k <= j; k++) ranks[idx[k][1]] = avg;
+                            i = j + 1;
+                        }
+                        return ranks;
+                    };
+                    const spearmanStats = this.pearsonWithSlope(rank(px), rank(py));
+                    // Two-sided p from Pearson r via t-distribution → normal approx.
+                    const r = pearsonStats.correlation;
+                    const n = px.length;
+                    let p = null;
+                    if (!isNaN(r) && Math.abs(r) < 0.9999 && n > 2) {
+                        const t = r * Math.sqrt(n - 2) / Math.sqrt(1 - r * r);
+                        // Abramowitz & Stegun normal-CDF
+                        const z = Math.abs(t);
+                        const tt = 1 / (1 + 0.2316419 * z);
+                        const d = 0.3989422804 * Math.exp(-z * z / 2);
+                        const pOneTail = d * tt * (0.31938153 + tt * (-0.356563782 + tt * (1.781477937 + tt * (-1.821255978 + tt * 1.330274429))));
+                        p = 2 * pOneTail;
+                        if (!Number.isFinite(p) || p < 1e-300) p = 1e-300;
+                    }
+                    extras = extras || {};
+                    extras.pairCorrelation = {
+                        x: { gene: context.gene1, type: context.xType },
+                        y: { gene: context.gene2, type: context.yType },
+                        pearson: parseFloat((r || 0).toFixed(4)),
+                        spearman: parseFloat((spearmanStats.correlation || 0).toFixed(4)),
+                        n,
+                        p_pearson: p === null ? null : parseFloat(p.toExponential(3))
+                    };
+                }
+            }
+        }
+
         // Phase 2 — assemble the export. Schema-version stamped, null fields
         // omitted entirely (was: emitted as null with documentation that an
         // LLM had to disambiguate "not applicable" from "computation failed").
@@ -19778,7 +19956,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const exportData = {
             _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
-            schemaVersion: '2.6',
+            schemaVersion: '2.7',
             nTotal: cellLines.length,
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices. Length = nTotal.',
@@ -19787,8 +19965,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. The focal gene, the genes surfaced in topCorrelates, and the focal gene\'s pathway / complex partners are always included regardless of variance threshold. Partner sources are layered: hand-curated high-value complexes (NEDD8/CRL, Proteasome, Hippo, MYC, TP53, BRCA, mTOR, BCL2, splicing) → CORUM physical protein complexes (~5000 human genes) → wiki cancer pathways (RAS/MAPK, PI3K, RTK family, etc.) → Reactome pathway / signalling-cascade co-members (~10000 human genes; broad parents filtered out, only pathways with 5-100 genes kept). So for SMARCA4 you get the BAF subunits via CORUM; for MCM4 the MCM2-7 helicase; for IL4R the JAK/STAT cascade via Reactome; for arbitrary genes you typically get something useful from at least one of the four layers.',
                 topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n }. Gated at n >= max(50, 0.6 * cohortSize) to drop partial-coverage genes. Polarity: positive r means high partner expression covaries with weaker focal-gene dependency (less negative GE).',
                 topCoessentials: 'Optional. Top 30 GE-vs-GE co-essentials of the focal gene: { gene, r (Pearson, focal-gene GE vs partner GE across the cohort), n }. Same n-gate as topCorrelates. Every gene named here is also present in the geneEffect matrix (added back if the variance filter dropped it), so the LLM can verify by recomputing. Polarity: positive r means lines that depend more on the partner depend less on the focal gene (classic co-essentiality buffering pattern within a complex). Negative r means partner and focal gene are co-essential — both required by the same lines (same-pathway dependency).',
+                topExpressionCorrelates: 'Optional. Top 30 expression-vs-expression correlates of the focal gene: { gene, r (Pearson, focal-gene expression vs partner expression across the cohort), n }. Same n-gate as topCorrelates. Every gene named here is in the expression matrix (the always-include set carries them through the variance filter). Polarity: positive r means partner expression is co-regulated with focal-gene expression (often shared transcriptional program / phenotype state / lineage marker); negative r means anti-correlated (often a competing program). Note: in homogeneous filtered cohorts, top hits often reflect transcriptional state / phenotype switches rather than direct mechanistic links. Suppressed when the focal gene\'s expression has near-zero variance in the cohort (SD < 0.05).',
                 cellLineGroups: 'Optional. Cell line IDs grouped by analysis stratification (WT/mut1/mut2 for mutation, gateA/gateB for gate comparison, etc.).',
-                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), clusterGenes (clusters), expressionCorrelates (exprCorrelates), focalGeneTissueSummary (per-tissue/subtype mean / sd / n / zVsOverall for the focal gene\'s GE — saves the LLM from scanning the matrix to find tissue-level signals; subtypes gated at n>=5), focalGeneMutationSummary ({ coreDrivers: canonical drivers always shown regardless of effect size with n_mut>=5; topByEffect: top 20 from extended panel ranked by |t| with n_mut>=10 } — Welch\'s t comparing mutated vs WT lines on focal-gene GE), _method (block documenting how every summary was computed).',
+                extras: 'Optional. Source-specific precomputed analysis results: differentialGeneEffect / differentialExpression / tissueEnrichment / mutationEnrichment (gates, mutation analysis), correlationPairs (correlations), clusterGenes (clusters), expressionCorrelates (exprCorrelates), focalGeneTissueSummary (per-tissue/subtype mean / sd / n / zVsOverall for the focal gene\'s GE — saves the LLM from scanning the matrix to find tissue-level signals; subtypes gated at n>=5), focalGeneMutationSummary ({ coreDrivers: canonical drivers always shown regardless of effect size with n_mut>=5; topByEffect: top 20 from extended panel ranked by |t| with n_mut>=10 } — Welch\'s t comparing mutated vs WT lines on focal-gene GE), focalGeneVarianceWarning ({ geneEffect: ..., expression: ... } — emitted only when the focal axis sits in cohort noise, e.g. mean GE near 0 with no essential lines, or expression SD < 0.5; warns the LLM not to chase phantom biology in noise-driven correlations), pairCorrelation (scatter views — actual Pearson + Spearman + n + two-sided p between the two scatter axes in the filtered cohort), _method (block documenting how every summary was computed).',
                 _method: 'Same content as extras._method — duplicated here at schema level so it\'s available even when extras is omitted (e.g. for views without precomputed source-specific extras).'
             },
             _instructions: [
@@ -19823,6 +20002,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (exprMatrix && Object.keys(exprMatrix).length > 0) exportData.expression = exprMatrix;
         if (topCorrelates && topCorrelates.length > 0) exportData.topCorrelates = topCorrelates;
         if (topCoessentials && topCoessentials.length > 0) exportData.topCoessentials = topCoessentials;
+        if (topExpressionCorrelates && topExpressionCorrelates.length > 0) exportData.topExpressionCorrelates = topExpressionCorrelates;
         if (extras) {
             // Mirror the methods block into extras so it's discoverable
             // alongside the precomputed summaries (reviewer feedback: when

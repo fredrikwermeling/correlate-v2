@@ -1325,6 +1325,17 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.1 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI <code>.json.gz</code> export &mdash; three additions from a Claude Code brief targeting the scatter view (Priorities 1&ndash;2 of the brief). Schema bumped to <strong>2.7</strong>.
+                        <ul>
+                            <li><strong>New <code>topExpressionCorrelates</code></strong> field &mdash; top 30 expression-vs-expression Pearson correlates of the focal gene. Parallel to <code>topCoessentials</code> (GE-vs-GE) and <code>topCorrelates</code> (GE-vs-expression), but answers a different axis: <em>which other genes' expression covaries with the focal gene's expression in this cohort?</em> Most useful for scatter / expression-correlate views where the focal axis is expression. Polarity description in <code>dataStructure</code>: positive r = co-regulated (often shared transcriptional program / phenotype state / lineage marker); negative r = anti-correlated. Same n-gate as the other correlate blocks (n &ge; max(50, 0.6 &times; cohortSize)). Suppressed when focal-gene expression SD &lt; 0.05.</li>
+                            <li><strong>Variance warning extended to expression axis</strong>. Was previously gated only on the GE axis (|mean| &lt; 0.3, SD &lt; 0.15, frac essential &lt; 5%). Now also fires when focal-gene expression has SD &lt; 0.5 OR mean &lt; 0.5 (log2-TPM+1, gene silent or stably expressed everywhere). Warning structure became <code>{ geneEffect: ..., expression: ... }</code> so both can fire independently. Catches the case where a "what explains the variability in expression of X" question is asked about a silent / housekeeping gene.</li>
+                            <li><strong>New <code>extras.pairCorrelation</code> for scatter views</strong> &mdash; Pearson + Spearman + n + two-sided p between the two scatter axes, computed over the filtered cohort. Reviewer flagged that <code>context.correlation</code> was null in scatter exports; the most basic precomputed thing for a scatter view, missing entirely. Now precomputed at export time over whichever combination of GE / expression / dual-gene the user picked.</li>
+                        </ul>
+                    </li>
+                    <li>Deferred from this round: applying the same precomputed-extras discipline to <code>mutation_analysis</code> / <code>gate_comparison</code> / <code>correlation</code> / <code>cluster</code> / <code>expression_correlate</code> view types (Priority 5 of the brief). Bigger scope; ship after the scatter improvements are tested.</li>
+                </ul>
                 <p><strong>v.81.0 (2026-04-27)</strong></p>
                 <ul>
                     <li>AI <code>.json.gz</code> export &mdash; the precomputed-summary discipline (topCoessentials / topCorrelates / focalGeneTissueSummary / focalGeneMutationSummary / pathway-partner whitelist) was silently scoped to the <em>gene-effect</em> view because the focal-gene resolver only checked <code>context.gene</code>. Scatter / mutation / expression-correlate exports were quietly emitting empty extras while the <code>_analysisInstructions</code> still told the LLM to use those fields. Fixed: the resolver now falls back through <code>context.gene</code> &rarr; <code>context.hotspotGene</code> &rarr; <code>context.targetGene</code> &rarr; <code>context.gene1</code>, so every view that has a single focal gene now produces all the same precomputed summaries (caught when an Opus 4.7 review of a FAM167A scatter export found none of the extras present).</li>
@@ -2446,7 +2457,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.0</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.1</a>
     </div>
 
     <div class="main-content">
@@ -4577,6 +4588,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_0"></script>
+    <script src="app.js?v=v81_1"></script>
 </body>
 </html>
