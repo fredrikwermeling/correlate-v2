@@ -52,6 +52,7 @@ class CorrelationExplorer {
         this.translocations = null;
         this.clinicalFusions = null;
         this.inferredSubtypes = null;
+        this.globalSignatures = null;
         this.drugResponse = null;
         this.orthologs = null;
         this.geneEffects = null; // Float32Array [nGenes x nCellLines]
@@ -177,7 +178,7 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
@@ -187,7 +188,8 @@ class CorrelationExplorer {
             Promise.resolve(null), // growth_rate.json disabled (v.54)
             fetch('web_data/drug_response.json').catch(() => null),
             fetch('web_data/clinical_fusions.json').catch(() => null),
-            fetch('web_data/inferred_subtypes.json').catch(() => null)
+            fetch('web_data/inferred_subtypes.json').catch(() => null),
+            fetch('web_data/global_signatures.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -208,6 +210,9 @@ class CorrelationExplorer {
         }
         if (inferredSubtypesRes && inferredSubtypesRes.ok) {
             this.inferredSubtypes = await inferredSubtypesRes.json();
+        }
+        if (globalSigRes && globalSigRes.ok) {
+            this.globalSignatures = await globalSigRes.json();
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -2378,6 +2383,15 @@ class CorrelationExplorer {
             return this.cellLineMetadata.lineage[cellLineId] || '';
         }
         return '';
+    }
+
+    // Recover the underlying fusion / gene name from a CLB fusion-filter input
+    // value. The dropdown decorates options with a ★ marker (clinical pair) and
+    // a (n=N) suffix so the count shows in Safari's narrow datalist subtitle —
+    // we strip both so lookup keys match the backing data.
+    _stripFusionFilterDecoration(raw) {
+        if (!raw) return '';
+        return raw.replace(/^★\s+/, '').replace(/\s*\(n=\d+\)\s*$/, '').trim();
     }
 
     getGeneData(geneIndex) {
@@ -17442,9 +17456,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const geHotspot = document.getElementById('geHotspotFilter');
                 if (geHotspot) geHotspot.value = hotspot;
             }
-            // Translocation filter — check param section first, then CLB filter
+            // Translocation filter — check param section first, then CLB filter.
+            // CLB value carries dropdown decoration ("★ NAME (n=N)" / "GENE (n=N)") —
+            // strip it before forwarding to the GE-modal fusion filter.
             const paramTrans = document.getElementById('paramTranslocationGene')?.value;
-            const clbTrans = document.getElementById('clbTranslocationFilter')?.value;
+            const clbTrans = this._stripFusionFilterDecoration(document.getElementById('clbTranslocationFilter')?.value);
             const trans = paramTrans || clbTrans;
             if (trans) {
                 const geFusion = document.getElementById('geFusionFilter');
@@ -22583,8 +22599,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // The fusion filter accepts either a gene symbol ("ABL1" -> any line
         // with any ABL1 fusion) or a clinically relevant fusion pair name
         // ("BCR-ABL1" -> only the curated set with that exact validated pair).
-        const clinicalPairCells = transGene && this.clinicalFusions?.fusionData?.[transGene]?.cellLines;
-        const transMuts = transGene && !clinicalPairCells && this.translocations?.geneData?.[transGene]?.translocations;
+        // The dropdown value carries decoration ("★ BCR-ABL1 (n=11)" /
+        // "ABL1 (n=14)") so the n= is visible in narrow Safari datalists;
+        // strip it to recover the underlying name for lookup.
+        const transKey = this._stripFusionFilterDecoration(transGene);
+        const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
+        const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
         const collectionSet = collection ? this._collectionMembership?.[collection] : null;
 
         let filtered = this.metadata.cellLines.filter(cl => {
@@ -22806,7 +22826,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const tissue = document.getElementById('clbTissueFilter')?.value;
         const subtype = document.getElementById('clbSubtypeFilter')?.value;
         const hotspot = document.getElementById('clbHotspotFilter')?.value;
-        const trans = document.getElementById('clbTranslocationFilter')?.value;
+        const trans = this._stripFusionFilterDecoration(document.getElementById('clbTranslocationFilter')?.value);
         if (tissue) parts.push(`<span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:10px;">${tissue}${subtype ? ' · ' + subtype : ''}</span>`);
         if (hotspot) parts.push(`<span style="background:#dcfce7;color:#16a34a;padding:1px 6px;border-radius:10px;">${hotspot} mutated</span>`);
         if (trans) parts.push(`<span style="background:#fae8ff;color:#7c3aed;padding:1px 6px;border-radius:10px;">${trans} fused</span>`);
@@ -22839,10 +22859,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const transGene = document.getElementById('clbTranslocationFilter').value;
 
         const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
-        // Same dual lookup as in the main filter — gene symbol (any fusion of
-        // that gene) or clinical fusion pair name (curated cell-line set).
-        const clinicalPairCells = transGene && this.clinicalFusions?.fusionData?.[transGene]?.cellLines;
-        const transMuts = transGene && !clinicalPairCells && this.translocations?.geneData?.[transGene]?.translocations;
+        // Same dual lookup as in the main filter — strip dropdown decoration
+        // ("★ BCR-ABL1 (n=11)" / "ABL1 (n=14)") to the underlying name.
+        const transKey = this._stripFusionFilterDecoration(transGene);
+        const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
+        const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
         const collectionSet = collection ? this._collectionMembership?.[collection] : null;
         const allCls = this.metadata.cellLines;
 
@@ -22997,11 +23018,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Update translocation filter counts. Two sections in the dropdown:
-        //   (a) Clinically relevant fusion pairs (BCR-ABL1, EWSR1-FLI1, ...)
-        //       at the top, each with n= scaled to the current cohort filters
-        //       — selecting one filters the cell-line list to the curated set.
-        //   (b) The original gene-based list below, unchanged behaviour
-        //       (selecting "ABL1" returns any line with any ABL1 fusion).
+        //   (a) Clinically relevant fusion pairs at the top with a ★ marker
+        //       and n= — selecting one filters to the curated cell-line set.
+        //   (b) Gene-based list below (selecting "ABL1" returns any line with
+        //       any ABL1 fusion).
+        // The full label (with ★ and n=) goes into the `value` attribute so
+        // it's the single line each option renders as — Safari truncates
+        // datalist subtitles, which previously hid the n= for clinical pairs.
+        // The filter lookup strips the decoration to recover the underlying
+        // fusion / gene name.
         if (this.translocations?.geneData) {
             const transBase = getBaseSet('translocation');
             const transBaseSet = new Set(transBase);
@@ -23010,8 +23035,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const transVal = transInput.value;
             let transHtml = '';
 
-            // (a) Clinically relevant fusion pairs — counts scaled to active
-            // cohort filters (tissue / subtype / hotspot / etc.).
             if (this.clinicalFusions?.fusionData) {
                 const pairCounts = [];
                 for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
@@ -23022,17 +23045,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     if (n > 0) pairCounts.push({ fname, n });
                 }
                 pairCounts.sort((a, b) => b.n - a.n);
-                if (pairCounts.length > 0) {
-                    for (const { fname, n } of pairCounts) {
-                        transHtml += `<option value="${fname}">★ ${fname} (n=${n}) — clinically relevant</option>`;
-                    }
-                    // Visual separator that's also a no-op match (selecting it
-                    // produces no filter — cleared by the input change handler).
-                    transHtml += `<option value="" disabled>──────────</option>`;
+                for (const { fname, n } of pairCounts) {
+                    transHtml += `<option value="★ ${fname} (n=${n})">`;
                 }
             }
 
-            // (b) Gene-based filter, original behaviour.
             if (this._fusionGeneCounts) {
                 const transCounts = [];
                 this._fusionGeneCounts.forEach(({ gene }) => {
@@ -23046,7 +23063,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 });
                 transCounts.sort((a, b) => b.n - a.n);
                 for (const { gene, n } of transCounts) {
-                    transHtml += `<option value="${gene}">${gene} (n=${n})</option>`;
+                    transHtml += `<option value="${gene} (n=${n})">`;
                 }
             }
 
@@ -23203,6 +23220,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Subtype</span><span class="clb-stat-value">${sublineage || '-'}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex (annotation)</span><span class="clb-stat-value">${sexAnn}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex (expression)</span><span class="clb-stat-value"${expStyle}>${expDisplay}</span></div>`;
+        // Genome-wide signatures (PureCN ploidy + WGD, Ben-David aneuploidy,
+        // chromosomal instability). These shape interpretation when comparing
+        // gene effect across cell lines — WGD-positive lines are systematically
+        // different. Source: OmicsGlobalSignatures.csv.
+        const gs = this.globalSignatures?.byCellLine?.[cellLineId];
+        if (gs) {
+            const helpGs = 'Genome-wide signatures from OmicsGlobalSignatures: Ploidy (avg chromosome dosage), WGD (whole-genome doubling, binary), Aneuploidy (Ben-David 2021 score, 0–39), CIN (chromosomal instability). Useful interpretive context — WGD-positive lines (~58% of the panel) are systematically different in many analyses.';
+            const parts = [];
+            if (gs.Ploidy != null) parts.push(`<span title="Average chromosome dosage from PureCN">Ploidy ${gs.Ploidy.toFixed(2)}</span>`);
+            if (gs.WGD === true) parts.push(`<span style="color:#dc2626; font-weight:600;" title="Whole-genome doubling (PureCN)">WGD</span>`);
+            if (gs.Aneuploidy != null) parts.push(`<span title="Ben-David 2021 aneuploidy score (0–39)">Aneup. ${gs.Aneuploidy}</span>`);
+            if (gs.CIN != null) parts.push(`<span title="Chromosomal instability score (PureCN)">CIN ${gs.CIN.toFixed(2)}</span>`);
+            if (parts.length) {
+                top += `<div class="clb-stat-row"><span class="clb-stat-label">Genome <span style="color:#9ca3af; font-size:9px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 4px;" title="${helpGs.replace(/"/g, '&quot;')}">?</span></span>`
+                    + `<span class="clb-stat-value" style="font-size:10px;">${parts.join(' &middot; ')}</span></div>`;
+            }
+        }
         top += `</div>`;
 
         // Wiki entry-point sits at the top so the user lands on the deep-dive
@@ -23227,7 +23261,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hasInferredData = this.inferredSubtypes?.byCellLine?.[cellLineId] != null;
         const lofGenes = infSub.lof || [];
         if (hasInferredData) {
-            top += `<div class="clb-detail-section"><strong>Functional loss (${lofGenes.length})</strong>`;
+            const helpLof = 'Tumor-suppressor inactivation calls inferred by DepMap, combining three signals: WGS copy number < 0.3, likely loss-of-function mutation with allele frequency > 0.5, or expression < 0.1 log-TPM. This catches deletion-driven losses (CDKN2A homozygous deletion, RB1 deep deletion) that the damaging-mutation matrix alone misses. Source: OmicsInferredMolecularSubtypes.';
+            top += `<div class="clb-detail-section"><strong>Functional loss (${lofGenes.length})</strong>`
+                + ` <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="${helpLof.replace(/"/g, '&quot;')}">?</span>`;
             if (lofGenes.length > 0) {
                 top += `<div style="font-size:11px; line-height:1.7;">`;
                 top += lofGenes.slice().sort().map(g =>
@@ -23255,7 +23291,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const order = { high: 0, medium: 1, low: 2 };
                 return (order[a.tier] - order[b.tier]) || a.fusion.localeCompare(b.fusion);
             });
-            top += `<div class="clb-detail-section"><strong>Clinically relevant fusions (${clinicalCalls.length})</strong>`;
+            const helpFusion = 'Curated driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, …) validated per cell line on three orthogonal signals: lineage match, partner expression z-score, and partner CRISPR dependency. Tier chips: green=high (both informative signals support the call), amber=medium (one signal or curated+lineage only), red=low (no support and atypical lineage — suspect). Atypical badge means the cell line tissue isn\'t the canonical disease for the fusion; lineage is a modifier, not a gate.';
+            top += `<div class="clb-detail-section"><strong>Clinically relevant fusions (${clinicalCalls.length})</strong>`
+                + ` <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="${helpFusion.replace(/"/g, '&quot;')}">?</span>`;
             top += `<div style="font-size:11px; line-height:1.7;">`;
             sortedCalls.forEach(c => {
                 const color = tierColor[c.tier] || '#6b7280';
@@ -23374,7 +23412,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const tissueVal = document.getElementById('clbTissueFilter').value;
             const subtypeVal = document.getElementById('clbSubtypeFilter').value;
             const hotspotVal = document.getElementById('clbHotspotFilter').value;
-            const transVal = document.getElementById('clbTranslocationFilter').value;
+            const transVal = this._stripFusionFilterDecoration(document.getElementById('clbTranslocationFilter').value);
             if (tissueVal) filterParts.push(tissueVal);
             if (subtypeVal) filterParts.push(subtypeVal);
             if (hotspotVal) filterParts.push(hotspotVal + ' Mut');
@@ -25318,7 +25356,7 @@ ${body}
             const tissueVal = document.getElementById('clbTissueFilter').value;
             const subtypeVal = document.getElementById('clbSubtypeFilter').value;
             const hotspotVal = document.getElementById('clbHotspotFilter').value;
-            const transVal = document.getElementById('clbTranslocationFilter').value;
+            const transVal = this._stripFusionFilterDecoration(document.getElementById('clbTranslocationFilter').value);
             if (tissueVal) filterParts.push(tissueVal);
             if (subtypeVal) filterParts.push(subtypeVal);
             if (hotspotVal) filterParts.push(hotspotVal + ' mut');

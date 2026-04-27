@@ -1325,6 +1325,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.78.1 (2026-04-27)</strong></p>
+                <ul>
+                    <li>CLB fusion filter dropdown &mdash; the n= count was getting truncated by Safari's narrow datalist subtitle row (showed "★ EWSR1-" rather than "★ EWSR1-FLI1 (n=14)"). Moved the full label (★ marker, fusion / gene name, n= count) into the option's <code>value</code> attribute so it renders as the only line. Filter lookup gained a small helper that strips the ★ prefix and the (n=N) suffix to recover the underlying name, applied everywhere the value is used (cell-line filter, GE-modal forwarding, active-filter badges, CSV export labels). Free-typing a canonical name like "BCR-ABL1" still works, with or without the (n=11) suffix.</li>
+                    <li>Inline <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;">?</span> tooltips next to the new section headers in the cell line detail panel: <em>Clinically relevant fusions</em> (recaps the orthogonal-evidence tier rules), <em>Functional loss</em> (explains the integrated CN/mutation/expression call and why it catches deletion-driven losses the damaging-mutation matrix misses), and <em>Genome signatures</em> (defines Ploidy / WGD / Aneuploidy / CIN). Hover the <code>?</code> for the explanation without leaving the detail panel.</li>
+                    <li>DepMap genome-wide signatures integrated. New <code>scripts/process_global_signatures.py</code> + <code>web_data/global_signatures.json</code> (~80 KB) processes <code>OmicsGlobalSignatures.csv</code> &mdash; Ploidy (PureCN), WGD (whole-genome doubling, 692/1186 lines &asymp;58%), CIN, LoH fraction, MSI score (continuous), and Aneuploidy (Ben-David 2021 score). Each cell line now shows a one-line "Genome" row in the detail panel with the most useful four (Ploidy / WGD / Aneuploidy / CIN), each with a hover tooltip. WGD displayed in red when positive.</li>
+                </ul>
                 <p><strong>v.78.0 (2026-04-27)</strong></p>
                 <ul>
                     <li>DepMap inferred molecular subtypes integrated. New <code>scripts/process_inferred_subtypes.py</code> + <code>web_data/inferred_subtypes.json</code> (~140 KB) processes <code>OmicsInferredMolecularSubtypes.csv</code> &mdash; per-cell-line specific hotspot variants (KRAS p.G12D, BRAF p.V600E, etc.), 11 named driver fusions, integrated LoF for 8 tumor suppressors (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC), and MSI status. Cross-validation against our own <code>clinical_fusions.json</code> shows perfect agreement on BCR-ABL1 (12/12), EWSR1-FLI1 (14/14), EWSR1-ERG (3/3), ETV6-RUNX1, TCF3-PBX1, PAX-FOXO1.</li>
@@ -2309,7 +2315,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.78.0</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.78.1</a>
     </div>
 
     <div class="main-content">
@@ -3971,6 +3977,10 @@
           <p><strong>Functional loss</strong> &mdash; integrated tumor-suppressor inactivation calls (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC) shown as red-bordered chips in the detail panel. A gene is "lost" if any of: WGS-based relative CN &lt; 0.3, likely-LoF mutation with AF &gt; 0.5, or expression &lt; 0.1 log-TPM. This catches <em>deletion-driven</em> losses that the damaging-mutation matrix alone misses &mdash; e.g. CDKN2A homozygous deletion in 445 lines (~37% of the panel), most of which look mutation-clean. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
 
           <p><strong>MSI badge</strong> &mdash; small red <span style="background:#dc2626; color:#fff; font-size:9px; font-weight:600; padding:0 4px; border-radius:6px;">MSI</span> chip next to the cell-line ID when MSIsensor2 score &ge; 20 (DepMap's threshold for microsatellite instability).</p>
+
+          <p><strong>Genome signatures</strong> (small row near the top of the detail panel) &mdash; <em>Ploidy</em> (PureCN avg chromosome dosage), <em>WGD</em> (whole-genome doubling, shown in red when positive &mdash; ~58% of the panel), <em>Aneuploidy</em> (Ben-David 2021 score, 0&ndash;39), <em>CIN</em> (chromosomal instability). These shape interpretation when comparing gene effect across cell lines &mdash; WGD-positive lines are systematically different. Source: <code>OmicsGlobalSignatures.csv</code>.</p>
+
+          <p>Each new section in the detail panel has an inline <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;">?</span> with a hover tooltip recapping the key explanation, so you don't need to come back to this modal to remember what a tier or column means.</p>
 
           <p style="margin-top:14px;"><strong>Clinically relevant fusions</strong> &mdash; shown as green/amber/red chips in the cell line detail panel.</p>
           <ul style="margin:4px 0 10px 20px;">
