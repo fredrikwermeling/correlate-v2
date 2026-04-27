@@ -1325,6 +1325,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.80.7 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI <code>.json.gz</code> export &mdash; <strong>CORUM integration</strong>. The pathway-partner expression carve-out is no longer hand-curated for ~9 complexes; it now layers three sources so any focal gene gets meaningful partners:
+                        <ol>
+                            <li>Hand-curated complexes (NEDD8/CRL, Proteasome, Hippo, MYC, TP53, BRCA, mTOR, BCL2, splicing) &mdash; tight, biologist-vetted high-value sets.</li>
+                            <li><strong>CORUM</strong> (manually curated mammalian protein complexes, ~3,000 human genes covered) &mdash; auto-populates partners for arbitrary focal genes (SMARCA4 &rarr; BAF subunits, MCM4 &rarr; MCM2-7 helicase, RUVBL1 &rarr; INO80/SRCAP, etc.).</li>
+                            <li>Wiki cancer pathways &mdash; signalling-cascade groupings CORUM doesn't cover (RAS/MAPK, RTK family, p53-MDM2-CDKN2A axis).</li>
+                        </ol>
+                        New <code>scripts/process_corum.py</code> reads a downloaded CORUM TSV (<a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" rel="noopener">mips.helmholtz-muenchen.de/corum/</a>, "Human" complexes) and writes <code>web_data/corum_partners.json</code>. Schema bumped to <strong>2.4</strong>; <code>dataStructure.expression</code> documents the layered lookup. CORUM data file is optional &mdash; if not present, the export falls back to the hand-curated + wiki-pathway layers and still works.</li>
+                </ul>
                 <p><strong>v.80.6 (2026-04-27)</strong></p>
                 <ul>
                     <li>AI <code>.json.gz</code> export &mdash; bug fixes after a third Opus 4.7 review of v.80.5. Two precomputed summaries had real bugs that were actively misleading the LLM (worse than not having the summaries at all per the reviewer). Schema bumped to <strong>2.3</strong>.
@@ -2419,7 +2429,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.7</a>
     </div>
 
     <div class="main-content">
@@ -4529,6 +4539,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v80_6"></script>
+    <script src="app.js?v=v80_7"></script>
 </body>
 </html>

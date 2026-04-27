@@ -8,6 +8,14 @@ OmicsFusionFiltered.csv
 OmicsFusionFilteredSupplementary.csv
 OmicsInferredMolecularSubtypes.csv
 OmicsGlobalSignatures.csv
+humanComplexes.txt
+humanComplexes.txt.zip
+allComplexes.txt
+allComplexes.txt.zip
+coreComplexes.txt
+coreComplexes.txt.zip
+corum_*.txt
+corum_*.zip
 scripts/CRISPRInferredModelGrowthRate.csv
 scripts/Model_25Q3.csv
 scripts/OmicsProfiles.csv

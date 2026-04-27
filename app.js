@@ -53,6 +53,7 @@ class CorrelationExplorer {
         this.clinicalFusions = null;
         this.inferredSubtypes = null;
         this.globalSignatures = null;
+        this.corumPartners = null;
         this.drugResponse = null;
         this.orthologs = null;
         this.geneEffects = null; // Float32Array [nGenes x nCellLines]
@@ -178,7 +179,7 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
@@ -189,7 +190,8 @@ class CorrelationExplorer {
             fetch('web_data/drug_response.json').catch(() => null),
             fetch('web_data/clinical_fusions.json').catch(() => null),
             fetch('web_data/inferred_subtypes.json').catch(() => null),
-            fetch('web_data/global_signatures.json').catch(() => null)
+            fetch('web_data/global_signatures.json').catch(() => null),
+            fetch('web_data/corum_partners.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -213,6 +215,9 @@ class CorrelationExplorer {
         }
         if (globalSigRes && globalSigRes.ok) {
             this.globalSignatures = await globalSigRes.json();
+        }
+        if (corumRes && corumRes.ok) {
+            this.corumPartners = await corumRes.json();
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -19517,24 +19522,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Genes whose expression we ALWAYS include regardless of the variance
         // filter: focal gene itself, the second focal gene (scatter view),
         // the genes that surfaced in the expression-correlate scan, AND the
-        // focal gene's curated complex partners (e.g. NEDD8 → UBA3, NAE1,
-        // UBE2M, etc.). The complex-partner carve-out closes the gap a
-        // reviewing LLM kept hitting: housekeeping-ish pathway components
-        // were below the variance threshold, so the most informative
-        // expression context for the focal gene was missing from the file.
+        // focal gene's pathway / complex partners — pulled from a layered
+        // lookup (hand-curated complexes → CORUM → wiki pathways) so any
+        // focal gene gets meaningful partner coverage instead of just the
+        // ~9 hand-curated complexes we maintain manually.
         const alwaysIncludeExpr = new Set();
         if (analysisGene) alwaysIncludeExpr.add(analysisGene.toUpperCase());
         if (focalGene2) alwaysIncludeExpr.add(focalGene2);
         if (topCorrelates) for (const c of topCorrelates) alwaysIncludeExpr.add(c.gene.toUpperCase());
-        const partners = analysisGene ? (this._FOCAL_GENE_COMPLEX_PARTNERS()[analysisGene.toUpperCase()] || []) : [];
-        for (const p of partners) alwaysIncludeExpr.add(p.toUpperCase());
-        // Also pull genes from any wiki pathway that contains the focal gene.
-        if (analysisGene && this._WIKI_PATHWAYS) {
-            for (const info of Object.values(this._WIKI_PATHWAYS())) {
-                if ((info.genes || []).includes(analysisGene.toUpperCase())) {
-                    for (const g of info.genes) alwaysIncludeExpr.add(g.toUpperCase());
-                }
-            }
+        if (analysisGene) {
+            for (const p of this._getFocalGenePartners(analysisGene)) alwaysIncludeExpr.add(p);
         }
 
         let exprMatrix = null;
@@ -19744,13 +19741,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const exportData = {
             _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
-            schemaVersion: '2.3',
+            schemaVersion: '2.4',
             nTotal: cellLines.length,
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices. Length = nTotal.',
                 cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy).',
                 geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores aligned to cellLineOrder. Negative = essential. null = missing. The focal gene of the analysis is always included regardless of variance threshold.',
-                expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. The focal gene, the genes that surfaced in topCorrelates, and a curated list of complex / pathway partners for the focal gene (e.g. NEDD8 → UBA3, NAE1, UBE2M, UBE2F, RBX1, SKP1, CUL1-5, CAND1, COPS5/6) are always included regardless of variance threshold.',
+                expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. The focal gene, the genes surfaced in topCorrelates, and the focal gene\'s pathway / complex partners are always included regardless of variance threshold. Partner sources are layered: a small hand-curated set of high-value complexes (NEDD8/CRL, Proteasome, Hippo, MYC, TP53, BRCA, mTOR, BCL2, splicing) → CORUM (manually curated mammalian protein complexes; ~3000 human genes covered) → wiki cancer pathways (RAS/MAPK, PI3K, RTK family, etc.). So for an arbitrary focal gene like SMARCA4 you get the BAF subunits via CORUM; for MCM4 the MCM2-7 helicase; for RUVBL1 the INO80/SRCAP machinery; etc.',
                 topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n }. Gated at n >= max(50, 0.6 * cohortSize) to drop partial-coverage genes. Polarity: positive r means high partner expression covaries with weaker focal-gene dependency (less negative GE).',
                 topCoessentials: 'Optional. Top 30 GE-vs-GE co-essentials of the focal gene: { gene, r (Pearson, focal-gene GE vs partner GE across the cohort), n }. Same n-gate as topCorrelates. Every gene named here is also present in the geneEffect matrix (added back if the variance filter dropped it), so the LLM can verify by recomputing. Polarity: positive r means lines that depend more on the partner depend less on the focal gene (classic co-essentiality buffering pattern within a complex). Negative r means partner and focal gene are co-essential — both required by the same lines (same-pathway dependency).',
                 cellLineGroups: 'Optional. Cell line IDs grouped by analysis stratification (WT/mut1/mut2 for mutation, gateA/gateB for gate comparison, etc.).',
@@ -23747,14 +23744,48 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Cancer pathway knowledge base. Each pathway lists marker genes and
     // a short, plain-language note about its role and therapeutic relevance.
     // Evidence pooled from OncoKB / COSMIC / SIGNOR.
+    // Layered partner lookup for the AI export's pathway-expression carve-out.
+    // Layered for resilience: the same focal gene gets all relevant partners
+    // by stacking sources, with each source contributing what it knows best.
+    //   1. Hand-curated complexes (_FOCAL_GENE_COMPLEX_PARTNERS) — small
+    //      number of high-value common analysis targets where we want
+    //      tight, biologist-vetted partner sets.
+    //   2. CORUM (web_data/corum_partners.json) — manually curated mammalian
+    //      protein complexes, ~3,000 human genes covered. Auto-populates
+    //      partners for arbitrary focal genes (SMARCA4 → BAF, MCM4 → MCM2-7,
+    //      RUVBL1 → INO80/SRCAP, etc.) without manual maintenance.
+    //   3. Wiki cancer pathways (_WIKI_PATHWAYS) — cancer-driver pathway
+    //      groupings that capture relationships CORUM misses (e.g. RAS/MAPK
+    //      signalling cascade, RTK family, p53-MDM2-CDKN2A axis).
+    // Returns an uppercase Set of partner gene symbols (excluding the focal
+    // gene itself). Caller can iterate / add to alwaysIncludeExpr directly.
+    _getFocalGenePartners(focalGene) {
+        if (!focalGene) return new Set();
+        const target = focalGene.toUpperCase();
+        const out = new Set();
+        // (1) Hand-curated
+        const handMap = this._FOCAL_GENE_COMPLEX_PARTNERS();
+        for (const p of (handMap[target] || [])) out.add(p.toUpperCase());
+        // (2) CORUM
+        const corum = this.corumPartners?.partners?.[target] || [];
+        for (const p of corum) out.add(p.toUpperCase());
+        // (3) Wiki pathways — any pathway containing the focal gene
+        if (this._WIKI_PATHWAYS) {
+            for (const info of Object.values(this._WIKI_PATHWAYS())) {
+                const genes = (info.genes || []).map(g => g.toUpperCase());
+                if (genes.includes(target)) {
+                    for (const g of genes) if (g !== target) out.add(g);
+                }
+            }
+        }
+        return out;
+    }
+
     // Curated complex / machinery partner sets keyed off the focal gene.
-    // Used by the AI export to carry pathway-partner expression through
-    // the variance filter regardless of how stably expressed those partners
-    // are — for a NEDD8 GE export we want UBA3 / NAE1 / UBE2M / etc. in the
-    // expression matrix even though they're housekeeping-ish and the
-    // variance filter would otherwise drop them. Each value is the list of
-    // partners (excluding the focal gene itself; the export logic already
-    // adds the focal gene). Extend by editing the COMPLEX arrays below.
+    // Tier 1 of the layered lookup (see _getFocalGenePartners). Tight,
+    // biologist-vetted sets for high-value common analysis targets that
+    // we want covered even if CORUM isn't loaded. Each value is the list
+    // of partners (excluding the focal gene itself).
     _FOCAL_GENE_COMPLEX_PARTNERS() {
         if (this._focalGenePartnersCache) return this._focalGenePartnersCache;
         const COMPLEXES = {
