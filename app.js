@@ -3428,19 +3428,23 @@ class CorrelationExplorer {
             // Determine cell lines and show tier info
             const cls = this._getAICellLines(source);
             const n = cls.length;
-            // Tier description matches the unified exporter (no hard cap;
-            // mutations / fusions / inferred subtypes / signatures always
-            // full; matrices tightened with cohort size; expression filter
-            // is OR-not-AND so tissue-restricted markers survive).
+            // Matches the unified exporter tiers. Results-only sources
+            // (correlations / clusters / exprCorrelates) skip the matrices
+            // entirely — the result table is what the AI needs to interpret.
+            const resultsOnly = (source === 'correlations' || source === 'clusters' || source === 'exprCorrelates');
             let tierText;
-            if (n <= 100) {
+            if (resultsOnly) {
+                tierText = `<b>${n} cell lines</b> — Result tables + cell-line metadata + mutations / fusions / inferred / signatures. Matrices skipped (the analysis result is what the AI needs to interpret this view).`;
+            } else if (n <= 100) {
                 tierText = `<b>${n} cell lines</b> — Full: all GE + all expression + mutations + clinical fusions + inferred subtypes + signatures.`;
             } else if (n <= 500) {
                 tierText = `<b>${n} cell lines</b> — GE |val|>0.2; expression mean>1.0 OR sd>0.5; mutations / fusions / inferred / signatures full.`;
-            } else if (n <= 1500) {
+            } else if (n <= 1000) {
                 tierText = `<b>${n} cell lines</b> — GE |val|>0.3; expression mean>2.0 OR sd>0.5; mutations / fusions / inferred / signatures full.`;
+            } else if (n <= 1500) {
+                tierText = `<b>${n} cell lines</b> — GE |val|>0.5 (essential genes only); expression mean>2.5 OR sd>0.8; mutations / fusions / inferred / signatures full.`;
             } else {
-                tierText = `<b>${n} cell lines</b> — GE |val|>0.5 (essential genes only); expression mean>2.0 OR sd>1.0; mutations / fusions / inferred / signatures full.`;
+                tierText = `<b>${n} cell lines</b> — GE |val|>0.5; expression mean>3.0 OR sd>1.0; mutations / fusions / inferred / signatures full.`;
             }
             document.getElementById('aiDataTierInfo').innerHTML = tierText;
             document.getElementById('aiExportStatus').textContent = '';
@@ -19010,14 +19014,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cellLines = allCLs;
         const n = cellLines.length;
 
-        // Tier table:
-        //   ≤100      full GE + full expression
-        //   100–500   |GE|>0.2  + (expr mean>1.0  OR sd>0.5)
-        //   500–1500  |GE|>0.3  + (expr mean>2.0  OR sd>0.5)
-        //   >1500     |GE|>0.5  + (expr mean>2.0  OR sd>1.0)
+        // Tier table — tightened after empirical 74 MB at 1186 cells in the
+        // 500–1500 band. Split into 500–1000 and 1000–1500 with the upper
+        // band keeping only essential genes (|GE|>0.5) so the file fits
+        // claude.ai's ~30 MB attachment limit.
+        //   ≤100        full GE + full expression
+        //   100–500     |GE|>0.2  + (expr mean>1.0  OR sd>0.5)
+        //   500–1000    |GE|>0.3  + (expr mean>2.0  OR sd>0.5)
+        //   1000–1500   |GE|>0.5  + (expr mean>2.5  OR sd>0.8)
+        //   >1500       |GE|>0.5  + (expr mean>3.0  OR sd>1.0)
         // Mutations / fusions / LoF / global signatures ALWAYS included.
-        // Expression filter switched from AND to OR so tissue-restricted
-        // markers (low overall mean, high SD) survive.
+        // Expression filter is OR (tissue-restricted markers survive).
         let geCutoff, exprMeanMin, exprSdMin, tierLabel;
         if (n <= 100) {
             geCutoff = 0; exprMeanMin = -Infinity; exprSdMin = -Infinity;
@@ -19025,12 +19032,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         } else if (n <= 500) {
             geCutoff = 0.2; exprMeanMin = 1.0; exprSdMin = 0.5;
             tierLabel = 'GE |val|>0.2; expression mean>1.0 OR sd>0.5; mutations / fusions / LoF / signatures full';
-        } else if (n <= 1500) {
+        } else if (n <= 1000) {
             geCutoff = 0.3; exprMeanMin = 2.0; exprSdMin = 0.5;
             tierLabel = 'GE |val|>0.3; expression mean>2.0 OR sd>0.5; mutations / fusions / LoF / signatures full';
+        } else if (n <= 1500) {
+            geCutoff = 0.5; exprMeanMin = 2.5; exprSdMin = 0.8;
+            tierLabel = 'GE |val|>0.5 (essential genes only); expression mean>2.5 OR sd>0.8; mutations / fusions / LoF / signatures full';
         } else {
-            geCutoff = 0.5; exprMeanMin = 2.0; exprSdMin = 1.0;
-            tierLabel = 'GE |val|>0.5 (essential genes only); expression mean>2.0 OR sd>1.0; mutations / fusions / LoF / signatures full';
+            geCutoff = 0.5; exprMeanMin = 3.0; exprSdMin = 1.0;
+            tierLabel = 'GE |val|>0.5 (essential genes only); expression mean>3.0 OR sd>1.0; mutations / fusions / LoF / signatures full';
         }
         const includeExpr = this.expressionLoaded;
 
@@ -19253,10 +19263,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         context.description = description;
         context.nCellLines = n;
-        context.dataTier = tierLabel;
         context.app = 'Correlate V2';
         context.dataSource = 'DepMap 25Q3';
         context.date = new Date().toISOString().slice(0, 10);
+
+        // Results-only sources — the analytical output is the result table
+        // (correlation pairs, cluster genes, expression-correlate r values),
+        // which is already in `extras`. The AI doesn't need to re-derive
+        // anything from the raw matrices, so we skip them entirely. Without
+        // this, exporting all 1186 cell lines from a correlation analysis
+        // produced a 74 MB file (matrices dominated) that wouldn't upload to
+        // claude.ai. The AI still gets cell-line metadata, mutations,
+        // clinical fusions, inferred subtypes, signatures — enough to reason
+        // about the cohort and the result.
+        const includeMatrices = !(source === 'correlations' || source === 'clusters' || source === 'exprCorrelates');
+        if (!includeMatrices) {
+            tierLabel = 'metadata + extras only — matrices skipped (the analysis result, not the raw data, is what the AI needs to interpret this view)';
+        }
+        context.dataTier = tierLabel;
 
         const question = document.getElementById('aiQuestion')?.value?.trim() || '';
 
@@ -19339,21 +19363,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Phase 1 — round GE values to 3 decimals (was 4). Trims ~25% off
         // the gzipped size with no analytical loss for correlation work.
+        // Skipped entirely for results-only sources (correlations / clusters /
+        // exprCorrelates) — see comment near the includeMatrices flag above.
         const geGenes = this.metadata.genes;
         const geCLIndices = cellLines.map(cl => this.metadata.cellLines.indexOf(cl));
         const geMatrix = {};
-        for (let gi = 0; gi < this.nGenes; gi++) {
-            const vals = [];
-            let hasData = false, maxAbs = 0;
-            for (const clIdx of geCLIndices) {
-                if (clIdx === -1) { vals.push(null); continue; }
-                const v = this.geneEffects[gi * this.nCellLines + clIdx];
-                if (!isNaN(v)) { vals.push(parseFloat(v.toFixed(3))); hasData = true; maxAbs = Math.max(maxAbs, Math.abs(v)); }
-                else vals.push(null);
+        if (includeMatrices) {
+            for (let gi = 0; gi < this.nGenes; gi++) {
+                const vals = [];
+                let hasData = false, maxAbs = 0;
+                for (const clIdx of geCLIndices) {
+                    if (clIdx === -1) { vals.push(null); continue; }
+                    const v = this.geneEffects[gi * this.nCellLines + clIdx];
+                    if (!isNaN(v)) { vals.push(parseFloat(v.toFixed(3))); hasData = true; maxAbs = Math.max(maxAbs, Math.abs(v)); }
+                    else vals.push(null);
+                }
+                if (!hasData) continue;
+                if (geCutoff > 0 && maxAbs < geCutoff) continue;
+                geMatrix[geGenes[gi]] = vals;
             }
-            if (!hasData) continue;
-            if (geCutoff > 0 && maxAbs < geCutoff) continue;
-            geMatrix[geGenes[gi]] = vals;
         }
 
         // Phase 1 — expression matrix with the new OR-not-AND filter:
@@ -19362,7 +19390,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // SD because it's only highly expressed in liver lines) which the AND
         // version would silently drop.
         let exprMatrix = null;
-        if (includeExpr && this.expressionData && this.expressionMetadata) {
+        if (includeMatrices && includeExpr && this.expressionData && this.expressionMetadata) {
             setStatus('Building expression matrix...');
             await new Promise(r => setTimeout(r, 50));
             const exprGenes = this.expressionMetadata.genes;
@@ -19462,12 +19490,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 'Then proceed with the analysis per `_analysisInstructions`.'
             ),
             cellLineOrder: cellLines,
-            cellLineMetadata: clMeta,
-            geneEffect: geMatrix
+            cellLineMetadata: clMeta
         };
         // Conditional fields — omit when not applicable instead of emitting null.
         if (question) exportData.question = question;
         if (Object.keys(cellLineGroups).length > 0) exportData.cellLineGroups = cellLineGroups;
+        if (Object.keys(geMatrix).length > 0) exportData.geneEffect = geMatrix;
         if (exprMatrix && Object.keys(exprMatrix).length > 0) exportData.expression = exprMatrix;
         if (topCorrelates && topCorrelates.length > 0) exportData.topCorrelates = topCorrelates;
         if (extras) exportData.extras = extras;

@@ -1325,6 +1325,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.80.1 (2026-04-27)</strong></p>
+                <ul>
+                    <li>AI <code>.json.gz</code> export &mdash; size fixes after a real export from the correlation analysis on all 1186 cell lines came out at 74 MB (claude.ai's attachment limit is ~30 MB).
+                        <ul>
+                            <li><strong>Results-only sources skip the matrices.</strong> For <em>Correlation</em> / <em>Cluster</em> / <em>Expression correlate</em> exports, the analytical result is the result table itself (correlation pairs / cluster genes / per-gene r-values), which is already shipped in <code>extras</code>. Including the full GE matrix on top was dead weight &mdash; the AI doesn't need to re-derive correlations to interpret them. With matrices skipped, a 1186-cell correlation export should now be a few MB rather than 74 MB. Cell-line metadata, mutations, clinical fusions, inferred subtypes and global signatures are still included so the AI can reason about the cohort.</li>
+                            <li><strong>Tighter matrix tiers</strong> for the data-heavy sources (gene effect / scatter / mutation analysis / gates). Split the old 500&ndash;1500 band into 500&ndash;1000 (unchanged: GE&gt;0.3, expr mean&gt;2.0 OR sd&gt;0.5) and 1000&ndash;1500 (new: GE&gt;0.5, expr mean&gt;2.5 OR sd&gt;0.8). Top tier (&gt;1500) tightened to expr mean&gt;3.0 OR sd&gt;1.0. Mutations / fusions / LoF / signatures still always full at every tier.</li>
+                            <li>Tier-info text in the AI dialog updated to show which path applies (results-only vs matrix-bearing) and the new bands.</li>
+                        </ul>
+                    </li>
+                </ul>
                 <p><strong>v.80.0 (2026-04-27)</strong></p>
                 <ul>
                     <li>AI JSON export — major refactor (Phases 1+2+3 from the colleague-Claude review brief). All eight "Analyze with AI" buttons (gene-effect, scatter, mutation analysis, gate compare, correlation, cluster, expression correlate, plus the existing GE-modal export) now produce the <strong>same gzipped schema</strong>. Source-specific result tables (gate enrichment, correlation pairs, cluster genes, expression correlate r values, differential GE for mutation analysis) live under a single <code>extras</code> field; the <code>context</code> field tells the AI which view it came from.</li>
@@ -2346,7 +2356,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.0</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.80.1</a>
     </div>
 
     <div class="main-content">
@@ -4428,6 +4438,6 @@
         <div id="textSettingsBody" style="padding:10px; max-height:500px; overflow-y:auto;"></div>
     </div>
 
-    <script src="app.js?v=v80_0"></script>
+    <script src="app.js?v=v80_1"></script>
 </body>
 </html>
