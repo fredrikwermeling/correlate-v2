@@ -51,6 +51,7 @@ class CorrelationExplorer {
         this.damagingMutations = null;
         this.translocations = null;
         this.clinicalFusions = null;
+        this.inferredSubtypes = null;
         this.drugResponse = null;
         this.orthologs = null;
         this.geneEffects = null; // Float32Array [nGenes x nCellLines]
@@ -176,7 +177,7 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
@@ -185,7 +186,8 @@ class CorrelationExplorer {
             fetch('web_data/damaging_mutations.json').catch(() => null),
             Promise.resolve(null), // growth_rate.json disabled (v.54)
             fetch('web_data/drug_response.json').catch(() => null),
-            fetch('web_data/clinical_fusions.json').catch(() => null)
+            fetch('web_data/clinical_fusions.json').catch(() => null),
+            fetch('web_data/inferred_subtypes.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -203,6 +205,9 @@ class CorrelationExplorer {
         }
         if (clinicalFusionsRes && clinicalFusionsRes.ok) {
             this.clinicalFusions = await clinicalFusionsRes.json();
+        }
+        if (inferredSubtypesRes && inferredSubtypesRes.ok) {
+            this.inferredSubtypes = await inferredSubtypesRes.json();
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -23136,15 +23141,43 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const expDisplay = this._getSexExpressionDisplay(cellLineId);
         const disagree = (sexAnn === 'Male' && sexExp === 'female') || (sexAnn === 'Female' && sexExp === 'male');
         const expStyle = disagree ? ' style="color:#b45309;" title="Expression disagrees with annotation"' : '';
+
+        // Inferred subtypes (DepMap's per-cell-line specific hotspots, named
+        // fusions, integrated LoF, MSI). Used to enrich the hotspot section
+        // with specific variants (KRAS p.G12D vs just KRAS), to drive the
+        // Functional loss section, and to add the MSI badge.
+        const infSub = this.inferredSubtypes?.byCellLine?.[cellLineId] || {};
+        // Build gene → most-specific variant string. The CSV contains both
+        // specific (KRAS p.G12D) and general (KRAS p.G12) calls; when a
+        // specific is True the general is also True. Show the most specific.
+        // Bare "Hotspot" (the ALK column) is skipped because rendering "(Hotspot)"
+        // next to "ALK" reads as redundant — the gene is already in the
+        // hotspot mutation list, that's why we're labelling it.
+        const geneVariant = {};
+        const SPECIFIC = new Set(['KRAS p.G12D', 'KRAS p.G12C', 'BRAF p.V600E', 'EGFR p.L858R', 'JAK2 p.V617F']);
+        for (const h of (infSub.hotspots || [])) {
+            const gene = h.split(' ')[0];
+            const variant = h.slice(gene.length + 1); // "p.G12D" / "Hotspot" / "exon 19 del"
+            if (variant === 'Hotspot') continue;
+            if (SPECIFIC.has(h)) {
+                geneVariant[gene] = variant;
+            } else if (!geneVariant[gene] || !SPECIFIC.has(`${gene} ${geneVariant[gene]}`)) {
+                geneVariant[gene] = variant;
+            }
+        }
         // Render a gene list where the first `initial` cancer-relevant genes are
         // always visible and the rest are hidden behind a "Show all" toggle.
+        // When `variantMap` is provided, genes with a known specific variant
+        // are rendered as "GENE (p.X)" — used to surface KRAS p.G12D etc.
         const INITIAL_VISIBLE = 10;
-        const renderGeneList = (genes, toggleId) => {
+        const renderGeneList = (genes, toggleId, variantMap) => {
             if (genes.length === 0) return `<div style="color:var(--gray-500); font-size:11px;">None</div>`;
             const sorted = sortByRelevance(genes);
             const tagHtml = (g) => {
                 const hl = cancerSet.has(g) ? ' style="cursor:help; font-weight:600;"' : ' style="cursor:help;"';
-                return `<span class="gene-hover clb-gene-link" data-gene="${g}"${hl}>${g}</span>`;
+                const variant = variantMap?.[g];
+                const suffix = variant ? ` <span style="color:#16a34a; font-weight:500;">(${variant})</span>` : '';
+                return `<span class="gene-hover clb-gene-link" data-gene="${g}"${hl}>${g}</span>${suffix}`;
             };
             if (sorted.length <= INITIAL_VISIBLE) {
                 return `<div style="color:var(--gray-500); font-size:11px;">${sorted.map(tagHtml).join(', ')}</div>`;
@@ -23158,8 +23191,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 + `</div>`;
         };
 
+        // MSI badge — DepMap MSIsensor2 score >= 20 → MSI-high. Shown as a
+        // small red chip inline with the cell-line ID when positive.
+        const msiBadge = infSub.msi === true
+            ? ` <span style="background:#dc2626; color:#fff; font-size:10px; font-weight:600; padding:1px 6px; border-radius:8px; margin-left:6px;" title="Microsatellite instability — MSIsensor2 score ≥ 20">MSI</span>`
+            : '';
         let top = `<h4>${name}</h4>`;
-        top += `<div class="clb-detail-id">${cellLineId}</div>`;
+        top += `<div class="clb-detail-id">${cellLineId}${msiBadge}</div>`;
         top += `<div class="clb-detail-section">`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Subtype</span><span class="clb-stat-value">${sublineage || '-'}</span></div>`;
@@ -23174,12 +23212,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutGenes.length})</strong>`;
-        top += renderGeneList(mutGenes, 'clb-hotspot');
+        top += renderGeneList(mutGenes, 'clb-hotspot', geneVariant);
         top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Damaging Mutations (${damagingCount})</strong>`;
         top += renderGeneList(damagingGenes, 'clb-damaging');
         top += `</div>`;
+
+        // Functional loss — DepMap-integrated calls combining CN < 0.3, likely-LoF
+        // mutation with AF > 0.5, or expression < 0.1 log-TPM. Catches deletion-
+        // driven losses (CDKN2A homo-del, RB1 deep deletion) that the damaging
+        // mutation matrix alone misses. Section only renders for lines we have
+        // inferred-subtype data for; lines without omics are silent.
+        const hasInferredData = this.inferredSubtypes?.byCellLine?.[cellLineId] != null;
+        const lofGenes = infSub.lof || [];
+        if (hasInferredData) {
+            top += `<div class="clb-detail-section"><strong>Functional loss (${lofGenes.length})</strong>`;
+            if (lofGenes.length > 0) {
+                top += `<div style="font-size:11px; line-height:1.7;">`;
+                top += lofGenes.slice().sort().map(g =>
+                    `<span class="gene-hover clb-gene-link" data-gene="${g}" `
+                    + `style="cursor:help; font-weight:600; color:#dc2626; border:1px solid #dc2626; `
+                    + `border-radius:8px; padding:0 5px; margin-right:4px;" `
+                    + `title="${g} loss inferred by DepMap: combines CN, mutation and expression — catches deletions invisible to mutation matrices alone">`
+                    + `${g}</span>`
+                ).join('');
+                top += `</div>`;
+            } else {
+                top += `<div style="color:var(--gray-500); font-size:11px;">None</div>`;
+            }
+            top += `</div>`;
+        }
 
         // Clinically relevant fusions — curated driver fusions with orthogonal
         // evidence (lineage, partner expression, partner dependency). Shown

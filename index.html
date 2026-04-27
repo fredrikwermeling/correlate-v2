@@ -1325,6 +1325,18 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.78.0 (2026-04-27)</strong></p>
+                <ul>
+                    <li>DepMap inferred molecular subtypes integrated. New <code>scripts/process_inferred_subtypes.py</code> + <code>web_data/inferred_subtypes.json</code> (~140 KB) processes <code>OmicsInferredMolecularSubtypes.csv</code> &mdash; per-cell-line specific hotspot variants (KRAS p.G12D, BRAF p.V600E, etc.), 11 named driver fusions, integrated LoF for 8 tumor suppressors (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC), and MSI status. Cross-validation against our own <code>clinical_fusions.json</code> shows perfect agreement on BCR-ABL1 (12/12), EWSR1-FLI1 (14/14), EWSR1-ERG (3/3), ETV6-RUNX1, TCF3-PBX1, PAX-FOXO1.</li>
+                    <li>Cell-line browser detail panel surfaces three new things:
+                        <ul>
+                            <li>Specific hotspot variants in green next to the gene symbol &mdash; e.g. "KRAS <span style="color:#16a34a;">(p.G12D)</span>" instead of just "KRAS". Most-specific call wins (p.G12D &gt; generic p.G12).</li>
+                            <li>New <strong>Functional loss</strong> section showing integrated LoF calls as red-bordered chips. Most importantly catches <em>deletion-driven</em> losses (CDKN2A homo-del in 445 lines, RB1 deep deletion, etc.) that the damaging-mutation matrix alone is blind to &mdash; LoF combines CN &lt; 0.3, likely-LoF mutation with AF &gt; 0.5, or expression &lt; 0.1 log-TPM.</li>
+                            <li>Small red <span style="background:#dc2626; color:#fff; font-size:9px; font-weight:600; padding:0 4px; border-radius:6px;">MSI</span> badge next to the cell-line ID when MSIsensor2 score &ge; 20 (74 lines).</li>
+                        </ul>
+                    </li>
+                    <li>CLB <b>?</b> help modal updated with sections explaining the new hotspot-variant suffixes, Functional loss tier and what data sources feed it, and the MSI badge threshold.</li>
+                </ul>
                 <p><strong>v.77.1 (2026-04-27)</strong></p>
                 <ul>
                     <li>Clinically relevant fusions &mdash; renamed (was "Clinical Fusions" which sounded off). Tier rules refined to add <em>soft-pass</em> logic: a strong signal in one channel + a directionally supportive signal in the other (in correct direction at half-magnitude) now reaches <em>high</em>, not just both-strong. This fixes the canonical EWSR1-FLI1 lines like A-673 (exprZ=1.9 strong, depZ=&minus;0.42 supportive) which previously landed at <em>medium</em> only because FLI1 is broadly used in many lineages so absolute dependency z-scores stay small even when the call is genuinely fusion-driven. Atypical-with-no-support cases (e.g. BCR-ABL1 in an Ovary line, depZ=&minus;0.08) still land at <em>low</em> because the supportive threshold is not crossed. Run now: 57 high / 23 medium / 4 low (was 51 / 29 / 4).</li>
@@ -2297,7 +2309,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.77.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.78.0</a>
     </div>
 
     <div class="main-content">
@@ -3954,6 +3966,12 @@
             <li><b>Fusion filter</b> &mdash; the dropdown lists <b>clinically relevant fusion pairs</b> first (★ BCR-ABL1, ★ EWSR1-FLI1, &hellip;) followed by the gene-based long tail. Selecting a pair filters to the curated set; selecting a gene returns any line with any fusion involving that gene.</li>
             <li><b>Oncoprint</b> &mdash; mutation heatmap across filtered cell lines.</li>
           </ul>
+          <p style="margin-top:14px;"><strong>Hotspot variants</strong> &mdash; when DepMap's inferred-subtype pipeline calls a specific codon (KRAS p.G12D, BRAF p.V600E, EGFR p.L858R, JAK2 p.V617F, EGFR exon-19 del), the variant is appended in green next to the gene name in the Hotspot Mutations list. Generic group calls like KRAS p.G12 (any G12 not specifically D or C) are also shown when no specific call is available. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
+
+          <p><strong>Functional loss</strong> &mdash; integrated tumor-suppressor inactivation calls (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC) shown as red-bordered chips in the detail panel. A gene is "lost" if any of: WGS-based relative CN &lt; 0.3, likely-LoF mutation with AF &gt; 0.5, or expression &lt; 0.1 log-TPM. This catches <em>deletion-driven</em> losses that the damaging-mutation matrix alone misses &mdash; e.g. CDKN2A homozygous deletion in 445 lines (~37% of the panel), most of which look mutation-clean. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
+
+          <p><strong>MSI badge</strong> &mdash; small red <span style="background:#dc2626; color:#fff; font-size:9px; font-weight:600; padding:0 4px; border-radius:6px;">MSI</span> chip next to the cell-line ID when MSIsensor2 score &ge; 20 (DepMap's threshold for microsatellite instability).</p>
+
           <p style="margin-top:14px;"><strong>Clinically relevant fusions</strong> &mdash; shown as green/amber/red chips in the cell line detail panel.</p>
           <ul style="margin:4px 0 10px 20px;">
             <li>Curated list of ~50 well-validated driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, TMPRSS2-ERG, &hellip;) sourced from COSMIC fusion gene census.</li>
