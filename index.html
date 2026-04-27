@@ -1325,6 +1325,21 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.6 (2026-04-27)</strong></p>
+                <ul>
+                    <li><strong>Curated focal CN events</strong> integrated end-to-end. New <code>scripts/clinical_cn_anchor.json</code> + <code>scripts/process_clinical_cn.py</code> extract clinically actionable amplifications and TSG deletions from <code>OmicsCNGeneWGS.csv</code>. Output <code>web_data/clinical_cn.json</code> (~125 KB; 527 cell lines with at least one focal CN event).
+                        <ul>
+                            <li><strong>Amplification panel</strong> (~32 oncogenes): ERBB2, MYC, MYCN, MYCL, EGFR, MDM2, MDM4, CDK4, CDK6, CCND1/2/3, CCNE1, FGFR1/2/3, MET, KIT, PDGFRA, KRAS, AR, ESR1, MITF, SOX2, NKX2-1, BCL2, AURKA/B, NTRK1, NUTM1, TERT, IGF1R. Threshold: relative CN &ge; 3.0 (high-level amp), &ge; 5.0 (strong amp).</li>
+                            <li><strong>Extended-deletion panel</strong> (~14 TSGs): BAP1, SMARCA4, SMARCB1, ARID1A, STK11, BRCA1/2, SETD2, ATM, CDKN2B, KEAP1, FAT1, FBXW7, TET2. Deliberately <em>excludes</em> the 8 TSGs already in DepMap inferred-LoF (TP53, RB1, PTEN, NF1, CDKN2A, VHL, MTAP, APC) to avoid duplication.</li>
+                            <li><strong>Cell-line browser detail panel</strong>: new "Focal CN events" section with red &#9650; chips (amplifications) and blue &#9660; chips (deletions). Bold border for strong / deep tier; thin border for suggestive. Hover shows CN value plus context (e.g. "MYC amplification (CN = 8.4, strong). Pan-cancer driver. Burkitt lymphoma, neuroblastoma, breast, colon, etc.").</li>
+                            <li><strong>AI <code>.json.gz</code> export</strong>: per-cell-line <code>cellLineMetadata.&lt;cl&gt;.cnEvents = { amplifications: [{gene, cn, tier}], deletions: [...] }</code>. Schema bumped to <strong>3.2</strong> with documentation and threshold definitions.</li>
+                            <li><strong>New CLB toolbar CN filter</strong> &mdash; same multi-line dropdown pattern as the fusion filter. Lists every (gene, kind) tuple in the panel with live n= scaled to the active cohort filters. Selecting "&#9650; MYC amp (n=65)" filters the cell-line list to the 65 MYC-amplified lines; selecting "&#9660; BAP1 del" similarly. Sorted with amplifications first, deletions after.</li>
+                            <li>Top amp counts (sanity check): MYC n=65, CCND1 n=61, KRAS n=27, MYCN n=27, ERBB2 n=25, CDK4 n=24, MDM2 n=23, CCNE1 n=15, EGFR n=15, MET n=11. Top extended-deletion counts: CDKN2B n=295 (chr9p21 co-deletion with CDKN2A; expected high), FAT1 n=50, STK11 n=22, BAP1 n=15, ATM n=14, SMARCB1 n=14.</li>
+                        </ul>
+                    </li>
+                    <li>Reference Data card on main page updated to list the new "Focal CN events" annotation alongside HLA CN.</li>
+                    <li>Deferred (next pass): adding CN-state filtering to the main parameter panel (correlation analysis), so users can stratify "MYC-amplified vs not" cohorts. Bigger UI change touching multiple analysis paths; keep as a separate session.</li>
+                </ul>
                 <p><strong>v.81.5 (2026-04-27)</strong></p>
                 <ul>
                     <li><strong>HLA copy-number ingested + class-I inference activated</strong>. Ran <code>scripts/process_hla_cn.py</code> against the downloaded <code>OmicsCNGeneWGS.csv</code> (~400 MB DepMap WGS CN matrix); output <code>web_data/hla_cn.json</code> (190 KB) covers 830 cell lines for HLA-A/B/C, B2M, and antigen-processing-machinery genes. Two corrections during ingestion:
@@ -2502,7 +2517,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.6</a>
     </div>
 
     <div class="main-content">
@@ -2547,6 +2562,7 @@
                                 <li>Clinically relevant fusions <span style="color:#999;">(51 driver fusions + 7 KMT2A partners; COSMIC; validated per cell line)</span></li>
                                 <li>Subtype hallmarks KB <span style="color:#999;">(WHO 5th ed. 2022, COSMIC, OncoKB, NCCN; ~40 Oncotree subtypes)</span></li>
                                 <li>Lehmann TNBC subtypes <span style="color:#999;">(Lehmann <em>JCI</em> 2011 + 2016 update; BL1/BL2/IM/M/MSL/LAR for ~22 TNBC lines)</span></li>
+                                <li>Focal CN events <span style="color:#999;">(curated panel of ~32 amps + ~14 extended TSG deletions; from <code>OmicsCNGeneWGS.csv</code>)</span></li>
                                 <li>HLA copy number <span style="color:#999;">(extracted from <code>OmicsCNGeneWGS.csv</code>; B2M-normalized to control for HLA-C mapping bias)</span></li>
                                 <li>STR profiles <span style="color:#999;">(Cellosaurus reference panels)</span></li>
                             </ul>
@@ -4268,6 +4284,14 @@
             <input type="text" id="clbTranslocationFilter" placeholder="Fusion filter" autocomplete="off" style="width:140px;">
             <div id="clbTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
           </div>
+          <!-- Focal CN filter — same multi-line dropdown pattern as fusion
+               filter. Lists curated amplifications (▲) and TSG deletions
+               (▼) with live n=. Selecting an entry filters the cell-line
+               list to lines carrying that focal CN event. -->
+          <div id="clbCnFilterWrap" style="position:relative; display:inline-block;">
+            <input type="text" id="clbCnFilter" placeholder="CN amp/del filter" autocomplete="off" style="width:140px;">
+            <div id="clbCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:300px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+          </div>
           <select id="clbSortBy" style="font-size:12px;" title="Sort the cell line list">
             <option value="name">Sort: Name</option>
             <option value="tissue">Sort: Tissue + Subtype</option>
@@ -4635,6 +4659,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_5"></script>
+    <script src="app.js?v=v81_6"></script>
 </body>
 </html>

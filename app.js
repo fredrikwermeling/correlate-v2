@@ -57,6 +57,7 @@ class CorrelationExplorer {
         this.reactomePartners = null;
         this.hlaCn = null;
         this.lehmannTnbc = null;
+        this.clinicalCn = null;
         this.drugResponse = null;
         this.orthologs = null;
         this.geneEffects = null; // Float32Array [nGenes x nCellLines]
@@ -182,7 +183,7 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes, clinicalCnRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
@@ -197,7 +198,8 @@ class CorrelationExplorer {
             fetch('web_data/corum_partners.json').catch(() => null),
             fetch('web_data/reactome_partners.json').catch(() => null),
             fetch('web_data/hla_cn.json').catch(() => null),
-            fetch('web_data/lehmann_tnbc.json').catch(() => null)
+            fetch('web_data/lehmann_tnbc.json').catch(() => null),
+            fetch('web_data/clinical_cn.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -233,6 +235,9 @@ class CorrelationExplorer {
         }
         if (lehmannRes && lehmannRes.ok) {
             this.lehmannTnbc = await lehmannRes.json();
+        }
+        if (clinicalCnRes && clinicalCnRes.ok) {
+            this.clinicalCn = await clinicalCnRes.json();
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -2462,6 +2467,72 @@ class CorrelationExplorer {
                 this.renderCellLineList();
             });
         });
+    }
+
+    // Re-render the focal-CN filter dropdown. Same shape as the fusion
+    // dropdown but with two columns: amplifications (▲, red) and deletions
+    // (▼, blue). Filter input narrows by gene name. Filter values are
+    // tagged with kind via prefix marker.
+    _renderCnFilterDropdown(filter) {
+        const dd = document.getElementById('clbCnDropdown');
+        if (!dd) return;
+        const items = this._cnFilterItems || [];
+        const q = (filter || '').toLowerCase().trim();
+        const stripped = this._stripCnFilterDecoration(filter || '').toLowerCase();
+        const matches = items.filter(it => {
+            if (!q) return true;
+            const v = it.value.toLowerCase();
+            return v.includes(q) || v.includes(stripped);
+        });
+        if (matches.length === 0) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No matching CN event in the curated panel.</div>`;
+            return;
+        }
+        const visible = matches.slice(0, 200);
+        dd.innerHTML = visible.map(it => {
+            const symbol = it.kind === 'amp' ? '▲' : '▼';
+            const colour = it.kind === 'amp' ? '#dc2626' : '#1e40af';
+            return `<div class="clb-cn-opt" data-value="${it.value}" `
+                + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
+                + `onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">`
+                + `<div style="font-weight:600; color:${colour};">${symbol} ${it.gene} ${it.kind === 'amp' ? 'amp' : 'del'} `
+                + `<span style="color:#6b7280; font-weight:400; font-size:10px;">n=${it.count}</span></div>`
+                + `<div style="font-size:10px; color:#9ca3af; opacity:0.85;">${it.context || ''}</div>`
+                + `</div>`;
+        }).join('');
+        const input = document.getElementById('clbCnFilter');
+        dd.querySelectorAll('.clb-cn-opt').forEach(el => {
+            el.addEventListener('mousedown', (e) => e.preventDefault());
+            el.addEventListener('click', () => {
+                if (input) {
+                    input.value = el.dataset.value;
+                    input.dispatchEvent(new Event('change'));
+                }
+                dd.style.display = 'none';
+                this.renderCellLineList();
+            });
+        });
+    }
+
+    // Strip dropdown decoration to recover the canonical "GENE_amp" or
+    // "GENE_del" key.
+    _stripCnFilterDecoration(raw) {
+        if (!raw) return '';
+        return raw.replace(/^[▲▼]\s+/, '').replace(/\s*\(n=\d+\)\s*$/, '').trim();
+    }
+
+    // Apply the CN filter to a single cell line. Decoded value is e.g.
+    // "MYC_amp" or "BAP1_del" — see _populateCnFilterItems for the encoding.
+    _cellLinePassesCnFilter(cl, rawValue) {
+        if (!rawValue || !this.clinicalCn?.byCellLine) return true;
+        const stripped = this._stripCnFilterDecoration(rawValue);
+        const m = stripped.match(/^(.+)_(amp|del)$/);
+        if (!m) return true;
+        const [, gene, kind] = m;
+        const entry = this.clinicalCn.byCellLine[cl];
+        if (!entry) return false;
+        const list = kind === 'amp' ? (entry.amplifications || []) : (entry.deletions || []);
+        return list.some(e => e.gene.toUpperCase() === gene.toUpperCase());
     }
 
     getGeneData(geneIndex) {
@@ -19459,6 +19530,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (Object.keys(ent).length) entry.inferred = ent;
             }
 
+            // Curated focal CN events (amplifications + extended TSG
+            // deletions). The 8 TSGs in inferred.functionalLoss are
+            // deliberately excluded from this list to avoid duplication.
+            const cnEntry = this.clinicalCn?.byCellLine?.[cl];
+            if (cnEntry && (cnEntry.amplifications?.length || cnEntry.deletions?.length)) {
+                entry.cnEvents = {};
+                if (cnEntry.amplifications?.length) {
+                    entry.cnEvents.amplifications = cnEntry.amplifications.map(a => ({
+                        gene: a.gene, cn: a.cn, tier: a.tier
+                    }));
+                }
+                if (cnEntry.deletions?.length) {
+                    entry.cnEvents.deletions = cnEntry.deletions.map(d => ({
+                        gene: d.gene, cn: d.cn, tier: d.tier
+                    }));
+                }
+            }
+
             // Lehmann TNBC subtype (2011 / 2016 panels) where available.
             const lehmannEntry = this.lehmannTnbc?.byCellLine?.[cl];
             if (lehmannEntry) {
@@ -20078,11 +20167,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const exportData = {
             _description: 'Correlate V2 — Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from.',
-            schemaVersion: '3.1',
+            schemaVersion: '3.2',
             nTotal: cellLines.length,
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices. Length = nTotal.',
-                cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool, caveat?: "polymorphic_locus"}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy), lehmannTnbc ({ tnbcType6, tnbcType4 } — Lehmann TNBC subtype assignments from JCI 2011 / PLOS ONE 2016 for the ~22 panel cell lines that overlap DepMap; six-class: BL1, BL2, IM, M, MSL, LAR; four-class collapses IM/MSL as immune/stromal contamination), class1AntigenPresentation ({ status: "reduced" | "likely_lost", reasons: [...], evidence: { b2mDamaging?, classOneExprMeanZ?, classOneCn? } } — functional inference combining B2M damaging mutations + HLA-A/B/C expression z-score vs cohort + B2M-normalized HLA copy number; only emitted when class-I presentation looks compromised; NOT allele-specific LOH detection). The `caveat: "polymorphic_locus"` flag marks HLA / MIC / KIR genes — calls in these highly polymorphic regions typically reflect germline allelic divergence from GRCh38, not somatic events.',
+                cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2, damaging: bool, caveat?: "polymorphic_locus"}), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes — specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi), signatures (ploidy, wgd, cin, lohFraction, msiScore, aneuploidy), cnEvents ({ amplifications: [{gene, cn, tier}], deletions: [{gene, cn, tier}] } — curated focal CN events from a clinically actionable panel; amp tier is "amp" (CN ≥ 3.0) or "strong_amp" (≥ 5.0); deletion tier is "del" (CN ≤ 0.5) or "deep_del" (≤ 0.3) on DepMap relative-CN scale where 1.0 = diploid; the 8 TSGs in inferred.functionalLoss are NOT duplicated here), lehmannTnbc ({ tnbcType6, tnbcType4 } — Lehmann TNBC subtype assignments from JCI 2011 / PLOS ONE 2016 for the ~22 panel cell lines that overlap DepMap; six-class: BL1, BL2, IM, M, MSL, LAR; four-class collapses IM/MSL as immune/stromal contamination), class1AntigenPresentation ({ status: "reduced" | "likely_lost", reasons: [...], evidence: { b2mDamaging?, classOneExprMeanZ?, classOneCn? } } — functional inference combining B2M damaging mutations + HLA-A/B/C expression z-score vs cohort + B2M-normalized HLA copy number; only emitted when class-I presentation looks compromised; NOT allele-specific LOH detection). The `caveat: "polymorphic_locus"` flag marks HLA / MIC / KIR genes — calls in these highly polymorphic regions typically reflect germline allelic divergence from GRCh38, not somatic events.',
                 geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores aligned to cellLineOrder. Negative = essential. null = missing. The focal gene of the analysis is always included regardless of variance threshold.',
                 expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. The focal gene, the genes surfaced in topCorrelates, and the focal gene\'s pathway / complex partners are always included regardless of variance threshold. Partner sources are layered: hand-curated high-value complexes (NEDD8/CRL, Proteasome, Hippo, MYC, TP53, BRCA, mTOR, BCL2, splicing) → CORUM physical protein complexes (~5000 human genes) → wiki cancer pathways (RAS/MAPK, PI3K, RTK family, etc.) → Reactome pathway / signalling-cascade co-members (~10000 human genes; broad parents filtered out, only pathways with 5-100 genes kept). So for SMARCA4 you get the BAF subunits via CORUM; for MCM4 the MCM2-7 helicase; for IL4R the JAK/STAT cascade via Reactome; for arbitrary genes you typically get something useful from at least one of the four layers.',
                 topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n }. Gated at n >= max(50, 0.6 * cohortSize) to drop partial-coverage genes. Polarity: positive r means high partner expression covaries with weaker focal-gene dependency (less negative GE).',
@@ -22775,6 +22864,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!wrap.contains(e.target)) dd.style.display = 'none';
         });
 
+        // Focal CN filter — same dropdown pattern as fusion filter.
+        const clbCnInput = document.getElementById('clbCnFilter');
+        if (clbCnInput) {
+            clbCnInput.addEventListener('change', () => this.renderCellLineList());
+            clbCnInput.addEventListener('input', () => {
+                this._renderCnFilterDropdown(clbCnInput.value);
+                const dd = document.getElementById('clbCnDropdown');
+                if (dd) dd.style.display = '';
+                if (!clbCnInput.value) this.renderCellLineList();
+            });
+            clbCnInput.addEventListener('focus', () => {
+                this._renderCnFilterDropdown(clbCnInput.value);
+                const dd = document.getElementById('clbCnDropdown');
+                if (dd) dd.style.display = '';
+            });
+            document.addEventListener('click', (e) => {
+                const wrap = document.getElementById('clbCnFilterWrap');
+                const dd = document.getElementById('clbCnDropdown');
+                if (!wrap || !dd) return;
+                if (!wrap.contains(e.target)) dd.style.display = 'none';
+            });
+        }
+
         // Sort controls: mode dropdown + gene input (only when mode==ge) + direction arrow
         const clbSortBy = document.getElementById('clbSortBy');
         const clbSortGene = document.getElementById('clbSortGene');
@@ -22855,6 +22967,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('clbSexFilter').value = '';
             document.getElementById('clbHotspotFilter').value = '';
             document.getElementById('clbTranslocationFilter').value = '';
+        const _clbCn = document.getElementById('clbCnFilter'); if (_clbCn) _clbCn.value = '';
             document.getElementById('clbSortBy').value = 'name';
             document.getElementById('clbSortGene').value = '';
             document.getElementById('clbSortGene').style.display = 'none';
@@ -23159,6 +23272,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbSubtypeFilter').style.display = 'none';
         document.getElementById('clbHotspotFilter').value = '';
         document.getElementById('clbTranslocationFilter').value = '';
+        const _clbCn = document.getElementById('clbCnFilter'); if (_clbCn) _clbCn.value = '';
         document.getElementById('clbCollectionFilter').value = '';
         this._populateCollectionFilter();
         document.getElementById('clbDetailPanel').classList.remove('active');
@@ -23210,6 +23324,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const transKey = this._stripFusionFilterDecoration(transGene);
         const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
         const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
+        const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
         const collectionSet = collection ? this._collectionMembership?.[collection] : null;
 
         let filtered = this.metadata.cellLines.filter(cl => {
@@ -23220,6 +23335,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
             if (clinicalPairCells && !(cl in clinicalPairCells)) return false;
             if (transMuts && !(transMuts[cl] >= 1)) return false;
+            if (cnFilterValue && !this._cellLinePassesCnFilter(cl, cnFilterValue)) return false;
             if (!this._cellLinePassesOncoprintFilters(cl)) return false;
             if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) return false;
             if (search) {
@@ -23469,6 +23585,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const transKey = this._stripFusionFilterDecoration(transGene);
         const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
         const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
+        const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
         const collectionSet = collection ? this._collectionMembership?.[collection] : null;
         const allCls = this.metadata.cellLines;
 
@@ -23485,6 +23602,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (excludeFilter !== 'hotspot' && hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
                 if (excludeFilter !== 'translocation' && clinicalPairCells && !(cl in clinicalPairCells)) return false;
                 if (excludeFilter !== 'translocation' && transMuts && !(transMuts[cl] >= 1)) return false;
+                if (excludeFilter !== 'cnFilter' && cnFilterValue && !this._cellLinePassesCnFilter(cl, cnFilterValue)) return false;
                 if (excludeFilter !== 'oncoprint' && !this._cellLinePassesOncoprintFilters(cl)) return false;
                 if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) return false;
                 return true;
@@ -23688,6 +23806,41 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 this._fusionFilterItems = items;
                 this._renderFusionFilterDropdown();
             }
+        }
+
+        // Populate the CN filter dropdown items. One entry per (gene, kind)
+        // tuple seen in clinicalCn, with cohort-scaled n=. Encoded as
+        // "GENE_amp" / "GENE_del" so the same dropdown can express both.
+        if (this.clinicalCn?.byCellLine) {
+            const cnBaseSet = new Set(getBaseSet('cnFilter'));
+            const counter = {}; // key "GENE_amp" / "GENE_del" -> { gene, kind, n, context }
+            for (const [cl, entry] of Object.entries(this.clinicalCn.byCellLine)) {
+                if (!cnBaseSet.has(cl)) continue;
+                for (const a of (entry.amplifications || [])) {
+                    const key = `${a.gene}_amp`;
+                    counter[key] = counter[key] || { gene: a.gene, kind: 'amp', n: 0, context: a.context };
+                    counter[key].n++;
+                }
+                for (const d of (entry.deletions || [])) {
+                    const key = `${d.gene}_del`;
+                    counter[key] = counter[key] || { gene: d.gene, kind: 'del', n: 0, context: d.context };
+                    counter[key].n++;
+                }
+            }
+            const items = Object.entries(counter).map(([k, v]) => ({
+                value: k,
+                gene: v.gene,
+                kind: v.kind,
+                count: v.n,
+                context: v.context
+            }));
+            // Sort: amps first (by count desc), then deletions (by count desc).
+            items.sort((a, b) => {
+                if (a.kind !== b.kind) return a.kind === 'amp' ? -1 : 1;
+                return b.count - a.count;
+            });
+            this._cnFilterItems = items;
+            this._renderCnFilterDropdown();
         }
     }
 
@@ -23934,6 +24087,39 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 top += `<div style="color:var(--gray-500); font-size:11px;">None</div>`;
             }
             top += `</div>`;
+        }
+
+        // Focal CN events — curated panel of clinically actionable
+        // amplifications and TSG deletions (extending the inferred LoF list).
+        // Amplification chips have an upward triangle ▲ in red; deletion
+        // chips have a downward triangle ▼ in blue. Tier indicated by border
+        // weight (strong = bold; suggestive = thin).
+        const cnEvents = this.clinicalCn?.byCellLine?.[cellLineId];
+        if (cnEvents && (cnEvents.amplifications?.length || cnEvents.deletions?.length)) {
+            const helpCn = 'Curated panel of clinically actionable focal CN events. Amplifications (oncogenes; ERBB2, MYC, MDM2, CDK4, etc.): high-level CN ≥ 3.0 (relative; ≥6 actual copies in a diploid baseline). Deletions (TSGs not already in DepMap inferred-LoF): CN ≤ 0.5 (single-copy loss) or ≤ 0.3 (deep / homozygous). Each chip shows the gene; tier suffix marks "strong" (bold border) when the threshold is crossed strongly. Hover for cancer-context annotation.';
+            const renderChip = (e, kind) => {
+                const isStrong = e.tier === 'strong_amp' || e.tier === 'deep_del';
+                const color = kind === 'amp' ? '#dc2626' : '#1e40af';
+                const symbol = kind === 'amp' ? '▲' : '▼';
+                const border = isStrong ? `2px solid ${color}` : `1px solid ${color}`;
+                const tooltip = `${e.gene} ${kind === 'amp' ? 'amplification' : 'deletion'} (CN = ${e.cn}${isStrong ? ', ' + (kind === 'amp' ? 'strong' : 'deep') : ''}). ${e.context || ''}`;
+                return `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" `
+                    + `style="cursor:help; font-weight:600; color:${color}; border:${border}; `
+                    + `border-radius:8px; padding:0 5px; margin-right:4px; display:inline-block; margin-bottom:3px;" `
+                    + `title="${tooltip.replace(/"/g, '&quot;')}">`
+                    + `${symbol} ${e.gene}</span>`;
+            };
+            const totalN = (cnEvents.amplifications?.length || 0) + (cnEvents.deletions?.length || 0);
+            top += `<div class="clb-detail-section"><strong>Focal CN events (${totalN})</strong>`
+                + ` <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="${helpCn.replace(/"/g, '&quot;')}">?</span>`;
+            top += `<div style="font-size:11px; line-height:1.9;">`;
+            if (cnEvents.amplifications?.length) {
+                top += cnEvents.amplifications.map(e => renderChip(e, 'amp')).join('');
+            }
+            if (cnEvents.deletions?.length) {
+                top += cnEvents.deletions.map(e => renderChip(e, 'del')).join('');
+            }
+            top += `</div></div>`;
         }
 
         // Clinically relevant fusions — curated driver fusions with orthogonal
