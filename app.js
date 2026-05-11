@@ -22660,6 +22660,68 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 label: 'Likely non-immunogenic',
                 category: 'Immunology',
                 description: '<b>Inclusion:</b> EITHER class-I antigen presentation is reduced or likely lost (immune escape via presentation defect), OR very low mutation burden (≤ 50 damaging mutations) with otherwise intact MHC-I (too few neoantigens to present). <b>Why:</b> these are the two main routes to a poorly-immunogenic cancer cell phenotype — the cell either cannot show its peptides, or has too few interesting ones to show. <b>Caveat:</b> same proxy caveat as the immunogenic call — cell-intrinsic features only, not actual TME composition.'
+            },
+            // Tumor-suppressor functional loss — one collection per gene in the
+            // standard 9-gene panel, plus two generic "any" / "multiple" entries.
+            // Membership pulls from the DepMap integrated functional-loss call
+            // (inferredSubtypes.byCellLine[cl].lof), which combines low CN,
+            // damaging mutation with high allele frequency, and near-zero
+            // expression — so deep deletions and silenced loci that the
+            // damaging-mutation matrix misses are still caught.
+            tp53_loss: {
+                label: 'TP53 functional loss',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines where TP53 is inferred to be functionally lost (low CN, damaging mutation at high AF, or near-zero expression). <b>Pathway effect:</b> p53 checkpoint lost — apoptosis and G1/S arrest in response to DNA damage are impaired. <b>Why this filter exists:</b> roughly half of cancer cell lines carry TP53 loss; segregating by TP53 status is the most common analysis split in dependency / drug-response studies.'
+            },
+            pten_loss: {
+                label: 'PTEN functional loss',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines with inferred PTEN functional loss. <b>Pathway effect:</b> PI3K/AKT pathway constitutively active (loss of the PIP3 phosphatase). <b>Use:</b> compare PTEN-loss vs PTEN-WT lines when looking at PI3K-axis dependencies (AKT1/2, MTOR, RICTOR, …).'
+            },
+            rb1_loss: {
+                label: 'RB1 functional loss',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines with inferred RB1 functional loss. <b>Pathway effect:</b> G1/S checkpoint released — the cell can no longer hold itself in G1 via the RB-E2F brake. <b>Use:</b> RB1-loss lines are typically resistant to CDK4/6 inhibitors and dependent on aurora kinases / WEE1.'
+            },
+            cdkn2a_loss: {
+                label: 'CDKN2A functional loss',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines with inferred CDKN2A (p16/INK4A) functional loss. <b>Pathway effect:</b> G1/S checkpoint released — without p16, CDK4/6 are not inhibited and the cell progresses through G1 unchecked. <b>Use:</b> CDKN2A-loss lines are often CDK4/6-inhibitor responsive (so a useful contrast to the RB1-loss set above).'
+            },
+            apc_loss: {
+                label: 'APC functional loss',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines with inferred APC functional loss. <b>Pathway effect:</b> WNT/β-catenin pathway constitutively active. <b>Use:</b> APC-loss dominates colorectal cancer; useful as a WNT-pathway-active subset spanning lineages.'
+            },
+            nf1_loss: {
+                label: 'NF1 functional loss',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines with inferred NF1 functional loss. <b>Pathway effect:</b> MAPK pathway active via loss of the RAS-GAP brake (RAS stays GTP-bound). <b>Use:</b> behaves similarly to KRAS-mutant lines for MEK-inhibitor analyses; useful when looking at RAS-pathway dependency outside of the canonical KRAS/NRAS/HRAS hotspots.'
+            },
+            smad4_loss: {
+                label: 'SMAD4 functional loss',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines with inferred SMAD4 functional loss. <b>Pathway effect:</b> TGF-β tumour-suppressive signalling lost — TGF-β no longer triggers growth arrest. <b>Use:</b> common in pancreatic and colorectal lineages; flips TGF-β from tumour suppressor to (in some contexts) tumour promoter.'
+            },
+            stk11_loss: {
+                label: 'STK11 (LKB1) functional loss',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines with inferred STK11 / LKB1 functional loss. <b>Pathway effect:</b> AMPK signalling lost — metabolic stress no longer activates AMPK and the cell loses a key energy-sensing brake. <b>Use:</b> common in NSCLC; STK11-loss lines have distinct metabolic dependencies (e.g. phenformin sensitivity) and altered immunology.'
+            },
+            vhl_loss: {
+                label: 'VHL functional loss',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines with inferred VHL functional loss. <b>Pathway effect:</b> HIF-1α / HIF-2α signalling active — without VHL\'s E3-ligase activity HIFs are not degraded, so the cell behaves as if hypoxic regardless of oxygen. <b>Use:</b> defines clear-cell renal carcinoma (ccRCC) biology; HIF-2α inhibitors target this set.'
+            },
+            any_tsg_loss: {
+                label: 'Any TSG functional loss (≥ 1 of the 9)',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines with inferred functional loss of at least one of the 9 standard tumour suppressors above (TP53, PTEN, RB1, CDKN2A, APC, NF1, SMAD4, STK11, VHL). <b>Why this filter exists:</b> a catch-all for "at least one canonical TSG is inactivated", useful when contrasting against the small set of cell lines with no inferred TSG loss at all.'
+            },
+            multi_tsg_loss: {
+                label: 'Multiple TSG losses (≥ 2)',
+                category: 'Tumor-suppressor functional loss',
+                description: '<b>Inclusion:</b> cell lines with ≥ 2 inferred functional losses from the 9-gene panel above. <b>Why this filter exists:</b> extensively-deconstructed lines (e.g. TP53 + RB1 + CDKN2A all lost) have a distinct dependency profile — often more reliant on MYC, BCL2 family, or aurora kinases for survival than singly-mutated cousins.'
             }
         };
     }
@@ -22724,6 +22786,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             for (const cl of clLines) {
                 const a = this.globalSignatures.byCellLine[cl]?.Aneuploidy;
                 if (a != null && a >= 25) mem.high_aneuploidy.add(cl);
+            }
+        }
+
+        // Tumor-suppressor functional loss — one Set per gene plus two
+        // aggregates ("any of the 9", "≥2 of the 9"). Source: DepMap's
+        // integrated functional-loss call (inferredSubtypes.byCellLine.lof).
+        const TSG_LOSS_GENES = ['TP53', 'PTEN', 'RB1', 'CDKN2A', 'APC', 'NF1', 'SMAD4', 'STK11', 'VHL'];
+        const tsgCollectionIds = {
+            TP53: 'tp53_loss', PTEN: 'pten_loss', RB1: 'rb1_loss',
+            CDKN2A: 'cdkn2a_loss', APC: 'apc_loss', NF1: 'nf1_loss',
+            SMAD4: 'smad4_loss', STK11: 'stk11_loss', VHL: 'vhl_loss'
+        };
+        for (const gene of TSG_LOSS_GENES) mem[tsgCollectionIds[gene]] = new Set();
+        mem.any_tsg_loss = new Set();
+        mem.multi_tsg_loss = new Set();
+        if (this.inferredSubtypes?.byCellLine) {
+            for (const cl of clLines) {
+                const lof = this.inferredSubtypes.byCellLine[cl]?.lof;
+                if (!Array.isArray(lof) || lof.length === 0) continue;
+                const lofSet = new Set(lof);
+                let hits = 0;
+                for (const gene of TSG_LOSS_GENES) {
+                    // STK11 / LKB1 are aliases; the integrated call is canonically
+                    // emitted as STK11 but we accept LKB1 too for safety.
+                    if (lofSet.has(gene) || (gene === 'STK11' && lofSet.has('LKB1'))) {
+                        mem[tsgCollectionIds[gene]].add(cl);
+                        hits++;
+                    }
+                }
+                if (hits >= 1) mem.any_tsg_loss.add(cl);
+                if (hits >= 2) mem.multi_tsg_loss.add(cl);
             }
         }
 
