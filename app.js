@@ -25427,6 +25427,86 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         };
     }
 
+    // Curated pathway-activity expression signatures. Each is a small panel
+    // of genes whose high expression indicates the pathway is transcriptionally
+    // active. Used by the Wiki's expression section to surface "pathways
+    // turned on" rather than just listing raw top-expressed genes (which are
+    // dominated by mitochondrial and ribosomal genes that don't say anything
+    // about a specific cell line).
+    _WIKI_EXPRESSION_SIGNATURES() {
+        return {
+            'MYC pathway targets': {
+                genes: ['NPM1', 'NCL', 'NOP56', 'MYBBP1A', 'PA2G4', 'SLC19A1', 'EIF4A1', 'EIF4E', 'EIF4G1', 'TFRC'],
+                note: 'Downstream targets of active MYC (ribosome biogenesis, translation, iron uptake). High signature ≈ MYC pathway transcriptionally active.'
+            },
+            'E2F / S-phase replication': {
+                genes: ['MCM2', 'MCM3', 'MCM4', 'MCM5', 'MCM6', 'MCM7', 'PCNA', 'TOP2A', 'TYMS', 'CDK2', 'RRM1', 'RRM2'],
+                note: 'Replication-fork licensing and DNA-synthesis machinery. High signature ≈ rapidly cycling line with active E2F.'
+            },
+            'G2/M mitotic progression': {
+                genes: ['CDK1', 'CCNB1', 'CCNB2', 'AURKA', 'AURKB', 'PLK1', 'BIRC5', 'CENPF', 'TPX2', 'KIF20A'],
+                note: 'Mitotic kinases and spindle proteins. High signature ≈ actively dividing line (often co-elevated with E2F signature).'
+            },
+            'IFN response (α/γ)': {
+                genes: ['ISG15', 'IFIT1', 'IFIT3', 'MX1', 'OAS1', 'STAT1', 'IRF7', 'IFI6', 'IFITM1', 'IFI44'],
+                note: 'Interferon-stimulated genes. High signature ≈ active type-I/II IFN signalling — cell-autonomous (cytosolic DNA / viral mimicry) or paracrine.'
+            },
+            'EMT (mesenchymal)': {
+                genes: ['VIM', 'ZEB1', 'SNAI1', 'TWIST1', 'FN1', 'CDH2', 'MMP2', 'S100A4'],
+                note: 'Mesenchymal-axis markers. High signature ≈ EMT-shifted phenotype. (CDH1, the epithelial marker, is inversely correlated but not part of this average.)'
+            },
+            'TGF-β response': {
+                genes: ['SMAD7', 'TGFB1', 'TGFBI', 'COL1A1', 'COL3A1', 'SERPINE1', 'CTGF'],
+                note: 'TGF-β / SMAD response genes. High signature ≈ active TGF-β signalling (often EMT-coupled in carcinomas).'
+            },
+            'Hypoxia / HIF target': {
+                genes: ['VEGFA', 'CA9', 'SLC2A1', 'LDHA', 'PGK1', 'ENO1', 'PDK1', 'BNIP3'],
+                note: 'HIF-1α / HIF-2α direct transcriptional targets. High signature ≈ active hypoxic program (can persist in normoxia in HIF-stabilising mutants, e.g. VHL-loss).'
+            },
+            'NRF2 / oxidative-stress response': {
+                genes: ['NQO1', 'GCLC', 'HMOX1', 'GPX2', 'TXN', 'SLC7A11', 'AKR1C1', 'GSR'],
+                note: 'NRF2 antioxidant target genes. High signature ≈ active NRF2 pathway (often driven by KEAP1 LoF or NFE2L2 hotspots).'
+            },
+            'Stem / lineage plasticity': {
+                genes: ['SOX2', 'NANOG', 'POU5F1', 'KLF4', 'PROM1', 'ALDH1A1', 'BMI1'],
+                note: 'Pluripotency / cancer-stem-cell markers. High signature ≈ de-differentiated / stem-like state (chemo-resistance background).'
+            }
+        };
+    }
+
+    // Per-gene cohort mean / SD across expression (log2-TPM+1), cached on
+    // first use. Mirror of _ensureGeGeneStats but for expression — used to
+    // z-score this cell line's expression values so "uniquely highly
+    // expressed" genes can be surfaced. Pan-housekeeping genes (mitochondrial,
+    // ribosomal) have very small SD across the cohort and so naturally drop
+    // out of the z-ranked top — they're high everywhere, not uniquely high.
+    _ensureExprGeneStats() {
+        if (this._exprGeneStats || !this.expressionLoaded || !this.expressionData || !this.expressionMetadata) return;
+        const nG = this.expressionMetadata.genes.length;
+        const nC = this.expressionMetadata.nCellLines;
+        const mean = new Float32Array(nG);
+        const sd = new Float32Array(nG);
+        for (let g = 0; g < nG; g++) {
+            const off = g * nC;
+            let sum = 0, n = 0;
+            for (let i = 0; i < nC; i++) {
+                const v = this.expressionData[off + i];
+                if (!isNaN(v)) { sum += v; n++; }
+            }
+            const m = n > 0 ? sum / n : 0;
+            mean[g] = m;
+            if (n > 1) {
+                let sq = 0;
+                for (let i = 0; i < nC; i++) {
+                    const v = this.expressionData[off + i];
+                    if (!isNaN(v)) sq += (v - m) * (v - m);
+                }
+                sd[g] = Math.sqrt(sq / (n - 1));
+            }
+        }
+        this._exprGeneStats = { mean, sd };
+    }
+
     // Per-gene cohort mean / SD across CRISPR gene-effect, cached on first
     // use. Used to z-score this cell line's GE values so "uniquely essential"
     // and "uniquely growth-promoting on knockout" can be computed — the
@@ -26315,48 +26395,131 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
 
         // --- Expression signature (interpretive) ---
+        // Like the CRISPR-dependencies section, the biologically interesting
+        // view is "what's unique to this cell line", not "what has the highest
+        // raw expression" (which is always dominated by mitochondrial and
+        // ribosomal genes). Three layers:
+        //   1. Top uniquely-high genes by z-score vs cohort (filters out the
+        //      housekeeping floor naturally because those have low SD across
+        //      lines).
+        //   2. Pathway-activity signatures — mean z-score over each of ~9
+        //      curated gene panels, surfacing pathways turned on / off.
+        //   3. Existing context (XIST, Y mean, lineage markers, druggable
+        //      targets) — kept and annotated with z-scores for consistency.
         let exprSigHtml = '';
         if (this.expressionLoaded && this.expressionData && this.expressionMetadata) {
             const exprCLIndex = this.expressionMetadata.cellLines.indexOf(cellLineId);
             if (exprCLIndex >= 0) {
+                this._ensureExprGeneStats();
+                const exprStats = this._exprGeneStats;
                 const nExprCL = this.expressionMetadata.nCellLines;
                 const exprByGene = new Map();
-                const exprVals = [];
+                const zByGene = new Map();
+                const zScored = [];
                 for (let g = 0; g < this.expressionMetadata.genes.length; g++) {
                     const v = this.expressionData[g * nExprCL + exprCLIndex];
-                    if (!isNaN(v)) {
-                        const gene = this.expressionMetadata.genes[g];
-                        exprByGene.set(gene, v);
-                        exprVals.push({ gene, val: v });
+                    if (isNaN(v)) continue;
+                    const gene = this.expressionMetadata.genes[g];
+                    exprByGene.set(gene, v);
+                    if (exprStats) {
+                        const sdv = exprStats.sd[g];
+                        if (sdv >= 0.3) {
+                            const z = (v - exprStats.mean[g]) / sdv;
+                            zByGene.set(gene, z);
+                            zScored.push({ gene, val: v, z });
+                        }
                     }
                 }
-                exprVals.sort((a, b) => b.val - a.val);
-                const topExpr = exprVals.slice(0, 8).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
+
+                const fmtZ = (z) => (z >= 0 ? '+' : '') + z.toFixed(1);
+
+                // 1) Top uniquely high (most positive z). Filter to genes
+                //    with TPM >= 1 (otherwise "uniquely high" can mean
+                //    "uniquely above noise floor" which isn't informative).
+                const topUniqueExpr = zScored
+                    .filter(g => g.val >= 1)
+                    .sort((a, b) => b.z - a.z)
+                    .slice(0, 8);
+                const topUniqueHtml = topUniqueExpr.length > 0
+                    ? topUniqueExpr.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; font-weight:600;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="TPM = log2(TPM+1) expression value. z-score = how unusual this expression is vs the rest of the cohort.">(TPM ${g.val.toFixed(1)}, z ${fmtZ(g.z)})</span>`).join(', ')
+                    : '<em style="color:#9ca3af;">No genes with sufficient cohort variance to rank.</em>';
+
+                // 2) Pathway-activity signatures.
+                const signatures = this._WIKI_EXPRESSION_SIGNATURES();
+                const sigResults = [];
+                for (const [name, info] of Object.entries(signatures)) {
+                    const zs = [];
+                    const present = [];
+                    for (const gene of info.genes) {
+                        const z = zByGene.get(gene);
+                        if (z != null) { zs.push(z); present.push(gene); }
+                    }
+                    if (zs.length < 3) continue;
+                    const meanZ = zs.reduce((a, b) => a + b, 0) / zs.length;
+                    sigResults.push({ name, meanZ, n: zs.length, total: info.genes.length, info, present });
+                }
+                sigResults.sort((a, b) => b.meanZ - a.meanZ);
+                const activeSig = sigResults.filter(s => s.meanZ > 0.75);
+                const sigHtml = activeSig.length > 0
+                    ? `<div style="margin-top:8px; padding:6px 10px; background:#fff7ed; border-left:3px solid #c2410c; font-size:11px;">`
+                        + `<b style="color:#9a3412;">Pathway-activity signatures turned ON</b> <span style="color:#9ca3af; font-size:10px;">(mean z-score over a curated panel; &gt; +0.75 shown)</span>`
+                        + activeSig.map(s => `<div style="margin:3px 0 3px 4px;">`
+                            + `<span style="font-weight:600; color:#9a3412;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
+                            + `<span style="color:#9ca3af; font-size:10px;">— mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`
+                            + `</div>`).join('')
+                        + `</div>`
+                    : '';
+                // Also flag clearly DOWN signatures (often informative — e.g. EMT-low
+                // means epithelial; IFN-low means immune-cold cell-intrinsically).
+                const inactiveSig = sigResults.filter(s => s.meanZ < -0.75);
+                const inactiveSigHtml = inactiveSig.length > 0
+                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6b7280; font-size:11px;">`
+                        + `<b style="color:#374151;">Pathway-activity signatures turned OFF</b> <span style="color:#9ca3af; font-size:10px;">(mean z &lt; &minus;0.75)</span>`
+                        + inactiveSig.map(s => `<div style="margin:3px 0 3px 4px;">`
+                            + `<span style="font-weight:600; color:#4b5563;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
+                            + `<span style="color:#9ca3af; font-size:10px;">— mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`
+                            + `</div>`).join('')
+                        + `</div>`
+                    : '';
+
+                // 3) Existing context: XIST, Y mean, lineage markers, druggable targets.
                 const xist = exprByGene.get('XIST');
                 const yMarkers = ['RPS4Y1', 'DDX3Y', 'EIF1AY', 'KDM5D', 'UTY', 'USP9Y'];
                 const yVals = yMarkers.map(g => exprByGene.get(g)).filter(v => v !== undefined);
                 const yMean = yVals.length ? (yVals.reduce((a, b) => a + b, 0) / yVals.length) : null;
 
-                // Lineage marker panel
                 const lineageMarkers = this._WIKI_LINEAGE_MARKERS()[lin] || [];
-                const markerScores = lineageMarkers.map(g => ({ gene: g, val: exprByGene.get(g) })).filter(x => x.val !== undefined);
+                const markerScores = lineageMarkers.map(g => ({ gene: g, val: exprByGene.get(g), z: zByGene.get(g) })).filter(x => x.val !== undefined);
                 markerScores.sort((a, b) => b.val - a.val);
-                const positiveMarkers = markerScores.filter(m => m.val > 1.0);
                 const markerHtml = markerScores.length > 0
-                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f0f9ff; border-left:3px solid #0ea5e9; font-size:11px;"><b style="color:#0369a1;">${lin} lineage markers</b> (log₂-TPM+1; &gt;1 considered expressed):<br>${markerScores.map(m => `<span class="gene-hover clb-gene-link" data-gene="${m.gene}" style="cursor:help; ${m.val > 1 ? 'font-weight:600; color:#0369a1;' : 'color:#9ca3af;'}">${m.gene}</span>&nbsp;(${m.val.toFixed(1)})`).join(', ')}</div>`
+                    ? `<div style="margin-top:8px; padding:6px 10px; background:#f0f9ff; border-left:3px solid #0ea5e9; font-size:11px;"><b style="color:#0369a1;">${lin} lineage markers</b> <span style="color:#9ca3af; font-size:10px;">(TPM &gt; 1 = expressed; z = enrichment vs cohort)</span><br>${markerScores.map(m => {
+                        const zStr = m.z != null ? ` <span style="color:#9ca3af; font-size:10px;">[z ${fmtZ(m.z)}]</span>` : '';
+                        return `<span class="gene-hover clb-gene-link" data-gene="${m.gene}" style="cursor:help; ${m.val > 1 ? 'font-weight:600; color:#0369a1;' : 'color:#9ca3af;'}">${m.gene}</span>&nbsp;(${m.val.toFixed(1)})${zStr}`;
+                    }).join(', ')}</div>`
                     : '';
 
-                // Drug target expression
-                const expressedDrugTargets = exprVals.filter(e => drugTargets.has(e.gene) && e.val > 3.0).slice(0, 10);
+                // Druggable targets — keep the existing high-expression criterion
+                // (raw TPM > 3) but annotate each with z-score so the user can
+                // see which are also uniquely high (z > +1 ≈ outlier).
+                const expressedDrugTargets = [...exprByGene.entries()]
+                    .filter(([g, v]) => drugTargets.has(g) && v > 3.0)
+                    .map(([g, v]) => ({ gene: g, val: v, z: zByGene.get(g) }))
+                    .sort((a, b) => (b.z ?? -99) - (a.z ?? -99))
+                    .slice(0, 10);
                 const drugExprHtml = expressedDrugTargets.length > 0
-                    ? `<div style="margin-top:6px; padding:6px 10px; background:#faf5ff; border-left:3px solid #7c3aed; font-size:11px;"><b style="color:#6d28d9;">Highly-expressed druggable targets</b> (log₂-TPM+1 &gt;3): ${expressedDrugTargets.map(e => `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" style="cursor:help;">${e.gene}</span> (${e.val.toFixed(1)})`).join(', ')}</div>`
+                    ? `<div style="margin-top:6px; padding:6px 10px; background:#faf5ff; border-left:3px solid #7c3aed; font-size:11px;"><b style="color:#6d28d9;">Highly-expressed druggable targets</b> <span style="color:#9ca3af; font-size:10px;">(TPM &gt; 3; sorted by how unusually high vs cohort)</span>: ${expressedDrugTargets.map(e => {
+                        const zStr = e.z != null ? ` <span style="color:#9ca3af; font-size:10px;">[z ${fmtZ(e.z)}]</span>` : '';
+                        return `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" style="cursor:help;">${e.gene}</span> (${e.val.toFixed(1)})${zStr}`;
+                    }).join(', ')}</div>`
                     : '';
 
                 exprSigHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Which genes are switched on highest in this cell line. Values are log₂(TPM+1) — think of it roughly as &ldquo;mRNA copies per cell, on a log scale.&rdquo; A value above 1 means the gene is clearly expressed; below 1 means it is essentially off.</p>
-                    ${row('Most-expressed genes', topExpr)}
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression — that list is always dominated by mitochondrial and ribosomal genes that are high in every line. Values shown below are log₂(TPM+1) (≈ mRNA copies per cell on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score against the full cell-line cohort for that gene (&gt; +2 = strongly more expressed than typical, &lt; &minus;2 = strongly silenced).</p>
+                    ${row('Top uniquely high expression (z-ranked)', topUniqueHtml)}
                     ${xist !== undefined ? row('XIST', xist.toFixed(2) + (xist > 1.0 ? ' — active (the normal silencing of the extra X chromosome is working)' : ' — silenced (unusual; can re-activate X-linked genes)')) : ''}
                     ${yMean !== null ? row('Y-chromosome genes (mean)', yMean.toFixed(2) + (yMean > 1.0 ? ' — Y chromosome active' : ' — Y chromosome silent or lost')) : ''}
+                    ${sigHtml}
+                    ${inactiveSigHtml}
                     ${markerHtml}
                     ${drugExprHtml}`;
             } else {
@@ -26564,9 +26727,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             section('CRISPR dependencies <span style="font-size:11px; color:#6b7280;">— what this cell line uniquely needs to survive</span>',
                 geSigHtml,
                 'DepMap 25Q3 CRISPRGeneEffect (Chronos). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s GE − cohort mean) / cohort SD. Pan-essentials filtered against the DepMap common-essentials list. Druggable dependencies cross-referenced against a curated ~60-gene panel with approved or clinical-stage inhibitors.'),
-            section('Expression profile <span style="font-size:11px; color:#6b7280;">— which genes are switched on</span>',
+            section('Expression profile <span style="font-size:11px; color:#6b7280;">— what is uniquely turned on in this cell line</span>',
                 exprSigHtml,
-                'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Lineage-marker panels curated per Oncotree lineage (~15 markers each). Druggable targets flagged at log₂-TPM+1 &gt; 3.'),
+                'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s expression − cohort mean) / cohort SD. Pathway-activity signatures: ~9 curated gene panels (MYC targets, E2F / S-phase, G2/M, IFN response, EMT, TGF-β, hypoxia, NRF2, stem) — mean z over each panel; pathways with |mean z| &gt; 0.75 are highlighted. Lineage-marker panels: ~15 markers per Oncotree lineage. Druggable targets: ~60-gene panel with approved or clinical-stage inhibitors.'),
             section('Drug response <span style="font-size:11px; color:#6b7280;">— PRISM Repurposing</span>',
                 drugHtml,
                 (this.drugResponse?.dataSource || 'DepMap PRISM Repurposing Secondary.') + ' Curated panel of ' + (this.drugResponse?.panelSize || '~100') + ' compounds. Z-scores computed per compound across the full PRISM panel. <b>Caveat:</b> in vitro viability ≠ clinical response — validate any clinically weighty hit with orthogonal 2D/3D assays.'),

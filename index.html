@@ -1325,6 +1325,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.27 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Wiki Expression profile section reworked from raw top-expression to <b>uniquely-high vs cohort + pathway-activity signatures</b>. The previous &ldquo;Most-expressed genes&rdquo; row was always dominated by mitochondrial and ribosomal genes (MT-ATP8, GAPDH, EEF1A1, MT-CO2 &hellip;) that are high in every cell line and tell you nothing about this specific one.
+                    <b>(1) Top uniquely high expression</b> &mdash; now z-ranked against the full cohort. Each gene shows both its raw TPM and its z-score, e.g. <code>FGFR3 (TPM 6.4, z +2.8)</code>. Pan-housekeeping genes drop out naturally because they have low SD across the cohort.
+                    <b>(2) Pathway-activity signatures</b> &mdash; new block. Nine curated gene panels (MYC targets, E2F / S-phase replication, G2/M progression, IFN response, EMT, TGF-&beta; response, hypoxia / HIF target, NRF2 / oxidative-stress, stem / lineage plasticity). For each panel we compute the mean z-score over the panel genes in this cell line; panels with mean z &gt; +0.75 are surfaced as &ldquo;turned ON&rdquo; (with the pathway note in a tooltip) and mean z &lt; &minus;0.75 as &ldquo;turned OFF&rdquo;.
+                    <b>(3) Lineage markers and druggable targets</b> kept and now annotated with z-scores so you can see which are <i>uniquely</i> high here vs typical for the cohort, not just absolutely high.</li>
+                </ul>
                 <p><strong>v.81.26 (2026-05-11)</strong></p>
                 <ul>
                     <li>Wiki &mdash; bug fix: hovering a gene name in the Wiki body showed the help cursor but no actual MyGene.info tooltip popped up. Cause: <code>openCellLineWiki</code> rendered the body HTML but never called <code>attachGeneTooltips</code> on it, so the mouseenter handlers that fetch and display the gene-info tooltip were never bound. One-line fix: call <code>this.attachGeneTooltips(body)</code> after the Wiki body is composed and the modal is shown.</li>
@@ -2608,7 +2615,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.26</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.27</a>
     </div>
 
     <div class="main-content">
@@ -4768,6 +4775,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_26"></script>
+    <script src="app.js?v=v81_27"></script>
 </body>
 </html>
