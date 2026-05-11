@@ -22629,6 +22629,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 label: 'HER2+ breast (approximate)',
                 category: 'Breast — receptor subtype',
                 description: '<b>Inclusion:</b> breast lineage AND ERBB2 expression in the top 20 % of breast lines. <b>Why:</b> approximates HER2-amplified breast cancer by transcript level. <b>Caveat:</b> clinical HER2+ status is defined by IHC 3+ or FISH amplification — high transcript expression is correlated but not equivalent. Without copy-number data here, this is a surrogate.'
+            },
+            class_i_reduced: {
+                label: 'Class-I antigen presentation reduced/lost',
+                category: 'Immunology',
+                description: '<b>Inclusion:</b> cell lines where the integrated B2M + HLA-A/B/C functional inference suggests class-I antigen presentation is reduced or likely lost. <b>Why:</b> these lines are immune-escape candidates &mdash; a tumour with low or absent class-I MHC presents fewer peptides to CD8+ T cells. <b>Method:</b> combines damaging mutation in B2M, low expression z-score of HLA-A/B/C vs the cohort, and B2M-normalised HLA copy number. <b>Caveat:</b> this is a functional inference, not allele-specific HLA-LOH detection (which would require raw BAMs + LOHHLA).'
+            },
+            wgd_positive: {
+                label: 'WGD-positive (whole-genome doubled)',
+                category: 'Genome — ploidy / instability',
+                description: '<b>Inclusion:</b> cell lines flagged WGD-positive by PureCN. <b>Why:</b> whole-genome doubling is a common cancer evolutionary event (~58 % of lines in the panel). WGD-positive lines are systematically different in many gene-effect analyses, so it&rsquo;s often useful to compare WGD+ vs WGD&minus; separately. <b>Caveat:</b> WGD status is a binary call from a continuous signal; near-tetraploid lines without WGD and near-triploid lines with WGD both exist.'
+            },
+            high_aneuploidy: {
+                label: 'High aneuploidy',
+                category: 'Genome — ploidy / instability',
+                description: '<b>Inclusion:</b> cell lines with Ben-David 2021 aneuploidy score &ge; 25 (out of 39). <b>Why:</b> a coarse marker of how many chromosome arms have gained or lost copies. High aneuploidy correlates with TP53 loss, WGD, and a distinct dependency profile (e.g. on chromosomal-cohesion factors). <b>Caveat:</b> aneuploidy and CIN (chromosomal instability) are related but not identical &mdash; aneuploidy captures arm-level gains/losses, CIN captures fine-scale chaos. A line can score high on one and low on the other.'
             }
         };
     }
@@ -22668,6 +22683,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         counts.sort((a, b) => b.n - a.n);
         const top10pct = Math.max(1, Math.ceil(counts.length / 10));
         mem.hypermutated = new Set(counts.slice(0, top10pct).map(c => c.cl));
+
+        // Class-I antigen presentation reduced / lost — uses the same
+        // functional inference shown on the per-cell-line "Immunology" flag.
+        mem.class_i_reduced = new Set();
+        for (const cl of clLines) {
+            const co = this._classOnePresentation?.(cl);
+            if (co && (co.status === 'likely_lost' || co.status === 'reduced')) {
+                mem.class_i_reduced.add(cl);
+            }
+        }
+
+        // WGD-positive — straight from globalSignatures.
+        mem.wgd_positive = new Set();
+        if (this.globalSignatures?.byCellLine) {
+            for (const cl of clLines) {
+                if (this.globalSignatures.byCellLine[cl]?.WGD === true) mem.wgd_positive.add(cl);
+            }
+        }
+
+        // High aneuploidy — Ben-David score ≥ 25.
+        mem.high_aneuploidy = new Set();
+        if (this.globalSignatures?.byCellLine) {
+            for (const cl of clLines) {
+                const a = this.globalSignatures.byCellLine[cl]?.Aneuploidy;
+                if (a != null && a >= 25) mem.high_aneuploidy.add(cl);
+            }
+        }
 
         // Expression-based collections (need expression data loaded).
         if (this.expressionLoaded && this.expressionData && this.expressionGeneIndex) {
@@ -23527,6 +23569,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
                 return (va - vb) * dir;
             };
+        } else if (mode === 'ploidy' || mode === 'aneuploidy' || mode === 'cin') {
+            // Genome-signature numeric sorts. Lines missing the metric are
+            // pushed to the end regardless of direction so they don't muddy
+            // the head of the list.
+            const field = mode === 'ploidy' ? 'Ploidy' : mode === 'aneuploidy' ? 'Aneuploidy' : 'CIN';
+            const gsMap = this.globalSignatures?.byCellLine || {};
+            countMap = new Map();
+            for (const cl of this.metadata.cellLines) {
+                const v = gsMap[cl]?.[field];
+                if (v != null) countMap.set(cl, v);
+            }
+            secondaryCmp = (a, b) => {
+                const va = countMap.get(a);
+                const vb = countMap.get(b);
+                if (va == null && vb == null) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                if (va == null) return 1;   // missing → end
+                if (vb == null) return -1;
+                if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                return (va - vb) * dir;
+            };
         } else if (mode === 'tissue') {
             secondaryCmp = (a, b) => {
                 const ta = this.getCellLineLineage(a) || '';
@@ -23566,7 +23628,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 Values shown: <b>${fullLabel}</b> for <b>${geGenesLabel}</b>${direction}.
             </div>`;
         } else if (countMap) {
-            const lbl = mode === 'hotspot' ? 'Hotspot-mutation count' : mode === 'damaging' ? 'Damaging-mutation count' : 'Fusion count';
+            const lbl = mode === 'hotspot' ? 'Hotspot-mutation count'
+                      : mode === 'damaging' ? 'Damaging-mutation count'
+                      : mode === 'fusion' ? 'Fusion count'
+                      : mode === 'ploidy' ? 'Ploidy (avg chromosome copy number; normal = 2)'
+                      : mode === 'aneuploidy' ? 'Aneuploidy (Ben-David 2021 score, 0–39)'
+                      : mode === 'cin' ? 'CIN — chromosomal instability (0–1)'
+                      : mode;
             caption = `<div style="padding:4px 10px; font-size:10px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
                 Values shown: <b>${lbl}</b> per cell line.
             </div>`;
@@ -23593,9 +23661,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     sortValStr = `<span style="font-size:10px; color:${colour}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${geValueTooltip}"><span style="color:#9ca3af;">${geValueLabel}</span> ${v.toFixed(2)}</span>`;
                 }
             } else if (countMap) {
-                const v = countMap.get(cl) || 0;
-                const unitLbl = mode === 'hotspot' ? 'hs' : mode === 'damaging' ? 'dmg' : 'fus';
-                sortValStr = `<span style="font-size:10px; color:#374151; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode} count"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
+                const raw = countMap.get(cl);
+                if (raw != null) {
+                    const isInteger = (mode === 'hotspot' || mode === 'damaging' || mode === 'fusion' || mode === 'aneuploidy');
+                    const v = isInteger ? raw : Number(raw).toFixed(2);
+                    const unitLbl = mode === 'hotspot' ? 'hs'
+                                  : mode === 'damaging' ? 'dmg'
+                                  : mode === 'fusion' ? 'fus'
+                                  : mode === 'ploidy' ? 'pl'
+                                  : mode === 'aneuploidy' ? 'aneup'
+                                  : mode === 'cin' ? 'CIN'
+                                  : '';
+                    sortValStr = `<span style="font-size:10px; color:#374151; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode}"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
+                }
             }
             const sx = this._getSexSymbol(cl);
             const sxStyle = `color:${sx.color}; font-weight:700; margin-right:4px;${sx.italic ? ' font-style:italic;' : ''}`;
@@ -24148,7 +24226,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // doesn't have to remember scale ranges.
         const gs = this.globalSignatures?.byCellLine?.[cellLineId];
         if (gs) {
-            const helpGs = 'PureCN-derived (ploidy, WGD, CIN) and Ben-David 2021 (aneuploidy) genome-wide signatures from OmicsGlobalSignatures. WGD-positive lines (~58% of the panel) are systematically different in many analyses — useful interpretive context when comparing gene effect across cell lines.';
+            const helpGs = `Four numbers that describe how the cell line's genome has been reshaped.
+
+Ploidy: average chromosome copy number. Normal = 2 (diploid). Above 3 = triploid. Above 4 = tetraploid.
+
+WGD (whole-genome doubling): at some point in the cell line's history, all chromosomes doubled. About 58% of cancer cell lines are WGD-positive, and these lines behave systematically differently from non-WGD lines in many analyses.
+
+Aneuploidy: how many chromosome arms have been gained or lost. Ben-David 2021 score, scale 0–39 (higher = more abnormal).
+
+CIN (chromosomal instability): how scrambled the genome is at fine scale. Scale 0–1 (higher = more scrambled).`;
             const ploidyDesc = gs.Ploidy == null ? '' :
                 (gs.Ploidy < 2.3 ? 'near-diploid' :
                  gs.Ploidy < 2.7 ? 'near-triploid' :
@@ -24232,7 +24318,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hasInferredData = this.inferredSubtypes?.byCellLine?.[cellLineId] != null;
         const lofGenes = infSub.lof || [];
         if (hasInferredData) {
-            const helpLof = 'Tumor-suppressor inactivation calls inferred by DepMap, combining three signals: WGS copy number < 0.3, likely loss-of-function mutation with allele frequency > 0.5, or expression < 0.1 log-TPM. This catches deletion-driven losses (CDKN2A homozygous deletion, RB1 deep deletion) that the damaging-mutation matrix alone misses. Source: OmicsInferredMolecularSubtypes.';
+            const helpLof = `Tumor suppressors that look "switched off" in this cell line.
+
+DepMap combines three signals — if any one is true, the gene is called as functionally lost:
+• very low DNA copy number (≤ 0.3× diploid),
+• loss-of-function mutation with high allele frequency (> 0.5),
+• near-zero expression (< 0.1 log-TPM).
+
+This catches deep deletions (e.g. CDKN2A, RB1) that the damaging-mutation list alone would miss.`;
             top += `<div class="clb-detail-section"><strong>Functional loss (${lofGenes.length})</strong>`
                 + ` <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="${helpLof.replace(/"/g, '&quot;')}">?</span>`;
             if (lofGenes.length > 0) {
@@ -24258,7 +24351,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // previously read as a "going up / down" arrow.
         const cnEvents = this.clinicalCn?.byCellLine?.[cellLineId];
         if (cnEvents && (cnEvents.amplifications?.length || cnEvents.deletions?.length)) {
-            const helpCn = 'Curated panel of clinically actionable focal CN events. Amplifications (oncogenes; ERBB2, MYC, MDM2, CDK4, etc.): high-level CN ≥ 3.0 (relative; ≥6 actual copies in a diploid baseline). Deletions (TSGs not already in DepMap inferred-LoF): CN ≤ 0.5 (single-copy loss) or ≤ 0.3 (deep / homozygous). Each chip shows the gene and event type; "strong" / "deep" marks the upper-tier threshold. Hover for cancer-context annotation.';
+            const helpCn = `Well-known cancer genes that are strongly amplified or deleted in this cell line.
+
+Amplified oncogenes (MYC, ERBB2, MDM2, CDK4, …): DNA copy number ≥ 3× the diploid baseline (so ≥ 6 actual copies). "Strong amp" = ≥ 5× baseline.
+
+Deleted tumor suppressors: copy number ≤ 0.5× the baseline (single-copy loss). "Deep del" = ≤ 0.3× (likely homozygous deletion, both copies gone).
+
+This is a small curated panel. The full DepMap CN matrix has hundreds of focal changes per cell line — most are passenger events.`;
             const renderChip = (e, kind) => {
                 const isStrong = e.tier === 'strong_amp' || e.tier === 'deep_del';
                 // Muted dark-blue = amplification / activating event;
@@ -24304,7 +24403,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const order = { high: 0, medium: 1, low: 2 };
                 return (order[a.tier] - order[b.tier]) || a.fusion.localeCompare(b.fusion);
             });
-            const helpFusion = 'Curated driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, …) validated per cell line on three orthogonal signals: lineage match, partner expression z-score, and partner CRISPR dependency. Tier chips: green=high (both informative signals support the call), amber=medium (one signal or curated+lineage only), red=low (no support and atypical lineage — suspect). Atypical badge means the cell line tissue isn\'t the canonical disease for the fusion; lineage is a modifier, not a gate.';
+            const helpFusion = `Famous cancer-driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, …) called in this cell line.
+
+Each fusion is checked on three signals:
+• does the cell line's tissue match the disease for this fusion,
+• is the partner gene's expression unusually high / low,
+• does the cell line depend on the partner gene by CRISPR.
+
+Tier:
+• high (green) — multiple signals support the call,
+• med (amber) — only one signal, or just curated + lineage match,
+• low (red) — no support and atypical lineage; treat with caution.
+
+The "⚠ atypical" badge means the cell line tissue isn't the usual disease for this fusion.`;
             top += `<div class="clb-detail-section"><strong>Clinically relevant fusions (${clinicalCalls.length})</strong>`
                 + ` <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="${helpFusion.replace(/"/g, '&quot;')}">?</span>`;
             top += `<div style="font-size:11px; line-height:1.7;">`;

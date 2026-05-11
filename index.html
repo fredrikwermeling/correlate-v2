@@ -1325,6 +1325,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.13 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Cell-line browser &mdash; iterative cleanup step 3.
+                    <b>(1) Tooltips rewritten in plain language with term definitions.</b> The &ldquo;?&rdquo; tooltips next to Genome, Functional loss, Focal CN events and Clinically relevant fusions previously read like method-section snippets. They now define every term inline (Ploidy, WGD, Aneuploidy, CIN; the three-signal LoF / focal-CN / fusion criteria) before going into the caveats.
+                    <b>(2) Three new collections.</b> &ldquo;Class-I antigen presentation reduced/lost&rdquo; (Immunology) groups the immune-escape candidates surfaced by the per-cell-line flag. &ldquo;WGD-positive&rdquo; and &ldquo;High aneuploidy&rdquo; (Genome &mdash; ploidy / instability) let the user pick or contrast genomically unstable lines.
+                    <b>(3) Three new sort options:</b> Ploidy, Aneuploidy, CIN. The numeric value appears inline on each row alongside a short unit tag (<code>pl 2.29</code>, <code>aneup 12</code>, <code>CIN 0.14</code>). Lines missing the metric are pushed to the bottom regardless of sort direction. Caption line above the list spells out the unit so the numbers read unambiguously.</li>
+                </ul>
                 <p><strong>v.81.12 (2026-05-11)</strong></p>
                 <ul>
                     <li>Cell-line detail card &mdash; iterative cleanup step 2. Damaging mutations list now defaults to only the cancer-panel-relevant subset (genes that appear in any of the curated cancer pathway panels). The long passenger tail (ACTN1, ADGRG6, BZW2, etc. on most lines) sits behind a &ldquo;show all N&rdquo; toggle. When zero cancer-panel hits, the section shows &ldquo;<i>None in cancer-panel set</i>&rdquo; with the toggle still available. Hotspot and fusion lists unchanged (they&rsquo;re already curated). The new flags section renamed &ldquo;Phenotype flags&rdquo; &rarr; &ldquo;Immunology&rdquo; since both MSI-high and Class-I reduced are immunology-relevant signals (checkpoint-inhibitor response prediction and immune evasion, respectively).</li>
@@ -2541,7 +2548,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.12</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.13</a>
     </div>
 
     <div class="main-content">
@@ -4328,6 +4335,9 @@
             <option value="hotspot">Sort: Hotspot muts</option>
             <option value="damaging">Sort: Damaging muts</option>
             <option value="fusion">Sort: Fusions</option>
+            <option value="ploidy">Sort: Ploidy</option>
+            <option value="aneuploidy">Sort: Aneuploidy</option>
+            <option value="cin">Sort: CIN (chromosomal instability)</option>
             <option value="ge">Sort: GE for gene(s)</option>
             <option value="expr">Sort: Expression of gene(s)</option>
           </select>
@@ -4689,6 +4699,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_12"></script>
+    <script src="app.js?v=v81_13"></script>
 </body>
 </html>
