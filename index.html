@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.39 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Drug-response section &mdash; each compound now shows cohort-wide sensitivity counts. Below the per-line viability / z-score row, a small grey line spells out: &ldquo;<i>PRISM cohort: <b style="color:#15803d;">N</b> very-sensitive (AUC &lt; 0.3) &middot; <b style="color:#a16207;">M</b> partly-sensitive (AUC 0.3&ndash;0.6) of K tested.</i>&rdquo; Lets the user tell apart a niche-hit compound that kills only a handful of lines from a broadly active drug that kills hundreds. The cohort counts also appear inline in the context-aware cross-checks section in a compact form. Computed once per compound at first Wiki open and cached on the drug-response object for the session.</li>
+                </ul>
                 <p><strong>v.81.38 (2026-05-11)</strong></p>
                 <ul>
                     <li>Executive-summary drug recommendations are now <b>variant-aware</b>. The previous &ldquo;KRAS-G12C inhibitors (if G12C)&rdquo; hedge is gone &mdash; we already have the specific codon in the inferred-hotspot data, so the summary now names the drug that actually applies. PANC0504 (KRAS G12D, typical pancreatic) will now show &ldquo;KRAS-G12D-targeting strategies (MRTX1133 investigational; MEK-inhibitor combinations for p.G12D)&rdquo; rather than a G12C hedge.
@@ -2689,7 +2693,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.38</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.39</a>
     </div>
 
     <div class="main-content">
@@ -4858,6 +4862,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_38"></script>
+    <script src="app.js?v=v81_39"></script>
 </body>
 </html>

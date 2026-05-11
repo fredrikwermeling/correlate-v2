@@ -27177,6 +27177,30 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         } else {
             const dr = this.drugResponse;
             const rows = [];
+            // Cache per-compound sensitivity counts across the full PRISM
+            // cohort. Lets each compound line in the Drug-response view show
+            // "N very-sensitive · M partly-sensitive across PRISM" as context
+            // for whether this is a niche-hit compound or one that kills many
+            // lines. Thresholds match the survivalLabel buckets below:
+            //   AUC < 0.3  → "kills most cells"  → very sensitive
+            //   AUC 0.3–0.6 → "kills many cells" → partly sensitive
+            //   AUC 0.6–0.85 → "modest killing"
+            //   AUC > 0.85 → "little effect"
+            if (!dr._sensCountsComputed) {
+                for (const c of dr.compounds) {
+                    let veryN = 0, partN = 0, totalN = 0;
+                    if (c.auc && typeof c.auc === 'object') {
+                        for (const auc of Object.values(c.auc)) {
+                            if (auc == null || isNaN(auc)) continue;
+                            totalN++;
+                            if (auc < 0.3) veryN++;
+                            else if (auc < 0.6) partN++;
+                        }
+                    }
+                    c._sensCounts = { very: veryN, part: partN, total: totalN };
+                }
+                dr._sensCountsComputed = true;
+            }
             for (const c of dr.compounds) {
                 const v = c.auc[cellLineId];
                 if (v === undefined) continue;
@@ -27199,9 +27223,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     //   AUC 0 = all cells killed, 1 = no killing at any dose.
                     //   "surviving fraction" ≈ AUC (PRISM convention at screened dose range).
                     const survivalLabel = c.v < 0.3 ? 'kills most cells' : c.v < 0.6 ? 'kills many cells' : c.v < 0.85 ? 'modest killing' : 'little effect';
+                    // Cohort context: how many cell lines in PRISM are very /
+                    // partly sensitive to this drug overall. Lets the user
+                    // tell a "niche-hit only kills a few lines" compound apart
+                    // from one that kills a substantial fraction.
+                    const sc = c._sensCounts;
+                    const cohortStr = sc
+                        ? `<div style="padding-left:170px; font-size:10px; color:#6b7280;">PRISM cohort: <b style="color:#15803d;">${sc.very}</b> very-sensitive (AUC&nbsp;&lt;&nbsp;0.3) · <b style="color:#a16207;">${sc.part}</b> partly-sensitive (AUC&nbsp;0.3&ndash;0.6) of ${sc.total} tested.</div>`
+                        : '';
                     return `<li style="padding:3px 0;"><span style="display:inline-block; min-width:170px; font-weight:600; color:${color};">${c.name}</span>
                         <span style="font-size:10px; color:#6b7280;">${c.target} &middot; ${c.moa}</span><br>
-                        <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}) — <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span> — <i>${c.indication}</i></span></li>`;
+                        <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}) — <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span> — <i>${c.indication}</i></span>
+                        ${cohortStr}</li>`;
                 };
 
                 // Context-aware cross-checks based on what this wiki has already detected
@@ -27255,7 +27288,13 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
                 const ctxHtml = ctxSections.length
                     ? '<div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;"><div style="font-weight:600; margin-bottom:6px; color:#374151;">Context-aware cross-checks</div>'
-                        + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => { const z = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1); const word = c.z < 0 ? 'below avg' : 'above avg'; return `<li><span style="font-weight:500;">${c.name}</span> — viability <b title="AUC: area under the dose-response curve. 0 = all cells killed; 1 = no killing.">${c.v.toFixed(2)}</b> (${z}σ ${word}) — <i>${c.indication}</i></li>`; }).join('')}</ul></div>`).join('')
+                        + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => {
+                            const z = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1);
+                            const word = c.z < 0 ? 'below avg' : 'above avg';
+                            const sc = c._sensCounts;
+                            const cohortStr = sc ? ` <span style="color:#9ca3af; font-size:10px;">[${sc.very} very-sens · ${sc.part} partly-sens in PRISM]</span>` : '';
+                            return `<li><span style="font-weight:500;">${c.name}</span> — viability <b title="AUC: area under the dose-response curve. 0 = all cells killed; 1 = no killing.">${c.v.toFixed(2)}</b> (${z}σ ${word}) — <i>${c.indication}</i>${cohortStr}</li>`;
+                        }).join('')}</ul></div>`).join('')
                         + '</div>'
                     : '';
 
