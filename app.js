@@ -23150,8 +23150,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     // Single symbol (♂ / ♀ / ?) + color + tooltip for list display.
+    // When annotation and expression DIRECTLY DISAGREE (e.g. TE6 is annotated
+    // Male but expression looks Female), neither signal is trustworthy on its
+    // own, so we surface "?" with a conflict tooltip rather than blindly
+    // showing the annotated sex. The detail card still shows both axes
+    // separately for users who want the raw signals.
     _getSexSymbol(cl) {
         const { annotation, byExpression } = this._getCellLineSex(cl);
+        const annLower = (annotation || '').toLowerCase();
+        if (annLower && annLower !== 'unknown' && byExpression && byExpression !== 'unknown' && annLower !== byExpression) {
+            return { sym: '?', color: '#9ca3af', italic: false,
+                title: `Annotation says ${annotation} but expression looks ${byExpression} — conflict, treated as Unknown` };
+        }
         if (annotation === 'Male')   return { sym: '♂', color: '#2563eb', italic: false, title: 'Male (annotation)' };
         if (annotation === 'Female') return { sym: '♀', color: '#db2777', italic: false, title: 'Female (annotation)' };
         if (byExpression === 'male')   return { sym: '♂', color: '#2563eb', italic: true,  title: 'Male (by expression)' };

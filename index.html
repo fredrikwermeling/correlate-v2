@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.18 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Cell-line list sex symbol &mdash; when the annotated sex and the expression-inferred sex <i>directly conflict</i> (e.g. TE6: annotation Male, expression Female), the line now shows &ldquo;?&rdquo; with a conflict tooltip instead of the annotated symbol. Neither signal is trustworthy on its own when they disagree, and silently picking the annotation hides the conflict from the user. The detail card still shows both Sex (annotation) and Sex (expression) on separate rows with the existing amber-disagreement style, so the raw signals stay available for users who want to dig in. The sex filter dropdown is unchanged &mdash; selecting &ldquo;Male (annotation)&rdquo; still includes TE6 since that <i>is</i> its annotation.</li>
+                </ul>
                 <p><strong>v.81.17 (2026-05-11)</strong></p>
                 <ul>
                     <li>New collections category <b>Focal amplifications</b>. Five entries covering the gain-of-function side of focal CN events (the loss side is already represented by the per-TSG functional-loss collections, since DepMap&rsquo;s integrated LoF call already picks up deep deletions). <b>MYC family amp</b> (MYC / MYCN / MYCL &mdash; pathway active across lineages), <b>ERBB2 amp</b> (HER2-driven; lineage-agnostic, distinct from the breast-only expression-based HER2+ collection), <b>MDM2 amp</b> (p53 functionally suppressed without a TP53 mutation &mdash; nice contrast to the TP53-loss set), <b>G1/S amp</b> (CDK4 / CDK6 / CCND1 / CCNE1 &mdash; G1/S deregulation; contrast to RB1-loss / CDKN2A-loss), and <b>Any focal amplification</b> as a generic catch-all. Membership pulls from the curated clinical CN panel (clinicalCn.byCellLine.amplifications).</li>
@@ -2565,7 +2569,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.17</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.18</a>
     </div>
 
     <div class="main-content">
@@ -4725,6 +4729,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_17"></script>
+    <script src="app.js?v=v81_18"></script>
 </body>
 </html>
