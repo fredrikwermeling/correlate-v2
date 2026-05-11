@@ -24098,23 +24098,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 + `</div>`;
         };
 
-        // MSI badge — DepMap MSIsensor2 score >= 20 → MSI-high. Shown as a
-        // small red chip inline with the cell-line ID when positive.
-        const msiBadge = infSub.msi === true
-            ? ` <span style="background:#dc2626; color:#fff; font-size:10px; font-weight:600; padding:1px 6px; border-radius:8px; margin-left:6px;" title="Microsatellite instability — MSIsensor2 score ≥ 20">MSI</span>`
-            : '';
-        // Class-I antigen-presentation badge — fires when integrated B2M /
-        // expression / CN evidence suggests likely or partial loss. Lets
-        // the user spot immune-escape candidates without scrolling.
+        // MSI / Class-I flags — computed here, rendered further down in their own
+        // "Phenotype flags" section so they don't dominate the cell-line ID row.
         const classOne = this._classOnePresentation(cellLineId);
-        let classOneBadge = '';
-        if (classOne.status === 'likely_lost' || classOne.status === 'reduced') {
-            const tooltip = `Class-I antigen presentation: ${classOne.status === 'likely_lost' ? 'likely lost' : 'reduced'}.\n• ${classOne.reasons.join('\n• ')}\n\nNote: this is a functional inference, not allele-specific HLA-LOH detection (which would need raw BAMs + LOHHLA).`;
-            const colour = classOne.status === 'likely_lost' ? '#dc2626' : '#ca8a04';
-            classOneBadge = ` <span style="background:${colour}; color:#fff; font-size:10px; font-weight:600; padding:1px 6px; border-radius:8px; margin-left:6px;" title="${tooltip.replace(/"/g, '&quot;')}">Class-I ${classOne.status === 'likely_lost' ? 'lost' : 'reduced'}</span>`;
-        }
         let top = `<h4>${name}</h4>`;
-        top += `<div class="clb-detail-id">${cellLineId}${msiBadge}${classOneBadge}</div>`;
+        top += `<div class="clb-detail-id">${cellLineId}</div>`;
         top += `<div class="clb-detail-section">`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
         // Subtype row, plus Lehmann TNBC subtype tag for breast lines
@@ -24128,29 +24116,78 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const t4 = lehmann.tnbcType4;
             const tooltip = `Lehmann TNBC subtype (JCI 2011 + 2016 update). 2011 six-class: ${t6}. 2016 four-class: ${t4 || 'reattributed (was IM/MSL — re-classified as immune/stromal infiltrate signal in 2016)'}. Subtypes: BL1=basal-like 1 (DDR), BL2=basal-like 2 (growth-factor signaling), IM=immunomodulatory (re-attributed), M=mesenchymal, MSL=mesenchymal stem-like (re-attributed), LAR=luminal androgen receptor.`;
             const label = t4 ? `Lehmann ${t6}${t4 !== t6 ? ` → ${t4}` : ''}` : `Lehmann ${t6}`;
-            lehmannChip = ` <span style="background:#7c3aed; color:#fff; font-size:9px; font-weight:600; padding:1px 6px; border-radius:8px; margin-left:6px; cursor:help;" title="${tooltip.replace(/"/g, '&quot;')}">${label}</span>`;
+            lehmannChip = ` <span style="background:#f3f4f6; color:#4b5563; font-size:10px; font-weight:600; padding:1px 6px; border-radius:8px; margin-left:6px; cursor:help; border:1px solid #d1d5db;" title="${tooltip.replace(/"/g, '&quot;')}">${label}</span>`;
         }
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Subtype</span><span class="clb-stat-value">${sublineage || '-'}${lehmannChip}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex (annotation)</span><span class="clb-stat-value">${sexAnn}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex (expression)</span><span class="clb-stat-value"${expStyle}>${expDisplay}</span></div>`;
         // Genome-wide signatures (PureCN ploidy + WGD, Ben-David aneuploidy,
-        // chromosomal instability). These shape interpretation when comparing
-        // gene effect across cell lines — WGD-positive lines are systematically
-        // different. Source: OmicsGlobalSignatures.csv.
+        // chromosomal instability). Rendered as one row per metric with a
+        // plain-English descriptor (near-diploid / high / etc.) so the user
+        // doesn't have to remember scale ranges.
         const gs = this.globalSignatures?.byCellLine?.[cellLineId];
         if (gs) {
-            const helpGs = 'Genome-wide signatures from OmicsGlobalSignatures: Ploidy (avg chromosome dosage), WGD (whole-genome doubling, binary), Aneuploidy (Ben-David 2021 score, 0–39), CIN (chromosomal instability). Useful interpretive context — WGD-positive lines (~58% of the panel) are systematically different in many analyses.';
-            const parts = [];
-            if (gs.Ploidy != null) parts.push(`<span title="Average chromosome dosage from PureCN">Ploidy ${gs.Ploidy.toFixed(2)}</span>`);
-            if (gs.WGD === true) parts.push(`<span style="color:#dc2626; font-weight:600;" title="Whole-genome doubling (PureCN)">WGD</span>`);
-            if (gs.Aneuploidy != null) parts.push(`<span title="Ben-David 2021 aneuploidy score (0–39)">Aneup. ${gs.Aneuploidy}</span>`);
-            if (gs.CIN != null) parts.push(`<span title="Chromosomal instability score (PureCN)">CIN ${gs.CIN.toFixed(2)}</span>`);
-            if (parts.length) {
-                top += `<div class="clb-stat-row"><span class="clb-stat-label">Genome <span style="color:#9ca3af; font-size:9px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 4px;" title="${helpGs.replace(/"/g, '&quot;')}">?</span></span>`
-                    + `<span class="clb-stat-value" style="font-size:10px;">${parts.join(' &middot; ')}</span></div>`;
+            const helpGs = 'PureCN-derived (ploidy, WGD, CIN) and Ben-David 2021 (aneuploidy) genome-wide signatures from OmicsGlobalSignatures. WGD-positive lines (~58% of the panel) are systematically different in many analyses — useful interpretive context when comparing gene effect across cell lines.';
+            const ploidyDesc = gs.Ploidy == null ? '' :
+                (gs.Ploidy < 2.3 ? 'near-diploid' :
+                 gs.Ploidy < 2.7 ? 'near-triploid' :
+                 gs.Ploidy < 4.5 ? 'near-tetraploid' : 'highly polyploid');
+            const aneupDesc = gs.Aneuploidy == null ? '' :
+                (gs.Aneuploidy < 15 ? 'low' :
+                 gs.Aneuploidy < 25 ? 'medium' : 'high');
+            const cinDesc = gs.CIN == null ? '' :
+                (gs.CIN < 0.2 ? 'low' :
+                 gs.CIN < 0.5 ? 'medium' : 'high');
+            const muted = (txt) => `<span style="color:#9ca3af; font-weight:400;"> ${txt}</span>`;
+            const helpSpan = ` <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 4px;" title="${helpGs.replace(/"/g, '&quot;')}">?</span>`;
+            top += `<div class="clb-stat-row"><span class="clb-stat-label">Genome${helpSpan}</span><span class="clb-stat-value"></span></div>`;
+            if (gs.Ploidy != null) {
+                top += `<div class="clb-stat-row" style="padding-left:12px;"><span class="clb-stat-label" style="font-weight:400;">Ploidy</span><span class="clb-stat-value" style="font-weight:500;">${gs.Ploidy.toFixed(2)}${ploidyDesc ? muted('(' + ploidyDesc + ')') : ''}</span></div>`;
+            }
+            if (gs.WGD === true) {
+                top += `<div class="clb-stat-row" style="padding-left:12px;"><span class="clb-stat-label" style="font-weight:400;">WGD</span><span class="clb-stat-value" style="font-weight:500;">yes${muted('(whole-genome doubled)')}</span></div>`;
+            }
+            if (gs.Aneuploidy != null) {
+                top += `<div class="clb-stat-row" style="padding-left:12px;"><span class="clb-stat-label" style="font-weight:400;">Aneuploidy</span><span class="clb-stat-value" style="font-weight:500;">${gs.Aneuploidy} / 39${aneupDesc ? muted('(' + aneupDesc + ')') : ''}</span></div>`;
+            }
+            if (gs.CIN != null) {
+                top += `<div class="clb-stat-row" style="padding-left:12px;"><span class="clb-stat-label" style="font-weight:400;">CIN</span><span class="clb-stat-value" style="font-weight:500;">${gs.CIN.toFixed(2)}${cinDesc ? muted('(' + cinDesc + ')') : ''}</span></div>`;
             }
         }
         top += `</div>`;
+
+        // Phenotype flags — MSI / Class-I antigen presentation, displayed
+        // inline with plain-English captions so they're informative on first
+        // read. Previously these sat as colored pills next to the cell-line
+        // ID, which read as the headline feature when really they're one
+        // signal among many. Renders only if at least one flag is positive.
+        const flags = [];
+        if (infSub.msi === true) {
+            flags.push({
+                label: 'MSI-high',
+                caption: 'microsatellite instability (MSIsensor2 score &ge; 20) &mdash; mismatch-repair deficient',
+                tooltip: 'DepMap inferred MSI status from MSIsensor2 score. MSI-high lines are typically MMR-deficient and hypermutated.'
+            });
+        }
+        if (classOne.status === 'likely_lost' || classOne.status === 'reduced') {
+            const lbl = classOne.status === 'likely_lost' ? 'Class-I lost' : 'Class-I reduced';
+            const reasonList = (classOne.reasons || []).slice(0, 2).join('; ');
+            flags.push({
+                label: lbl,
+                caption: `MHC-I antigen presentation likely impaired${reasonList ? ' &mdash; ' + reasonList : ''}`,
+                tooltip: `Functional inference combining B2M damaging mutations + HLA-A/B/C expression z-score + B2M-normalised HLA copy number. NOT allele-specific HLA-LOH detection (that would need raw BAMs + LOHHLA). Reasons: ${(classOne.reasons || []).join('; ')}`
+            });
+        }
+        if (flags.length > 0) {
+            top += `<div class="clb-detail-section"><strong>Phenotype flags</strong>`;
+            for (const f of flags) {
+                top += `<div style="display:flex; gap:8px; align-items:baseline; margin:3px 0; font-size:11px;">`
+                    + `<span style="color:#4b5563; font-weight:600; border:1px solid #d1d5db; background:#f3f4f6; border-radius:8px; padding:1px 6px; font-size:10px; flex-shrink:0; cursor:help;" title="${f.tooltip.replace(/"/g, '&quot;')}">${f.label}</span>`
+                    + `<span style="color:#6b7280;">${f.caption}</span>`
+                    + `</div>`;
+            }
+            top += `</div>`;
+        }
 
         // Wiki entry-point sits at the top so the user lands on the deep-dive
         // before scrolling through the summary lists.
@@ -24181,8 +24218,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 top += `<div style="font-size:11px; line-height:1.7;">`;
                 top += lofGenes.slice().sort().map(g =>
                     `<span class="gene-hover clb-gene-link" data-gene="${g}" `
-                    + `style="cursor:help; font-weight:600; color:#dc2626; border:1px solid #dc2626; `
-                    + `border-radius:8px; padding:0 5px; margin-right:4px;" `
+                    + `style="cursor:help; font-weight:600; color:#991b1b; border:1px solid #d1d5db; `
+                    + `background:#fef2f2; border-radius:8px; padding:0 5px; margin-right:4px;" `
                     + `title="${g} loss inferred by DepMap: combines CN, mutation and expression — catches deletions invisible to mutation matrices alone">`
                     + `${g}</span>`
                 ).join('');
@@ -24194,24 +24231,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Focal CN events — curated panel of clinically actionable
-        // amplifications and TSG deletions (extending the inferred LoF list).
-        // Amplification chips have an upward triangle ▲ in red; deletion
-        // chips have a downward triangle ▼ in blue. Tier indicated by border
-        // weight (strong = bold; suggestive = thin).
+        // amplifications (muted blue = activating) and TSG deletions
+        // (muted red = loss). Kind is spelled out as a text suffix
+        // (amp / del / strong amp / deep del) instead of a glyph, which
+        // previously read as a "going up / down" arrow.
         const cnEvents = this.clinicalCn?.byCellLine?.[cellLineId];
         if (cnEvents && (cnEvents.amplifications?.length || cnEvents.deletions?.length)) {
-            const helpCn = 'Curated panel of clinically actionable focal CN events. Amplifications (oncogenes; ERBB2, MYC, MDM2, CDK4, etc.): high-level CN ≥ 3.0 (relative; ≥6 actual copies in a diploid baseline). Deletions (TSGs not already in DepMap inferred-LoF): CN ≤ 0.5 (single-copy loss) or ≤ 0.3 (deep / homozygous). Each chip shows the gene; tier suffix marks "strong" (bold border) when the threshold is crossed strongly. Hover for cancer-context annotation.';
+            const helpCn = 'Curated panel of clinically actionable focal CN events. Amplifications (oncogenes; ERBB2, MYC, MDM2, CDK4, etc.): high-level CN ≥ 3.0 (relative; ≥6 actual copies in a diploid baseline). Deletions (TSGs not already in DepMap inferred-LoF): CN ≤ 0.5 (single-copy loss) or ≤ 0.3 (deep / homozygous). Each chip shows the gene and event type; "strong" / "deep" marks the upper-tier threshold. Hover for cancer-context annotation.';
             const renderChip = (e, kind) => {
                 const isStrong = e.tier === 'strong_amp' || e.tier === 'deep_del';
-                const color = kind === 'amp' ? '#dc2626' : '#1e40af';
-                const symbol = kind === 'amp' ? '▲' : '▼';
-                const border = isStrong ? `2px solid ${color}` : `1px solid ${color}`;
+                // Muted dark-blue = amplification / activating event;
+                // muted dark-red = deletion / loss event. Light background
+                // tint keeps chips visible without saturated borders.
+                const color = kind === 'amp' ? '#1e3a8a' : '#991b1b';
+                const bg    = kind === 'amp' ? '#eff6ff' : '#fef2f2';
+                const kindLabel = kind === 'amp'
+                    ? (isStrong ? 'strong amp' : 'amp')
+                    : (isStrong ? 'deep del'   : 'del');
                 const tooltip = `${e.gene} ${kind === 'amp' ? 'amplification' : 'deletion'} (CN = ${e.cn}${isStrong ? ', ' + (kind === 'amp' ? 'strong' : 'deep') : ''}). ${e.context || ''}`;
                 return `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" `
-                    + `style="cursor:help; font-weight:600; color:${color}; border:${border}; `
-                    + `border-radius:8px; padding:0 5px; margin-right:4px; display:inline-block; margin-bottom:3px;" `
+                    + `style="cursor:help; font-weight:600; color:${color}; border:1px solid #d1d5db; background:${bg}; `
+                    + `border-radius:8px; padding:0 6px; margin-right:4px; display:inline-block; margin-bottom:3px;" `
                     + `title="${tooltip.replace(/"/g, '&quot;')}">`
-                    + `${symbol} ${e.gene}</span>`;
+                    + `${e.gene} <span style="color:#6b7280; font-weight:400; font-size:10px;">${kindLabel}</span></span>`;
             };
             const totalN = (cnEvents.amplifications?.length || 0) + (cnEvents.deletions?.length || 0);
             top += `<div class="clb-detail-section"><strong>Focal CN events (${totalN})</strong>`
@@ -24230,7 +24272,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // evidence (lineage, partner expression, partner dependency). Shown
         // prominently; the full noisy raw fusion list is collapsed underneath.
         const clinicalCalls = this.clinicalFusions?.byCellLine?.[cellLineId] || [];
-        const tierColor = { high: '#16a34a', medium: '#ca8a04', low: '#dc2626' };
+        // Muted tier colours so high/med/low still convey ordering but don't
+        // shout. High = muted green (#15803d), med = muted amber (#a16207),
+        // low = muted red (#991b1b) — paired with a light background tint.
+        const tierColor = { high: '#15803d', medium: '#a16207', low: '#991b1b' };
+        const tierBg    = { high: '#f0fdf4', medium: '#fefce8', low: '#fef2f2' };
         const tierLabel = { high: 'high', medium: 'med', low: 'low' };
         if (clinicalCalls.length > 0) {
             const sortedCalls = [...clinicalCalls].sort((a, b) => {
@@ -24243,11 +24289,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             top += `<div style="font-size:11px; line-height:1.7;">`;
             sortedCalls.forEach(c => {
                 const color = tierColor[c.tier] || '#6b7280';
+                const bg    = tierBg[c.tier]    || '#f3f4f6';
                 const atypical = c.atypicalLineage
-                    ? ` <span style="color:#b45309; font-size:10px;" title="Atypical lineage for this fusion (kept by orthogonal evidence)">⚠ atypical</span>`
+                    ? ` <span style="color:#a16207; font-size:10px;" title="Atypical lineage for this fusion (kept by orthogonal evidence)">⚠ atypical</span>`
                     : '';
                 top += `<div style="margin:2px 0;"><span style="font-weight:600;">${c.fusion}</span>`
-                    + ` <span style="color:${color}; border:1px solid ${color}; border-radius:8px; padding:0 5px; font-size:10px; margin-left:4px;">${tierLabel[c.tier] || c.tier}</span>`
+                    + ` <span style="color:${color}; background:${bg}; border:1px solid #d1d5db; border-radius:8px; padding:0 6px; font-size:10px; margin-left:4px;">${tierLabel[c.tier] || c.tier}</span>`
                     + atypical
                     + `</div>`;
             });
