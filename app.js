@@ -23287,8 +23287,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             + `</div>`
             + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#15803d;">+</b> to require, <b style="color:#991b1b;">−</b> to exclude. Multiple collections combine with AND.</div>`;
 
+        // One-line explainers for categories whose name is jargon-heavy.
+        // Rendered as italic grey text below the category header so the user
+        // doesn't need to hover or read the full description to get the gist.
+        const CATEGORY_NOTES = {
+            'Oncogene addiction (mutation × CRISPR dependency)': 'Cancer cells that have become functionally dependent on a driver gene — knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only collections above.',
+            'Pathway-activity expression signatures': 'Each set marks lines where the pathway is transcriptionally active (mean z > +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.',
+            'Tumor-suppressor functional loss': 'A gene is "functionally lost" when DepMap\'s integrated call (CN, mutation, expression) says it is — catches deletions and silenced loci that the damaging-mutation list alone would miss.',
+            'Focal amplifications': 'Curated oncogene amplifications from the clinical CN panel — gain-of-function dosage events that point mutations cannot produce.'
+        };
+
         for (const cat of Object.keys(byCat)) {
             html += `<div style="color:#15803d; font-size:10px; font-weight:600; margin:8px 0 3px; border-bottom:1px solid #e5e7eb; padding-bottom:2px;">${cat}</div>`;
+            if (CATEGORY_NOTES[cat]) {
+                html += `<div style="color:#6b7280; font-size:10px; font-style:italic; margin:0 0 4px 4px;">${CATEGORY_NOTES[cat]}</div>`;
+            }
             for (const { id, def, n } of byCat[cat]) {
                 const state = states.get(id);
                 const incActive = state === 'include';
@@ -27171,9 +27184,45 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ? `<b>Useful as a model for:</b> ${[...new Set(modelFor)].slice(0, 3).join('; ')}.`
                 : '';
 
+            // "Strong drug-target candidates" sentence — surfaces drug names
+            // where the supporting evidence is robust: (a) oncogene-addiction
+            // collections fire for this cell line (mutation + functional CRISPR
+            // dependency, the strongest combined signal), or (b) PRISM screen
+            // shows strong sensitivity (z < -1.5σ) to a clinical compound.
+            // The general "model for" sentence above frames biology; this one
+            // names concrete therapies likely to work.
+            const strongDrugs = [];
+            const mem = this._collectionMembership || {};
+            if (mem.kras_addicted?.has(cellLineId)) strongDrugs.push('<b>KRAS-G12C inhibitors</b> (sotorasib / adagrasib — if G12C) or MEK-inhibitor combinations');
+            if (mem.braf_addicted?.has(cellLineId)) strongDrugs.push('<b>BRAF/MEK inhibitors</b> (vemurafenib + trametinib, dabrafenib + trametinib)');
+            if (mem.egfr_dependent?.has(cellLineId)) strongDrugs.push('<b>EGFR TKIs</b> (erlotinib, gefitinib, osimertinib)');
+            if (mem.bcr_abl_addicted?.has(cellLineId)) strongDrugs.push('<b>ABL TKIs</b> (imatinib, dasatinib, nilotinib)');
+            if (mem.pi3k_active_dependent?.has(cellLineId)) strongDrugs.push('<b>PI3K-α / AKT / mTOR inhibitors</b> (alpelisib for PIK3CA-mut)');
+            if (mem.cdk46_dependent?.has(cellLineId)) strongDrugs.push('<b>CDK4/6 inhibitors</b> (palbociclib, ribociclib, abemaciclib)');
+            // PRISM-screen evidence — top 2 strong-sensitive compounds (z < -1.5)
+            // and ALWAYS distinct from the addiction-named drugs above.
+            const dr = this.drugResponse;
+            if (dr?.compounds && Array.isArray(dr.compounds)) {
+                const prismHits = [];
+                for (const c of dr.compounds) {
+                    const v = c.auc?.[cellLineId];
+                    if (v == null || isNaN(v) || !(c.sd > 0)) continue;
+                    const z = (v - c.mean) / c.sd;
+                    if (z < -1.5) prismHits.push({ name: c.name, target: c.target, z });
+                }
+                prismHits.sort((a, b) => a.z - b.z);
+                const topPrism = prismHits.slice(0, 2);
+                for (const h of topPrism) {
+                    strongDrugs.push(`<b>${h.name}</b> <span style="color:#6b7280;">(${h.target}, PRISM z = ${h.z.toFixed(1)}σ)</span>`);
+                }
+            }
+            const s6 = strongDrugs.length > 0
+                ? `<b>Strong drug-target candidates:</b> ${strongDrugs.slice(0, 4).join('; ')}.`
+                : '';
+
             // If nothing beyond the identity sentence triggered, fall back to a
             // gentler note so the summary box doesn't read as truncated.
-            const bodyText = [s2, s3, s4, s5].filter(Boolean).join(' ');
+            const bodyText = [s2, s3, s4, s5, s6].filter(Boolean).join(' ');
             const fullText = bodyText
                 ? `${s1} ${bodyText}`
                 : `${s1} <span style="color:#6b7280;">No canonical driver alteration detected from the integrated DepMap layers — see &ldquo;Other alterations in this cell line&rdquo; below for non-canonical events, or consider STR re-authentication if this is surprising for the subtype.</span>`;

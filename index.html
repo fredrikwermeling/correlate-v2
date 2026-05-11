@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.33 (2026-05-11)</strong></p>
+                <ul>
+                    <li><b>Executive summary &mdash; new &ldquo;Strong drug-target candidates&rdquo; sentence.</b> Surfaces specific drug names where the evidence is robust: (a) any oncogene-addiction collection fires for this cell line (mutation + functional CRISPR dependency, the strongest combined signal) &mdash; KRAS-G12C inhibitors / BRAF+MEK / EGFR TKIs / ABL TKIs / PI3K-&alpha; / CDK4/6 inhibitors named directly; (b) PRISM-screen compounds with z &lt; &minus;1.5&sigma; sensitivity &mdash; top 2 named with target and z. Capped at four entries. The earlier &ldquo;Useful as a model for&rdquo; sentence frames biology; this one names concrete therapies likely to work.</li>
+                    <li><b>Collections panel &mdash; categories with jargon-heavy names get inline explainers.</b> Under each affected category header, a small italic grey line spells out the gist. Examples: <i>Oncogene addiction (mutation &times; CRISPR dependency)</i> &rarr; &ldquo;Cancer cells that have become functionally dependent on a driver gene &mdash; knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only collections above.&rdquo; <i>Pathway-activity expression signatures</i> &rarr; &ldquo;Each set marks lines where the pathway is transcriptionally active (mean z &gt; +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.&rdquo; Tumor-suppressor functional loss and Focal amplifications also get one-line gists.</li>
+                </ul>
                 <p><strong>v.81.32 (2026-05-11)</strong></p>
                 <ul>
                     <li>Fifteen new collections lifting Wiki-only views into cohort-level filters.
@@ -2647,7 +2652,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.32</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.33</a>
     </div>
 
     <div class="main-content">
@@ -4808,6 +4813,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_32"></script>
+    <script src="app.js?v=v81_33"></script>
 </body>
 </html>
