@@ -25881,76 +25881,126 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             </div>`;
 
         // --- Subtype hallmarks vs observed alterations ---
-        // Two-block layout that makes "expected for the disease" clearly
-        // distinct from "actually observed in this cell line", because the
-        // Oncotree subtype label sometimes contains a fusion name (e.g.
-        // "Chronic Myeloid Leukemia, BCR-ABL1+") and users were reading that
-        // as a positive call about the cell line, not a disease classification.
+        // Three blocks: (1) Typical alteration pattern for the subtype
+        // (curated KB description, blue). (2) Hallmark-gene checklist with
+        // ✓ / ✗ per expected gene + a per-row "kind of hit" summary, so the
+        // user can tell at a glance which expected drivers are present and
+        // how. (3) Other alterations in this cell line — fusions, LoF, and
+        // hotspot mutations on cancer-panel genes that AREN'T in the
+        // hallmark list, plus genome-level flags (MSI, WGD). Previously
+        // these mixed in one block which made the expected-vs-found split
+        // hard to read.
         const subtypeKB = this._WIKI_SUBTYPE_HALLMARKS();
         const subKey = sub || pd;
         const kb = subtypeKB[subKey] || subtypeKB[pd];
+        const lookForSet = new Set(kb?.lookFor || []);
 
-        // "Observed" block — uses every layer of evidence we already have for
-        // this cell line, not just the KB lookFor list. Always rendered, even
-        // when no KB entry exists.
-        const observedSpecificHotspots = (infSub.hotspots || []).filter(h => h.split(' ').slice(1).join(' ') !== 'Hotspot');
-        const observedNamedFusions = clinicalFusionCalls.map(c => `${c.fusion} <span style="font-size:9px; color:#6b7280;">[${c.tier}${c.atypicalLineage ? ' · atypical' : ''}]</span>`);
-        const observedLoF = (infSub.lof || []).slice().sort();
-        const observedTopHotspotGenes = hotspotsMutated.slice(0, 8).map(h => {
-            const variant = geneVariant[h.gene];
-            return variant ? `${h.gene} <span style="color:#16a34a; font-weight:500; font-size:10px;">(${variant})</span>` : h.gene;
-        });
-        const observedRows = [];
-        if (observedSpecificHotspots.length > 0) observedRows.push(`<div style="margin:3px 0;"><b style="color:#15803d;">Specific driver variants:</b> ${observedSpecificHotspots.map(h => `<span style="color:#16a34a; font-weight:500;">${h}</span>`).join(', ')}</div>`);
-        if (observedNamedFusions.length > 0) observedRows.push(`<div style="margin:3px 0;"><b style="color:#15803d;">Driver fusions:</b> ${observedNamedFusions.join(', ')}</div>`);
-        if (observedLoF.length > 0) observedRows.push(`<div style="margin:3px 0;"><b style="color:#15803d;">Functional loss (TSGs):</b> ${observedLoF.join(', ')}</div>`);
-        if (observedTopHotspotGenes.length > 0) observedRows.push(`<div style="margin:3px 0;"><b style="color:#15803d;">Top hotspot-mutated genes:</b> ${observedTopHotspotGenes.join(', ')}</div>`);
-        if (gs?.MSIScore != null && gs.MSIScore >= 20) observedRows.push(`<div style="margin:3px 0;"><b style="color:#dc2626;">MSI-high</b> — mismatch repair lost, hypermutated phenotype.</div>`);
-        if (gs?.WGD === true) observedRows.push(`<div style="margin:3px 0;"><b>Whole-genome doubling</b> — ploidy ≈ ${gs.Ploidy?.toFixed(2) || '?'}.</div>`);
-        const observedHtml = observedRows.length > 0
-            ? `<div style="padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a; margin-bottom:8px;">
-                <div style="font-weight:600; color:#15803d; margin-bottom:4px;">Observed in this cell line</div>
-                <div style="font-size:11px;">${observedRows.join('')}</div>
+        // Reusable: collect every kind of hit on a given gene into a short
+        // human-readable string ("hotspot p.V600E, damaging, functional loss").
+        // Returns '' when the gene has no detected alteration.
+        const observedLoFSet = new Set(infSub.lof || []);
+        const hitSummary = (gene) => {
+            const parts = [];
+            const v = geneVariant[gene];
+            if (hotHit(gene))                                                                parts.push(v ? `hotspot ${v}` : 'hotspot');
+            if (damHit(gene))                                                                parts.push('damaging');
+            if (this.translocations?.geneData?.[gene]?.translocations?.[cellLineId] >= 1)    parts.push('fusion');
+            if (observedLoFSet.has(gene))                                                    parts.push('functional loss');
+            return parts.join(', ');
+        };
+
+        // Block 1 — Typical alteration pattern (curated KB description).
+        const typicalHtml = kb
+            ? `<div style="padding:8px 12px; background:#eff6ff; border-left:3px solid #2563eb; margin-bottom:8px;">
+                <div style="font-weight:600; color:#1e40af; margin-bottom:4px;">Typical alteration pattern for <i>${subKey}</i></div>
+                <div style="font-size:11px;">${kb.expected}</div>
                </div>`
-            : `<div style="padding:8px 10px; background:#fefce8; border-left:3px solid #ca8a04; margin-bottom:8px;">
-                <div style="font-weight:600; color:#854d0e; margin-bottom:4px;">Observed in this cell line</div>
-                <div style="font-size:11px; color:#92400e;">No specific driver variants, named fusions, functional-loss calls or hotspot mutations detected from the integrated panels.</div>
-               </div>`;
+            : `<div style="padding:8px 12px; background:#f9fafb; border-left:3px solid #9ca3af; margin-bottom:8px; font-size:11px; color:#6b7280;">No curated knowledge base for "${subKey}" yet (covers ~40 common Oncotree subtypes). The "Other alterations in this cell line" block below lists what was found in the integrated DepMap data.</div>`;
 
-        // "Expected" block — the curated KB intro + the intersection with
-        // observed mutation / fusion data. When no KB entry exists, fall back
-        // to a one-liner naming the subtype and noting that the curated KB is
-        // not populated; the observed block above still provides actionable info.
-        let expectedHtml;
+        // Block 2 — Hallmark gene checklist (✓ / ✗ per expected gene).
+        let checklistHtml = '';
         if (kb) {
-            const observedHits = kb.lookFor.filter(anyHit);
-            const observedFus = kb.lookFor.filter(g => this.translocations?.geneData?.[g]?.translocations?.[cellLineId] >= 1);
-            const hitSet = new Set([...observedHits, ...observedFus]);
-            const hitLabels = [...hitSet].map(g => {
-                const kind = observedFus.includes(g) && !observedHits.includes(g) ? 'fusion'
-                    : observedFus.includes(g) && observedHits.includes(g) ? 'mut+fusion'
-                    : hotHit(g) ? 'hotspot' : damHit(g) ? 'damaging' : '?';
-                return `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help; color:#059669; font-weight:600;">${g}</span> <span style="font-size:9px; color:#6b7280;">[${kind}]</span>`;
-            }).join(', ');
-            const missingKey = kb.lookFor.filter(g => !hitSet.has(g));
-            expectedHtml = `
-                <div style="padding:8px 10px; background:#eff6ff; border-left:3px solid #2563eb; margin-bottom:6px;">
-                  <div style="font-weight:600; color:#1e40af; margin-bottom:4px;">Typical for this disease subtype</div>
-                  <div style="font-size:11px;">${kb.expected}</div>
-                </div>
-                <div style="padding:8px 10px; background:${hitLabels ? '#f0fdf4' : '#fef2f2'}; border-left:3px solid ${hitLabels ? '#16a34a' : '#dc2626'}; margin-bottom:6px;">
-                  <div style="font-weight:600; color:${hitLabels ? '#15803d' : '#991b1b'}; margin-bottom:4px;">Hallmark genes detected here ${hitLabels ? `(${hitSet.size} of ${kb.lookFor.length})` : `(0 of ${kb.lookFor.length})`}</div>
-                  <div style="font-size:11px;">${hitLabels || `<span style="color:#991b1b;">None of the canonical hallmark genes show mutations or fusions in this cell line. Possibilities: atypical driver, copy-number / amplification event our panel doesn't capture, or cell-line misidentification — consider STR re-authentication.</span>`}</div>
-                  ${missingKey.length && hitSet.size ? `<div style="font-size:10px; color:#6b7280; margin-top:4px;">Hallmark genes without alterations: ${missingKey.join(', ')}</div>` : ''}
+            const rows = kb.lookFor.map(gene => ({ gene, summary: hitSummary(gene) }));
+            const nHit = rows.filter(r => r.summary).length;
+            const lines = rows.map(r => {
+                if (r.summary) {
+                    return `<div style="margin:2px 0; font-size:11px;">`
+                        + `<span style="color:#15803d; font-weight:700; display:inline-block; width:14px;">✓</span>`
+                        + `<span class="gene-hover clb-gene-link" data-gene="${r.gene}" style="cursor:help; font-weight:600; color:#15803d;">${r.gene}</span>`
+                        + `<span style="color:#6b7280;"> — ${r.summary}</span>`
+                        + `</div>`;
+                }
+                return `<div style="margin:2px 0; font-size:11px; color:#9ca3af;">`
+                    + `<span style="font-weight:700; display:inline-block; width:14px;">✗</span>`
+                    + `<span>${r.gene}</span>`
+                    + `</div>`;
+            }).join('');
+            const headerColor = nHit > 0 ? '#15803d' : '#991b1b';
+            const headerBg = nHit > 0 ? '#f0fdf4' : '#fef2f2';
+            const summaryNote = nHit === 0
+                ? ` <span style="font-weight:400; color:#991b1b; font-size:10px;">— none of the canonical hallmark genes are altered; consider an atypical driver, a CN event the panel doesn't catch, or STR re-authentication</span>`
+                : '';
+            checklistHtml = `
+                <div style="padding:8px 12px; background:${headerBg}; border-left:3px solid ${headerColor}; margin-bottom:8px;">
+                    <div style="font-weight:600; color:${headerColor}; margin-bottom:6px;">Hallmark-gene checklist: ${nHit} of ${kb.lookFor.length} present${summaryNote}</div>
+                    <div>${lines}</div>
                 </div>`;
-        } else {
-            expectedHtml = `<div style="padding:8px 10px; background:#f9fafb; border-left:3px solid #9ca3af; margin-bottom:6px; font-size:11px; color:#6b7280;">No curated knowledge base for "${subKey}" yet (covers ~40 common Oncotree subtypes). The "Observed in this cell line" block above lists what we found from the integrated DepMap data — use that as the primary view.</div>`;
         }
 
+        // Block 3 — Other alterations in this cell line (not in lookFor).
+        // Order: curated driver fusions → LoF → hotspot-mutated cancer-panel
+        // genes → genome-level flags (MSI, WGD).
+        const otherRows = [];
+        for (const c of clinicalFusionCalls) {
+            const atyp = c.atypicalLineage ? ' <span style="color:#a16207;" title="Atypical lineage for this fusion">⚠ atypical</span>' : '';
+            otherRows.push(`<div style="margin:2px 0; font-size:11px;">`
+                + `<span style="color:#1e3a8a; font-weight:600;">${c.fusion}</span>`
+                + `<span style="color:#6b7280;"> — driver fusion <span style="font-size:9px; color:#9ca3af;">[${c.tier}]</span>${atyp}</span>`
+                + `</div>`);
+        }
+        const lofExtras = [...observedLoFSet].filter(g => !lookForSet.has(g) && !this._isPolymorphicLocus?.(g)).sort();
+        for (const g of lofExtras) {
+            otherRows.push(`<div style="margin:2px 0; font-size:11px;">`
+                + `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help; color:#991b1b; font-weight:600;">${g}</span>`
+                + `<span style="color:#6b7280;"> — functional loss</span>`
+                + `</div>`);
+        }
+        // Hotspot-mutated cancer-panel genes not in lookFor (cap to keep tight).
+        const cancerSet = this._cancerPanelGenes || new Set();
+        const hotspotExtras = hotspotsMutated
+            .filter(h => !lookForSet.has(h.gene) && cancerSet.has(h.gene) && !this._isPolymorphicLocus?.(h.gene))
+            .slice(0, 10);
+        for (const h of hotspotExtras) {
+            const v = geneVariant[h.gene];
+            otherRows.push(`<div style="margin:2px 0; font-size:11px;">`
+                + `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; font-weight:600; color:#374151;">${h.gene}</span>`
+                + `<span style="color:#6b7280;"> — hotspot${v ? ' ' + v : ''}</span>`
+                + `</div>`);
+        }
+        if (gs?.MSIScore != null && gs.MSIScore >= 20) {
+            otherRows.push(`<div style="margin:2px 0; font-size:11px;">`
+                + `<span style="color:#dc2626; font-weight:600;">MSI-high</span>`
+                + `<span style="color:#6b7280;"> — mismatch repair lost; hypermutated phenotype</span>`
+                + `</div>`);
+        }
+        if (gs?.WGD === true) {
+            otherRows.push(`<div style="margin:2px 0; font-size:11px;">`
+                + `<span style="font-weight:600; color:#374151;">Whole-genome doubling</span>`
+                + `<span style="color:#6b7280;"> — ploidy ≈ ${gs.Ploidy?.toFixed(2) || '?'}</span>`
+                + `</div>`);
+        }
+        const otherHtml = otherRows.length > 0
+            ? `<div style="padding:8px 12px; background:#f9fafb; border-left:3px solid #6b7280; margin-bottom:8px;">
+                <div style="font-weight:600; color:#374151; margin-bottom:6px;">Other alterations in this cell line</div>
+                <div>${otherRows.join('')}</div>
+               </div>`
+            : '';
+
         const hallmarksHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Two views: what's <b>actually present</b> in this cell line per the integrated DepMap data, and what's <b>typical</b> for this Oncotree subtype. Note that some Oncotree labels include a fusion name (e.g. "Chronic Myeloid Leukemia, BCR-ABL1+") — that's how the disease is classified by definition, not a per-cell-line call.</p>
-            ${observedHtml}
-            ${expectedHtml}`;
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Three views: what's <b>typical</b> for this Oncotree subtype, a <b>checklist</b> of the canonical hallmark genes with ✓ / ✗ for each in this cell line, and <b>other alterations</b> detected here that aren't on the hallmark list. Some Oncotree labels include a fusion name (e.g. "Chronic Myeloid Leukemia, BCR-ABL1+") — that's how the disease is classified by definition, not a per-cell-line call; see the checklist for what's actually present.</p>
+            ${typicalHtml}
+            ${checklistHtml}
+            ${otherHtml}`;
 
         // --- Fusion profile ---
         const fusionPartners = [];
