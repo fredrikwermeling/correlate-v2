@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.8 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Mutation analysis &ldquo;Compare by Tissue / Additional Hotspot / Fusion&rdquo; inline table redesigned to make subset counts obvious. New leading <em>N (in subset)</em> column shows how many cells share the row&rsquo;s tissue / hotspot / fusion (e.g. how many cells carry <code>GNAS</code> mutation); a vertical separator divides it from the right-hand block, which now sits under a colspan header naming the main stratification gene (e.g. &ldquo;TP53 stratification (within subset)&rdquo;) so it&rsquo;s clear that <code>N(WT) / N(Mut)</code> are the <em>main-gene</em> intersection within that subset. Added a &ldquo;Hide rows with N &lt; <code>x</code>&rdquo; filter (default 5) so trivial subsets (e.g. 3-cell hotspots) are suppressed; the filter shows how many rows are hidden. Sort key map extended to 7 columns to match the new layout.</li>
+                </ul>
                 <p><strong>v.81.7 (2026-05-11)</strong></p>
                 <ul>
                     <li>Export-chart dialog layout fix &mdash; Width, Height and Lock-aspect were wrapping in three rows because the labels plus inputs didn't fit in the 420 px modal. Modal widened to 500 px and the three controls are now in a single <code>flex-wrap:nowrap</code> row, so Height number sits on the same row as the Height label.</li>
@@ -2521,7 +2525,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.7</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.8</a>
     </div>
 
     <div class="main-content">
@@ -4669,6 +4673,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_7"></script>
+    <script src="app.js?v=v81_8"></script>
 </body>
 </html>
