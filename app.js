@@ -25573,27 +25573,24 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             body: `Damaging mutation in ${hrHits.map(g => `<b>${g}</b>`).join(', ')}. The cell can't accurately repair DNA double-strand breaks and often depends on backup pathways. Typically sensitive to PARP inhibitors.`,
             color: '#7c3aed'
         });
-        if (damHit('TP53') || hotHit('TP53')) flagCards.push({
-            title: 'TP53 is mutated',
-            body: 'The main p53 tumour-suppressor pathway is disrupted. Affects apoptosis, cell-cycle arrest after DNA damage, and response to many drugs.',
-            color: '#dc2626'
-        });
-        if (damHit('RB1') || damHit('CDKN2A')) {
-            const brk = damHit('RB1') ? 'RB1' : 'CDKN2A';
-            flagCards.push({
-                title: 'G1/S cell-cycle brake lost',
-                body: `Damaging mutation in <b>${brk}</b>. The normal checkpoint that holds cells in G1 before DNA replication is impaired — relevant to CDK4/6-inhibitor response.`,
-                color: '#d97706'
-            });
-        }
+        // TP53 and G1/S flag cards are deliberately NOT added here — the
+        // Pathway status block below has dedicated panels for p53 and Cell
+        // cycle that combine mutation status with dependency read-out, which
+        // is more useful than a generic "mutated" callout. Keeping the flags
+        // limited to DNA-repair / mutation-burden contexts that the pathway
+        // status block doesn't cover.
 
-        const flagsHtml = flagCards.map(c => `
-            <div style="margin-bottom:6px; padding:8px 12px; border-left:4px solid ${c.color}; background:${c.color}14; border-radius:0 4px 4px 0;">
-                <div style="font-weight:600; color:${c.color}; margin-bottom:2px; font-size:12px;">${c.title}</div>
-                <div style="font-size:11px; color:#374151;">${c.body}</div>
-            </div>`).join('');
+        // Compact pill row instead of bordered cards. Title becomes the pill
+        // text; the body narrative moves to the tooltip on hover.
+        const flagsHtml = flagCards.length === 0 ? '' : `
+            <div style="margin:6px 0 10px; display:flex; gap:6px; flex-wrap:wrap;">
+                ${flagCards.map(c => `<span style="display:inline-flex; align-items:center; padding:2px 9px; background:${c.color}14; color:${c.color}; border:1px solid ${c.color}44; border-radius:10px; font-size:11px; font-weight:600; cursor:help;" title="${c.body.replace(/<[^>]+>/g, '').replace(/"/g, '&quot;')}">⚠ ${c.title}</span>`).join('')}
+            </div>`;
 
-        // Pathway scan
+        // Pathway scan — gene-level map across ~14 curated cancer pathways.
+        // Compacted to one line per affected pathway: name, gene tags, and a
+        // tooltip carrying the longer pathway note. Previously each pathway
+        // took 4 lines (title row, note row, gene-list row, divider).
         const pathways = this._WIKI_PATHWAYS();
         const pathwayRows = [];
         for (const [name, info] of Object.entries(pathways)) {
@@ -25605,11 +25602,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const color = isHot ? '#dc2626' : '#d97706';
                 return `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help; color:${color}; font-weight:500;">${label}</span>`;
             }).join(', ');
-            pathwayRows.push(`<div style="padding:6px 0; border-bottom:1px dashed #e5e7eb;"><div style="font-weight:600; color:#374151;">${name}</div><div style="padding:2px 0 4px; color:#6b7280; font-size:10px;">${info.note}</div><div style="padding-left:8px; font-size:11px;"><span style="color:#6b7280; font-size:10px;">Mutated genes in panel:</span> ${tags}</div></div>`);
+            const safeNote = info.note.replace(/"/g, '&quot;');
+            pathwayRows.push(`<div style="padding:3px 0; font-size:11px;">`
+                + `<span style="font-weight:600; color:#374151; cursor:help;" title="${safeNote}">${name}:</span> `
+                + `${tags}`
+                + `</div>`);
         }
         const pathwayHtml = pathwayRows.length
             ? pathwayRows.join('')
-            : '<em style="color:#6b7280;">No mutations detected in the curated cancer-pathway gene panels (~90 genes). Either this cell line is genuinely "clean" or its drivers are outside the panels.</em>';
+            : '<em style="color:#6b7280; font-size:11px;">No mutations in the curated cancer-pathway panels (~90 genes).</em>';
 
         // --- Pathway status (genotype + CRISPR dependency) ---
         // For a handful of clinically-important pathways, combine the mutation
@@ -25681,9 +25682,22 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             lines.push(`<b>${geno.length ? geno.join(', ') : 'No mutation in RB1 / CDKN2A / CCND1'}</b>`);
             const cdkGE = (cdk4GE !== null && cdk6GE !== null) ? Math.min(cdk4GE, cdk6GE) : (cdk4GE ?? cdk6GE);
             if (cdkGE !== null) {
-                lines.push(cdkGE < -0.2
-                    ? `CDK4/6 knockout reduces growth (best score ${fmtGE(cdkGE)}) — the cell relies on CDK4/6 for proliferation. CDK4/6 inhibitors likely active.`
-                    : `CDK4/6 knockout is neutral (${fmtGE(cdkGE)}) — cell does not depend on CDK4/6 (may use CDK2 or run a CDK4/6-independent cell cycle).`);
+                let bullet;
+                if (cdkGE < -0.5) {
+                    bullet = `CDK4/6 knockout <b>strongly reduces growth</b> (best score ${fmtGE(cdkGE)}) — the cell depends on CDK4/6 for proliferation.`;
+                } else if (cdkGE < -0.2) {
+                    bullet = `CDK4/6 knockout <b>moderately reduces growth</b> (best score ${fmtGE(cdkGE)}) — partial dependency on CDK4/6.`;
+                } else {
+                    bullet = `CDK4/6 knockout is neutral (${fmtGE(cdkGE)}) — cell does not depend on CDK4/6 (may use CDK2 or a CDK4/6-independent cell cycle).`;
+                }
+                // RB1 loss bypasses the CDK4/6 inhibitor mechanism. When RB1
+                // is also damaged AND CDK4/6 looks essential, the naive
+                // "inhibitors likely active" reading is wrong — append the
+                // caveat that aligns the bullet with the synthesis below.
+                if (rb1Mut && cdkGE < -0.2) {
+                    bullet += ` <span style="color:#991b1b;">But RB1 is lost — RB1 sits <i>downstream</i> of CDK4/6, so clinical CDK4/6 inhibitors are typically not effective even when the cell is CDK4/6-dependent by gene-effect.</span>`;
+                }
+                lines.push(bullet);
             }
             if (ccnd1GE !== null && ccnd1GE < -0.2) {
                 lines.push(`CCND1 knockout reduces growth (${fmtGE(ccnd1GE)}) — consistent with cyclin-D1-driven proliferation.`);
@@ -25727,17 +25741,23 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             if (nf1Mut) geno.push('NF1 (loss)');
             lines.push(`<b>${geno.length ? geno.join(', ') + ' mutated' : 'No RAS/MAPK driver mutation detected'}</b>`);
             if (krasMut && krasGE !== null) {
-                lines.push(krasGE < -0.3
-                    ? `KRAS knockout strongly reduces growth (${fmtGE(krasGE)}) — cell line is <b>KRAS-addicted</b>.`
-                    : `KRAS knockout has limited effect (${fmtGE(krasGE)}) despite the mutation — cell may have switched to alternative drivers.`);
+                lines.push(krasGE < -0.5
+                    ? `KRAS knockout <b>strongly reduces growth</b> (${fmtGE(krasGE)}) — cell line is <b>KRAS-addicted</b>.`
+                    : krasGE < -0.2
+                        ? `KRAS knockout <b>moderately reduces growth</b> (${fmtGE(krasGE)}) — partial dependency despite the mutation.`
+                        : `KRAS knockout has limited effect (${fmtGE(krasGE)}) despite the mutation — cell may have switched to alternative drivers.`);
             }
             if (brafMut && brafGE !== null) {
-                lines.push(brafGE < -0.3
-                    ? `BRAF knockout strongly reduces growth (${fmtGE(brafGE)}) — cell line is <b>BRAF-addicted</b>; BRAF/MEK inhibitors expected to be effective.`
-                    : `BRAF knockout has limited effect (${fmtGE(brafGE)}) — bypass mechanism may be present.`);
+                lines.push(brafGE < -0.5
+                    ? `BRAF knockout <b>strongly reduces growth</b> (${fmtGE(brafGE)}) — cell line is <b>BRAF-addicted</b>; BRAF/MEK inhibitors expected to be effective.`
+                    : brafGE < -0.2
+                        ? `BRAF knockout <b>moderately reduces growth</b> (${fmtGE(brafGE)}) — partial BRAF dependency.`
+                        : `BRAF knockout has limited effect (${fmtGE(brafGE)}) — bypass mechanism may be present.`);
             }
-            if (mekGE !== null && mekGE < -0.3) {
-                lines.push(`MEK1 (MAP2K1) knockout reduces growth (${fmtGE(mekGE)}) — MAPK signalling is essential.`);
+            if (mekGE !== null && mekGE < -0.5) {
+                lines.push(`MEK1 (MAP2K1) knockout <b>strongly reduces growth</b> (${fmtGE(mekGE)}) — MAPK signalling is essential here.`);
+            } else if (mekGE !== null && mekGE < -0.2) {
+                lines.push(`MEK1 (MAP2K1) knockout moderately reduces growth (${fmtGE(mekGE)}) — partial MAPK dependency.`);
             }
             let synthesis, color;
             if ((krasMut && krasGE !== null && krasGE < -0.3) || (brafMut && brafGE !== null && brafGE < -0.3)) {
@@ -25775,17 +25795,28 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             if (akt1Mut) geno.push('AKT1');
             lines.push(`<b>${geno.length ? geno.join(', ') + ' mutated' : 'No PI3K/AKT driver mutation detected'}</b>`);
             if (pi3kGE !== null) {
-                lines.push(pi3kGE < -0.2
-                    ? `PIK3CA knockout reduces growth (${fmtGE(pi3kGE)}) — PI3K signalling is essential.`
-                    : `PIK3CA knockout is neutral (${fmtGE(pi3kGE)}) — PI3K not the limiting node here.`);
+                if (pi3kGE < -0.5) {
+                    lines.push(`PIK3CA knockout <b>strongly reduces growth</b> (${fmtGE(pi3kGE)}) — PI3K signalling is essential.`);
+                } else if (pi3kGE < -0.2) {
+                    lines.push(`PIK3CA knockout <b>moderately reduces growth</b> (${fmtGE(pi3kGE)}) — partial PI3K dependency, not a strong addiction.`);
+                } else {
+                    lines.push(`PIK3CA knockout is neutral (${fmtGE(pi3kGE)}) — PI3K not the limiting node here.`);
+                }
             }
-            if (aktcombGE !== null && aktcombGE < -0.3) {
-                lines.push(`AKT knockout reduces growth (best AKT1/2/3 score ${fmtGE(aktcombGE)}) — downstream survival signalling is essential.`);
+            if (aktcombGE !== null) {
+                if (aktcombGE < -0.5) {
+                    lines.push(`AKT knockout <b>strongly reduces growth</b> (best AKT1/2/3 score ${fmtGE(aktcombGE)}) — downstream survival signalling is essential.`);
+                } else if (aktcombGE < -0.2) {
+                    lines.push(`AKT knockout moderately reduces growth (best AKT1/2/3 score ${fmtGE(aktcombGE)}) — partial AKT dependency.`);
+                }
             }
             let synthesis, color;
-            if ((pikMut || ptenLoss) && (pi3kGE !== null && pi3kGE < -0.2 || aktcombGE !== null && aktcombGE < -0.3)) {
-                synthesis = '<b>Pathway active and essential</b> — PI3K-α inhibitors (alpelisib for PIK3CA-mut), AKT inhibitors, or mTOR inhibitors are rational candidates.';
+            if ((pikMut || ptenLoss) && (pi3kGE !== null && pi3kGE < -0.5 || aktcombGE !== null && aktcombGE < -0.5)) {
+                synthesis = '<b>Pathway active with strong functional dependency</b> — PI3K-α inhibitors (alpelisib for PIK3CA-mut), AKT inhibitors, or mTOR inhibitors are rational candidates.';
                 color = '#059669';
+            } else if ((pikMut || ptenLoss) && (pi3kGE !== null && pi3kGE < -0.2 || aktcombGE !== null && aktcombGE < -0.2)) {
+                synthesis = '<b>Pathway active with partial dependency</b> — PI3K/AKT/mTOR inhibitors worth testing, but cell is not strongly addicted.';
+                color = '#d97706';
             } else if (geno.length === 0 && (pi3kGE === null || pi3kGE > -0.1)) {
                 synthesis = 'No evidence of PI3K/AKT pathway dependency.';
                 color = '#6b7280';
@@ -25804,31 +25835,35 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             if (bcrAblFusion) {
                 const lines = ['<b>BCR-ABL fusion detected</b>'];
                 if (ablGE !== null) {
-                    lines.push(ablGE < -0.3
-                        ? `ABL1 knockout strongly reduces growth (${fmtGE(ablGE)}) — BCR-ABL-addicted, classic imatinib target.`
-                        : `ABL1 knockout has limited effect (${fmtGE(ablGE)}) — check for resistance mutations or bypass.`);
+                    lines.push(ablGE < -0.5
+                        ? `ABL1 knockout <b>strongly reduces growth</b> (${fmtGE(ablGE)}) — BCR-ABL-addicted, classic imatinib target.`
+                        : ablGE < -0.2
+                            ? `ABL1 knockout <b>moderately reduces growth</b> (${fmtGE(ablGE)}) — partial BCR-ABL dependency.`
+                            : `ABL1 knockout has limited effect (${fmtGE(ablGE)}) — check for resistance mutations or bypass.`);
                 }
                 pathwayStatuses.push({
                     name: 'BCR-ABL fusion',
                     lines,
-                    synthesis: ablGE !== null && ablGE < -0.3 ? '<b>ABL TKI candidate</b> (imatinib, dasatinib, nilotinib).' : 'Fusion present but functional dependency unclear.',
-                    color: ablGE !== null && ablGE < -0.3 ? '#059669' : '#d97706'
+                    synthesis: ablGE !== null && ablGE < -0.5 ? '<b>ABL TKI candidate</b> (imatinib, dasatinib, nilotinib).' : 'Fusion present but functional dependency limited.',
+                    color: ablGE !== null && ablGE < -0.5 ? '#059669' : '#d97706'
                 });
             }
         }
         {
             const egfrMut = damHit('EGFR') || hotHit('EGFR');
             const egfrGE = ge('EGFR');
-            if (egfrMut || (egfrGE !== null && egfrGE < -0.3)) {
+            if (egfrMut || (egfrGE !== null && egfrGE < -0.5)) {
                 const lines = [];
                 lines.push(`<b>${egfrMut ? 'EGFR mutated' : 'EGFR not mutated'}</b>`);
                 if (egfrGE !== null) {
-                    lines.push(egfrGE < -0.3
-                        ? `EGFR knockout strongly reduces growth (${fmtGE(egfrGE)}) — cell line is EGFR-dependent.`
-                        : `EGFR knockout is neutral (${fmtGE(egfrGE)}) — cell does not require EGFR.`);
+                    lines.push(egfrGE < -0.5
+                        ? `EGFR knockout <b>strongly reduces growth</b> (${fmtGE(egfrGE)}) — cell line is EGFR-dependent.`
+                        : egfrGE < -0.2
+                            ? `EGFR knockout <b>moderately reduces growth</b> (${fmtGE(egfrGE)}) — partial EGFR dependency.`
+                            : `EGFR knockout is neutral (${fmtGE(egfrGE)}) — cell does not require EGFR.`);
                 }
                 let synthesis, color;
-                if (egfrMut && egfrGE !== null && egfrGE < -0.3) {
+                if (egfrMut && egfrGE !== null && egfrGE < -0.5) {
                     synthesis = '<b>EGFR-addicted</b> — classic context for EGFR TKIs (erlotinib, gefitinib, osimertinib).';
                     color = '#059669';
                 } else if (egfrMut) {
@@ -25863,21 +25898,32 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const variantSuffix = variant ? ` <span style="color:#16a34a; font-weight:500;">(${variant})</span>` : '';
             return `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>${variantSuffix}`;
         }).join(', ');
+        // Compact counts line — three values in one row instead of three
+        // separate label/value rows. Top hits are bumped to their own line
+        // because the gene list can get long.
+        const countsLine = `<div style="font-size:11px; padding:4px 0; color:#374151;">
+            <b>${damagingCount.toLocaleString()}</b> damaging mutations <span style="color:#9ca3af;">·</span>
+            <b>${hotspotCount.toLocaleString()}</b> hotspot-mutated genes
+            ${fusionCount ? `<span style="color:#9ca3af;">·</span> <b>${fusionCount.toLocaleString()}</b> fusions` : ''}
+        </div>${topHotspots ? `<div style="font-size:11px; padding:2px 0 6px; color:#6b7280;"><b style="color:#374151;">Top hotspot hits:</b> ${topHotspots}</div>` : ''}`;
+
+        // Pathway status comes first — the interpretive synthesis (genotype ×
+        // CRISPR dependency) — because that's the highest-value view. Pathway
+        // scan follows as a compact one-line-per-pathway gene map for the
+        // pathways the synthesis doesn't explicitly cover.
         const mutationHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Summary of mutations detected in this cell line. <b>Damaging</b> mutations typically inactivate a gene (frameshift, nonsense, splice). <b>Hotspot</b> mutations occur at specific residues that are recurrently mutated across tumours — some activate oncogenes (e.g. BRAF V600E, KRAS G12D), others recurrently alter tumour suppressors (e.g. TP53 R175H, R248Q). Colored badges below call out clinically-relevant patterns.</p>
-            ${flagCards.length ? `<div style="margin-bottom:10px;">${flagsHtml}</div>` : ''}
-            ${row('Damaging mutations (total)', damagingCount)}
-            ${row('Hotspot-mutated genes', hotspotCount)}
-            ${topHotspots ? row('Top hotspot hits', topHotspots) : ''}
-            <div style="margin-top:12px; padding-top:8px; border-top:1px solid #e5e7eb;">
-                <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway scan</div>
-                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">This scan is based on <b>mutation calls only</b> — copy-number changes, fusions, and expression are not counted here. Each row is a curated cancer pathway with at least one mutated gene in this cell line. <b style="color:#dc2626;">Red</b> = hotspot mutation (a residue recurrently mutated across tumours); <b style="color:#d97706;">orange</b> = damaging mutation (frameshift, nonsense, splice). An asterisk (<b>*</b>) marks a gene that carries <b>both</b> a hotspot and a damaging mutation.</p>
-                ${pathwayHtml}
-            </div>
-            <div style="margin-top:12px; padding-top:8px; border-top:1px solid #e5e7eb;">
-                <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway status (genotype + dependency)</div>
-                <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">A more refined view that combines what the genome says with how the cell line actually behaves in CRISPR knockout. Mutation status alone can be misleading: a TP53 wild-type cell whose growth is unaffected by TP53 knockout has a functionally inactive p53 pathway. Conversely, a wild-type cell that gains growth advantage when TP53 is removed is a true active-pathway cell — a candidate for p53-restoring therapies (MDM2 inhibitors). Each card synthesises the genotype, the relevant gene-effect read-outs, and a one-line interpretation.</p>
+            <p style="margin:0 0 6px; font-size:11px; color:#6b7280;"><b>Damaging</b> mutations typically inactivate a gene (frameshift / nonsense / splice). <b>Hotspot</b> mutations sit at residues recurrently altered across tumours — some activate oncogenes (BRAF V600E, KRAS G12D), some recurrently hit tumour suppressors (TP53 R175H). The flags below call out DNA-repair / mutation-burden context that the Pathway status block doesn't cover.</p>
+            ${countsLine}
+            ${flagsHtml}
+            <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;">
+                <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway status <span style="color:#6b7280; font-weight:400; font-size:11px;">— genotype × CRISPR dependency</span></div>
+                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">Combines mutation calls with CRISPR-knockout read-out. Catches the common case where a gene is wild-type at the DNA level but the pathway is functionally dormant (or the reverse). Gene-effect (GE) scale: 0 = no effect, &minus;0.5 = selectively essential threshold, &minus;1 ≈ typical strongly-essential gene.</p>
                 ${pathwayStatusHtml}
+            </div>
+            <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;">
+                <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway scan <span style="color:#6b7280; font-weight:400; font-size:11px;">— gene-level mutation map (~14 curated cancer pathways)</span></div>
+                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">Mutation calls only — copy-number changes, fusions and expression are not counted. <b style="color:#dc2626;">Red</b> = hotspot, <b style="color:#d97706;">orange</b> = damaging, asterisk (<b>*</b>) = both. Hover a pathway name for its short description.</p>
+                ${pathwayHtml}
             </div>`;
 
         // --- Subtype hallmarks vs observed alterations ---
