@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.19 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Wiki &mdash; new &ldquo;Where this line sits in the cohort&rdquo; sub-block under the Genome signatures section. Four small Plotly panels rendered FACS-style: <b>Ploidy</b>, <b>Aneuploidy</b>, <b>CIN</b> as continuous histograms, <b>WGD</b> as a binary two-bar count. This cell line&rsquo;s value is marked with a dashed red line (continuous) or a red bar (WGD), with its numeric value labelled above the line. Per-panel PNG / SVG export via Plotly&rsquo;s built-in modebar (hover top-right of each plot). Cohort CSV export button next to the heading dumps ModelID, Name, Ploidy, WGD, Aneuploidy, CIN, plus an <code>IsInspected</code> flag for the currently-open cell line. Skipped silently for lines with no global-signatures entry.</li>
+                </ul>
                 <p><strong>v.81.18 (2026-05-11)</strong></p>
                 <ul>
                     <li>Cell-line list sex symbol &mdash; when the annotated sex and the expression-inferred sex <i>directly conflict</i> (e.g. TE6: annotation Male, expression Female), the line now shows &ldquo;?&rdquo; with a conflict tooltip instead of the annotated symbol. Neither signal is trustworthy on its own when they disagree, and silently picking the annotation hides the conflict from the user. The detail card still shows both Sex (annotation) and Sex (expression) on separate rows with the existing amber-disagreement style, so the raw signals stay available for users who want to dig in. The sex filter dropdown is unchanged &mdash; selecting &ldquo;Male (annotation)&rdquo; still includes TE6 since that <i>is</i> its annotation.</li>
@@ -2569,7 +2573,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.18</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.19</a>
     </div>
 
     <div class="main-content">
@@ -4729,6 +4733,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_18"></script>
+    <script src="app.js?v=v81_19"></script>
 </body>
 </html>

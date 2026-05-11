@@ -26016,7 +26016,21 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ${row('Aneuploidy score', aneupLabel)}
                 ${row('Chromosomal instability', cinLabel)}
                 ${row('Loss of heterozygosity', lohLabel)}
-                ${row('MSI score', msiLabel)}`;
+                ${row('MSI score', msiLabel)}
+
+                <div style="margin-top:16px; padding-top:12px; border-top:1px dashed #e5e7eb;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                        <div style="font-weight:600; color:#374151; font-size:12px;">Where this line sits in the cohort</div>
+                        <button onclick="app._downloadGenomeMetricsCSV('${cellLineId}')" style="font-size:10px; padding:3px 8px; background:#fff; color:#15803d; border:1px solid #d1d5db; border-radius:4px; cursor:pointer;" title="Download cohort values for Ploidy, WGD, Aneuploidy, CIN as CSV (with this line flagged)">⤓ CSV</button>
+                    </div>
+                    <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">Distribution of each metric across all cell lines with the value available. The dashed red line marks <b>this</b> cell line's position; for WGD (binary) the red bar is this line's category. Hover the Plotly toolbar (top-right of each plot) for PNG / SVG download per panel.</p>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div id="clbWikiHistPloidy" style="height:170px;"></div>
+                        <div id="clbWikiHistAneup" style="height:170px;"></div>
+                        <div id="clbWikiHistCin" style="height:170px;"></div>
+                        <div id="clbWikiHistWgd" style="height:170px;"></div>
+                    </div>
+                </div>`;
         } else {
             genomeSigHtml = '<em style="color:#6b7280;">No genome signatures available for this cell line.</em>';
         }
@@ -26370,6 +26384,138 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         ].join('');
 
         document.getElementById('clbWikiModal').style.display = 'flex';
+        // Modal is now visible, so the histogram divs have non-zero size —
+        // draw the four Plotly panels (Ploidy / Aneuploidy / CIN / WGD).
+        // Skipped silently if global signatures aren't available.
+        if (gs) {
+            requestAnimationFrame(() => this._renderGenomeDistributions(cellLineId));
+        }
+    }
+
+    // Cohort-distribution histograms for the Wiki's Genome section. Builds
+    // four small Plotly panels — Ploidy / Aneuploidy / CIN as continuous
+    // histograms, WGD as a two-bar binary count. This cell line's value
+    // is marked with a dashed red line (continuous) or a red bar (WGD).
+    // Cohort arrays are cached on the instance the first time this runs.
+    _renderGenomeDistributions(cellLineId) {
+        if (typeof Plotly === 'undefined') return;
+        if (!this.globalSignatures?.byCellLine) return;
+        if (!this._genomeMetricArrays) {
+            const arr = { Ploidy: [], Aneuploidy: [], CIN: [], WGD_yes: 0, WGD_no: 0 };
+            for (const sig of Object.values(this.globalSignatures.byCellLine)) {
+                if (sig.Ploidy != null) arr.Ploidy.push(sig.Ploidy);
+                if (sig.Aneuploidy != null) arr.Aneuploidy.push(sig.Aneuploidy);
+                if (sig.CIN != null) arr.CIN.push(sig.CIN);
+                if (sig.WGD === true) arr.WGD_yes++;
+                else if (sig.WGD === false) arr.WGD_no++;
+            }
+            this._genomeMetricArrays = arr;
+        }
+        const arrs = this._genomeMetricArrays;
+        const gs = this.globalSignatures.byCellLine[cellLineId] || {};
+
+        // Shared compact-layout factory. We strip plot decorations to keep the
+        // four panels readable at 170 px tall; Plotly's modebar (PNG / SVG /
+        // pan / zoom) stays on for export.
+        const baseLayout = (xTitle, yTitle = '# lines') => ({
+            margin: { l: 36, r: 8, t: 8, b: 32 },
+            xaxis: { title: { text: xTitle, font: { size: 10 } }, tickfont: { size: 9 }, showgrid: false, zeroline: false },
+            yaxis: { title: { text: yTitle, font: { size: 10 } }, tickfont: { size: 9 }, showgrid: true, gridcolor: '#f3f4f6', zeroline: false },
+            bargap: 0.02,
+            showlegend: false,
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { family: 'Open Sans, sans-serif' }
+        });
+        const config = { displaylogo: false, responsive: true, modeBarButtonsToRemove: ['lasso2d', 'select2d'] };
+
+        const drawContinuous = (divId, vals, currentVal, xTitle, binSize, decimals) => {
+            const el = document.getElementById(divId);
+            if (!el || vals.length === 0) return;
+            const trace = {
+                type: 'histogram',
+                x: vals,
+                xbins: { size: binSize },
+                marker: { color: '#9ca3af', line: { width: 0 } },
+                hovertemplate: `<b>%{x}</b>: %{y} lines<extra></extra>`,
+                opacity: 0.85
+            };
+            const layout = baseLayout(xTitle);
+            if (currentVal != null) {
+                layout.shapes = [{
+                    type: 'line',
+                    x0: currentVal, x1: currentVal,
+                    y0: 0, y1: 1, yref: 'paper',
+                    line: { color: '#dc2626', width: 2, dash: 'dash' }
+                }];
+                layout.annotations = [{
+                    x: currentVal, y: 1.02, yref: 'paper',
+                    text: `<b>${currentVal.toFixed(decimals)}</b>`,
+                    showarrow: false, xanchor: 'left',
+                    font: { size: 10, color: '#dc2626' }
+                }];
+            }
+            Plotly.newPlot(el, [trace], layout, config);
+        };
+
+        drawContinuous('clbWikiHistPloidy', arrs.Ploidy,   gs.Ploidy,     'Ploidy',      0.1, 2);
+        drawContinuous('clbWikiHistAneup',  arrs.Aneuploidy, gs.Aneuploidy, 'Aneuploidy', 1,   0);
+        drawContinuous('clbWikiHistCin',    arrs.CIN,      gs.CIN,        'CIN',         0.02, 2);
+
+        // WGD — binary, two-bar count. Highlight the bar that matches this
+        // line's status; the other stays neutral grey.
+        const wgdEl = document.getElementById('clbWikiHistWgd');
+        if (wgdEl && (arrs.WGD_yes + arrs.WGD_no) > 0) {
+            const isWgd = gs.WGD === true;
+            const isKnown = gs.WGD != null;
+            const colors = [
+                (isKnown && !isWgd) ? '#dc2626' : '#9ca3af',
+                (isKnown && isWgd)  ? '#dc2626' : '#9ca3af'
+            ];
+            const trace = {
+                type: 'bar',
+                x: ['No WGD', 'WGD-positive'],
+                y: [arrs.WGD_no, arrs.WGD_yes],
+                marker: { color: colors, line: { width: 0 } },
+                text: [arrs.WGD_no, arrs.WGD_yes].map(String),
+                textposition: 'outside',
+                textfont: { size: 10, color: '#374151' },
+                hovertemplate: '<b>%{x}</b>: %{y} lines<extra></extra>'
+            };
+            const layout = baseLayout('WGD status');
+            // Headroom for the outside text labels
+            const yMax = Math.max(arrs.WGD_no, arrs.WGD_yes);
+            layout.yaxis.range = [0, yMax * 1.18];
+            Plotly.newPlot(wgdEl, [trace], layout, config);
+        }
+    }
+
+    // CSV export of the four genome-signature metrics across the full cohort,
+    // with the currently-inspected cell line flagged. Useful for re-plotting
+    // the distributions externally (R / Python / Prism) or for joining with
+    // other phenotypic data.
+    _downloadGenomeMetricsCSV(cellLineId) {
+        if (!this.globalSignatures?.byCellLine) {
+            alert('Global signatures not loaded.');
+            return;
+        }
+        const rows = [['ModelID', 'Name', 'Ploidy', 'WGD', 'Aneuploidy', 'CIN', 'IsInspected']];
+        const entries = Object.entries(this.globalSignatures.byCellLine);
+        for (const [cl, sig] of entries) {
+            rows.push([
+                cl,
+                (this.getCellLineName?.(cl) || '').replace(/"/g, '""'),
+                sig.Ploidy != null ? sig.Ploidy.toFixed(3) : '',
+                sig.WGD === true ? 'Yes' : sig.WGD === false ? 'No' : '',
+                sig.Aneuploidy != null ? sig.Aneuploidy : '',
+                sig.CIN != null ? sig.CIN.toFixed(3) : '',
+                cl === cellLineId ? 'true' : 'false'
+            ]);
+        }
+        const csv = rows.map(r => r.map(v => /[",\n]/.test(String(v)) ? `"${v}"` : v).join(',')).join('\n');
+        const name = (this.getCellLineName?.(cellLineId) || cellLineId).replace(/[^A-Za-z0-9_-]+/g, '_');
+        const date = new Date().toISOString().slice(0, 10);
+        this.downloadFile(csv, `genome_metrics_${name}_${date}.csv`, 'text/csv');
     }
 
     // Save the currently-open Wiki as a standalone HTML file. Replaces the
