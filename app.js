@@ -27005,12 +27005,22 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumour suppressors whose knockout boosts growth</b> (red above): ${tsHits.map(g => g.gene).join(', ')}. Removing these helps the cell grow — so they are <em>still functional</em> here and have <em>not</em> been inactivated in this cell line.</div>`
                 : '';
 
-            geSigHtml = `
-                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? The interesting dependencies are <b>unique to this line</b> — genes it depends on more than typical, usually because they sit downstream of its active oncogene or driver. <b>Pan-essentials</b> (ribosomal, RNA polymerase, etc. — required by every cell line) are excluded from this view; they tell you nothing about this specific line. Rankings below use <b>z-score vs the full cohort</b>: z &lt; &minus;2 = strongly more essential than typical, z &gt; +2 = knockout helps growth much more than typical. <span style="display:inline-block; margin-left:6px;">💊 = approved or clinical-stage drug targets this gene.</span></p>
-                ${row('Top uniquely essential (z-ranked, pan-essentials filtered)', topUniqueHtml)}
-                ${row('Top uniquely growth-promoting on knockout (z-ranked)', topGainHtml)}
-                ${interpLines.join('')}
-                ${tsInterp}`;
+            const introPara = `<p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? The interesting dependencies are <b>unique to this line</b> — genes it depends on more than typical, usually because they sit downstream of its active oncogene or driver. <b>Pan-essentials</b> (ribosomal, RNA polymerase, etc. — required by every cell line) are excluded from this view; they tell you nothing about this specific line. Rankings below use <b>z-score vs the full cohort</b>: z &lt; &minus;2 = strongly more essential than typical, z &gt; +2 = knockout helps growth much more than typical. <span style="display:inline-block; margin-left:6px;">💊 = approved or clinical-stage drug targets this gene.</span></p>`;
+            if (zScored.length === 0) {
+                // The cell line index is valid (we're in the clIdx >= 0
+                // branch) but no gene-effect values survived the per-gene
+                // variance filter — almost always because this line is in
+                // the metadata index but its CRISPR row is all-NaN in the
+                // 25Q3 release. Surface that explicitly instead of leaving
+                // a silent void between the intro paragraph and the Source.
+                geSigHtml = `${introPara}<div style="padding:10px 12px; background:#fef2f2; border-left:3px solid #991b1b; font-size:11px;"><b style="color:#991b1b;">No usable CRISPR gene-effect data for this cell line.</b> The cell line is indexed in the cohort but its CRISPR row contains no measurable values (NaN-only across the matrix), so the z-scored dependency view cannot be built. This happens for a handful of lines per DepMap release &mdash; usually those screened too recently to be in this quarter&rsquo;s CRISPRGeneEffect file, or dropped during QC. Other Wiki sections (Mutations, CN, Fusions, Expression, Drug response) still show available data for this line.</div>`;
+            } else {
+                geSigHtml = `${introPara}
+                    ${row('Top uniquely essential (z-ranked, pan-essentials filtered)', topUniqueHtml)}
+                    ${row('Top uniquely growth-promoting on knockout (z-ranked)', topGainHtml)}
+                    ${interpLines.join('')}
+                    ${tsInterp}`;
+            }
         }
 
         // --- Expression signature (interpretive) ---
