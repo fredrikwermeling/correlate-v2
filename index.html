@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.21 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Wiki &mdash; remove WGD / MSI-high from the &ldquo;Other alterations in this cell line&rdquo; block under <i>Expected drivers for this subtype</i>. They are genome-wide phenotypes, not gene-specific driver alterations, and both are already prominent in the Genome signatures section directly above (full WGD row, MSI score row, plus the cohort histograms). Surfacing them twice in adjacent sections was duplicative and confusing. The drivers block now stays focused on what it&rsquo;s for: gene-specific alterations &mdash; fusions, functional-loss calls, and hotspot mutations.</li>
+                </ul>
                 <p><strong>v.81.20 (2026-05-11)</strong></p>
                 <ul>
                     <li>Wiki &ldquo;Expected drivers for this subtype&rdquo; section reorganized into three clearly-separated blocks so the expected-vs-found split is readable at a glance.
@@ -2580,7 +2584,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.20</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.21</a>
     </div>
 
     <div class="main-content">
@@ -4740,6 +4744,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_20"></script>
+    <script src="app.js?v=v81_21"></script>
 </body>
 </html>

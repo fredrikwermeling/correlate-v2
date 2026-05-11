@@ -25977,18 +25977,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 + `<span style="color:#6b7280;"> — hotspot${v ? ' ' + v : ''}</span>`
                 + `</div>`);
         }
-        if (gs?.MSIScore != null && gs.MSIScore >= 20) {
-            otherRows.push(`<div style="margin:2px 0; font-size:11px;">`
-                + `<span style="color:#dc2626; font-weight:600;">MSI-high</span>`
-                + `<span style="color:#6b7280;"> — mismatch repair lost; hypermutated phenotype</span>`
-                + `</div>`);
-        }
-        if (gs?.WGD === true) {
-            otherRows.push(`<div style="margin:2px 0; font-size:11px;">`
-                + `<span style="font-weight:600; color:#374151;">Whole-genome doubling</span>`
-                + `<span style="color:#6b7280;"> — ploidy ≈ ${gs.Ploidy?.toFixed(2) || '?'}</span>`
-                + `</div>`);
-        }
+        // MSI-high and WGD intentionally NOT surfaced here — they're
+        // genome-wide phenotypes, not gene-specific driver alterations, and
+        // both are already prominent in the Genome signatures section
+        // directly above. Surfacing them twice was confusing.
         const otherHtml = otherRows.length > 0
             ? `<div style="padding:8px 12px; background:#f9fafb; border-left:3px solid #6b7280; margin-bottom:8px;">
                 <div style="font-weight:600; color:#374151; margin-bottom:6px;">Other alterations in this cell line</div>
