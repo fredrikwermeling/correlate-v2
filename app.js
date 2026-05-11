@@ -2479,6 +2479,53 @@ class CorrelationExplorer {
     // dropdown but with two columns: amplifications (▲, red) and deletions
     // (▼, blue). Filter input narrows by gene name. Filter values are
     // tagged with kind via prefix marker.
+    // Custom autocomplete panel for the cell-line-browser drug-response sort.
+    // Shows all PRISM compounds filtered by the user's typed substring across
+    // name / target / MoA / indication. Click an option to pick it; the panel
+    // hides on outside click. Mirrors the CN / fusion-filter dropdown UX.
+    _renderSortDrugDropdown(filter) {
+        const dd = document.getElementById('clbSortDrugDropdown');
+        if (!dd) return;
+        const compounds = Array.isArray(this.drugResponse?.compounds) ? this.drugResponse.compounds : [];
+        if (compounds.length === 0) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No PRISM compounds available — drug-response data not loaded.</div>`;
+            return;
+        }
+        const q = (filter || '').toLowerCase().trim();
+        const matches = compounds.filter(c => {
+            if (!q) return true;
+            const hay = [c.name, c.target, c.moa, c.indication].filter(Boolean).join(' ').toLowerCase();
+            return hay.includes(q);
+        }).slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        if (matches.length === 0) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No PRISM compound matches "${filter}".</div>`;
+            return;
+        }
+        const visible = matches.slice(0, 200);
+        dd.innerHTML = visible.map(c => {
+            const safe = (s) => String(s || '').replace(/"/g, '&quot;');
+            const subtitle = [c.target, c.moa, c.indication].filter(Boolean).join(' · ');
+            return `<div class="clb-sortdrug-opt" data-value="${safe(c.name)}" `
+                + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
+                + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
+                + `<div style="font-weight:600; color:#15803d;">${c.name}</div>`
+                + (subtitle ? `<div style="font-size:10px; color:#6b7280;">${subtitle}</div>` : '')
+                + `</div>`;
+        }).join('');
+        const input = document.getElementById('clbSortGene');
+        dd.querySelectorAll('.clb-sortdrug-opt').forEach(el => {
+            // mousedown preventDefault → input doesn't lose focus before the click handler runs
+            el.addEventListener('mousedown', (e) => e.preventDefault());
+            el.addEventListener('click', () => {
+                if (input) {
+                    input.value = el.dataset.value;
+                    input.dispatchEvent(new Event('input'));
+                }
+                dd.style.display = 'none';
+            });
+        });
+    }
+
     _renderCnFilterDropdown(filter) {
         const dd = document.getElementById('clbCnDropdown');
         if (!dd) return;
@@ -23725,29 +23772,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const mode = clbSortBy.value;
             this._clbSortMode = mode;
             const needsGene = (mode === 'ge' || mode === 'expr' || mode === 'drug');
-            clbSortGene.style.display = needsGene ? '' : 'none';
-            // Tweak the input's placeholder based on what kind of identifier it
-            // expects, and populate the autocomplete datalist for drug-response
-            // sort so the user gets a typeahead list of available PRISM compound
-            // names (otherwise they have to know compound names by heart).
+            // The wrapper carries display because the input is now inside a
+            // relative-positioned <div> together with the drug-picker dropdown.
+            const sortGeneWrap = document.getElementById('clbSortGeneWrap');
+            if (sortGeneWrap) sortGeneWrap.style.display = needsGene ? 'inline-block' : 'none';
             if (clbSortGene) {
-                clbSortGene.placeholder = mode === 'drug' ? 'type a PRISM compound (autocomplete)…' : 'TP53, BRCA1, ...';
-                const list = document.getElementById('clbSortDrugList');
-                if (list) {
-                    if (mode === 'drug' && Array.isArray(this.drugResponse?.compounds)) {
-                        // Sorted alphabetically for predictable typeahead order.
-                        const opts = this.drugResponse.compounds
-                            .slice()
-                            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-                            .map(c => {
-                                const subtitle = [c.target, c.moa, c.indication].filter(Boolean).join(' · ');
-                                return `<option value="${(c.name || '').replace(/"/g, '&quot;')}">${subtitle.replace(/"/g, '&quot;')}</option>`;
-                            }).join('');
-                        list.innerHTML = opts;
-                    } else {
-                        list.innerHTML = '';
-                    }
-                }
+                clbSortGene.placeholder = mode === 'drug' ? 'click → list of PRISM compounds' : 'TP53, BRCA1, ...';
+                // Clear the drug-picker dropdown when leaving drug mode.
+                const dd = document.getElementById('clbSortDrugDropdown');
+                if (dd && mode !== 'drug') dd.style.display = 'none';
             }
             // Show direction arrow unless mode is name or (gene sort with empty gene input)
             const showDir = mode !== 'name' && !(needsGene && !clbSortGene.value.trim());
@@ -23774,6 +23807,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 updateSortControls();
                 this.renderCellLineList();
             }, 200);
+            // Refresh the drug-picker dropdown filter live as the user types.
+            if (clbSortBy.value === 'drug') this._renderSortDrugDropdown(clbSortGene.value);
+        });
+        // Drug-picker dropdown — opens on focus when "Sort: Drug response" is
+        // active. Uses the same pattern as the CN / fusion filter dropdowns.
+        clbSortGene.addEventListener('focus', () => {
+            if (clbSortBy.value !== 'drug') return;
+            const dd = document.getElementById('clbSortDrugDropdown');
+            if (!dd) return;
+            this._renderSortDrugDropdown(clbSortGene.value);
+            dd.style.display = '';
+        });
+        document.addEventListener('click', (e) => {
+            const wrap = document.getElementById('clbSortGeneWrap');
+            const dd = document.getElementById('clbSortDrugDropdown');
+            if (!wrap || !dd) return;
+            if (!wrap.contains(e.target)) dd.style.display = 'none';
         });
         clbSortDir.addEventListener('click', () => {
             this._clbSortAsc = !this._clbSortAsc;

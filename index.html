@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.35 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Drug-response sort &mdash; proper dropdown panel. The previous native <code>&lt;datalist&gt;</code> approach only revealed compound suggestions when the user typed or clicked the input&rsquo;s tiny caret, which the user couldn&rsquo;t see was even there. Replaced with a custom dropdown panel that opens on focus (just click into the input), shows all ~89 PRISM compounds with target / MoA / indication subtitles, and live-filters as the user types. Mirrors the existing CN / fusion-filter dropdown pattern. Clicking an option fills the input and triggers the sort. Outside-click closes the panel.</li>
+                </ul>
                 <p><strong>v.81.34 (2026-05-11)</strong></p>
                 <ul>
                     <li><b>Drug-response sort &mdash; PRISM compound autocomplete.</b> The input field for the &ldquo;Sort: Drug response (PRISM AUC)&rdquo; mode is now wired to an HTML <code>&lt;datalist&gt;</code> populated from <code>drugResponse.compounds</code> &mdash; the user gets a typeahead dropdown of every PRISM compound name (sorted A&ndash;Z) with the target / MoA / indication shown as a secondary subtitle. Placeholder updated to &ldquo;type a PRISM compound (autocomplete)&rdquo; so the affordance is obvious.</li>
@@ -2662,7 +2666,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.34</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.35</a>
     </div>
 
     <div class="main-content">
@@ -4456,8 +4460,15 @@
             <option value="expr">Sort: Expression of gene(s)</option>
             <option value="drug">Sort: Drug response (PRISM AUC)</option>
           </select>
-          <input type="text" id="clbSortGene" list="clbSortDrugList" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:170px; display:none;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
-          <datalist id="clbSortDrugList"></datalist>
+          <!-- Sort identifier input. For GE / Expression sort the user types
+               gene symbol(s); for Drug-response sort it accepts a PRISM
+               compound name and a custom dropdown panel below shows the full
+               compound list with target / MoA / indication subtitles (the
+               native <datalist> typeahead alone was too easy to miss). -->
+          <div id="clbSortGeneWrap" style="position:relative; display:none;">
+            <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:170px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
+            <div id="clbSortDrugDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:320px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+          </div>
           <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="padding:4px 6px; font-size:10px; display:none;">&#x25BC;</button>
           <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Reset all filters">Reset</button>
           <button id="clbInfoBtn" class="btn btn-outline btn-sm" title="What do these filters and sorts mean?" style="padding:4px 8px; font-weight:700;">?</button>
@@ -4824,6 +4835,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_34"></script>
+    <script src="app.js?v=v81_35"></script>
 </body>
 </html>
