@@ -24610,7 +24610,14 @@ CIN (chromosomal instability): how scrambled the genome is at fine scale. Scale 
         top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutGenes.length})</strong>`;
-        top += renderGeneList(mutGenes, 'clb-hotspot', geneVariant);
+        // Polymorphic loci (HLA / MIC / KIR) are tucked behind "show all"
+        // because hotspot calls in those genes are usually allelic divergence
+        // from GRCh38 rather than somatic events — surfacing them in the
+        // default view falsely implies they're cancer-driver hotspots.
+        top += renderGeneList(mutGenes, 'clb-hotspot', geneVariant, {
+            relevantPredicate: g => !this._isPolymorphicLocus(g),
+            emptyVisibleLabel: 'No non-polymorphic hotspot mutations'
+        });
         top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Damaging Mutations (${damagingCount})</strong>`;
@@ -26023,11 +26030,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
         }
         hotspotsMutated.sort((a, b) => b.level - a.level);
-        const topHotspots = hotspotsMutated.slice(0, 10).map(h => {
-            const variant = geneVariant[h.gene];
-            const variantSuffix = variant ? ` <span style="color:#16a34a; font-weight:500;">(${variant})</span>` : '';
-            return `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>${variantSuffix}`;
-        }).join(', ');
+        // Polymorphic loci (HLA / MIC / KIR) are filtered out of the "top
+        // hotspot hits" line — calls there are usually allelic divergence
+        // from GRCh38, not somatic events. They're still available in the
+        // full hotspot list on the detail card via "show all".
+        const topHotspots = hotspotsMutated
+            .filter(h => !this._isPolymorphicLocus(h.gene))
+            .slice(0, 10)
+            .map(h => {
+                const variant = geneVariant[h.gene];
+                const variantSuffix = variant ? ` <span style="color:#16a34a; font-weight:500;">(${variant})</span>` : '';
+                return `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>${variantSuffix}`;
+            }).join(', ');
         // Compact counts line — three values in one row instead of three
         // separate label/value rows. Top hits are bumped to their own line
         // because the gene list can get long.
@@ -26692,7 +26706,91 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // (how does it behave) → lab use (authentication, links). Each
         // section's intro paragraph already explains its scope; the section()
         // helper adds a "Source:" footer below the body.
-        body.innerHTML = [
+        // === Executive summary — synthesized opening paragraph ===
+        // A one-paragraph synthesis of the most important biology of this cell
+        // line, printed at the very top of the Wiki body so the user gets the
+        // headline before scrolling. Driver hierarchy: clinical fusion >
+        // canonical oncogene hotspot > canonical TSG functional loss. Genomic
+        // flags (WGD, MSI, Class-I status, hypermutation) follow as a final
+        // sentence. All inputs are already in scope from the per-section
+        // computations above.
+        const classOneSummary = this._classOnePresentation(cellLineId);
+        const damagingCountSummary = this._damagingCountByCL?.get(cellLineId) || 0;
+        const summaryHtml = (() => {
+            const lineageTxt = sub || pd || lin || 'cell line';
+
+            // Identity sentence with origin context.
+            const originParts = [];
+            const age = get('age');
+            const sexLower = (this.cellLineMetadata?.sex?.[cellLineId] || '').toLowerCase();
+            const stageLower = (this.cellLineMetadata?.primaryOrMetastasis?.[cellLineId] || '').toLowerCase();
+            if (age) originParts.push(`${age}-year-old`);
+            if (sexLower && sexLower !== 'unknown') originParts.push(sexLower);
+            if (stageLower) originParts.push(stageLower);
+            let s1 = `<b>${name}</b> is a ${lineageTxt} cell line`;
+            if (originParts.length) s1 += ` <span style="color:#6b7280;">(${originParts.join(', ')})</span>`;
+            s1 += '.';
+
+            // Driver sentence — fusion > canonical oncogene hotspot > canonical TSG LoF.
+            const driverParts = [];
+            if (clinicalFusionCalls.length > 0) {
+                const fusionsList = clinicalFusionCalls.map(c => c.fusion);
+                driverParts.push(`<b>${fusionsList.join(', ')}</b> driver fusion${fusionsList.length > 1 ? 's' : ''}`);
+            }
+            const ONCO_DRIVERS_SET = new Set(['BRAF', 'KRAS', 'NRAS', 'HRAS', 'EGFR', 'PIK3CA', 'IDH1', 'IDH2', 'CTNNB1', 'AKT1', 'FGFR3', 'FLT3', 'KIT', 'NOTCH1', 'JAK2']);
+            const oncoDrivers = [];
+            const seenOncoGenes = new Set();
+            for (const h of (infSub.hotspots || [])) {
+                const gene = h.split(' ')[0];
+                const variant = h.slice(gene.length + 1);
+                if (ONCO_DRIVERS_SET.has(gene) && variant && variant !== 'Hotspot' && !seenOncoGenes.has(gene)) {
+                    oncoDrivers.push(`<b>${gene} ${variant}</b>`);
+                    seenOncoGenes.add(gene);
+                }
+            }
+            if (oncoDrivers.length > 0) driverParts.push(oncoDrivers.join(', '));
+
+            const MAJOR_TSGS = ['TP53', 'RB1', 'CDKN2A', 'PTEN', 'APC', 'VHL', 'STK11', 'SMAD4', 'NF1'];
+            const tsgLosses = (infSub.lof || []).filter(g => MAJOR_TSGS.includes(g));
+
+            let s2 = '';
+            if (driverParts.length > 0 && tsgLosses.length > 0) {
+                s2 = `Driven by ${driverParts.join(' plus ')}, with functional loss of <b>${tsgLosses.join(', ')}</b>.`;
+            } else if (driverParts.length > 0) {
+                s2 = `Driven by ${driverParts.join(' plus ')}.`;
+            } else if (tsgLosses.length > 0) {
+                s2 = `Driver-level event: functional loss of <b>${tsgLosses.join(', ')}</b>.`;
+            }
+
+            // Co-driver / focal amp sentence.
+            const focalAmps = (this.clinicalCn?.byCellLine?.[cellLineId]?.amplifications || [])
+                .map(a => a.gene)
+                .filter(g => ['MYC', 'MYCN', 'MYCL', 'ERBB2', 'MDM2', 'CDK4', 'CDK6', 'CCND1', 'CCNE1'].includes(g));
+            const s3 = focalAmps.length > 0 ? `Focal amplification of <b>${focalAmps.join(', ')}</b>.` : '';
+
+            // Genome / phenotype features sentence.
+            const features = [];
+            if (gs?.WGD === true) features.push('<b>whole-genome doubled</b>');
+            if (infSub.msi === true || (gs?.MSIScore != null && gs.MSIScore >= 20)) features.push('<b>MSI-high</b> (hypermutated, mismatch-repair deficient)');
+            else if (damagingCountSummary > 500) features.push(`hypermutated (${damagingCountSummary.toLocaleString()} damaging mutations)`);
+            if (classOneSummary.status === 'likely_lost') features.push('<b>Class-I antigen presentation likely lost</b> (immune-escape candidate)');
+            else if (classOneSummary.status === 'reduced') features.push('<b>Class-I antigen presentation reduced</b>');
+            const s4 = features.length > 0 ? `Genome / phenotype: ${features.join('; ')}.` : '';
+
+            // If nothing beyond the identity sentence triggered, fall back to a
+            // gentler note so the summary box doesn't read as truncated.
+            const bodyText = [s2, s3, s4].filter(Boolean).join(' ');
+            const fullText = bodyText
+                ? `${s1} ${bodyText}`
+                : `${s1} <span style="color:#6b7280;">No canonical driver alteration detected from the integrated DepMap layers — see &ldquo;Other alterations in this cell line&rdquo; below for non-canonical events, or consider STR re-authentication if this is surprising for the subtype.</span>`;
+
+            return `<div style="margin-bottom:20px; padding:14px 18px; background:linear-gradient(to right, #f0fdf4, #fff); border-left:4px solid #15803d; border-radius:0 6px 6px 0;">
+                <div style="font-size:9px; font-weight:700; color:#15803d; letter-spacing:0.06em; margin-bottom:6px;">EXECUTIVE SUMMARY</div>
+                <div style="font-size:13px; line-height:1.65; color:#374151;">${fullText}</div>
+            </div>`;
+        })();
+
+        body.innerHTML = summaryHtml + [
             // ── Identity ──────────────────────────────────────────────────
             section('Cancer classification',
                 classificationHtml,

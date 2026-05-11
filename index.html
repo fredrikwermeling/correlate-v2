@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.28 (2026-05-11)</strong></p>
+                <ul>
+                    <li><b>Wiki executive summary</b> &mdash; new synthesized opening paragraph at the very top of every cell-line Wiki, so the headline biology is visible before scrolling. Driver hierarchy: clinical fusion &rsaquo; canonical oncogene hotspot &rsaquo; canonical TSG functional loss. Genomic flags (WGD, MSI, Class-I status, hypermutation) follow as a final sentence. Examples: &ldquo;<i>JR is a Rhabdomyosarcoma cell line. Driven by <b>PAX3-FOXO1</b> driver fusion plus <b>FGFR3 p.K650</b>, with functional loss of <b>TP53, RB1</b>. Focal amplification of <b>MYCN, MDM2</b>. Genome / phenotype: whole-genome doubled; Class-I antigen presentation reduced.</i>&rdquo; Falls back to a gentle &ldquo;no canonical driver detected&rdquo; note when nothing in the integrated panels triggers.</li>
+                    <li><b>HLA / polymorphic-locus hotspots demoted from the default view.</b> Hotspot mutation calls in HLA-A/B/C / MIC / KIR genes are usually allelic divergence from the GRCh38 reference, not somatic events &mdash; surfacing them as &ldquo;hotspot mutations&rdquo; falsely implied they were cancer drivers. They&rsquo;re now hidden behind the existing &ldquo;show all&rdquo; toggle in the cell-line detail card&rsquo;s Hotspot Mutations list, and filtered out of the Wiki&rsquo;s &ldquo;Top hotspot hits&rdquo; line. Still recoverable via the toggle for users who want to inspect them; the &#9888; polymorphic-locus marker still flags them when shown.</li>
+                </ul>
                 <p><strong>v.81.27 (2026-05-11)</strong></p>
                 <ul>
                     <li>Wiki Expression profile section reworked from raw top-expression to <b>uniquely-high vs cohort + pathway-activity signatures</b>. The previous &ldquo;Most-expressed genes&rdquo; row was always dominated by mitochondrial and ribosomal genes (MT-ATP8, GAPDH, EEF1A1, MT-CO2 &hellip;) that are high in every cell line and tell you nothing about this specific one.
@@ -2615,7 +2620,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.27</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.28</a>
     </div>
 
     <div class="main-content">
@@ -4775,6 +4780,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_27"></script>
+    <script src="app.js?v=v81_28"></script>
 </body>
 </html>
