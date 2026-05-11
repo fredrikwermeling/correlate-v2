@@ -1325,6 +1325,17 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.37 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Collections panel categories reordered into a logical research-workflow flow rather than insertion order. New order:
+                    <b>(1) Cancer drivers</b> &mdash; Disease-defining fusions &rsaquo; Tumor-suppressor functional loss &rsaquo; Focal amplifications &rsaquo; Oncogene hotspot mutations (mutation only) &rsaquo; Oncogene addiction (mutation &times; CRISPR dependency). Drivers come first because they&rsquo;re the most common starting point.
+                    <b>(2) Disease subtypes</b> &mdash; Breast &mdash; receptor subtype followed immediately by TNBC molecular subtypes (Lehmann), so the breast-cancer subtype groupings sit together.
+                    <b>(3) Phenotype / immune state</b> &mdash; Immunology.
+                    <b>(4) DNA repair / mutation burden</b> &mdash; mismatch repair &rsaquo; homologous recombination &rsaquo; polymerase proofreading &rsaquo; ATM/ATR axis &rsaquo; Mutation burden.
+                    <b>(5) Genome state</b> &mdash; ploidy / instability (WGD, aneuploidy, LoH).
+                    <b>(6) Chromatin / oxidative / pathway</b> &mdash; SWI/SNF &rsaquo; NRF2-mutation &rsaquo; Pathway-activity expression signatures &rsaquo; Expression signature (NE / EMT).
+                    Category notes (italic grey one-liners under each header) extended to Disease-defining fusions, Oncogene hotspot mutations, and TNBC molecular subtypes so jargon-heavy category names are self-explanatory.</li>
+                </ul>
                 <p><strong>v.81.36 (2026-05-11)</strong></p>
                 <ul>
                     <li>Wiki &mdash; POLE / POLD1 ultramutators (e.g. JHUEM7) now get their own flag and a passenger-noise caveat.
@@ -2673,7 +2684,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.36</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.37</a>
     </div>
 
     <div class="main-content">
@@ -4842,6 +4853,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_36"></script>
+    <script src="app.js?v=v81_37"></script>
 </body>
 </html>

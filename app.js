@@ -23501,13 +23501,56 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Rendered as italic grey text below the category header so the user
         // doesn't need to hover or read the full description to get the gist.
         const CATEGORY_NOTES = {
-            'Oncogene addiction (mutation × CRISPR dependency)': 'Cancer cells that have become functionally dependent on a driver gene — knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only collections above.',
+            'Oncogene addiction (mutation × CRISPR dependency)': 'Cancer cells that have become functionally dependent on a driver gene — knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only collections.',
             'Pathway-activity expression signatures': 'Each set marks lines where the pathway is transcriptionally active (mean z > +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.',
             'Tumor-suppressor functional loss': 'A gene is "functionally lost" when DepMap\'s integrated call (CN, mutation, expression) says it is — catches deletions and silenced loci that the damaging-mutation list alone would miss.',
-            'Focal amplifications': 'Curated oncogene amplifications from the clinical CN panel — gain-of-function dosage events that point mutations cannot produce.'
+            'Focal amplifications': 'Curated oncogene amplifications from the clinical CN panel — gain-of-function dosage events that point mutations cannot produce.',
+            'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called — e.g. Philadelphia-positive leukemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL.',
+            'Oncogene hotspot mutations (mutation only)': 'Specific oncogene hotspot mutations that don\'t require CRISPR-confirmation to be actionable (e.g. mutant-IDH for IDH-inhibitors). Mutation status alone — see Oncogene addiction above for the functionally-confirmed set.',
+            'TNBC molecular subtypes (Lehmann)': 'Lehmann 2011 / 2016 four-class refined TNBC molecular subtypes (BL1, BL2, M, LAR) for the ~22 TNBC overlap cell lines.'
         };
 
-        for (const cat of Object.keys(byCat)) {
+        // Logical order of categories — drivers first, then disease subtypes,
+        // then phenotype / immune, then DNA-repair contexts, then genome state,
+        // then chromatin / oxidative, then pathway / expression. Categories
+        // not in this list fall to the end in their original insertion order.
+        const CATEGORY_ORDER = [
+            // Cancer drivers — most specific first
+            'Disease-defining fusions',
+            'Tumor-suppressor functional loss',
+            'Focal amplifications',
+            'Oncogene hotspot mutations (mutation only)',
+            'Oncogene addiction (mutation × CRISPR dependency)',
+            // Disease subtype groupings
+            'Breast — receptor subtype',
+            'TNBC molecular subtypes (Lehmann)',
+            // Phenotype / immune
+            'Immunology',
+            // DNA repair / mutation burden
+            'DNA repair — mismatch repair',
+            'DNA repair — homologous recombination',
+            'DNA repair — polymerase proofreading',
+            'DNA repair — ATM / ATR axis',
+            'Mutation burden',
+            // Genome state
+            'Genome — ploidy / instability',
+            // Pathway / functional state
+            'Chromatin remodelling — SWI/SNF complex',
+            'Oxidative-stress response',
+            'Pathway-activity expression signatures',
+            'Expression signature'
+        ];
+        const catKeys = Object.keys(byCat).sort((a, b) => {
+            const ia = CATEGORY_ORDER.indexOf(a);
+            const ib = CATEGORY_ORDER.indexOf(b);
+            // unrecognized categories fall to the end
+            if (ia === -1 && ib === -1) return a.localeCompare(b);
+            if (ia === -1) return 1;
+            if (ib === -1) return -1;
+            return ia - ib;
+        });
+
+        for (const cat of catKeys) {
             html += `<div style="color:#15803d; font-size:10px; font-weight:600; margin:8px 0 3px; border-bottom:1px solid #e5e7eb; padding-bottom:2px;">${cat}</div>`;
             if (CATEGORY_NOTES[cat]) {
                 html += `<div style="color:#6b7280; font-size:10px; font-style:italic; margin:0 0 4px 4px;">${CATEGORY_NOTES[cat]}</div>`;
