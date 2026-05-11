@@ -24070,7 +24070,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // When `variantMap` is provided, genes with a known specific variant
         // are rendered as "GENE (p.X)" — used to surface KRAS p.G12D etc.
         const INITIAL_VISIBLE = 10;
-        const renderGeneList = (genes, toggleId, variantMap) => {
+        const renderGeneList = (genes, toggleId, variantMap, opts = {}) => {
             if (genes.length === 0) return `<div style="color:var(--gray-500); font-size:11px;">None</div>`;
             const sorted = sortByRelevance(genes);
             const polymorphicCaveat = this._polymorphicCaveatText();
@@ -24086,14 +24086,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     : '';
                 return `<span class="gene-hover clb-gene-link" data-gene="${g}"${hl}>${g}</span>${suffix}${caveat}`;
             };
-            if (sorted.length <= INITIAL_VISIBLE) {
-                return `<div style="color:var(--gray-500); font-size:11px;">${sorted.map(tagHtml).join(', ')}</div>`;
+
+            // Relevance-filter mode: when caller passes `relevantPredicate`, the
+            // default-visible set is the predicate-passing subset (cancer-panel
+            // genes for damaging mutations) regardless of count, and everything
+            // else is hidden behind a "show all N" toggle. Used to keep the
+            // long-tail damaging-mutation lists (often 20+ random passengers)
+            // out of the default view.
+            let visible, hidden;
+            if (opts.relevantPredicate) {
+                visible = sorted.filter(opts.relevantPredicate);
+                hidden  = sorted.filter(g => !opts.relevantPredicate(g));
+            } else {
+                if (sorted.length <= INITIAL_VISIBLE) {
+                    return `<div style="color:var(--gray-500); font-size:11px;">${sorted.map(tagHtml).join(', ')}</div>`;
+                }
+                visible = sorted.slice(0, INITIAL_VISIBLE);
+                hidden  = sorted.slice(INITIAL_VISIBLE);
             }
-            const visible = sorted.slice(0, INITIAL_VISIBLE).map(tagHtml).join(', ');
-            const hidden  = sorted.slice(INITIAL_VISIBLE).map(tagHtml).join(', ');
+
+            if (hidden.length === 0) {
+                return `<div style="color:var(--gray-500); font-size:11px;">${visible.map(tagHtml).join(', ')}</div>`;
+            }
+            const visibleHtml = visible.length > 0
+                ? visible.map(tagHtml).join(', ')
+                : `<span style="color:#9ca3af; font-style:italic;">${opts.emptyVisibleLabel || 'None in cancer-panel set'}</span>`;
+            const separator = visible.length > 0 ? ', ' : '';
             return `<div style="color:var(--gray-500); font-size:11px;">`
-                + `<span id="${toggleId}-visible">${visible}</span>`
-                + `<span id="${toggleId}-hidden" style="display:none;">, ${hidden}</span>`
+                + `<span id="${toggleId}-visible">${visibleHtml}</span>`
+                + `<span id="${toggleId}-hidden" style="display:none;">${separator}${hidden.map(tagHtml).join(', ')}</span>`
                 + ` <a href="#" id="${toggleId}-btn" data-total="${sorted.length}" style="color:var(--green-700); text-decoration:none; font-size:10px; white-space:nowrap;">&#x25BE; show all ${sorted.length}</a>`
                 + `</div>`;
         };
@@ -24179,7 +24200,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         }
         if (flags.length > 0) {
-            top += `<div class="clb-detail-section"><strong>Phenotype flags</strong>`;
+            top += `<div class="clb-detail-section"><strong>Immunology</strong>`;
             for (const f of flags) {
                 top += `<div style="display:flex; gap:8px; align-items:baseline; margin:3px 0; font-size:11px;">`
                     + `<span style="color:#4b5563; font-weight:600; border:1px solid #d1d5db; background:#f3f4f6; border-radius:8px; padding:1px 6px; font-size:10px; flex-shrink:0; cursor:help;" title="${f.tooltip.replace(/"/g, '&quot;')}">${f.label}</span>`
@@ -24200,7 +24221,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Damaging Mutations (${damagingCount})</strong>`;
-        top += renderGeneList(damagingGenes, 'clb-damaging');
+        top += renderGeneList(damagingGenes, 'clb-damaging', null, { relevantPredicate: g => cancerSet.has(g) });
         top += `</div>`;
 
         // Functional loss — DepMap-integrated calls combining CN < 0.3, likely-LoF
