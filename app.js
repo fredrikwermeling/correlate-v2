@@ -26244,14 +26244,25 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             body: `Damaging mutation in ${mmrHits.map(g => `<b>${g}</b>`).join(', ')}. Cells can't correct replication errors, so they accumulate many mutations and show microsatellite instability. Typically a model for checkpoint-immunotherapy response.`,
             color: '#dc2626'
         });
+        // POLE / POLD1 proofreading-deficient — the OTHER hypermutator route,
+        // distinct from MMR. Look like JHUEM7: huge point-mutation burden
+        // but chromosomally calm (low CIN / aneuploidy / LoH, no WGD), and
+        // microsatellite stable (so not MMR-deficient). Flagged separately
+        // so the user can tell the two ultramutator routes apart.
+        const polePoldHits = ['POLE', 'POLD1'].filter(damHit);
+        if (polePoldHits.length > 0 && damagingCount > 200) flagCards.push({
+            title: `${polePoldHits.join(' / ')} proofreading-deficient (ultramutator)`,
+            body: `Damaging mutation in <b>${polePoldHits.join(', ')}</b> &mdash; the DNA-polymerase exonuclease (proofreading) domain is broken. Replication errors are not corrected, producing an <i>ultramutated</i> point-mutation burden (often &gt; 100 mut/Mb) but with a structurally calm, near-diploid genome (low CIN, low aneuploidy, no WGD, MSS). Distinct from MMR-deficiency, which is the other major hypermutator route. Among the strongest checkpoint-immunotherapy responder backgrounds. <b>Caveat:</b> at this mutation burden, many individual damaging-mutation calls are passenger noise rather than drivers &mdash; treat single-gene driver inferences with caution.`,
+            color: '#dc2626'
+        });
         if (damagingCount > 1000) flagCards.push({
-            title: 'Very high mutation burden',
-            body: `${damagingCount.toLocaleString()} damaging mutations — an exceptionally high count, usually from loss of DNA-repair machinery (mismatch repair, polymerase proofreading, etc.).`,
+            title: 'Very high mutation burden (passenger noise warning)',
+            body: `${damagingCount.toLocaleString()} damaging mutations &mdash; an exceptionally high count, usually from loss of DNA-repair machinery (mismatch repair, polymerase proofreading, AID/APOBEC, UV / smoking exposure background). <b>Caveat:</b> at this burden, many individual damaging mutations are passenger events accumulated against the hypermutator background, not biological drivers. Driver flags below (HRD, TP53, CDKN2A, …) should be interpreted with this caveat in mind.`,
             color: '#dc2626'
         });
         else if (damagingCount > 500) flagCards.push({
             title: 'High mutation burden',
-            body: `${damagingCount.toLocaleString()} damaging mutations, well above a typical cell line.`,
+            body: `${damagingCount.toLocaleString()} damaging mutations, well above a typical cell line. At this burden some downstream damaging-mutation flags may be passenger noise; cross-check against the integrated functional-loss view.`,
             color: '#d97706'
         });
         const hrGenes = ['BRCA1', 'BRCA2', 'PALB2', 'RAD51C', 'RAD51D'];
@@ -26818,7 +26829,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 return `${gs.LoHFraction.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; fraction of the genome where one parental copy has been lost; high tier &ge; 0.3, often seen in WGD-positive or HRD lines)</span>`;
             })() : '';
             genomeSigHtml = `
-                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Genome-wide structural and stability metrics. Useful interpretive context — WGD-positive lines and MSI-high lines behave systematically differently in many comparisons.</p>
+                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Genome-wide <b>structural / chromosomal</b> metrics — whole-genome doubling, arm-level aneuploidy, fine-scale chromosomal instability, loss of heterozygosity, microsatellite stability. Useful interpretive context: WGD-positive and MSI-high lines behave systematically differently in many comparisons. <b>Note:</b> these are <i>not</i> point-mutation burden — a cell line can be mutationally noisy (e.g. <b>POLE / POLD1 ultramutator</b> or <b>MSI-high</b>) while remaining chromosomally calm here. See the <i>Driver mutations</i> section above for the point-mutation view.</p>
                 ${row('Whole-genome doubling (WGD)', wgdLabel)}
                 ${row('Ploidy', ploidyLabel)}
                 ${row('Aneuploidy score', aneupLabel)}

@@ -1325,6 +1325,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.36 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Wiki &mdash; POLE / POLD1 ultramutators (e.g. JHUEM7) now get their own flag and a passenger-noise caveat.
+                    <b>(1) New flag pill</b> when POLE or POLD1 is damaged AND damaging-mutation count &gt; 200: &ldquo;<i>POLE / POLD1 proofreading-deficient (ultramutator)</i>&rdquo;. Tooltip explains: replication errors not corrected &rarr; &gt; 100 mut/Mb point-mutation burden, but the genome stays structurally calm (low CIN / aneuploidy / LoH, no WGD, microsatellite stable). Distinct from MMR-deficiency, which is the other major hypermutator route.
+                    <b>(2) Passenger-noise caveat</b> on the existing &ldquo;Very high mutation burden&rdquo; flag (&gt; 1000 damaging) and &ldquo;High mutation burden&rdquo; (&gt; 500): at hypermutator burdens, single damaging mutations in any driver gene panel are statistically likely to be passenger events, so flags like HRD / TP53 should be cross-checked against the integrated functional-loss view rather than taken at face value.
+                    <b>(3) Genome signatures intro</b> now states explicitly that the displayed metrics are <i>structural / chromosomal</i> (WGD, aneuploidy, CIN, LoH, MSI) and <i>not</i> point-mutation burden &mdash; so a structurally-calm genome at very high TMB (the JHUEM7 picture) reads as a real biological state, not an annotation error.</li>
+                </ul>
                 <p><strong>v.81.35 (2026-05-11)</strong></p>
                 <ul>
                     <li>Drug-response sort &mdash; proper dropdown panel. The previous native <code>&lt;datalist&gt;</code> approach only revealed compound suggestions when the user typed or clicked the input&rsquo;s tiny caret, which the user couldn&rsquo;t see was even there. Replaced with a custom dropdown panel that opens on focus (just click into the input), shows all ~89 PRISM compounds with target / MoA / indication subtitles, and live-filters as the user types. Mirrors the existing CN / fusion-filter dropdown pattern. Clicking an option fills the input and triggers the sort. Outside-click closes the panel.</li>
@@ -2666,7 +2673,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.35</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.36</a>
     </div>
 
     <div class="main-content">
@@ -4835,6 +4842,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_35"></script>
+    <script src="app.js?v=v81_36"></script>
 </body>
 </html>
