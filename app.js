@@ -25517,11 +25517,16 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const body = document.getElementById('clbWikiBody');
 
         // --- Section helpers ---
+        // Section header bumped from 13 → 17 px and wrapped in its own banner
+        // (light green tint + bottom border) so the major sections of the Wiki
+        // are visually separated from the body text and from each other. The
+        // outer section also gets more breathing room (24 px bottom margin
+        // instead of 18 px) for the same reason.
         const section = (title, body, source) => `
-            <section style="margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #e5e7eb;">
-                <h4 style="margin:0 0 6px; font-size:13px; color:#15803d;">${title}</h4>
+            <section style="margin-bottom:24px; padding-bottom:14px; border-bottom:1px solid #e5e7eb;">
+                <h3 style="margin:0 0 12px; padding:8px 12px; font-size:17px; font-weight:700; color:#15803d; background:#f0fdf4; border-left:4px solid #15803d; border-radius:0 4px 4px 0;">${title}</h3>
                 <div>${body}</div>
-                ${source ? `<div style="margin-top:6px; font-size:10px; color:#9ca3af;"><b>Source:</b> ${source}</div>` : ''}
+                ${source ? `<div style="margin-top:8px; font-size:10px; color:#9ca3af;"><b>Source:</b> ${source}</div>` : ''}
             </section>`;
         const row = (label, value) => value ? `<div style="display:flex; gap:8px; padding:2px 0;"><span style="flex:0 0 180px; color:#6b7280;">${label}</span><span>${value}</span></div>` : '';
         const pill = (text, color) => `<span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${color}22; color:${color}; font-weight:600; font-size:10px; margin-right:4px;">${text}</span>`;
@@ -26699,7 +26704,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 <html><head><meta charset="utf-8"><title>${title}</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#374151; max-width:900px; margin:30px auto; padding:0 20px; line-height:1.55; font-size:13px; }
-  h1 { color:#15803d; margin:0 0 4px; font-size:20px; }
+  h1 { color:#15803d; margin:0 0 4px; font-size:22px; }
+  h3 { color:#15803d; font-size:17px; font-weight:700; margin:0 0 12px; padding:8px 12px; background:#f0fdf4; border-left:4px solid #15803d; border-radius:0 4px 4px 0; }
   h4 { color:#15803d; font-size:14px; margin:0 0 6px; }
   .subtitle { font-size:11px; color:#6b7280; margin-bottom:20px; }
   section { margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #e5e7eb; }
