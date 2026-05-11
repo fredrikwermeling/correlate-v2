@@ -22752,6 +22752,99 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 label: 'Any focal amplification',
                 category: 'Focal amplifications',
                 description: '<b>Inclusion:</b> at least one focal amplification on the curated clinical CN panel (the genes that appear in the per-cell-line "Focal CN events" section: MYC family, ERBB2, MDM2, CDK4/6, cyclins, etc.). <b>Why this filter exists:</b> a catch-all for "this line has at least one focal oncogene-amp driver", useful when contrasting against lines with no curated focal-amp event at all.'
+            },
+
+            // High loss-of-heterozygosity — added to the existing
+            // genome-instability category. Often co-occurs with WGD and
+            // BRCAness signatures.
+            high_loh: {
+                label: 'High loss of heterozygosity (LoH ≥ 0.3)',
+                category: 'Genome — ploidy / instability',
+                description: '<b>Inclusion:</b> cell lines where ≥ 30 % of the genome shows loss of heterozygosity (LoH ≥ 0.3 in OmicsGlobalSignatures). <b>Why:</b> high LoH reflects substantial allelic loss across the genome — often co-occurs with whole-genome doubling and BRCAness / HR-deficiency signatures. <b>Caveat:</b> LoH is a derived statistic from PureCN-style segmental calls; cell lines with very few heterozygous loci to begin with may register low LoH despite real allelic loss.'
+            },
+
+            // Oncogene addiction — combines genotype with CRISPR dependency.
+            // Stricter than the mutation-only collections we already have:
+            // these pick lines where knocking out the driver actually kills
+            // the cell, not just lines that carry the mutation. Threshold
+            // GE < -0.5 = clearly more essential than typical.
+            kras_addicted: {
+                label: 'KRAS-addicted (mutant × KRAS-essential)',
+                category: 'Oncogene addiction (mutation × CRISPR dependency)',
+                description: '<b>Inclusion:</b> KRAS hotspot or damaging mutation AND KRAS CRISPR gene-effect &lt; &minus;0.5 (cell needs KRAS to survive). <b>Why:</b> the cell line is functionally KRAS-dependent — exactly the context where a KRAS-targeting therapy (e.g. KRAS-G12C-specific inhibitors sotorasib / adagrasib for G12C lines) is expected to work. <b>Caveat:</b> ~40 % of KRAS-mutant cell lines are not strictly KRAS-addicted by CRISPR; this set excludes them.'
+            },
+            braf_addicted: {
+                label: 'BRAF-addicted (mutant × BRAF-essential)',
+                category: 'Oncogene addiction (mutation × CRISPR dependency)',
+                description: '<b>Inclusion:</b> BRAF hotspot or damaging mutation AND BRAF CRISPR gene-effect &lt; &minus;0.5. <b>Why:</b> the cell line is functionally BRAF-dependent — the classic context for BRAF/MEK-inhibitor combinations (vemurafenib / dabrafenib + trametinib).'
+            },
+            egfr_dependent: {
+                label: 'EGFR-dependent (mutant × EGFR-essential)',
+                category: 'Oncogene addiction (mutation × CRISPR dependency)',
+                description: '<b>Inclusion:</b> EGFR hotspot or damaging mutation AND EGFR CRISPR gene-effect &lt; &minus;0.5. <b>Why:</b> the cell line is functionally EGFR-dependent — classic context for EGFR TKIs (erlotinib / gefitinib / osimertinib).'
+            },
+            cdk46_dependent: {
+                label: 'CDK4/6-dependent (RB1 WT × CDK4/6-essential)',
+                category: 'Oncogene addiction (mutation × CRISPR dependency)',
+                description: '<b>Inclusion:</b> RB1 NOT functionally lost AND min(CDK4 GE, CDK6 GE) &lt; &minus;0.5. <b>Why:</b> RB1 must be intact for CDK4/6 inhibitors to work (RB1 sits downstream of CDK4/6 — losing RB1 bypasses the inhibitor mechanism). This set picks RB1-intact lines that <i>also</i> functionally need CDK4/6 — the strongest CDK4/6-inhibitor responder background.'
+            },
+            bcr_abl_addicted: {
+                label: 'BCR-ABL-addicted (fusion × ABL1-essential)',
+                category: 'Oncogene addiction (mutation × CRISPR dependency)',
+                description: '<b>Inclusion:</b> BCR or ABL1 fusion AND ABL1 CRISPR gene-effect &lt; &minus;0.5. <b>Why:</b> the cell line is functionally ABL-dependent — canonical context for ABL TKIs (imatinib, dasatinib, nilotinib). Defines the CML / Ph+ ALL therapy-response cohort.'
+            },
+            pi3k_active_dependent: {
+                label: 'PI3K-active and dependent (PIK3CA-mut or PTEN-lost × PI3K/AKT-essential)',
+                category: 'Oncogene addiction (mutation × CRISPR dependency)',
+                description: '<b>Inclusion:</b> PIK3CA hotspot/damaging OR PTEN functional loss, AND best of (PIK3CA, AKT1, AKT2, AKT3) CRISPR gene-effect &lt; &minus;0.5. <b>Why:</b> functionally PI3K-pathway-dependent — context for PI3K-α inhibitors (alpelisib for PIK3CA-mut), AKT inhibitors, or mTOR inhibitors.'
+            },
+
+            // Pathway-activity expression signatures. One collection per panel
+            // in _WIKI_EXPRESSION_SIGNATURES (skipping EMT — already covered
+            // by the existing `emt` collection). Membership: mean z-score
+            // across the panel genes > +0.75 in this cell line. Requires
+            // expression to be loaded — these are computed lazily after
+            // expression arrives, mirroring the existing NE and breast
+            // collections.
+            myc_pathway_active: {
+                label: 'MYC pathway active (expression signature)',
+                category: 'Pathway-activity expression signatures',
+                description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across the curated MYC-target panel (NPM1, NCL, NOP56, MYBBP1A, PA2G4, SLC19A1, EIF4A1, EIF4E, EIF4G1, TFRC). <b>Why:</b> ribosome-biogenesis and translation targets up-regulated, consistent with active MYC. <b>Caveat:</b> high signature can also reflect non-MYC drivers of translation (e.g. mTOR activation).'
+            },
+            e2f_active: {
+                label: 'E2F / S-phase active (expression signature)',
+                category: 'Pathway-activity expression signatures',
+                description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across an E2F / replication-machinery panel (MCM2-7, PCNA, TOP2A, TYMS, CDK2, RRM1/2). <b>Why:</b> rapidly cycling lines with active E2F transcription. Often co-elevated with the G2/M signature.'
+            },
+            g2m_active: {
+                label: 'G2/M progression active (expression signature)',
+                category: 'Pathway-activity expression signatures',
+                description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a mitotic-progression panel (CDK1, CCNB1/2, AURKA/B, PLK1, BIRC5, CENPF, TPX2, KIF20A). <b>Why:</b> actively dividing lines; useful for aurora-kinase / PLK1 / WEE1-inhibitor work.'
+            },
+            ifn_response_active: {
+                label: 'IFN response active (expression signature)',
+                category: 'Pathway-activity expression signatures',
+                description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a curated IFN-stimulated-gene panel (ISG15, IFIT1, IFIT3, MX1, OAS1, STAT1, IRF7, IFI6, IFITM1, IFI44). <b>Why:</b> active type-I/II interferon signalling — cell-autonomous (cytosolic DNA / viral mimicry from endogenous retroelements) or paracrine. Often co-occurs with intact MHC-I and tumour-immunogenic phenotype.'
+            },
+            tgfb_response_active: {
+                label: 'TGF-β response active (expression signature)',
+                category: 'Pathway-activity expression signatures',
+                description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a TGF-β / SMAD-response panel (SMAD7, TGFB1, TGFBI, COL1A1, COL3A1, SERPINE1, CTGF). <b>Why:</b> active TGF-β signalling — frequently coupled with EMT in carcinomas; often a marker of TGF-β-driven invasive phenotype.'
+            },
+            hypoxia_active: {
+                label: 'Hypoxia / HIF target program active (expression signature)',
+                category: 'Pathway-activity expression signatures',
+                description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a HIF-target panel (VEGFA, CA9, SLC2A1, LDHA, PGK1, ENO1, PDK1, BNIP3). <b>Why:</b> active hypoxic transcriptional program. Can be hypoxia-driven or constitutive in HIF-stabilising backgrounds (e.g. VHL-loss → HIF-2α-active ccRCC).'
+            },
+            nrf2_signature_active: {
+                label: 'NRF2 program active (expression signature)',
+                category: 'Pathway-activity expression signatures',
+                description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across an NRF2-target panel (NQO1, GCLC, HMOX1, GPX2, TXN, SLC7A11, AKR1C1, GSR). <b>Why:</b> active NRF2 antioxidant program — often driven by KEAP1 LoF or NFE2L2 hotspots, but can also occur via other mechanisms (the existing <i>"KEAP1-NRF2 pathway activated"</i> collection captures only the mutation-based subset; this one is expression-based and broader).'
+            },
+            stem_active: {
+                label: 'Stem / lineage-plasticity program active (expression signature)',
+                category: 'Pathway-activity expression signatures',
+                description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a pluripotency / cancer-stem-cell panel (SOX2, NANOG, POU5F1, KLF4, PROM1, ALDH1A1, BMI1). <b>Why:</b> de-differentiated / stem-like state — typically a chemo-resistant background.'
             }
         };
     }
@@ -22816,6 +22909,87 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             for (const cl of clLines) {
                 const a = this.globalSignatures.byCellLine[cl]?.Aneuploidy;
                 if (a != null && a >= 25) mem.high_aneuploidy.add(cl);
+            }
+        }
+
+        // High LoH (≥ 0.3).
+        mem.high_loh = new Set();
+        if (this.globalSignatures?.byCellLine) {
+            for (const cl of clLines) {
+                const v = this.globalSignatures.byCellLine[cl]?.LoHFraction;
+                if (v != null && v >= 0.3) mem.high_loh.add(cl);
+            }
+        }
+
+        // Oncogene addiction — genotype × CRISPR dependency. Threshold
+        // GE < -0.5 = strongly more essential than typical (matches the
+        // "essential" language calibration used in the Wiki).
+        const ADDICTION_THRESHOLD = -0.5;
+        mem.kras_addicted = new Set();
+        mem.braf_addicted = new Set();
+        mem.egfr_dependent = new Set();
+        mem.cdk46_dependent = new Set();
+        mem.bcr_abl_addicted = new Set();
+        mem.pi3k_active_dependent = new Set();
+        const krasGi = this.geneIndex?.get?.('KRAS');
+        const brafGi = this.geneIndex?.get?.('BRAF');
+        const egfrGi = this.geneIndex?.get?.('EGFR');
+        const cdk4Gi = this.geneIndex?.get?.('CDK4');
+        const cdk6Gi = this.geneIndex?.get?.('CDK6');
+        const ablGi = this.geneIndex?.get?.('ABL1');
+        const pikGi = this.geneIndex?.get?.('PIK3CA');
+        const akt1Gi = this.geneIndex?.get?.('AKT1');
+        const akt2Gi = this.geneIndex?.get?.('AKT2');
+        const akt3Gi = this.geneIndex?.get?.('AKT3');
+        const geAt = (gi, cli) => {
+            if (gi === undefined || cli < 0 || !this.geneEffects) return null;
+            const v = this.geneEffects[gi * this.nCellLines + cli];
+            return (isNaN(v) || v === -999) ? null : v;
+        };
+        for (let i = 0; i < clLines.length; i++) {
+            const cl = clLines[i];
+
+            const krasMut = hasHotspot('KRAS', cl) || hasDamaging('KRAS', cl);
+            const brafMut = hasHotspot('BRAF', cl) || hasDamaging('BRAF', cl);
+            const egfrMut = hasHotspot('EGFR', cl) || hasDamaging('EGFR', cl);
+            const pikMut  = hasHotspot('PIK3CA', cl) || hasDamaging('PIK3CA', cl);
+            const ptenLost = hasDamaging('PTEN', cl);
+            const rb1Lost  = hasDamaging('RB1', cl) ||
+                             (this.inferredSubtypes?.byCellLine?.[cl]?.lof || []).includes('RB1');
+            const bcrAblFusion =
+                (this.translocations?.geneData?.['ABL1']?.translocations?.[cl] >= 1) ||
+                (this.translocations?.geneData?.['BCR']?.translocations?.[cl] >= 1);
+
+            if (krasMut) {
+                const ge = geAt(krasGi, i);
+                if (ge !== null && ge < ADDICTION_THRESHOLD) mem.kras_addicted.add(cl);
+            }
+            if (brafMut) {
+                const ge = geAt(brafGi, i);
+                if (ge !== null && ge < ADDICTION_THRESHOLD) mem.braf_addicted.add(cl);
+            }
+            if (egfrMut) {
+                const ge = geAt(egfrGi, i);
+                if (ge !== null && ge < ADDICTION_THRESHOLD) mem.egfr_dependent.add(cl);
+            }
+            if (!rb1Lost) {
+                const ge4 = geAt(cdk4Gi, i);
+                const ge6 = geAt(cdk6Gi, i);
+                const best = (ge4 !== null && ge6 !== null) ? Math.min(ge4, ge6) : (ge4 ?? ge6);
+                if (best !== null && best < ADDICTION_THRESHOLD) mem.cdk46_dependent.add(cl);
+            }
+            if (bcrAblFusion) {
+                const ge = geAt(ablGi, i);
+                if (ge !== null && ge < ADDICTION_THRESHOLD) mem.bcr_abl_addicted.add(cl);
+            }
+            if (pikMut || ptenLost) {
+                const gePik = geAt(pikGi, i);
+                const geA1 = geAt(akt1Gi, i);
+                const geA2 = geAt(akt2Gi, i);
+                const geA3 = geAt(akt3Gi, i);
+                const candidates = [gePik, geA1, geA2, geA3].filter(v => v !== null);
+                const best = candidates.length ? Math.min(...candidates) : null;
+                if (best !== null && best < ADDICTION_THRESHOLD) mem.pi3k_active_dependent.add(cl);
             }
         }
 
@@ -22991,6 +23165,52 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (isHer2) mem.her2_pos_breast.add(cl);
                 if (hrPos && !isHer2) mem.hr_pos_breast.add(cl);
                 if (!hrPos && !isHer2) mem.tnbc.add(cl);
+            }
+
+            // Pathway-activity expression signatures — mean z-score across
+            // each curated panel; cell lines with mean z > +0.75 join the
+            // "active" set for that signature. Excludes EMT (already covered
+            // by the existing emt collection, which uses a slightly different
+            // panel and threshold).
+            this._ensureExprGeneStats();
+            if (this._exprGeneStats) {
+                const sigCatalog = this._WIKI_EXPRESSION_SIGNATURES();
+                const sigCollMap = {
+                    'MYC pathway targets':              'myc_pathway_active',
+                    'E2F / S-phase replication':        'e2f_active',
+                    'G2/M mitotic progression':         'g2m_active',
+                    'IFN response (α/γ)':               'ifn_response_active',
+                    'TGF-β response':                   'tgfb_response_active',
+                    'Hypoxia / HIF target':             'hypoxia_active',
+                    'NRF2 / oxidative-stress response': 'nrf2_signature_active',
+                    'Stem / lineage plasticity':        'stem_active'
+                };
+                for (const id of Object.values(sigCollMap)) mem[id] = new Set();
+                const exprMap = new Map();
+                this.expressionMetadata.cellLines.forEach((cl, i) => exprMap.set(cl, i));
+                const nExprCL2 = this.expressionMetadata.nCellLines;
+                const stats = this._exprGeneStats;
+                for (const cl of clLines) {
+                    const ei = exprMap.get(cl);
+                    if (ei === undefined) continue;
+                    for (const [sigName, info] of Object.entries(sigCatalog)) {
+                        const collId = sigCollMap[sigName];
+                        if (!collId) continue;
+                        const zs = [];
+                        for (const gene of info.genes) {
+                            const gi = this.expressionGeneIndex.get(gene);
+                            if (gi === undefined) continue;
+                            const sdv = stats.sd[gi];
+                            if (sdv < 0.3) continue;
+                            const v = this.expressionData[gi * nExprCL2 + ei];
+                            if (isNaN(v)) continue;
+                            zs.push((v - stats.mean[gi]) / sdv);
+                        }
+                        if (zs.length < 3) continue;
+                        const meanZ = zs.reduce((a, b) => a + b, 0) / zs.length;
+                        if (meanZ > 0.75) mem[collId].add(cl);
+                    }
+                }
             }
         }
 

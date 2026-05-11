@@ -1325,6 +1325,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.32 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Fifteen new collections lifting Wiki-only views into cohort-level filters.
+                    <b>(a) Oncogene addiction</b> &mdash; new category &ldquo;Oncogene addiction (mutation &times; CRISPR dependency)&rdquo;. Six entries combine the driver-mutation call with the actual CRISPR knock-out read-out (GE &lt; &minus;0.5): <b>KRAS-addicted</b>, <b>BRAF-addicted</b>, <b>EGFR-dependent</b>, <b>CDK4/6-dependent</b> (RB1-intact + CDK4/6 essential), <b>BCR-ABL-addicted</b>, <b>PI3K-active and dependent</b>. Stricter than the existing mutation-only collections &mdash; picks lines where losing the driver actually kills the cell, not just lines that carry the mutation.
+                    <b>(b) Pathway-activity expression signatures</b> &mdash; new category. Eight entries reuse the same curated panels the Wiki uses (MYC targets, E2F / S-phase, G2/M, IFN response, TGF-&beta;, hypoxia / HIF, NRF2 signature, stem / lineage plasticity). Membership = mean z &gt; +0.75 across the panel genes. Computed lazily after expression loads, mirroring the existing NE / EMT / breast-subtype collections.
+                    <b>(c) High LoH (&ge; 0.3)</b> added to the existing Genome &mdash; ploidy / instability category for HRD-adjacent stratification.</li>
+                </ul>
                 <p><strong>v.81.31 (2026-05-11)</strong></p>
                 <ul>
                     <li><b>STR authentication block now links to the source data.</b> New &ldquo;Validate against the source&rdquo; sub-block above the reference STR profile table with a direct <b>Cellosaurus</b> link for this cell line&rsquo;s RRID (provenance, parent / derivative relationships, contamination flags, misidentification history are all there), plus <b>ATCC search</b> and <b>DSMZ search</b> links for buying commercial authentication services. The reference STR profile is also explicitly attributed to Cellosaurus (SIB / ExPASy) in a footnote line so the user knows where to validate.</li>
@@ -2640,7 +2647,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.31</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.32</a>
     </div>
 
     <div class="main-content">
@@ -4801,6 +4808,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_31"></script>
+    <script src="app.js?v=v81_32"></script>
 </body>
 </html>
