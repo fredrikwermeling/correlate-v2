@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.23 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Wiki &mdash; CRISPR dependencies section now ranks by <b>z-score vs the full cohort</b> instead of raw gene-effect, so the top entries are <b>uniquely essential</b> to this cell line (downstream of its driver mutations, lineage-specific factors, etc.) instead of the pan-essentials (RAN, PCNA, RPL17 &hellip;) that every cell line shares. Pan-essentials are additionally filtered out against the DepMap common-essentials list as a safety net. Each gene is now annotated with both its raw GE and its z-score, e.g. <code>FOXA1 (GE &minus;1.20, z &minus;3.2)</code>. The matching &ldquo;growth-promoting on knockout&rdquo; row is also z-ranked. The 💊 pill meaning is now spelled out inline in the section header: <i>approved or clinical-stage drug targets this gene</i>. Druggable / pathway dependency interpretation panels also switched to the uniquely-essential set (z &lt; &minus;1.5).
+                    Computation: per-gene mean and SD across the full cohort, cached on first Wiki open. Section caption rewritten to make this framing explicit.</li>
+                </ul>
                 <p><strong>v.81.22 (2026-05-11)</strong></p>
                 <ul>
                     <li>Wiki &mdash; Driver mutations section condensed and corrected.
@@ -2591,7 +2596,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.22</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.23</a>
     </div>
 
     <div class="main-content">
@@ -4751,6 +4756,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_22"></script>
+    <script src="app.js?v=v81_23"></script>
 </body>
 </html>

@@ -25427,7 +25427,52 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         };
     }
 
-    openCellLineWiki(cellLineId) {
+    // Per-gene cohort mean / SD across CRISPR gene-effect, cached on first
+    // use. Used to z-score this cell line's GE values so "uniquely essential"
+    // and "uniquely growth-promoting on knockout" can be computed — the
+    // biologically interesting view, since the most-essential genes by raw
+    // score are dominated by pan-essentials (RAN, PCNA, RPL17 …) that every
+    // cell line shares.
+    _ensureGeGeneStats() {
+        if (this._geGeneStats || !this.nGenes || !this.geneEffects) return;
+        const nG = this.nGenes;
+        const nC = this.nCellLines;
+        const mean = new Float32Array(nG);
+        const sd = new Float32Array(nG);
+        for (let g = 0; g < nG; g++) {
+            const off = g * nC;
+            let sum = 0, n = 0;
+            for (let i = 0; i < nC; i++) {
+                const v = this.geneEffects[off + i];
+                if (!isNaN(v) && v !== -999) { sum += v; n++; }
+            }
+            const m = n > 0 ? sum / n : 0;
+            mean[g] = m;
+            if (n > 1) {
+                let sq = 0;
+                for (let i = 0; i < nC; i++) {
+                    const v = this.geneEffects[off + i];
+                    if (!isNaN(v) && v !== -999) sq += (v - m) * (v - m);
+                }
+                sd[g] = Math.sqrt(sq / (n - 1));
+            }
+        }
+        this._geGeneStats = { mean, sd };
+    }
+
+    async openCellLineWiki(cellLineId) {
+        // Ensure the common-essentials gene list is loaded — used to filter
+        // pan-essentials out of the "uniquely essential" view below. Small
+        // file; loaded once and cached for the session. Silently falls back
+        // to an empty set on failure (filter becomes a no-op).
+        if (!this._commonEssentials) {
+            try {
+                const r = await fetch('web_data/common_essentials.json');
+                this._commonEssentials = new Set(await r.json());
+            } catch (e) {
+                this._commonEssentials = new Set();
+            }
+        }
         const name = this.getCellLineName(cellLineId);
         const m = this.cellLineMetadata || {};
         const get = (field) => m[field]?.[cellLineId] || '';
@@ -26146,61 +26191,95 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
 
         // --- GE signature (interpretive) ---
+        // Rank by z-score against the full cohort, NOT raw gene-effect. The
+        // most-essential genes by raw score are dominated by pan-essentials
+        // (RAN, PCNA, RPL17 …) shared by every cell line — they tell you
+        // nothing about THIS cell line. The biologically interesting view is
+        // "uniquely essential": genes this line depends on more than typical,
+        // usually because they sit downstream of its active oncogene or driver
+        // mutation. Pan-essentials are also filtered out via the
+        // common_essentials list as a belt-and-braces.
         const clIdx = this.metadata.cellLines.indexOf(cellLineId);
         const drugTargets = this._WIKI_DRUG_TARGETS();
+        const commonEss = this._commonEssentials || new Set();
         let geSigHtml = '<em style="color:#6b7280;">No GE data available.</em>';
         let essentialDrugTargets = [];
         let essentialPathwayHits = [];
         if (clIdx >= 0) {
-            const geVals = [];
-            for (let g = 0; g < this.nGenes; g++) {
-                const v = this.geneEffects[g * this.nCellLines + clIdx];
-                if (!isNaN(v) && v !== -999) geVals.push({ gene: this.geneNames[g], val: v });
-            }
-            geVals.sort((a, b) => a.val - b.val);
+            this._ensureGeGeneStats();
+            const geStats = this._geGeneStats;
+            const nC = this.nCellLines;
 
-            // Top depleted (essential)
-            const topEss = geVals.slice(0, 15);
-            const topEssHtml = topEss.slice(0, 8).map(g => {
+            // Build z-scored gene list (skip near-constant genes — z is meaningless there).
+            const zScored = [];
+            if (geStats) {
+                for (let g = 0; g < this.nGenes; g++) {
+                    const v = this.geneEffects[g * nC + clIdx];
+                    if (isNaN(v) || v === -999) continue;
+                    const sdv = geStats.sd[g];
+                    if (sdv < 0.05) continue;
+                    const z = (v - geStats.mean[g]) / sdv;
+                    zScored.push({ gene: this.geneNames[g], val: v, z });
+                }
+            }
+
+            // Top uniquely essential (most negative z, common essentials removed).
+            const sortedByZ = zScored.slice().sort((a, b) => a.z - b.z);
+            const topUnique = sortedByZ.filter(g => !commonEss.has(g.gene)).slice(0, 8);
+            // Wider net for the pathway / drug-target cross-references — z < -1.5
+            // means clearly more essential than typical, large enough to catch
+            // most pathway-level signals.
+            const allUniquelyEss = sortedByZ.filter(g => !commonEss.has(g.gene) && g.z < -1.5).slice(0, 50);
+
+            const fmtZ = (z) => (z >= 0 ? '+' : '') + z.toFixed(1);
+            const renderEssRow = (g) => {
                 const isTgt = drugTargets.has(g.gene);
-                return `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${isTgt ? 'color:#7c3aed; font-weight:600; background:#faf5ff; padding:1px 4px; border-radius:3px;' : ''}">${g.gene}</span> (${g.val.toFixed(2)})${isTgt ? ' 💊' : ''}`;
-            }).join(', ');
-            // Flag essential drug targets (lethal when knocked out → candidate for targeting)
-            essentialDrugTargets = topEss.filter(g => drugTargets.has(g.gene));
-            // Pathway-gene essentialities (cross-check with mutation-found pathway genes)
+                const tgtStyle = isTgt ? 'color:#7c3aed; font-weight:600; background:#faf5ff; padding:1px 4px; border-radius:3px;' : '';
+                const pill = isTgt ? ' <span title="Approved or clinical-stage drug targets this gene">💊</span>' : '';
+                return `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tgtStyle}">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="GE = CRISPR knockout effect (0 = neutral, −0.5 ≈ selective, −1 = strongly essential). z-score = how unusual this GE is vs the rest of the cohort.">(GE ${g.val.toFixed(2)}, z ${fmtZ(g.z)})</span>${pill}`;
+            };
+            const topUniqueHtml = topUnique.map(renderEssRow).join(', ');
+
+            essentialDrugTargets = allUniquelyEss.filter(g => drugTargets.has(g.gene));
             const allPathwayGenes = new Set();
             Object.values(pathways).forEach(p => p.genes.forEach(g => allPathwayGenes.add(g)));
-            essentialPathwayHits = topEss.filter(g => allPathwayGenes.has(g.gene));
+            essentialPathwayHits = allUniquelyEss.filter(g => allPathwayGenes.has(g.gene));
 
-            // Interpretation lines
             const interpLines = [];
             if (essentialDrugTargets.length > 0) {
-                interpLines.push(`<div style="padding:6px 10px; background:#faf5ff; border-left:3px solid #7c3aed; font-size:11px;"><b style="color:#6d28d9;">Druggable dependencies</b> — genes this cell line depends on for survival that also have approved or clinical-stage drugs targeting them: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span>`).join(', ')}.</div>`);
+                interpLines.push(`<div style="padding:6px 10px; background:#faf5ff; border-left:3px solid #7c3aed; font-size:11px;"><b style="color:#6d28d9;">Druggable dependencies unique to this line</b> — genes this cell line depends on more than typical AND for which approved or clinical-stage drugs exist: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;">(z ${fmtZ(g.z)})</span>`).join(', ')}.</div>`);
             }
             if (essentialPathwayHits.length > 0) {
                 const hitsByPathway = {};
                 for (const [pw, info] of Object.entries(pathways)) {
                     const inPw = essentialPathwayHits.filter(h => info.genes.includes(h.gene));
-                    if (inPw.length > 0) hitsByPathway[pw] = inPw.map(h => h.gene);
+                    if (inPw.length > 0) hitsByPathway[pw] = inPw.map(h => `${h.gene} (z ${fmtZ(h.z)})`);
                 }
                 if (Object.keys(hitsByPathway).length > 0) {
                     const items = Object.entries(hitsByPathway).map(([pw, gs]) => `<li><b>${pw}</b>: ${gs.join(', ')}</li>`).join('');
-                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #16a34a; font-size:11px;"><b style="color:#15803d;">Pathway dependencies</b> — cell line can't survive without these (knockout is lethal):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
+                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #16a34a; font-size:11px;"><b style="color:#15803d;">Pathway dependencies unique to this line</b> — cancer-pathway genes this cell line depends on more than typical (z &lt; &minus;1.5):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
                 }
             }
-            // Enriched (gain on knockout) — flag known tumor suppressors
+
+            // Top uniquely growth-promoting on knockout (most positive z).
+            // Tumor suppressors are common here — if removing them helps,
+            // they're still functional in this line.
             const tumorSuppressors = new Set(['TP53', 'RB1', 'PTEN', 'APC', 'NF1', 'VHL', 'BRCA1', 'BRCA2', 'STK11', 'CDKN2A', 'SMAD4', 'CTCF']);
-            const topEnriched = geVals.slice(-8).reverse();
-            const tsHits = topEnriched.filter(g => tumorSuppressors.has(g.gene));
-            const topEnrHtml = topEnriched.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tumorSuppressors.has(g.gene) ? 'color:#dc2626; font-weight:600;' : ''}">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
+            const topGain = zScored.slice().sort((a, b) => b.z - a.z).slice(0, 8);
+            const tsHits = topGain.filter(g => tumorSuppressors.has(g.gene));
+            const topGainHtml = topGain.map(g => {
+                const isTSG = tumorSuppressors.has(g.gene);
+                const tsStyle = isTSG ? 'color:#dc2626; font-weight:600;' : '';
+                return `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tsStyle}">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;">(GE ${g.val.toFixed(2)}, z ${fmtZ(g.z)})</span>`;
+            }).join(', ');
             const tsInterp = tsHits.length > 0
-                ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumour-suppressor genes that, when knocked out, make this cell line grow <em>better</em></b> (red in the list above): ${tsHits.map(g => g.gene).join(', ')}. Tumour suppressors normally restrain proliferation — if removing them helps, it means they're still functional here. So these particular tumour-suppressor genes have <em>not</em> yet been inactivated in this cell line.</div>`
+                ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumour suppressors whose knockout boosts growth</b> (red above): ${tsHits.map(g => g.gene).join(', ')}. Removing these helps the cell grow — so they are <em>still functional</em> here and have <em>not</em> been inactivated in this cell line.</div>`
                 : '';
 
             geSigHtml = `
-                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? &ldquo;Essential&rdquo; genes are ones the cell cannot live without. Some are common to every cell (ribosomal, housekeeping); the interesting ones are lineage-specific or driven by active oncogenes. Scores below −1 generally indicate essentiality; above 0 indicates knockout gives a growth advantage.</p>
-                ${row('Top essential genes (💊 = drug exists)', topEssHtml)}
-                ${row('Top growth-advantage on knockout', topEnrHtml)}
+                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? The interesting dependencies are <b>unique to this line</b> — genes it depends on more than typical, usually because they sit downstream of its active oncogene or driver. <b>Pan-essentials</b> (ribosomal, RNA polymerase, etc. — required by every cell line) are excluded from this view; they tell you nothing about this specific line. Rankings below use <b>z-score vs the full cohort</b>: z &lt; &minus;2 = strongly more essential than typical, z &gt; +2 = knockout helps growth much more than typical. <span style="display:inline-block; margin-left:6px;">💊 = approved or clinical-stage drug targets this gene.</span></p>
+                ${row('Top uniquely essential (z-ranked, pan-essentials filtered)', topUniqueHtml)}
+                ${row('Top uniquely growth-promoting on knockout (z-ranked)', topGainHtml)}
                 ${interpLines.join('')}
                 ${tsInterp}`;
         }
@@ -26452,9 +26531,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'Clinically relevant fusions: curated 51-driver list validated per cell line on lineage match + partner expression z-score + partner CRISPR dependency z-score (this app). Raw partner list: DepMap 25Q3 OmicsFusionFiltered — fusion callers on hypermutated / highly rearranged cancers produce many technical and passenger calls (counts &gt;30 are flagged).'),
 
             // ── Functional behaviour ──────────────────────────────────────
-            section('CRISPR dependencies <span style="font-size:11px; color:#6b7280;">— what this cell line needs to survive</span>',
+            section('CRISPR dependencies <span style="font-size:11px; color:#6b7280;">— what this cell line uniquely needs to survive</span>',
                 geSigHtml,
-                'DepMap 25Q3 CRISPRGeneEffect (Chronos). Most essential = most negative. Druggable dependencies cross-referenced against a ~60-gene panel with approved or clinical-stage inhibitors.'),
+                'DepMap 25Q3 CRISPRGeneEffect (Chronos). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s GE − cohort mean) / cohort SD. Pan-essentials filtered against the DepMap common-essentials list. Druggable dependencies cross-referenced against a curated ~60-gene panel with approved or clinical-stage inhibitors.'),
             section('Expression profile <span style="font-size:11px; color:#6b7280;">— which genes are switched on</span>',
                 exprSigHtml,
                 'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Lineage-marker panels curated per Oncotree lineage (~15 markers each). Druggable targets flagged at log₂-TPM+1 &gt; 3.'),
