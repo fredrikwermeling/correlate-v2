@@ -26130,23 +26130,48 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // --- Genome signatures (PureCN + MSIsensor2 + Ben-David aneuploidy) ---
         let genomeSigHtml;
         if (gs) {
+            // Each metric gets a low / medium / high descriptor in plain English
+            // so the raw number is interpretable without hovering or scrolling to
+            // the histogram. Thresholds are the same ones used elsewhere in the
+            // app (card view, immunogenicity / genome-instability collections).
             const wgdLabel = gs.WGD === true
                 ? '<span style="color:#dc2626; font-weight:600;">Yes</span> <span style="font-size:10px; color:#6b7280;">— genome doubled at some point in tumour evolution; common (~58% of panel) and shapes downstream interpretation</span>'
-                : 'No';
+                : 'No <span style="font-size:10px; color:#6b7280;">— no whole-genome doubling event detected</span>';
             const msiVal = gs.MSIScore;
-            const msiLabel = (msiVal != null)
-                ? (msiVal >= 20
-                    ? `<span style="color:#dc2626; font-weight:600;">${msiVal.toFixed(1)} (MSI-high)</span> <span style="font-size:10px; color:#6b7280;">— mismatch repair lost; hypermutated, classic ICB responder</span>`
-                    : `${msiVal.toFixed(1)} <span style="font-size:10px; color:#6b7280;">(microsatellite stable)</span>`)
-                : '';
-            const ploidyLabel = gs.Ploidy != null
-                ? `${gs.Ploidy.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(diploid ≈ 2.0; values &gt;3 indicate WGD or near-tetraploidy)</span>` : '';
-            const aneupLabel = gs.Aneuploidy != null
-                ? `${gs.Aneuploidy} <span style="font-size:10px; color:#6b7280;">/39 (Ben-David 2021 score; higher = more chromosomal disruption)</span>` : '';
-            const cinLabel = gs.CIN != null
-                ? `${gs.CIN.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(chromosomal instability — fraction of genome subject to copy-number change)</span>` : '';
-            const lohLabel = gs.LoHFraction != null
-                ? `${gs.LoHFraction.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(fraction of genome that has lost heterozygosity)</span>` : '';
+            let msiLabel = '';
+            if (msiVal != null) {
+                if (msiVal >= 20) {
+                    msiLabel = `<span style="color:#dc2626; font-weight:600;">${msiVal.toFixed(1)} (MSI-high)</span> <span style="font-size:10px; color:#6b7280;">— well above the MSI-high cutoff of 20; mismatch repair lost; hypermutated, classic checkpoint-immunotherapy responder</span>`;
+                } else if (msiVal >= 3.5) {
+                    msiLabel = `${msiVal.toFixed(1)} <span style="font-size:10px; color:#6b7280;">(borderline; MSS &lt; 3.5, MSI-high &ge; 20)</span>`;
+                } else {
+                    msiLabel = `${msiVal.toFixed(1)} <span style="font-size:10px; color:#6b7280;">(<b>microsatellite stable</b> — well below the MSI-high cutoff of 20; mismatch repair intact)</span>`;
+                }
+            }
+            const ploidyLabel = gs.Ploidy != null ? (() => {
+                const desc = gs.Ploidy < 2.3 ? 'near-diploid' :
+                             gs.Ploidy < 2.7 ? 'near-triploid' :
+                             gs.Ploidy < 4.5 ? 'near-tetraploid' : 'highly polyploid';
+                return `${gs.Ploidy.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; normal diploid = 2.0; &gt; 3 typically indicates WGD or near-tetraploidy)</span>`;
+            })() : '';
+            const aneupLabel = gs.Aneuploidy != null ? (() => {
+                const desc = gs.Aneuploidy < 15 ? 'low' :
+                             gs.Aneuploidy < 25 ? 'medium' : 'high';
+                return `${gs.Aneuploidy} / 39 <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; Ben-David 2021 score; high tier &ge; 25 of 39)</span>`;
+            })() : '';
+            const cinLabel = gs.CIN != null ? (() => {
+                const desc = gs.CIN < 0.2 ? 'low' :
+                             gs.CIN < 0.5 ? 'medium' : 'high';
+                return `${gs.CIN.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; fraction of the genome subject to fine-scale copy-number change; high tier &ge; 0.5)</span>`;
+            })() : '';
+            const lohLabel = gs.LoHFraction != null ? (() => {
+                // Loss-of-heterozygosity fraction. Typical diploid genome runs
+                // ~0.05–0.15 LoH; > 0.3 reflects substantial allelic loss
+                // (e.g. BRCAness signatures, often co-occurring with WGD).
+                const desc = gs.LoHFraction < 0.15 ? 'low' :
+                             gs.LoHFraction < 0.3 ? 'medium' : 'high';
+                return `${gs.LoHFraction.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; fraction of the genome where one parental copy has been lost; high tier &ge; 0.3, often seen in WGD-positive or HRD lines)</span>`;
+            })() : '';
             genomeSigHtml = `
                 <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Genome-wide structural and stability metrics. Useful interpretive context — WGD-positive lines and MSI-high lines behave systematically differently in many comparisons.</p>
                 ${row('Whole-genome doubling (WGD)', wgdLabel)}
