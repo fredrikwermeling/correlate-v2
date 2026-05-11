@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.15 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Collections panel — fixed strange-looking text in tooltips. HTML entities (<code>&amp;mdash;</code>, <code>&amp;minus;</code>, <code>&amp;ge;</code>, <code>&amp;rsquo;</code>, <code>&amp;ndash;</code>) used in the catalog description strings were rendering literally in some tooltip contexts. Swapped them out for the Unicode characters directly (— − ≥ – etc.) so they show as glyphs everywhere, regardless of whether the text ends up inside a <code>title=""</code> attribute, a <code>textContent</code> assignment, or innerHTML body.</li>
+                    <li>Immunogenicity prediction added as two new collections under <b>Immunology</b>, replacing the hot/cold framing. <b>Likely immunogenic</b> = ≥ 200 damaging coding mutations <i>and</i> class-I antigen presentation appears intact (no B2M damaging, HLA-A/B/C expression not strongly reduced, HLA CN not lost vs B2M). <b>Likely non-immunogenic</b> = either class-I reduced/lost (immune escape) or ≤ 50 damaging mutations with otherwise intact MHC-I (too few neoantigens). Lines that don't fit either profile are unlabelled. The catalog description spells out the inputs and the cell-intrinsic-proxy caveat (real-tumour immunogenicity also depends on the TME, which isn't observable in cell lines).</li>
+                </ul>
                 <p><strong>v.81.14 (2026-05-11)</strong></p>
                 <ul>
                     <li>Collections filter &mdash; oncoprint-style include/exclude. The single-collection dropdown is replaced with a &ldquo;Collections [N]&rdquo; button that opens a multi-select panel. Each collection has two toggle buttons: <b style="color:#15803d;">+</b> = require (cell line must be IN this set), <b style="color:#991b1b;">&minus;</b> = exclude (cell line must NOT be in this set). Multiple collections combine with AND, so e.g. you can ask for &ldquo;MSI-high&rdquo; AND <i>not</i> &ldquo;WGD-positive&rdquo; in one shot. Active states are rendered as removable chips in the active-filter strip; clicking <code>&times;</code> on a chip clears just that state. Button label and chips stay in sync with the panel, and Reset clears all of them.</li>
@@ -2552,7 +2557,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.14</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.15</a>
     </div>
 
     <div class="main-content">
@@ -4712,6 +4717,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_14"></script>
+    <script src="app.js?v=v81_15"></script>
 </body>
 </html>

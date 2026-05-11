@@ -3559,7 +3559,7 @@ class CorrelationExplorer {
             } else if (n <= 1500) {
                 tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essentials); expression filtered to mean>2.5 OR sd>0.8; up to 3 500 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras.`;
             } else {
-                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essentials); expression filtered to mean>3.0 OR sd>1.0; up to 2 500 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras. Large cohort &mdash; expect ~20 MB.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essentials); expression filtered to mean>3.0 OR sd>1.0; up to 2 500 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras. Large cohort — expect ~20 MB.`;
             }
             document.getElementById('aiDataTierInfo').innerHTML = tierText;
             document.getElementById('aiExportStatus').textContent = '';
@@ -18290,7 +18290,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         <td style="text-align: center;">${n}</td>
                         <td style="text-align: center;">${mean.toFixed(2)}</td>
                         <td style="text-align: center;">${sd.toFixed(2)}</td>
-                        <td style="text-align: center; color: #9ca3af;">&mdash;</td>
+                        <td style="text-align: center; color: #9ca3af;">—</td>
                     </tr>`;
                 }
             }
@@ -22589,7 +22589,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             msi: {
                 label: 'MMR-deficient (likely MSI-high)',
                 category: 'DNA repair — mismatch repair',
-                description: '<b>Inclusion:</b> at least one damaging mutation (frameshift / nonsense / splice) in any of <b>MLH1, MSH2, MSH6, PMS2, EPCAM</b> &mdash; the canonical Lynch-syndrome / mismatch-repair gene panel. <b>Mechanism:</b> loss of MMR activity causes microsatellite instability and a hypermutated genome; classic checkpoint-immunotherapy-responder background. <b>Caveat:</b> the most common sporadic cause of MMR-deficiency is <em>MLH1 promoter hypermethylation</em>, which is not captured here — so this set under-counts MSI lines. Conversely, a single damaging mutation without biallelic loss does not always abolish MMR, so it may include some still-MMR-competent lines.'
+                description: '<b>Inclusion:</b> at least one damaging mutation (frameshift / nonsense / splice) in any of <b>MLH1, MSH2, MSH6, PMS2, EPCAM</b> — the canonical Lynch-syndrome / mismatch-repair gene panel. <b>Mechanism:</b> loss of MMR activity causes microsatellite instability and a hypermutated genome; classic checkpoint-immunotherapy-responder background. <b>Caveat:</b> the most common sporadic cause of MMR-deficiency is <em>MLH1 promoter hypermethylation</em>, which is not captured here — so this set under-counts MSI lines. Conversely, a single damaging mutation without biallelic loss does not always abolish MMR, so it may include some still-MMR-competent lines.'
             },
             hrd: {
                 label: 'HR-deficient / BRCAness',
@@ -22629,7 +22629,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             hr_pos_breast: {
                 label: 'HR+ breast (luminal-like)',
                 category: 'Breast — receptor subtype',
-                description: '<b>Inclusion:</b> breast lineage AND ESR1 OR PGR expression at or above the breast-line median AND ERBB2 expression NOT in the top 20 % of breast lines. <b>Why:</b> approximates ER+/PR+/HER2&minus; (luminal A/B) breast cancer by transcript surrogates. <b>Caveat:</b> see TNBC entry — transcript-based receptor status is approximate, not clinical.'
+                description: '<b>Inclusion:</b> breast lineage AND ESR1 OR PGR expression at or above the breast-line median AND ERBB2 expression NOT in the top 20 % of breast lines. <b>Why:</b> approximates ER+/PR+/HER2− (luminal A/B) breast cancer by transcript surrogates. <b>Caveat:</b> see TNBC entry — transcript-based receptor status is approximate, not clinical.'
             },
             her2_pos_breast: {
                 label: 'HER2+ breast (approximate)',
@@ -22639,17 +22639,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             class_i_reduced: {
                 label: 'Class-I antigen presentation reduced/lost',
                 category: 'Immunology',
-                description: '<b>Inclusion:</b> cell lines where the integrated B2M + HLA-A/B/C functional inference suggests class-I antigen presentation is reduced or likely lost. <b>Why:</b> these lines are immune-escape candidates &mdash; a tumour with low or absent class-I MHC presents fewer peptides to CD8+ T cells. <b>Method:</b> combines damaging mutation in B2M, low expression z-score of HLA-A/B/C vs the cohort, and B2M-normalised HLA copy number. <b>Caveat:</b> this is a functional inference, not allele-specific HLA-LOH detection (which would require raw BAMs + LOHHLA).'
+                description: '<b>Inclusion:</b> cell lines where the integrated B2M + HLA-A/B/C functional inference suggests class-I antigen presentation is reduced or likely lost. <b>Why:</b> these lines are immune-escape candidates — a tumour with low or absent class-I MHC presents fewer peptides to CD8+ T cells. <b>Method:</b> combines damaging mutation in B2M, low expression z-score of HLA-A/B/C vs the cohort, and B2M-normalised HLA copy number. <b>Caveat:</b> this is a functional inference, not allele-specific HLA-LOH detection (which would require raw BAMs + LOHHLA).'
             },
             wgd_positive: {
                 label: 'WGD-positive (whole-genome doubled)',
                 category: 'Genome — ploidy / instability',
-                description: '<b>Inclusion:</b> cell lines flagged WGD-positive by PureCN. <b>Why:</b> whole-genome doubling is a common cancer evolutionary event (~58 % of lines in the panel). WGD-positive lines are systematically different in many gene-effect analyses, so it&rsquo;s often useful to compare WGD+ vs WGD&minus; separately. <b>Caveat:</b> WGD status is a binary call from a continuous signal; near-tetraploid lines without WGD and near-triploid lines with WGD both exist.'
+                description: '<b>Inclusion:</b> cell lines flagged WGD-positive by PureCN. <b>Why:</b> whole-genome doubling is a common cancer evolutionary event (~58 % of lines in the panel). WGD-positive lines are systematically different in many gene-effect analyses, so it is often useful to compare WGD+ vs WGD− separately. <b>Caveat:</b> WGD status is a binary call from a continuous signal; near-tetraploid lines without WGD and near-triploid lines with WGD both exist.'
             },
             high_aneuploidy: {
                 label: 'High aneuploidy',
                 category: 'Genome — ploidy / instability',
-                description: '<b>Inclusion:</b> cell lines with Ben-David 2021 aneuploidy score &ge; 25 (out of 39). <b>Why:</b> a coarse marker of how many chromosome arms have gained or lost copies. High aneuploidy correlates with TP53 loss, WGD, and a distinct dependency profile (e.g. on chromosomal-cohesion factors). <b>Caveat:</b> aneuploidy and CIN (chromosomal instability) are related but not identical &mdash; aneuploidy captures arm-level gains/losses, CIN captures fine-scale chaos. A line can score high on one and low on the other.'
+                description: '<b>Inclusion:</b> cell lines with Ben-David 2021 aneuploidy score ≥ 25 (out of 39). <b>Why:</b> a coarse marker of how many chromosome arms have gained or lost copies. High aneuploidy correlates with TP53 loss, WGD, and a distinct dependency profile (e.g. on chromosomal-cohesion factors). <b>Caveat:</b> aneuploidy and CIN (chromosomal instability) are related but not identical — aneuploidy captures arm-level gains/losses, CIN captures fine-scale chaos. A line can score high on one and low on the other.'
+            },
+            likely_immunogenic: {
+                label: 'Likely immunogenic',
+                category: 'Immunology',
+                description: '<b>Inclusion:</b> high mutation burden (≥ 200 damaging coding mutations) AND class-I antigen presentation appears functionally intact (no B2M damaging mutation, HLA-A/B/C expression not strongly reduced, HLA copy number not lost vs B2M). <b>Why:</b> these two signals are the cell-intrinsic prerequisites for an "immunogenic" tumour — many potential neoantigens to display, AND working MHC-I machinery to display them with. In a patient context these are typically the lines that would generate a CD8+ T-cell response. <b>Caveat:</b> this is a cell-intrinsic proxy. Real tumour immunogenicity also depends on the tumour microenvironment (T-cell infiltration, immunosuppressive cells, IFN-γ context) which is absent in cell lines. Treat as "likely visible to T cells if placed in an immunocompetent context", not as a TME-based hot/cold call.'
+            },
+            likely_non_immunogenic: {
+                label: 'Likely non-immunogenic',
+                category: 'Immunology',
+                description: '<b>Inclusion:</b> EITHER class-I antigen presentation is reduced or likely lost (immune escape via presentation defect), OR very low mutation burden (≤ 50 damaging mutations) with otherwise intact MHC-I (too few neoantigens to present). <b>Why:</b> these are the two main routes to a poorly-immunogenic cancer cell phenotype — the cell either cannot show its peptides, or has too few interesting ones to show. <b>Caveat:</b> same proxy caveat as the immunogenic call — cell-intrinsic features only, not actual TME composition.'
             }
         };
     }
@@ -22714,6 +22724,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             for (const cl of clLines) {
                 const a = this.globalSignatures.byCellLine[cl]?.Aneuploidy;
                 if (a != null && a >= 25) mem.high_aneuploidy.add(cl);
+            }
+        }
+
+        // Immunogenicity proxy: two combined inputs — MHC-I status (from
+        // _classOnePresentation) and damaging-mutation count (proxy for TMB).
+        //   Likely immunogenic: ≥200 damaging AND MHC-I intact.
+        //   Likely non-immunogenic: MHC-I reduced/lost, OR ≤50 damaging with
+        //     MHC-I intact (too few neoantigens despite working presentation).
+        // Lines that don't meet either profile are left unlabelled.
+        mem.likely_immunogenic = new Set();
+        mem.likely_non_immunogenic = new Set();
+        for (const cl of clLines) {
+            const damCount = this._damagingCountByCL?.get(cl) || 0;
+            const co = this._classOnePresentation?.(cl);
+            const mhc = co?.status || 'unknown';
+            if (damCount >= 200 && mhc === 'intact') {
+                mem.likely_immunogenic.add(cl);
+            } else if (mhc === 'reduced' || mhc === 'likely_lost') {
+                mem.likely_non_immunogenic.add(cl);
+            } else if (damCount <= 50 && mhc === 'intact') {
+                mem.likely_non_immunogenic.add(cl);
             }
         }
 
@@ -22885,7 +22916,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             + `<span style="font-weight:600; color:#374151;">Filter cell lines by collection</span>`
             + `<a href="#" id="clbCollectionsClear" style="color:#6b7280; text-decoration:none; font-size:10px;">clear all</a>`
             + `</div>`
-            + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#15803d;">+</b> to require, <b style="color:#991b1b;">&minus;</b> to exclude. Multiple collections combine with AND.</div>`;
+            + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#15803d;">+</b> to require, <b style="color:#991b1b;">−</b> to exclude. Multiple collections combine with AND.</div>`;
 
         for (const cat of Object.keys(byCat)) {
             html += `<div style="color:#15803d; font-size:10px; font-weight:600; margin:8px 0 3px; border-bottom:1px solid #e5e7eb; padding-bottom:2px;">${cat}</div>`;
@@ -22902,7 +22933,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const safeDesc = def.description.replace(/<[^>]+>/g, '').replace(/"/g, '&quot;');
                 html += `<div style="display:flex; gap:6px; align-items:center; padding:2px 0;" title="${safeDesc}">`
                     + `<button type="button" data-coll-id="${id}" data-coll-action="include" style="${incStyle} border:1px solid; width:22px; height:20px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px; line-height:1; padding:0;">+</button>`
-                    + `<button type="button" data-coll-id="${id}" data-coll-action="exclude" style="${excStyle} border:1px solid; width:22px; height:20px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px; line-height:1; padding:0;">&minus;</button>`
+                    + `<button type="button" data-coll-id="${id}" data-coll-action="exclude" style="${excStyle} border:1px solid; width:22px; height:20px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px; line-height:1; padding:0;">−</button>`
                     + `<span style="flex:1; color:#374151;">${def.label}</span>`
                     + `<span style="color:#9ca3af; font-size:10px;">n=${n}</span>`
                     + `</div>`;
@@ -24389,7 +24420,7 @@ CIN (chromosomal instability): how scrambled the genome is at fine scale. Scale 
         if (infSub.msi === true) {
             flags.push({
                 label: 'MSI-high',
-                caption: 'microsatellite instability (MSIsensor2 score &ge; 20) &mdash; mismatch-repair deficient',
+                caption: 'microsatellite instability (MSIsensor2 score ≥ 20) — mismatch-repair deficient',
                 tooltip: 'DepMap inferred MSI status from MSIsensor2 score. MSI-high lines are typically MMR-deficient and hypermutated.'
             });
         }
@@ -24398,7 +24429,7 @@ CIN (chromosomal instability): how scrambled the genome is at fine scale. Scale 
             const reasonList = (classOne.reasons || []).slice(0, 2).join('; ');
             flags.push({
                 label: lbl,
-                caption: `MHC-I antigen presentation likely impaired${reasonList ? ' &mdash; ' + reasonList : ''}`,
+                caption: `MHC-I antigen presentation likely impaired${reasonList ? ' — ' + reasonList : ''}`,
                 tooltip: `Functional inference combining B2M damaging mutations + HLA-A/B/C expression z-score + B2M-normalised HLA copy number. NOT allele-specific HLA-LOH detection (that would need raw BAMs + LOHHLA). Reasons: ${(classOne.reasons || []).join('; ')}`
             });
         }
@@ -24416,7 +24447,7 @@ CIN (chromosomal instability): how scrambled the genome is at fine scale. Scale 
         // Wiki entry-point sits at the top so the user lands on the deep-dive
         // before scrolling through the summary lists.
         top += `<div class="clb-detail-section" style="margin-bottom:12px;">`;
-        top += `<button id="clbWikiBtn" class="btn btn-outline btn-sm" style="width:100%; font-size:11px; padding:5px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open the cell line Wiki (patient origin, classification, mutation profile, fusions, signatures, STR authentication)">Wiki &mdash; deep dive on this cell line</button>`;
+        top += `<button id="clbWikiBtn" class="btn btn-outline btn-sm" style="width:100%; font-size:11px; padding:5px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open the cell line Wiki (patient origin, classification, mutation profile, fusions, signatures, STR authentication)">Wiki — deep dive on this cell line</button>`;
         top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutGenes.length})</strong>`;
@@ -25028,7 +25059,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             'SWI/SNF chromatin':        { genes: ['ARID1A', 'ARID1B', 'ARID2', 'SMARCA4', 'SMARCA2', 'SMARCB1', 'PBRM1', 'BRD7'], note: 'Chromatin-remodelling complex. Loss of one subunit can create dependency on a paralog (synthetic lethality).' },
             'Epigenetic writers':       { genes: ['KMT2A', 'KMT2B', 'KMT2C', 'KMT2D', 'CREBBP', 'EP300', 'EZH2', 'DNMT3A', 'TET2', 'ASXL1', 'IDH1', 'IDH2'], note: 'Histone and DNA methylation machinery. Dysregulation is especially common in haematological cancers.' },
             'Homologous recombination repair': { genes: ['BRCA1', 'BRCA2', 'PALB2', 'ATM', 'ATR', 'CHEK1', 'CHEK2', 'RAD51', 'RAD51C', 'RAD51D', 'FANCA', 'FANCC', 'FANCD2', 'BRIP1', 'BARD1'], note: 'High-fidelity DNA double-strand break repair. Loss leads to PARP-inhibitor sensitivity.' },
-            'Mismatch repair':          { genes: ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'], note: 'Corrects DNA replication errors. Loss causes microsatellite instability and a hypermutated genome &mdash; classic checkpoint-immunotherapy responder.' },
+            'Mismatch repair':          { genes: ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'], note: 'Corrects DNA replication errors. Loss causes microsatellite instability and a hypermutated genome — classic checkpoint-immunotherapy responder.' },
             'NOTCH':                    { genes: ['NOTCH1', 'NOTCH2', 'NOTCH3', 'FBXW7', 'MAML2'], note: 'Cell-fate signalling. Activating mutations in T-cell leukaemia; inactivating in squamous cancers.' },
             'Haematopoietic transcription / JAK-STAT': { genes: ['RUNX1', 'CEBPA', 'GATA2', 'IKZF1', 'PAX5', 'EBF1', 'IL7R', 'CRLF2', 'JAK1', 'JAK2', 'JAK3', 'STAT3', 'STAT5B'], note: 'Transcription factors and cytokine signalling that govern blood-cell identity and survival.' },
             'Telomere maintenance':     { genes: ['TERT', 'TERC', 'POT1', 'ATRX', 'DAXX'], note: 'Maintains chromosome ends. Cancers reactivate telomerase (TERT promoter mutations) or use the alternative ALT mechanism.' },
@@ -25363,12 +25394,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const mmrHits = MMR_GENES.filter(damHit);
         if (mmrHits.length > 0) flagCards.push({
             title: 'Mismatch repair is broken',
-            body: `Damaging mutation in ${mmrHits.map(g => `<b>${g}</b>`).join(', ')}. Cells can&rsquo;t correct replication errors, so they accumulate many mutations and show microsatellite instability. Typically a model for checkpoint-immunotherapy response.`,
+            body: `Damaging mutation in ${mmrHits.map(g => `<b>${g}</b>`).join(', ')}. Cells can't correct replication errors, so they accumulate many mutations and show microsatellite instability. Typically a model for checkpoint-immunotherapy response.`,
             color: '#dc2626'
         });
         if (damagingCount > 1000) flagCards.push({
             title: 'Very high mutation burden',
-            body: `${damagingCount.toLocaleString()} damaging mutations &mdash; an exceptionally high count, usually from loss of DNA-repair machinery (mismatch repair, polymerase proofreading, etc.).`,
+            body: `${damagingCount.toLocaleString()} damaging mutations — an exceptionally high count, usually from loss of DNA-repair machinery (mismatch repair, polymerase proofreading, etc.).`,
             color: '#dc2626'
         });
         else if (damagingCount > 500) flagCards.push({
@@ -25380,7 +25411,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const hrHits = hrGenes.filter(damHit);
         if (hrHits.length > 0) flagCards.push({
             title: 'Homologous-recombination repair is broken',
-            body: `Damaging mutation in ${hrHits.map(g => `<b>${g}</b>`).join(', ')}. The cell can&rsquo;t accurately repair DNA double-strand breaks and often depends on backup pathways. Typically sensitive to PARP inhibitors.`,
+            body: `Damaging mutation in ${hrHits.map(g => `<b>${g}</b>`).join(', ')}. The cell can't accurately repair DNA double-strand breaks and often depends on backup pathways. Typically sensitive to PARP inhibitors.`,
             color: '#7c3aed'
         });
         if (damHit('TP53') || hotHit('TP53')) flagCards.push({
@@ -25392,7 +25423,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const brk = damHit('RB1') ? 'RB1' : 'CDKN2A';
             flagCards.push({
                 title: 'G1/S cell-cycle brake lost',
-                body: `Damaging mutation in <b>${brk}</b>. The normal checkpoint that holds cells in G1 before DNA replication is impaired &mdash; relevant to CDK4/6-inhibitor response.`,
+                body: `Damaging mutation in <b>${brk}</b>. The normal checkpoint that holds cells in G1 before DNA replication is impaired — relevant to CDK4/6-inhibitor response.`,
                 color: '#d97706'
             });
         }
@@ -25448,15 +25479,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             lines.push(`<b>TP53 ${tp53Mut ? 'mutated' : 'wild-type'}</b>`);
             if (tp53GE !== null) {
                 lines.push(tp53GE > 0.2
-                    ? `Knocking out TP53 helps the cell grow (gene-effect ${fmtGE(tp53GE)}) &mdash; consistent with TP53 actively restraining proliferation.`
+                    ? `Knocking out TP53 helps the cell grow (gene-effect ${fmtGE(tp53GE)}) — consistent with TP53 actively restraining proliferation.`
                     : tp53GE < -0.2
-                        ? `Knocking out TP53 reduces growth (${fmtGE(tp53GE)}) &mdash; unusual for a tumour-suppressor; could indicate a non-canonical or gain-of-function role here.`
-                        : `Knocking out TP53 is neutral (${fmtGE(tp53GE)}) &mdash; TP53 not actively restraining growth.`);
+                        ? `Knocking out TP53 reduces growth (${fmtGE(tp53GE)}) — unusual for a tumour-suppressor; could indicate a non-canonical or gain-of-function role here.`
+                        : `Knocking out TP53 is neutral (${fmtGE(tp53GE)}) — TP53 not actively restraining growth.`);
             }
             if (mdm2GE !== null) {
                 lines.push(mdm2GE < -0.3
-                    ? `MDM2 knockout reduces growth (${fmtGE(mdm2GE)}) &mdash; consistent with a functional p53 being normally held in check by MDM2.`
-                    : `MDM2 knockout is neutral (${fmtGE(mdm2GE)}) &mdash; MDM2 not the limiting brake on p53 in this cell.`);
+                    ? `MDM2 knockout reduces growth (${fmtGE(mdm2GE)}) — consistent with a functional p53 being normally held in check by MDM2.`
+                    : `MDM2 knockout is neutral (${fmtGE(mdm2GE)}) — MDM2 not the limiting brake on p53 in this cell.`);
             }
             let synthesis, color;
             if (tp53Mut) {
@@ -25466,7 +25497,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 synthesis = '<b>Pathway active.</b> TP53 is wild-type and functional. MDM2 inhibitors can be a therapeutic option.';
                 color = '#059669';
             } else if (tp53GE !== null && Math.abs(tp53GE) < 0.2) {
-                synthesis = '<b>Pathway functionally dormant</b> despite WT TP53 &mdash; suggests inactivation downstream (copy-number loss of CDKN1A/PUMA, epigenetic silencing, or a dominant-negative partner).';
+                synthesis = '<b>Pathway functionally dormant</b> despite WT TP53 — suggests inactivation downstream (copy-number loss of CDKN1A/PUMA, epigenetic silencing, or a dominant-negative partner).';
                 color = '#d97706';
             } else {
                 synthesis = 'Insufficient gene-effect data to interpret pathway status.';
@@ -25492,24 +25523,24 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const cdkGE = (cdk4GE !== null && cdk6GE !== null) ? Math.min(cdk4GE, cdk6GE) : (cdk4GE ?? cdk6GE);
             if (cdkGE !== null) {
                 lines.push(cdkGE < -0.2
-                    ? `CDK4/6 knockout reduces growth (best score ${fmtGE(cdkGE)}) &mdash; the cell relies on CDK4/6 for proliferation. CDK4/6 inhibitors likely active.`
-                    : `CDK4/6 knockout is neutral (${fmtGE(cdkGE)}) &mdash; cell does not depend on CDK4/6 (may use CDK2 or run a CDK4/6-independent cell cycle).`);
+                    ? `CDK4/6 knockout reduces growth (best score ${fmtGE(cdkGE)}) — the cell relies on CDK4/6 for proliferation. CDK4/6 inhibitors likely active.`
+                    : `CDK4/6 knockout is neutral (${fmtGE(cdkGE)}) — cell does not depend on CDK4/6 (may use CDK2 or run a CDK4/6-independent cell cycle).`);
             }
             if (ccnd1GE !== null && ccnd1GE < -0.2) {
-                lines.push(`CCND1 knockout reduces growth (${fmtGE(ccnd1GE)}) &mdash; consistent with cyclin-D1-driven proliferation.`);
+                lines.push(`CCND1 knockout reduces growth (${fmtGE(ccnd1GE)}) — consistent with cyclin-D1-driven proliferation.`);
             }
             let synthesis, color;
             if ((cdkn2aMut || ccnd1Hot) && cdkGE !== null && cdkGE < -0.2) {
-                synthesis = '<b>G1/S brake released</b> at the genome level <em>and</em> the cell remains CDK4/6-dependent &mdash; classic CDK4/6-inhibitor target.';
+                synthesis = '<b>G1/S brake released</b> at the genome level <em>and</em> the cell remains CDK4/6-dependent — classic CDK4/6-inhibitor target.';
                 color = '#059669';
             } else if (rb1Mut) {
-                synthesis = '<b>RB1 lost</b> &mdash; downstream of CDK4/6, so CDK4/6 inhibitors are typically ineffective.';
+                synthesis = '<b>RB1 lost</b> — downstream of CDK4/6, so CDK4/6 inhibitors are typically ineffective.';
                 color = '#dc2626';
             } else if (cdkGE !== null && cdkGE < -0.3) {
-                synthesis = '<b>CDK4/6 dependent</b> by gene-effect, with no obvious mutation driving it &mdash; pathway still a viable inhibitor target.';
+                synthesis = '<b>CDK4/6 dependent</b> by gene-effect, with no obvious mutation driving it — pathway still a viable inhibitor target.';
                 color = '#059669';
             } else if (cdkGE !== null && cdkGE > -0.1) {
-                synthesis = '<b>Cell cycle not CDK4/6-driven</b> &mdash; CDK4/6 inhibitors unlikely to help.';
+                synthesis = '<b>Cell cycle not CDK4/6-driven</b> — CDK4/6 inhibitors unlikely to help.';
                 color = '#6b7280';
             } else {
                 synthesis = 'Mixed / insufficient signal.';
@@ -25538,29 +25569,29 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             lines.push(`<b>${geno.length ? geno.join(', ') + ' mutated' : 'No RAS/MAPK driver mutation detected'}</b>`);
             if (krasMut && krasGE !== null) {
                 lines.push(krasGE < -0.3
-                    ? `KRAS knockout strongly reduces growth (${fmtGE(krasGE)}) &mdash; cell line is <b>KRAS-addicted</b>.`
-                    : `KRAS knockout has limited effect (${fmtGE(krasGE)}) despite the mutation &mdash; cell may have switched to alternative drivers.`);
+                    ? `KRAS knockout strongly reduces growth (${fmtGE(krasGE)}) — cell line is <b>KRAS-addicted</b>.`
+                    : `KRAS knockout has limited effect (${fmtGE(krasGE)}) despite the mutation — cell may have switched to alternative drivers.`);
             }
             if (brafMut && brafGE !== null) {
                 lines.push(brafGE < -0.3
-                    ? `BRAF knockout strongly reduces growth (${fmtGE(brafGE)}) &mdash; cell line is <b>BRAF-addicted</b>; BRAF/MEK inhibitors expected to be effective.`
-                    : `BRAF knockout has limited effect (${fmtGE(brafGE)}) &mdash; bypass mechanism may be present.`);
+                    ? `BRAF knockout strongly reduces growth (${fmtGE(brafGE)}) — cell line is <b>BRAF-addicted</b>; BRAF/MEK inhibitors expected to be effective.`
+                    : `BRAF knockout has limited effect (${fmtGE(brafGE)}) — bypass mechanism may be present.`);
             }
             if (mekGE !== null && mekGE < -0.3) {
-                lines.push(`MEK1 (MAP2K1) knockout reduces growth (${fmtGE(mekGE)}) &mdash; MAPK signalling is essential.`);
+                lines.push(`MEK1 (MAP2K1) knockout reduces growth (${fmtGE(mekGE)}) — MAPK signalling is essential.`);
             }
             let synthesis, color;
             if ((krasMut && krasGE !== null && krasGE < -0.3) || (brafMut && brafGE !== null && brafGE < -0.3)) {
                 synthesis = '<b>Oncogene-addicted</b> to its driver mutation. Direct inhibitor of the mutant gene is the rational therapy.';
                 color = '#059669';
             } else if (geno.length === 0 && mekGE !== null && mekGE < -0.3) {
-                synthesis = '<b>MAPK-dependent without an obvious driver mutation</b> &mdash; check for upstream RTK amplification or fusion.';
+                synthesis = '<b>MAPK-dependent without an obvious driver mutation</b> — check for upstream RTK amplification or fusion.';
                 color = '#d97706';
             } else if (geno.length === 0 && (mekGE === null || mekGE > -0.1)) {
                 synthesis = 'No evidence of RAS/MAPK pathway activation.';
                 color = '#6b7280';
             } else {
-                synthesis = 'Mixed signal &mdash; mutation present but limited functional dependency.';
+                synthesis = 'Mixed signal — mutation present but limited functional dependency.';
                 color = '#d97706';
             }
             pathwayStatuses.push({ name: 'RAS / MAPK signalling', lines, synthesis, color });
@@ -25586,15 +25617,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             lines.push(`<b>${geno.length ? geno.join(', ') + ' mutated' : 'No PI3K/AKT driver mutation detected'}</b>`);
             if (pi3kGE !== null) {
                 lines.push(pi3kGE < -0.2
-                    ? `PIK3CA knockout reduces growth (${fmtGE(pi3kGE)}) &mdash; PI3K signalling is essential.`
-                    : `PIK3CA knockout is neutral (${fmtGE(pi3kGE)}) &mdash; PI3K not the limiting node here.`);
+                    ? `PIK3CA knockout reduces growth (${fmtGE(pi3kGE)}) — PI3K signalling is essential.`
+                    : `PIK3CA knockout is neutral (${fmtGE(pi3kGE)}) — PI3K not the limiting node here.`);
             }
             if (aktcombGE !== null && aktcombGE < -0.3) {
-                lines.push(`AKT knockout reduces growth (best AKT1/2/3 score ${fmtGE(aktcombGE)}) &mdash; downstream survival signalling is essential.`);
+                lines.push(`AKT knockout reduces growth (best AKT1/2/3 score ${fmtGE(aktcombGE)}) — downstream survival signalling is essential.`);
             }
             let synthesis, color;
             if ((pikMut || ptenLoss) && (pi3kGE !== null && pi3kGE < -0.2 || aktcombGE !== null && aktcombGE < -0.3)) {
-                synthesis = '<b>Pathway active and essential</b> &mdash; PI3K-α inhibitors (alpelisib for PIK3CA-mut), AKT inhibitors, or mTOR inhibitors are rational candidates.';
+                synthesis = '<b>Pathway active and essential</b> — PI3K-α inhibitors (alpelisib for PIK3CA-mut), AKT inhibitors, or mTOR inhibitors are rational candidates.';
                 color = '#059669';
             } else if (geno.length === 0 && (pi3kGE === null || pi3kGE > -0.1)) {
                 synthesis = 'No evidence of PI3K/AKT pathway dependency.';
@@ -25615,8 +25646,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const lines = ['<b>BCR-ABL fusion detected</b>'];
                 if (ablGE !== null) {
                     lines.push(ablGE < -0.3
-                        ? `ABL1 knockout strongly reduces growth (${fmtGE(ablGE)}) &mdash; BCR-ABL-addicted, classic imatinib target.`
-                        : `ABL1 knockout has limited effect (${fmtGE(ablGE)}) &mdash; check for resistance mutations or bypass.`);
+                        ? `ABL1 knockout strongly reduces growth (${fmtGE(ablGE)}) — BCR-ABL-addicted, classic imatinib target.`
+                        : `ABL1 knockout has limited effect (${fmtGE(ablGE)}) — check for resistance mutations or bypass.`);
                 }
                 pathwayStatuses.push({
                     name: 'BCR-ABL fusion',
@@ -25634,18 +25665,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 lines.push(`<b>${egfrMut ? 'EGFR mutated' : 'EGFR not mutated'}</b>`);
                 if (egfrGE !== null) {
                     lines.push(egfrGE < -0.3
-                        ? `EGFR knockout strongly reduces growth (${fmtGE(egfrGE)}) &mdash; cell line is EGFR-dependent.`
-                        : `EGFR knockout is neutral (${fmtGE(egfrGE)}) &mdash; cell does not require EGFR.`);
+                        ? `EGFR knockout strongly reduces growth (${fmtGE(egfrGE)}) — cell line is EGFR-dependent.`
+                        : `EGFR knockout is neutral (${fmtGE(egfrGE)}) — cell does not require EGFR.`);
                 }
                 let synthesis, color;
                 if (egfrMut && egfrGE !== null && egfrGE < -0.3) {
-                    synthesis = '<b>EGFR-addicted</b> &mdash; classic context for EGFR TKIs (erlotinib, gefitinib, osimertinib).';
+                    synthesis = '<b>EGFR-addicted</b> — classic context for EGFR TKIs (erlotinib, gefitinib, osimertinib).';
                     color = '#059669';
                 } else if (egfrMut) {
                     synthesis = 'EGFR mutation present but cell may have escaped dependency.';
                     color = '#d97706';
                 } else {
-                    synthesis = 'EGFR-dependent without an obvious activating mutation &mdash; possible amplification, autocrine ligand loop, or wild-type-driven dependency.';
+                    synthesis = 'EGFR-dependent without an obvious activating mutation — possible amplification, autocrine ligand loop, or wild-type-driven dependency.';
                     color = '#d97706';
                 }
                 pathwayStatuses.push({ name: 'EGFR signalling', lines, synthesis, color });
@@ -25674,19 +25705,19 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             return `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>${variantSuffix}`;
         }).join(', ');
         const mutationHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Summary of mutations detected in this cell line. <b>Damaging</b> mutations typically inactivate a gene (frameshift, nonsense, splice). <b>Hotspot</b> mutations occur at specific residues that are recurrently mutated across tumours &mdash; some activate oncogenes (e.g. BRAF V600E, KRAS G12D), others recurrently alter tumour suppressors (e.g. TP53 R175H, R248Q). Colored badges below call out clinically-relevant patterns.</p>
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Summary of mutations detected in this cell line. <b>Damaging</b> mutations typically inactivate a gene (frameshift, nonsense, splice). <b>Hotspot</b> mutations occur at specific residues that are recurrently mutated across tumours — some activate oncogenes (e.g. BRAF V600E, KRAS G12D), others recurrently alter tumour suppressors (e.g. TP53 R175H, R248Q). Colored badges below call out clinically-relevant patterns.</p>
             ${flagCards.length ? `<div style="margin-bottom:10px;">${flagsHtml}</div>` : ''}
             ${row('Damaging mutations (total)', damagingCount)}
             ${row('Hotspot-mutated genes', hotspotCount)}
             ${topHotspots ? row('Top hotspot hits', topHotspots) : ''}
             <div style="margin-top:12px; padding-top:8px; border-top:1px solid #e5e7eb;">
                 <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway scan</div>
-                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">This scan is based on <b>mutation calls only</b> &mdash; copy-number changes, fusions, and expression are not counted here. Each row is a curated cancer pathway with at least one mutated gene in this cell line. <b style="color:#dc2626;">Red</b> = hotspot mutation (a residue recurrently mutated across tumours); <b style="color:#d97706;">orange</b> = damaging mutation (frameshift, nonsense, splice). An asterisk (<b>*</b>) marks a gene that carries <b>both</b> a hotspot and a damaging mutation.</p>
+                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">This scan is based on <b>mutation calls only</b> — copy-number changes, fusions, and expression are not counted here. Each row is a curated cancer pathway with at least one mutated gene in this cell line. <b style="color:#dc2626;">Red</b> = hotspot mutation (a residue recurrently mutated across tumours); <b style="color:#d97706;">orange</b> = damaging mutation (frameshift, nonsense, splice). An asterisk (<b>*</b>) marks a gene that carries <b>both</b> a hotspot and a damaging mutation.</p>
                 ${pathwayHtml}
             </div>
             <div style="margin-top:12px; padding-top:8px; border-top:1px solid #e5e7eb;">
                 <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway status (genotype + dependency)</div>
-                <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">A more refined view that combines what the genome says with how the cell line actually behaves in CRISPR knockout. Mutation status alone can be misleading: a TP53 wild-type cell whose growth is unaffected by TP53 knockout has a functionally inactive p53 pathway. Conversely, a wild-type cell that gains growth advantage when TP53 is removed is a true active-pathway cell &mdash; a candidate for p53-restoring therapies (MDM2 inhibitors). Each card synthesises the genotype, the relevant gene-effect read-outs, and a one-line interpretation.</p>
+                <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">A more refined view that combines what the genome says with how the cell line actually behaves in CRISPR knockout. Mutation status alone can be misleading: a TP53 wild-type cell whose growth is unaffected by TP53 knockout has a functionally inactive p53 pathway. Conversely, a wild-type cell that gains growth advantage when TP53 is removed is a true active-pathway cell — a candidate for p53-restoring therapies (MDM2 inhibitors). Each card synthesises the genotype, the relevant gene-effect read-outs, and a one-line interpretation.</p>
                 ${pathwayStatusHtml}
             </div>`;
 
@@ -25716,7 +25747,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (observedLoF.length > 0) observedRows.push(`<div style="margin:3px 0;"><b style="color:#15803d;">Functional loss (TSGs):</b> ${observedLoF.join(', ')}</div>`);
         if (observedTopHotspotGenes.length > 0) observedRows.push(`<div style="margin:3px 0;"><b style="color:#15803d;">Top hotspot-mutated genes:</b> ${observedTopHotspotGenes.join(', ')}</div>`);
         if (gs?.MSIScore != null && gs.MSIScore >= 20) observedRows.push(`<div style="margin:3px 0;"><b style="color:#dc2626;">MSI-high</b> — mismatch repair lost, hypermutated phenotype.</div>`);
-        if (gs?.WGD === true) observedRows.push(`<div style="margin:3px 0;"><b>Whole-genome doubling</b> &mdash; ploidy ≈ ${gs.Ploidy?.toFixed(2) || '?'}.</div>`);
+        if (gs?.WGD === true) observedRows.push(`<div style="margin:3px 0;"><b>Whole-genome doubling</b> — ploidy ≈ ${gs.Ploidy?.toFixed(2) || '?'}.</div>`);
         const observedHtml = observedRows.length > 0
             ? `<div style="padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a; margin-bottom:8px;">
                 <div style="font-weight:600; color:#15803d; margin-bottom:4px;">Observed in this cell line</div>
@@ -25750,7 +25781,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 </div>
                 <div style="padding:8px 10px; background:${hitLabels ? '#f0fdf4' : '#fef2f2'}; border-left:3px solid ${hitLabels ? '#16a34a' : '#dc2626'}; margin-bottom:6px;">
                   <div style="font-weight:600; color:${hitLabels ? '#15803d' : '#991b1b'}; margin-bottom:4px;">Hallmark genes detected here ${hitLabels ? `(${hitSet.size} of ${kb.lookFor.length})` : `(0 of ${kb.lookFor.length})`}</div>
-                  <div style="font-size:11px;">${hitLabels || `<span style="color:#991b1b;">None of the canonical hallmark genes show mutations or fusions in this cell line. Possibilities: atypical driver, copy-number / amplification event our panel doesn't capture, or cell-line misidentification &mdash; consider STR re-authentication.</span>`}</div>
+                  <div style="font-size:11px;">${hitLabels || `<span style="color:#991b1b;">None of the canonical hallmark genes show mutations or fusions in this cell line. Possibilities: atypical driver, copy-number / amplification event our panel doesn't capture, or cell-line misidentification — consider STR re-authentication.</span>`}</div>
                   ${missingKey.length && hitSet.size ? `<div style="font-size:10px; color:#6b7280; margin-top:4px;">Hallmark genes without alterations: ${missingKey.join(', ')}</div>` : ''}
                 </div>`;
         } else {
@@ -25758,7 +25789,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
 
         const hallmarksHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Two views: what's <b>actually present</b> in this cell line per the integrated DepMap data, and what's <b>typical</b> for this Oncotree subtype. Note that some Oncotree labels include a fusion name (e.g. "Chronic Myeloid Leukemia, BCR-ABL1+") &mdash; that's how the disease is classified by definition, not a per-cell-line call.</p>
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Two views: what's <b>actually present</b> in this cell line per the integrated DepMap data, and what's <b>typical</b> for this Oncotree subtype. Note that some Oncotree labels include a fusion name (e.g. "Chronic Myeloid Leukemia, BCR-ABL1+") — that's how the disease is classified by definition, not a per-cell-line call.</p>
             ${observedHtml}
             ${expectedHtml}`;
 
@@ -25770,7 +25801,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
         }
         const fusionCaveat = fusionCount > 30
-            ? `<div style="margin-top:6px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>⚠ Very high fusion count (${fusionCount}).</b> When a cancer has a chaotic, highly rearranged genome, fusion-detection software tends to produce many false positives. Some of these calls are real driver fusions; many are technical artifacts or bystander events. Treat individual calls with caution &mdash; cross-reference with karyotype or targeted sequencing before acting on any single fusion.</div>`
+            ? `<div style="margin-top:6px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>⚠ Very high fusion count (${fusionCount}).</b> When a cancer has a chaotic, highly rearranged genome, fusion-detection software tends to produce many false positives. Some of these calls are real driver fusions; many are technical artifacts or bystander events. Treat individual calls with caution — cross-reference with karyotype or targeted sequencing before acting on any single fusion.</div>`
             : '';
         // Clinically relevant fusions block — curated calls (BCR-ABL1, etc.)
         // surfaced first, with tier chips. The full noisy raw partner list
@@ -25846,7 +25877,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     <div style="line-height:1.9;">${chips}</div>`;
             } else {
                 lofHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Tumor suppressors that have been functionally lost in this cell line. None of the eight scanned tumour suppressors (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC) are flagged as lost &mdash; this line has retained the canonical TSG functions tested.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Tumor suppressors that have been functionally lost in this cell line. None of the eight scanned tumour suppressors (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC) are flagged as lost — this line has retained the canonical TSG functions tested.</p>
                     <div style="color:#6b7280; font-size:11px;">No functional loss in the scanned tumour-suppressor panel.</div>`;
             }
         } else {
@@ -25893,7 +25924,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 }
                 if (Object.keys(hitsByPathway).length > 0) {
                     const items = Object.entries(hitsByPathway).map(([pw, gs]) => `<li><b>${pw}</b>: ${gs.join(', ')}</li>`).join('');
-                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #16a34a; font-size:11px;"><b style="color:#15803d;">Pathway dependencies</b> — cell line can&rsquo;t survive without these (knockout is lethal):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
+                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #16a34a; font-size:11px;"><b style="color:#15803d;">Pathway dependencies</b> — cell line can't survive without these (knockout is lethal):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
                 }
             }
             // Enriched (gain on knockout) — flag known tumor suppressors
@@ -25902,11 +25933,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const tsHits = topEnriched.filter(g => tumorSuppressors.has(g.gene));
             const topEnrHtml = topEnriched.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tumorSuppressors.has(g.gene) ? 'color:#dc2626; font-weight:600;' : ''}">${g.gene}</span> (${g.val.toFixed(2)})`).join(', ');
             const tsInterp = tsHits.length > 0
-                ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumour-suppressor genes that, when knocked out, make this cell line grow <em>better</em></b> (red in the list above): ${tsHits.map(g => g.gene).join(', ')}. Tumour suppressors normally restrain proliferation &mdash; if removing them helps, it means they're still functional here. So these particular tumour-suppressor genes have <em>not</em> yet been inactivated in this cell line.</div>`
+                ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumour-suppressor genes that, when knocked out, make this cell line grow <em>better</em></b> (red in the list above): ${tsHits.map(g => g.gene).join(', ')}. Tumour suppressors normally restrain proliferation — if removing them helps, it means they're still functional here. So these particular tumour-suppressor genes have <em>not</em> yet been inactivated in this cell line.</div>`
                 : '';
 
             geSigHtml = `
-                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? &ldquo;Essential&rdquo; genes are ones the cell cannot live without. Some are common to every cell (ribosomal, housekeeping); the interesting ones are lineage-specific or driven by active oncogenes. Scores below &minus;1 generally indicate essentiality; above 0 indicates knockout gives a growth advantage.</p>
+                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? &ldquo;Essential&rdquo; genes are ones the cell cannot live without. Some are common to every cell (ribosomal, housekeeping); the interesting ones are lineage-specific or driven by active oncogenes. Scores below −1 generally indicate essentiality; above 0 indicates knockout gives a growth advantage.</p>
                 ${row('Top essential genes (💊 = drug exists)', topEssHtml)}
                 ${row('Top growth-advantage on knockout', topEnrHtml)}
                 ${interpLines.join('')}
@@ -25952,10 +25983,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     : '';
 
                 exprSigHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Which genes are switched on highest in this cell line. Values are log₂(TPM+1) &mdash; think of it roughly as &ldquo;mRNA copies per cell, on a log scale.&rdquo; A value above 1 means the gene is clearly expressed; below 1 means it is essentially off.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Which genes are switched on highest in this cell line. Values are log₂(TPM+1) — think of it roughly as &ldquo;mRNA copies per cell, on a log scale.&rdquo; A value above 1 means the gene is clearly expressed; below 1 means it is essentially off.</p>
                     ${row('Most-expressed genes', topExpr)}
-                    ${xist !== undefined ? row('XIST', xist.toFixed(2) + (xist > 1.0 ? ' &mdash; active (the normal silencing of the extra X chromosome is working)' : ' &mdash; silenced (unusual; can re-activate X-linked genes)')) : ''}
-                    ${yMean !== null ? row('Y-chromosome genes (mean)', yMean.toFixed(2) + (yMean > 1.0 ? ' &mdash; Y chromosome active' : ' &mdash; Y chromosome silent or lost')) : ''}
+                    ${xist !== undefined ? row('XIST', xist.toFixed(2) + (xist > 1.0 ? ' — active (the normal silencing of the extra X chromosome is working)' : ' — silenced (unusual; can re-activate X-linked genes)')) : ''}
+                    ${yMean !== null ? row('Y-chromosome genes (mean)', yMean.toFixed(2) + (yMean > 1.0 ? ' — Y chromosome active' : ' — Y chromosome silent or lost')) : ''}
                     ${markerHtml}
                     ${drugExprHtml}`;
             } else {
@@ -25996,7 +26027,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     const survivalLabel = c.v < 0.3 ? 'kills most cells' : c.v < 0.6 ? 'kills many cells' : c.v < 0.85 ? 'modest killing' : 'little effect';
                     return `<li style="padding:3px 0;"><span style="display:inline-block; min-width:170px; font-weight:600; color:${color};">${c.name}</span>
                         <span style="font-size:10px; color:#6b7280;">${c.target} &middot; ${c.moa}</span><br>
-                        <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}) &mdash; <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span> &mdash; <i>${c.indication}</i></span></li>`;
+                        <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}) — <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span> — <i>${c.indication}</i></span></li>`;
                 };
 
                 // Context-aware cross-checks based on what this wiki has already detected
@@ -26050,12 +26081,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
                 const ctxHtml = ctxSections.length
                     ? '<div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;"><div style="font-weight:600; margin-bottom:6px; color:#374151;">Context-aware cross-checks</div>'
-                        + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6366f1; font-size:11px;"><b style="color:#4338ca;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => { const z = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1); const word = c.z < 0 ? 'below avg' : 'above avg'; return `<li><span style="font-weight:500;">${c.name}</span> &mdash; viability <b title="AUC: area under the dose-response curve. 0 = all cells killed; 1 = no killing.">${c.v.toFixed(2)}</b> (${z}σ ${word}) &mdash; <i>${c.indication}</i></li>`; }).join('')}</ul></div>`).join('')
+                        + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6366f1; font-size:11px;"><b style="color:#4338ca;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => { const z = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1); const word = c.z < 0 ? 'below avg' : 'above avg'; return `<li><span style="font-weight:500;">${c.name}</span> — viability <b title="AUC: area under the dose-response curve. 0 = all cells killed; 1 = no killing.">${c.v.toFixed(2)}</b> (${z}σ ${word}) — <i>${c.indication}</i></li>`; }).join('')}</ul></div>`).join('')
                         + '</div>'
                     : '';
 
                 drugHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen, which tested ${dr.panelSize} clinically-relevant compounds against this cell line. The <b>AUC</b> (area under the dose-response curve) goes from 0 to 1: lower is more sensitive, higher is more resistant. Compounds below are ranked by how much this cell line deviates from the average response across all tested cell lines &mdash; &ldquo;standout sensitive&rdquo; means this cell is noticeably more sensitive than a typical cell line.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen, which tested ${dr.panelSize} clinically-relevant compounds against this cell line. The <b>AUC</b> (area under the dose-response curve) goes from 0 to 1: lower is more sensitive, higher is more resistant. Compounds below are ranked by how much this cell line deviates from the average response across all tested cell lines — &ldquo;standout sensitive&rdquo; means this cell is noticeably more sensitive than a typical cell line.</p>
                     ${sensitive.length ? `<div><b style="color:#047857;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
                     ${resistant.length ? `<div><b style="color:#b91c1c;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
                     ${ctxHtml}`;
@@ -26102,7 +26133,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
 
         const authHtml = `
-            <p style="margin:0 0 8px;">Before using a cell line you should confirm it really is what the label says. The standard method is <b>Short Tandem Repeat (STR) profiling</b> &mdash; a small panel of highly variable DNA regions (microsatellites) that act like a fingerprint. An authenticated cell line matches the reference profile at every marker.</p>
+            <p style="margin:0 0 8px;">Before using a cell line you should confirm it really is what the label says. The standard method is <b>Short Tandem Repeat (STR) profiling</b> — a small panel of highly variable DNA regions (microsatellites) that act like a fingerprint. An authenticated cell line matches the reference profile at every marker.</p>
             <p style="margin:0 0 8px;"><b>How to use this:</b> send your cells to a commercial authentication service (ATCC, DSMZ, and other vendors offer this), then compare their report to the table below. A perfect or one-marker mismatch is considered an authentic match; two or more mismatches typically means the line is misidentified or contaminated and should not be trusted for downstream experiments.</p>
             <p style="margin:0 0 6px;"><b>Reference profile for ${name}:</b></p>
             ${strTableHtml}`;
@@ -26335,7 +26366,7 @@ ${body}
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
                         <div style="font-weight:600; color:#374151;">Top correlations in selection</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|r|&nbsp;&ge;</label>
+                            <label>|r|&nbsp;≥</label>
                             <input type="number" id="siLeftCutoff" min="0" max="1" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <button class="btn btn-outline btn-sm" id="siLeftNetwork" style="font-size:11px; padding:3px 8px;">Network</button>
                         </div>
@@ -26347,7 +26378,7 @@ ${body}
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
                         <div style="font-weight:600; color:#374151;">Most different vs rest (Δr)</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|Δ|&nbsp;&ge;</label>
+                            <label>|Δ|&nbsp;≥</label>
                             <input type="number" id="siRightCutoff" min="0" max="2" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <button class="btn btn-outline btn-sm" id="siRightNetwork" style="font-size:11px; padding:3px 8px;">Network</button>
                         </div>
@@ -26379,7 +26410,7 @@ ${body}
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
                         <div style="font-weight:600; color:#374151;">Most depleted in selection</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|&Delta;|&nbsp;&ge;</label>
+                            <label>|&Delta;|&nbsp;≥</label>
                             <input type="number" id="geLeftDeltaCutoff" min="0" max="5" step="0.05" value="0" style="width:56px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <label>Top</label>
                             <input type="number" id="geLeftN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
@@ -26394,7 +26425,7 @@ ${body}
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
                         <div style="font-weight:600; color:#374151;">Most different from rest</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|&Delta;|&nbsp;&ge;</label>
+                            <label>|&Delta;|&nbsp;≥</label>
                             <input type="number" id="geRightDeltaCutoff" min="0" max="5" step="0.05" value="0.1" style="width:56px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <label>Top</label>
                             <input type="number" id="geRightN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
@@ -26461,14 +26492,14 @@ ${body}
         if (saveBtn) saveBtn.style.display = '';
 
         document.getElementById('selectionInspectTitle').textContent = `Inspect Gene Effects — ${selected.length} selected cell lines`;
-        document.getElementById('selectionInspectSubtitle').textContent = `Left: most depleted in selection (ranked by Mean GE in the selection). Right: largest &Delta; (selection &minus; rest). Columns are sortable; change the |&Delta;| or row-count filters below. Click any gene to open its GE inspect; use Network to build a correlation network from the displayed genes.`;
+        document.getElementById('selectionInspectSubtitle').textContent = `Left: most depleted in selection (ranked by Mean GE in the selection). Right: largest &Delta; (selection − rest). Columns are sortable; change the |&Delta;| or row-count filters below. Click any gene to open its GE inspect; use Network to build a correlation network from the displayed genes.`;
         document.getElementById('selectionInspectBody').innerHTML = `
             <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
                 <div style="flex:1; min-width:0;">
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
                         <div style="font-weight:600; color:#374151;">Most depleted in selection</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|&Delta;|&nbsp;&ge;</label>
+                            <label>|&Delta;|&nbsp;≥</label>
                             <input type="number" id="geLeftDeltaCutoff" min="0" max="5" step="0.05" value="0" style="width:56px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <label>Top</label>
                             <input type="number" id="geLeftN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
@@ -26483,7 +26514,7 @@ ${body}
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
                         <div style="font-weight:600; color:#374151;">Most different from rest</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|&Delta;|&nbsp;&ge;</label>
+                            <label>|&Delta;|&nbsp;≥</label>
                             <input type="number" id="geRightDeltaCutoff" min="0" max="5" step="0.05" value="0.1" style="width:56px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <label>Top</label>
                             <input type="number" id="geRightN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
@@ -26852,7 +26883,7 @@ ${body}
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
                         <div style="font-weight:600; color:#374151;">Top correlations in selection</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|r|&nbsp;&ge;</label>
+                            <label>|r|&nbsp;≥</label>
                             <input type="number" id="siLeftCutoff" min="0" max="1" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <button class="btn btn-outline btn-sm" id="siLeftNetwork" style="font-size:11px; padding:3px 8px;" title="Build a correlation network from these gene pairs restricted to the selected cell lines">Network</button>
                         </div>
@@ -26864,7 +26895,7 @@ ${body}
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
                         <div style="font-weight:600; color:#374151;">Most different vs rest (Δr)</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|Δ|&nbsp;&ge;</label>
+                            <label>|Δ|&nbsp;≥</label>
                             <input type="number" id="siRightCutoff" min="0" max="2" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <button class="btn btn-outline btn-sm" id="siRightNetwork" style="font-size:11px; padding:3px 8px;" title="Build a correlation network from these gene pairs restricted to the selected cell lines">Network</button>
                         </div>
