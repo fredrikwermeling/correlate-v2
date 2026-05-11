@@ -26787,9 +26787,27 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             strTableHtml = '<em style="color:#6b7280;">No STR profile found for this cell line in Cellosaurus.</em>';
         }
 
+        // Direct link to the Cellosaurus record so the user can verify the
+        // reference profile against the authoritative source (Cellosaurus is
+        // a curated catalogue maintained by SIB / ExPASy and tracks STR
+        // profiles, parent/derivative relationships, contamination flags, and
+        // misidentification history per cell line). Other useful direct links
+        // — ATCC search and DSMZ search — let the user buy authentication
+        // services with one click.
+        const _cellosaurusUrl = rrid ? `https://www.cellosaurus.org/${rrid}` : null;
+        const _atccSearchUrl = `https://www.atcc.org/search?text=${encodeURIComponent(name)}`;
+        const _dsmzSearchUrl = `https://www.dsmz.de/collection/catalogue/search?q=${encodeURIComponent(name)}`;
+        const _strLinksHtml = `<div style="margin:6px 0 10px; padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;">
+            <b style="color:#3730a3;">Validate against the source:</b>
+            ${_cellosaurusUrl ? ` <a href="${_cellosaurusUrl}" target="_blank" rel="noopener" style="color:#3730a3; font-weight:600; text-decoration:underline;">Cellosaurus${rrid ? ' (' + rrid + ')' : ''} ↗</a>` : ` <span style="color:#9ca3af;">Cellosaurus link unavailable (no RRID).</span>`}
+            <span style="color:#9ca3af;">·</span> <a href="${_atccSearchUrl}" target="_blank" rel="noopener" style="color:#3730a3; font-weight:600; text-decoration:underline;">ATCC search ↗</a>
+            <span style="color:#9ca3af;">·</span> <a href="${_dsmzSearchUrl}" target="_blank" rel="noopener" style="color:#3730a3; font-weight:600; text-decoration:underline;">DSMZ search ↗</a>
+            <div style="font-size:10px; color:#6b7280; margin-top:3px;">Reference STR profile below is sourced from <b>Cellosaurus</b> (SIB / ExPASy). Click the link to see provenance, parent / derivative relationships, contamination flags, and any misidentification history for this line. ATCC and DSMZ links offer commercial authentication services.</div>
+        </div>`;
         const authHtml = `
             <p style="margin:0 0 8px;">Before using a cell line you should confirm it really is what the label says. The standard method is <b>Short Tandem Repeat (STR) profiling</b> — a small panel of highly variable DNA regions (microsatellites) that act like a fingerprint. An authenticated cell line matches the reference profile at every marker.</p>
             <p style="margin:0 0 8px;"><b>How to use this:</b> send your cells to a commercial authentication service (ATCC, DSMZ, and other vendors offer this), then compare their report to the table below. A perfect or one-marker mismatch is considered an authentic match; two or more mismatches typically means the line is misidentified or contaminated and should not be trusted for downstream experiments.</p>
+            ${_strLinksHtml}
             <p style="margin:0 0 6px;"><b>Reference profile for ${name}:</b></p>
             ${strTableHtml}`;
 
@@ -26885,9 +26903,57 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             else if (classOneSummary.status === 'reduced') features.push('<b>Class-I antigen presentation reduced</b>');
             const s4 = features.length > 0 ? `Genome / phenotype: ${features.join('; ')}.` : '';
 
+            // "Useful as a model for" sentence — synthesizes the driver pattern
+            // into a one-liner about what biological / therapeutic question
+            // this cell line is well-suited to study. Driver hierarchy mirrors
+            // the driver sentence above; flag-based context (MSI, Class-I,
+            // hypermutation) gets folded in. Lists 1–3 angles, comma-joined.
+            const modelFor = [];
+            const fusionTissueModel = {
+                'BCR--ABL1': 'ABL TKI (imatinib / dasatinib / nilotinib) response',
+                'BCR-ABL1':  'ABL TKI (imatinib / dasatinib / nilotinib) response',
+                'EML4--ALK': 'ALK-inhibitor (crizotinib / alectinib / lorlatinib) response',
+                'EML4-ALK':  'ALK-inhibitor (crizotinib / alectinib / lorlatinib) response',
+                'PML--RARA': 'all-trans retinoic acid / arsenic trioxide response',
+                'PML-RARA':  'all-trans retinoic acid / arsenic trioxide response',
+                'PAX3--FOXO1': 'alveolar rhabdomyosarcoma biology / fusion-driven transcription',
+                'PAX3-FOXO1':  'alveolar rhabdomyosarcoma biology / fusion-driven transcription',
+                'EWSR1--FLI1': 'Ewing sarcoma biology / fusion-transcription factor drug discovery',
+                'EWSR1-FLI1':  'Ewing sarcoma biology / fusion-transcription factor drug discovery',
+                'SS18--SSX1':  'synovial sarcoma biology / SWI-SNF / BAF complex perturbation',
+                'SS18-SSX1':   'synovial sarcoma biology / SWI-SNF / BAF complex perturbation',
+                'SS18--SSX2':  'synovial sarcoma biology / SWI-SNF / BAF complex perturbation',
+                'SS18-SSX2':   'synovial sarcoma biology / SWI-SNF / BAF complex perturbation',
+                'TMPRSS2--ERG': 'androgen-receptor / ERG-driven prostate cancer biology',
+                'TMPRSS2-ERG':  'androgen-receptor / ERG-driven prostate cancer biology'
+            };
+            for (const c of clinicalFusionCalls) {
+                const m = fusionTissueModel[c.fusion];
+                if (m) { modelFor.push(m); break; } // one fusion-themed model is enough
+            }
+            const oncoGeneSet = new Set([...seenOncoGenes]);
+            if (oncoGeneSet.has('BRAF')) modelFor.push('BRAF/MEK-inhibitor response (vemurafenib / dabrafenib / trametinib)');
+            else if (oncoGeneSet.has('KRAS') || oncoGeneSet.has('NRAS') || oncoGeneSet.has('HRAS')) modelFor.push('RAS-pathway biology / KRAS-G12C-inhibitor response (where applicable)');
+            else if (oncoGeneSet.has('EGFR')) modelFor.push('EGFR-TKI response (erlotinib / gefitinib / osimertinib)');
+            else if (oncoGeneSet.has('PIK3CA')) modelFor.push('PI3K-α-inhibitor (alpelisib) response');
+            else if (oncoGeneSet.has('IDH1') || oncoGeneSet.has('IDH2')) modelFor.push('mutant-IDH inhibitor (ivosidenib / enasidenib) and 2-HG biology');
+            else if (oncoGeneSet.has('FGFR3')) modelFor.push('FGFR-inhibitor (erdafitinib) response');
+            else if (oncoGeneSet.has('KIT')) modelFor.push('KIT-inhibitor (imatinib) response');
+            else if (oncoGeneSet.has('FLT3')) modelFor.push('FLT3-inhibitor (midostaurin / gilteritinib) response');
+            if (tsgLosses.includes('CDKN2A') && !oncoGeneSet.has('BRAF')) modelFor.push('CDK4/6-inhibitor (palbociclib) response');
+            if (tsgLosses.includes('BRCA1') || tsgLosses.includes('BRCA2') || tsgLosses.includes('PALB2')) modelFor.push('PARP-inhibitor (olaparib / talazoparib) response');
+            if (infSub.msi === true || (gs?.MSIScore != null && gs.MSIScore >= 20)) modelFor.push('checkpoint-immunotherapy response background');
+            if (classOneSummary.status === 'likely_lost' || classOneSummary.status === 'reduced') modelFor.push('cancer immune-escape via MHC-I loss');
+            const focalAmpsLocal = (this.clinicalCn?.byCellLine?.[cellLineId]?.amplifications || []).map(a => a.gene);
+            if (focalAmpsLocal.includes('ERBB2')) modelFor.push('HER2-targeted-therapy response (trastuzumab / T-DXd / lapatinib)');
+            if (focalAmpsLocal.includes('MDM2') && !oncoGeneSet.has('TP53') && !tsgLosses.includes('TP53')) modelFor.push('MDM2-inhibitor (nutlin / idasanutlin) response');
+            const s5 = modelFor.length > 0
+                ? `<b>Useful as a model for:</b> ${[...new Set(modelFor)].slice(0, 3).join('; ')}.`
+                : '';
+
             // If nothing beyond the identity sentence triggered, fall back to a
             // gentler note so the summary box doesn't read as truncated.
-            const bodyText = [s2, s3, s4].filter(Boolean).join(' ');
+            const bodyText = [s2, s3, s4, s5].filter(Boolean).join(' ');
             const fullText = bodyText
                 ? `${s1} ${bodyText}`
                 : `${s1} <span style="color:#6b7280;">No canonical driver alteration detected from the integrated DepMap layers — see &ldquo;Other alterations in this cell line&rdquo; below for non-canonical events, or consider STR re-authentication if this is surprising for the subtype.</span>`;

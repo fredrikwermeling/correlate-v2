@@ -1325,6 +1325,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.31 (2026-05-11)</strong></p>
+                <ul>
+                    <li><b>STR authentication block now links to the source data.</b> New &ldquo;Validate against the source&rdquo; sub-block above the reference STR profile table with a direct <b>Cellosaurus</b> link for this cell line&rsquo;s RRID (provenance, parent / derivative relationships, contamination flags, misidentification history are all there), plus <b>ATCC search</b> and <b>DSMZ search</b> links for buying commercial authentication services. The reference STR profile is also explicitly attributed to Cellosaurus (SIB / ExPASy) in a footnote line so the user knows where to validate.</li>
+                    <li><b>Executive summary gets a &ldquo;Useful as a model for&rdquo; sentence.</b> One additional synthesized sentence at the end of the summary banner mapping the cell line&rsquo;s driver pattern to the biology / therapy questions it&rsquo;s well-suited to study. Examples: <i>BRAF V600E</i> &rarr; &ldquo;BRAF/MEK-inhibitor response (vemurafenib / dabrafenib / trametinib)&rdquo;; <i>BCR-ABL1</i> &rarr; &ldquo;ABL TKI (imatinib / dasatinib / nilotinib) response&rdquo;; <i>EML4-ALK</i> &rarr; &ldquo;ALK-inhibitor (crizotinib / alectinib / lorlatinib) response&rdquo;; <i>CDKN2A loss</i> &rarr; &ldquo;CDK4/6-inhibitor (palbociclib) response&rdquo;; <i>BRCA1/2 loss</i> &rarr; &ldquo;PARP-inhibitor response&rdquo;; <i>MSI-high</i> &rarr; &ldquo;checkpoint-immunotherapy response background&rdquo;; <i>ERBB2 amp</i> &rarr; &ldquo;HER2-targeted-therapy response&rdquo;; <i>MDM2 amp with WT TP53</i> &rarr; &ldquo;MDM2-inhibitor (nutlin) response&rdquo;; <i>Class-I lost / reduced</i> &rarr; &ldquo;cancer immune-escape via MHC-I loss&rdquo;. Capped at three angles to keep the summary tight.</li>
+                </ul>
                 <p><strong>v.81.30 (2026-05-11)</strong></p>
                 <ul>
                     <li><b>Drug response &mdash; clearer &sigma; / z-score explanation.</b> The intro paragraph now defines &sigma; explicitly (standard deviation of the AUC for that drug across all PRISM cell lines), explains what &ldquo;&minus;1.4&sigma; below average&rdquo; concretely means (this line kills 1.4 SDs harder than typical for this drug), and gives interpretation thresholds: |z| &gt; 1&sigma; = noteworthy, |z| &gt; 2&sigma; = strong outlier. AUC scale also restated at the top so the user doesn&rsquo;t have to remember 0 = killed / 1 = no effect.</li>
@@ -2635,7 +2640,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.30</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.31</a>
     </div>
 
     <div class="main-content">
@@ -4796,6 +4801,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_30"></script>
+    <script src="app.js?v=v81_31"></script>
 </body>
 </html>
