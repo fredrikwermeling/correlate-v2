@@ -27451,11 +27451,38 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 if (m) { modelFor.push(m); break; } // one fusion-themed model is enough
             }
             const oncoGeneSet = new Set([...seenOncoGenes]);
-            if (oncoGeneSet.has('BRAF')) modelFor.push('BRAF/MEK-inhibitor response (vemurafenib / dabrafenib / trametinib)');
-            else if (oncoGeneSet.has('KRAS') || oncoGeneSet.has('NRAS') || oncoGeneSet.has('HRAS')) modelFor.push('RAS-pathway biology / KRAS-G12C-inhibitor response (where applicable)');
-            else if (oncoGeneSet.has('EGFR')) modelFor.push('EGFR-TKI response (erlotinib / gefitinib / osimertinib)');
-            else if (oncoGeneSet.has('PIK3CA')) modelFor.push('PI3K-α-inhibitor (alpelisib) response');
-            else if (oncoGeneSet.has('IDH1') || oncoGeneSet.has('IDH2')) modelFor.push('mutant-IDH inhibitor (ivosidenib / enasidenib) and 2-HG biology');
+            // Variant-aware "model for" mapping. Resolves the specific
+            // codon (KRAS G12C vs G12D, BRAF V600 vs non-V600, EGFR L858R
+            // vs T790M, IDH1 R132 vs IDH2 R140/R172) from the
+            // inferredSubtypes hotspot string so we name the drug that
+            // actually applies — no more "(if G12C)" hedging when we
+            // already have the variant.
+            const krasV = geneVariant['KRAS'] || '';
+            const brafV = geneVariant['BRAF'] || '';
+            const egfrV = geneVariant['EGFR'] || '';
+            const idh1V = geneVariant['IDH1'] || '';
+            const idh2V = geneVariant['IDH2'] || '';
+            if (oncoGeneSet.has('BRAF')) {
+                if (/V600/.test(brafV)) modelFor.push('BRAF/MEK-inhibitor response (vemurafenib / dabrafenib + trametinib for V600)');
+                else modelFor.push('BRAF non-V600 biology (class II / III BRAF — vemurafenib-resistant; investigational pan-RAF and MEK combos)');
+            } else if (oncoGeneSet.has('KRAS')) {
+                if (/G12C/.test(krasV)) modelFor.push('KRAS-G12C-inhibitor response (sotorasib, adagrasib)');
+                else if (/G12D/.test(krasV)) modelFor.push('KRAS-G12D biology (MRTX1133 investigational; MEK-inhibitor combinations otherwise)');
+                else if (/G12R/.test(krasV)) modelFor.push('KRAS-G12R biology (pancreatic-enriched; MRTX1133-resistant; MEK combinations)');
+                else if (/G12/.test(krasV) || /G13/.test(krasV) || /Q61/.test(krasV)) modelFor.push(`KRAS biology (${krasV} &mdash; no allele-specific inhibitor approved; MEK-inhibitor combinations)`);
+                else modelFor.push('RAS-pathway biology (MEK-inhibitor combinations)');
+            } else if (oncoGeneSet.has('NRAS') || oncoGeneSet.has('HRAS')) {
+                modelFor.push('RAS-pathway biology (MEK-inhibitor combinations)');
+            } else if (oncoGeneSet.has('EGFR')) {
+                if (/T790M/.test(egfrV)) modelFor.push('EGFR-TKI resistance biology (osimertinib for T790M)');
+                else if (/L858R/.test(egfrV) || /exon\s*19/i.test(egfrV) || /del/i.test(egfrV)) modelFor.push('EGFR-TKI response (osimertinib first-line; erlotinib / gefitinib as alternatives)');
+                else modelFor.push('EGFR-TKI biology (variant-dependent; osimertinib for most sensitising mutations)');
+            } else if (oncoGeneSet.has('PIK3CA')) modelFor.push('PI3K-α-inhibitor (alpelisib) response');
+            else if (oncoGeneSet.has('IDH1')) {
+                modelFor.push(`mutant-IDH1${/R132/.test(idh1V) ? ` ${idh1V}` : ''} inhibitor (ivosidenib, vorasidenib for glioma) and 2-HG biology`);
+            } else if (oncoGeneSet.has('IDH2')) {
+                modelFor.push(`mutant-IDH2${idh2V ? ` ${idh2V}` : ''} inhibitor (enasidenib) and 2-HG biology`);
+            }
             else if (oncoGeneSet.has('FGFR3')) modelFor.push('FGFR-inhibitor (erdafitinib) response');
             else if (oncoGeneSet.has('KIT')) modelFor.push('KIT-inhibitor (imatinib) response');
             else if (oncoGeneSet.has('FLT3')) modelFor.push('FLT3-inhibitor (midostaurin / gilteritinib) response');
@@ -27479,11 +27506,27 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // names concrete therapies likely to work.
             const strongDrugs = [];
             const mem = this._collectionMembership || {};
-            if (mem.kras_addicted?.has(cellLineId)) strongDrugs.push('<b>KRAS-G12C inhibitors</b> (sotorasib / adagrasib — if G12C) or MEK-inhibitor combinations');
-            if (mem.braf_addicted?.has(cellLineId)) strongDrugs.push('<b>BRAF/MEK inhibitors</b> (vemurafenib + trametinib, dabrafenib + trametinib)');
-            if (mem.egfr_dependent?.has(cellLineId)) strongDrugs.push('<b>EGFR TKIs</b> (erlotinib, gefitinib, osimertinib)');
-            if (mem.bcr_abl_addicted?.has(cellLineId)) strongDrugs.push('<b>ABL TKIs</b> (imatinib, dasatinib, nilotinib)');
-            if (mem.pi3k_active_dependent?.has(cellLineId)) strongDrugs.push('<b>PI3K-α / AKT / mTOR inhibitors</b> (alpelisib for PIK3CA-mut)');
+            // Variant-aware drug naming — use the specific codon when we have
+            // it, so we don't say "if G12C" when we already know the line is
+            // G12D (the standard pancreatic background) or vice versa.
+            if (mem.kras_addicted?.has(cellLineId)) {
+                if (/G12C/.test(krasV)) strongDrugs.push('<b>KRAS-G12C inhibitors</b> (sotorasib, adagrasib)');
+                else if (/G12D/.test(krasV)) strongDrugs.push(`<b>KRAS-G12D-targeting strategies</b> (MRTX1133 investigational; MEK-inhibitor combinations for ${krasV})`);
+                else if (/G12R/.test(krasV)) strongDrugs.push(`<b>MEK-inhibitor combinations</b> for KRAS ${krasV} (no allele-specific KRAS-G12R inhibitor)`);
+                else if (krasV) strongDrugs.push(`<b>MEK-inhibitor combinations</b> for KRAS ${krasV} (no allele-specific inhibitor approved)`);
+                else strongDrugs.push('<b>MEK-inhibitor combinations</b> (KRAS-pathway dependent)');
+            }
+            if (mem.braf_addicted?.has(cellLineId)) {
+                if (/V600/.test(brafV)) strongDrugs.push(`<b>BRAF + MEK inhibitors</b> (vemurafenib / dabrafenib + trametinib, encorafenib + binimetinib) for BRAF ${brafV}`);
+                else strongDrugs.push(`<b>Pan-RAF + MEK strategies</b> for BRAF ${brafV} (non-V600 — vemurafenib-resistant; investigational)`);
+            }
+            if (mem.egfr_dependent?.has(cellLineId)) {
+                if (/T790M/.test(egfrV)) strongDrugs.push(`<b>Osimertinib</b> (specifically active against EGFR T790M)`);
+                else if (/L858R/.test(egfrV) || /exon\s*19/i.test(egfrV) || /del/i.test(egfrV)) strongDrugs.push(`<b>EGFR TKIs</b> (osimertinib first-line; erlotinib / gefitinib) for EGFR ${egfrV}`);
+                else strongDrugs.push(`<b>EGFR TKIs</b> (osimertinib first-line) for EGFR ${egfrV || 'mutation'}`);
+            }
+            if (mem.bcr_abl_addicted?.has(cellLineId)) strongDrugs.push('<b>ABL TKIs</b> (imatinib, dasatinib, nilotinib; ponatinib for T315I)');
+            if (mem.pi3k_active_dependent?.has(cellLineId)) strongDrugs.push('<b>PI3K-α / AKT / mTOR inhibitors</b> (alpelisib for PIK3CA-mut; capivasertib for AKT-axis)');
             if (mem.cdk46_dependent?.has(cellLineId)) strongDrugs.push('<b>CDK4/6 inhibitors</b> (palbociclib, ribociclib, abemaciclib)');
             // PRISM-screen evidence — top 2 strong-sensitive compounds (z < -1.5)
             // and ALWAYS distinct from the addiction-named drugs above.
