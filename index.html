@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.26 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Wiki &mdash; bug fix: hovering a gene name in the Wiki body showed the help cursor but no actual MyGene.info tooltip popped up. Cause: <code>openCellLineWiki</code> rendered the body HTML but never called <code>attachGeneTooltips</code> on it, so the mouseenter handlers that fetch and display the gene-info tooltip were never bound. One-line fix: call <code>this.attachGeneTooltips(body)</code> after the Wiki body is composed and the modal is shown.</li>
+                </ul>
                 <p><strong>v.81.25 (2026-05-11)</strong></p>
                 <ul>
                     <li>Wiki Genome signatures rows &mdash; every numeric value now carries a plain-English descriptor so the user doesn&rsquo;t have to know what a &ldquo;high&rdquo; or &ldquo;low&rdquo; value looks like. Ploidy <code>3.43</code> now reads as &ldquo;<i>near-tetraploid</i>&rdquo;, Aneuploidy <code>23 / 39</code> as &ldquo;<i>medium</i>&rdquo;, CIN <code>0.14</code> as &ldquo;<i>low</i>&rdquo;, LoH <code>0.46</code> as &ldquo;<i>high</i>&rdquo;, MSI <code>2.9</code> as &ldquo;<i>microsatellite stable</i> &mdash; well below the MSI-high cutoff of 20&rdquo;. Each row also restates the relevant threshold inline (e.g. &ldquo;high tier &ge; 25 of 39&rdquo; for Aneuploidy, &ldquo;high tier &ge; 0.3, often seen in WGD-positive or HRD lines&rdquo; for LoH) so the cutoff is visible without scrolling to the cohort histogram below. Thresholds are the same ones already used elsewhere in the app for collections and the card view.</li>
@@ -2604,7 +2608,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.25</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.26</a>
     </div>
 
     <div class="main-content">
@@ -4764,6 +4768,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_25"></script>
+    <script src="app.js?v=v81_26"></script>
 </body>
 </html>

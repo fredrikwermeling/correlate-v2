@@ -26581,6 +26581,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         ].join('');
 
         document.getElementById('clbWikiModal').style.display = 'flex';
+        // Wire MyGene.info hover tooltips on every `.gene-hover` element in the
+        // freshly-rendered Wiki body. The CSS already gives these elements a
+        // `cursor: help`, so without this call the user sees the help cursor
+        // but no actual tooltip pops up — exactly the bug the user reported.
+        this.attachGeneTooltips(body);
         // Modal is now visible, so the histogram divs have non-zero size —
         // draw the four Plotly panels (Ploidy / Aneuploidy / CIN / WGD).
         // Skipped silently if global signatures aren't available.
