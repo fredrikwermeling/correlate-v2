@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.17 (2026-05-11)</strong></p>
+                <ul>
+                    <li>New collections category <b>Focal amplifications</b>. Five entries covering the gain-of-function side of focal CN events (the loss side is already represented by the per-TSG functional-loss collections, since DepMap&rsquo;s integrated LoF call already picks up deep deletions). <b>MYC family amp</b> (MYC / MYCN / MYCL &mdash; pathway active across lineages), <b>ERBB2 amp</b> (HER2-driven; lineage-agnostic, distinct from the breast-only expression-based HER2+ collection), <b>MDM2 amp</b> (p53 functionally suppressed without a TP53 mutation &mdash; nice contrast to the TP53-loss set), <b>G1/S amp</b> (CDK4 / CDK6 / CCND1 / CCNE1 &mdash; G1/S deregulation; contrast to RB1-loss / CDKN2A-loss), and <b>Any focal amplification</b> as a generic catch-all. Membership pulls from the curated clinical CN panel (clinicalCn.byCellLine.amplifications).</li>
+                </ul>
                 <p><strong>v.81.16 (2026-05-11)</strong></p>
                 <ul>
                     <li>New collections category <b>Tumor-suppressor functional loss</b>. One filter entry per gene in the standard 9-gene TSG panel — <b>TP53, PTEN, RB1, CDKN2A, APC, NF1, SMAD4, STK11/LKB1, VHL</b> — plus aggregates &ldquo;Any TSG functional loss (&ge; 1 of the 9)&rdquo; and &ldquo;Multiple TSG losses (&ge; 2)&rdquo;. Each gene-specific entry includes the pathway implication (e.g. &ldquo;TP53 functional loss &rarr; p53 checkpoint lost&rdquo;, &ldquo;APC loss &rarr; WNT pathway active&rdquo;). Membership pulls from DepMap&rsquo;s integrated functional-loss call (low CN, damaging mutation at high allele frequency, or near-zero expression) so deep deletions and silenced loci that the damaging-mutation matrix misses are still captured. Combine with the existing include / exclude oncoprint-style controls to ask things like &ldquo;TP53-loss AND not RB1-loss&rdquo; in one shot.</li>
@@ -2561,7 +2565,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.16</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.17</a>
     </div>
 
     <div class="main-content">
@@ -4721,6 +4725,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_16"></script>
+    <script src="app.js?v=v81_17"></script>
 </body>
 </html>

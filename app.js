@@ -22722,6 +22722,36 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 label: 'Multiple TSG losses (≥ 2)',
                 category: 'Tumor-suppressor functional loss',
                 description: '<b>Inclusion:</b> cell lines with ≥ 2 inferred functional losses from the 9-gene panel above. <b>Why this filter exists:</b> extensively-deconstructed lines (e.g. TP53 + RB1 + CDKN2A all lost) have a distinct dependency profile — often more reliant on MYC, BCL2 family, or aurora kinases for survival than singly-mutated cousins.'
+            },
+            // Focal amplifications — the complement of the TSG-loss collections.
+            // Only point mutations & focal CN gains can supercharge an oncogene
+            // by dosage, so amplifications need their own filter set (the
+            // functional-loss collections cover the deletion side already).
+            // Source: clinicalCn.byCellLine[cl].amplifications.
+            myc_family_amp: {
+                label: 'MYC family amp (MYC / MYCN / MYCL)',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification (CN ≥ 3× diploid baseline) of any one of MYC, MYCN, or MYCL. <b>Pathway effect:</b> MYC-pathway active — overexpression drives proliferation, metabolic rewiring, and an immunosuppressive transcriptional program. <b>Use:</b> defines neuroblastoma (MYCN), small-cell lung cancer (often MYCL), and a large subset of high-grade tumours across lineages. Often anti-correlated with strong T-cell infiltration in primary tumours.'
+            },
+            erbb2_amp: {
+                label: 'ERBB2 (HER2) amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of ERBB2 (HER2). <b>Pathway effect:</b> HER2-driven RAS/MAPK and PI3K/AKT signalling. <b>Use:</b> defines HER2+ breast and gastric cancer; trastuzumab / pertuzumab / T-DXd target. Distinct from the existing "HER2+ breast" collection, which is breast-only and uses an expression-based surrogate; this one is CN-based and lineage-agnostic.'
+            },
+            mdm2_amp: {
+                label: 'MDM2 amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of MDM2. <b>Pathway effect:</b> p53 functionally suppressed — MDM2 is the E3 ligase that targets p53 for degradation, so MDM2 amp produces a phenotype similar to TP53 loss <i>without</i> a TP53 mutation. <b>Use:</b> useful contrast to the TP53-loss set above. MDM2-inhibitor (nutlin / idasanutlin) responder background.'
+            },
+            g1s_amp: {
+                label: 'G1/S amp (CDK4 / CDK6 / CCND1 / CCNE1)',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of any of CDK4, CDK6, CCND1 (cyclin D1), or CCNE1 (cyclin E1). <b>Pathway effect:</b> G1/S checkpoint deregulated — the cell over-produces the kinases / cyclins that drive G1 exit, accelerating entry into S phase. <b>Use:</b> CDK4/6 / CCND1 amplification predicts CDK4/6-inhibitor response (mirror to CDKN2A-loss); CCNE1 amp is the canonical resistance background for CDK4/6 inhibitors. Useful contrast to both the RB1-loss and CDKN2A-loss collections.'
+            },
+            any_focal_amp: {
+                label: 'Any focal amplification',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> at least one focal amplification on the curated clinical CN panel (the genes that appear in the per-cell-line "Focal CN events" section: MYC family, ERBB2, MDM2, CDK4/6, cyclins, etc.). <b>Why this filter exists:</b> a catch-all for "this line has at least one focal oncogene-amp driver", useful when contrasting against lines with no curated focal-amp event at all.'
             }
         };
     }
@@ -22817,6 +22847,32 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
                 if (hits >= 1) mem.any_tsg_loss.add(cl);
                 if (hits >= 2) mem.multi_tsg_loss.add(cl);
+            }
+        }
+
+        // Focal amplifications — pathway-grouped + per-gene sets. Source:
+        // clinicalCn.byCellLine[cl].amplifications (curated clinical CN
+        // panel). Amplifications only — deletions are already handled by
+        // the functional-loss collections above.
+        const MYC_FAMILY = new Set(['MYC', 'MYCN', 'MYCL']);
+        const G1S_AMP_GENES = new Set(['CDK4', 'CDK6', 'CCND1', 'CCNE1']);
+        mem.myc_family_amp = new Set();
+        mem.erbb2_amp = new Set();
+        mem.mdm2_amp = new Set();
+        mem.g1s_amp = new Set();
+        mem.any_focal_amp = new Set();
+        if (this.clinicalCn?.byCellLine) {
+            for (const cl of clLines) {
+                const amps = this.clinicalCn.byCellLine[cl]?.amplifications;
+                if (!Array.isArray(amps) || amps.length === 0) continue;
+                const ampGenes = new Set(amps.map(a => a.gene));
+                if (ampGenes.size > 0) mem.any_focal_amp.add(cl);
+                for (const g of ampGenes) {
+                    if (MYC_FAMILY.has(g))       mem.myc_family_amp.add(cl);
+                    if (g === 'ERBB2')           mem.erbb2_amp.add(cl);
+                    if (g === 'MDM2')            mem.mdm2_amp.add(cl);
+                    if (G1S_AMP_GENES.has(g))    mem.g1s_amp.add(cl);
+                }
             }
         }
 
