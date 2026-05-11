@@ -22845,6 +22845,91 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 label: 'Stem / lineage-plasticity program active (expression signature)',
                 category: 'Pathway-activity expression signatures',
                 description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a pluripotency / cancer-stem-cell panel (SOX2, NANOG, POU5F1, KLF4, PROM1, ALDH1A1, BMI1). <b>Why:</b> de-differentiated / stem-like state — typically a chemo-resistant background.'
+            },
+
+            // === Lehmann TNBC subtypes (Lehmann 2011 JCI + 2016 PLOS ONE) ===
+            // Four-class refined: BL1 (basal-like 1), BL2 (basal-like 2),
+            // M (mesenchymal), LAR (luminal androgen receptor). Covers the
+            // ~22 TNBC overlap cell lines annotated in lehmannTnbc.
+            tnbc_bl1: {
+                label: 'TNBC — Basal-like 1 (Lehmann BL1)',
+                category: 'TNBC molecular subtypes (Lehmann)',
+                description: '<b>Inclusion:</b> Lehmann 2011 / 2016 four-class TNBC assignment = BL1. <b>Phenotype:</b> DNA-damage-response pathway enriched (high BRCA1/RAD51/CHEK1 signalling). <b>Predicted response:</b> platinum chemotherapy, PARP inhibitors; high cytotoxic sensitivity.'
+            },
+            tnbc_bl2: {
+                label: 'TNBC — Basal-like 2 (Lehmann BL2)',
+                category: 'TNBC molecular subtypes (Lehmann)',
+                description: '<b>Inclusion:</b> Lehmann 2011 / 2016 four-class TNBC assignment = BL2. <b>Phenotype:</b> growth-factor signalling (EGFR, MET, IGF1R, Wnt/β-catenin) and glycolysis enriched. <b>Predicted response:</b> mTOR / growth-factor-receptor inhibitors. Distinct biology from BL1 despite both being basal-like.'
+            },
+            tnbc_m: {
+                label: 'TNBC — Mesenchymal (Lehmann M)',
+                category: 'TNBC molecular subtypes (Lehmann)',
+                description: '<b>Inclusion:</b> Lehmann 2011 / 2016 four-class TNBC assignment = M. <b>Phenotype:</b> EMT and stem-cell signalling enriched; often metaplastic / spindle-cell histology. <b>Predicted response:</b> mTOR / PI3K inhibitors, SRC family kinase inhibitors.'
+            },
+            tnbc_lar: {
+                label: 'TNBC — Luminal androgen receptor (Lehmann LAR)',
+                category: 'TNBC molecular subtypes (Lehmann)',
+                description: '<b>Inclusion:</b> Lehmann 2011 / 2016 four-class TNBC assignment = LAR. <b>Phenotype:</b> androgen-receptor (AR) signalling enriched, more luminal-like despite triple-negative receptor status. <b>Predicted response:</b> AR antagonists (enzalutamide / bicalutamide); often PIK3CA-mutant background.'
+            },
+
+            // === Disease-defining clinical fusions ===
+            // One collection per major pathognomonic fusion. Picks the cell
+            // lines where this specific fusion is called by the orthogonally-
+            // validated clinicalFusions panel. Useful as cohort filters for
+            // disease-specific studies (Ph+ ALL / CML, Ewing, NSCLC, APL, …).
+            fusion_bcr_abl1: {
+                label: 'BCR-ABL1+ (CML / Ph+ ALL)',
+                category: 'Disease-defining fusions',
+                description: '<b>Inclusion:</b> clinical-fusion call BCR-ABL1 (Philadelphia chromosome). <b>Disease:</b> chronic myeloid leukaemia, Ph+ acute lymphoblastic leukaemia. <b>Therapy:</b> ABL TKIs (imatinib, dasatinib, nilotinib, ponatinib for T315I).'
+            },
+            fusion_ewsr1_fli1: {
+                label: 'EWSR1-FLI1+ (Ewing sarcoma)',
+                category: 'Disease-defining fusions',
+                description: '<b>Inclusion:</b> clinical-fusion call EWSR1-FLI1. <b>Disease:</b> Ewing sarcoma — pediatric small-round-blue-cell tumour. <b>Why:</b> the fusion encodes an aberrant ETS transcription factor; drug-discovery interest in BET / EZH2 inhibitors, DNA-damage approaches (high SLFN11), and direct EWS-FLI1 inhibitors (TK216).'
+            },
+            fusion_eml4_alk: {
+                label: 'EML4-ALK+ (ALK-rearranged NSCLC)',
+                category: 'Disease-defining fusions',
+                description: '<b>Inclusion:</b> clinical-fusion call EML4-ALK. <b>Disease:</b> ALK-rearranged non-small-cell lung cancer (~5 % of NSCLC). <b>Therapy:</b> ALK TKIs — crizotinib (1st gen), alectinib / brigatinib (2nd gen), lorlatinib (3rd gen, covers most resistance mutations).'
+            },
+            fusion_pml_rara: {
+                label: 'PML-RARA+ (APL)',
+                category: 'Disease-defining fusions',
+                description: '<b>Inclusion:</b> clinical-fusion call PML-RARA. <b>Disease:</b> acute promyelocytic leukaemia (AML M3). <b>Therapy:</b> all-trans retinoic acid (ATRA) + arsenic trioxide (ATO) — the rare AML curable without chemotherapy.'
+            },
+
+            // === Additional DNA-repair / mutation-burden contexts ===
+            pole_pold1_ultramutated: {
+                label: 'POLE / POLD1 proofreading-deficient (ultramutated)',
+                category: 'DNA repair — polymerase proofreading',
+                description: '<b>Inclusion:</b> damaging mutation in <b>POLE</b> or <b>POLD1</b>. <b>Mechanism:</b> the exonuclease (proofreading) domain of the leading-strand polymerase fails — replication errors are not corrected, producing an <i>ultramutated</i> genome (often &gt; 100 mut/Mb, distinctly higher than MMR-deficient lines). <b>Use:</b> very high neoantigen burden — strong checkpoint-immunotherapy responders. Distinct from MSI (the other major hypermutator mechanism in colorectal / endometrial cancers). <b>Caveat:</b> any POLE / POLD1 damaging mutation included here; not specific to the exonuclease-domain hotspots that drive the proofreading-deficient phenotype.'
+            },
+            atm_deficient: {
+                label: 'ATM-deficient',
+                category: 'DNA repair — ATM / ATR axis',
+                description: '<b>Inclusion:</b> damaging mutation in <b>ATM</b>. <b>Mechanism:</b> ATM is the master DNA-double-strand-break kinase (activates p53, BRCA1, CHK2 in the DSB response). Loss is a distinct HRD-adjacent context to BRCA1/2 loss — sensitises to PARP inhibitors and may unmask ATR / WEE1 / DNA-PK dependencies. <b>Use:</b> separate cohort from the BRCA-centric <i>HR-deficient</i> collection.'
+            },
+
+            // === Specific oncogene hotspot mutations not covered by addiction ===
+            // Mutation-only collections (no CRISPR confirmation required) for
+            // genes where the mutation itself is the actionable signal even
+            // when CRISPR dependency is weak.
+            ctnnb1_hotspot: {
+                label: 'CTNNB1 hotspot (Wnt-activated)',
+                category: 'Oncogene hotspot mutations (mutation only)',
+                description: '<b>Inclusion:</b> hotspot mutation in <b>CTNNB1</b> (β-catenin; N-terminal phosphodegron mutations at S33 / S37 / T41 / S45 that block β-catenin degradation). <b>Mechanism:</b> constitutive Wnt / β-catenin pathway activation. <b>Disease:</b> hepatocellular carcinoma, colorectal (mutually exclusive with APC loss), endometrial, desmoid tumours. <b>Use:</b> for Wnt-pathway studies and Wnt inhibitor (tankyrase / porcupine) drug discovery.'
+            },
+            idh_mutant: {
+                label: 'IDH1 / IDH2 hotspot (oncometabolite producer)',
+                category: 'Oncogene hotspot mutations (mutation only)',
+                description: '<b>Inclusion:</b> hotspot mutation in <b>IDH1</b> (R132*) or <b>IDH2</b> (R140*, R172*). <b>Mechanism:</b> neomorphic enzyme activity produces the oncometabolite 2-hydroxyglutarate (2-HG), which inhibits α-KG-dependent dioxygenases — drives DNA / histone hypermethylation and blocks differentiation. <b>Disease:</b> glioma (IDH1 R132H is the gliomas-MGMT-methylated good-prognosis subtype), AML (IDH2 R140), chondrosarcoma, intrahepatic cholangiocarcinoma. <b>Therapy:</b> mutant-IDH inhibitors — ivosidenib (IDH1), enasidenib (IDH2), vorasidenib (CNS-penetrant for glioma).'
+            },
+
+            // === Expression-based DNA-damage response predictor ===
+            slfn11_high: {
+                label: 'SLFN11-high (DNA-damage drug responder)',
+                category: 'Pathway-activity expression signatures',
+                description: '<b>Inclusion:</b> SLFN11 expression z-score &gt; +1.0 vs the full cell-line cohort. <b>Why:</b> SLFN11 (Schlafen 11) is the single strongest expression-based predictor of response to DNA-damaging agents — platinum, topoisomerase I/II inhibitors, PARP inhibitors, alkylators. SLFN11 commits cells to apoptosis at stalled replication forks. <b>Caveat:</b> SLFN11 expression varies massively between cell lines (commonly epigenetically silenced); the predictor works best as a continuous variable but this binary high / not-high cut captures the strongest-responder subset.'
             }
         };
     }
@@ -22919,6 +23004,68 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const v = this.globalSignatures.byCellLine[cl]?.LoHFraction;
                 if (v != null && v >= 0.3) mem.high_loh.add(cl);
             }
+        }
+
+        // Lehmann TNBC subtypes — uses the curated four-class refined call
+        // (tnbcType4). Only the ~22 cell lines covered by the Lehmann 2011 /
+        // 2016 panels are eligible; others stay unlabelled.
+        mem.tnbc_bl1 = new Set();
+        mem.tnbc_bl2 = new Set();
+        mem.tnbc_m   = new Set();
+        mem.tnbc_lar = new Set();
+        if (this.lehmannTnbc?.byCellLine) {
+            for (const cl of clLines) {
+                const t4 = this.lehmannTnbc.byCellLine[cl]?.tnbcType4;
+                if (t4 === 'BL1') mem.tnbc_bl1.add(cl);
+                else if (t4 === 'BL2') mem.tnbc_bl2.add(cl);
+                else if (t4 === 'M')   mem.tnbc_m.add(cl);
+                else if (t4 === 'LAR') mem.tnbc_lar.add(cl);
+            }
+        }
+
+        // Disease-defining fusion sets — single canonical fusion per collection.
+        // Accepts both single- and double-hyphen separators (curated panel may
+        // emit either depending on the source). Read from clinicalFusions.
+        const FUSION_GROUPS = {
+            fusion_bcr_abl1:    ['BCR-ABL1', 'BCR--ABL1'],
+            fusion_ewsr1_fli1:  ['EWSR1-FLI1', 'EWSR1--FLI1'],
+            fusion_eml4_alk:    ['EML4-ALK', 'EML4--ALK'],
+            fusion_pml_rara:    ['PML-RARA', 'PML--RARA']
+        };
+        for (const id of Object.keys(FUSION_GROUPS)) mem[id] = new Set();
+        if (this.clinicalFusions?.byCellLine) {
+            for (const cl of clLines) {
+                const calls = this.clinicalFusions.byCellLine[cl];
+                if (!Array.isArray(calls) || calls.length === 0) continue;
+                const callNames = new Set(calls.map(c => c.fusion));
+                for (const [collId, aliases] of Object.entries(FUSION_GROUPS)) {
+                    if (aliases.some(a => callNames.has(a))) mem[collId].add(cl);
+                }
+            }
+        }
+
+        // POLE / POLD1 proofreading-deficient (ultramutated context).
+        mem.pole_pold1_ultramutated = new Set();
+        for (const cl of clLines) {
+            if (hasDamaging('POLE', cl) || hasDamaging('POLD1', cl)) mem.pole_pold1_ultramutated.add(cl);
+        }
+
+        // ATM-deficient — distinct from BRCA-centric HRD.
+        mem.atm_deficient = new Set();
+        for (const cl of clLines) {
+            if (hasDamaging('ATM', cl)) mem.atm_deficient.add(cl);
+        }
+
+        // CTNNB1 hotspot — Wnt activator.
+        mem.ctnnb1_hotspot = new Set();
+        for (const cl of clLines) {
+            if (hasHotspot('CTNNB1', cl)) mem.ctnnb1_hotspot.add(cl);
+        }
+
+        // IDH1 / IDH2 hotspot (oncometabolite-producing).
+        mem.idh_mutant = new Set();
+        for (const cl of clLines) {
+            if (hasHotspot('IDH1', cl) || hasHotspot('IDH2', cl)) mem.idh_mutant.add(cl);
         }
 
         // Oncogene addiction — genotype × CRISPR dependency. Threshold
@@ -23209,6 +23356,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         if (zs.length < 3) continue;
                         const meanZ = zs.reduce((a, b) => a + b, 0) / zs.length;
                         if (meanZ > 0.75) mem[collId].add(cl);
+                    }
+                }
+
+                // SLFN11-high — single-gene expression-based predictor of
+                // DNA-damage drug response. Uses the same per-gene cohort
+                // stats; cut at z > +1.0.
+                mem.slfn11_high = new Set();
+                const slfnGi = this.expressionGeneIndex.get('SLFN11');
+                if (slfnGi !== undefined && stats.sd[slfnGi] >= 0.3) {
+                    for (const cl of clLines) {
+                        const ei = exprMap.get(cl);
+                        if (ei === undefined) continue;
+                        const v = this.expressionData[slfnGi * nExprCL2 + ei];
+                        if (isNaN(v)) continue;
+                        const z = (v - stats.mean[slfnGi]) / stats.sd[slfnGi];
+                        if (z > 1.0) mem.slfn11_high.add(cl);
                     }
                 }
             }
@@ -23563,9 +23726,28 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this._clbSortMode = mode;
             const needsGene = (mode === 'ge' || mode === 'expr' || mode === 'drug');
             clbSortGene.style.display = needsGene ? '' : 'none';
-            // Tweak the input's placeholder based on what kind of identifier it expects.
+            // Tweak the input's placeholder based on what kind of identifier it
+            // expects, and populate the autocomplete datalist for drug-response
+            // sort so the user gets a typeahead list of available PRISM compound
+            // names (otherwise they have to know compound names by heart).
             if (clbSortGene) {
-                clbSortGene.placeholder = mode === 'drug' ? 'e.g. PALBOCICLIB, IRINOTECAN' : 'TP53, BRCA1, ...';
+                clbSortGene.placeholder = mode === 'drug' ? 'type a PRISM compound (autocomplete)…' : 'TP53, BRCA1, ...';
+                const list = document.getElementById('clbSortDrugList');
+                if (list) {
+                    if (mode === 'drug' && Array.isArray(this.drugResponse?.compounds)) {
+                        // Sorted alphabetically for predictable typeahead order.
+                        const opts = this.drugResponse.compounds
+                            .slice()
+                            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                            .map(c => {
+                                const subtitle = [c.target, c.moa, c.indication].filter(Boolean).join(' · ');
+                                return `<option value="${(c.name || '').replace(/"/g, '&quot;')}">${subtitle.replace(/"/g, '&quot;')}</option>`;
+                            }).join('');
+                        list.innerHTML = opts;
+                    } else {
+                        list.innerHTML = '';
+                    }
+                }
             }
             // Show direction arrow unless mode is name or (gene sort with empty gene input)
             const showDir = mode !== 'name' && !(needsGene && !clbSortGene.value.trim());
