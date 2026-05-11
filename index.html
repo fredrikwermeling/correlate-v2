@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.29 (2026-05-11)</strong></p>
+                <ul>
+                    <li>Wiki Expression profile &mdash; new <b>&ldquo;Potential FACS markers&rdquo;</b> block. Intersects expression with a curated ~100-gene panel of well-known cell-surface antigens: CD molecules (CD3/4/8/14/19/20/22/24/27/33/44/45/56/68/127/133, &hellip;), receptor tyrosine kinases (EGFR, HER2-4, FGFR1-4, MET, AXL, KIT, IGF1R, NTRK, ALK, &hellip;), immune checkpoints (PD-L1, PD-L2, PD-1, CTLA4, LAG3, TIM-3, TIGIT, B7-H3, VISTA), ADC / bispecific / clinical targets (TROP2, FOLR1, MSLN, NECTIN4, CEACAM5/6, MUC1/16, DLL3, LIV1, STEAP1/2, PSMA, NaPi2b, claudins), adhesion molecules (EPCAM, CDH1/2, ICAM1, integrins), death receptors (FAS, DR4, DR5), Notch family, and tumour-associated antigens (CA9, GPC3, &hellip;). Threshold TPM &gt; 4 (a bit stricter than druggable targets, since FACS needs antibody-detectable protein); top 12 shown, sorted by uniqueness vs cohort (z-score). Each entry shows raw TPM and z, so the user can pick markers that are both bright AND distinctive to this line as wet-lab handles for FACS, antibody assays, or candidate targeting.</li>
+                </ul>
                 <p><strong>v.81.28 (2026-05-11)</strong></p>
                 <ul>
                     <li><b>Wiki executive summary</b> &mdash; new synthesized opening paragraph at the very top of every cell-line Wiki, so the headline biology is visible before scrolling. Driver hierarchy: clinical fusion &rsaquo; canonical oncogene hotspot &rsaquo; canonical TSG functional loss. Genomic flags (WGD, MSI, Class-I status, hypermutation) follow as a final sentence. Examples: &ldquo;<i>JR is a Rhabdomyosarcoma cell line. Driven by <b>PAX3-FOXO1</b> driver fusion plus <b>FGFR3 p.K650</b>, with functional loss of <b>TP53, RB1</b>. Focal amplification of <b>MYCN, MDM2</b>. Genome / phenotype: whole-genome doubled; Class-I antigen presentation reduced.</i>&rdquo; Falls back to a gentle &ldquo;no canonical driver detected&rdquo; note when nothing in the integrated panels triggers.</li>
@@ -2620,7 +2624,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.28</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.29</a>
     </div>
 
     <div class="main-content">
@@ -4780,6 +4784,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_28"></script>
+    <script src="app.js?v=v81_29"></script>
 </body>
 </html>

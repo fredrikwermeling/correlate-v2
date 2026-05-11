@@ -25434,6 +25434,50 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         };
     }
 
+    // Curated panel of well-known cell-surface antigens commonly used for FACS
+    // sorting, antibody-based assays, ADCs, and immunotherapy targeting. The
+    // user-facing Wiki "Potential FACS markers" block intersects this with the
+    // cell line's expression to surface practical wet-lab candidates. The list
+    // covers CD molecules, receptor tyrosine kinases, immune checkpoints,
+    // ADC / bispecific targets, adhesion molecules, death receptors, and
+    // tumour-associated antigens across hematopoietic, epithelial, and
+    // stromal lineages.
+    _WIKI_FACS_MARKERS() {
+        return new Set([
+            // CD-numbered immune / pan-lineage markers
+            'CD3D', 'CD3E', 'CD3G', 'CD4', 'CD8A', 'CD8B', 'CD14', 'CD19',
+            'MS4A1', 'CD22', 'CD24', 'CD27', 'CD28', 'IL2RA', 'CD33', 'CD34',
+            'PTPRC', 'CD38', 'CD40', 'CD44', 'NCAM1', 'CD68', 'CD70', 'CD79A',
+            'CD83', 'CD86', 'IL7R', 'PROM1', 'THY1', 'CD9', 'CD81', 'CD276',
+            'CD163', 'ITGAM', 'ITGAX',
+            // Receptor tyrosine kinases (surface)
+            'EGFR', 'ERBB2', 'ERBB3', 'ERBB4',
+            'FGFR1', 'FGFR2', 'FGFR3', 'FGFR4',
+            'KIT', 'PDGFRA', 'PDGFRB',
+            'MET', 'MST1R', 'AXL', 'TYRO3', 'MERTK',
+            'IGF1R', 'INSR', 'RET',
+            'FLT1', 'KDR', 'FLT4', 'FLT3',
+            'NTRK1', 'NTRK2', 'NTRK3', 'ALK', 'ROS1', 'DDR1', 'DDR2',
+            // Immune checkpoints / immunotherapy targets
+            'CD274', 'PDCD1LG2', 'PDCD1', 'CTLA4', 'LAG3', 'HAVCR2',
+            'TIGIT', 'VSIR', 'BTLA',
+            // Adhesion / cancer-cell-surface antigens
+            'EPCAM', 'CDH1', 'CDH2', 'ICAM1', 'L1CAM',
+            'ITGAV', 'ITGB1', 'ITGB3',
+            // ADC / bispecific / clinical targets
+            'TACSTD2', 'FOLR1', 'MSLN', 'NECTIN4',
+            'CEACAM5', 'CEACAM6', 'MUC1', 'MUC16',
+            'DLL3', 'SLC39A6', 'STEAP1', 'STEAP2',
+            'FOLH1', 'SLC34A2', 'CLDN18', 'CLDN6', 'GPR87',
+            // Death receptors
+            'FAS', 'TNFRSF10A', 'TNFRSF10B', 'TNFRSF1A',
+            // Notch family
+            'NOTCH1', 'NOTCH2', 'NOTCH3', 'NOTCH4',
+            // Tumor-associated antigens / niche surface markers
+            'CA9', 'GPC3', 'BCAM', 'CDCP1', 'FZD7', 'TNFRSF8'
+        ]);
+    }
+
     // Curated pathway-activity expression signatures. Each is a small panel
     // of genes whose high expression indicates the pathway is transcriptionally
     // active. Used by the Wiki's expression section to surface "pathways
@@ -26527,6 +26571,27 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     }).join(', ')}</div>`
                     : '';
 
+                // Potential FACS markers — well-known cell-surface antigens
+                // (CD molecules, RTKs, immune checkpoints, ADC targets, adhesion
+                // molecules) that are highly expressed in this cell line. Useful
+                // wet-lab handle: which surface antigens are bright enough on
+                // this line to use for FACS sorting, antibody assays, or as
+                // candidate therapeutic-targeting handles. Threshold TPM > 4
+                // (a bit stricter than the drug-target panel since FACS needs
+                // antibody-detectable protein) and sorted by uniqueness (z).
+                const facsMarkers = this._WIKI_FACS_MARKERS();
+                const facsHits = [...exprByGene.entries()]
+                    .filter(([g, v]) => facsMarkers.has(g) && v > 4.0)
+                    .map(([g, v]) => ({ gene: g, val: v, z: zByGene.get(g) }))
+                    .sort((a, b) => (b.z ?? -99) - (a.z ?? -99) || b.val - a.val)
+                    .slice(0, 12);
+                const facsHtml = facsHits.length > 0
+                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f0fdfa; border-left:3px solid #0d9488; font-size:11px;"><b style="color:#0f766e;">Potential FACS markers</b> <span style="color:#9ca3af; font-size:10px;">(highly-expressed cell-surface antigens &mdash; CD molecules, receptor tyrosine kinases, immune checkpoints, ADC targets; TPM &gt; 4; sorted by how uniquely high vs cohort)</span>: ${facsHits.map(e => {
+                        const zStr = e.z != null ? ` <span style="color:#9ca3af; font-size:10px;">[z ${fmtZ(e.z)}]</span>` : '';
+                        return `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" style="cursor:help;">${e.gene}</span> (${e.val.toFixed(1)})${zStr}`;
+                    }).join(', ')}</div>`
+                    : '';
+
                 exprSigHtml = `
                     <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression — that list is always dominated by mitochondrial and ribosomal genes that are high in every line. Values shown below are log₂(TPM+1) (≈ mRNA copies per cell on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score against the full cell-line cohort for that gene (&gt; +2 = strongly more expressed than typical, &lt; &minus;2 = strongly silenced).</p>
                     ${row('Top uniquely high expression (z-ranked)', topUniqueHtml)}
@@ -26535,7 +26600,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     ${sigHtml}
                     ${inactiveSigHtml}
                     ${markerHtml}
-                    ${drugExprHtml}`;
+                    ${drugExprHtml}
+                    ${facsHtml}`;
             } else {
                 exprSigHtml = '<em style="color:#6b7280;">Cell line not present in expression dataset.</em>';
             }
@@ -26827,7 +26893,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'DepMap 25Q3 CRISPRGeneEffect (Chronos). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s GE − cohort mean) / cohort SD. Pan-essentials filtered against the DepMap common-essentials list. Druggable dependencies cross-referenced against a curated ~60-gene panel with approved or clinical-stage inhibitors.'),
             section('Expression profile <span style="font-size:11px; color:#6b7280;">— what is uniquely turned on in this cell line</span>',
                 exprSigHtml,
-                'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s expression − cohort mean) / cohort SD. Pathway-activity signatures: ~9 curated gene panels (MYC targets, E2F / S-phase, G2/M, IFN response, EMT, TGF-β, hypoxia, NRF2, stem) — mean z over each panel; pathways with |mean z| &gt; 0.75 are highlighted. Lineage-marker panels: ~15 markers per Oncotree lineage. Druggable targets: ~60-gene panel with approved or clinical-stage inhibitors.'),
+                'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s expression − cohort mean) / cohort SD. Pathway-activity signatures: ~9 curated gene panels (MYC targets, E2F / S-phase, G2/M, IFN response, EMT, TGF-β, hypoxia, NRF2, stem) — mean z over each panel; pathways with |mean z| &gt; 0.75 are highlighted. Lineage-marker panels: ~15 markers per Oncotree lineage. Druggable targets: ~60-gene panel with approved or clinical-stage inhibitors. Potential FACS markers: curated ~100-gene panel of well-known cell-surface antigens (CD molecules, RTKs, immune checkpoints, ADC / bispecific targets, adhesion molecules); TPM &gt; 4 cutoff for inclusion.'),
             section('Drug response <span style="font-size:11px; color:#6b7280;">— PRISM Repurposing</span>',
                 drugHtml,
                 (this.drugResponse?.dataSource || 'DepMap PRISM Repurposing Secondary.') + ' Curated panel of ' + (this.drugResponse?.panelSize || '~100') + ' compounds. Z-scores computed per compound across the full PRISM panel. <b>Caveat:</b> in vitro viability ≠ clinical response — validate any clinically weighty hit with orthogonal 2D/3D assays.'),
