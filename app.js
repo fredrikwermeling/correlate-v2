@@ -23328,8 +23328,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const updateSortControls = () => {
             const mode = clbSortBy.value;
             this._clbSortMode = mode;
-            const needsGene = (mode === 'ge' || mode === 'expr');
+            const needsGene = (mode === 'ge' || mode === 'expr' || mode === 'drug');
             clbSortGene.style.display = needsGene ? '' : 'none';
+            // Tweak the input's placeholder based on what kind of identifier it expects.
+            if (clbSortGene) {
+                clbSortGene.placeholder = mode === 'drug' ? 'e.g. PALBOCICLIB, IRINOTECAN' : 'TP53, BRCA1, ...';
+            }
             // Show direction arrow unless mode is name or (gene sort with empty gene input)
             const showDir = mode !== 'name' && !(needsGene && !clbSortGene.value.trim());
             clbSortDir.style.display = showDir ? '' : 'none';
@@ -23867,6 +23871,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
                 return (va - vb) * dir;
             };
+        } else if (mode === 'drug') {
+            // Drug-response sort. User types one or more compound names (or a
+            // unique substring) into the gene-input box, which is repurposed
+            // as a compound picker for this mode. Per-line AUC values are
+            // averaged across the matched compounds. Lower AUC = more
+            // sensitive — ascending sort = "most sensitive first" by default.
+            const raw = document.getElementById('clbSortGene').value || '';
+            const tokens = raw.split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+            const compounds = this.drugResponse?.compounds || [];
+            const matched = compounds.filter(c => tokens.some(t => (c.name || '').toUpperCase().includes(t)));
+            countMap = new Map();
+            if (matched.length > 0) {
+                for (const cl of this.metadata.cellLines) {
+                    let sum = 0, n = 0;
+                    for (const c of matched) {
+                        const v = c.auc?.[cl];
+                        if (v != null && !isNaN(v)) { sum += v; n++; }
+                    }
+                    if (n > 0) countMap.set(cl, sum / n);
+                }
+                geGenesLabel = matched.length === 1 ? matched[0].name : `${matched.length} compounds`;
+            }
+            secondaryCmp = (a, b) => {
+                const va = countMap.get(a);
+                const vb = countMap.get(b);
+                if (va == null && vb == null) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                if (va == null) return 1;
+                if (vb == null) return -1;
+                if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                return (va - vb) * dir;
+            };
         } else if (mode === 'ploidy' || mode === 'aneuploidy' || mode === 'cin') {
             // Genome-signature numeric sorts. Lines missing the metric are
             // pushed to the end regardless of direction so they don't muddy
@@ -23932,6 +23967,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                       : mode === 'ploidy' ? 'Ploidy (avg chromosome copy number; normal = 2)'
                       : mode === 'aneuploidy' ? 'Aneuploidy (Ben-David 2021 score, 0–39)'
                       : mode === 'cin' ? 'CIN — chromosomal instability (0–1)'
+                      : mode === 'drug' ? `Drug-response AUC for <b>${geGenesLabel || '(no compound matched)'}</b> — 0 = all cells killed, 1 = no killing; ascending = most sensitive first`
                       : mode;
             caption = `<div style="padding:4px 10px; font-size:10px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
                 Values shown: <b>${lbl}</b> per cell line.
@@ -23969,8 +24005,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                                   : mode === 'ploidy' ? 'pl'
                                   : mode === 'aneuploidy' ? 'aneup'
                                   : mode === 'cin' ? 'CIN'
+                                  : mode === 'drug' ? 'AUC'
                                   : '';
-                    sortValStr = `<span style="font-size:10px; color:#374151; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode}"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
+                    // For drug-response, colour AUC by sensitivity at a glance:
+                    // AUC < 0.6 = clearly killing → green-ish; AUC > 0.9 = barely affected → grey.
+                    const colour = mode === 'drug'
+                        ? (raw < 0.6 ? '#15803d' : raw < 0.85 ? '#a16207' : '#9ca3af')
+                        : '#374151';
+                    sortValStr = `<span style="font-size:10px; color:${colour}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode}"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
                 }
             }
             const sx = this._getSexSymbol(cl);
@@ -25667,10 +25709,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const dmtype = get('depmapModelType');
         const psf = get('patientSubtypeFeatures');
         const codeHtml = code
-            ? `<a href="https://oncotree.mskcc.org/?version=oncotree_latest_stable&search=${encodeURIComponent(code)}" target="_blank" rel="noopener" title="Open the Oncotree classification page for this code" style="text-decoration:none;"><code style="background:#f3f4f6; padding:1px 6px; border-radius:3px; border:1px solid #e5e7eb;">${code}</code> <span style="font-size:10px; color:#6366f1;">↗</span></a>`
+            ? `<a href="https://oncotree.mskcc.org/?version=oncotree_latest_stable&search=${encodeURIComponent(code)}" target="_blank" rel="noopener" title="Open the Oncotree classification page for this code" style="text-decoration:none;"><code style="background:#f3f4f6; padding:1px 6px; border-radius:3px; border:1px solid #e5e7eb;">${code}</code> <span style="font-size:10px; color:#3730a3;">↗</span></a>`
             : '';
         const classificationHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">How this tumour is classified in the <a href="https://oncotree.mskcc.org/" target="_blank" rel="noopener" style="color:#6366f1;">Oncotree</a> cancer-classification system, from broad tissue down to specific disease variant. Click the code to open Oncotree's page for this exact classification.</p>
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">How this tumour is classified in the <a href="https://oncotree.mskcc.org/" target="_blank" rel="noopener" style="color:#3730a3;">Oncotree</a> cancer-classification system, from broad tissue down to specific disease variant. Click the code to open Oncotree's page for this exact classification.</p>
             ${row('Tissue of origin', lin)}
             ${row('Broad disease', pd)}
             ${row('Specific subtype', sub)}
@@ -25752,7 +25794,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (hrHits.length > 0) flagCards.push({
             title: 'Homologous-recombination repair is broken',
             body: `Damaging mutation in ${hrHits.map(g => `<b>${g}</b>`).join(', ')}. The cell can't accurately repair DNA double-strand breaks and often depends on backup pathways. Typically sensitive to PARP inhibitors.`,
-            color: '#7c3aed'
+            color: '#15803d'
         });
         // TP53 and G1/S flag cards are deliberately NOT added here — the
         // Pathway status block below has dedicated panels for p53 and Cell
@@ -26145,8 +26187,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
         // Block 1 — Typical alteration pattern (curated KB description).
         const typicalHtml = kb
-            ? `<div style="padding:8px 12px; background:#eff6ff; border-left:3px solid #2563eb; margin-bottom:8px;">
-                <div style="font-weight:600; color:#1e40af; margin-bottom:4px;">Typical alteration pattern for <i>${subKey}</i></div>
+            ? `<div style="padding:8px 12px; background:#eef2ff; border-left:3px solid #3730a3; margin-bottom:8px;">
+                <div style="font-weight:600; color:#3730a3; margin-bottom:4px;">Typical alteration pattern for <i>${subKey}</i></div>
                 <div style="font-size:11px;">${kb.expected}</div>
                </div>`
             : `<div style="padding:8px 12px; background:#f9fafb; border-left:3px solid #9ca3af; margin-bottom:8px; font-size:11px; color:#6b7280;">No curated knowledge base for "${subKey}" yet (covers ~40 common Oncotree subtypes). The "Other alterations in this cell line" block below lists what was found in the integrated DepMap data.</div>`;
@@ -26402,7 +26444,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const fmtZ = (z) => (z >= 0 ? '+' : '') + z.toFixed(1);
             const renderEssRow = (g) => {
                 const isTgt = drugTargets.has(g.gene);
-                const tgtStyle = isTgt ? 'color:#7c3aed; font-weight:600; background:#faf5ff; padding:1px 4px; border-radius:3px;' : '';
+                const tgtStyle = isTgt ? 'color:#15803d; font-weight:600; background:#f0fdf4; padding:1px 4px; border-radius:3px;' : '';
                 const pill = isTgt ? ' <span title="Approved or clinical-stage drug targets this gene">💊</span>' : '';
                 return `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tgtStyle}">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="GE = CRISPR knockout effect (0 = neutral, −0.5 ≈ selective, −1 = strongly essential). z-score = how unusual this GE is vs the rest of the cohort.">(GE ${g.val.toFixed(2)}, z ${fmtZ(g.z)})</span>${pill}`;
             };
@@ -26415,7 +26457,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
             const interpLines = [];
             if (essentialDrugTargets.length > 0) {
-                interpLines.push(`<div style="padding:6px 10px; background:#faf5ff; border-left:3px solid #7c3aed; font-size:11px;"><b style="color:#6d28d9;">Druggable dependencies unique to this line</b> — genes this cell line depends on more than typical AND for which approved or clinical-stage drugs exist: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;">(z ${fmtZ(g.z)})</span>`).join(', ')}.</div>`);
+                interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #15803d; font-size:11px;"><b style="color:#15803d;">Druggable dependencies unique to this line</b> — genes this cell line depends on more than typical AND for which approved or clinical-stage drugs exist: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;">(z ${fmtZ(g.z)})</span>`).join(', ')}.</div>`);
             }
             if (essentialPathwayHits.length > 0) {
                 const hitsByPathway = {};
@@ -26519,10 +26561,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 sigResults.sort((a, b) => b.meanZ - a.meanZ);
                 const activeSig = sigResults.filter(s => s.meanZ > 0.75);
                 const sigHtml = activeSig.length > 0
-                    ? `<div style="margin-top:8px; padding:6px 10px; background:#fff7ed; border-left:3px solid #c2410c; font-size:11px;">`
-                        + `<b style="color:#9a3412;">Pathway-activity signatures turned ON</b> <span style="color:#9ca3af; font-size:10px;">(mean z-score over a curated panel; &gt; +0.75 shown)</span>`
+                    ? `<div style="margin-top:8px; padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;">`
+                        + `<b style="color:#3730a3;">Pathway-activity signatures turned ON</b> <span style="color:#9ca3af; font-size:10px;">(mean z-score over a curated panel; &gt; +0.75 shown)</span>`
                         + activeSig.map(s => `<div style="margin:3px 0 3px 4px;">`
-                            + `<span style="font-weight:600; color:#9a3412;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
+                            + `<span style="font-weight:600; color:#3730a3;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
                             + `<span style="color:#9ca3af; font-size:10px;">— mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`
                             + `</div>`).join('')
                         + `</div>`
@@ -26550,9 +26592,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const markerScores = lineageMarkers.map(g => ({ gene: g, val: exprByGene.get(g), z: zByGene.get(g) })).filter(x => x.val !== undefined);
                 markerScores.sort((a, b) => b.val - a.val);
                 const markerHtml = markerScores.length > 0
-                    ? `<div style="margin-top:8px; padding:6px 10px; background:#f0f9ff; border-left:3px solid #0ea5e9; font-size:11px;"><b style="color:#0369a1;">${lin} lineage markers</b> <span style="color:#9ca3af; font-size:10px;">(TPM &gt; 1 = expressed; z = enrichment vs cohort)</span><br>${markerScores.map(m => {
+                    ? `<div style="margin-top:8px; padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">${lin} lineage markers</b> <span style="color:#9ca3af; font-size:10px;">(TPM &gt; 1 = expressed; z = enrichment vs cohort)</span><br>${markerScores.map(m => {
                         const zStr = m.z != null ? ` <span style="color:#9ca3af; font-size:10px;">[z ${fmtZ(m.z)}]</span>` : '';
-                        return `<span class="gene-hover clb-gene-link" data-gene="${m.gene}" style="cursor:help; ${m.val > 1 ? 'font-weight:600; color:#0369a1;' : 'color:#9ca3af;'}">${m.gene}</span>&nbsp;(${m.val.toFixed(1)})${zStr}`;
+                        return `<span class="gene-hover clb-gene-link" data-gene="${m.gene}" style="cursor:help; ${m.val > 1 ? 'font-weight:600; color:#3730a3;' : 'color:#9ca3af;'}">${m.gene}</span>&nbsp;(${m.val.toFixed(1)})${zStr}`;
                     }).join(', ')}</div>`
                     : '';
 
@@ -26565,7 +26607,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     .sort((a, b) => (b.z ?? -99) - (a.z ?? -99))
                     .slice(0, 10);
                 const drugExprHtml = expressedDrugTargets.length > 0
-                    ? `<div style="margin-top:6px; padding:6px 10px; background:#faf5ff; border-left:3px solid #7c3aed; font-size:11px;"><b style="color:#6d28d9;">Highly-expressed druggable targets</b> <span style="color:#9ca3af; font-size:10px;">(TPM &gt; 3; sorted by how unusually high vs cohort)</span>: ${expressedDrugTargets.map(e => {
+                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f0fdf4; border-left:3px solid #15803d; font-size:11px;"><b style="color:#15803d;">Highly-expressed druggable targets</b> <span style="color:#9ca3af; font-size:10px;">(TPM &gt; 3; sorted by how unusually high vs cohort)</span>: ${expressedDrugTargets.map(e => {
                         const zStr = e.z != null ? ` <span style="color:#9ca3af; font-size:10px;">[z ${fmtZ(e.z)}]</span>` : '';
                         return `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" style="cursor:help;">${e.gene}</span> (${e.val.toFixed(1)})${zStr}`;
                     }).join(', ')}</div>`
@@ -26586,7 +26628,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     .sort((a, b) => (b.z ?? -99) - (a.z ?? -99) || b.val - a.val)
                     .slice(0, 12);
                 const facsHtml = facsHits.length > 0
-                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f0fdfa; border-left:3px solid #0d9488; font-size:11px;"><b style="color:#0f766e;">Potential FACS markers</b> <span style="color:#9ca3af; font-size:10px;">(highly-expressed cell-surface antigens &mdash; CD molecules, receptor tyrosine kinases, immune checkpoints, ADC targets; TPM &gt; 4; sorted by how uniquely high vs cohort)</span>: ${facsHits.map(e => {
+                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f0fdf4; border-left:3px solid #15803d; font-size:11px;"><b style="color:#15803d;">Potential FACS markers</b> <span style="color:#9ca3af; font-size:10px;">(highly-expressed cell-surface antigens &mdash; CD molecules, receptor tyrosine kinases, immune checkpoints, ADC targets; TPM &gt; 4; sorted by how uniquely high vs cohort)</span>: ${facsHits.map(e => {
                         const zStr = e.z != null ? ` <span style="color:#9ca3af; font-size:10px;">[z ${fmtZ(e.z)}]</span>` : '';
                         return `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" style="cursor:help;">${e.gene}</span> (${e.val.toFixed(1)})${zStr}`;
                     }).join(', ')}</div>`
@@ -26631,8 +26673,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
                 const fmtCompound = (c, signClass) => {
                     const zStr = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1);
-                    const color = signClass === 'sens' ? '#047857' : '#b91c1c';
-                    const bg = signClass === 'sens' ? '#ecfdf5' : '#fef2f2';
+                    const color = signClass === 'sens' ? '#15803d' : '#991b1b';
+                    const bg = signClass === 'sens' ? '#f0fdf4' : '#fef2f2';
                     const word = signClass === 'sens' ? 'below average' : 'above average';
                     // Translate AUC into a plain-language survival fraction:
                     //   AUC 0 = all cells killed, 1 = no killing at any dose.
@@ -26694,14 +26736,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
                 const ctxHtml = ctxSections.length
                     ? '<div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;"><div style="font-weight:600; margin-bottom:6px; color:#374151;">Context-aware cross-checks</div>'
-                        + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6366f1; font-size:11px;"><b style="color:#4338ca;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => { const z = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1); const word = c.z < 0 ? 'below avg' : 'above avg'; return `<li><span style="font-weight:500;">${c.name}</span> — viability <b title="AUC: area under the dose-response curve. 0 = all cells killed; 1 = no killing.">${c.v.toFixed(2)}</b> (${z}σ ${word}) — <i>${c.indication}</i></li>`; }).join('')}</ul></div>`).join('')
+                        + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => { const z = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1); const word = c.z < 0 ? 'below avg' : 'above avg'; return `<li><span style="font-weight:500;">${c.name}</span> — viability <b title="AUC: area under the dose-response curve. 0 = all cells killed; 1 = no killing.">${c.v.toFixed(2)}</b> (${z}σ ${word}) — <i>${c.indication}</i></li>`; }).join('')}</ul></div>`).join('')
                         + '</div>'
                     : '';
 
                 drugHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen, which tested ${dr.panelSize} clinically-relevant compounds against this cell line. The <b>AUC</b> (area under the dose-response curve) goes from 0 to 1: lower is more sensitive, higher is more resistant. Compounds below are ranked by how much this cell line deviates from the average response across all tested cell lines — &ldquo;standout sensitive&rdquo; means this cell is noticeably more sensitive than a typical cell line.</p>
-                    ${sensitive.length ? `<div><b style="color:#047857;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
-                    ${resistant.length ? `<div><b style="color:#b91c1c;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive — for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug &mdash; it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ.</p>
+                    ${sensitive.length ? `<div><b style="color:#15803d;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
+                    ${resistant.length ? `<div><b style="color:#991b1b;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
                     ${ctxHtml}`;
             }
         }
