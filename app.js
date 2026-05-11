@@ -89,9 +89,15 @@ class CorrelationExplorer {
         this._geUserXLabelPos = null;
         this._geUserYLabelPos = null;
 
-        // CLB sort: mode ∈ {name, hotspot, damaging, fusion, ge}; direction
+        // CLB sort: mode ∈ {name, hotspot, damaging, fusion, ploidy, aneuploidy, cin, ge, expr}; direction
         this._clbSortMode = 'name';
         this._clbSortAsc = true;
+
+        // CLB collection filter: oncoprint-style include/exclude states keyed
+        // by collection id. Multiple collections can be active simultaneously
+        // — a cell line must be in EVERY include set AND in NONE of the exclude
+        // sets to pass. Empty map = no collection filter applied.
+        this._clbCollectionStates = new Map();
 
         // Custom cell line filter (Set<string> of cell line IDs, or null)
         this._customCellLineFilter = null;
@@ -21246,7 +21252,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // collections (NE, EMT, breast subtypes) can be computed.
             if (typeof this._computeCollectionMemberships === 'function') {
                 this._computeCollectionMemberships();
-                if (document.getElementById('clbCollectionFilter')) this._populateCollectionFilter();
+                if (document.getElementById('clbCollectionBtn')) this._renderCollectionPanel();
             }
             loadingEl.style.display = 'none';
             console.log(`Expression data loaded: ${this.expressionMetadata.nGenes} genes, ${this.expressionMetadata.nCellLines} cell lines. Mapped ${mapped}/${this.nCellLines} GE cell lines.`);
@@ -22841,34 +22847,103 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         modal.style.display = 'flex';
     }
 
-    _populateCollectionFilter() {
-        const sel = document.getElementById('clbCollectionFilter');
-        if (!sel) return;
-        const prev = sel.value;
+    // Oncoprint-style collection picker. The button shows the number of
+    // active states (e.g. "Collections [2]"); the dropdown panel groups
+    // collections by category and gives each row two small toggle buttons:
+    //   "+" → include (cell line must be IN this set)
+    //   "−" → exclude (cell line must NOT be in this set)
+    // Click an active toggle a second time to clear that row. Filter logic
+    // is integrated in renderCellLineList: a line passes the collection
+    // filter iff it is in every include set AND in no exclude set.
+    _renderCollectionPanel() {
+        const panel = document.getElementById('clbCollectionPanel');
+        const btnLabel = document.getElementById('clbCollectionCount');
+        if (!panel) return;
         const catalog = this._curatedCollectionsCatalog();
         const mem = this._collectionMembership || {};
-        // Group by category in <optgroup>s for readability.
+        const states = this._clbCollectionStates;
+
+        // Update the button's count badge.
+        if (btnLabel) {
+            const n = states.size;
+            btnLabel.textContent = n > 0 ? `[${n}]` : '';
+            btnLabel.style.color = n > 0 ? '#374151' : '#9ca3af';
+            btnLabel.style.fontWeight = n > 0 ? '600' : '400';
+        }
+
+        // Group available collections by category. Skip ones that haven't been
+        // computed yet (expression-based collections before expression loads).
         const byCat = {};
         for (const [id, def] of Object.entries(catalog)) {
-            if (!mem[id]) continue; // skip expression-based ones when not computed
+            if (!mem[id]) continue;
             const n = mem[id].size;
             if (!n) continue;
             (byCat[def.category] = byCat[def.category] || []).push({ id, def, n });
         }
-        sel.innerHTML = '<option value="">All collections</option>';
+
+        let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">`
+            + `<span style="font-weight:600; color:#374151;">Filter cell lines by collection</span>`
+            + `<a href="#" id="clbCollectionsClear" style="color:#6b7280; text-decoration:none; font-size:10px;">clear all</a>`
+            + `</div>`
+            + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#15803d;">+</b> to require, <b style="color:#991b1b;">&minus;</b> to exclude. Multiple collections combine with AND.</div>`;
+
         for (const cat of Object.keys(byCat)) {
-            const og = document.createElement('optgroup');
-            og.label = cat;
+            html += `<div style="color:#15803d; font-size:10px; font-weight:600; margin:8px 0 3px; border-bottom:1px solid #e5e7eb; padding-bottom:2px;">${cat}</div>`;
             for (const { id, def, n } of byCat[cat]) {
-                const opt = document.createElement('option');
-                opt.value = id;
-                opt.textContent = `${def.label} (n=${n})`;
-                opt.title = def.description;
-                og.appendChild(opt);
+                const state = states.get(id);
+                const incActive = state === 'include';
+                const excActive = state === 'exclude';
+                const incStyle = incActive
+                    ? 'background:#15803d; color:#fff; border-color:#15803d;'
+                    : 'background:#fff; color:#15803d; border-color:#d1d5db;';
+                const excStyle = excActive
+                    ? 'background:#991b1b; color:#fff; border-color:#991b1b;'
+                    : 'background:#fff; color:#991b1b; border-color:#d1d5db;';
+                const safeDesc = def.description.replace(/<[^>]+>/g, '').replace(/"/g, '&quot;');
+                html += `<div style="display:flex; gap:6px; align-items:center; padding:2px 0;" title="${safeDesc}">`
+                    + `<button type="button" data-coll-id="${id}" data-coll-action="include" style="${incStyle} border:1px solid; width:22px; height:20px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px; line-height:1; padding:0;">+</button>`
+                    + `<button type="button" data-coll-id="${id}" data-coll-action="exclude" style="${excStyle} border:1px solid; width:22px; height:20px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px; line-height:1; padding:0;">&minus;</button>`
+                    + `<span style="flex:1; color:#374151;">${def.label}</span>`
+                    + `<span style="color:#9ca3af; font-size:10px;">n=${n}</span>`
+                    + `</div>`;
             }
-            sel.appendChild(og);
         }
-        sel.value = prev || '';
+
+        panel.innerHTML = html;
+
+        // Wire row toggles
+        panel.querySelectorAll('button[data-coll-id]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this._toggleCollectionState(btn.dataset.collId, btn.dataset.collAction);
+            });
+        });
+        // Clear-all
+        const clearLink = document.getElementById('clbCollectionsClear');
+        if (clearLink) {
+            clearLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this._clbCollectionStates.clear();
+                this._renderCollectionPanel();
+                this.renderCellLineList();
+            });
+        }
+    }
+
+    _toggleCollectionState(id, action) {
+        if (!id || (action !== 'include' && action !== 'exclude')) return;
+        const cur = this._clbCollectionStates.get(id);
+        if (cur === action) {
+            this._clbCollectionStates.delete(id);
+        } else {
+            this._clbCollectionStates.set(id, action);
+        }
+        this._renderCollectionPanel();
+        this.renderCellLineList();
+    }
+
+    _getCollectionLabel(id) {
+        const def = this._curatedCollectionsCatalog()[id];
+        return def ? def.label : id;
     }
 
     // Annotation and expression are two independent sex axes.
@@ -22973,7 +23048,30 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.renderCellLineList();
         });
         document.getElementById('clbSubtypeFilter').addEventListener('change', () => this.renderCellLineList());
-        document.getElementById('clbCollectionFilter').addEventListener('change', () => this.renderCellLineList());
+        // Collections multi-select: button toggles a popover panel.
+        // Outside clicks close the panel; panel is re-rendered on every open
+        // so membership counts (which depend on other active filters) stay
+        // fresh. State changes happen inside _toggleCollectionState, which
+        // calls renderCellLineList(), so no separate "change" listener.
+        const clbCollectionBtn = document.getElementById('clbCollectionBtn');
+        const clbCollectionPanel = document.getElementById('clbCollectionPanel');
+        if (clbCollectionBtn && clbCollectionPanel) {
+            clbCollectionBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = clbCollectionPanel.style.display !== 'none';
+                if (isOpen) {
+                    clbCollectionPanel.style.display = 'none';
+                } else {
+                    this._renderCollectionPanel();
+                    clbCollectionPanel.style.display = '';
+                }
+            });
+            document.addEventListener('click', (e) => {
+                if (!clbCollectionPanel.contains(e.target) && e.target !== clbCollectionBtn) {
+                    clbCollectionPanel.style.display = 'none';
+                }
+            });
+        }
         document.getElementById('clbCollectionsInfoBtn')?.addEventListener('click', () => this._showCollectionsInfo());
         document.getElementById('collectionsInfoClose')?.addEventListener('click', () => {
             document.getElementById('collectionsInfoModal').style.display = 'none';
@@ -23419,8 +23517,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbHotspotFilter').value = '';
         document.getElementById('clbTranslocationFilter').value = '';
         const _clbCn = document.getElementById('clbCnFilter'); if (_clbCn) _clbCn.value = '';
-        document.getElementById('clbCollectionFilter').value = '';
-        this._populateCollectionFilter();
+        this._clbCollectionStates.clear();
+        this._renderCollectionPanel();
         document.getElementById('clbDetailPanel').classList.remove('active');
         document.getElementById('clbDetailContent').style.display = 'none';
         document.getElementById('clbDetailPlaceholder').style.display = '';
@@ -23455,7 +23553,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const search = document.getElementById('clbSearch').value.trim().toLowerCase();
         const tissue = document.getElementById('clbTissueFilter').value;
         const subtype = document.getElementById('clbSubtypeFilter').value;
-        const collection = document.getElementById('clbCollectionFilter')?.value || '';
         const sexFilter = document.getElementById('clbSexFilter').value;
         const hotspotGene = document.getElementById('clbHotspotFilter').value;
         const transGene = document.getElementById('clbTranslocationFilter').value;
@@ -23471,12 +23568,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
         const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
         const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
-        const collectionSet = collection ? this._collectionMembership?.[collection] : null;
+        // Collection states: each {id → 'include'|'exclude'}. Cell line must be
+        // in every include set AND in none of the exclude sets to pass.
+        const collectionStates = this._clbCollectionStates;
+        const collectionMem = this._collectionMembership || {};
+        const passesCollections = (cl) => {
+            for (const [id, state] of collectionStates) {
+                const inSet = collectionMem[id]?.has(cl);
+                if (state === 'include' && !inSet) return false;
+                if (state === 'exclude' && inSet) return false;
+            }
+            return true;
+        };
 
         let filtered = this.metadata.cellLines.filter(cl => {
             if (tissue && this.getCellLineLineage(cl) !== tissue) return false;
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
-            if (collectionSet && !collectionSet.has(cl)) return false;
+            if (collectionStates.size > 0 && !passesCollections(cl)) return false;
             if (sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
             if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
             if (clinicalPairCells && !(cl in clinicalPairCells)) return false;
@@ -23733,6 +23841,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (tissue) parts.push(`<span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:10px;">${tissue}${subtype ? ' · ' + subtype : ''}</span>`);
         if (hotspot) parts.push(`<span style="background:#dcfce7;color:#16a34a;padding:1px 6px;border-radius:10px;">${hotspot} mutated</span>`);
         if (trans) parts.push(`<span style="background:#fae8ff;color:#7c3aed;padding:1px 6px;border-radius:10px;">${trans} fused</span>`);
+        // Collection include/exclude chips. Green = "must be in"; red = "must
+        // not be in". Each chip has an inline × that clears that one state.
+        for (const [id, state] of this._clbCollectionStates) {
+            const lbl = this._getCollectionLabel(id);
+            const bg = state === 'include' ? '#dcfce7' : '#fef2f2';
+            const color = state === 'include' ? '#15803d' : '#991b1b';
+            const sign = state === 'include' ? '+' : '−';
+            parts.push(`<span style="background:${bg};color:${color};padding:1px 6px;border-radius:10px;">${sign} ${lbl}`
+                + ` <a href="#" data-clear-collection="${id}" style="color:${color}; text-decoration:none; margin-left:2px; font-weight:700;" title="Remove this filter">×</a></span>`);
+        }
         if (this._activeOncoprintFilters) {
             const shown = new Set([hotspot, trans].filter(Boolean));
             for (const f of this._activeOncoprintFilters) {
@@ -23748,6 +23866,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const total = this.metadata?.cellLines?.length || 0;
             el.innerHTML = `<span style="color:#6b7280;">Showing ${n} of ${total}:</span> ${parts.join(' ')}`;
             el.style.display = 'flex';
+            // Wire the × on each collection chip to clear that specific state.
+            el.querySelectorAll('a[data-clear-collection]').forEach(a => {
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this._clbCollectionStates.delete(a.dataset.clearCollection);
+                    this._renderCollectionPanel();
+                    this.renderCellLineList();
+                });
+            });
         } else {
             el.style.display = 'none';
         }
@@ -23756,7 +23883,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     updateClbFilterCounts() {
         const tissue = document.getElementById('clbTissueFilter').value;
         const subtype = document.getElementById('clbSubtypeFilter').value;
-        const collection = document.getElementById('clbCollectionFilter')?.value || '';
         const sexFilter = document.getElementById('clbSexFilter')?.value || '';
         const hotspotGene = document.getElementById('clbHotspotFilter').value;
         const transGene = document.getElementById('clbTranslocationFilter').value;
@@ -23768,7 +23894,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
         const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
         const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
-        const collectionSet = collection ? this._collectionMembership?.[collection] : null;
+        const collectionStates = this._clbCollectionStates;
+        const collectionMem = this._collectionMembership || {};
+        const passesCollections = (cl) => {
+            for (const [id, state] of collectionStates) {
+                const inSet = collectionMem[id]?.has(cl);
+                if (state === 'include' && !inSet) return false;
+                if (state === 'exclude' && inSet) return false;
+            }
+            return true;
+        };
         const allCls = this.metadata.cellLines;
 
         // Counts shown in each dropdown are computed against the OTHER
@@ -23779,7 +23914,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return allCls.filter(cl => {
                 if (excludeFilter !== 'tissue' && tissue && this.getCellLineLineage(cl) !== tissue) return false;
                 if (excludeFilter !== 'subtype' && subtype && this.getCellLineSublineage(cl) !== subtype) return false;
-                if (excludeFilter !== 'collection' && collectionSet && !collectionSet.has(cl)) return false;
+                if (excludeFilter !== 'collection' && collectionStates.size > 0 && !passesCollections(cl)) return false;
                 if (excludeFilter !== 'sex' && sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
                 if (excludeFilter !== 'hotspot' && hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
                 if (excludeFilter !== 'translocation' && clinicalPairCells && !(cl in clinicalPairCells)) return false;
@@ -23820,35 +23955,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             sexSelect.value = prev;
         }
 
-        // Collections — recount each curated set against the non-collection filter base.
-        const collectionBase = new Set(getBaseSet('collection'));
-        const collectionSelect = document.getElementById('clbCollectionFilter');
-        if (collectionSelect && this._collectionMembership) {
-            const prev = collectionSelect.value;
-            const catalog = this._curatedCollectionsCatalog();
-            const byCat = {};
-            for (const [id, def] of Object.entries(catalog)) {
-                const mem = this._collectionMembership[id];
-                if (!mem) continue;
-                let n = 0;
-                for (const cl of mem) if (collectionBase.has(cl)) n++;
-                if (!n) continue;
-                (byCat[def.category] = byCat[def.category] || []).push({ id, def, n });
+        // Collections button: keep the [N] active-count badge in sync. The
+        // panel itself is re-rendered on open (so counts there are fresh
+        // against current filters) rather than every time any filter changes.
+        if (document.getElementById('clbCollectionBtn')) {
+            const btnLabel = document.getElementById('clbCollectionCount');
+            if (btnLabel) {
+                const n = this._clbCollectionStates.size;
+                btnLabel.textContent = n > 0 ? `[${n}]` : '';
+                btnLabel.style.color = n > 0 ? '#374151' : '#9ca3af';
+                btnLabel.style.fontWeight = n > 0 ? '600' : '400';
             }
-            collectionSelect.innerHTML = `<option value="">All collections (n=${collectionBase.size})</option>`;
-            for (const cat of Object.keys(byCat)) {
-                const og = document.createElement('optgroup');
-                og.label = cat;
-                for (const { id, def, n } of byCat[cat]) {
-                    const opt = document.createElement('option');
-                    opt.value = id;
-                    opt.textContent = `${def.label} (n=${n})`;
-                    opt.title = def.description;
-                    og.appendChild(opt);
-                }
-                collectionSelect.appendChild(og);
-            }
-            collectionSelect.value = prev;
         }
 
         // Update tissue filter counts
