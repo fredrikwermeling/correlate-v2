@@ -1325,6 +1325,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.46 (2026-05-12)</strong></p>
+                <ul>
+                    <li>Two data-integrity fixes that the user flagged in the collections panel.
+                    <b>(1) TNBC consistency.</b> Every cell line with a Lehmann TNBC annotation IS TNBC by the source papers&rsquo; definition, but the existing <i>Triple-negative breast</i> collection used expression-based criteria (ESR1 below breast median + PGR below breast median + ERBB2 not in top 20 %) that sometimes missed Lehmann-annotated lines, producing the impossible situation where the Lehmann sub-types appeared to contain more lines than their parent TNBC collection. Now: any line with a Lehmann tnbcType4 / tnbcType6 annotation is also added to the <code>tnbc</code> set, so Lehmann &sube; TNBC by construction. Runs unconditionally (not gated on expression load).
+                    <b>(2) MMR-deficient vs MSI-high.</b> The card&rsquo;s &ldquo;MSI-high&rdquo; badge uses DepMap&rsquo;s MSIsensor2 readout (functional MSI), while the existing <i>MMR-deficient (likely MSI-high)</i> collection used &ldquo;any damaging mutation in MLH1 / MSH2 / MSH6 / PMS2 / EPCAM&rdquo; (genetic signal). These overlap but aren&rsquo;t identical &mdash; sporadic MMR-deficiency by <em>MLH1 promoter hypermethylation</em> is invisible to the mutation matrix, and heterozygous mutations don&rsquo;t always abolish MMR. So the existing collection includes MSS lines and misses methylation-driven MSI-high lines. Fix: renamed the old collection to <b>&ldquo;MMR-mutated (Lynch-panel damaging mutation)&rdquo;</b> to make the signal honest, and added a separate <b>&ldquo;MSI-high (functional; MSIsensor2 &ge; 20)&rdquo;</b> collection that matches the card badge. Descriptions on both spell out the overlap-but-not-identical relationship.</li>
+                </ul>
                 <p><strong>v.81.45 (2026-05-12)</strong></p>
                 <ul>
                     <li>Collections &mdash; substantive reorganisation and expansion to match how cancer doctors and researchers actually talk.
@@ -2736,7 +2742,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.45</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.46</a>
     </div>
 
     <div class="main-content">
@@ -4909,6 +4915,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_45"></script>
+    <script src="app.js?v=v81_46"></script>
 </body>
 </html>

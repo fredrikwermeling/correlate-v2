@@ -22699,9 +22699,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     _curatedCollectionsCatalog() {
         return {
             msi: {
-                label: 'MMR-deficient (likely MSI-high)',
+                label: 'MMR-mutated (Lynch-panel damaging mutation)',
                 category: 'DNA repair / damage response',
-                description: '<b>Inclusion:</b> at least one damaging mutation (frameshift / nonsense / splice) in any of <b>MLH1, MSH2, MSH6, PMS2, EPCAM</b> — the canonical Lynch-syndrome / mismatch-repair gene panel. <b>Mechanism:</b> loss of MMR activity causes microsatellite instability and a hypermutated genome; classic checkpoint-immunotherapy-responder background. <b>Caveat:</b> the most common sporadic cause of MMR-deficiency is <em>MLH1 promoter hypermethylation</em>, which is not captured here — so this set under-counts MSI lines. Conversely, a single damaging mutation without biallelic loss does not always abolish MMR, so it may include some still-MMR-competent lines.'
+                description: '<b>Inclusion:</b> at least one damaging mutation (frameshift / nonsense / splice) in any of <b>MLH1, MSH2, MSH6, PMS2, EPCAM</b> — the canonical Lynch-syndrome / mismatch-repair gene panel. <b>This is a genetic signal, not a functional one</b> — see the "MSI-high (functional)" collection below for lines that actually score MSI-high on MSIsensor2 (which is what the per-cell-line MSI-high badge on the detail card uses). The two sets overlap but are not identical: <b>(a)</b> the most common sporadic cause of MMR-deficiency is <em>MLH1 promoter hypermethylation</em>, invisible to the mutation matrix — those lines are MSI-high without showing up here; <b>(b)</b> a single damaging mutation without biallelic loss does not always abolish MMR — those lines show up here but may still be microsatellite stable.'
+            },
+            msi_high_functional: {
+                label: 'MSI-high (functional; MSIsensor2 ≥ 20)',
+                category: 'DNA repair / damage response',
+                description: '<b>Inclusion:</b> cell lines that score MSI-high on DepMap\'s MSIsensor2 readout (threshold 20). <b>Why:</b> this is the <i>functional</i> MSI signal — what the per-cell-line MSI-high badge on the detail card uses, and what clinicians use for checkpoint-immunotherapy responder prediction. <b>vs the "MMR-mutated" collection above:</b> the two sets overlap but differ. MSI-high lines without a Lynch-panel mutation are usually driven by <em>MLH1 promoter hypermethylation</em> (the most common sporadic mechanism). MMR-mutated lines that aren\'t MSI-high typically have non-deleterious or heterozygous mutations.'
             },
             hrd: {
                 label: 'HR-deficient / BRCAness',
@@ -23160,11 +23165,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const swsnfGenes = ['ARID1A', 'ARID1B', 'ARID2', 'SMARCA4', 'SMARCB1', 'PBRM1'];
 
         mem.msi = new Set();
+        mem.msi_high_functional = new Set();
         mem.hrd = new Set();
         mem.swi_snf = new Set();
         mem.nrf2 = new Set();
         for (const cl of clLines) {
             if (msiGenes.some(g => hasDamaging(g, cl))) mem.msi.add(cl);
+            // Functional MSI-high — matches the per-cell-line MSI-high badge.
+            // Prefer the inferredSubtypes flag (DepMap's pre-computed MSI call,
+            // MSIsensor2 ≥ 20) and fall back to the raw MSIsensor2 score from
+            // globalSignatures if the inferred entry is missing.
+            const isub = this.inferredSubtypes?.byCellLine?.[cl];
+            const gs = this.globalSignatures?.byCellLine?.[cl];
+            if (isub?.msi === true || (gs?.MSIScore != null && gs.MSIScore >= 20)) mem.msi_high_functional.add(cl);
             if (hrdGenes.some(g => hasDamaging(g, cl))) mem.hrd.add(cl);
             if (swsnfGenes.some(g => hasDamaging(g, cl))) mem.swi_snf.add(cl);
             if (hasHotspot('NFE2L2', cl) || hasDamaging('NFE2L2', cl) || hasDamaging('KEAP1', cl)) mem.nrf2.add(cl);
@@ -23226,6 +23239,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 else if (t4 === 'BL2') mem.tnbc_bl2.add(cl);
                 else if (t4 === 'M')   mem.tnbc_m.add(cl);
                 else if (t4 === 'LAR') mem.tnbc_lar.add(cl);
+            }
+        }
+        // Belt-and-braces: every cell line with a Lehmann TNBC annotation
+        // IS TNBC by the source papers' definition. The expression-based
+        // tnbc collection above sometimes misses these when ESR1 / PGR sit
+        // near the breast-line median, which produces the counter-intuitive
+        // situation that the Lehmann sub-types appear to contain more lines
+        // than their parent "Triple-negative breast" collection. Add the
+        // Lehmann set to mem.tnbc here so Lehmann ⊆ TNBC by construction.
+        // mem.tnbc may not exist yet if expression isn't loaded; create it
+        // on demand.
+        if (this.lehmannTnbc?.byCellLine) {
+            if (!mem.tnbc) mem.tnbc = new Set();
+            for (const cl of clLines) {
+                const t = this.lehmannTnbc.byCellLine[cl]?.tnbcType4
+                      || this.lehmannTnbc.byCellLine[cl]?.tnbcType6;
+                if (t) mem.tnbc.add(cl);
             }
         }
 
