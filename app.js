@@ -2591,6 +2591,83 @@ class CorrelationExplorer {
         });
     }
 
+    // Gene autocomplete for the cell-line-browser sort input when in GE or
+    // Expression mode. Mirrors the drug-picker dropdown UX so a user typing
+    // "CD27" gets suggestions like CD27, CD274, CD276 etc. instead of having
+    // to guess the exact gene symbol. Cancer-panel genes float to the top of
+    // the suggestion list (they're the ones a researcher is usually looking
+    // for); other matches follow alphabetically.
+    _renderSortGeneDropdown(filter) {
+        const dd = document.getElementById('clbSortDrugDropdown');
+        if (!dd) return;
+        const q = (filter || '').trim().toUpperCase();
+        // Use the GE-matrix gene names by default; if the user is sorting by
+        // expression and the expression matrix is loaded with its own gene
+        // list, prefer that.
+        const mode = document.getElementById('clbSortBy')?.value || '';
+        let genes = this.geneNames || [];
+        if (mode === 'expr' && this.expressionMetadata?.genes?.length) {
+            genes = this.expressionMetadata.genes;
+        }
+        if (!genes.length) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No gene list available yet — data still loading.</div>`;
+            return;
+        }
+        if (!q) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">Type a gene symbol (e.g. <code>TP53</code>, <code>CD274</code>, <code>CDK4</code>) to see suggestions.</div>`;
+            return;
+        }
+        const cancerSet = this._cancerPanelGenes || new Set();
+        // Substring match. Score: exact prefix > substring; cancer-panel > not.
+        const candidates = [];
+        for (const g of genes) {
+            const gu = g.toUpperCase();
+            const idx = gu.indexOf(q);
+            if (idx < 0) continue;
+            // Score: lower is better
+            //   0..9   exact prefix, cancer-panel
+            //   10..19 exact prefix, non-cancer
+            //   20..29 substring, cancer-panel
+            //   30+    substring, non-cancer
+            const isPrefix = idx === 0;
+            const inPanel  = cancerSet.has(g);
+            let score = (isPrefix ? 0 : 20) + (inPanel ? 0 : 10) + idx * 0.01;
+            candidates.push({ g, score, inPanel });
+            if (candidates.length > 3000) break;
+        }
+        if (candidates.length === 0) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No gene symbol matches "${filter}".</div>`;
+            return;
+        }
+        candidates.sort((a, b) => a.score - b.score || a.g.localeCompare(b.g));
+        const top = candidates.slice(0, 80);
+        const header = `<div style="padding:6px 10px; background:#f9fafb; border-bottom:1px solid #e5e7eb; font-size:10px; color:#6b7280; position:sticky; top:0;">`
+            + `${candidates.length} match${candidates.length === 1 ? '' : 'es'} for &ldquo;${q}&rdquo; · `
+            + `<span style="color:#15803d;">●</span> = on the curated cancer-pathway panel`
+            + `</div>`;
+        const rows = top.map(({ g, inPanel }) => {
+            const safe = String(g).replace(/"/g, '&quot;');
+            const dot = inPanel ? '<span style="color:#15803d; font-weight:700;">●</span>' : '<span style="color:#d1d5db;">●</span>';
+            return `<div class="clb-sortgene-opt" data-value="${safe}" `
+                + `style="padding:5px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6; display:flex; gap:8px; align-items:center;" `
+                + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
+                + `${dot}<span style="font-weight:600; color:#15803d;">${g}</span>`
+                + `</div>`;
+        }).join('');
+        dd.innerHTML = header + rows;
+        const input = document.getElementById('clbSortGene');
+        dd.querySelectorAll('.clb-sortgene-opt').forEach(el => {
+            el.addEventListener('mousedown', (e) => e.preventDefault());
+            el.addEventListener('click', () => {
+                if (input) {
+                    input.value = el.dataset.value;
+                    input.dispatchEvent(new Event('input'));
+                }
+                dd.style.display = 'none';
+            });
+        });
+    }
+
     _renderCnFilterDropdown(filter) {
         const dd = document.getElementById('clbCnDropdown');
         if (!dd) return;
@@ -22776,7 +22853,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             pdl1_high: {
                 label: 'PD-L1 (CD274) high expression',
                 category: 'Immunology',
-                description: '<b>Inclusion:</b> CD274 (PD-L1) expression z-score &gt; +1.0 vs the full cell-line cohort. <b>Why:</b> PD-L1 is the canonical checkpoint-immunotherapy biomarker — high tumour PD-L1 expression predicts clinical response to anti-PD1 / anti-PDL1 antibodies (pembrolizumab, nivolumab, atezolizumab, durvalumab) in many disease contexts. <b>Caveats:</b> (1) PD-L1 mRNA correlates imperfectly with protein-level expression scored by IHC (the clinical test); (2) cell-intrinsic PD-L1 expression doesn\'t replace tumour-microenvironment biomarkers; (3) some cell lines constitutively express PD-L1 via cytosolic-DNA / IFN-pathway activation (cross-reference with the IFN-response pathway signature).'
+                description: '<b>Inclusion:</b> CD274 (PD-L1) absolute expression in the top quintile of the cell-line cohort AND log<sub>2</sub>(TPM+1) ≥ 3 (≈ TPM &gt; 7, the same "clearly expressed" floor used by the lineage-marker logic elsewhere in the app). The dual threshold avoids a z-only criterion picking up lines that are above the cohort mean only because the mean is near zero — most cell lines barely express PD-L1 at all. <b>Why:</b> PD-L1 is the canonical checkpoint-immunotherapy biomarker — high tumour PD-L1 expression predicts clinical response to anti-PD1 / anti-PDL1 antibodies (pembrolizumab, nivolumab, atezolizumab, durvalumab). <b>Caveats:</b> (1) PD-L1 mRNA correlates imperfectly with protein-level expression scored by IHC (the clinical test); (2) cell-intrinsic PD-L1 expression doesn\'t replace tumour-microenvironment biomarkers; (3) some cell lines constitutively express PD-L1 via cytosolic-DNA / IFN-pathway activation (cross-reference with the IFN-response pathway signature).'
             },
             likely_non_immunogenic: {
                 label: 'Likely non-immunogenic',
@@ -23646,13 +23723,47 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     }
                 }
 
-                // Single-gene expression-based predictors. Both use the same
-                // per-gene cohort stats; cutoff z > +1.0 = clearly upper-decile
-                // expression for that gene.
+                // Single-gene expression-based predictors.
+                //
+                // SLFN11-high: z > +1.0 vs cohort. SLFN11 has a clean
+                // bimodal distribution across the cohort (epigenetically
+                // silenced in most lines, highly expressed in a subset) so
+                // the z-based threshold cleanly picks the "expresser" mode.
+                //
+                // PD-L1 / CD274 high: a z-only threshold is misleading
+                // because CD274 has a heavily-left-skewed cohort (most lines
+                // sit near zero log2-TPM+1) — z > +1.0 there catches lines
+                // with absolute expression of ~1–2, which clinically read
+                // as "not expressing PD-L1". Use an ABSOLUTE log2-TPM+1
+                // floor (≥ 3, ≈ TPM > 7 — the threshold for "clearly
+                // expressed" in the rest of the app's lineage-marker logic)
+                // AND require the line to sit in the top quintile of the
+                // CD274 distribution. Both conditions ensure the collection
+                // matches clinical "PD-L1 high" intent.
                 mem.slfn11_high = new Set();
                 mem.pdl1_high = new Set();
                 const slfnGi = this.expressionGeneIndex.get('SLFN11');
                 const pdl1Gi = this.expressionGeneIndex.get('CD274');
+
+                // Pre-compute the PD-L1 top-quintile threshold across cells
+                // that have data, then take the higher of that and the
+                // log2-TPM+1 ≥ 3 floor.
+                let pdl1Threshold = 3.0;
+                if (pdl1Gi !== undefined) {
+                    const pdl1Vals = [];
+                    for (const cl of clLines) {
+                        const ei = exprMap.get(cl);
+                        if (ei === undefined) continue;
+                        const v = this.expressionData[pdl1Gi * nExprCL2 + ei];
+                        if (!isNaN(v)) pdl1Vals.push(v);
+                    }
+                    if (pdl1Vals.length > 0) {
+                        pdl1Vals.sort((a, b) => b - a);
+                        const q80 = pdl1Vals[Math.floor(pdl1Vals.length * 0.2)] || 3;
+                        pdl1Threshold = Math.max(3.0, q80);
+                    }
+                }
+
                 for (const cl of clLines) {
                     const ei = exprMap.get(cl);
                     if (ei === undefined) continue;
@@ -23663,12 +23774,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                             if (z > 1.0) mem.slfn11_high.add(cl);
                         }
                     }
-                    if (pdl1Gi !== undefined && stats.sd[pdl1Gi] >= 0.3) {
+                    if (pdl1Gi !== undefined) {
                         const v = this.expressionData[pdl1Gi * nExprCL2 + ei];
-                        if (!isNaN(v)) {
-                            const z = (v - stats.mean[pdl1Gi]) / stats.sd[pdl1Gi];
-                            if (z > 1.0) mem.pdl1_high.add(cl);
-                        }
+                        if (!isNaN(v) && v > pdl1Threshold) mem.pdl1_high.add(cl);
                     }
                 }
             }
@@ -24100,23 +24208,36 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.renderCellLineList();
         });
         let clbGeneTimer;
+        // Helper: dispatch to drug picker, gene picker, or hide based on mode.
+        const renderSortDropdown = () => {
+            const dd = document.getElementById('clbSortDrugDropdown');
+            if (!dd) return;
+            const mode = clbSortBy.value;
+            if (mode === 'drug') {
+                this._renderSortDrugDropdown(clbSortGene.value);
+                dd.style.display = '';
+            } else if (mode === 'ge' || mode === 'expr') {
+                this._renderSortGeneDropdown(clbSortGene.value);
+                dd.style.display = '';
+            } else {
+                dd.style.display = 'none';
+            }
+        };
         clbSortGene.addEventListener('input', () => {
             clearTimeout(clbGeneTimer);
             clbGeneTimer = setTimeout(() => {
                 updateSortControls();
                 this.renderCellLineList();
             }, 200);
-            // Refresh the drug-picker dropdown filter live as the user types.
-            if (clbSortBy.value === 'drug') this._renderSortDrugDropdown(clbSortGene.value);
+            // Refresh the suggestion dropdown live as the user types.
+            renderSortDropdown();
         });
-        // Drug-picker dropdown — opens on focus when "Sort: Drug response" is
-        // active. Uses the same pattern as the CN / fusion filter dropdowns.
+        // Suggestion dropdown — opens on focus for drug / GE / expression
+        // modes. Uses the same pattern as the CN / fusion filter dropdowns
+        // (mousedown preventDefault on options prevents the input losing
+        // focus before the click handler fires).
         clbSortGene.addEventListener('focus', () => {
-            if (clbSortBy.value !== 'drug') return;
-            const dd = document.getElementById('clbSortDrugDropdown');
-            if (!dd) return;
-            this._renderSortDrugDropdown(clbSortGene.value);
-            dd.style.display = '';
+            renderSortDropdown();
         });
         document.addEventListener('click', (e) => {
             const wrap = document.getElementById('clbSortGeneWrap');
