@@ -24306,9 +24306,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (sortGeneWrap) sortGeneWrap.style.display = needsGene ? 'inline-block' : 'none';
             if (clbSortGene) {
                 clbSortGene.placeholder = mode === 'drug' ? 'click → list of PRISM compounds' : 'TP53, BRCA1, ...';
-                // Clear the drug-picker dropdown when leaving drug mode.
+                // Clear the suggestion dropdown only when leaving a mode
+                // that uses it (drug / ge / expr). Previously this
+                // unconditionally hid the dropdown for any non-drug mode,
+                // which meant the 200 ms-debounced updateSortControls call
+                // killed the gene-autocomplete dropdown 200 ms after every
+                // keystroke in GE / Expression mode — the user saw
+                // suggestions flash and disappear before they could click.
                 const dd = document.getElementById('clbSortDrugDropdown');
-                if (dd && mode !== 'drug') dd.style.display = 'none';
+                const usesDropdown = (mode === 'drug' || mode === 'ge' || mode === 'expr');
+                if (dd && !usesDropdown) dd.style.display = 'none';
             }
             // Show direction arrow unless mode is name or (gene sort with empty gene input)
             const showDir = mode !== 'name' && !(needsGene && !clbSortGene.value.trim());
