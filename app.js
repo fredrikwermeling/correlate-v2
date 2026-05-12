@@ -17240,10 +17240,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // consumers don't need to fork.
         let rawValues;
         if (useExpr) {
+            // The expression matrix has its own cell-line ordering and a
+            // different cohort than GE — must remap each value into
+            // metadata.cellLines order so the downstream loop (which
+            // pairs rawValues[i] with metadata.cellLines[i]) gets the
+            // right cell line's value.
             const gi = this.expressionGeneIndex.get(geneUpper);
+            const nExpr = this.expressionMetadata.nCellLines;
+            const off = gi * nExpr;
+            const exprIdxOf = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, idx) => exprIdxOf.set(cl, idx));
             rawValues = new Float32Array(this.nCellLines);
-            const off = gi * this.nCellLines;
-            for (let i = 0; i < this.nCellLines; i++) rawValues[i] = this.expressionData[off + i];
+            for (let i = 0; i < this.nCellLines; i++) {
+                const ei = exprIdxOf.get(this.metadata.cellLines[i]);
+                rawValues[i] = (ei === undefined) ? NaN : this.expressionData[off + ei];
+            }
         } else {
             const geneIdx = this.geneIndex.get(geneUpper);
             rawValues = this.getGeneData(geneIdx);
@@ -23584,38 +23595,49 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Expression-based collections (need expression data loaded).
         if (this.expressionLoaded && this.expressionData && this.expressionGeneIndex) {
-            const nCL = this.nCellLines;
-            const exprFor = (gene, clIdx) => {
+            // CRITICAL: the expression matrix has its own cell-line
+            // ordering and may have a different cohort size than the GE
+            // matrix (e.g. 1699 vs 1186 in 25Q3). Indexing expressionData
+            // with this.nCellLines or with positions from
+            // this.metadata.cellLines is wrong on both counts and produces
+            // garbage reads — often straddling into adjacent genes' rows.
+            // Use the expression-matrix's own index map and stride.
+            const nExprCL = this.expressionMetadata.nCellLines;
+            const exprIdxOf = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, i) => exprIdxOf.set(cl, i));
+            const exprFor = (gene, cl) => {
                 const gi = this.expressionGeneIndex.get(gene);
-                if (gi === undefined) return NaN;
-                return this.expressionData[gi * nCL + clIdx];
+                const ei = exprIdxOf.get(cl);
+                if (gi === undefined || ei === undefined) return NaN;
+                return this.expressionData[gi * nExprCL + ei];
             };
 
             // Neuroendocrine: top-quintile mean expression of ASCL1/NEUROD1/CHGA/SYP.
             const neGenes = ['ASCL1', 'NEUROD1', 'CHGA', 'SYP'];
             const neScores = [];
-            for (let i = 0; i < nCL; i++) {
+            for (const cl of clLines) {
                 let s = 0, n = 0;
                 for (const g of neGenes) {
-                    const v = exprFor(g, i);
+                    const v = exprFor(g, cl);
                     if (!isNaN(v)) { s += v; n++; }
                 }
-                neScores.push({ cl: clLines[i], score: n > 0 ? s / n : -Infinity });
+                neScores.push({ cl, score: n > 0 ? s / n : -Infinity });
             }
             neScores.sort((a, b) => b.score - a.score);
             const neCut = Math.ceil(neScores.length / 5);
             mem.ne = new Set(neScores.slice(0, neCut).map(s => s.cl));
 
             // EMT: composite z-score across population. High VIM/ZEB1/SNAI1/TWIST1
-            // minus CDH1. Top quintile.
+            // minus CDH1. Top quintile. Pop stats are taken over the full
+            // expression cohort.
             const emtUp = ['VIM', 'ZEB1', 'SNAI1', 'TWIST1'];
             const emtDn = ['CDH1'];
             const zFor = (gene) => {
                 const gi = this.expressionGeneIndex.get(gene);
                 if (gi === undefined) return null;
-                const off = gi * nCL;
+                const off = gi * nExprCL;
                 const vals = [];
-                for (let i = 0; i < nCL; i++) { const v = this.expressionData[off + i]; if (!isNaN(v)) vals.push(v); }
+                for (let i = 0; i < nExprCL; i++) { const v = this.expressionData[off + i]; if (!isNaN(v)) vals.push(v); }
                 if (vals.length < 3) return null;
                 const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
                 const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
@@ -23625,11 +23647,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const dnZ = emtDn.map(zFor).filter(x => x && x.sd > 0);
             if (upZ.length) {
                 const emtScores = [];
-                for (let i = 0; i < nCL; i++) {
+                for (const cl of clLines) {
+                    const ei = exprIdxOf.get(cl);
+                    if (ei === undefined) { emtScores.push({ cl, score: -Infinity }); continue; }
                     let s = 0, n = 0;
-                    for (const z of upZ) { const v = this.expressionData[z.off + i]; if (!isNaN(v)) { s += (v - z.mean) / z.sd; n++; } }
-                    for (const z of dnZ) { const v = this.expressionData[z.off + i]; if (!isNaN(v)) { s -= (v - z.mean) / z.sd; n++; } }
-                    emtScores.push({ cl: clLines[i], score: n > 0 ? s / n : -Infinity });
+                    for (const z of upZ) { const v = this.expressionData[z.off + ei]; if (!isNaN(v)) { s += (v - z.mean) / z.sd; n++; } }
+                    for (const z of dnZ) { const v = this.expressionData[z.off + ei]; if (!isNaN(v)) { s -= (v - z.mean) / z.sd; n++; } }
+                    emtScores.push({ cl, score: n > 0 ? s / n : -Infinity });
                 }
                 emtScores.sort((a, b) => b.score - a.score);
                 mem.emt = new Set(emtScores.slice(0, Math.ceil(emtScores.length / 5)).map(s => s.cl));
@@ -23641,15 +23665,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // ESR1/PGR, top quintile for ERBB2) so calls are relative to
             // the breast population rather than pan-cancer.
             const breastLines = [];
-            for (let i = 0; i < nCL; i++) {
-                const cl = clLines[i];
-                if ((this.cellLineMetadata?.lineage?.[cl] || '').toLowerCase().includes('breast')) breastLines.push({ cl, i });
+            for (const cl of clLines) {
+                if ((this.cellLineMetadata?.lineage?.[cl] || '').toLowerCase().includes('breast')) {
+                    const ei = exprIdxOf.get(cl);
+                    if (ei !== undefined) breastLines.push({ cl, ei });
+                }
             }
             const pick = (gene, rows) => {
                 const gi = this.expressionGeneIndex.get(gene);
                 if (gi === undefined) return [];
-                const off = gi * nCL;
-                return rows.map(r => ({ cl: r.cl, v: this.expressionData[off + r.i] })).filter(x => !isNaN(x.v));
+                const off = gi * nExprCL;
+                return rows.map(r => ({ cl: r.cl, v: this.expressionData[off + r.ei] })).filter(x => !isNaN(x.v));
             };
             const median = (arr) => {
                 if (!arr.length) return NaN;
@@ -23665,7 +23691,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const herSorted = [...her].sort((a, b) => b.v - a.v);
             const herTop = new Set(herSorted.slice(0, Math.ceil(herSorted.length / 5)).map(x => x.cl));
 
-            mem.tnbc = new Set();
+            // Keep any pre-existing TNBC members (Lehmann-annotated lines
+            // were added earlier by the v.81.46 belt-and-braces pass; a
+            // plain `new Set()` here would wipe them).
+            if (!mem.tnbc) mem.tnbc = new Set();
             mem.hr_pos_breast = new Set();
             mem.her2_pos_breast = new Set();
             for (const { cl } of breastLines) {
@@ -29199,14 +29228,21 @@ ${body}
         }
 
         const clIndexOf = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
+        // Expression matrix has its own ordering / cohort — getExpr must
+        // resolve the cell line through the expression-matrix index map,
+        // not the GE one.
+        const exprClIndexOf = new Map((this.expressionMetadata?.cellLines || []).map((cl, i) => [cl, i]));
+        const nExprCL = this.expressionMetadata?.nCellLines || 0;
         const getGE = (clIdx, gIdx) => {
             if (gIdx === undefined || clIdx === undefined) return '';
             const v = this.geneEffects[gIdx * this.nCellLines + clIdx];
             return (!isNaN(v) && v !== -999) ? v.toFixed(4) : '';
         };
-        const getExpr = (clIdx, eIdx) => {
-            if (eIdx === undefined || clIdx === undefined || !this.expressionLoaded) return '';
-            const v = this.expressionData[eIdx * this.nCellLines + clIdx];
+        const getExpr = (cl, eIdx) => {
+            if (eIdx === undefined || !this.expressionLoaded) return '';
+            const ei = exprClIndexOf.get(cl);
+            if (ei === undefined) return '';
+            const v = this.expressionData[eIdx * nExprCL + ei];
             return (!isNaN(v)) ? v.toFixed(3) : '';
         };
 
@@ -29232,7 +29268,7 @@ ${body}
             ];
             resolved.forEach(r => {
                 row.push(getGE(ci, r.geIdx));
-                row.push(getExpr(ci, r.exprIdx));
+                row.push(getExpr(cl, r.exprIdx));
             });
             rows.push(row.join(','));
         }
