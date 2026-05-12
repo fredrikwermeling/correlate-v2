@@ -24833,11 +24833,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // genes (comma / newline / whitespace separated) are averaged
             // per cell line so you can find "cells with highest combined
             // expression of genes A and B".
+            const isExpr = (mode === 'expr');
+            // CRITICAL: the GE matrix and the expression matrix have
+            // DIFFERENT cell-line orderings (and may have different cohort
+            // sizes). For expression sort we must use the expression-matrix
+            // cell-line index map and nCellLines — otherwise the
+            // `expressionData[gi * nCL + ci]` lookup reads from the wrong
+            // memory location and displays a different cell line's value
+            // (which was why the PD-L1-high collection appeared to include
+            // low-CD274 lines: the COLLECTION was correct, the inline
+            // displayed value was wrong because it used the GE index map
+            // against the expression matrix).
+            const clIdxMap = isExpr && this.expressionMetadata?.cellLines
+                ? new Map(this.expressionMetadata.cellLines.map((cl, i) => [cl, i]))
+                : new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
             const raw = document.getElementById('clbSortGene').value || '';
             const tokens = raw.split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
-            const clIdxMap = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
 
-            const isExpr = (mode === 'expr');
             if (isExpr && !this.expressionLoaded) {
                 // Kick off expression load in the background; sort falls back
                 // to name for now. When expression arrives, user can switch
@@ -24855,7 +24867,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
             if (vecIdxs.length > 0) {
                 const source = isExpr ? this.expressionData : this.geneEffects;
-                const nCL = this.nCellLines;
+                const nCL = isExpr && this.expressionMetadata?.nCellLines
+                    ? this.expressionMetadata.nCellLines
+                    : this.nCellLines;
                 geMap = new Map();
                 for (const cl of filtered) {
                     const ci = clIdxMap.get(cl);
