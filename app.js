@@ -24414,7 +24414,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const _clbCn = document.getElementById('clbCnFilter'); if (_clbCn) _clbCn.value = '';
             document.getElementById('clbSortBy').value = 'name';
             document.getElementById('clbSortGene').value = '';
-            document.getElementById('clbSortGene').style.display = 'none';
+            // The sort-gene input lives inside clbSortGeneWrap (added in
+            // v.81.35 so the drug-picker dropdown could be positioned next
+            // to it). Hide the WRAPPER on reset, not just the input — and
+            // clear any stale inline display on the input itself so that
+            // switching back to drug / GE / expression mode shows the box.
+            const _sortWrap = document.getElementById('clbSortGeneWrap');
+            if (_sortWrap) _sortWrap.style.display = 'none';
+            const _sortGene = document.getElementById('clbSortGene');
+            if (_sortGene) _sortGene.style.display = '';
+            const _sortDrugDd = document.getElementById('clbSortDrugDropdown');
+            if (_sortDrugDd) _sortDrugDd.style.display = 'none';
             document.getElementById('clbSortDir').style.display = 'none';
             this._clbSortMode = 'name';
             this._clbSortAsc = true;
