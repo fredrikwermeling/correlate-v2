@@ -22818,7 +22818,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             tnbc: {
                 label: 'Triple-negative breast (approximate)',
                 category: 'Breast — receptor subtype',
-                description: '<b>Inclusion:</b> breast lineage AND ESR1 expression below the breast-line median AND PGR expression below the breast-line median AND ERBB2 expression NOT in the top 20 % of breast lines. <b>Why:</b> approximates TNBC by transcript-level surrogates of ER, PR, HER2 status. <b>Caveat:</b> clinical TNBC is defined by IHC (and FISH for HER2) — transcript and protein don\'t always agree. Breast-only thresholds avoid mis-classifying receptor-low lines from other lineages, but a borderline breast line may shift class with small expression changes.'
+                description: '<b>Inclusion (two paths, either qualifies):</b> <b>(a)</b> breast lineage AND ESR1 expression below the breast-line median AND PGR expression below the breast-line median AND ERBB2 expression NOT in the top 20 % of breast lines (transcript surrogates of ER, PR, HER2 status); <b>OR</b> <b>(b)</b> the line carries a Lehmann TNBC subtype annotation from the curated 2011 / 2016 panels (path (a) sometimes misses borderline lines that the Lehmann papers explicitly called TNBC, e.g. when ESR1 / PGR sit near the breast median). This guarantees that the TNBC parent set is a superset of the Lehmann sub-types — Lehmann &sube; TNBC by construction. <b>Caveat:</b> clinical TNBC is defined by IHC (and FISH for HER2); transcript and protein don\'t always agree.'
             },
             hr_pos_breast: {
                 label: 'HR+ breast (luminal-like)',
@@ -23788,26 +23788,144 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Populate the CLB collection dropdown from the catalog.
     // Reference modal listing every curated collection with its inclusion
     // criteria + current membership count. Pulls straight from the catalog
-    // so adding a new collection just requires editing the catalog.
+    // so adding a new collection just requires editing the catalog. The
+    // category order, italic-note explainers, and section-header styling
+    // mirror _renderCollectionPanel so the modal and the live picker read
+    // as the same document.
     _showCollectionsInfo() {
         const modal = document.getElementById('collectionsInfoModal');
         const body = document.getElementById('collectionsInfoBody');
         if (!modal || !body) return;
         const catalog = this._curatedCollectionsCatalog();
         const mem = this._collectionMembership || {};
+
+        // Same explainers and order as the live panel.
+        const CATEGORY_NOTES = {
+            'Driver oncogene mutations': 'Common oncogene activating mutations (KRAS / BRAF / EGFR / PIK3CA hotspots; CTNNB1 Wnt activators; IDH 2-HG producers). Mutation status only — see "Oncogene addiction" for the stricter mutation-plus-CRISPR-dependency-confirmed set.',
+            'Oncogene addiction (mutation × CRISPR dependency)': 'Cancer cells that have become functionally dependent on a driver gene — knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only "Driver oncogene mutations" set above.',
+            'Pathway-activity expression signatures': 'Each set marks lines where the pathway is transcriptionally active (mean z > +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.',
+            'Tumor-suppressor functional loss': 'A gene is "functionally lost" when DepMap\'s integrated call (CN, mutation, expression) says it is — catches deletions and silenced loci that the damaging-mutation list alone would miss.',
+            'Focal amplifications': 'Curated oncogene amplifications from the clinical CN panel — gain-of-function dosage events that point mutations cannot produce.',
+            'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called — Philadelphia-positive leukaemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL, synovial sarcoma, alveolar RMS, prostate, ALCL.',
+            'DNA repair / damage response': 'One consolidated category for DNA-repair-deficiency contexts (MMR, HR, polymerase proofreading, ATM) and the related mutation-burden state (hypermutated). All overlap clinically — MMR-deficient lines are usually hypermutated, POLE-deficient lines are ultramutated, HR-deficient lines often have elevated LoH.',
+            'TNBC molecular subtypes (Lehmann)': 'Lehmann 2011 / 2016 four-class refined TNBC molecular subtypes (BL1, BL2, M, LAR) for the ~22 TNBC overlap cell lines.',
+            'Patient age at diagnosis': 'Clinical-oncology age buckets computed from the numeric patient-age field. Paediatric (≤ 14), AYA (15–39), Adult (40–64), Elderly (≥ 65), Infant (≤ 1) as subsets. Useful because driver biology differs sharply with age — fusions and chromatin mutations dominate paediatric cancers, SNV-driven solid tumours dominate adult.'
+        };
+        const CATEGORY_ORDER = [
+            'Disease-defining fusions',
+            'Tumor-suppressor functional loss',
+            'Focal amplifications',
+            'Driver oncogene mutations',
+            'Oncogene addiction (mutation × CRISPR dependency)',
+            'Breast — receptor subtype',
+            'TNBC molecular subtypes (Lehmann)',
+            'Patient age at diagnosis',
+            'Immunology',
+            'DNA repair / damage response',
+            'Genome — ploidy / instability',
+            'Chromatin remodelling — SWI/SNF complex',
+            'Oxidative-stress response',
+            'Pathway-activity expression signatures',
+            'Expression signature'
+        ];
+
+        // Per-collection inclusion-source badge. Tells the user at a glance
+        // whether the cell-line set was built from mutation matrices, an
+        // expression panel, copy-number data, a fusion call, a published
+        // paper, or several layers combined. Default fallback is shown for
+        // any collection not in this map.
+        const SOURCE = {
+            // Driver oncogene mutations
+            kras_mutant: 'mutation', braf_mutant: 'mutation', egfr_mutant: 'mutation',
+            pik3ca_mutant: 'mutation', ctnnb1_hotspot: 'mutation', idh_mutant: 'mutation',
+            // Oncogene addiction
+            kras_addicted: 'mutation + CRISPR', braf_addicted: 'mutation + CRISPR',
+            egfr_dependent: 'mutation + CRISPR', cdk46_dependent: 'mutation + CRISPR',
+            bcr_abl_addicted: 'fusion + CRISPR', pi3k_active_dependent: 'mutation + CRISPR',
+            // Tumor-suppressor functional loss — all integrated calls
+            tp53_loss: 'integrated LoF', pten_loss: 'integrated LoF', rb1_loss: 'integrated LoF',
+            cdkn2a_loss: 'integrated LoF', apc_loss: 'integrated LoF', nf1_loss: 'integrated LoF',
+            smad4_loss: 'integrated LoF', stk11_loss: 'integrated LoF', vhl_loss: 'integrated LoF',
+            any_tsg_loss: 'integrated LoF', multi_tsg_loss: 'integrated LoF',
+            // Focal amplifications — all CN
+            myc_family_amp: 'CN amp', erbb2_amp: 'CN amp', mdm2_amp: 'CN amp',
+            g1s_amp: 'CN amp', met_amp: 'CN amp', fgfr_amp: 'CN amp', ccne1_amp: 'CN amp',
+            any_focal_amp: 'CN amp',
+            // Disease-defining fusions — all fusion
+            fusion_bcr_abl1: 'fusion', fusion_ewsr1_fli1: 'fusion', fusion_eml4_alk: 'fusion',
+            fusion_pml_rara: 'fusion', fusion_ss18_ssx: 'fusion', fusion_pax3_foxo1: 'fusion',
+            fusion_tmprss2_erg: 'fusion', fusion_npm1_alk: 'fusion',
+            // DNA repair / damage response
+            msi: 'mutation', msi_high_functional: 'MSIsensor2 score',
+            hrd: 'mutation', hypermutated: 'mutation count',
+            pole_pold1_ultramutated: 'mutation', atm_deficient: 'mutation',
+            // Genome / ploidy / instability
+            wgd_positive: 'genome signature', high_aneuploidy: 'genome signature',
+            high_loh: 'genome signature',
+            // Chromatin / oxidative
+            swi_snf: 'mutation', nrf2: 'mutation',
+            // Patient demographics
+            age_infant: 'patient metadata', age_pediatric: 'patient metadata',
+            age_aya: 'patient metadata', age_adult: 'patient metadata',
+            age_elderly: 'patient metadata',
+            // Breast subtypes
+            tnbc: 'expression + Lehmann publication',
+            hr_pos_breast: 'expression',
+            her2_pos_breast: 'expression',
+            // Lehmann TNBC subtypes — all publication-curated
+            tnbc_bl1: 'Lehmann publication', tnbc_bl2: 'Lehmann publication',
+            tnbc_m:   'Lehmann publication', tnbc_lar: 'Lehmann publication',
+            // Immunology
+            class_i_reduced: 'integrated immunophenotype',
+            pdl1_high: 'expression',
+            likely_immunogenic: 'mutation count + immunophenotype',
+            likely_non_immunogenic: 'mutation count + immunophenotype',
+            // Pathway-activity expression signatures
+            myc_pathway_active: 'expression signature', e2f_active: 'expression signature',
+            g2m_active: 'expression signature', ifn_response_active: 'expression signature',
+            tgfb_response_active: 'expression signature', hypoxia_active: 'expression signature',
+            nrf2_signature_active: 'expression signature', stem_active: 'expression signature',
+            slfn11_high: 'expression',
+            // Expression signatures (canonical)
+            ne: 'expression signature', emt: 'expression signature',
+        };
+
+        // Group entries by category.
         const byCat = {};
         for (const [id, def] of Object.entries(catalog)) {
             const n = mem[id] ? mem[id].size : null;
             (byCat[def.category] = byCat[def.category] || []).push({ id, def, n });
         }
-        let html = `<p style="margin:0 0 12px; color:#6b7280;">Each collection is computed at load time from DepMap mutation / expression data. Numbers reflect the current dataset; the actual filter also respects any other active filters (tissue, subtype, hotspot, …).</p>`;
-        for (const cat of Object.keys(byCat)) {
-            html += `<h4 style="margin:14px 0 6px; font-size:13px; color:#15803d; border-bottom:1px solid #e5e7eb; padding-bottom:4px;">${cat}</h4>`;
+        // Categories in the canonical order; any unrecognised at the end.
+        const catKeys = Object.keys(byCat).sort((a, b) => {
+            const ia = CATEGORY_ORDER.indexOf(a);
+            const ib = CATEGORY_ORDER.indexOf(b);
+            if (ia === -1 && ib === -1) return a.localeCompare(b);
+            if (ia === -1) return 1;
+            if (ib === -1) return -1;
+            return ia - ib;
+        });
+
+        // Source-badge style — neutral pill so it doesn't compete with the
+        // green section headers or the entry titles.
+        const sourceBadge = (id) => {
+            const src = SOURCE[id] || 'curated';
+            return `<span style="display:inline-block; font-size:9px; padding:1px 6px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em; margin-left:8px; vertical-align:middle;">${src}</span>`;
+        };
+
+        let html = `<p style="margin:0 0 14px; color:#6b7280;">Each collection is computed once at load time from the DepMap data layers (mutations, copy number, expression, inferred subtypes, global signatures, clinical fusions, patient metadata) plus a small set of curated publication panels. Numbers below reflect the current dataset; the live filter additionally respects any other active filters (tissue, subtype, hotspot, fusion, sex, age, oncoprint). Each entry carries an <span style="display:inline-block; font-size:9px; padding:1px 6px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em;">inclusion source</span> badge naming the underlying data layer (mutation, CN, expression, fusion, etc.).</p>`;
+
+        for (const cat of catKeys) {
+            // Section header — matches the live-panel green-accent banner.
+            html += `<h4 style="margin:18px 0 4px; padding:4px 0 3px; font-size:14px; font-weight:700; color:#15803d; border-bottom:2px solid #15803d;">${cat}</h4>`;
+            if (CATEGORY_NOTES[cat]) {
+                html += `<div style="color:#6b7280; font-size:11px; font-style:italic; margin:0 0 10px 0; padding:0 2px;">${CATEGORY_NOTES[cat]}</div>`;
+            }
             for (const { id, def, n } of byCat[cat]) {
                 const nStr = n == null ? '<i style="color:#9ca3af;">requires expression data</i>' : `n = ${n}`;
                 html += `<div style="margin-bottom:10px;">`
-                     +  `<div style="font-weight:600; color:#374151;">${def.label} <span style="font-weight:400; color:#6b7280;">— ${nStr}</span></div>`
-                     +  `<div style="color:#4b5563; margin-top:2px;">${def.description}</div>`
+                     +  `<div style="font-weight:600; color:#374151;">${def.label}${sourceBadge(id)} <span style="font-weight:400; color:#6b7280;">— ${nStr}</span></div>`
+                     +  `<div style="color:#4b5563; margin-top:3px; font-size:11px; line-height:1.5;">${def.description}</div>`
                      +  `</div>`;
             }
         }

@@ -1325,6 +1325,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.49 (2026-05-12)</strong></p>
+                <ul>
+                    <li>Collections &mdash; the &ldquo;?&rdquo; inclusion-criteria modal now matches the live panel.
+                    <b>(1) Same order and category-note explainers</b> as the panel (CATEGORY_ORDER and CATEGORY_NOTES factored in), so both surfaces read as one document. Previously the modal followed catalog insertion order which was arbitrary.
+                    <b>(2) Section headers re-styled</b> to the same green-accent banner (14 px, 2 px green underline) used by the panel and the Wiki, so visual hierarchy is consistent everywhere.
+                    <b>(3) Inclusion-source badge</b> on every entry &mdash; a small uppercase pill (<code>MUTATION</code>, <code>EXPRESSION</code>, <code>CN AMP</code>, <code>FUSION</code>, <code>MSISENSOR2 SCORE</code>, <code>LEHMANN PUBLICATION</code>, <code>INTEGRATED LOF</code>, etc.) tells the user at a glance which DepMap data layer or publication panel each collection was built from. Intro paragraph explains the badge.
+                    <b>(4) TNBC dual-inclusion rule documented.</b> The <i>Triple-negative breast (approximate)</i> description now explicitly states both inclusion paths: <b>(a)</b> expression-based receptor-status surrogate (ESR1 / PGR below breast median + ERBB2 not in top 20 %), <b>OR</b> <b>(b)</b> the line carries a Lehmann TNBC subtype annotation. The (a)+(b) union guarantees Lehmann &sube; TNBC by construction &mdash; the earlier discrepancy where the sub-types appeared to contain more lines than their parent set is resolved and explained.</li>
+                </ul>
                 <p><strong>v.81.48 (2026-05-12)</strong></p>
                 <ul>
                     <li>Collections panel &mdash; category headlines made larger and clearer. Bumped from 10 px to 13 px, weight 600 &rarr; 700, and the bottom rule changed from a faint 1 px grey hairline to a 2 px green accent so the major sections of the collection panel separate visually at a glance. More top margin (16 px) and a touch of padding give each section room to breathe. Italic category-note line under each header bumped from 10 px to 11 px to match.</li>
@@ -2752,7 +2760,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.48</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.49</a>
     </div>
 
     <div class="main-content">
@@ -4925,6 +4933,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_48"></script>
+    <script src="app.js?v=v81_49"></script>
 </body>
 </html>
