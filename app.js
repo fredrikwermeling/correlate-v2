@@ -24361,6 +24361,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             clbSortDir.innerHTML = this._clbSortAsc ? '&#x25B2;' : '&#x25BC;';
         };
         clbSortBy.addEventListener('change', () => {
+            // Clear the gene/drug input when switching sort basis — a gene
+            // name left over from "Sort: Expression" would otherwise be
+            // interpreted as a drug name (or vice versa) and either show
+            // no matches or hit the wrong picker.
+            if (clbSortGene) clbSortGene.value = '';
+            const dd = document.getElementById('clbSortDrugDropdown');
+            if (dd) dd.style.display = 'none';
             updateSortControls();
             this.renderCellLineList();
         });

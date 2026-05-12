@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.54 (2026-05-12)</strong></p>
+                <ul>
+                    <li>Sort input now clears when the sort basis changes. Previously a gene name left in the box from &ldquo;Sort: Expression&rdquo; would carry over to &ldquo;Sort: Drug response&rdquo; (and vice versa), where it would either match nothing or be mistaken for the other kind of token. The suggestion dropdown is also closed on the switch.</li>
+                </ul>
                 <p><strong>v.81.53 (2026-05-12)</strong></p>
                 <ul>
                     <li>Fix &mdash; audit pass on the GE-vs-expression index mismatch from v.81.52. Same root cause was reaching three more places: (1) <code>showGeneEffectByTissue</code> &mdash; the main per-tissue expression boxplot was reading <code>expressionData[gi * nCellLines_GE + i]</code> and pairing the result with <code>metadata.cellLines[i]</code>; with GE = 1186 and Expr = 1699 lines in different orders, that often straddled into a neighbouring gene&rsquo;s row. (2) CSV export &mdash; the <code>Expr_GENE</code> columns were resolved through the GE index map. (3) <code>_computeCollectionMemberships</code> &mdash; the NE, EMT, and expression-based TNBC / HR+ / HER2+ breast subtype calls were using the GE stride against expressionData, so the cohort scoring was reading the wrong lines&rsquo; values. All three now resolve each cell line through <code>expressionMetadata.cellLines</code> with <code>nExprCL</code> stride. Also fixed: <code>mem.tnbc = new Set()</code> in the breast block was wiping the v.81.46 Lehmann-annotated belt-and-braces adds &mdash; now preserved.</li>
@@ -2776,7 +2780,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.53</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.54</a>
     </div>
 
     <div class="main-content">
@@ -4949,6 +4953,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_53"></script>
+    <script src="app.js?v=v81_54"></script>
 </body>
 </html>
