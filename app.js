@@ -22700,17 +22700,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return {
             msi: {
                 label: 'MMR-deficient (likely MSI-high)',
-                category: 'DNA repair — mismatch repair',
+                category: 'DNA repair / damage response',
                 description: '<b>Inclusion:</b> at least one damaging mutation (frameshift / nonsense / splice) in any of <b>MLH1, MSH2, MSH6, PMS2, EPCAM</b> — the canonical Lynch-syndrome / mismatch-repair gene panel. <b>Mechanism:</b> loss of MMR activity causes microsatellite instability and a hypermutated genome; classic checkpoint-immunotherapy-responder background. <b>Caveat:</b> the most common sporadic cause of MMR-deficiency is <em>MLH1 promoter hypermethylation</em>, which is not captured here — so this set under-counts MSI lines. Conversely, a single damaging mutation without biallelic loss does not always abolish MMR, so it may include some still-MMR-competent lines.'
             },
             hrd: {
                 label: 'HR-deficient / BRCAness',
-                category: 'DNA repair — homologous recombination',
+                category: 'DNA repair / damage response',
                 description: '<b>Inclusion:</b> damaging mutation in any of <b>BRCA1, BRCA2, PALB2, ATM, RAD51C, RAD51D, FANCA, FANCC, FANCD2, BRIP1</b> — the validated double-strand-break / Fanconi-anaemia repair pathway. <b>Mechanism:</b> loss of accurate homologous-recombination repair, classically associated with PARP-inhibitor sensitivity. <b>Caveat:</b> we do not require biallelic loss or LOH, so heterozygous carriers that retain HR competence may be included. Functional HR-deficiency assays (e.g. RAD51 foci) would be a more direct readout.'
             },
             hypermutated: {
                 label: 'Hypermutated (top decile)',
-                category: 'Mutation burden',
+                category: 'DNA repair / damage response',
                 description: '<b>Inclusion:</b> the top 10 % of cell lines ranked by total count of damaging mutations in this dataset. <b>Why:</b> a data-driven catch-all for high-TMB lines regardless of mechanism. <b>Caveat:</b> this is dataset-relative, not an absolute mut/Mb cutoff. Strongly overlaps with the MMR-deficient set and with POLE-mutated lineages but also captures hypermutators of unknown mechanism.'
             },
             swi_snf: {
@@ -22767,6 +22767,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 label: 'Likely immunogenic',
                 category: 'Immunology',
                 description: '<b>Inclusion:</b> high mutation burden (≥ 200 damaging coding mutations) AND class-I antigen presentation appears functionally intact (no B2M damaging mutation, HLA-A/B/C expression not strongly reduced, HLA copy number not lost vs B2M). <b>Why:</b> these two signals are the cell-intrinsic prerequisites for an "immunogenic" tumour — many potential neoantigens to display, AND working MHC-I machinery to display them with. In a patient context these are typically the lines that would generate a CD8+ T-cell response. <b>Caveat:</b> this is a cell-intrinsic proxy. Real tumour immunogenicity also depends on the tumour microenvironment (T-cell infiltration, immunosuppressive cells, IFN-γ context) which is absent in cell lines. Treat as "likely visible to T cells if placed in an immunocompetent context", not as a TME-based hot/cold call.'
+            },
+            pdl1_high: {
+                label: 'PD-L1 (CD274) high expression',
+                category: 'Immunology',
+                description: '<b>Inclusion:</b> CD274 (PD-L1) expression z-score &gt; +1.0 vs the full cell-line cohort. <b>Why:</b> PD-L1 is the canonical checkpoint-immunotherapy biomarker — high tumour PD-L1 expression predicts clinical response to anti-PD1 / anti-PDL1 antibodies (pembrolizumab, nivolumab, atezolizumab, durvalumab) in many disease contexts. <b>Caveats:</b> (1) PD-L1 mRNA correlates imperfectly with protein-level expression scored by IHC (the clinical test); (2) cell-intrinsic PD-L1 expression doesn\'t replace tumour-microenvironment biomarkers; (3) some cell lines constitutively express PD-L1 via cytosolic-DNA / IFN-pathway activation (cross-reference with the IFN-response pathway signature).'
             },
             likely_non_immunogenic: {
                 label: 'Likely non-immunogenic',
@@ -22859,6 +22864,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 label: 'G1/S amp (CDK4 / CDK6 / CCND1 / CCNE1)',
                 category: 'Focal amplifications',
                 description: '<b>Inclusion:</b> focal amplification of any of CDK4, CDK6, CCND1 (cyclin D1), or CCNE1 (cyclin E1). <b>Pathway effect:</b> G1/S checkpoint deregulated — the cell over-produces the kinases / cyclins that drive G1 exit, accelerating entry into S phase. <b>Use:</b> CDK4/6 / CCND1 amplification predicts CDK4/6-inhibitor response (mirror to CDKN2A-loss); CCNE1 amp is the canonical resistance background for CDK4/6 inhibitors. Useful contrast to both the RB1-loss and CDKN2A-loss collections.'
+            },
+            met_amp: {
+                label: 'MET amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of <b>MET</b>. <b>Mechanism:</b> overexpressed MET tyrosine kinase → constitutive HGF-pathway signalling. <b>Disease:</b> MET-amplified NSCLC (~3 %, including EGFR-TKI-resistance background), gastric, hepatocellular. <b>Therapy:</b> MET inhibitors capmatinib / tepotinib (approved for MET exon-14-skipping NSCLC; also active in MET-amplified disease). Distinct from MET exon-14-skipping mutation (caught by point-mutation filters).'
+            },
+            fgfr_amp: {
+                label: 'FGFR1 / FGFR2 / FGFR3 amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of any of <b>FGFR1</b>, <b>FGFR2</b>, or <b>FGFR3</b>. <b>Mechanism:</b> overexpressed FGFR kinase → MAPK / PI3K signalling. <b>Disease:</b> FGFR1 amp in squamous-cell lung cancer, breast; FGFR2 amp in gastric, breast, endometrial, intrahepatic cholangiocarcinoma; FGFR3 amp / mutation in urothelial. <b>Therapy:</b> FGFR inhibitors — erdafitinib (FGFR3-altered urothelial), pemigatinib / futibatinib (FGFR2-fused cholangiocarcinoma), broader trials of infigratinib / rogaratinib.'
+            },
+            ccne1_amp: {
+                label: 'CCNE1 amp (cyclin E1)',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of <b>CCNE1</b> alone (also captured by the broader G1/S amp collection, but pulled out here because the biology is distinct). <b>Mechanism:</b> overexpressed cyclin E1 drives CDK2-mediated G1 → S transition independently of CDK4/6. <b>Disease:</b> high-grade serous ovarian (~20 %), endometrial, gastric. <b>Therapy:</b> notably a <b>CDK4/6-inhibitor resistance background</b> (the cell line uses CDK2/cyclin-E to bypass), and a CDK2 / WEE1 / PKMYT1-inhibitor responder background. Useful contrast to the CDK4/6-dependent collection.'
             },
             any_focal_amp: {
                 label: 'Any focal amplification',
@@ -23009,16 +23029,36 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 category: 'Disease-defining fusions',
                 description: '<b>Inclusion:</b> clinical-fusion call PML-RARA. <b>Disease:</b> acute promyelocytic leukaemia (AML M3). <b>Therapy:</b> all-trans retinoic acid (ATRA) + arsenic trioxide (ATO) — the rare AML curable without chemotherapy.'
             },
+            fusion_ss18_ssx: {
+                label: 'SS18-SSX1 / SS18-SSX2+ (synovial sarcoma)',
+                category: 'Disease-defining fusions',
+                description: '<b>Inclusion:</b> clinical-fusion call SS18-SSX1 or SS18-SSX2. <b>Disease:</b> synovial sarcoma — soft-tissue sarcoma of young adults. <b>Mechanism:</b> the fusion sequesters BAF / SWI-SNF chromatin-remodelling activity at aberrant loci; reactivates polycomb-repressed gene programmes. <b>Therapy:</b> EZH2 inhibitors and EZH1/2 dual inhibitors in trials; emerging BRD9 degraders.'
+            },
+            fusion_pax3_foxo1: {
+                label: 'PAX3-FOXO1+ (alveolar RMS)',
+                category: 'Disease-defining fusions',
+                description: '<b>Inclusion:</b> clinical-fusion call PAX3-FOXO1 (also PAX7-FOXO1 if present). <b>Disease:</b> alveolar rhabdomyosarcoma, paediatric / AYA. <b>Mechanism:</b> chimeric transcription factor that drives a myogenic-stalled oncogenic program (super-enhancer remodelling). <b>Therapy:</b> CDK4/6, BRD4, MEK inhibitors in trials; targeting the fusion-TF axis remains an unmet need.'
+            },
+            fusion_tmprss2_erg: {
+                label: 'TMPRSS2-ERG+ (prostate)',
+                category: 'Disease-defining fusions',
+                description: '<b>Inclusion:</b> clinical-fusion call TMPRSS2-ERG. <b>Disease:</b> prostate adenocarcinoma (~50 % of cases). <b>Mechanism:</b> androgen-receptor-driven over-expression of ERG (ETS transcription factor) — promotes invasion, EMT-like reprogramming, PARP-pathway engagement. <b>Therapy:</b> indirectly responsive to AR axis blockade; PARP inhibitor sensitivity in some studies; investigational ERG / EZH2 axis approaches.'
+            },
+            fusion_npm1_alk: {
+                label: 'NPM1-ALK+ (ALCL)',
+                category: 'Disease-defining fusions',
+                description: '<b>Inclusion:</b> clinical-fusion call NPM1-ALK. <b>Disease:</b> anaplastic large-cell lymphoma (ALK+ ALCL — paediatric / young-adult T-cell lymphoma). <b>Mechanism:</b> constitutively active ALK kinase fused to NPM1 nucleolar localisation signal — drives STAT3 / PI3K / MAPK. <b>Therapy:</b> ALK inhibitors (crizotinib for paediatric ALCL; lorlatinib in relapsed disease); brentuximab vedotin for CD30+ ALCL.'
+            },
 
             // === Additional DNA-repair / mutation-burden contexts ===
             pole_pold1_ultramutated: {
                 label: 'POLE / POLD1 proofreading-deficient (ultramutated)',
-                category: 'DNA repair — polymerase proofreading',
+                category: 'DNA repair / damage response',
                 description: '<b>Inclusion:</b> damaging mutation in <b>POLE</b> or <b>POLD1</b>. <b>Mechanism:</b> the exonuclease (proofreading) domain of the leading-strand polymerase fails — replication errors are not corrected, producing an <i>ultramutated</i> genome (often &gt; 100 mut/Mb, distinctly higher than MMR-deficient lines). <b>Use:</b> very high neoantigen burden — strong checkpoint-immunotherapy responders. Distinct from MSI (the other major hypermutator mechanism in colorectal / endometrial cancers). <b>Caveat:</b> any POLE / POLD1 damaging mutation included here; not specific to the exonuclease-domain hotspots that drive the proofreading-deficient phenotype.'
             },
             atm_deficient: {
                 label: 'ATM-deficient',
-                category: 'DNA repair — ATM / ATR axis',
+                category: 'DNA repair / damage response',
                 description: '<b>Inclusion:</b> damaging mutation in <b>ATM</b>. <b>Mechanism:</b> ATM is the master DNA-double-strand-break kinase (activates p53, BRCA1, CHK2 in the DSB response). Loss is a distinct HRD-adjacent context to BRCA1/2 loss — sensitises to PARP inhibitors and may unmask ATR / WEE1 / DNA-PK dependencies. <b>Use:</b> separate cohort from the BRCA-centric <i>HR-deficient</i> collection.'
             },
 
@@ -23026,14 +23066,34 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Mutation-only collections (no CRISPR confirmation required) for
             // genes where the mutation itself is the actionable signal even
             // when CRISPR dependency is weak.
+            kras_mutant: {
+                label: 'KRAS-mutant',
+                category: 'Driver oncogene mutations',
+                description: '<b>Inclusion:</b> hotspot mutation in <b>KRAS</b> (G12*, G13*, Q61*). <b>Mechanism:</b> constitutively GTP-bound RAS → MAPK + PI3K pathways active. <b>Disease:</b> pancreatic (~95 %), colorectal (~45 %), NSCLC (~30 %). <b>Therapy:</b> allele-specific KRAS-G12C inhibitors (sotorasib, adagrasib); investigational G12D (MRTX1133); pan-RAS inhibitors; MEK-inhibitor combos otherwise. <b>Note:</b> the stricter "<i>KRAS-addicted</i>" collection below also requires functional CRISPR dependency on KRAS — this one is mutation-only.'
+            },
+            braf_mutant: {
+                label: 'BRAF-mutant',
+                category: 'Driver oncogene mutations',
+                description: '<b>Inclusion:</b> hotspot mutation in <b>BRAF</b> (V600E/V600K, occasionally non-V600 class II/III mutations). <b>Mechanism:</b> constitutively active BRAF kinase drives MAPK signalling. <b>Disease:</b> melanoma (~50 %), thyroid, colorectal, hairy-cell leukaemia. <b>Therapy:</b> BRAF + MEK inhibitor combinations for V600 (vemurafenib + cobimetinib, dabrafenib + trametinib, encorafenib + binimetinib). Non-V600 is vemurafenib-resistant. Mutation-only — see "<i>BRAF-addicted</i>" for the CRISPR-confirmed subset.'
+            },
+            egfr_mutant: {
+                label: 'EGFR-mutant',
+                category: 'Driver oncogene mutations',
+                description: '<b>Inclusion:</b> hotspot or damaging mutation in <b>EGFR</b> (L858R, exon-19 deletions, T790M resistance, exon-20 insertions, etc.). <b>Mechanism:</b> ligand-independent activation of EGFR → MAPK / PI3K / STAT3. <b>Disease:</b> NSCLC (~15 % overall; up to 50 % in East-Asian non-smokers), glioblastoma variants. <b>Therapy:</b> EGFR TKIs — osimertinib first-line for sensitising mutations and T790M; erlotinib / gefitinib for sensitising mutations; amivantamab for exon-20 insertions.'
+            },
+            pik3ca_mutant: {
+                label: 'PIK3CA-mutant',
+                category: 'Driver oncogene mutations',
+                description: '<b>Inclusion:</b> hotspot mutation in <b>PIK3CA</b> (E542K, E545K, H1047*; helical / kinase-domain hotspots). <b>Mechanism:</b> constitutive PI3K-α activity. <b>Disease:</b> ~30 % breast (especially HR+), endometrial, colorectal, head-and-neck. <b>Therapy:</b> PI3K-α-specific inhibitor <b>alpelisib</b> (approved in HR+/HER2&minus; PIK3CA-mutant breast); inavolisib (next-gen, replacing alpelisib in some regimens); AKT-inhibitor capivasertib. Mutation-only — see "<i>PI3K-active and dependent</i>" for the CRISPR-confirmed subset.'
+            },
             ctnnb1_hotspot: {
                 label: 'CTNNB1 hotspot (Wnt-activated)',
-                category: 'Oncogene hotspot mutations (mutation only)',
+                category: 'Driver oncogene mutations',
                 description: '<b>Inclusion:</b> hotspot mutation in <b>CTNNB1</b> (β-catenin; N-terminal phosphodegron mutations at S33 / S37 / T41 / S45 that block β-catenin degradation). <b>Mechanism:</b> constitutive Wnt / β-catenin pathway activation. <b>Disease:</b> hepatocellular carcinoma, colorectal (mutually exclusive with APC loss), endometrial, desmoid tumours. <b>Use:</b> for Wnt-pathway studies and Wnt inhibitor (tankyrase / porcupine) drug discovery.'
             },
             idh_mutant: {
                 label: 'IDH1 / IDH2 hotspot (oncometabolite producer)',
-                category: 'Oncogene hotspot mutations (mutation only)',
+                category: 'Driver oncogene mutations',
                 description: '<b>Inclusion:</b> hotspot mutation in <b>IDH1</b> (R132*) or <b>IDH2</b> (R140*, R172*). <b>Mechanism:</b> neomorphic enzyme activity produces the oncometabolite 2-hydroxyglutarate (2-HG), which inhibits α-KG-dependent dioxygenases — drives DNA / histone hypermethylation and blocks differentiation. <b>Disease:</b> glioma (IDH1 R132H is the gliomas-MGMT-methylated good-prognosis subtype), AML (IDH2 R140), chondrosarcoma, intrahepatic cholangiocarcinoma. <b>Therapy:</b> mutant-IDH inhibitors — ivosidenib (IDH1), enasidenib (IDH2), vorasidenib (CNS-penetrant for glioma).'
             },
 
@@ -23176,7 +23236,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             fusion_bcr_abl1:    ['BCR-ABL1', 'BCR--ABL1'],
             fusion_ewsr1_fli1:  ['EWSR1-FLI1', 'EWSR1--FLI1'],
             fusion_eml4_alk:    ['EML4-ALK', 'EML4--ALK'],
-            fusion_pml_rara:    ['PML-RARA', 'PML--RARA']
+            fusion_pml_rara:    ['PML-RARA', 'PML--RARA'],
+            fusion_ss18_ssx:    ['SS18-SSX1', 'SS18--SSX1', 'SS18-SSX2', 'SS18--SSX2'],
+            fusion_pax3_foxo1:  ['PAX3-FOXO1', 'PAX3--FOXO1', 'PAX7-FOXO1', 'PAX7--FOXO1'],
+            fusion_tmprss2_erg: ['TMPRSS2-ERG', 'TMPRSS2--ERG'],
+            fusion_npm1_alk:    ['NPM1-ALK', 'NPM1--ALK']
         };
         for (const id of Object.keys(FUSION_GROUPS)) mem[id] = new Set();
         if (this.clinicalFusions?.byCellLine) {
@@ -23212,6 +23276,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         mem.idh_mutant = new Set();
         for (const cl of clLines) {
             if (hasHotspot('IDH1', cl) || hasHotspot('IDH2', cl)) mem.idh_mutant.add(cl);
+        }
+
+        // Common oncogene hotspot mutations — KRAS, BRAF, EGFR, PIK3CA.
+        // EGFR includes damaging too because exon-19 deletions (a major
+        // activating class) can land in the damaging matrix depending on the
+        // caller. KRAS / BRAF / PIK3CA use hotspot-only since LoF mutations
+        // there aren't oncogenic.
+        mem.kras_mutant = new Set();
+        mem.braf_mutant = new Set();
+        mem.egfr_mutant = new Set();
+        mem.pik3ca_mutant = new Set();
+        for (const cl of clLines) {
+            if (hasHotspot('KRAS', cl))   mem.kras_mutant.add(cl);
+            if (hasHotspot('BRAF', cl))   mem.braf_mutant.add(cl);
+            if (hasHotspot('EGFR', cl) || hasDamaging('EGFR', cl)) mem.egfr_mutant.add(cl);
+            if (hasHotspot('PIK3CA', cl)) mem.pik3ca_mutant.add(cl);
         }
 
         // Patient age at diagnosis — five clinical buckets (infant /
@@ -23347,10 +23427,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // the functional-loss collections above.
         const MYC_FAMILY = new Set(['MYC', 'MYCN', 'MYCL']);
         const G1S_AMP_GENES = new Set(['CDK4', 'CDK6', 'CCND1', 'CCNE1']);
+        const FGFR_AMP_GENES = new Set(['FGFR1', 'FGFR2', 'FGFR3']);
         mem.myc_family_amp = new Set();
         mem.erbb2_amp = new Set();
         mem.mdm2_amp = new Set();
         mem.g1s_amp = new Set();
+        mem.met_amp = new Set();
+        mem.fgfr_amp = new Set();
+        mem.ccne1_amp = new Set();
         mem.any_focal_amp = new Set();
         if (this.clinicalCn?.byCellLine) {
             for (const cl of clLines) {
@@ -23363,6 +23447,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     if (g === 'ERBB2')           mem.erbb2_amp.add(cl);
                     if (g === 'MDM2')            mem.mdm2_amp.add(cl);
                     if (G1S_AMP_GENES.has(g))    mem.g1s_amp.add(cl);
+                    if (g === 'MET')             mem.met_amp.add(cl);
+                    if (FGFR_AMP_GENES.has(g))   mem.fgfr_amp.add(cl);
+                    if (g === 'CCNE1')           mem.ccne1_amp.add(cl);
                 }
             }
         }
@@ -23529,19 +23616,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     }
                 }
 
-                // SLFN11-high — single-gene expression-based predictor of
-                // DNA-damage drug response. Uses the same per-gene cohort
-                // stats; cut at z > +1.0.
+                // Single-gene expression-based predictors. Both use the same
+                // per-gene cohort stats; cutoff z > +1.0 = clearly upper-decile
+                // expression for that gene.
                 mem.slfn11_high = new Set();
+                mem.pdl1_high = new Set();
                 const slfnGi = this.expressionGeneIndex.get('SLFN11');
-                if (slfnGi !== undefined && stats.sd[slfnGi] >= 0.3) {
-                    for (const cl of clLines) {
-                        const ei = exprMap.get(cl);
-                        if (ei === undefined) continue;
+                const pdl1Gi = this.expressionGeneIndex.get('CD274');
+                for (const cl of clLines) {
+                    const ei = exprMap.get(cl);
+                    if (ei === undefined) continue;
+                    if (slfnGi !== undefined && stats.sd[slfnGi] >= 0.3) {
                         const v = this.expressionData[slfnGi * nExprCL2 + ei];
-                        if (isNaN(v)) continue;
-                        const z = (v - stats.mean[slfnGi]) / stats.sd[slfnGi];
-                        if (z > 1.0) mem.slfn11_high.add(cl);
+                        if (!isNaN(v)) {
+                            const z = (v - stats.mean[slfnGi]) / stats.sd[slfnGi];
+                            if (z > 1.0) mem.slfn11_high.add(cl);
+                        }
+                    }
+                    if (pdl1Gi !== undefined && stats.sd[pdl1Gi] >= 0.3) {
+                        const v = this.expressionData[pdl1Gi * nExprCL2 + ei];
+                        if (!isNaN(v)) {
+                            const z = (v - stats.mean[pdl1Gi]) / stats.sd[pdl1Gi];
+                            if (z > 1.0) mem.pdl1_high.add(cl);
+                        }
                     }
                 }
             }
@@ -23624,12 +23721,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Rendered as italic grey text below the category header so the user
         // doesn't need to hover or read the full description to get the gist.
         const CATEGORY_NOTES = {
-            'Oncogene addiction (mutation × CRISPR dependency)': 'Cancer cells that have become functionally dependent on a driver gene — knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only collections.',
+            'Driver oncogene mutations': 'Common oncogene activating mutations (KRAS / BRAF / EGFR / PIK3CA hotspots; CTNNB1 Wnt activators; IDH 2-HG producers). Mutation status only — see "Oncogene addiction" for the stricter mutation-plus-CRISPR-dependency-confirmed set.',
+            'Oncogene addiction (mutation × CRISPR dependency)': 'Cancer cells that have become functionally dependent on a driver gene — knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only "Driver oncogene mutations" set above.',
             'Pathway-activity expression signatures': 'Each set marks lines where the pathway is transcriptionally active (mean z > +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.',
             'Tumor-suppressor functional loss': 'A gene is "functionally lost" when DepMap\'s integrated call (CN, mutation, expression) says it is — catches deletions and silenced loci that the damaging-mutation list alone would miss.',
             'Focal amplifications': 'Curated oncogene amplifications from the clinical CN panel — gain-of-function dosage events that point mutations cannot produce.',
-            'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called — e.g. Philadelphia-positive leukemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL.',
-            'Oncogene hotspot mutations (mutation only)': 'Specific oncogene hotspot mutations that don\'t require CRISPR-confirmation to be actionable (e.g. mutant-IDH for IDH-inhibitors). Mutation status alone — see Oncogene addiction above for the functionally-confirmed set.',
+            'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called — Philadelphia-positive leukaemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL, synovial sarcoma, alveolar RMS, prostate, ALCL.',
+            'DNA repair / damage response': 'One consolidated category for DNA-repair-deficiency contexts (MMR, HR, polymerase proofreading, ATM) and the related mutation-burden state (hypermutated). All overlap clinically — MMR-deficient lines are usually hypermutated, POLE-deficient lines are ultramutated, HR-deficient lines often have elevated LoH.',
             'TNBC molecular subtypes (Lehmann)': 'Lehmann 2011 / 2016 four-class refined TNBC molecular subtypes (BL1, BL2, M, LAR) for the ~22 TNBC overlap cell lines.',
             'Patient age at diagnosis': 'Clinical-oncology age buckets computed from the numeric patient-age field. Paediatric (≤ 14), AYA (15–39), Adult (40–64), Elderly (≥ 65), Infant (≤ 1) as subsets. Useful because driver biology differs sharply with age — fusions and chromatin mutations dominate paediatric cancers, SNV-driven solid tumours dominate adult.'
         };
@@ -23643,7 +23741,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'Disease-defining fusions',
             'Tumor-suppressor functional loss',
             'Focal amplifications',
-            'Oncogene hotspot mutations (mutation only)',
+            'Driver oncogene mutations',
             'Oncogene addiction (mutation × CRISPR dependency)',
             // Disease subtype groupings
             'Breast — receptor subtype',
@@ -23652,12 +23750,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'Patient age at diagnosis',
             // Phenotype / immune
             'Immunology',
-            // DNA repair / mutation burden
-            'DNA repair — mismatch repair',
-            'DNA repair — homologous recombination',
-            'DNA repair — polymerase proofreading',
-            'DNA repair — ATM / ATR axis',
-            'Mutation burden',
+            // DNA repair / damage response (consolidated)
+            'DNA repair / damage response',
             // Genome state
             'Genome — ploidy / instability',
             // Pathway / functional state

@@ -1325,6 +1325,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.45 (2026-05-12)</strong></p>
+                <ul>
+                    <li>Collections &mdash; substantive reorganisation and expansion to match how cancer doctors and researchers actually talk.
+                    <b>(1) Renamed and expanded &ldquo;Oncogene hotspot mutations (mutation only)&rdquo;</b> &rarr; <b>&ldquo;Driver oncogene mutations&rdquo;</b>. The old name was opaque and the category had only 2 entries. Now contains <b>KRAS-mut</b>, <b>BRAF-mut</b>, <b>EGFR-mut</b>, <b>PIK3CA-mut</b> (the canonical four every oncologist asks about) plus the pre-existing CTNNB1 and IDH entries. Category note clarifies it&rsquo;s mutation-only and points at the stricter &ldquo;Oncogene addiction&rdquo; for the CRISPR-confirmed subset.
+                    <b>(2) Consolidated four singleton DNA-repair categories + Mutation burden</b> into one <b>&ldquo;DNA repair / damage response&rdquo;</b> category containing MMR-deficient, HR-deficient/BRCAness, POLE/POLD1 ultramutated, ATM-deficient, and Hypermutated. Previously these were five separate categories with one entry each, which made the panel feel over-segmented.
+                    <b>(3) Three new focal-amp collections</b>: <b>MET amp</b> (NSCLC actionable; capmatinib / tepotinib), <b>FGFR1 / FGFR2 / FGFR3 amp</b> (urothelial, gastric, breast, lung-SCC; erdafitinib / pemigatinib / futibatinib), <b>CCNE1 amp alone</b> (pulled out from the G1/S bundle &mdash; CCNE1 is a CDK4/6-inhibitor resistance background and a CDK2 / WEE1 / PKMYT1-responder background).
+                    <b>(4) Four new disease-defining fusions</b>: <b>SS18-SSX1/2+</b> (synovial sarcoma), <b>PAX3-FOXO1+</b> (alveolar RMS), <b>TMPRSS2-ERG+</b> (prostate), <b>NPM1-ALK+</b> (ALCL).
+                    <b>(5) New immunology collection</b>: <b>PD-L1 (CD274) high expression</b> (z &gt; +1 vs cohort) &mdash; canonical clinical checkpoint-immunotherapy biomarker. Description spells out the IHC-vs-mRNA caveat and the cell-intrinsic IFN-pathway cross-link.</li>
+                </ul>
                 <p><strong>v.81.44 (2026-05-12)</strong></p>
                 <ul>
                     <li>Drug list &mdash; clinical indication is now explicitly labelled wherever it appears. Previously the cancer-type list (CRC, SCLC, pancreatic, &hellip;) trailed the per-compound row as bare italic text after the &sigma; block, with no label, so it read as a random out-of-context label instead of &ldquo;the diseases this drug is used for&rdquo;.
@@ -2727,7 +2736,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.44</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.45</a>
     </div>
 
     <div class="main-content">
@@ -4900,6 +4909,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_44"></script>
+    <script src="app.js?v=v81_45"></script>
 </body>
 </html>
