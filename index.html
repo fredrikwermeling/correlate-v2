@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.43 (2026-05-12)</strong></p>
+                <ul>
+                    <li>Collections panel &mdash; multi-column layout. Panel max-width bumped from 420 px to <code>min(1100px, calc(100vw - 80px))</code> and max-height to <code>min(640px, calc(100vh - 160px))</code>, so on a wide monitor it spreads out instead of being a tall narrow scroll. Within each category, entries are laid out in a responsive CSS grid (<code>repeat(auto-fill, minmax(300px, 1fr))</code>) that auto-flows into 2 or 3 columns when there&rsquo;s room, and collapses to a single column on narrow viewports. Category headers and their italic explainer lines stay full-width so the section structure is still clear. Long collection labels truncate with ellipsis rather than wrapping or pushing the n=count off-screen.</li>
+                </ul>
                 <p><strong>v.81.42 (2026-05-12)</strong></p>
                 <ul>
                     <li>Drug-response sort dropdown &mdash; compounds are now <b>ranked by potency in the currently-visible cell-line subset</b>, not alphabetically. Two upgrades:
@@ -2714,7 +2718,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.42</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.43</a>
     </div>
 
     <div class="main-content">
@@ -4557,7 +4561,11 @@
                removable chips in the active-filter strip below. -->
           <div id="clbCollectionFilterWrap" style="position:relative; display:inline-block;">
             <button id="clbCollectionBtn" class="btn btn-outline btn-sm" type="button" style="font-size:12px; padding:2px 8px;" title="Pick or exclude curated collections (oncoprint-style include/exclude)">Collections <span id="clbCollectionCount" style="color:#6b7280; font-weight:400;"></span></button>
-            <div id="clbCollectionPanel" style="display:none; position:absolute; top:100%; left:0; min-width:340px; max-width:420px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.12); z-index:1200; font-size:11px; padding:8px 10px;"></div>
+            <!-- Collections panel widens to fit the viewport with extra
+                 columns. min-width keeps it readable on narrow screens;
+                 width is the clamp-with-margin pattern so on a wide window
+                 it grows to ~1100 px and shows 3 columns of entries. -->
+            <div id="clbCollectionPanel" style="display:none; position:absolute; top:100%; left:0; min-width:340px; width:max-content; max-width:min(1100px, calc(100vw - 80px)); max-height:min(640px, calc(100vh - 160px)); overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.12); z-index:1200; font-size:11px; padding:8px 10px;"></div>
           </div>
           <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm" title="Show inclusion criteria for each curated collection" style="padding:2px 8px; font-size:10px; font-weight:700;">?</button>
         </div>
@@ -4883,6 +4891,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_42"></script>
+    <script src="app.js?v=v81_43"></script>
 </body>
 </html>

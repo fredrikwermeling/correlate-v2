@@ -23677,6 +23677,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (CATEGORY_NOTES[cat]) {
                 html += `<div style="color:#6b7280; font-size:10px; font-style:italic; margin:0 0 4px 4px;">${CATEGORY_NOTES[cat]}</div>`;
             }
+            // Entries inside each category are laid out as a responsive grid:
+            // auto-fill columns of ≥ 300 px so a wider panel automatically
+            // shows 2-3 columns of entries instead of one long tall list.
+            // Falls back to a single column on narrow viewports.
+            html += `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:1px 16px; margin-bottom:6px;">`;
             for (const { id, def, n } of byCat[cat]) {
                 const state = states.get(id);
                 const incActive = state === 'include';
@@ -23688,13 +23693,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     ? 'background:#991b1b; color:#fff; border-color:#991b1b;'
                     : 'background:#fff; color:#991b1b; border-color:#d1d5db;';
                 const safeDesc = def.description.replace(/<[^>]+>/g, '').replace(/"/g, '&quot;');
-                html += `<div style="display:flex; gap:6px; align-items:center; padding:2px 0;" title="${safeDesc}">`
-                    + `<button type="button" data-coll-id="${id}" data-coll-action="include" style="${incStyle} border:1px solid; width:22px; height:20px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px; line-height:1; padding:0;">+</button>`
-                    + `<button type="button" data-coll-id="${id}" data-coll-action="exclude" style="${excStyle} border:1px solid; width:22px; height:20px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px; line-height:1; padding:0;">−</button>`
-                    + `<span style="flex:1; color:#374151;">${def.label}</span>`
-                    + `<span style="color:#9ca3af; font-size:10px;">n=${n}</span>`
+                html += `<div style="display:flex; gap:6px; align-items:center; padding:2px 0; min-width:0;" title="${safeDesc}">`
+                    + `<button type="button" data-coll-id="${id}" data-coll-action="include" style="${incStyle} border:1px solid; width:22px; height:20px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px; line-height:1; padding:0; flex-shrink:0;">+</button>`
+                    + `<button type="button" data-coll-id="${id}" data-coll-action="exclude" style="${excStyle} border:1px solid; width:22px; height:20px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px; line-height:1; padding:0; flex-shrink:0;">−</button>`
+                    + `<span style="flex:1; min-width:0; color:#374151; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${def.label}</span>`
+                    + `<span style="color:#9ca3af; font-size:10px; flex-shrink:0;">n=${n}</span>`
                     + `</div>`;
             }
+            html += `</div>`;
         }
 
         panel.innerHTML = html;
