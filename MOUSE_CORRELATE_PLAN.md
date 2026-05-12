@@ -2,6 +2,75 @@
 
 _Written 2026-05-11 (Stockholm) after a web sweep of available mouse cancer cell-line resources. The goal: figure out whether a Correlate-style app for mouse cell lines is feasible, and if so what data sources to build on._
 
+## ⚑ Architecture decision (2026-05-12)
+
+**Scope tightened to a standalone Mouse Cell Line Browser app — NOT a fork of Correlate V2.**
+
+The new app is its own product: same visual language and CLB layout as V2 (so it feels like a sibling alongside Correlate / CoExpress), but no dependency on the V2 codebase, no shared web data, no analysis modes (network / correlation / cluster / AI export), no menu link from V2 to mouse or vice versa. Stand-alone repo, stand-alone deploy, stand-alone landing page.
+
+Working name: **MouseCLB** (placeholder; final name TBD).
+
+**Why standalone and not a fork:**
+- Roughly 60 % of V2's code drives analysis flows (network rendering, correlation engine, AI export, drug-response section, CRISPR-dependency view, gate-comparison plots). None of that applies for mouse — those data layers don't exist at scale (CRISPR / PRISM) or aren't in the MCCA download (drug response, fusions). Forking would just mean carrying dead code.
+- The CLB itself is a self-contained part of V2 — the detail card, Wiki modal, collections panel, sort, list, oncoprint-style filters. Lifting just that as a new app is cleaner than maintaining one bloated codebase with feature flags.
+- Separate repo means the mouse app can iterate on schema / data format without touching V2.
+- The mouse data has a different reference genome (mm10), different gene-ID convention (ENSMUSG / MGI), different lineage ontology, different driver gene set. Mixing into V2 would entangle these.
+
+**What carries over (visual / interaction language):**
+- The 3-block detail card (Identity / specific features / Wiki button).
+- The Wiki modal with its sectioned layout, executive summary, distribution histograms, large green section headers.
+- The oncoprint-style collections panel with ✓/✗ include/exclude, the active-filter chip strip.
+- The sort dropdown with inline values + caption.
+- The plain-English low/medium/high tier descriptors on numeric metrics.
+- The gene-hover MyGene-style tooltips (using MGI for mouse).
+- The export buttons on the genome-metric histograms (PNG / SVG / CSV).
+
+**What gets dropped vs V2:**
+- Network / correlation / cluster tabs (the whole `tab-network`, `tab-correlations`, `tab-clusters` machinery).
+- Mutation-analysis tab, including hotspot picker, Welch's t-test, compare-by-tissue / hotspot / fusion tables.
+- AI JSON export.
+- Synonyms / orthologs mode.
+- Gene effect distribution / scatter inspect modals.
+- PRISM Drug response section in the Wiki (no data).
+- CRISPR dependencies section in the Wiki (no data).
+- Druggable dependencies / Pathway dependencies interpretive panels (depend on CRISPR).
+
+**What needs new design** (different in mouse):
+- Lineage / tissue ontology. MCCA's `Tissue` and `MouseModel` columns instead of Oncotree.
+- Driver-gene panels. Need mouse-orthologue versions of the cancer pathway panels (TP53 → Trp53, KRAS → Kras, etc.) via the MGI homology table.
+- Hotspot definitions. Mouse cancer hotspots aren't catalogued the same way — Trp53 R172H is the canonical mouse-tumour hotspot vs human TP53 R175H. May need a small curated mouse-hotspot list.
+- Authentication. STR profiles are sparse for mouse (141 lines) — the STR section becomes optional with a Cellosaurus link as the primary handle.
+
+**File layout (suggested):**
+```
+~/Documents/MouseCLB/
+  index.html              # single-page app
+  app.js                  # all logic; mirrors V2 patterns but smaller
+  web_data/
+    metadata.json         # cell-line metadata (lineage, tissue, sex, strain, model type, …)
+    mutations.json        # hotspot + damaging matrices (derived from MCCA-Mutations xlsx)
+    cn.json               # gene-level CN matrix (segments → gene overlay)
+    expression.bin.gz     # log2-like expression matrix (from VST batch-corrected txt)
+    expression_genes.json # gene-symbol map (ENSMUSG → symbol via MGI)
+    pathway_panels.json   # mouse-orthologue pathway gene panels
+    facs_markers.json     # mouse surface-antigen panel (orthologue of V2 FACS list)
+    cellosaurus_rrid.json # MCCA-ID → Cellosaurus CVCL_ mapping
+  scripts/
+    process_mcca_metadata.py
+    process_mcca_mutations.py
+    process_mcca_cn.py
+    process_mcca_expression.py
+    process_pathway_panels.py
+    fetch_mgi_homology.py
+  README.md
+  DESIGN_NOTES.md
+```
+
+The sections under this point describe the original research sweep — kept for reference but the architecture above supersedes the "fork V2" plan in the "Suggested architecture" section below.
+
+---
+
+
 ## TL;DR
 
 - **Feasibility: yes, but smaller.** A new mouse companion app is realistic for **mutations + transcriptomics + curated metadata + (separately) immuno-oncology overlay**.
