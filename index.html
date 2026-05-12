@@ -1325,6 +1325,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.55 (2026-05-12)</strong></p>
+                <ul>
+                    <li>Drug-response dropdown now refreshes its per-compound very-/partly-sensitive counts when the visible cell-line subset changes. Previously, toggling a collection (e.g. excluding TP53 functional loss) updated the list of cell lines but the open dropdown kept showing counts from the previous subset &mdash; so the numbers next to each drug didn&rsquo;t add up to what was actually shown. The dropdown was already scoring against <code>_clbVisibleCellLines</code>; it just wasn&rsquo;t re-rendered on filter change. Now <code>renderCellLineList()</code> triggers a re-render of the open drug dropdown.</li>
+                </ul>
                 <p><strong>v.81.54 (2026-05-12)</strong></p>
                 <ul>
                     <li>Sort input now clears when the sort basis changes. Previously a gene name left in the box from &ldquo;Sort: Expression&rdquo; would carry over to &ldquo;Sort: Drug response&rdquo; (and vice versa), where it would either match nothing or be mistaken for the other kind of token. The suggestion dropdown is also closed on the switch.</li>
@@ -2780,7 +2784,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.54</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.55</a>
     </div>
 
     <div class="main-content">
@@ -4953,6 +4957,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_54"></script>
+    <script src="app.js?v=v81_55"></script>
 </body>
 </html>

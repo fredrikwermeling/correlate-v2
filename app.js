@@ -25101,6 +25101,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         container.innerHTML = caption + html;
 
         this.updateClbFilterCounts();
+
+        // Refresh the open sort-drug dropdown so its per-compound
+        // sensitivity counts re-score against the new visible subset
+        // (e.g. when the user toggles a collection filter while the
+        // dropdown is open, the counts otherwise stay stale).
+        const _dd = document.getElementById('clbSortDrugDropdown');
+        if (_dd && _dd.style.display !== 'none') {
+            const _sortMode = document.getElementById('clbSortBy')?.value;
+            const _sortInput = document.getElementById('clbSortGene');
+            if (_sortMode === 'drug') this._renderSortDrugDropdown(_sortInput?.value || '');
+        }
     }
 
     updateClbSubtypeFilter() {
