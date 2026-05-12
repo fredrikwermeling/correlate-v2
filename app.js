@@ -23909,9 +23909,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         for (const cat of catKeys) {
-            html += `<div style="color:#15803d; font-size:10px; font-weight:600; margin:8px 0 3px; border-bottom:1px solid #e5e7eb; padding-bottom:2px;">${cat}</div>`;
+            // Category headline — bumped from 10 px (cramped) to 13 px and
+            // given more breathing room so the major sections of the
+            // collection panel separate visually at a glance.
+            html += `<div style="color:#15803d; font-size:13px; font-weight:700; margin:16px 0 4px; padding:4px 0 3px; border-bottom:2px solid #15803d;">${cat}</div>`;
             if (CATEGORY_NOTES[cat]) {
-                html += `<div style="color:#6b7280; font-size:10px; font-style:italic; margin:0 0 4px 4px;">${CATEGORY_NOTES[cat]}</div>`;
+                html += `<div style="color:#6b7280; font-size:11px; font-style:italic; margin:0 0 6px 0; padding:0 4px;">${CATEGORY_NOTES[cat]}</div>`;
             }
             // Entries inside each category are laid out as a responsive grid:
             // auto-fill columns of ≥ 300 px so a wider panel automatically
