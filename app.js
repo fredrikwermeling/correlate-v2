@@ -22977,6 +22977,40 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 label: 'SLFN11-high (DNA-damage drug responder)',
                 category: 'Pathway-activity expression signatures',
                 description: '<b>Inclusion:</b> SLFN11 expression z-score &gt; +1.0 vs the full cell-line cohort. <b>Why:</b> SLFN11 (Schlafen 11) is the single strongest expression-based predictor of response to DNA-damaging agents — platinum, topoisomerase I/II inhibitors, PARP inhibitors, alkylators. SLFN11 commits cells to apoptosis at stalled replication forks. <b>Caveat:</b> SLFN11 expression varies massively between cell lines (commonly epigenetically silenced); the predictor works best as a continuous variable but this binary high / not-high cut captures the strongest-responder subset.'
+            },
+
+            // === Patient age at diagnosis ===
+            // Clinical-oncology age groupings, computed from the numeric `age`
+            // field in the DepMap Model table (not the coarse ageCategory which
+            // is just Adult / Pediatric / Unknown / Fetus). Useful because
+            // paediatric, AYA, and adult cancers have very different driver
+            // biology — paediatrics enriched for fusions and chromatin / IDH
+            // mutations, AYA for sarcomas and lymphomas, adults for the
+            // canonical SNV-driven solid tumours.
+            age_infant: {
+                label: 'Infant (≤ 1 year at diagnosis)',
+                category: 'Patient age at diagnosis',
+                description: '<b>Inclusion:</b> patient age at diagnosis &le; 1 year. <b>Why:</b> congenital and very-early-onset cancers (e.g. infant ALL with KMT2A rearrangements, neuroblastoma stage MS, congenital fibrosarcoma) have distinct genetics from older-onset versions of the same disease — typically simpler genomes with one strong driver and little chromosomal instability.'
+            },
+            age_pediatric: {
+                label: 'Paediatric (≤ 14 years)',
+                category: 'Patient age at diagnosis',
+                description: '<b>Inclusion:</b> patient age at diagnosis &le; 14 years (includes infant). <b>Why:</b> standard paediatric-oncology definition. Paediatric cancers are enriched for driver fusions (Ewing sarcoma, alveolar RMS, ALK+ ALCL), chromatin / polycomb mutations (DIPG, ATRT), IDH-mutant gliomas, and embryonal histologies — relatively few SNV-driven adult-style carcinomas. Useful contrast cohort for adult-onset comparisons.'
+            },
+            age_aya: {
+                label: 'Adolescent & young adult / AYA (15–39 years)',
+                category: 'Patient age at diagnosis',
+                description: '<b>Inclusion:</b> patient age at diagnosis 15–39 years (NCI AYA definition). <b>Why:</b> AYA is the clinical bucket between paediatric and adult oncology — Ewing sarcoma, osteosarcoma, testicular GCT, T-ALL, Hodgkin lymphoma, melanoma, and some thyroid / CNS cancers cluster here. Often falls between paediatric and adult clinical-trial pathways, which is why it is increasingly recognised as a distinct cohort.'
+            },
+            age_adult: {
+                label: 'Adult (40–64 years)',
+                category: 'Patient age at diagnosis',
+                description: '<b>Inclusion:</b> patient age at diagnosis 40–64 years. <b>Why:</b> the bulk of the canonical adult-onset solid tumours — colorectal, breast, lung, pancreatic, prostate — fall here. Stricter than DepMap\'s default Adult ageCategory, which lumps everyone from 20 to 100 together.'
+            },
+            age_elderly: {
+                label: 'Elderly (≥ 65 years)',
+                category: 'Patient age at diagnosis',
+                description: '<b>Inclusion:</b> patient age at diagnosis &ge; 65 years. <b>Why:</b> elderly-onset cancers (myelodysplastic syndromes, secondary AML, late-stage prostate, chronic lymphocytic leukaemia, glioblastoma in older patients) often have distinct mutational backgrounds — higher TMB from accumulated UV/ageing exposure, TP53 mutations, chromothripsis. Worth segregating from middle-aged adults for some analyses.'
             }
         };
     }
@@ -23113,6 +23147,30 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         mem.idh_mutant = new Set();
         for (const cl of clLines) {
             if (hasHotspot('IDH1', cl) || hasHotspot('IDH2', cl)) mem.idh_mutant.add(cl);
+        }
+
+        // Patient age at diagnosis — five clinical buckets (infant /
+        // paediatric / AYA / adult / elderly). Reads from cellLineMetadata.age
+        // which is stored as a string like "44.0" or "0.0"; parseFloat handles
+        // both. Lines with missing or unparseable age are excluded from all
+        // five sets (the existing ageCategory has an Unknown bucket worth ~16 %
+        // of the cohort that we deliberately leave out).
+        mem.age_infant   = new Set();
+        mem.age_pediatric= new Set();
+        mem.age_aya      = new Set();
+        mem.age_adult    = new Set();
+        mem.age_elderly  = new Set();
+        const ageMap = this.cellLineMetadata?.age || {};
+        for (const cl of clLines) {
+            const raw = ageMap[cl];
+            if (raw == null || raw === '' || raw === 'Unknown') continue;
+            const age = parseFloat(raw);
+            if (!Number.isFinite(age) || age < 0) continue;
+            if (age <= 1)  mem.age_infant.add(cl);
+            if (age <= 14) mem.age_pediatric.add(cl);
+            if (age >= 15 && age <= 39) mem.age_aya.add(cl);
+            if (age >= 40 && age <= 64) mem.age_adult.add(cl);
+            if (age >= 65) mem.age_elderly.add(cl);
         }
 
         // Oncogene addiction — genotype × CRISPR dependency. Threshold
@@ -23507,7 +23565,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'Focal amplifications': 'Curated oncogene amplifications from the clinical CN panel — gain-of-function dosage events that point mutations cannot produce.',
             'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called — e.g. Philadelphia-positive leukemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL.',
             'Oncogene hotspot mutations (mutation only)': 'Specific oncogene hotspot mutations that don\'t require CRISPR-confirmation to be actionable (e.g. mutant-IDH for IDH-inhibitors). Mutation status alone — see Oncogene addiction above for the functionally-confirmed set.',
-            'TNBC molecular subtypes (Lehmann)': 'Lehmann 2011 / 2016 four-class refined TNBC molecular subtypes (BL1, BL2, M, LAR) for the ~22 TNBC overlap cell lines.'
+            'TNBC molecular subtypes (Lehmann)': 'Lehmann 2011 / 2016 four-class refined TNBC molecular subtypes (BL1, BL2, M, LAR) for the ~22 TNBC overlap cell lines.',
+            'Patient age at diagnosis': 'Clinical-oncology age buckets computed from the numeric patient-age field. Paediatric (≤ 14), AYA (15–39), Adult (40–64), Elderly (≥ 65), Infant (≤ 1) as subsets. Useful because driver biology differs sharply with age — fusions and chromatin mutations dominate paediatric cancers, SNV-driven solid tumours dominate adult.'
         };
 
         // Logical order of categories — drivers first, then disease subtypes,
@@ -23524,6 +23583,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Disease subtype groupings
             'Breast — receptor subtype',
             'TNBC molecular subtypes (Lehmann)',
+            // Patient demographics
+            'Patient age at diagnosis',
             // Phenotype / immune
             'Immunology',
             // DNA repair / mutation burden
