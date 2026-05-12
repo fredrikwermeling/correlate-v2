@@ -2,7 +2,49 @@
 
 _Written 2026-05-11 (Stockholm) after a web sweep of available mouse cancer cell-line resources. The goal: figure out whether a Correlate-style app for mouse cell lines is feasible, and if so what data sources to build on._
 
-## ⚑ Architecture decision (2026-05-12)
+## ⚑ Scope correction (2026-05-12 evening)
+
+**MCCA is heavily KRAS-GEMM biased and does not cover the workhorses the user actually wants.** The atlas was built around Rad lab's GEMM-derived KRAS-driven pancreatic / lung / intestinal cancer models, not the broader mouse cell-line community.
+
+Verified by inspecting `MCCA-CellLineAnnotations-2025Q3.xlsx`:
+- 999 rows / **588 unique CellLineNames** (paper rounds to 590)
+- **490 GEMM-Endogenous** + 43 GEMM-Implanted + only **57 Wildtype** — so ~91 % are GEMM-derived
+- Tissue distribution: **529 EpithelialTissue**, 32 HematopoieticAndLymphoidTissue, 20 ConnectiveAndSupportiveTissue, 9 NeuralTissue — matches the KRAS-driven-cancers focus
+- The paper's abstract makes this explicit: *"tissue-specific evolution of KRAS-initiated cancers"*, *"mutant KRAS dosage gain"*, *"context-dependent epistatic KRAS-tumour suppressor interactions"*
+
+**Canonical immuno-oncology line coverage:**
+
+| Line | MCCA | TISMO |
+|---|---|---|
+| B16 / B16-F10 | ✓ (B16-F10M) | ✓ |
+| MC38 | **✗ MISSING** | ✓ |
+| CT26 | ✓ | ✓ |
+| 4T1 | ✓ | ✓ |
+| LL/2 (LLC) | **✗ MISSING** | ✓ |
+| EL4 | ✓ | — |
+| EMT6 | ✓ | ✓ |
+| Renca | ✓ | ✓ |
+| Pan02 | **✗ MISSING** | ✓ |
+| MOC1 / MOC2 | **✗ MISSING** | ✓ (MOC1) |
+| E0771 | (check) | ✓ |
+| KPC | likely (GEMM) | ✓ |
+
+So MCCA on its own delivers only ~6 of the most-used canonical lines and is missing exactly the carcinogen-induced / spontaneous workhorses (MC38, LL/2, Pan02, MOC1) that the user explicitly named.
+
+**Revised app concept: curated hybrid browser, focused on commonly-used lines.**
+
+- Target ~30–50 cell lines, not 588. The standalone CLB is a *curated handbook* for the lines the user actually uses, not an atlas.
+- Per-cell-line data layers assembled from whichever source has them:
+  - **MCCA**: mutations + CN + transcriptome + clinical metadata for the lines it covers (B16-F10M, 4T1, CT26, EL4, EMT6, Renca, plus the GEMM-derived KPC-style pancreatic lines).
+  - **TISMO**: RNA-seq + immune infiltration + ICB treatment context for the lines MCCA misses (MC38, LLC, Pan02, MOC1, E0771). No mutations or CN.
+  - **Mosely et al. 2017** (Cell Reports) and similar key references: mutation / CN / drug-response data for the carcinogen-induced lines that lack systematic genomic profiling — needs literature curation.
+  - **Cellosaurus**: identity, RRID, authentication links, parent / derivative tracking.
+- Data sparsity becomes a design feature — each cell-line page shows what it has, says "not available in current sources" for missing layers. The Wiki structure (Identity / Genome signatures / Driver mutations / Functional loss / Fusions / Expression profile / Drug response) is the same as V2; sections are hidden or marked "no data" per cell line.
+- Cohort comparisons (e.g. "Top uniquely high expression vs cohort") use whatever subset has the relevant data layer. The size of the cohort is reported next to each z-scored statistic so the user knows whether they're comparing against 8 lines or 588.
+
+This is a stronger product than the original "fork MCCA at 588 lines" plan: it focuses on what's actually used in the wet lab, sidesteps the KRAS-GEMM bias, and explicitly accommodates fragmented data sources — which is the reality of mouse cancer cell-line research.
+
+## ⚑ Architecture decision (2026-05-12 morning)
 
 **Scope tightened to a standalone Mouse Cell Line Browser app — NOT a fork of Correlate V2.**
 
