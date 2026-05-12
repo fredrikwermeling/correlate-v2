@@ -2553,12 +2553,15 @@ class CorrelationExplorer {
 
         const rowHtml = matches.slice(0, 200).map(({ c, veryN, partN, totalN }) => {
             const safe = (s) => String(s || '').replace(/"/g, '&quot;');
-            const subtitle = [c.target, c.moa, c.indication].filter(Boolean).join(' · ');
+            // Two-part subtitle: drug biology (target + MoA) on one line,
+            // clinical use explicitly labelled on the next. Previously all
+            // three were joined with " · " which made the indication look
+            // like just another MoA descriptor.
+            const targetMoa = [c.target, c.moa].filter(Boolean).join(' · ');
+            const indication = c.indication ? `<span style="color:#9ca3af;">Used in:</span> <i>${c.indication}</i>` : '';
             const summary = totalN > 0
                 ? `<span style="color:#15803d; font-weight:600;">${veryN}</span> v · <span style="color:#a16207; font-weight:600;">${partN}</span> p / ${totalN}`
                 : '<span style="color:#9ca3af;">no data</span>';
-            // Visually de-emphasise compounds with zero potency in the subset
-            // so the real candidates pop. Still clickable.
             const dimStyle = (veryN === 0 && partN === 0) ? 'opacity:0.55;' : '';
             return `<div class="clb-sortdrug-opt" data-value="${safe(c.name)}" `
                 + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6; ${dimStyle}" `
@@ -2567,7 +2570,8 @@ class CorrelationExplorer {
                 +   `<div style="font-weight:600; color:#15803d;">${c.name}</div>`
                 +   `<div style="font-size:10px; color:#6b7280; white-space:nowrap;">${summary}</div>`
                 + `</div>`
-                + (subtitle ? `<div style="font-size:10px; color:#6b7280;">${subtitle}</div>` : '')
+                + (targetMoa  ? `<div style="font-size:10px; color:#6b7280;">${targetMoa}</div>` : '')
+                + (indication ? `<div style="font-size:10px; color:#6b7280;">${indication}</div>` : '')
                 + `</div>`;
         }).join('');
 
@@ -27357,21 +27361,23 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     const color = signClass === 'sens' ? '#15803d' : '#991b1b';
                     const bg = signClass === 'sens' ? '#f0fdf4' : '#fef2f2';
                     const word = signClass === 'sens' ? 'below average' : 'above average';
-                    // Translate AUC into a plain-language survival fraction:
-                    //   AUC 0 = all cells killed, 1 = no killing at any dose.
-                    //   "surviving fraction" ≈ AUC (PRISM convention at screened dose range).
                     const survivalLabel = c.v < 0.3 ? 'kills most cells' : c.v < 0.6 ? 'kills many cells' : c.v < 0.85 ? 'modest killing' : 'little effect';
-                    // Cohort context: how many cell lines in PRISM are very /
-                    // partly sensitive to this drug overall. Lets the user
-                    // tell a "niche-hit only kills a few lines" compound apart
-                    // from one that kills a substantial fraction.
                     const sc = c._sensCounts;
                     const cohortStr = sc
                         ? `<div style="padding-left:170px; font-size:10px; color:#6b7280;">PRISM cohort: <b style="color:#15803d;">${sc.very}</b> very-sensitive (AUC&nbsp;&lt;&nbsp;0.3) · <b style="color:#a16207;">${sc.part}</b> partly-sensitive (AUC&nbsp;0.3&ndash;0.6) of ${sc.total} tested.</div>`
                         : '';
+                    // c.indication is the clinical disease(s) the drug is
+                    // used / approved for. Previously rendered as bare italic
+                    // text after the σ block, which read as random
+                    // out-of-context labels (CRC, SCLC, pancreatic …) without
+                    // a clear meaning. Prefix it with "Used in" so the
+                    // semantic is explicit.
+                    const indicationStr = c.indication
+                        ? ` — <span style="color:#6b7280;">Used in:</span> <i>${c.indication}</i>`
+                        : '';
                     return `<li style="padding:3px 0;"><span style="display:inline-block; min-width:170px; font-weight:600; color:${color};">${c.name}</span>
                         <span style="font-size:10px; color:#6b7280;">${c.target} &middot; ${c.moa}</span><br>
-                        <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}) — <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span> — <i>${c.indication}</i></span>
+                        <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}) — <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span>${indicationStr}</span>
                         ${cohortStr}</li>`;
                 };
 
@@ -27431,13 +27437,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                             const word = c.z < 0 ? 'below avg' : 'above avg';
                             const sc = c._sensCounts;
                             const cohortStr = sc ? ` <span style="color:#9ca3af; font-size:10px;">[${sc.very} very-sens · ${sc.part} partly-sens in PRISM]</span>` : '';
-                            return `<li><span style="font-weight:500;">${c.name}</span> — viability <b title="AUC: area under the dose-response curve. 0 = all cells killed; 1 = no killing.">${c.v.toFixed(2)}</b> (${z}σ ${word}) — <i>${c.indication}</i>${cohortStr}</li>`;
+                            const indicationStr = c.indication ? ` — <span style="color:#9ca3af;">Used in:</span> <i>${c.indication}</i>` : '';
+                            return `<li><span style="font-weight:500;">${c.name}</span> — viability <b title="AUC: area under the dose-response curve. 0 = all cells killed; 1 = no killing.">${c.v.toFixed(2)}</b> (${z}σ ${word})${indicationStr}${cohortStr}</li>`;
                         }).join('')}</ul></div>`).join('')
                         + '</div>'
                     : '';
 
                 drugHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive — for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug &mdash; it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive — for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug &mdash; it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, the viability score and z-score for <i>this</i> cell line, and a &ldquo;<b>Used in:</b>&rdquo; line listing the clinical disease(s) the drug is approved or used for (e.g. CRC, SCLC, pancreatic).</p>
                     ${sensitive.length ? `<div><b style="color:#15803d;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
                     ${resistant.length ? `<div><b style="color:#991b1b;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
                     ${ctxHtml}`;
