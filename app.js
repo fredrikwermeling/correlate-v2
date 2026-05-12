@@ -2480,9 +2480,19 @@ class CorrelationExplorer {
     // (▼, blue). Filter input narrows by gene name. Filter values are
     // tagged with kind via prefix marker.
     // Custom autocomplete panel for the cell-line-browser drug-response sort.
-    // Shows all PRISM compounds filtered by the user's typed substring across
-    // name / target / MoA / indication. Click an option to pick it; the panel
-    // hides on outside click. Mirrors the CN / fusion-filter dropdown UX.
+    // Two upgrades over a plain A-Z compound list:
+    //   (1) Per-compound very-sensitive / partly-sensitive counts are computed
+    //       against the CURRENTLY VISIBLE cell-line subset (i.e. respecting
+    //       active tissue / subtype / collection / hotspot / fusion / CN
+    //       filters), not the full PRISM cohort. So the numbers next to each
+    //       compound mean "for the lines you've actually got selected".
+    //   (2) Compounds are ranked descending by very-sensitive count in that
+    //       subset, then by partly-sensitive count, then alphabetically. The
+    //       most-potent-for-this-selection drugs surface at the top, so the
+    //       user can spot the relevant therapy candidates without scrolling
+    //       through 89 alphabetised compounds.
+    // The text-search filter still works (matches against name / target / MoA
+    // / indication) and stacks on top of the potency sort.
     _renderSortDrugDropdown(filter) {
         const dd = document.getElementById('clbSortDrugDropdown');
         if (!dd) return;
@@ -2491,30 +2501,81 @@ class CorrelationExplorer {
             dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No PRISM compounds available — drug-response data not loaded.</div>`;
             return;
         }
+
+        // Visible subset reflects active filters (tissue / collection / hotspot
+        // / fusion / CN / sex / oncoprint / custom). Falls back to the full
+        // cohort the first time the dropdown opens before any filtering.
+        const visibleCls = Array.isArray(this._clbVisibleCellLines) && this._clbVisibleCellLines.length > 0
+            ? this._clbVisibleCellLines
+            : (this.metadata?.cellLines || []);
+        const visibleSet = new Set(visibleCls);
+
+        // Score each compound against the subset.
+        const scored = compounds.map(c => {
+            let veryN = 0, partN = 0, totalN = 0;
+            if (c.auc && typeof c.auc === 'object') {
+                for (const cl of visibleCls) {
+                    const auc = c.auc[cl];
+                    if (auc == null || isNaN(auc)) continue;
+                    totalN++;
+                    if (auc < 0.3) veryN++;
+                    else if (auc < 0.6) partN++;
+                }
+            }
+            return { c, veryN, partN, totalN };
+        });
+
+        // Text-filter the scored list.
         const q = (filter || '').toLowerCase().trim();
-        const matches = compounds.filter(c => {
+        const matches = scored.filter(({ c }) => {
             if (!q) return true;
             const hay = [c.name, c.target, c.moa, c.indication].filter(Boolean).join(' ').toLowerCase();
             return hay.includes(q);
-        }).slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        });
+
+        // Sort by subset potency. Ties broken by name.
+        matches.sort((a, b) => {
+            if (b.veryN !== a.veryN) return b.veryN - a.veryN;
+            if (b.partN !== a.partN) return b.partN - a.partN;
+            return (a.c.name || '').localeCompare(b.c.name || '');
+        });
+
+        const headerHtml = `<div style="padding:6px 10px; background:#f9fafb; border-bottom:1px solid #e5e7eb; font-size:10px; color:#6b7280; position:sticky; top:0;">`
+            + `Compounds ranked by potency in the <b>${visibleCls.length}</b> currently-visible cell line${visibleCls.length === 1 ? '' : 's'}.`
+            + ` Counts: <span style="color:#15803d; font-weight:600;">v</span> = very-sensitive (AUC &lt; 0.3), `
+            + `<span style="color:#a16207; font-weight:600;">p</span> = partly-sensitive (AUC 0.3&ndash;0.6).`
+            + `</div>`;
+
         if (matches.length === 0) {
-            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No PRISM compound matches "${filter}".</div>`;
+            dd.innerHTML = headerHtml + `<div style="padding:10px 12px; color:#9ca3af;">No PRISM compound matches "${filter}".</div>`;
             return;
         }
-        const visible = matches.slice(0, 200);
-        dd.innerHTML = visible.map(c => {
+
+        const rowHtml = matches.slice(0, 200).map(({ c, veryN, partN, totalN }) => {
             const safe = (s) => String(s || '').replace(/"/g, '&quot;');
             const subtitle = [c.target, c.moa, c.indication].filter(Boolean).join(' · ');
+            const summary = totalN > 0
+                ? `<span style="color:#15803d; font-weight:600;">${veryN}</span> v · <span style="color:#a16207; font-weight:600;">${partN}</span> p / ${totalN}`
+                : '<span style="color:#9ca3af;">no data</span>';
+            // Visually de-emphasise compounds with zero potency in the subset
+            // so the real candidates pop. Still clickable.
+            const dimStyle = (veryN === 0 && partN === 0) ? 'opacity:0.55;' : '';
             return `<div class="clb-sortdrug-opt" data-value="${safe(c.name)}" `
-                + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
+                + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6; ${dimStyle}" `
                 + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
-                + `<div style="font-weight:600; color:#15803d;">${c.name}</div>`
+                + `<div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">`
+                +   `<div style="font-weight:600; color:#15803d;">${c.name}</div>`
+                +   `<div style="font-size:10px; color:#6b7280; white-space:nowrap;">${summary}</div>`
+                + `</div>`
                 + (subtitle ? `<div style="font-size:10px; color:#6b7280;">${subtitle}</div>` : '')
                 + `</div>`;
         }).join('');
+
+        dd.innerHTML = headerHtml + rowHtml;
+
         const input = document.getElementById('clbSortGene');
         dd.querySelectorAll('.clb-sortdrug-opt').forEach(el => {
-            // mousedown preventDefault → input doesn't lose focus before the click handler runs
+            // mousedown preventDefault → input doesn't lose focus before click fires
             el.addEventListener('mousedown', (e) => e.preventDefault());
             el.addEventListener('click', () => {
                 if (input) {

@@ -1325,6 +1325,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.42 (2026-05-12)</strong></p>
+                <ul>
+                    <li>Drug-response sort dropdown &mdash; compounds are now <b>ranked by potency in the currently-visible cell-line subset</b>, not alphabetically. Two upgrades:
+                    <b>(1)</b> Per-compound very-sensitive / partly-sensitive counts are computed against the visible subset (i.e. respecting all active filters &mdash; tissue / collection / hotspot / fusion / CN / oncoprint), not the full PRISM cohort. So when the user has filtered down to e.g. paediatric KRAS-mutant pancreatic lines, the counts and ranking reflect <i>that</i> cohort.
+                    <b>(2)</b> Sort order: descending very-sensitive count, then descending partly-sensitive count, then alphabetic by name. The most potent drugs for the current selection bubble to the top, instead of being hidden alphabetically among 89 compounds.
+                    Each row shows the in-subset summary inline: <code>17 v &middot; 28 p / 84</code> means &ldquo;17 of 84 lines in this selection are very-sensitive, 28 partly-sensitive.&rdquo; Compounds with zero potency in the subset are dimmed but still clickable. Header strip restates the bucket thresholds and the selection size.</li>
+                </ul>
                 <p><strong>v.81.41 (2026-05-12)</strong></p>
                 <ul>
                     <li>New <b>Patient age at diagnosis</b> collection category with five clinical buckets, computed from the numeric <code>age</code> field in the DepMap Model table (not the coarse <code>ageCategory</code> which is just Adult / Pediatric / Unknown / Fetus).
@@ -2707,7 +2714,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.41</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.42</a>
     </div>
 
     <div class="main-content">
@@ -4876,6 +4883,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_41"></script>
+    <script src="app.js?v=v81_42"></script>
 </body>
 </html>
