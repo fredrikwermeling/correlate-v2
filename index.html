@@ -1028,8 +1028,14 @@
             max-height: calc(100vh - 220px);
         }
         .clb-list {
-            column-count: 3;
+            /* CSS grid (row-major fill) instead of multicolumn (column-major).
+               Row-major means reading order goes left → right → next row, so
+               sorted descending puts the highest value in the upper-left and
+               the lowest at the bottom-right end of the list. */
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             column-gap: 12px;
+            row-gap: 0;
         }
         .clb-entry {
             display: flex;
@@ -1038,9 +1044,9 @@
             padding: 3px 6px;
             border-radius: 4px;
             cursor: pointer;
-            break-inside: avoid;
             border: 1px solid transparent;
             font-size: 12px;
+            min-width: 0;
         }
         .clb-entry:hover { background: var(--green-50); }
         .clb-entry.clb-selected { border-color: var(--green-400); background: var(--green-50); }
@@ -1084,11 +1090,11 @@
         .clb-no-results { text-align: center; color: var(--gray-500); padding: 40px 0; font-size: 13px; }
         .clb-selection-count { font-size: 11px; color: var(--gray-500); white-space: nowrap; }
         @media (max-width: 900px) {
-            .clb-list { column-count: 2; }
+            .clb-list { grid-template-columns: repeat(2, 1fr); }
             .clb-detail { width: 240px; }
         }
         @media (max-width: 600px) {
-            .clb-list { column-count: 1; }
+            .clb-list { grid-template-columns: 1fr; }
             .clb-content { flex-direction: column; }
             .clb-detail { width: 100%; border-left: none; border-top: 1px solid var(--gray-200); max-height: 200px; }
         }
@@ -1325,6 +1331,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.56 (2026-05-13)</strong></p>
+                <ul>
+                    <li>CLB list flow changed from CSS multi-column (column-major fill) to CSS grid (row-major fill). The list now reads left-to-right then wraps to the next row, so when sorted descending the highest value is in the upper-left and the actual lowest sits at the bottom-right end of the list. Previously the bottom of column 1 was a mid-range value, which made &ldquo;the lowest is not at the end&rdquo; a real visual gotcha.</li>
+                    <li>Lines that don&rsquo;t have a value for the current sort axis (GE / Expr / drug / hotspot count / etc.) now show a dim &ldquo;&mdash;&rdquo; in the value column instead of being blank, so the cluster of no-data lines at the end of the list is visually distinct from data-having lines that just happen to have small values.</li>
+                    <li>Drug-response wiki cohort counts now use the GE-cohort intersection (same basis as the sort-drug dropdown), so the two parts of the app show matching numbers. Previously the wiki counted all PRISM keys (e.g. Romidepsin 370 V / 78 P of 461) while the dropdown counted GE-cohort overlap (304 V / 71 P of 386); both numbers were technically correct but the discrepancy was confusing.</li>
+                </ul>
                 <p><strong>v.81.55 (2026-05-12)</strong></p>
                 <ul>
                     <li>Drug-response dropdown now refreshes its per-compound very-/partly-sensitive counts when the visible cell-line subset changes. Previously, toggling a collection (e.g. excluding TP53 functional loss) updated the list of cell lines but the open dropdown kept showing counts from the previous subset &mdash; so the numbers next to each drug didn&rsquo;t add up to what was actually shown. The dropdown was already scoring against <code>_clbVisibleCellLines</code>; it just wasn&rsquo;t re-rendered on filter change. Now <code>renderCellLineList()</code> triggers a re-render of the open drug dropdown.</li>
@@ -2784,7 +2796,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.55</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.56</a>
     </div>
 
     <div class="main-content">
@@ -4957,6 +4969,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_55"></script>
+    <script src="app.js?v=v81_56"></script>
 </body>
 </html>

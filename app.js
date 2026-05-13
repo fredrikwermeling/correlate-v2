@@ -25057,6 +25057,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (selected) cls.push('clb-selected');
             if (inspected) cls.push('clb-inspected');
             let sortValStr = '';
+            // Dim "no data" marker for lines that don't have a value for the
+            // current sort axis. Without this, the end of the list (where
+            // missing-data lines are pushed) looks identical to data-having
+            // lines that just happen to have small values — confusing when
+            // scanning for "the lowest value".
+            const noDataStr = `<span style="font-size:10px; color:#d1d5db; margin-left:auto; flex-shrink:0; font-style:italic;" title="No data for this sort">—</span>`;
             if (geMap) {
                 const v = geMap.get(cl);
                 if (v !== undefined && !isNaN(v)) {
@@ -25066,6 +25072,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         ? (v < -0.5 ? '#dc2626' : v < -0.2 ? '#b45309' : '#374151')
                         : '#374151';
                     sortValStr = `<span style="font-size:10px; color:${colour}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${geValueTooltip}"><span style="color:#9ca3af;">${geValueLabel}</span> ${v.toFixed(2)}</span>`;
+                } else if (geValueLabel) {
+                    sortValStr = noDataStr;
                 }
             } else if (countMap) {
                 const raw = countMap.get(cl);
@@ -25086,6 +25094,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         ? (raw < 0.6 ? '#15803d' : raw < 0.85 ? '#a16207' : '#9ca3af')
                         : '#374151';
                     sortValStr = `<span style="font-size:10px; color:${colour}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode}"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
+                } else {
+                    sortValStr = noDataStr;
                 }
             }
             const sx = this._getSexSymbol(cl);
@@ -27773,10 +27783,19 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             //   AUC 0.6–0.85 → "modest killing"
             //   AUC > 0.85 → "little effect"
             if (!dr._sensCountsComputed) {
+                // Count against the GE-cohort intersection (same basis as the
+                // sort-drug dropdown), so the wiki's "cohort context" numbers
+                // match what the user sees in the cell-line browser. Previously
+                // this counted Object.values(c.auc) (all PRISM keys), which
+                // gave 370/78 in the wiki vs the dropdown's 304/71 for the
+                // same compound — confusing because both are "PRISM cohort"
+                // numbers but with different denominators.
+                const geCohort = new Set(this.metadata?.cellLines || []);
                 for (const c of dr.compounds) {
                     let veryN = 0, partN = 0, totalN = 0;
                     if (c.auc && typeof c.auc === 'object') {
-                        for (const auc of Object.values(c.auc)) {
+                        for (const [cl, auc] of Object.entries(c.auc)) {
+                            if (!geCohort.has(cl)) continue;
                             if (auc == null || isNaN(auc)) continue;
                             totalN++;
                             if (auc < 0.3) veryN++;
