@@ -25299,24 +25299,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Caption line above the list so the inline numbers read unambiguously.
+        // grid-column: 1 / -1 makes the caption span the full row width of
+        // the multi-column grid (otherwise it would occupy the first cell
+        // and push the first cell line into position 2).
         let caption = '';
+        const captionStyle = 'grid-column: 1 / -1; padding:4px 10px; font-size:10px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;';
         if (geMap && geValueLabel) {
             const fullLabel = geValueLabel === 'Expr' ? 'Expression (log2 TPM+1)' : 'Gene Effect (CERES)';
             const direction = geValueLabel === 'GE' ? ' — lower = more essential' : ' — higher = more expressed';
-            caption = `<div style="padding:4px 10px; font-size:10px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+            caption = `<div style="${captionStyle}">
                 Values shown: <b>${fullLabel}</b> for <b>${geGenesLabel}</b>${direction}.
             </div>`;
         } else if (countMap) {
+            const cnScope = this.cnLoaded ? 'full DepMap matrix' : 'curated cancer panel only — matrix still loading';
             const lbl = mode === 'hotspot' ? 'Hotspot-mutation count'
                       : mode === 'damaging' ? 'Damaging-mutation count'
                       : mode === 'fusion' ? 'Fusion count'
                       : mode === 'ploidy' ? 'Ploidy (avg chromosome copy number; normal = 2)'
                       : mode === 'aneuploidy' ? 'Aneuploidy (Ben-David 2021 score, 0–39)'
                       : mode === 'cin' ? 'CIN — chromosomal instability (0–1)'
-                      : mode === 'cn' ? `Copy number of <b>${geGenesLabel || '(no gene picked)'}</b> — DepMap OmicsCNGene relative scale (1.0 = diploid; ≥ 3 = amplified; ≤ 0.5 = deleted). Curated cancer-panel only; lines without a significant amp/del event for this gene show "—".`
+                      : mode === 'cn' ? `Copy number of <b>${geGenesLabel || '(no gene picked)'}</b> — DepMap OmicsCNGene relative scale (1.0 = diploid; ≥ 3 = amplified; ≤ 0.5 = deleted). ${cnScope}; lines without CN data show &ldquo;&mdash;&rdquo;.`
                       : mode === 'drug' ? `Drug-response AUC for <b>${geGenesLabel || '(no compound matched)'}</b> — 0 = all cells killed, 1 = no killing; ascending = most sensitive first`
                       : mode;
-            caption = `<div style="padding:4px 10px; font-size:10px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+            caption = `<div style="${captionStyle}">
                 Values shown: <b>${lbl}</b> per cell line.
             </div>`;
         }

@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.64 (2026-05-13)</strong></p>
+                <ul>
+                    <li>Fix &mdash; CLB list caption (&ldquo;Values shown: ...&rdquo;) now spans the full width of the row-major grid instead of occupying the first cell. Previously it consumed grid position 1, pushing the first cell line into position 2 of the top row. Caption updated to reflect matrix-vs-panel scope dynamically (full DepMap matrix when loaded, curated panel only otherwise).</li>
+                </ul>
                 <p><strong>v.81.63 (2026-05-13)</strong></p>
                 <ul>
                     <li>CN sort opened to any gene. The full DepMap OmicsCNGeneWGS matrix (19366 genes &times; 1095 cell lines) is now processed into <code>web_data/cn.bin.gz</code> (32 MB) with the same gene-major int16 + scaleFactor encoding as <code>geneEffects.bin.gz</code>. App lazy-loads the matrix on first CN-sort use; the curated-panel data still serves as the pre-load fallback so MYC / ERBB2 / CDKN2A / etc. work instantly while the matrix is downloading. Picker now lists the curated panel at the top (with event counts) and any matrix gene below by substring match &mdash; pick any gene for CRISPR-targeting reference (high CN often means more guides needed for biallelic knockout).</li>
@@ -2827,7 +2831,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.63</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.64</a>
     </div>
 
     <div class="main-content">
@@ -5001,6 +5005,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_63"></script>
+    <script src="app.js?v=v81_64"></script>
 </body>
 </html>
