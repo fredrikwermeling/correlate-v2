@@ -25318,7 +25318,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                       : mode === 'ploidy' ? 'Ploidy (avg chromosome copy number; normal = 2)'
                       : mode === 'aneuploidy' ? 'Aneuploidy (Ben-David 2021 score, 0–39)'
                       : mode === 'cin' ? 'CIN — chromosomal instability (0–1)'
-                      : mode === 'cn' ? `Copy number of <b>${geGenesLabel || '(no gene picked)'}</b> — DepMap OmicsCNGene relative scale (1.0 = diploid; ≥ 3 = amplified; ≤ 0.5 = deleted). ${cnScope}; lines without CN data show &ldquo;&mdash;&rdquo;.`
+                      : mode === 'cn' ? `Copy number of <b>${geGenesLabel || '(no gene picked)'}</b> — DepMap relative scale (1.0 = diploid). Tier shown next to each line: <b>deep del</b> &lt; 0.3, <b>het loss</b> 0.3&ndash;0.7, <b>WT</b> 0.7&ndash;1.3, <b>low gain</b> 1.3&ndash;2.0, <b>gain</b> 2.0&ndash;3.0, <b>amp</b> 3.0&ndash;5.0, <b>strong amp</b> &ge; 5.0. ${cnScope}; lines without CN data show &ldquo;&mdash;&rdquo;.`
                       : mode === 'drug' ? `Drug-response AUC for <b>${geGenesLabel || '(no compound matched)'}</b> — 0 = all cells killed, 1 = no killing; ascending = most sensitive first`
                       : mode;
             caption = `<div style="${captionStyle}">
@@ -25377,13 +25377,28 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     // Previously the list used 0.6 / 0.85 / >0.85 thresholds,
                     // so a line with AUC = 0.5 (counted as "p" in the
                     // dropdown) showed GREEN in the list — confusing.
-                    // For CN, blue for amplification (≥ 3) and red for deletion (≤ 0.5).
                     const colour = mode === 'drug'
                         ? (raw < 0.3 ? '#15803d' : raw < 0.6 ? '#a16207' : raw < 0.85 ? '#9ca3af' : '#d1d5db')
-                        : mode === 'cn'
-                        ? (raw >= 3 ? '#1e40af' : raw <= 0.5 ? '#dc2626' : '#374151')
                         : '#374151';
-                    sortValStr = `<span style="font-size:10px; color:${colour}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode}"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
+                    // CN gets a tier label ("deep del" / "het loss" / "WT" /
+                    // "low gain" / "gain" / "amp" / "strong amp") instead
+                    // of just the 2-decimal number — the raw 1.48 vs 1.77
+                    // look like measurement noise rather than biology.
+                    // Each tier carries its own colour; the raw number is
+                    // kept available in the tooltip for users who want it.
+                    if (mode === 'cn') {
+                        let tier, fg, bg;
+                        if      (raw < 0.3)  { tier = 'deep del';   fg = '#7f1d1d'; bg = '#fee2e2'; }
+                        else if (raw < 0.7)  { tier = 'het loss';   fg = '#991b1b'; bg = '#fef2f2'; }
+                        else if (raw < 1.3)  { tier = 'WT';         fg = '#6b7280'; bg = '#f3f4f6'; }
+                        else if (raw < 2.0)  { tier = 'low gain';   fg = '#3730a3'; bg = '#eef2ff'; }
+                        else if (raw < 3.0)  { tier = 'gain';       fg = '#1e40af'; bg = '#dbeafe'; }
+                        else if (raw < 5.0)  { tier = 'amp';        fg = '#1e3a8a'; bg = '#bfdbfe'; }
+                        else                 { tier = 'strong amp'; fg = '#1e3a8a'; bg = '#93c5fd'; }
+                        sortValStr = `<span style="font-size:10px; color:${fg}; background:${bg}; padding:1px 6px; border-radius:8px; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="CN ${v} (DepMap relative, 1.0 = diploid)">${tier} <span style="opacity:0.55; font-size:9px;">${v}</span></span>`;
+                    } else {
+                        sortValStr = `<span style="font-size:10px; color:${colour}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode}"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
+                    }
                 } else {
                     sortValStr = noDataStr;
                 }

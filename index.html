@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.65 (2026-05-13)</strong></p>
+                <ul>
+                    <li>CN values in the cell-line list now show a biological tier label instead of just a 2-decimal number. Tiers: <b>deep del</b> &lt; 0.3, <b>het loss</b> 0.3&ndash;0.7, <b>WT</b> 0.7&ndash;1.3, <b>low gain</b> 1.3&ndash;2.0, <b>gain</b> 2.0&ndash;3.0, <b>amp</b> 3.0&ndash;5.0, <b>strong amp</b> &ge; 5.0. Each tier carries its own coloured pill (red for losses, gray for WT, blue for gains, darker / saturated blue for amp / strong amp). The raw number is kept as a small de-emphasised suffix and in the tooltip for anyone who wants the underlying value. Previously the raw &ldquo;1.48&rdquo; / &ldquo;1.77&rdquo; type values read as sequencing noise rather than biology &mdash; this maps each line to a discrete biological category. Caption row updated to list the tier cutoffs.</li>
+                </ul>
                 <p><strong>v.81.64 (2026-05-13)</strong></p>
                 <ul>
                     <li>Fix &mdash; CLB list caption (&ldquo;Values shown: ...&rdquo;) now spans the full width of the row-major grid instead of occupying the first cell. Previously it consumed grid position 1, pushing the first cell line into position 2 of the top row. Caption updated to reflect matrix-vs-panel scope dynamically (full DepMap matrix when loaded, curated panel only otherwise).</li>
@@ -2831,7 +2835,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.64</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.65</a>
     </div>
 
     <div class="main-content">
@@ -5005,6 +5009,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_64"></script>
+    <script src="app.js?v=v81_65"></script>
 </body>
 </html>
