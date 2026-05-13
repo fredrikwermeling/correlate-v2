@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.63 (2026-05-13)</strong></p>
+                <ul>
+                    <li>CN sort opened to any gene. The full DepMap OmicsCNGeneWGS matrix (19366 genes &times; 1095 cell lines) is now processed into <code>web_data/cn.bin.gz</code> (32 MB) with the same gene-major int16 + scaleFactor encoding as <code>geneEffects.bin.gz</code>. App lazy-loads the matrix on first CN-sort use; the curated-panel data still serves as the pre-load fallback so MYC / ERBB2 / CDKN2A / etc. work instantly while the matrix is downloading. Picker now lists the curated panel at the top (with event counts) and any matrix gene below by substring match &mdash; pick any gene for CRISPR-targeting reference (high CN often means more guides needed for biallelic knockout).</li>
+                </ul>
                 <p><strong>v.81.62 (2026-05-13)</strong></p>
                 <ul>
                     <li>Drug-response colours aligned between the cell-line list and the sort-drug dropdown. The list previously used AUC &lt; 0.6 = green (anything that &ldquo;kills many cells&rdquo;), so a row with AUC = 0.5 showed green even though the dropdown counted it as &ldquo;partly sensitive&rdquo; (amber). Now both use the same thresholds: green = very-sensitive (AUC &lt; 0.3), amber = partly-sensitive (0.3 &ndash; 0.6), light gray = modest, very light gray = little effect.</li>
@@ -2823,7 +2827,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.62</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.63</a>
     </div>
 
     <div class="main-content">
@@ -4997,6 +5001,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_62"></script>
+    <script src="app.js?v=v81_63"></script>
 </body>
 </html>

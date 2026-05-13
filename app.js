@@ -127,6 +127,14 @@ class CorrelationExplorer {
         this.expressionMetadata = null;   // {genes, cellLines, nGenes, nCellLines, scaleFactor, naValue}
         this.expressionGeneIndex = null;  // Map: gene name -> row index
         this.expressionLoaded = false;
+
+        // CN matrix (loaded on demand for pan-genome CN sort + CRISPR targeting)
+        this.cnData = null;               // Float32Array (decoded from int16)
+        this.cnMetadata = null;
+        this.cnGeneIndex = null;          // Map: GENE -> row index
+        this.cnCellLineIndex = null;      // Map: cell-line ID -> column index
+        this.cnLoaded = false;
+        this.cnLoading = null;            // Promise while in-flight
         this.growthRateData = null;
         this._commonEssentials = null;
         this._geneSetScores = null; // cached {modelId: score} for current gene set
@@ -2693,30 +2701,25 @@ class CorrelationExplorer {
         });
     }
 
-    // Sort-CN gene picker. Lists the curated cancer-relevant CN panel
-    // (~33 amp + ~14 del genes from clinical_cn.json) with per-gene
-    // event counts so the user can see "MYC: 87 lines amplified" at a
-    // glance. A full pan-genome CN sort would need processing the
-    // DepMap OmicsCNGeneWGS matrix into a binary blob like geneEffects;
-    // that's a future addition. For now the panel covers the cancer
-    // events that are actually clinically actionable.
+    // Sort-CN gene picker. With the full DepMap OmicsCNGeneWGS matrix
+    // available, any of the ~19k genes can be picked. Curated cancer-
+    // panel genes (33 amp + 14 del from clinical_cn.json) are surfaced
+    // at the top with per-gene event counts ("MYC amp — 87 lines") so
+    // common targets remain one click away; everything else autocompletes
+    // by substring.
     _renderSortCnDropdown(filter) {
         const dd = document.getElementById('clbSortDrugDropdown');
         if (!dd) return;
         const cn = this.clinicalCn;
-        if (!cn || !cn.byCellLine) {
-            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No copy-number data loaded.</div>`;
-            return;
-        }
-        // Build per-gene event tallies from the curated panel.
-        if (!this._cnSortIndex) {
+        // Build curated panel index once.
+        if (!this._cnSortIndex && cn?.byCellLine) {
             const idx = new Map();
             for (const e of (cn.amplificationPanel || [])) {
-                idx.set(e.gene, { gene: e.gene, kind: 'amp', context: e.context || '', ampN: 0, delN: 0 });
+                idx.set(e.gene, { gene: e.gene, kind: 'amp', context: e.context || '', ampN: 0, delN: 0, curated: true });
             }
             for (const e of (cn.deletionPanel || [])) {
                 if (idx.has(e.gene)) idx.get(e.gene).context += ' ' + (e.context || '');
-                else idx.set(e.gene, { gene: e.gene, kind: 'del', context: e.context || '', ampN: 0, delN: 0 });
+                else idx.set(e.gene, { gene: e.gene, kind: 'del', context: e.context || '', ampN: 0, delN: 0, curated: true });
             }
             for (const entry of Object.values(cn.byCellLine)) {
                 for (const a of (entry.amplifications || [])) {
@@ -2727,43 +2730,104 @@ class CorrelationExplorer {
                 }
             }
             this._cnSortIndex = [...idx.values()];
+            this._cnCuratedSet = new Set(this._cnSortIndex.map(e => e.gene.toUpperCase()));
         }
+        // Kick off matrix load if not loaded yet — picker still works
+        // off curated panel + free-text in the meantime.
+        if (!this.cnLoaded && !this.cnLoading) {
+            this.loadCnData().then(() => {
+                if (document.getElementById('clbSortBy')?.value === 'cn') {
+                    this._renderSortCnDropdown(filter);
+                    this.renderCellLineList();
+                }
+            }).catch(e => console.warn('CN load failed', e));
+        }
+
         const q = (filter || '').trim().toUpperCase();
-        const matches = this._cnSortIndex.filter(e => !q || e.gene.toUpperCase().includes(q));
-        // Sort: kind (amps first), then by event count desc, then alphabetical.
-        matches.sort((a, b) => {
+        const curated = (this._cnSortIndex || []).slice();
+        const loadingMatrix = !this.cnLoaded;
+        // Curated rows shown first; if a query is present, also include
+        // matrix-gene matches not in the curated panel.
+        const curatedMatches = curated.filter(e => !q || e.gene.toUpperCase().includes(q));
+        curatedMatches.sort((a, b) => {
             if (a.kind !== b.kind) return a.kind === 'amp' ? -1 : 1;
             const an = a.kind === 'amp' ? a.ampN : a.delN;
             const bn = b.kind === 'amp' ? b.ampN : b.delN;
             if (an !== bn) return bn - an;
             return a.gene.localeCompare(b.gene);
         });
+
+        // Matrix-gene matches outside the curated panel — only when
+        // the matrix is loaded and the user has typed a query.
+        let matrixMatches = [];
+        if (this.cnLoaded && this.cnMetadata?.genes && q.length >= 1) {
+            const curatedSet = this._cnCuratedSet || new Set();
+            for (const g of this.cnMetadata.genes) {
+                if (curatedSet.has(g.toUpperCase())) continue;
+                if (g.toUpperCase().includes(q)) {
+                    matrixMatches.push(g);
+                    if (matrixMatches.length > 200) break;
+                }
+            }
+            // Prefix-first ordering.
+            matrixMatches.sort((a, b) => {
+                const ap = a.toUpperCase().startsWith(q) ? 0 : 1;
+                const bp = b.toUpperCase().startsWith(q) ? 0 : 1;
+                if (ap !== bp) return ap - bp;
+                return a.localeCompare(b);
+            });
+        }
+
+        const matrixState = loadingMatrix
+            ? `<span style="color:#a16207;">loading CN matrix…</span>`
+            : `<b>${this.cnMetadata?.nGenes || 0}</b> genes available — pick any for CRISPR-targeting reference`;
         const header = `<div style="padding:6px 10px; background:#f9fafb; border-bottom:1px solid #e5e7eb; font-size:10px; color:#6b7280; position:sticky; top:0;">`
-            + `Pick a curated CN-panel gene to sort lines by its copy number. <b>${this._cnSortIndex.length}</b> genes total `
-            + `(<span style="color:#1e40af;">amplification</span> panel first, then <span style="color:#dc2626;">deletion</span> panel). Counts shown are lines flagged with a significant event.`
+            + `Pick a gene to sort cell lines by its copy number. ${matrixState}.`
             + `</div>`;
-        if (matches.length === 0) {
-            dd.innerHTML = header + `<div style="padding:10px 12px; color:#9ca3af;">No panel gene matches "${filter}".</div>`;
+
+        if (curatedMatches.length === 0 && matrixMatches.length === 0) {
+            const empty = loadingMatrix
+                ? `Matrix loading — only curated-panel genes searchable for now. No match for "${filter}".`
+                : `No gene matches "${filter}".`;
+            dd.innerHTML = header + `<div style="padding:10px 12px; color:#9ca3af;">${empty}</div>`;
             return;
         }
-        const rowHtml = matches.map(e => {
-            const safe = String(e.gene).replace(/"/g, '&quot;');
-            const isAmp = e.kind === 'amp';
-            const n = isAmp ? e.ampN : e.delN;
-            const colour = isAmp ? '#1e40af' : '#dc2626';
-            const bg     = isAmp ? '#eff6ff' : '#fef2f2';
-            const kindLbl = isAmp ? 'amp' : 'del';
-            return `<div class="clb-sortcn-opt" data-value="${safe}" `
-                + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
-                + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
-                + `<div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">`
-                +   `<div style="font-weight:600; color:${colour};">${e.gene} <span style="font-size:10px; background:${bg}; padding:1px 5px; border-radius:8px;">${kindLbl}</span></div>`
-                +   `<div style="font-size:10px; color:#6b7280; white-space:nowrap;"><b>${n}</b> lines</div>`
-                + `</div>`
-                + (e.context ? `<div style="font-size:10px; color:#6b7280; margin-top:2px;">${e.context.trim()}</div>` : '')
-                + `</div>`;
-        }).join('');
-        dd.innerHTML = header + rowHtml;
+
+        // Render curated chips with event counts and context blurbs.
+        const curatedHtml = curatedMatches.length
+            ? `<div style="padding:4px 10px; background:#f3f4f6; font-size:9px; color:#6b7280; text-transform:uppercase; letter-spacing:0.04em;">Curated cancer panel</div>`
+              + curatedMatches.map(e => {
+                  const safe = String(e.gene).replace(/"/g, '&quot;');
+                  const isAmp = e.kind === 'amp';
+                  const n = isAmp ? e.ampN : e.delN;
+                  const colour = isAmp ? '#1e40af' : '#dc2626';
+                  const bg     = isAmp ? '#eff6ff' : '#fef2f2';
+                  const kindLbl = isAmp ? 'amp' : 'del';
+                  return `<div class="clb-sortcn-opt" data-value="${safe}" `
+                      + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
+                      + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
+                      + `<div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">`
+                      +   `<div style="font-weight:600; color:${colour};">${e.gene} <span style="font-size:10px; background:${bg}; padding:1px 5px; border-radius:8px;">${kindLbl}</span></div>`
+                      +   `<div style="font-size:10px; color:#6b7280; white-space:nowrap;"><b>${n}</b> lines</div>`
+                      + `</div>`
+                      + (e.context ? `<div style="font-size:10px; color:#6b7280; margin-top:2px;">${e.context.trim()}</div>` : '')
+                      + `</div>`;
+              }).join('')
+            : '';
+
+        const matrixHtml = matrixMatches.length
+            ? `<div style="padding:4px 10px; background:#f3f4f6; font-size:9px; color:#6b7280; text-transform:uppercase; letter-spacing:0.04em;">Other genes (matrix)</div>`
+              + matrixMatches.slice(0, 100).map(g => {
+                  const safe = String(g).replace(/"/g, '&quot;');
+                  return `<div class="clb-sortcn-opt" data-value="${safe}" `
+                      + `style="padding:5px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
+                      + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
+                      + `<span style="font-weight:600; color:#374151;">${g}</span>`
+                      + `</div>`;
+              }).join('')
+            : '';
+
+        dd.innerHTML = header + curatedHtml + matrixHtml;
         const input = document.getElementById('clbSortGene');
         dd.querySelectorAll('.clb-sortcn-opt').forEach(el => {
             el.addEventListener('mousedown', (e) => e.preventDefault());
@@ -21481,6 +21545,39 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Expression Correlates (V2 feature)
     // =========================================================================
 
+    // Lazy-load the full CN matrix (DepMap OmicsCNGeneWGS, ~32 MB
+    // gzipped). Triggered on demand by the CN sort and any future
+    // per-gene CN lookups. Resolves once; concurrent callers share
+    // the same in-flight promise.
+    async loadCnData() {
+        if (this.cnLoaded) return;
+        if (this.cnLoading) return this.cnLoading;
+        this.cnLoading = (async () => {
+            const t0 = performance.now();
+            const metaRes = await fetch('web_data/cn_metadata.json');
+            const meta = await metaRes.json();
+            const binRes = await fetch('web_data/cn.bin.gz');
+            const buf = await binRes.arrayBuffer();
+            const decompressed = pako.inflate(new Uint8Array(buf));
+            const int16Data = new Int16Array(decompressed.buffer);
+            const sf = meta.scaleFactor;
+            const na = meta.naValue;
+            const out = new Float32Array(int16Data.length);
+            for (let i = 0; i < int16Data.length; i++) {
+                out[i] = (int16Data[i] === na) ? NaN : int16Data[i] / sf;
+            }
+            this.cnData = out;
+            this.cnMetadata = meta;
+            this.cnGeneIndex = new Map();
+            meta.genes.forEach((g, i) => this.cnGeneIndex.set(g.toUpperCase(), i));
+            this.cnCellLineIndex = new Map();
+            meta.cellLines.forEach((cl, i) => this.cnCellLineIndex.set(cl, i));
+            this.cnLoaded = true;
+            console.log(`CN matrix loaded: ${meta.nGenes} genes × ${meta.nCellLines} cell lines in ${((performance.now() - t0)/1000).toFixed(1)}s`);
+        })();
+        return this.cnLoading;
+    }
+
     async loadExpressionData() {
         if (this.expressionLoaded) return;
 
@@ -24457,7 +24554,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (sortGeneWrap) sortGeneWrap.style.display = needsGene ? 'inline-block' : 'none';
             if (clbSortGene) {
                 clbSortGene.placeholder = mode === 'drug' ? 'click → list of PRISM compounds'
-                                        : mode === 'cn' ? 'click → curated CN panel (MYC, ERBB2, CDKN2A, ...)'
+                                        : mode === 'cn' ? 'any gene — full DepMap CN matrix'
                                         : 'TP53, BRCA1, ...';
                 // Clear the suggestion dropdown only when leaving a mode
                 // that uses it (drug / ge / expr / cn). Previously this
@@ -25072,21 +25169,44 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 return (va - vb) * dir;
             };
         } else if (mode === 'cn') {
-            // Copy-number sort on the curated cancer-relevant panel (~47
-            // amp + del genes from clinical_cn.json). We don't have a full
-            // CN matrix here, so this is restricted to the panel — lines
-            // without an event for the selected gene show as "no data"
-            // at the end of the list (they're typically near diploid).
+            // Copy-number sort. Two data sources used in priority order:
+            // (1) The full DepMap OmicsCNGeneWGS matrix once loaded (any
+            //     gene, every cell line) — gives "every line's CN for
+            //     gene X" so the user can pick CRISPR-targeting lines
+            //     based on copy number of any gene.
+            // (2) Curated clinical_cn.json (47-gene cancer panel) as a
+            //     pre-load fallback so the basics work before the 32 MB
+            //     matrix finishes downloading.
             const raw = document.getElementById('clbSortGene').value || '';
             const gene = raw.split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean)[0];
             countMap = new Map();
-            if (gene && this.clinicalCn?.byCellLine) {
-                for (const [cl, entry] of Object.entries(this.clinicalCn.byCellLine)) {
-                    const hit = (entry.amplifications || []).find(a => (a.gene || '').toUpperCase() === gene)
-                             || (entry.deletions     || []).find(d => (d.gene || '').toUpperCase() === gene);
-                    if (hit && typeof hit.cn === 'number') countMap.set(cl, hit.cn);
+            if (gene) {
+                if (this.cnLoaded && this.cnGeneIndex && this.cnGeneIndex.has(gene)) {
+                    const gi = this.cnGeneIndex.get(gene);
+                    const nCnCL = this.cnMetadata.nCellLines;
+                    const off = gi * nCnCL;
+                    for (const cl of this.metadata.cellLines) {
+                        const ci = this.cnCellLineIndex.get(cl);
+                        if (ci === undefined) continue;
+                        const v = this.cnData[off + ci];
+                        if (!isNaN(v)) countMap.set(cl, v);
+                    }
+                    geGenesLabel = gene;
+                } else if (this.clinicalCn?.byCellLine) {
+                    // Curated-panel fallback while the matrix loads.
+                    for (const [cl, entry] of Object.entries(this.clinicalCn.byCellLine)) {
+                        const hit = (entry.amplifications || []).find(a => (a.gene || '').toUpperCase() === gene)
+                                 || (entry.deletions     || []).find(d => (d.gene || '').toUpperCase() === gene);
+                        if (hit && typeof hit.cn === 'number') countMap.set(cl, hit.cn);
+                    }
+                    geGenesLabel = gene;
+                    // Kick off the matrix load in the background; the next
+                    // re-render will pick it up automatically (the picker /
+                    // sort change re-renders).
+                    if (!this.cnLoaded && !this.cnLoading) {
+                        this.loadCnData().then(() => { this.renderCellLineList(); }).catch(e => console.warn('CN load failed', e));
+                    }
                 }
-                geGenesLabel = gene;
             }
             secondaryCmp = (a, b) => {
                 const va = countMap.get(a);
