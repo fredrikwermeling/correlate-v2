@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.61 (2026-05-13)</strong></p>
+                <ul>
+                    <li>Wiki drug-response section now shows a per-compound AUC histogram, mirroring the genome-section pattern. Each &ldquo;Standout sensitive&rdquo; and &ldquo;Standout resistant&rdquo; row gets a thin Plotly histogram of the AUC distribution across all PRISM-tested cell lines (grey bars), with a red dashed line at this cell line&rsquo;s AUC. Lets you see at a glance whether a low AUC is part of a long tail (broad killer) or genuinely isolated (selective hit), the same way the Ploidy / Aneuploidy / CIN histograms work.</li>
+                </ul>
                 <p><strong>v.81.60 (2026-05-13)</strong></p>
                 <ul>
                     <li>New sort option: &ldquo;<b>Sort: Copy number of gene</b>&rdquo;. Pick a gene from the curated cancer-relevant CN panel (33 amp + 14 del genes from <code>clinical_cn.json</code> &mdash; MYC, ERBB2, CDK4, MDM2, EGFR, CDKN2A, BRCA1/2, etc.) and the cell-line list sorts by that gene&rsquo;s copy number. Picker shows per-gene event counts (e.g. &ldquo;MYC amp &mdash; 87 lines&rdquo;) so you can see at a glance which genes have the most flagged lines. Per-row CN value is coloured blue for amplification (CN &ge; 3) and red for deletion (CN &le; 0.5). Lines without a significant CN event for the selected gene show &ldquo;&mdash;&rdquo; at the end of the list. <b>Scope note:</b> the curated panel covers ~47 clinically actionable cancer genes; sorting by arbitrary genes (any of the 25 k in the genome) would need processing the full DepMap OmicsCNGene matrix into a binary blob like <code>geneEffects.bin.gz</code> &mdash; queued as a future addition.</li>
@@ -2814,7 +2818,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.60</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.61</a>
     </div>
 
     <div class="main-content">
@@ -4988,6 +4992,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_60"></script>
+    <script src="app.js?v=v81_61"></script>
 </body>
 </html>

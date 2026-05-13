@@ -27962,6 +27962,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const sensitive = rows.filter(r => r.z < -1).slice(0, 8);
                 const resistant = rows.slice().sort((a, b) => b.z - a.z).filter(r => r.z > 1).slice(0, 5);
 
+                // Compounds rendered in the wiki get their PRISM AUC
+                // distribution drawn as a mini-histogram below the row,
+                // mirroring the per-metric histograms in the Genome section.
+                // We slug the compound name into a stable DOM id and remember
+                // it on `drugHistTargets` so the post-render pass can draw
+                // each one with Plotly.
+                const drugHistTargets = [];
+                const slugify = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
                 const fmtCompound = (c, signClass) => {
                     const zStr = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1);
                     const color = signClass === 'sens' ? '#15803d' : '#991b1b';
@@ -27981,10 +27989,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     const indicationStr = c.indication
                         ? ` — <span style="color:#6b7280;">Used in:</span> <i>${c.indication}</i>`
                         : '';
+                    const slug = slugify(c.name);
+                    drugHistTargets.push({ slug, name: c.name, currentVal: c.v });
+                    const histId = `clbWikiHistDrug_${slug}`;
                     return `<li style="padding:3px 0;"><span style="display:inline-block; min-width:170px; font-weight:600; color:${color};">${c.name}</span>
                         <span style="font-size:10px; color:#6b7280;">${c.target} &middot; ${c.moa}</span><br>
                         <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}) — <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span>${indicationStr}</span>
-                        ${cohortStr}</li>`;
+                        ${cohortStr}
+                        <div id="${histId}" style="margin: 4px 0 0 170px; height: 70px;"></div></li>`;
                 };
 
                 // Context-aware cross-checks based on what this wiki has already detected
@@ -28051,10 +28063,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     : '';
 
                 drugHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive — for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug &mdash; it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, the viability score and z-score for <i>this</i> cell line, and a &ldquo;<b>Used in:</b>&rdquo; line listing the clinical disease(s) the drug is approved or used for (e.g. CRC, SCLC, pancreatic).</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive — for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug &mdash; it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ. The mini-histogram under each compound shows the full AUC distribution across all PRISM-tested cell lines (red dashed line = this cell line's value), mirroring the per-metric histograms in the Genome section.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, the viability score and z-score for <i>this</i> cell line, and a &ldquo;<b>Used in:</b>&rdquo; line listing the clinical disease(s) the drug is approved or used for (e.g. CRC, SCLC, pancreatic).</p>
                     ${sensitive.length ? `<div><b style="color:#15803d;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
                     ${resistant.length ? `<div><b style="color:#991b1b;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
                     ${ctxHtml}`;
+                // Stash for the post-render histogram draw.
+                this._drugHistPending = { cellLineId, targets: drugHistTargets };
             }
         }
 
@@ -28467,6 +28481,82 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (gs) {
             requestAnimationFrame(() => this._renderGenomeDistributions(cellLineId));
         }
+        // Per-drug AUC histograms (parallel to the genome panel).
+        if (this._drugHistPending && this._drugHistPending.cellLineId === cellLineId) {
+            requestAnimationFrame(() => this._renderDrugDistributions(this._drugHistPending));
+        }
+    }
+
+    // Per-compound PRISM-AUC histograms for the Wiki's Drug-response section.
+    // Mirrors _renderGenomeDistributions: small Plotly panels with the cohort
+    // distribution as grey bars and this cell line's AUC marked by a red
+    // dashed vertical line. Histograms are skipped silently if Plotly isn't
+    // loaded or if the compound has no AUC data.
+    _renderDrugDistributions(pending) {
+        if (typeof Plotly === 'undefined') return;
+        if (!pending || !Array.isArray(pending.targets) || pending.targets.length === 0) return;
+        const dr = this.drugResponse;
+        if (!dr?.compounds) return;
+        const byName = new Map();
+        for (const c of dr.compounds) byName.set(c.name, c);
+
+        const layout = {
+            margin: { l: 26, r: 8, t: 4, b: 24 },
+            xaxis: {
+                title: { text: 'AUC across PRISM cohort', font: { size: 9 } },
+                tickfont: { size: 8 }, showgrid: false, zeroline: false,
+                range: [0, 1.1]
+            },
+            yaxis: {
+                tickfont: { size: 8 }, showgrid: true, gridcolor: '#f3f4f6',
+                zeroline: false, showticklabels: false
+            },
+            bargap: 0.02,
+            showlegend: false,
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { family: 'Open Sans, sans-serif' },
+            height: 70
+        };
+        const config = { displaylogo: false, responsive: true, staticPlot: false, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'] };
+
+        for (const t of pending.targets) {
+            const el = document.getElementById(`clbWikiHistDrug_${t.slug}`);
+            if (!el) continue;
+            const c = byName.get(t.name);
+            if (!c?.auc) continue;
+            const vals = [];
+            for (const v of Object.values(c.auc)) {
+                if (v != null && !isNaN(v)) vals.push(v);
+            }
+            if (vals.length === 0) continue;
+            const trace = {
+                type: 'histogram',
+                x: vals,
+                xbins: { size: 0.025, start: 0, end: 1.025 },
+                marker: { color: '#9ca3af', line: { width: 0 } },
+                hovertemplate: '<b>AUC %{x}</b>: %{y} lines<extra></extra>',
+                opacity: 0.85
+            };
+            const lay = JSON.parse(JSON.stringify(layout));
+            if (t.currentVal != null) {
+                lay.shapes = [{
+                    type: 'line',
+                    x0: t.currentVal, x1: t.currentVal,
+                    y0: 0, y1: 1, yref: 'paper',
+                    line: { color: '#dc2626', width: 2, dash: 'dash' }
+                }];
+                lay.annotations = [{
+                    x: t.currentVal, y: 1.04, yref: 'paper',
+                    text: `<b>${t.currentVal.toFixed(2)}</b>`,
+                    showarrow: false, xanchor: 'left',
+                    font: { size: 9, color: '#dc2626' }
+                }];
+            }
+            Plotly.newPlot(el, [trace], lay, config);
+        }
+        // Clear pending so a stale draw doesn't re-fire on next modal open.
+        this._drugHistPending = null;
     }
 
     // Cohort-distribution histograms for the Wiki's Genome section. Builds
