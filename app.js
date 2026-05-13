@@ -2668,6 +2668,90 @@ class CorrelationExplorer {
         });
     }
 
+    // Sort-CN gene picker. Lists the curated cancer-relevant CN panel
+    // (~33 amp + ~14 del genes from clinical_cn.json) with per-gene
+    // event counts so the user can see "MYC: 87 lines amplified" at a
+    // glance. A full pan-genome CN sort would need processing the
+    // DepMap OmicsCNGeneWGS matrix into a binary blob like geneEffects;
+    // that's a future addition. For now the panel covers the cancer
+    // events that are actually clinically actionable.
+    _renderSortCnDropdown(filter) {
+        const dd = document.getElementById('clbSortDrugDropdown');
+        if (!dd) return;
+        const cn = this.clinicalCn;
+        if (!cn || !cn.byCellLine) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No copy-number data loaded.</div>`;
+            return;
+        }
+        // Build per-gene event tallies from the curated panel.
+        if (!this._cnSortIndex) {
+            const idx = new Map();
+            for (const e of (cn.amplificationPanel || [])) {
+                idx.set(e.gene, { gene: e.gene, kind: 'amp', context: e.context || '', ampN: 0, delN: 0 });
+            }
+            for (const e of (cn.deletionPanel || [])) {
+                if (idx.has(e.gene)) idx.get(e.gene).context += ' ' + (e.context || '');
+                else idx.set(e.gene, { gene: e.gene, kind: 'del', context: e.context || '', ampN: 0, delN: 0 });
+            }
+            for (const entry of Object.values(cn.byCellLine)) {
+                for (const a of (entry.amplifications || [])) {
+                    if (idx.has(a.gene)) idx.get(a.gene).ampN++;
+                }
+                for (const d of (entry.deletions || [])) {
+                    if (idx.has(d.gene)) idx.get(d.gene).delN++;
+                }
+            }
+            this._cnSortIndex = [...idx.values()];
+        }
+        const q = (filter || '').trim().toUpperCase();
+        const matches = this._cnSortIndex.filter(e => !q || e.gene.toUpperCase().includes(q));
+        // Sort: kind (amps first), then by event count desc, then alphabetical.
+        matches.sort((a, b) => {
+            if (a.kind !== b.kind) return a.kind === 'amp' ? -1 : 1;
+            const an = a.kind === 'amp' ? a.ampN : a.delN;
+            const bn = b.kind === 'amp' ? b.ampN : b.delN;
+            if (an !== bn) return bn - an;
+            return a.gene.localeCompare(b.gene);
+        });
+        const header = `<div style="padding:6px 10px; background:#f9fafb; border-bottom:1px solid #e5e7eb; font-size:10px; color:#6b7280; position:sticky; top:0;">`
+            + `Pick a curated CN-panel gene to sort lines by its copy number. <b>${this._cnSortIndex.length}</b> genes total `
+            + `(<span style="color:#1e40af;">amplification</span> panel first, then <span style="color:#dc2626;">deletion</span> panel). Counts shown are lines flagged with a significant event.`
+            + `</div>`;
+        if (matches.length === 0) {
+            dd.innerHTML = header + `<div style="padding:10px 12px; color:#9ca3af;">No panel gene matches "${filter}".</div>`;
+            return;
+        }
+        const rowHtml = matches.map(e => {
+            const safe = String(e.gene).replace(/"/g, '&quot;');
+            const isAmp = e.kind === 'amp';
+            const n = isAmp ? e.ampN : e.delN;
+            const colour = isAmp ? '#1e40af' : '#dc2626';
+            const bg     = isAmp ? '#eff6ff' : '#fef2f2';
+            const kindLbl = isAmp ? 'amp' : 'del';
+            return `<div class="clb-sortcn-opt" data-value="${safe}" `
+                + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
+                + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
+                + `<div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">`
+                +   `<div style="font-weight:600; color:${colour};">${e.gene} <span style="font-size:10px; background:${bg}; padding:1px 5px; border-radius:8px;">${kindLbl}</span></div>`
+                +   `<div style="font-size:10px; color:#6b7280; white-space:nowrap;"><b>${n}</b> lines</div>`
+                + `</div>`
+                + (e.context ? `<div style="font-size:10px; color:#6b7280; margin-top:2px;">${e.context.trim()}</div>` : '')
+                + `</div>`;
+        }).join('');
+        dd.innerHTML = header + rowHtml;
+        const input = document.getElementById('clbSortGene');
+        dd.querySelectorAll('.clb-sortcn-opt').forEach(el => {
+            el.addEventListener('mousedown', (e) => e.preventDefault());
+            el.addEventListener('click', () => {
+                if (input) {
+                    input.value = el.dataset.value;
+                    input.dispatchEvent(new Event('input'));
+                }
+                dd.style.display = 'none';
+            });
+        });
+    }
+
     _renderCnFilterDropdown(filter) {
         const dd = document.getElementById('clbCnDropdown');
         if (!dd) return;
@@ -24341,22 +24425,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const updateSortControls = () => {
             const mode = clbSortBy.value;
             this._clbSortMode = mode;
-            const needsGene = (mode === 'ge' || mode === 'expr' || mode === 'drug');
+            const needsGene = (mode === 'ge' || mode === 'expr' || mode === 'drug' || mode === 'cn');
             // The wrapper carries display because the input is now inside a
             // relative-positioned <div> together with the drug-picker dropdown.
             const sortGeneWrap = document.getElementById('clbSortGeneWrap');
             if (sortGeneWrap) sortGeneWrap.style.display = needsGene ? 'inline-block' : 'none';
             if (clbSortGene) {
-                clbSortGene.placeholder = mode === 'drug' ? 'click → list of PRISM compounds' : 'TP53, BRCA1, ...';
+                clbSortGene.placeholder = mode === 'drug' ? 'click → list of PRISM compounds'
+                                        : mode === 'cn' ? 'click → curated CN panel (MYC, ERBB2, CDKN2A, ...)'
+                                        : 'TP53, BRCA1, ...';
                 // Clear the suggestion dropdown only when leaving a mode
-                // that uses it (drug / ge / expr). Previously this
+                // that uses it (drug / ge / expr / cn). Previously this
                 // unconditionally hid the dropdown for any non-drug mode,
                 // which meant the 200 ms-debounced updateSortControls call
                 // killed the gene-autocomplete dropdown 200 ms after every
                 // keystroke in GE / Expression mode — the user saw
                 // suggestions flash and disappear before they could click.
                 const dd = document.getElementById('clbSortDrugDropdown');
-                const usesDropdown = (mode === 'drug' || mode === 'ge' || mode === 'expr');
+                const usesDropdown = (mode === 'drug' || mode === 'ge' || mode === 'expr' || mode === 'cn');
                 if (dd && !usesDropdown) dd.style.display = 'none';
             }
             // Show direction arrow unless mode is name or (gene sort with empty gene input)
@@ -24366,7 +24452,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // is usually what the user wants for "cells with highest
             // expression of gene X"). Ascending for name and gene-effect
             // (lowest GE = most dependent, typical interest).
-            if (mode === 'hotspot' || mode === 'damaging' || mode === 'fusion' || mode === 'expr') {
+            if (mode === 'hotspot' || mode === 'damaging' || mode === 'fusion' || mode === 'expr' || mode === 'cn') {
                 this._clbSortAsc = false;
             } else {
                 this._clbSortAsc = true;
@@ -24395,6 +24481,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 dd.style.display = '';
             } else if (mode === 'ge' || mode === 'expr') {
                 this._renderSortGeneDropdown(clbSortGene.value);
+                dd.style.display = '';
+            } else if (mode === 'cn') {
+                this._renderSortCnDropdown(clbSortGene.value);
                 dd.style.display = '';
             } else {
                 dd.style.display = 'none';
@@ -24957,6 +25046,32 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
                 return (va - vb) * dir;
             };
+        } else if (mode === 'cn') {
+            // Copy-number sort on the curated cancer-relevant panel (~47
+            // amp + del genes from clinical_cn.json). We don't have a full
+            // CN matrix here, so this is restricted to the panel — lines
+            // without an event for the selected gene show as "no data"
+            // at the end of the list (they're typically near diploid).
+            const raw = document.getElementById('clbSortGene').value || '';
+            const gene = raw.split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean)[0];
+            countMap = new Map();
+            if (gene && this.clinicalCn?.byCellLine) {
+                for (const [cl, entry] of Object.entries(this.clinicalCn.byCellLine)) {
+                    const hit = (entry.amplifications || []).find(a => (a.gene || '').toUpperCase() === gene)
+                             || (entry.deletions     || []).find(d => (d.gene || '').toUpperCase() === gene);
+                    if (hit && typeof hit.cn === 'number') countMap.set(cl, hit.cn);
+                }
+                geGenesLabel = gene;
+            }
+            secondaryCmp = (a, b) => {
+                const va = countMap.get(a);
+                const vb = countMap.get(b);
+                if (va == null && vb == null) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                if (va == null) return 1;
+                if (vb == null) return -1;
+                if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                return (va - vb) * dir;
+            };
         } else if (mode === 'drug') {
             // Drug-response sort. User types one or more compound names (or a
             // unique substring) into the gene-input box, which is repurposed
@@ -25053,6 +25168,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                       : mode === 'ploidy' ? 'Ploidy (avg chromosome copy number; normal = 2)'
                       : mode === 'aneuploidy' ? 'Aneuploidy (Ben-David 2021 score, 0–39)'
                       : mode === 'cin' ? 'CIN — chromosomal instability (0–1)'
+                      : mode === 'cn' ? `Copy number of <b>${geGenesLabel || '(no gene picked)'}</b> — DepMap OmicsCNGene relative scale (1.0 = diploid; ≥ 3 = amplified; ≤ 0.5 = deleted). Curated cancer-panel only; lines without a significant amp/del event for this gene show "—".`
                       : mode === 'drug' ? `Drug-response AUC for <b>${geGenesLabel || '(no compound matched)'}</b> — 0 = all cells killed, 1 = no killing; ascending = most sensitive first`
                       : mode;
             caption = `<div style="padding:4px 10px; font-size:10px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
@@ -25099,12 +25215,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                                   : mode === 'ploidy' ? 'pl'
                                   : mode === 'aneuploidy' ? 'aneup'
                                   : mode === 'cin' ? 'CIN'
+                                  : mode === 'cn' ? 'CN'
                                   : mode === 'drug' ? 'AUC'
                                   : '';
                     // For drug-response, colour AUC by sensitivity at a glance:
                     // AUC < 0.6 = clearly killing → green-ish; AUC > 0.9 = barely affected → grey.
+                    // For CN, blue for amplification (≥ 3) and red for deletion (≤ 0.5).
                     const colour = mode === 'drug'
                         ? (raw < 0.6 ? '#15803d' : raw < 0.85 ? '#a16207' : '#9ca3af')
+                        : mode === 'cn'
+                        ? (raw >= 3 ? '#1e40af' : raw <= 0.5 ? '#dc2626' : '#374151')
                         : '#374151';
                     sortValStr = `<span style="font-size:10px; color:${colour}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode}"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
                 } else {
@@ -25134,6 +25254,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const _sortMode = document.getElementById('clbSortBy')?.value;
             const _sortInput = document.getElementById('clbSortGene');
             if (_sortMode === 'drug') this._renderSortDrugDropdown(_sortInput?.value || '');
+            else if (_sortMode === 'cn') this._renderSortCnDropdown(_sortInput?.value || '');
         }
     }
 
