@@ -7879,7 +7879,12 @@ class CorrelationExplorer {
         container.querySelectorAll('.gene-hover').forEach(el => {
             el.addEventListener('mouseenter', (e) => {
                 this._tooltipTimer = setTimeout(() => {
-                    this.showGeneTooltip(e, el.dataset.gene);
+                    // data-why carries chip-specific context (e.g. "TP53 loss
+                    // inferred from CN+mut+expr") that used to live in the
+                    // native title attribute. The native tooltip + custom
+                    // tooltip both fired on hover and overlapped — now the
+                    // why-context is folded into the single custom tooltip.
+                    this.showGeneTooltip(e, el.dataset.gene, el.dataset.why || null);
                 }, 400);
             });
             el.addEventListener('mouseleave', () => {
@@ -20735,7 +20740,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return null;
     }
 
-    showGeneTooltip(event, gene) {
+    showGeneTooltip(event, gene, whyContext) {
         // If a pinned tooltip for the same gene is already showing, leave it.
         const existing = document.getElementById('geneTooltip');
         if (existing && existing.dataset.pinned === '1' && existing.dataset.gene === gene) return;
@@ -20810,6 +20815,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             html += `<div style="margin-bottom: 4px; padding-right:${el.dataset.pinned === '1' ? '18px' : '0'};"><b style="color: #5a9f4a; font-size: 13px;">${info ? info.symbol : gene}</b>`;
             if (info && info.name) html += ` <span style="color: #374151;">${info.name}</span>`;
             html += `</div>`;
+
+            // Optional "why this gene is highlighted here" context — used by
+            // chips in the CLB detail card (functional-loss, focal-CN) to
+            // pass chip-specific reasoning into the tooltip instead of using
+            // a native title attribute (which would overlay this tooltip).
+            if (whyContext) {
+                html += `<div style="margin: 0 0 6px; padding: 6px 8px; background: #fef2f2; border-left: 3px solid #dc2626; font-size: 11px; color: #7f1d1d; border-radius: 0 4px 4px 0;">${whyContext}</div>`;
+            }
 
             if (info && info.summary) {
                 const isPinned = el.dataset.pinned === '1';
@@ -24568,7 +24581,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const link = e.target.closest('.clb-gene-link');
             if (!link) return;
             this._clbGeneTooltipTimer = setTimeout(() => {
-                this.showGeneTooltip(e, link.dataset.gene);
+                this.showGeneTooltip(e, link.dataset.gene, link.dataset.why || null);
             }, 400);
         }, true);
         geneLists.addEventListener('mouseleave', (e) => {
@@ -24594,7 +24607,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const link = e.target.closest('.gene-hover');
             if (!link) return;
             this._clbGeneTooltipTimer = setTimeout(() => {
-                this.showGeneTooltip(e, link.dataset.gene);
+                this.showGeneTooltip(e, link.dataset.gene, link.dataset.why || null);
             }, 400);
         }, true);
         detailTop.addEventListener('mouseleave', (e) => {
@@ -25782,9 +25795,9 @@ This catches deep deletions (e.g. CDKN2A, RB1) that the damaging-mutation list a
                 top += `<div style="font-size:11px; line-height:1.7;">`;
                 top += lofGenes.slice().sort().map(g =>
                     `<span class="gene-hover clb-gene-link" data-gene="${g}" `
+                    + `data-why="${g} loss inferred by DepMap: combines CN, mutation and expression — catches deletions invisible to mutation matrices alone." `
                     + `style="cursor:help; font-weight:600; color:#991b1b; border:1px solid #d1d5db; `
-                    + `background:#fef2f2; border-radius:8px; padding:0 5px; margin-right:4px;" `
-                    + `title="${g} loss inferred by DepMap: combines CN, mutation and expression — catches deletions invisible to mutation matrices alone">`
+                    + `background:#fef2f2; border-radius:8px; padding:0 5px; margin-right:4px;">`
                     + `${g}</span>`
                 ).join('');
                 top += `</div>`;
@@ -25820,9 +25833,9 @@ This is a small curated panel. The full DepMap CN matrix has hundreds of focal c
                     : (isStrong ? 'deep del'   : 'del');
                 const tooltip = `${e.gene} ${kind === 'amp' ? 'amplification' : 'deletion'} (CN = ${e.cn}${isStrong ? ', ' + (kind === 'amp' ? 'strong' : 'deep') : ''}). ${e.context || ''}`;
                 return `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" `
+                    + `data-why="${tooltip.replace(/"/g, '&quot;')}" `
                     + `style="cursor:help; font-weight:600; color:${color}; border:1px solid #d1d5db; background:${bg}; `
-                    + `border-radius:8px; padding:0 6px; margin-right:4px; display:inline-block; margin-bottom:3px;" `
-                    + `title="${tooltip.replace(/"/g, '&quot;')}">`
+                    + `border-radius:8px; padding:0 6px; margin-right:4px; display:inline-block; margin-bottom:3px;">`
                     + `${e.gene} <span style="color:#6b7280; font-weight:400; font-size:10px;">${kindLabel}</span></span>`;
             };
             const totalN = (cnEvents.amplifications?.length || 0) + (cnEvents.deletions?.length || 0);
