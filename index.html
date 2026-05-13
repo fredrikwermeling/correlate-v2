@@ -1331,6 +1331,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.57 (2026-05-13)</strong></p>
+                <ul>
+                    <li>Wiki &ldquo;Strong drug-target candidates&rdquo; now requires PRISM corroboration before naming a drug class. Previously a collection-based call (e.g. A375 flagged as CDK4/6-dependent from CDKN2A loss + CRISPR signal) was added unconditionally, so the summary could claim &ldquo;CDK4/6 inhibitors&rdquo; while the drug-response section below showed no CDK4/6 inhibitor in the top-sensitive list. Now, for any drug class PRISM tested (CDK4/6, MEK, BRAF, EGFR, PI3K/AKT/mTOR, ABL), the claim is emitted only if at least one matching compound is sensitive (z &lt; &minus;1&sigma;) in this cell line. Classes PRISM doesn&rsquo;t test at all (e.g. KRAS-G12C inhibitors) are still emitted so legitimate biology isn&rsquo;t suppressed.</li>
+                    <li>&ldquo;Useful as a model for&rdquo; softened to &ldquo;<b>May be useful as a model for</b>&rdquo;. The inference is built from mutation + dependency layers without prospective validation; the modal verb is more honest about the claim.</li>
+                    <li>&ldquo;Context-aware cross-checks&rdquo; renamed to &ldquo;<b>Targeted therapies matched to this cell line&rsquo;s alterations</b>&rdquo; and given a one-line explanation: &ldquo;For each driver alteration detected in this cell line, the PRISM compounds with a matching target are listed below, sorted by sensitivity in this line (most-sensitive first).&rdquo; Previously the section header gave no hint of what cross-check meant.</li>
+                </ul>
                 <p><strong>v.81.56 (2026-05-13)</strong></p>
                 <ul>
                     <li>CLB list flow changed from CSS multi-column (column-major fill) to CSS grid (row-major fill). The list now reads left-to-right then wraps to the next row, so when sorted descending the highest value is in the upper-left and the actual lowest sits at the bottom-right end of the list. Previously the bottom of column 1 was a mid-range value, which made &ldquo;the lowest is not at the end&rdquo; a real visual gotcha.</li>
@@ -2796,7 +2802,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.56</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.57</a>
     </div>
 
     <div class="main-content">
@@ -4969,6 +4975,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_56"></script>
+    <script src="app.js?v=v81_57"></script>
 </body>
 </html>

@@ -27894,7 +27894,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 }
 
                 const ctxHtml = ctxSections.length
-                    ? '<div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;"><div style="font-weight:600; margin-bottom:6px; color:#374151;">Context-aware cross-checks</div>'
+                    ? '<div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;"><div style="font-weight:600; margin-bottom:4px; color:#374151;">Targeted therapies matched to this cell line\'s alterations</div>'
+                        + '<div style="font-size:11px; color:#6b7280; margin-bottom:6px;">For each driver alteration detected in this cell line, the PRISM compounds with a matching target are listed below, sorted by sensitivity in this line (most-sensitive first). Useful for confirming whether the matched-target drug actually kills this line at the screened doses.</div>'
                         + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => {
                             const z = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1);
                             const word = c.z < 0 ? 'below avg' : 'above avg';
@@ -28140,44 +28141,95 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const focalAmpsLocal = (this.clinicalCn?.byCellLine?.[cellLineId]?.amplifications || []).map(a => a.gene);
             if (focalAmpsLocal.includes('ERBB2')) modelFor.push('HER2-targeted-therapy response (trastuzumab / T-DXd / lapatinib)');
             if (focalAmpsLocal.includes('MDM2') && !oncoGeneSet.has('TP53') && !tsgLosses.includes('TP53')) modelFor.push('MDM2-inhibitor (nutlin / idasanutlin) response');
+            // Soft phrasing — the model-for inference is built from
+            // mutation + dependency layers without prospective validation,
+            // so "may be useful" is more honest than the bare "useful".
             const s5 = modelFor.length > 0
-                ? `<b>Useful as a model for:</b> ${[...new Set(modelFor)].slice(0, 3).join('; ')}.`
+                ? `<b>May be useful as a model for:</b> ${[...new Set(modelFor)].slice(0, 3).join('; ')}.`
                 : '';
 
             // "Strong drug-target candidates" sentence — surfaces drug names
             // where the supporting evidence is robust: (a) oncogene-addiction
-            // collections fire for this cell line (mutation + functional CRISPR
-            // dependency, the strongest combined signal), or (b) PRISM screen
-            // shows strong sensitivity (z < -1.5σ) to a clinical compound.
-            // The general "model for" sentence above frames biology; this one
-            // names concrete therapies likely to work.
+            // collections fire AND a matching PRISM compound class is at
+            // least moderately sensitive (z < -1σ) in this line, or (b)
+            // PRISM screen shows strong sensitivity (z < -1.5σ) to a
+            // clinical compound. Collection-based claims for drug classes
+            // that PRISM tested but does NOT corroborate in this line are
+            // suppressed — otherwise the summary lists drugs that don't
+            // appear in the screen results below (the A375 "CDK4/6
+            // inhibitors" issue), which is confusing. Drug classes PRISM
+            // doesn't test at all (e.g. KRAS-G12C inhibitors) are still
+            // emitted, since the biological claim stands.
             const strongDrugs = [];
             const mem = this._collectionMembership || {};
+            const dr = this.drugResponse;
+            // Helper: for a list of PRISM target keywords, report
+            //   - hasCompounds: is the target represented in PRISM at all?
+            //   - sensitive:    does any matching compound show z < -1 in this cell line?
+            // We emit a collection-based claim only when (sensitive) OR (!hasCompounds).
+            const prismCorroborates = (keywords) => {
+                if (!dr?.compounds) return { hasCompounds: false, sensitive: false };
+                let hasCompounds = false, sensitive = false;
+                const upper = keywords.map(k => k.toUpperCase());
+                for (const c of dr.compounds) {
+                    const target = (c.target || '').toUpperCase();
+                    if (!upper.some(k => target.includes(k))) continue;
+                    hasCompounds = true;
+                    const v = c.auc?.[cellLineId];
+                    if (v == null || isNaN(v) || !(c.sd > 0)) continue;
+                    const z = (v - c.mean) / c.sd;
+                    if (z < -1) { sensitive = true; break; }
+                }
+                return { hasCompounds, sensitive };
+            };
             // Variant-aware drug naming — use the specific codon when we have
             // it, so we don't say "if G12C" when we already know the line is
             // G12D (the standard pancreatic background) or vice versa.
             if (mem.kras_addicted?.has(cellLineId)) {
-                if (/G12C/.test(krasV)) strongDrugs.push('<b>KRAS-G12C inhibitors</b> (sotorasib, adagrasib)');
-                else if (/G12D/.test(krasV)) strongDrugs.push(`<b>KRAS-G12D-targeting strategies</b> (MRTX1133 investigational; MEK-inhibitor combinations for ${krasV})`);
-                else if (/G12R/.test(krasV)) strongDrugs.push(`<b>MEK-inhibitor combinations</b> for KRAS ${krasV} (no allele-specific KRAS-G12R inhibitor)`);
-                else if (krasV) strongDrugs.push(`<b>MEK-inhibitor combinations</b> for KRAS ${krasV} (no allele-specific inhibitor approved)`);
-                else strongDrugs.push('<b>MEK-inhibitor combinations</b> (KRAS-pathway dependent)');
+                if (/G12C/.test(krasV)) {
+                    // KRAS-G12C-specific inhibitors aren't in the PRISM panel
+                    // we ship — biology stands without corroboration.
+                    strongDrugs.push('<b>KRAS-G12C inhibitors</b> (sotorasib, adagrasib)');
+                } else if (/G12D/.test(krasV)) {
+                    const mek = prismCorroborates(['MEK']);
+                    if (mek.sensitive || !mek.hasCompounds) strongDrugs.push(`<b>KRAS-G12D-targeting strategies</b> (MRTX1133 investigational; MEK-inhibitor combinations for ${krasV})`);
+                } else if (krasV) {
+                    const mek = prismCorroborates(['MEK']);
+                    if (mek.sensitive || !mek.hasCompounds) strongDrugs.push(`<b>MEK-inhibitor combinations</b> for KRAS ${krasV} (no allele-specific inhibitor approved)`);
+                } else {
+                    const mek = prismCorroborates(['MEK']);
+                    if (mek.sensitive || !mek.hasCompounds) strongDrugs.push('<b>MEK-inhibitor combinations</b> (KRAS-pathway dependent)');
+                }
             }
             if (mem.braf_addicted?.has(cellLineId)) {
-                if (/V600/.test(brafV)) strongDrugs.push(`<b>BRAF + MEK inhibitors</b> (vemurafenib / dabrafenib + trametinib, encorafenib + binimetinib) for BRAF ${brafV}`);
-                else strongDrugs.push(`<b>Pan-RAF + MEK strategies</b> for BRAF ${brafV} (non-V600 — vemurafenib-resistant; investigational)`);
+                const bm = prismCorroborates(['BRAF', 'MEK']);
+                if (bm.sensitive || !bm.hasCompounds) {
+                    if (/V600/.test(brafV)) strongDrugs.push(`<b>BRAF + MEK inhibitors</b> (vemurafenib / dabrafenib + trametinib, encorafenib + binimetinib) for BRAF ${brafV}`);
+                    else strongDrugs.push(`<b>Pan-RAF + MEK strategies</b> for BRAF ${brafV} (non-V600 — vemurafenib-resistant; investigational)`);
+                }
             }
             if (mem.egfr_dependent?.has(cellLineId)) {
-                if (/T790M/.test(egfrV)) strongDrugs.push(`<b>Osimertinib</b> (specifically active against EGFR T790M)`);
-                else if (/L858R/.test(egfrV) || /exon\s*19/i.test(egfrV) || /del/i.test(egfrV)) strongDrugs.push(`<b>EGFR TKIs</b> (osimertinib first-line; erlotinib / gefitinib) for EGFR ${egfrV}`);
-                else strongDrugs.push(`<b>EGFR TKIs</b> (osimertinib first-line) for EGFR ${egfrV || 'mutation'}`);
+                const eg = prismCorroborates(['EGFR']);
+                if (eg.sensitive || !eg.hasCompounds) {
+                    if (/T790M/.test(egfrV)) strongDrugs.push(`<b>Osimertinib</b> (specifically active against EGFR T790M)`);
+                    else if (/L858R/.test(egfrV) || /exon\s*19/i.test(egfrV) || /del/i.test(egfrV)) strongDrugs.push(`<b>EGFR TKIs</b> (osimertinib first-line; erlotinib / gefitinib) for EGFR ${egfrV}`);
+                    else strongDrugs.push(`<b>EGFR TKIs</b> (osimertinib first-line) for EGFR ${egfrV || 'mutation'}`);
+                }
             }
-            if (mem.bcr_abl_addicted?.has(cellLineId)) strongDrugs.push('<b>ABL TKIs</b> (imatinib, dasatinib, nilotinib; ponatinib for T315I)');
-            if (mem.pi3k_active_dependent?.has(cellLineId)) strongDrugs.push('<b>PI3K-α / AKT / mTOR inhibitors</b> (alpelisib for PIK3CA-mut; capivasertib for AKT-axis)');
-            if (mem.cdk46_dependent?.has(cellLineId)) strongDrugs.push('<b>CDK4/6 inhibitors</b> (palbociclib, ribociclib, abemaciclib)');
+            if (mem.bcr_abl_addicted?.has(cellLineId)) {
+                const ab = prismCorroborates(['BCR-ABL', 'ABL']);
+                if (ab.sensitive || !ab.hasCompounds) strongDrugs.push('<b>ABL TKIs</b> (imatinib, dasatinib, nilotinib; ponatinib for T315I)');
+            }
+            if (mem.pi3k_active_dependent?.has(cellLineId)) {
+                const pi = prismCorroborates(['PI3K', 'AKT', 'MTOR']);
+                if (pi.sensitive || !pi.hasCompounds) strongDrugs.push('<b>PI3K-α / AKT / mTOR inhibitors</b> (alpelisib for PIK3CA-mut; capivasertib for AKT-axis)');
+            }
+            if (mem.cdk46_dependent?.has(cellLineId)) {
+                const cdk = prismCorroborates(['CDK4/6', 'CDK4', 'CDK6']);
+                if (cdk.sensitive || !cdk.hasCompounds) strongDrugs.push('<b>CDK4/6 inhibitors</b> (palbociclib, ribociclib, abemaciclib)');
+            }
             // PRISM-screen evidence — top 2 strong-sensitive compounds (z < -1.5)
             // and ALWAYS distinct from the addiction-named drugs above.
-            const dr = this.drugResponse;
             if (dr?.compounds && Array.isArray(dr.compounds)) {
                 const prismHits = [];
                 for (const c of dr.compounds) {
