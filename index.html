@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.59 (2026-05-13)</strong></p>
+                <ul>
+                    <li>CLB detail card &mdash; Immunology section restyle. The previous layout placed the badge (&ldquo;MSI-high&rdquo; / &ldquo;Class-I lost&rdquo;) and the explanation sentence in an inline flex row, squeezing the sentence into whatever horizontal space was left next to the badge &mdash; awkward in the 280 px detail pane. The two now stack vertically (badge above, sentence below), matching the layout of the other sections (Hotspot Mutations, Functional loss, Genome) and giving the caption full width to wrap naturally. Section header gained a flag count and a <code>?</code> help icon explaining that these are cell-intrinsic inferences (what a CD8+ T cell could see if it got there), not tumour-microenvironment readouts &mdash; most human cancer cell lines can only be grown in immunocompromised hosts in vivo.</li>
+                </ul>
                 <p><strong>v.81.58 (2026-05-13)</strong></p>
                 <ul>
                     <li>Fix &mdash; hovering a functional-loss or focal-CN gene chip in the CLB detail card now shows a single combined tooltip instead of two overlapping popups. The chips previously had both a custom gene tooltip (NCBI summary) and a native browser <code>title</code> attribute (why the gene is highlighted); the browser tooltip overlay would partially cover the custom one. Now the &ldquo;why this gene is flagged&rdquo; line is rendered inside the custom tooltip as a red-bordered context block above the gene info.</li>
@@ -2806,7 +2810,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.58</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.59</a>
     </div>
 
     <div class="main-content">
@@ -4979,6 +4983,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_58"></script>
+    <script src="app.js?v=v81_59"></script>
 </body>
 </html>

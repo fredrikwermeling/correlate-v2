@@ -25742,11 +25742,20 @@ CIN (chromosomal instability): how scrambled the genome is at fine scale. Scale 
             });
         }
         if (flags.length > 0) {
-            top += `<div class="clb-detail-section"><strong>Immunology</strong>`;
+            // Layout matches the other detail sections (Hotspot Mutations,
+            // Functional loss, etc.): section title with an optional ? help
+            // icon, then each flag stacked as badge + caption rather than
+            // squeezing the caption into a narrow inline column next to
+            // the badge.
+            const helpImmuno = `Cell-intrinsic immune flags inferred from the DepMap layers (MSI / class-I antigen presentation).
+
+These are properties of the cell line itself — not its tumour microenvironment. Most human cancer cell lines can only be grown in immunocompromised mice in vivo, so these flags speak to "what could a CD8+ T cell see if it got there", not "what does happen in an experiment".`;
+            top += `<div class="clb-detail-section"><strong>Immunology (${flags.length})</strong>`
+                + ` <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="${helpImmuno.replace(/"/g, '&quot;')}">?</span>`;
             for (const f of flags) {
-                top += `<div style="display:flex; gap:8px; align-items:baseline; margin:3px 0; font-size:11px;">`
-                    + `<span style="color:#4b5563; font-weight:600; border:1px solid #d1d5db; background:#f3f4f6; border-radius:8px; padding:1px 6px; font-size:10px; flex-shrink:0; cursor:help;" title="${f.tooltip.replace(/"/g, '&quot;')}">${f.label}</span>`
-                    + `<span style="color:#6b7280;">${f.caption}</span>`
+                top += `<div style="margin:4px 0 6px; font-size:11px;">`
+                    + `<div><span style="color:#4b5563; font-weight:600; border:1px solid #d1d5db; background:#f3f4f6; border-radius:8px; padding:1px 6px; font-size:10px; cursor:help;" title="${f.tooltip.replace(/"/g, '&quot;')}">${f.label}</span></div>`
+                    + `<div style="color:#6b7280; margin-top:2px; line-height:1.4;">${f.caption}</div>`
                     + `</div>`;
             }
             top += `</div>`;
