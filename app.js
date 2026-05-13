@@ -2533,8 +2533,17 @@ class CorrelationExplorer {
             return hay.includes(q);
         });
 
-        // Sort by subset potency. Ties broken by name.
+        // Sort by selective potency. Compounds where most of the cohort
+        // is "very sensitive" (≥ 40%) are broadly cytotoxic — they sort
+        // BELOW selective hits with the same raw v-count so the user
+        // sees targeted therapies (BRAF/MEK/EGFR/ABL/etc.) at the top
+        // instead of HDAC inhibitors and dNTP-depletion chemotherapies.
+        // Ties within each tier broken by veryN desc, then partN desc,
+        // then alphabetically.
+        const isPanTox = (m) => (m.totalN > 0 && (m.veryN / m.totalN) >= 0.4);
         matches.sort((a, b) => {
+            const aPan = isPanTox(a), bPan = isPanTox(b);
+            if (aPan !== bPan) return aPan ? 1 : -1;
             if (b.veryN !== a.veryN) return b.veryN - a.veryN;
             if (b.partN !== a.partN) return b.partN - a.partN;
             return (a.c.name || '').localeCompare(b.c.name || '');
@@ -2542,8 +2551,9 @@ class CorrelationExplorer {
 
         const headerHtml = `<div style="padding:6px 10px; background:#f9fafb; border-bottom:1px solid #e5e7eb; font-size:10px; color:#6b7280; position:sticky; top:0;">`
             + `Compounds ranked by potency in the <b>${visibleCls.length}</b> currently-visible cell line${visibleCls.length === 1 ? '' : 's'}.`
-            + ` Counts: <span style="color:#15803d; font-weight:600;">v</span> = very-sensitive (AUC &lt; 0.3), `
-            + `<span style="color:#a16207; font-weight:600;">p</span> = partly-sensitive (AUC 0.3&ndash;0.6).`
+            + ` Counts: <span style="color:#15803d; font-weight:600;">v</span> = very-sensitive (AUC &lt; 0.3, &ldquo;kills most cells&rdquo;), `
+            + `<span style="color:#a16207; font-weight:600;">p</span> = partly-sensitive (AUC 0.3&ndash;0.6, &ldquo;kills many cells&rdquo;). `
+            + `Compounds tagged <span style="background:#fef3c7; color:#92400e; padding:1px 4px; border-radius:6px; font-size:9px; font-weight:600; border:1px solid #fde68a;">broadly cytotoxic</span> hit &ge; 40 % of the cohort &mdash; usually chemo / HDACi / proteasome inhibitors, not targeted therapies. Sorted with selective hits first.`
             + `</div>`;
 
         if (matches.length === 0) {
@@ -2559,15 +2569,30 @@ class CorrelationExplorer {
             // like just another MoA descriptor.
             const targetMoa = [c.target, c.moa].filter(Boolean).join(' · ');
             const indication = c.indication ? `<span style="color:#9ca3af;">Used in:</span> <i>${c.indication}</i>` : '';
+            // "Broadly cytotoxic" / pan-tox flag — a high fraction of the
+            // visible cohort scoring very-sensitive (AUC < 0.3) usually
+            // means the compound is a generally cytotoxic chemotherapy
+            // (HDAC inhibitor, nucleoside analogue, proteasome inhibitor)
+            // rather than a targeted therapy that picks out a specific
+            // vulnerability. Without this flag, Romidepsin (HDAC) at
+            // 79 % v-sensitive and Gemcitabine (dNTP-pool depletion) at
+            // 70 % v-sensitive sort to the top of "best drugs" for any
+            // selection — misleading, since these are broad killers
+            // not selective hits.
+            const veryFrac = totalN > 0 ? veryN / totalN : 0;
+            const panTox = veryFrac >= 0.4;
+            const panToxBadge = panTox
+                ? ` <span title="More than 40% of the tested cohort scores very-sensitive — this is a broadly-cytotoxic compound (chemo / proteasome / HDAC / nucleoside / tubulin), not a targeted therapy. High &lsquo;v&rsquo; count does not imply this is the right drug for any one cell line." style="background:#fef3c7; color:#92400e; padding:1px 5px; border-radius:8px; font-size:9px; font-weight:600; border:1px solid #fde68a; cursor:help;">broadly cytotoxic ${Math.round(veryFrac * 100)}%</span>`
+                : '';
             const summary = totalN > 0
                 ? `<span style="color:#15803d; font-weight:600;">${veryN}</span> v · <span style="color:#a16207; font-weight:600;">${partN}</span> p / ${totalN}`
                 : '<span style="color:#9ca3af;">no data</span>';
-            const dimStyle = (veryN === 0 && partN === 0) ? 'opacity:0.55;' : '';
+            const dimStyle = (veryN === 0 && partN === 0) ? 'opacity:0.55;' : panTox ? 'opacity:0.85;' : '';
             return `<div class="clb-sortdrug-opt" data-value="${safe(c.name)}" `
                 + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6; ${dimStyle}" `
                 + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
                 + `<div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">`
-                +   `<div style="font-weight:600; color:#15803d;">${c.name}</div>`
+                +   `<div style="font-weight:600; color:#15803d;">${c.name}${panToxBadge}</div>`
                 +   `<div style="font-size:10px; color:#6b7280; white-space:nowrap;">${summary}</div>`
                 + `</div>`
                 + (targetMoa  ? `<div style="font-size:10px; color:#6b7280;">${targetMoa}</div>` : '')
@@ -25218,11 +25243,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                                   : mode === 'cn' ? 'CN'
                                   : mode === 'drug' ? 'AUC'
                                   : '';
-                    // For drug-response, colour AUC by sensitivity at a glance:
-                    // AUC < 0.6 = clearly killing → green-ish; AUC > 0.9 = barely affected → grey.
+                    // For drug-response, colour AUC by sensitivity at a glance.
+                    // Thresholds match the dropdown's v/p categories and the
+                    // wiki's survival labels — green = very-sensitive
+                    // (AUC < 0.3, "kills most cells"), amber = partly-
+                    // sensitive (0.3–0.6, "kills many cells"), light gray =
+                    // modest (0.6–0.85), very light gray = little effect.
+                    // Previously the list used 0.6 / 0.85 / >0.85 thresholds,
+                    // so a line with AUC = 0.5 (counted as "p" in the
+                    // dropdown) showed GREEN in the list — confusing.
                     // For CN, blue for amplification (≥ 3) and red for deletion (≤ 0.5).
                     const colour = mode === 'drug'
-                        ? (raw < 0.6 ? '#15803d' : raw < 0.85 ? '#a16207' : '#9ca3af')
+                        ? (raw < 0.3 ? '#15803d' : raw < 0.6 ? '#a16207' : raw < 0.85 ? '#9ca3af' : '#d1d5db')
                         : mode === 'cn'
                         ? (raw >= 3 ? '#1e40af' : raw <= 0.5 ? '#dc2626' : '#374151')
                         : '#374151';
