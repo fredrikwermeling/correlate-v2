@@ -171,6 +171,13 @@ class CorrelationExplorer {
             await this.loadData();
             this.setupUI();
             this.hideLoading();
+            // URL-hash deep links — open a specific view directly so
+            // external apps (greenlisted / mouseclb / lab pages) can
+            // route the user straight into Correlate at the right tab.
+            //   #cell or #cellbrowser → cell-line browser modal
+            // Add more routes here as needed.
+            this._handleUrlHash();
+            window.addEventListener('hashchange', () => this._handleUrlHash());
             // Preload expression data in the background (non-blocking)
             setTimeout(() => {
                 if (!this.expressionLoaded) {
@@ -187,6 +194,18 @@ class CorrelationExplorer {
 
     updateLoadingText(text) {
         document.getElementById('loadingText').textContent = text;
+    }
+
+    // Read window.location.hash and route to the appropriate view.
+    // Used both at init time and on hashchange events. Hash is the
+    // safest deep-link primitive for a static-page SPA (no server
+    // rewrite rules required, works under any host path).
+    _handleUrlHash() {
+        const h = (window.location.hash || '').toLowerCase().replace(/^#/, '');
+        if (h === 'cell' || h === 'cellbrowser' || h === 'cell-line-browser') {
+            try { this.openCellLineBrowser(); }
+            catch (e) { console.warn('Could not open cell-line browser from #cell route:', e); }
+        }
     }
 
     hideLoading() {
