@@ -1331,6 +1331,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.68 (2026-05-17)</strong></p>
+                <ul>
+                    <li>CN matrix &mdash; widened gene coverage. Filter relaxed from &ldquo;WGS-set only&rdquo; to &ldquo;all parseable symbols minus noise patterns&rdquo;. Drops obvious clutter (LOC IDs, RNU / SNORA / SNORD small nuclear RNAs, antisense / divergent-transcript suffixes, pseudogenes ending in P + digits) but keeps protein-coding + named lncRNAs + miRNA hosts + olfactory receptors + Ig/TCR segments. Gene count 18 660 → <b>24 567</b>. Binary 53 → 70 MB.</li>
+                    <li>New CN-based collections (20). Per-gene focal-amplification filters added for <code>AR</code>, <code>BCL2</code>, <code>EGFR</code>, <code>KIT</code>, <code>KRAS</code>, <code>MITF</code>, <code>PDGFRA</code>, <code>SOX2</code>. New &ldquo;Focal deletions&rdquo; category with per-gene filters for <code>CDKN2A</code>, <code>CDKN2B</code>, <code>RB1</code>, <code>PTEN</code>, <code>BRCA1</code>, <code>BRCA2</code>, <code>ATM</code>, <code>ARID1A</code>, <code>SMARCA4</code>, <code>STK11</code>, <code>KEAP1</code>, <code>BAP1</code> plus an &ldquo;Any focal deletion&rdquo; catch-all. Each collection filters lines with the gene at amp tier (CN &ge; 3) or deletion tier (CN &le; 0.5) on the curated panel. Distinct from the integrated TSG functional-loss collections (which combine CN + mutation + expression); these are CN-only deep deletions.</li>
+                </ul>
                 <p><strong>v.81.67 (2026-05-17)</strong></p>
                 <ul>
                     <li>CN matrix upgraded to hybrid WGS-primary / WES-fallback. Source: DepMap <code>OmicsCNGene.csv</code> (24Q4) — DepMap&rsquo;s own merged file that combines WGS and WES inferences. Cell-line coverage jumps from 1095 (WGS-only) to 1929 (WGS + WES). Lines that were never WGS&rsquo;d &mdash; Jurkat, K562, many older haematopoietic lines &mdash; now appear in the CN sort. Per-line provenance preserved: lines also in <code>OmicsCNGeneWGS.csv</code> (25Q3) are tagged WGS; lines absent get a small <code>wes</code> caveat next to the CN tier pill, hover for the explanation. Binary blob grew from 32 → 55 MB to accommodate the extra ~834 cell lines.</li>
@@ -2843,7 +2848,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.67</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.68</a>
     </div>
 
     <div class="main-content">
@@ -5017,6 +5022,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_67"></script>
+    <script src="app.js?v=v81_68"></script>
 </body>
 </html>

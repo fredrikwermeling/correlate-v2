@@ -23223,6 +23223,125 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 description: '<b>Inclusion:</b> at least one focal amplification on the curated clinical CN panel (the genes that appear in the per-cell-line "Focal CN events" section: MYC family, ERBB2, MDM2, CDK4/6, cyclins, etc.). <b>Why this filter exists:</b> a catch-all for "this line has at least one focal oncogene-amp driver", useful when contrasting against lines with no curated focal-amp event at all.'
             },
 
+            // Additional per-gene focal amplifications. Each filters
+            // for cell lines with the gene at CN ≥ 3 (focal amp tier)
+            // from clinicalCn.byCellLine. Curated for clinical /
+            // biological relevance — these are the genes where amp
+            // status maps to a distinct disease subtype or therapy
+            // rationale.
+            ar_amp: {
+                label: 'AR amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of <b>AR</b> (androgen receptor). <b>Mechanism:</b> AR-axis hyperactivity. <b>Disease:</b> castration-resistant prostate cancer (~50 % of CRPC). <b>Therapy:</b> 2nd-gen anti-androgens (enzalutamide, apalutamide, darolutamide); AR-degrader candidates.'
+            },
+            bcl2_amp: {
+                label: 'BCL2 amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of <b>BCL2</b>. <b>Mechanism:</b> over-expressed anti-apoptotic BCL-2 → apoptosis evasion. <b>Disease:</b> follicular lymphoma (BCL2-IGH translocation), DLBCL, CLL. <b>Therapy:</b> venetoclax (BCL-2 inhibitor).'
+            },
+            egfr_amp: {
+                label: 'EGFR amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of <b>EGFR</b>. <b>Disease:</b> glioblastoma (~40 %, often with EGFRvIII), NSCLC. <b>Therapy:</b> EGFR TKIs (osimertinib / erlotinib) in lung; amplification alone is a less reliable predictor than mutation.'
+            },
+            kit_amp: {
+                label: 'KIT amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of <b>KIT</b>. <b>Disease:</b> GIST (often with KIT hotspot mutation), some melanoma subtypes. <b>Therapy:</b> imatinib / sunitinib / regorafenib.'
+            },
+            kras_amp: {
+                label: 'KRAS amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of <b>KRAS</b>. <b>Mechanism:</b> distinct from KRAS hotspot mutation — amp drives WT-KRAS over-expression. <b>Disease:</b> pan-cancer, less common than KRAS mut. <b>Therapy:</b> MEK-inhibitor combination strategies.'
+            },
+            mitf_amp: {
+                label: 'MITF amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of <b>MITF</b>. <b>Mechanism:</b> lineage-survival oncogene in melanoma. <b>Disease:</b> ~15 % of metastatic melanoma. <b>Therapy:</b> indirect — MITF activity sensitises to BET / HDAC inhibitors in some contexts.'
+            },
+            pdgfra_amp: {
+                label: 'PDGFRA amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of <b>PDGFRA</b>. <b>Disease:</b> glioblastoma (proneural subtype), GIST, IMT. <b>Therapy:</b> imatinib / sunitinib / regorafenib; avapritinib for PDGFRA D842V.'
+            },
+            sox2_amp: {
+                label: 'SOX2 amp',
+                category: 'Focal amplifications',
+                description: '<b>Inclusion:</b> focal amplification of <b>SOX2</b>. <b>Mechanism:</b> lineage-survival oncogene; SOX2-positive cells maintain a stem-like state. <b>Disease:</b> lung squamous, oesophageal, HNSCC.'
+            },
+
+            // Focal deletions — biallelic loss of tumour suppressors.
+            // Mirror of the focal-amplification block above. Note:
+            // these are CN-only (raw deep deletion CN ≤ 0.5 from the
+            // curated panel); the integrated functional-loss
+            // collections higher up combine CN + mutation + expression
+            // and may cover overlapping but not identical sets.
+            cdkn2a_del: {
+                label: 'CDKN2A focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>CDKN2A</b> (relative CN ≤ 0.5). <b>Pathway:</b> G1/S checkpoint released — loss of p16/p14ARF disables CDK4/6 brake and ARF-MDM2-p53 axis. <b>Therapy:</b> CDK4/6 inhibitor (palbociclib / ribociclib / abemaciclib) responder background. Distinct from the integrated TP53 / RB1 functional-loss collections — captures CN-only deep deletions, including lines where the gene is biallelically deleted without a damaging-mutation hit.'
+            },
+            cdkn2b_del: {
+                label: 'CDKN2B focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>CDKN2B</b>. <b>Pathway:</b> often co-deleted with CDKN2A as part of the same 9p21 segment, but tracked separately because some lines have CDKN2B alone. <b>Mechanism:</b> p15-INK4B loss reinforces the CDK4/6 disinhibition.'
+            },
+            rb1_del: {
+                label: 'RB1 focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>RB1</b>. <b>Pathway:</b> G1/S checkpoint absent — RB-E2F brake is gone, cell can no longer hold itself in G1. <b>Therapy:</b> typically <b>CDK4/6-inhibitor RESISTANT</b> (upstream of RB), often Aurora-A / WEE1 / PLK1-inhibitor sensitive. Disease: retinoblastoma (defining), small-cell lung cancer, triple-negative breast.'
+            },
+            pten_del: {
+                label: 'PTEN focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>PTEN</b>. <b>Pathway:</b> PI3K/AKT pathway constitutively active. <b>Therapy:</b> PI3Kβ-inhibitor and AKT-inhibitor (capivasertib) sensitivity background.'
+            },
+            brca1_del: {
+                label: 'BRCA1 focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>BRCA1</b>. <b>Pathway:</b> homologous-recombination (HR) repair lost. <b>Therapy:</b> PARP-inhibitor (olaparib / talazoparib / niraparib / rucaparib) responder background.'
+            },
+            brca2_del: {
+                label: 'BRCA2 focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>BRCA2</b>. Same HR-deficient phenotype as BRCA1 loss; same PARP-inhibitor therapy rationale.'
+            },
+            atm_del: {
+                label: 'ATM focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>ATM</b>. <b>Pathway:</b> DNA damage response — ATM kinase is the apex sensor for double-strand breaks. <b>Disease:</b> CLL, mantle cell lymphoma, prostate. <b>Therapy:</b> PARP / ATR-inhibitor (ceralasertib) sensitive background.'
+            },
+            arid1a_del: {
+                label: 'ARID1A focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>ARID1A</b>. <b>Mechanism:</b> SWI/SNF (BAF) chromatin-remodeller subunit lost. <b>Disease:</b> ovarian clear cell, endometrial, gastric. <b>Therapy:</b> synthetic-lethal candidate with EZH2 inhibitors (tazemetostat) and ATR inhibitors.'
+            },
+            smarca4_del: {
+                label: 'SMARCA4 (BRG1) focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>SMARCA4</b>. <b>Mechanism:</b> SWI/SNF complex inactivation. <b>Disease:</b> defining for SCCOHT (small cell carcinoma of the ovary, hypercalcaemic type); also lung and several others. <b>Therapy:</b> EZH2-inhibitor sensitivity (tazemetostat).'
+            },
+            stk11_del: {
+                label: 'STK11 (LKB1) focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>STK11</b>. <b>Pathway:</b> AMPK signalling lost; metabolic stress no longer activates AMPK. <b>Disease:</b> NSCLC (often co-mutated with KRAS, immune-cold). <b>Therapy:</b> phenformin / metformin sensitivity; distinct immune-checkpoint resistance pattern.'
+            },
+            keap1_del: {
+                label: 'KEAP1 focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>KEAP1</b>. <b>Pathway:</b> NRF2-pathway hyperactivation (KEAP1 normally targets NRF2 for degradation). <b>Disease:</b> NSCLC (~20 %, often co-mutated with KRAS / STK11; ICB-resistant background). <b>Therapy:</b> glutaminase-inhibitor (telaglenastat) candidate.'
+            },
+            bap1_del: {
+                label: 'BAP1 focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>BAP1</b>. <b>Disease:</b> mesothelioma, uveal melanoma, renal cell carcinoma (clear cell), intrahepatic cholangiocarcinoma. <b>Therapy:</b> EZH2-inhibitor (tazemetostat) sensitivity.'
+            },
+            any_focal_del: {
+                label: 'Any focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> at least one focal CN deletion on the curated clinical CN panel (ARID1A, ATM, BAP1, BRCA1/2, CDKN2A/B, FAT1, FBXW7, KEAP1, SETD2, SMARCA4, SMARCB1, STK11, TET2). Catch-all set, useful when contrasting against lines without any curated focal-deletion event.'
+            },
+
             // High loss-of-heterozygosity — added to the existing
             // genome-instability category. Often co-occurs with WGD and
             // BRCAness signatures.
@@ -23785,11 +23904,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Focal amplifications — pathway-grouped + per-gene sets. Source:
         // clinicalCn.byCellLine[cl].amplifications (curated clinical CN
-        // panel). Amplifications only — deletions are already handled by
-        // the functional-loss collections above.
+        // panel). Amplifications and deletions are tracked in parallel
+        // sets so each curated-panel gene becomes its own filter.
         const MYC_FAMILY = new Set(['MYC', 'MYCN', 'MYCL']);
         const G1S_AMP_GENES = new Set(['CDK4', 'CDK6', 'CCND1', 'CCNE1']);
         const FGFR_AMP_GENES = new Set(['FGFR1', 'FGFR2', 'FGFR3']);
+        // Per-gene amp sets — each gets its own collection above.
+        const AMP_SINGLES = ['AR', 'BCL2', 'EGFR', 'KIT', 'KRAS', 'MITF', 'PDGFRA', 'SOX2'];
         mem.myc_family_amp = new Set();
         mem.erbb2_amp = new Set();
         mem.mdm2_amp = new Set();
@@ -23798,6 +23919,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         mem.fgfr_amp = new Set();
         mem.ccne1_amp = new Set();
         mem.any_focal_amp = new Set();
+        for (const g of AMP_SINGLES) mem[g.toLowerCase() + '_amp'] = new Set();
         if (this.clinicalCn?.byCellLine) {
             for (const cl of clLines) {
                 const amps = this.clinicalCn.byCellLine[cl]?.amplifications;
@@ -23812,6 +23934,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     if (g === 'MET')             mem.met_amp.add(cl);
                     if (FGFR_AMP_GENES.has(g))   mem.fgfr_amp.add(cl);
                     if (g === 'CCNE1')           mem.ccne1_amp.add(cl);
+                    if (AMP_SINGLES.includes(g)) mem[g.toLowerCase() + '_amp'].add(cl);
+                }
+            }
+        }
+
+        // Focal deletions — curated CN-deletion panel. Each gene gets
+        // its own collection. Note these are CN-only deep deletions
+        // (different from the integrated functional-loss inference
+        // which also requires CN + mutation + expression combined).
+        const DEL_SINGLES = ['CDKN2A', 'CDKN2B', 'RB1', 'PTEN', 'BRCA1', 'BRCA2',
+                             'ATM', 'ARID1A', 'SMARCA4', 'STK11', 'KEAP1', 'BAP1'];
+        for (const g of DEL_SINGLES) mem[g.toLowerCase() + '_del'] = new Set();
+        mem.any_focal_del = new Set();
+        if (this.clinicalCn?.byCellLine) {
+            for (const cl of clLines) {
+                const dels = this.clinicalCn.byCellLine[cl]?.deletions;
+                if (!Array.isArray(dels) || dels.length === 0) continue;
+                const delGenes = new Set(dels.map(d => d.gene));
+                if (delGenes.size > 0) mem.any_focal_del.add(cl);
+                for (const g of delGenes) {
+                    if (DEL_SINGLES.includes(g)) mem[g.toLowerCase() + '_del'].add(cl);
                 }
             }
         }

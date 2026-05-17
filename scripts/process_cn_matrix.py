@@ -92,27 +92,52 @@ def main():
     print(f'building WGS provenance set from {WGS_PATH} ...')
     wgs_lines, wgs_gene_set = scan_wgs(WGS_PATH)
 
+    # Drop obvious noise categories — pseudogenes, snRNAs, antisense
+    # transcripts, uncharacterized LOC IDs, divergent / overlapping
+    # transcripts. These genes are in OmicsCNGene 24Q4 but DepMap
+    # pruned them from the 25Q3 gene panel; they're not useful as
+    # CRISPR targets and would push the binary over GitHub's 100 MB
+    # per-file hard limit. Kept: protein-coding, named lncRNAs,
+    # miRNA hairpin loci (MIR*), olfactory receptors (real genes),
+    # immunoglobulin / TCR gene segments.
+    NOISE_PATTERNS = [
+        re.compile(r'^LOC\d+$'),           # LOC102345 etc. — uncharacterized loci
+        re.compile(r'^RNU\d'),             # RNU6, RNU7 etc. — small nuclear RNAs
+        re.compile(r'^SNORA\d|^SNORD\d'),  # small nucleolar RNAs
+        re.compile(r'^SCARNA\d'),          # small Cajal-body RNAs
+        re.compile(r'^MIR\d.*HG$'),        # miRNA host genes (lncRNAs)
+        re.compile(r'-AS\d+$'),            # antisense lncRNAs (PDE4B-AS1, etc.)
+        re.compile(r'-OT\d+$'),            # overlapping transcripts
+        re.compile(r'-DT$'),               # divergent transcripts
+        re.compile(r'P\d+$'),              # pseudogenes (RPL32P26, RPS12P2 — risky but mostly junk)
+        re.compile(r'^Y_RNA'),             # Y RNAs
+        re.compile(r'^7SK$'),              # 7SK ncRNA
+    ]
+    def is_noise(sym):
+        for p in NOISE_PATTERNS:
+            if p.search(sym): return True
+        return False
+
     print(f'reading {HYBRID_PATH} ...')
-    # First pass: parse header to build gene_col_idx, deduplicating symbols.
-    # We restrict to symbols also present in the WGS gene set so the binary
-    # stays roughly the same shape as before (~19 k genes) — keeps the file
-    # under 50 MB and drops pseudogenes/lncRNAs/olfactory receptors that
-    # are in OmicsCNGene but not useful for CRISPR targeting.
+    # Parse header to build gene_col_idx, deduplicating symbols.
     with open(HYBRID_PATH, newline='') as f:
         rdr = csv.reader(f)
         header = next(rdr)
         gene_syms = []
         gene_col_idx = []
         seen = set()
+        n_filtered = 0
         for j, col in enumerate(header):
             if j == 0: continue  # row-index column
             sym = parse_symbol(col)
             if not sym or sym in seen: continue
-            if wgs_gene_set and sym not in wgs_gene_set: continue
+            if is_noise(sym):
+                n_filtered += 1
+                continue
             seen.add(sym)
             gene_syms.append(sym)
             gene_col_idx.append(j)
-        print(f'  total cols: {len(header)}, kept genes: {len(gene_syms)} (filtered to WGS gene set)')
+        print(f'  total cols: {len(header)}, kept genes: {len(gene_syms)} (dropped {n_filtered} noise entries)')
 
         # Second pass: stream rows. One row per cell line (ACH-...).
         # Skip duplicates if any (use first occurrence).
