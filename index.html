@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.69 (2026-05-17)</strong></p>
+                <ul>
+                    <li>CN matrix &mdash; <b>bug fix</b>: TP53 was missing. Cause: an over-broad pseudogene regex (<code>P\d+$</code>) that was meant to drop ribosomal pseudogenes like RPL32P26 / RPS12P2 also matched <b>any gene symbol ending with P + digits</b>: TP53, TP63, TP73, USP1&ndash;USP54, BMP1&ndash;BMP15, AKAP1&ndash;AKAP14, GAPDHP* etc. Replaced with narrow patterns anchored to specific known pseudogene prefixes (RPL, RPS, HNRNP, HBA / HBB, EEF1, TUBB, GAPDH). Gene count 24 567 → 32 174 (recovered 7 607 real genes). Binary 70 → 92 MB.</li>
+                </ul>
                 <p><strong>v.81.68 (2026-05-17)</strong></p>
                 <ul>
                     <li>CN matrix &mdash; widened gene coverage. Filter relaxed from &ldquo;WGS-set only&rdquo; to &ldquo;all parseable symbols minus noise patterns&rdquo;. Drops obvious clutter (LOC IDs, RNU / SNORA / SNORD small nuclear RNAs, antisense / divergent-transcript suffixes, pseudogenes ending in P + digits) but keeps protein-coding + named lncRNAs + miRNA hosts + olfactory receptors + Ig/TCR segments. Gene count 18 660 → <b>24 567</b>. Binary 53 → 70 MB.</li>
@@ -2848,7 +2852,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.68</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.69</a>
     </div>
 
     <div class="main-content">
@@ -5022,6 +5026,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_68"></script>
+    <script src="app.js?v=v81_69"></script>
 </body>
 </html>

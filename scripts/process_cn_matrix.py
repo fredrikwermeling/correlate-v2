@@ -92,26 +92,32 @@ def main():
     print(f'building WGS provenance set from {WGS_PATH} ...')
     wgs_lines, wgs_gene_set = scan_wgs(WGS_PATH)
 
-    # Drop obvious noise categories — pseudogenes, snRNAs, antisense
-    # transcripts, uncharacterized LOC IDs, divergent / overlapping
-    # transcripts. These genes are in OmicsCNGene 24Q4 but DepMap
-    # pruned them from the 25Q3 gene panel; they're not useful as
-    # CRISPR targets and would push the binary over GitHub's 100 MB
-    # per-file hard limit. Kept: protein-coding, named lncRNAs,
-    # miRNA hairpin loci (MIR*), olfactory receptors (real genes),
+    # Drop obvious noise categories. IMPORTANT: pseudogene patterns
+    # must be anchored to specific known prefixes (RPL, RPS, HBA, HBB,
+    # HNRNP, EEF1, TUBB, etc.). A broad `P\d+$` regex catches TP53,
+    # TP63, USP1..USP54, BMP1..BMP15, AKAP1..AKAP14, and many other
+    # real gene symbols — never use it. Kept: protein-coding, named
+    # lncRNAs, miRNA host genes, olfactory receptors (real genes),
     # immunoglobulin / TCR gene segments.
     NOISE_PATTERNS = [
-        re.compile(r'^LOC\d+$'),           # LOC102345 etc. — uncharacterized loci
-        re.compile(r'^RNU\d'),             # RNU6, RNU7 etc. — small nuclear RNAs
-        re.compile(r'^SNORA\d|^SNORD\d'),  # small nucleolar RNAs
-        re.compile(r'^SCARNA\d'),          # small Cajal-body RNAs
-        re.compile(r'^MIR\d.*HG$'),        # miRNA host genes (lncRNAs)
-        re.compile(r'-AS\d+$'),            # antisense lncRNAs (PDE4B-AS1, etc.)
-        re.compile(r'-OT\d+$'),            # overlapping transcripts
-        re.compile(r'-DT$'),               # divergent transcripts
-        re.compile(r'P\d+$'),              # pseudogenes (RPL32P26, RPS12P2 — risky but mostly junk)
-        re.compile(r'^Y_RNA'),             # Y RNAs
-        re.compile(r'^7SK$'),              # 7SK ncRNA
+        re.compile(r'^LOC\d+$'),                # LOC102345 — uncharacterized loci
+        re.compile(r'^RNU\d'),                  # RNU6, RNU7 — small nuclear RNAs
+        re.compile(r'^SNORA\d|^SNORD\d'),       # small nucleolar RNAs
+        re.compile(r'^SCARNA\d'),               # small Cajal-body RNAs
+        re.compile(r'-AS\d+$'),                 # antisense lncRNAs (PDE4B-AS1)
+        re.compile(r'-OT\d+$'),                 # overlapping transcripts
+        re.compile(r'-DT$'),                    # divergent transcripts
+        # Narrow pseudogene patterns — match a specific known prefix
+        # so we don't kill TP53 / USP1 / BMP1 / etc.
+        re.compile(r'^RPL\d+[A-Z]?P\d+$'),      # ribosomal large pseudogenes (RPL32P26)
+        re.compile(r'^RPS[\dA-Z]+P\d+$'),       # ribosomal small pseudogenes (RPS12P2)
+        re.compile(r'^HNRNP[A-Z]?\d?P\d+$'),    # hnRNP pseudogenes
+        re.compile(r'^(HBA|HBB|HBE|HBG)\d?P\d+$'),  # haemoglobin pseudogenes
+        re.compile(r'^EEF1[A-Z]?\d?P\d+$'),     # EEF1 pseudogenes
+        re.compile(r'^TUBB[A-Z]?\d?P\d+$'),     # tubulin-beta pseudogenes
+        re.compile(r'^GAPDHP\d+$'),             # GAPDH pseudogenes
+        re.compile(r'^Y_RNA'),                  # Y RNAs
+        re.compile(r'^7SK$'),                   # 7SK ncRNA
     ]
     def is_noise(sym):
         for p in NOISE_PATTERNS:
