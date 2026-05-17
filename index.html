@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.67 (2026-05-17)</strong></p>
+                <ul>
+                    <li>CN matrix upgraded to hybrid WGS-primary / WES-fallback. Source: DepMap <code>OmicsCNGene.csv</code> (24Q4) — DepMap&rsquo;s own merged file that combines WGS and WES inferences. Cell-line coverage jumps from 1095 (WGS-only) to 1929 (WGS + WES). Lines that were never WGS&rsquo;d &mdash; Jurkat, K562, many older haematopoietic lines &mdash; now appear in the CN sort. Per-line provenance preserved: lines also in <code>OmicsCNGeneWGS.csv</code> (25Q3) are tagged WGS; lines absent get a small <code>wes</code> caveat next to the CN tier pill, hover for the explanation. Binary blob grew from 32 → 55 MB to accommodate the extra ~834 cell lines.</li>
+                </ul>
                 <p><strong>v.81.66 (2026-05-16)</strong></p>
                 <ul>
                     <li>URL-hash deep link &mdash; loading the app with <code>#cell</code> (or <code>#cellbrowser</code>) in the URL opens the cell-line browser modal automatically. So <a href="https://correlate.cmm.se/#cell"><code>correlate.cmm.se/#cell</code></a> jumps straight to the browser, useful for linking from sibling apps (Greenlisted, MouseCLB, lab pages). Also responds to in-app hash changes via <code>hashchange</code>.</li>
@@ -2839,7 +2843,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.66</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.67</a>
     </div>
 
     <div class="main-content">
@@ -5013,6 +5017,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_66"></script>
+    <script src="app.js?v=v81_67"></script>
 </body>
 </html>
