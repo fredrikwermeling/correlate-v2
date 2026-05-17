@@ -1,35 +1,31 @@
 #!/usr/bin/env python3
-"""Hybrid CN matrix from DepMap (WGS-primary with WES fallback).
+"""CN matrix from DepMap OmicsCNGene.csv (24Q4 release).
 
-Two source files:
-  OmicsCNGeneWGS.csv (25Q3, ~400 MB)
-    — WGS-derived gene-level CN. Cleanest call quality. ~1095 cell lines.
-    — Rows include SequencingID / ModelID / IsDefaultEntryForModel columns.
-    — Filtered to default-entry rows only.
-
+Source file:
   OmicsCNGene.csv (24Q4, ~1.4 GB)
     — DepMap's merged gene-level CN file. "Inferred from WGS or WES
-      depending on the availability of the data type" — already hybrid by
-      construction. ~1929 cell lines, including lines never WGS'd (Jurkat,
-      K562, ...). Schema is simpler: one row per cell line, ACH-... ID in
+      depending on the availability of the data type" — already hybrid
+      by construction. ~1929 cell lines including lines never WGS'd
+      (Jurkat, K562, ...). One row per cell line, ACH-... ID in
       column 0, gene columns to the right.
 
-Strategy:
-  - OmicsCNGene supplies the values for ALL cell lines it covers.
-  - The WGS file is used only to TAG provenance per line: lines present
-    in the WGS file are "WGS-derived" (cleanest); lines absent are
-    "WES-derived" (slightly noisier for focal-CN calls).
-  - Gene list is the existing cn_metadata.json gene list (~19366 genes)
-    — keeps the binary blob the same shape, just with more cell lines.
-    Genes in OmicsCNGene but not in our existing list are dropped (mostly
-    pseudogenes / lncRNAs / olfactory receptors that aren't useful for
-    CRISPR targeting).
+We use the 24Q4 OmicsCNGene values uniformly for every line and don't
+tag per-line WGS-vs-WES provenance separately — DepMap's own per-line
+choice is baked into the values, and the OmicsCNGeneWGS.csv 25Q3 file
+that previously supplied the tag was a step ahead of the value vintage
+(some lines tagged WGS by 25Q3 still had WES-derived 24Q4 values in our
+binary), which created a small false-precision mismatch. Treating
+everything as "DepMap OmicsCNGene 24Q4" is honest and uniform.
+
+The gene list is intersected with the greenlisted CRISPR libraries
+(Brunello, Gattinara, GeCKO v2, Jacquere, VBC, MinLibCas9, TKOv3,
+Yusa v1) expanded through the human synonym table, so genes not
+targetable by any major library are dropped — they have no actionable
+CRISPR use case here.
 
 Output:
-  web_data/cn.bin.gz                — gzipped int16 matrix, nGenes × nCellLines
-  web_data/cn_metadata.json         — gene + cell-line lists, scaleFactor,
-                                      naValue, plus cellLineSource per line
-                                      ("WGS" or "WES (24Q4 fallback)").
+  web_data/cn.bin.gz        — gzipped int16 matrix, nGenes × nCellLines
+  web_data/cn_metadata.json — gene + cell-line lists, scaleFactor, naValue.
 
 Scale factor: 3000 → range ±10.92 in CN units (1.0 = diploid).
 """
@@ -37,7 +33,6 @@ import csv, gzip, json, os, re, sys
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WGS_PATH = os.path.join(ROOT, 'OmicsCNGeneWGS.csv')
 HYBRID_PATH = os.path.join(ROOT, 'OmicsCNGene.csv')
 OUT_BIN = os.path.join(ROOT, 'web_data', 'cn.bin.gz')
 OUT_META = os.path.join(ROOT, 'web_data', 'cn_metadata.json')
@@ -124,45 +119,9 @@ def load_crispr_library_symbols(lib_dir):
     print(f'  CRISPR-library symbols: {n_raw} raw → {len(syms)} after synonym expansion')
     return syms
 
-def scan_wgs(path):
-    """Return (wgs_cell_line_set, wgs_gene_symbol_set) by scanning the
-    WGS file. The gene set is used to PRUNE the hybrid gene list — we
-    keep the binary blob the same shape as before (~19 k clean gene
-    symbols) instead of including OmicsCNGene's ~38 k entries (which
-    add mostly pseudogenes / lncRNAs that aren't useful for CRISPR
-    targeting). The cell-line set tags WGS-vs-WES provenance."""
-    if not os.path.exists(path):
-        print(f'  WGS file not found at {path} — gene set will be the full hybrid set, all lines tagged WES', file=sys.stderr)
-        return set(), None
-    wgs_lines = set()
-    with open(path, newline='') as f:
-        rdr = csv.reader(f)
-        hdr = next(rdr)
-        meta_idx = {}
-        for i, h in enumerate(hdr):
-            if h in META_COLS or (i == 0 and not h):
-                meta_idx[h or '_idx'] = i
-        first_gene_col = max(meta_idx.values()) + 1
-        wgs_gene_syms = set()
-        for j, col in enumerate(hdr[first_gene_col:]):
-            sym = parse_symbol(col)
-            if sym: wgs_gene_syms.add(sym)
-        is_default_col = meta_idx.get('IsDefaultEntryForModel')
-        model_col = meta_idx.get('ModelID')
-        for row in rdr:
-            if is_default_col is not None and row[is_default_col] != 'Yes':
-                continue
-            cl = row[model_col] if model_col is not None else None
-            if cl: wgs_lines.add(cl)
-    print(f'  WGS-derived lines: {len(wgs_lines)}, gene set: {len(wgs_gene_syms)}')
-    return wgs_lines, wgs_gene_syms
-
 def main():
     if not os.path.exists(HYBRID_PATH):
-        print(f'OmicsCNGene.csv (hybrid file) not found at {HYBRID_PATH}', file=sys.stderr); sys.exit(1)
-
-    print(f'building WGS provenance set from {WGS_PATH} ...')
-    wgs_lines, wgs_gene_set = scan_wgs(WGS_PATH)
+        print(f'OmicsCNGene.csv not found at {HYBRID_PATH}', file=sys.stderr); sys.exit(1)
 
     # Drop obvious noise categories. IMPORTANT: pseudogene patterns
     # must be anchored to specific known prefixes (RPL, RPS, HBA, HBB,
@@ -229,7 +188,6 @@ def main():
         # Second pass: stream rows. One row per cell line (ACH-...).
         # Skip duplicates if any (use first occurrence).
         cl_ids = []
-        cl_sources = []  # parallel to cl_ids: "WGS" or "WES"
         rows_kept = []
         seen_cl = set()
         n_seen = 0
@@ -240,10 +198,8 @@ def main():
             if not cl or cl in seen_cl: continue
             seen_cl.add(cl)
             cl_ids.append(cl)
-            cl_sources.append('WGS' if cl in wgs_lines else 'WES')
             rows_kept.append(row)
         print(f'  scanned {n_seen} rows, kept {len(cl_ids)} unique cell lines')
-        print(f'  source breakdown: WGS={cl_sources.count("WGS")}, WES={cl_sources.count("WES")}')
 
     n_genes = len(gene_syms)
     n_cl = len(cl_ids)
@@ -277,23 +233,16 @@ def main():
     size_mb = os.path.getsize(OUT_BIN) / (1024 * 1024)
     print(f'  binary size: {size_mb:.1f} MB')
 
-    # Per-cell-line provenance as a parallel array (cellLineSource[i]
-    # corresponds to cellLines[i]). UI uses this to flag WES-derived
-    # lines with a small tag + caveat.
     meta = {
-        '_doc': 'DepMap hybrid CN matrix (WGS-primary with WES fallback). Primary source: OmicsCNGene.csv (24Q4) — DepMap-merged file that already combines WGS and WES inferences. Provenance per line: cellLineSource = "WGS" if the line is in the latest OmicsCNGeneWGS file (25Q3), otherwise "WES". Gene list is intersected with the greenlisted CRISPR libraries (Brunello, Gattinara, GeCKO v2, Jacquere, VBC, MinLibCas9, TKOv3, Yusa v1) expanded through the human synonym table — genes with no sgRNA in any major library are dropped (most pseudogenes, snoRNAs, IG/TR gene segments, obscure lncRNAs). Values are relative copy number (1.0 = the line\'s own modal baseline). Int16, gene-major (matrix[gi * nCellLines + ci]). NaN encoded as -32768. Scale factor 3000.',
-        'source': {
-            'primary': 'OmicsCNGene.csv (DepMap 24Q4)',
-            'provenance': 'OmicsCNGeneWGS.csv (DepMap 25Q3) used only to tag WGS-derived lines'
-        },
+        '_doc': 'CN matrix from DepMap OmicsCNGene.csv (24Q4 release) — DepMap\'s gene-level CN file that already chooses WGS or WES per line based on availability. Gene list is intersected with the greenlisted CRISPR libraries (Brunello, Gattinara, GeCKO v2, Jacquere, VBC, MinLibCas9, TKOv3, Yusa v1) expanded through the human synonym table; genes not reachable by any major library are dropped. Values are relative copy number (1.0 = the line\'s own modal baseline). Int16, gene-major (matrix[gi * nCellLines + ci]). NaN encoded as -32768. Scale factor 3000.',
+        'source': 'OmicsCNGene.csv (DepMap 24Q4)',
         'genes': gene_syms,
         'cellLines': cl_ids,
-        'cellLineSource': cl_sources,
         'nGenes': n_genes,
         'nCellLines': n_cl,
         'scaleFactor': SCALE_FACTOR,
         'naValue': NA_VALUE,
-        'interpretation': '1.0 = the cell line\'s own modal baseline (≈ 2 copies for a diploid line, ≈ 4 for WGD). 3.0 = amplification. 5.0 = strong amplification. 0.5 = single-copy loss. 0.3 = deep deletion. WES-derived calls (cellLineSource = "WES") are slightly noisier for focal events than WGS calls; check the per-line tag in the UI.'
+        'interpretation': '1.0 = the cell line\'s own modal baseline (≈ 2 copies for a diploid line, ≈ 4 for WGD). 3.0 = amplification. 5.0 = strong amplification. 0.5 = single-copy loss. 0.3 = deep deletion.'
     }
     with open(OUT_META, 'w') as f:
         json.dump(meta, f, indent=1)

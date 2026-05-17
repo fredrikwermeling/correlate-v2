@@ -21591,12 +21591,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             meta.genes.forEach((g, i) => this.cnGeneIndex.set(g.toUpperCase(), i));
             this.cnCellLineIndex = new Map();
             meta.cellLines.forEach((cl, i) => this.cnCellLineIndex.set(cl, i));
-            // Per-line provenance (parallel array to meta.cellLines):
-            // "WGS" = derived from OmicsCNGeneWGS (latest); "WES" = filled
-            // from OmicsCNGene 24Q4 fallback for lines never WGS'd
-            // (Jurkat, K562, older haematopoietic lines).
-            this.cnCellLineSource = new Map();
-            (meta.cellLineSource || []).forEach((s, i) => this.cnCellLineSource.set(meta.cellLines[i], s));
             this.cnLoaded = true;
             console.log(`CN matrix loaded: ${meta.nGenes} genes × ${meta.nCellLines} cell lines in ${((performance.now() - t0)/1000).toFixed(1)}s`);
         })();
@@ -25563,15 +25557,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         else if (raw < 3.0)  { tier = 'gain';       fg = '#1e40af'; bg = '#dbeafe'; }
                         else if (raw < 5.0)  { tier = 'amp';        fg = '#1e3a8a'; bg = '#bfdbfe'; }
                         else                 { tier = 'strong amp'; fg = '#1e3a8a'; bg = '#93c5fd'; }
-                        // WES-derived lines (cell lines never WGS'd by DepMap)
-                        // get a small "wes" caveat marker so the user knows
-                        // the focal-CN call is from the broader / slightly
-                        // noisier array-or-WES dataset.
-                        const src = this.cnCellLineSource?.get(cl);
-                        const wesTag = src === 'WES'
-                            ? ` <span title="Inferred from WES (24Q4 fallback) — slightly noisier than WGS for focal calls" style="font-size:8px; opacity:0.6; font-weight:500;">wes</span>`
-                            : '';
-                        sortValStr = `<span style="font-size:10px; color:${fg}; background:${bg}; padding:1px 6px; border-radius:8px; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="CN ${v} (DepMap relative, 1.0 = diploid)${src ? ' · source: ' + src : ''}">${tier} <span style="opacity:0.55; font-size:9px;">${v}</span>${wesTag}</span>`;
+                        sortValStr = `<span style="font-size:10px; color:${fg}; background:${bg}; padding:1px 6px; border-radius:8px; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="CN ${v} (DepMap relative, 1.0 = diploid)">${tier} <span style="opacity:0.55; font-size:9px;">${v}</span></span>`;
                     } else {
                         sortValStr = `<span style="font-size:10px; color:${colour}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode}"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
                     }

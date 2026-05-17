@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.71 (2026-05-17)</strong></p>
+                <ul>
+                    <li>CN matrix &mdash; drop the WGS-vs-WES per-line provenance tag. The values themselves come uniformly from DepMap OmicsCNGene.csv (24Q4 release), which is already a per-line hybrid by DepMap&rsquo;s own construction. The earlier &ldquo;WGS&rdquo; / &ldquo;WES&rdquo; pill was set by looking up each line in the newer OmicsCNGeneWGS 25Q3 file &mdash; one release ahead of the values &mdash; which created false precision (a line whose 24Q4 value was still WES-derived could be flagged as WGS because DepMap had WGS&rsquo;d it since). Cleaner story: one source, one sentence. Affects both Correlate V2 (small italic &ldquo;wes&rdquo; tag on CN sort-value pills removed) and Green Listed (per-column WGS / WES badges in the CN results table removed).</li>
+                </ul>
                 <p><strong>v.81.70 (2026-05-17)</strong></p>
                 <ul>
                     <li>CN matrix &mdash; gene list now cross-referenced against the greenlisted human CRISPR libraries (Brunello, Gattinara, GeCKO v2, Jacquere, VBC, MinLibCas9, TKOv3, Yusa v1), expanded through the human synonym table so an alias hit counts. Anything not reachable by any sgRNA in any of those libraries is dropped &mdash; in practice this removes residual pseudogenes (MARK2P17, NPM1P28, ...), Ig/TR gene segments (IGHJ2, TRBC1), MTND* mitochondrial pseudogenes, RN7SL / RNA5SP / SNRPEP small-RNA pseudogenes, and obscure LINC entries with no library coverage. Real genes including all the previously-recovered ones (TP53, TP63, TP73, USP1, USP7, BMP1&ndash;BMP7, AKAP1&ndash;AKAP12, CASP3, MARK2 etc.) are kept. Gene count 32 174 &rarr; <b>20 794</b> (close to the realistic ~20 k protein-coding count), binary 92 &rarr; <b>59 MB</b>.</li>
@@ -5030,6 +5034,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_70"></script>
+    <script src="app.js?v=v81_71"></script>
 </body>
 </html>
