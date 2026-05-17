@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.70 (2026-05-17)</strong></p>
+                <ul>
+                    <li>CN matrix &mdash; gene list now cross-referenced against the greenlisted human CRISPR libraries (Brunello, Gattinara, GeCKO v2, Jacquere, VBC, MinLibCas9, TKOv3, Yusa v1), expanded through the human synonym table so an alias hit counts. Anything not reachable by any sgRNA in any of those libraries is dropped &mdash; in practice this removes residual pseudogenes (MARK2P17, NPM1P28, ...), Ig/TR gene segments (IGHJ2, TRBC1), MTND* mitochondrial pseudogenes, RN7SL / RNA5SP / SNRPEP small-RNA pseudogenes, and obscure LINC entries with no library coverage. Real genes including all the previously-recovered ones (TP53, TP63, TP73, USP1, USP7, BMP1&ndash;BMP7, AKAP1&ndash;AKAP12, CASP3, MARK2 etc.) are kept. Gene count 32 174 &rarr; <b>20 794</b> (close to the realistic ~20 k protein-coding count), binary 92 &rarr; <b>59 MB</b>.</li>
+                </ul>
                 <p><strong>v.81.69 (2026-05-17)</strong></p>
                 <ul>
                     <li>CN matrix &mdash; <b>bug fix</b>: TP53 was missing. Cause: an over-broad pseudogene regex (<code>P\d+$</code>) that was meant to drop ribosomal pseudogenes like RPL32P26 / RPS12P2 also matched <b>any gene symbol ending with P + digits</b>: TP53, TP63, TP73, USP1&ndash;USP54, BMP1&ndash;BMP15, AKAP1&ndash;AKAP14, GAPDHP* etc. Replaced with narrow patterns anchored to specific known pseudogene prefixes (RPL, RPS, HNRNP, HBA / HBB, EEF1, TUBB, GAPDH). Gene count 24 567 → 32 174 (recovered 7 607 real genes). Binary 70 → 92 MB.</li>
@@ -5026,6 +5030,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_69"></script>
+    <script src="app.js?v=v81_70"></script>
 </body>
 </html>

@@ -41,6 +41,7 @@ WGS_PATH = os.path.join(ROOT, 'OmicsCNGeneWGS.csv')
 HYBRID_PATH = os.path.join(ROOT, 'OmicsCNGene.csv')
 OUT_BIN = os.path.join(ROOT, 'web_data', 'cn.bin.gz')
 OUT_META = os.path.join(ROOT, 'web_data', 'cn_metadata.json')
+GREENLISTED_LIB_DIR = '/Users/fredrikwermeling/Documents/greenlistedv2/libraries'
 SCALE_FACTOR = 3000
 NA_VALUE = -32768
 
@@ -51,6 +52,77 @@ SYMBOL_PAT = re.compile(r'^(.+?)\s*\((\d+)\)$')
 def parse_symbol(col):
     m = SYMBOL_PAT.match(col)
     return m.group(1).strip().upper() if m else None
+
+def load_crispr_library_symbols(lib_dir):
+    """Return the set of uppercase gene symbols reachable through any human
+    CRISPR library in greenlisted/libraries (Brunello, Gattinara, GeCKO v2,
+    Jacquere, VBC, MinLibCas9, TKOv3, Yusa v1), expanded through the human
+    synonym table so that an alias hit counts as a hit.
+
+    Rationale: the only reason to include a gene in this CN matrix is for
+    CRISPR target prioritisation. ~11k entries in OmicsCNGene (most
+    pseudogenes, RNU/snoRNAs, IG / TR gene segments, and obscure lncRNAs)
+    have no sgRNA in any major library, so they can't be screened. Dropping
+    them shrinks the binary without removing any actionable target."""
+    if not os.path.isdir(lib_dir):
+        print(f'  greenlisted lib dir not found at {lib_dir} — skipping CRISPR-library cross-reference', file=sys.stderr)
+        return None
+    syms = set()
+    # TSV libraries: (filename, 0-based column index of gene symbol)
+    tsv_libs = [
+        ('Brunello (human).txt', 1),
+        ('Gattinara (human).txt', 1),
+        ('GeCKO v2 (human) A+B.txt', 0),
+        ('Jacquere (human).txt', 1),
+        ('VBC (human).txt', 0),
+    ]
+    for fn, col in tsv_libs:
+        p = os.path.join(lib_dir, fn)
+        if not os.path.exists(p): continue
+        with open(p, newline='') as f:
+            rdr = csv.reader(f, delimiter='\t')
+            next(rdr, None)
+            for row in rdr:
+                if len(row) > col and row[col].strip():
+                    syms.add(row[col].strip().upper())
+    # xlsx libraries
+    try:
+        import openpyxl
+        xlsx_libs = [
+            ('minlibcas9_raw.xlsx', 'Sheet1', 3),       # Approved_Symbol
+            ('tkov3_raw.xlsx', 'TKOv3-Human-Library', 0),
+            ('yusa_human_v1_raw.xlsx', 'Human v1', 1),
+        ]
+        for name, sheet, col in xlsx_libs:
+            p = os.path.join(lib_dir, name)
+            if not os.path.exists(p): continue
+            wb = openpyxl.load_workbook(p, read_only=True, data_only=True)
+            ws = wb[sheet]
+            for r in ws.iter_rows(min_row=2, values_only=True):
+                if col < len(r) and r[col] is not None and str(r[col]).strip():
+                    syms.add(str(r[col]).strip().upper())
+    except ImportError:
+        print('  openpyxl not installed — TKOv3 / Yusa / MinLibCas9 not crossreferenced', file=sys.stderr)
+    n_raw = len(syms)
+    # Expand through the bidirectional alias table so e.g. CCBL1 ↔ KYAT1.
+    syn_path = os.path.join(lib_dir, 'human synonym.txt')
+    if os.path.exists(syn_path):
+        pairs = []
+        with open(syn_path, newline='') as f:
+            rdr = csv.reader(f, delimiter='\t')
+            next(rdr, None)
+            for row in rdr:
+                if len(row) >= 2:
+                    a, b = row[0].strip().upper(), row[1].strip().upper()
+                    if a and b: pairs.append((a, b))
+        for _ in range(5):
+            grew = False
+            for a, b in pairs:
+                if a in syms and b not in syms: syms.add(b); grew = True
+                if b in syms and a not in syms: syms.add(a); grew = True
+            if not grew: break
+    print(f'  CRISPR-library symbols: {n_raw} raw → {len(syms)} after synonym expansion')
+    return syms
 
 def scan_wgs(path):
     """Return (wgs_cell_line_set, wgs_gene_symbol_set) by scanning the
@@ -124,6 +196,9 @@ def main():
             if p.search(sym): return True
         return False
 
+    print('cross-referencing against greenlisted CRISPR libraries ...')
+    crispr_syms = load_crispr_library_symbols(GREENLISTED_LIB_DIR)
+
     print(f'reading {HYBRID_PATH} ...')
     # Parse header to build gene_col_idx, deduplicating symbols.
     with open(HYBRID_PATH, newline='') as f:
@@ -133,6 +208,7 @@ def main():
         gene_col_idx = []
         seen = set()
         n_filtered = 0
+        n_no_sgrna = 0
         for j, col in enumerate(header):
             if j == 0: continue  # row-index column
             sym = parse_symbol(col)
@@ -140,10 +216,15 @@ def main():
             if is_noise(sym):
                 n_filtered += 1
                 continue
+            # Drop anything no CRISPR library can target — there's no
+            # actionable point in showing CN for a gene with no sgRNAs.
+            if crispr_syms is not None and sym not in crispr_syms:
+                n_no_sgrna += 1
+                continue
             seen.add(sym)
             gene_syms.append(sym)
             gene_col_idx.append(j)
-        print(f'  total cols: {len(header)}, kept genes: {len(gene_syms)} (dropped {n_filtered} noise entries)')
+        print(f'  total cols: {len(header)}, kept genes: {len(gene_syms)} (dropped {n_filtered} noise, {n_no_sgrna} no-sgRNA)')
 
         # Second pass: stream rows. One row per cell line (ACH-...).
         # Skip duplicates if any (use first occurrence).
@@ -200,7 +281,7 @@ def main():
     # corresponds to cellLines[i]). UI uses this to flag WES-derived
     # lines with a small tag + caveat.
     meta = {
-        '_doc': 'DepMap hybrid CN matrix (WGS-primary with WES fallback). Primary source: OmicsCNGene.csv (24Q4) — DepMap-merged file that already combines WGS and WES inferences. Provenance per line: cellLineSource = "WGS" if the line is in the latest OmicsCNGeneWGS file (25Q3), otherwise "WES". Values are relative copy number (1.0 = the line\'s own modal baseline). Int16, gene-major (matrix[gi * nCellLines + ci]). NaN encoded as -32768. Scale factor 3000.',
+        '_doc': 'DepMap hybrid CN matrix (WGS-primary with WES fallback). Primary source: OmicsCNGene.csv (24Q4) — DepMap-merged file that already combines WGS and WES inferences. Provenance per line: cellLineSource = "WGS" if the line is in the latest OmicsCNGeneWGS file (25Q3), otherwise "WES". Gene list is intersected with the greenlisted CRISPR libraries (Brunello, Gattinara, GeCKO v2, Jacquere, VBC, MinLibCas9, TKOv3, Yusa v1) expanded through the human synonym table — genes with no sgRNA in any major library are dropped (most pseudogenes, snoRNAs, IG/TR gene segments, obscure lncRNAs). Values are relative copy number (1.0 = the line\'s own modal baseline). Int16, gene-major (matrix[gi * nCellLines + ci]). NaN encoded as -32768. Scale factor 3000.',
         'source': {
             'primary': 'OmicsCNGene.csv (DepMap 24Q4)',
             'provenance': 'OmicsCNGeneWGS.csv (DepMap 25Q3) used only to tag WGS-derived lines'
