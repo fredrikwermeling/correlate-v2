@@ -26,29 +26,30 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_CSV = os.path.join(ROOT, 'Model26Q1.csv')
 OUT = '/Users/fredrikwermeling/Documents/greenlistedv2/cellLineMetadata.json'
 
-# Model.csv column → output dict key. Anything missing is left out.
-COLS = {
-    'CellLineName':           'cellLineName',
-    'StrippedCellLineName':   'strippedCellLineName',
-    'OncotreeLineage':        'lineage',
-    'OncotreePrimaryDisease': 'primaryDisease',
-    'OncotreeSubtype':        'subtype',
-    'Sex':                    'sex',
-    'Age':                    'age',
-    'AgeCategory':            'ageCategory',
-    'PatientRace':            'patientRace',
-    'PrimaryOrMetastasis':    'primaryOrMetastasis',
-    'SampleCollectionSite':   'sampleCollectionSite',
-    'GrowthPattern':          'growthPattern',
-    'PatientTumorGrade':      'patientTumorGrade',
-    'DepmapModelType':        'depmapModelType',
-    'OncotreeSubtype':        'oncotreeSubtype',
-    'OncotreeCode':           'oncotreeCode',
-    'PatientSubtypeFeatures': 'patientSubtypeFeatures',
-    'RRID':                   'rrid',
-    'EngineeredModel':        'engineeredModel',
-    'CulturedResistanceDrug': 'culturedResistanceDrug',
-}
+# Model.csv column → one or more output dict keys. A single source column
+# can mirror into more than one destination (subtype + oncotreeSubtype are
+# duplicates kept for backwards-compat with the old V2-shaped metadata).
+COLS = [
+    ('CellLineName',           ['cellLineName']),
+    ('StrippedCellLineName',   ['strippedCellLineName']),
+    ('OncotreeLineage',        ['lineage']),
+    ('OncotreePrimaryDisease', ['primaryDisease']),
+    ('OncotreeSubtype',        ['subtype', 'oncotreeSubtype']),
+    ('Sex',                    ['sex']),
+    ('Age',                    ['age']),
+    ('AgeCategory',            ['ageCategory']),
+    ('PatientRace',            ['patientRace']),
+    ('PrimaryOrMetastasis',    ['primaryOrMetastasis']),
+    ('SampleCollectionSite',   ['sampleCollectionSite']),
+    ('GrowthPattern',          ['growthPattern']),
+    ('PatientTumorGrade',      ['patientTumorGrade']),
+    ('DepmapModelType',        ['depmapModelType']),
+    ('OncotreeCode',           ['oncotreeCode']),
+    ('PatientSubtypeFeatures', ['patientSubtypeFeatures']),
+    ('RRID',                   ['rrid']),
+    ('EngineeredModel',        ['engineeredModel']),
+    ('CulturedResistanceDrug', ['culturedResistanceDrug']),
+]
 
 def main():
     if not os.path.exists(MODEL_CSV):
@@ -57,20 +58,20 @@ def main():
     with open(MODEL_CSV, newline='') as f:
         rdr = csv.DictReader(f)
         header_set = set(rdr.fieldnames)
-        missing = [c for c in COLS if c not in header_set]
+        missing = [src for src, _ in COLS if src not in header_set]
         if missing:
             print(f'  warning: Model.csv missing columns: {missing}', file=sys.stderr)
         out = {'cellLines': []}
-        for v in COLS.values():
-            out[v] = {}
+        for _, dsts in COLS:
+            for d in dsts: out[d] = {}
         for row in rdr:
             mid = row.get('ModelID', '').strip()
             if not mid: continue
             out['cellLines'].append(mid)
-            for src, dst in COLS.items():
+            for src, dsts in COLS:
                 val = (row.get(src) or '').strip()
                 if val:
-                    out[dst][mid] = val
+                    for d in dsts: out[d][mid] = val
     n = len(out['cellLines'])
     n_named = len(out['cellLineName'])
     print(f'  models: {n}, with name: {n_named}')
