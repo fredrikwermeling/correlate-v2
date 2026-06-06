@@ -954,7 +954,7 @@ class CorrelationExplorer {
         }
     }
 
-    // Primary mutational-analysis axis data sources. The "Fusion (validated)" axis
+    // Primary mutational-analysis axis data sources. The "Fusion" axis
     // uses the curated high+medium fusion calls; the "Functional loss" axis uses the
     // integrated TSG functional-loss set. Both mirror the translocations/damaging
     // JSON schema so every axis consumer reads them identically. These are used ONLY
@@ -976,15 +976,21 @@ class CorrelationExplorer {
         if (!this.translocations?.geneData && !this.damagingMutations?.geneData) {
             document.getElementById('mutAnalysisTypeSelector').style.display = 'none';
         }
-        // Populate functional-loss datalist on first show
+        // Populate the fusion / functional-loss dropdowns on show.
+        if (isTranslocation && this._fusionAxisData?.genes) {
+            this.populateTranslocationHotspotSelector();
+        }
         if (isDamaging && this._lossAxisData?.genes) {
             this._populateDamagingMutationList();
         }
     }
 
     _populateDamagingMutationList() {
-        const datalist = document.getElementById('damagingHotspotList');
-        if (!datalist || !this._lossAxisData?.geneData) return;
+        // Functional-loss gene picker — a <select> dropdown (like the hotspot one),
+        // listing the TSGs with their functional-loss counts under the active filters.
+        const select = document.getElementById('damagingHotspotSelect');
+        if (!select || !this._lossAxisData?.geneData) return;
+        const currentValue = select.value;
 
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
@@ -1013,11 +1019,12 @@ class CorrelationExplorer {
         }
         geneCounts.sort((a, b) => b.count - a.count);
 
-        let html = '';
+        let html = '<option value="">Select gene...</option>';
         for (const { gene, count } of geneCounts) {
             html += `<option value="${gene}">${gene} (${count} lost)</option>`;
         }
-        datalist.innerHTML = html;
+        select.innerHTML = html;
+        if (currentValue && geneCounts.some(g => g.gene === currentValue)) select.value = currentValue;
     }
 
     populateMutationHotspotSelector() {
@@ -1068,15 +1075,16 @@ class CorrelationExplorer {
     }
 
     populateTranslocationHotspotSelector() {
-        const input = document.getElementById('translocationHotspotSelect');
-        if (!input) return;
+        // Fusion picker — a <select> dropdown (like the hotspot one), listing the
+        // specific named fusions with carrier counts under the active filters.
+        const select = document.getElementById('translocationHotspotSelect');
+        if (!select) return;
         if (!this._fusionAxisData || !this._fusionAxisData.geneData) return;
 
-        const datalist = document.getElementById('translocationHotspotList');
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
         const hasExcluded = this.excludedTissues && this.excludedTissues.size > 0;
-        const currentValue = input.value;
+        const currentValue = select.value;
 
         const genes = Object.keys(this._fusionAxisData.geneData);
         const cellLines = this.metadata.cellLines;
@@ -1110,13 +1118,12 @@ class CorrelationExplorer {
             return b.nFused - a.nFused;
         });
 
-        let html = '';
+        let html = '<option value="">Select fusion...</option>';
         geneCounts.forEach(({ gene, nFused }) => {
-            html += `<option value="${gene}">${gene} (${nFused} fused cells)</option>`;
+            html += `<option value="${gene}">${gene} (${nFused})</option>`;
         });
-        datalist.innerHTML = html;
-
-        if (currentValue) input.value = currentValue;
+        select.innerHTML = html;
+        if (currentValue && geneCounts.some(g => g.gene === currentValue)) select.value = currentValue;
     }
 
     _showUpsetPlot() {
@@ -3145,20 +3152,20 @@ class CorrelationExplorer {
             document.getElementById('tissueBreakdownBtn').style.display = hasVal ? 'inline-block' : 'none';
         });
 
-        // Tissue breakdown button (translocations)
+        // Tissue breakdown button (fusion) — shows when a valid fusion is picked.
         document.getElementById('translocationTissueBreakdownBtn')?.addEventListener('click', () => this.showTissueBreakdownPopup('translocation'));
-        document.getElementById('translocationHotspotSelect')?.addEventListener('input', () => {
+        document.getElementById('translocationHotspotSelect')?.addEventListener('change', () => {
             const btn = document.getElementById('translocationTissueBreakdownBtn');
             const val = document.getElementById('translocationHotspotSelect').value.trim();
-            if (btn) btn.style.display = (val && this.translocations?.geneData?.[val]) ? 'inline-block' : 'none';
+            if (btn) btn.style.display = (val && this._fusionAxisData?.geneData?.[val]) ? 'inline-block' : 'none';
         });
 
-        // Tissue breakdown button (damaging mutations)
+        // Tissue breakdown button (functional loss)
         document.getElementById('damagingTissueBreakdownBtn')?.addEventListener('click', () => this.showTissueBreakdownPopup('damaging'));
-        document.getElementById('damagingHotspotSelect')?.addEventListener('input', () => {
+        document.getElementById('damagingHotspotSelect')?.addEventListener('change', () => {
             const btn = document.getElementById('damagingTissueBreakdownBtn');
             const val = document.getElementById('damagingHotspotSelect').value.trim();
-            if (btn) btn.style.display = (val && this.damagingMutations?.geneData?.[val]) ? 'inline-block' : 'none';
+            if (btn) btn.style.display = (val && this._lossAxisData?.geneData?.[val]) ? 'inline-block' : 'none';
         });
 
         // General tissue breakdown button (for lineage filter area)
