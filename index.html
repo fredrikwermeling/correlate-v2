@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.87 (2026-06-06)</strong></p>
+                <ul>
+                    <li>Cell Line Browser &mdash; the list now shows a <b>live count</b> at the top (e.g. &ldquo;126 cell lines of 1186&rdquo;) that updates as you change tissue / quick filters / any other filter.</li>
+                </ul>
                 <p><strong>v.81.86 (2026-06-06)</strong></p>
                 <ul>
                     <li>Cell Line Browser &mdash; the <b>Quick filters list now scales to the other active filters</b>. Each quick filter's count is computed against the cell lines passing the current tissue / subtype / sex / mutation / CN filters (and the other active quick filters), and filters that match <b>zero</b> lines in that context are hidden. So with a <em>Lung</em> tissue filter on, leukaemia/sarcoma fusions like BCR-ABL1 and EWSR1-FLI1 drop out of the list while KRAS- and EGFR-mutant stay (38 &rarr; 27 quick filters in that example). The filter you've already selected is never hidden.</li>
@@ -2924,7 +2928,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.86</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.87</a>
     </div>
 
     <div class="main-content">
@@ -5100,6 +5104,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_86"></script>
+    <script src="app.js?v=v81_87"></script>
 </body>
 </html>

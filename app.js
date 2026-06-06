@@ -25810,7 +25810,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 `<span class="clb-entry-name">${name}</span>` +
                 `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${sortValStr}</div>`;
         }).join('');
-        container.innerHTML = caption + html;
+        // Live count of the filtered list (updates as filters / quick filters change).
+        const totalN = this.metadata.cellLines.length;
+        const countCaption = `<div style="${captionStyle} font-weight:600; color:#374151;">`
+            + `<b>${filtered.length}</b> cell line${filtered.length === 1 ? '' : 's'}`
+            + `${filtered.length < totalN ? ` <span style="font-weight:400; color:#9ca3af;">of ${totalN}</span>` : ''}`
+            + `</div>`;
+        container.innerHTML = countCaption + caption + html;
 
         this.updateClbFilterCounts();
 
