@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.74 (2026-06-06)</strong></p>
+                <ul>
+                    <li><b>Cell Line Browser &mdash; &ldquo;Collections&rdquo; renamed to &ldquo;Quick filters&rdquo; and trimmed from ~100 down to 54.</b> The list had grown unwieldy and esoteric &mdash; ~33 single-gene copy-number amp/del filters (AR amp, BCL2 amp, MITF amp, BAP1 del, &hellip;), 9 pathway-expression signatures (E2F active, TGF-&beta; active, &hellip;), rare-TSG losses (SMAD4/STK11/VHL), Lehmann TNBC sub-subtypes, and genetic-only MSI. We now surface only the quick filters that are genuinely useful to at least some users: driver mutations (KRAS/BRAF/EGFR/PIK3CA/IDH/CTNNB1), common tumour-suppressor functional losses (TP53/PTEN/RB1/CDKN2A/APC/NF1 + any/multi), MSI-high / HR-deficient / hypermutated / POLE / SLFN11-high, breast receptor subtypes, disease-defining fusions, oncogene-addiction sets, WGD / high-aneuploidy, NE / EMT, PD-L1-high / likely-immunogenic, the key focal CN events (MYC/ERBB2/MDM2/CDK amps; CDKN2A/RB1/PTEN deletions), and patient-age groups. The full definitions are preserved in the catalogue, so any hidden filter can be re-enabled by adding its id to a single allow-list.</li>
+                </ul>
                 <p><strong>v.81.73 (2026-06-06)</strong></p>
                 <ul>
                     <li><b>Mutational analysis &mdash; the Fusion and Damaging axes now use validated data, cutting the noise.</b> The old &ldquo;Translocation/Fusion&rdquo; axis counted <em>every</em> raw DepMap fusion call (mostly passengers/read-through artifacts); it is now <b>&ldquo;Fusion (validated)&rdquo;</b> &mdash; the curated driver fusions shown in the Cell Line Browser&rsquo;s &ldquo;Clinically relevant fusions&rdquo; section (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PAX3-FOXO1, &hellip;), validated per cell line by tissue match + partner expression + partner CRISPR dependency, kept at <b>high+medium</b> confidence (36 participating genes). The old &ldquo;Damaging Mutation&rdquo; axis (DepMap&rsquo;s 8,926-gene predicted-LoF matrix, full of passengers like TTN/MUC19) is replaced by <b>&ldquo;Functional loss&rdquo;</b> &mdash; the 8 tumour suppressors from the Cell Line Browser&rsquo;s &ldquo;Functional loss&rdquo; section (APC, CDKN2A, MTAP, NF1, PTEN, RB1, TP53, VHL), DepMap&rsquo;s integrated CN+mutation+expression call that also catches deletion-driven losses the mutation matrix misses. Built by <code>scripts/build_validated_fusions.py</code> and <code>scripts/build_functional_loss.py</code>. The Cell Line Browser, Wiki, antigen-presentation and HR-deficiency views still use the full raw damaging/fusion data; the optional <em>additional</em> mutation/fusion sub-filters in the analysis also still use the raw sets.</li>
@@ -2868,7 +2872,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.73</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.74</a>
     </div>
 
     <div class="main-content">
@@ -4231,7 +4235,7 @@
     <div id="collectionsInfoModal" style="display:none; position:fixed; inset:0; z-index:1250; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;">
         <div style="background:#fff; width:100%; max-width:min(94vw,760px); max-height:calc(100vh - 40px); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
             <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg,#f0fdf4 0%,#fff 100%);">
-                <h3 style="margin:0; font-size:17px; color:#15803d;">Curated collections — inclusion criteria</h3>
+                <h3 style="margin:0; font-size:17px; color:#15803d;">Quick filters — inclusion criteria</h3>
                 <button id="collectionsInfoClose" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
             </div>
             <div id="collectionsInfoBody" style="padding:14px 18px; overflow-y:auto; font-size:12px; color:#374151; line-height:1.55;"></div>
@@ -4703,7 +4707,7 @@
         </div>
         <!-- Row 2: Curated collections + help -->
         <div style="padding: 4px 20px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: var(--gray-50, #f9fafb);">
-          <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Collections:</span>
+          <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Quick filters:</span>
           <!-- Collections picker. Replaces a single-select dropdown with an
                oncoprint-style multi-select panel: each collection has three
                states (off / include / exclude). The button label shows the
@@ -4711,14 +4715,14 @@
                each one independently. Active states are also rendered as
                removable chips in the active-filter strip below. -->
           <div id="clbCollectionFilterWrap" style="position:relative; display:inline-block;">
-            <button id="clbCollectionBtn" class="btn btn-outline btn-sm" type="button" style="font-size:12px; padding:2px 8px;" title="Pick or exclude curated collections (oncoprint-style include/exclude)">Collections <span id="clbCollectionCount" style="color:#6b7280; font-weight:400;"></span></button>
+            <button id="clbCollectionBtn" class="btn btn-outline btn-sm" type="button" style="font-size:12px; padding:2px 8px;" title="Pick or exclude quick filters (oncoprint-style include/exclude)">Quick filters <span id="clbCollectionCount" style="color:#6b7280; font-weight:400;"></span></button>
             <!-- Collections panel widens to fit the viewport with extra
                  columns. min-width keeps it readable on narrow screens;
                  width is the clamp-with-margin pattern so on a wide window
                  it grows to ~1100 px and shows 3 columns of entries. -->
             <div id="clbCollectionPanel" style="display:none; position:absolute; top:100%; left:0; min-width:340px; width:max-content; max-width:min(1100px, calc(100vw - 80px)); max-height:min(640px, calc(100vh - 160px)); overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.12); z-index:1200; font-size:11px; padding:8px 10px;"></div>
           </div>
-          <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm" title="Show inclusion criteria for each curated collection" style="padding:2px 8px; font-size:10px; font-weight:700;">?</button>
+          <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm" title="Show inclusion criteria for each quick filter" style="padding:2px 8px; font-size:10px; font-weight:700;">?</button>
         </div>
         <!-- Custom Cell Line Filter for CLB -->
         <div style="padding: 4px 12px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
@@ -5042,6 +5046,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_73"></script>
+    <script src="app.js?v=v81_74"></script>
 </body>
 </html>

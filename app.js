@@ -23100,7 +23100,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // tooltip / UI only) }. Membership is computed by _computeCollectionMemberships.
     // Kept as a plain map so we can add / tweak without touching the render code.
     _curatedCollectionsCatalog() {
-        return {
+        const catalog = {
             msi: {
                 label: 'MMR-mutated (Lynch-panel damaging mutation)',
                 category: 'DNA repair / damage response',
@@ -23665,6 +23665,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 description: '<b>Inclusion:</b> patient age at diagnosis &ge; 65 years. <b>Why:</b> elderly-onset cancers (myelodysplastic syndromes, secondary AML, late-stage prostate, chronic lymphocytic leukaemia, glioblastoma in older patients) often have distinct mutational backgrounds — higher TMB from accumulated UV/ageing exposure, TP53 mutations, chromothripsis. Worth segregating from middle-aged adults for some analyses.'
             }
         };
+
+        // Quick-filter curation (v.81.74): the full catalogue above had ~100 entries,
+        // many esoteric (single-gene CN amp/del, pathway-expression signatures, rare
+        // TSGs, Lehmann sub-subtypes). We surface only the quick filters that are
+        // genuinely useful to at least some users. To re-enable any one, just add its
+        // id to this set — the definition above is preserved.
+        const QUICK_FILTER_IDS = new Set([
+            // Driver oncogene mutations
+            'kras_mutant', 'braf_mutant', 'egfr_mutant', 'pik3ca_mutant', 'ctnnb1_hotspot', 'idh_mutant',
+            // Tumour-suppressor functional loss (common)
+            'tp53_loss', 'pten_loss', 'rb1_loss', 'cdkn2a_loss', 'apc_loss', 'nf1_loss', 'any_tsg_loss', 'multi_tsg_loss',
+            // DNA repair / mutation burden
+            'msi_high_functional', 'hrd', 'hypermutated', 'pole_pold1_ultramutated', 'slfn11_high',
+            // Breast receptor subtype
+            'tnbc', 'hr_pos_breast', 'her2_pos_breast',
+            // Disease-defining fusions
+            'fusion_bcr_abl1', 'fusion_ewsr1_fli1', 'fusion_eml4_alk', 'fusion_pml_rara', 'fusion_ss18_ssx', 'fusion_pax3_foxo1', 'fusion_tmprss2_erg', 'fusion_npm1_alk',
+            // Oncogene addiction (mutation x CRISPR dependency)
+            'kras_addicted', 'braf_addicted', 'egfr_dependent', 'cdk46_dependent', 'bcr_abl_addicted', 'pi3k_active_dependent',
+            // Genome instability
+            'wgd_positive', 'high_aneuploidy',
+            // Expression phenotype
+            'ne', 'emt',
+            // Immunology
+            'pdl1_high', 'likely_immunogenic',
+            // Key focal copy-number events
+            'myc_family_amp', 'erbb2_amp', 'mdm2_amp', 'g1s_amp', 'cdkn2a_del', 'rb1_del', 'pten_del',
+            // Patient age at diagnosis
+            'age_infant', 'age_pediatric', 'age_aya', 'age_adult', 'age_elderly',
+        ]);
+        return Object.fromEntries(Object.entries(catalog).filter(([id]) => QUICK_FILTER_IDS.has(id)));
     }
 
     // Compute which cell lines belong to each curated collection. Called
@@ -24400,7 +24431,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return `<span style="display:inline-block; font-size:9px; padding:1px 6px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em; margin-left:8px; vertical-align:middle;">${src}</span>`;
         };
 
-        let html = `<p style="margin:0 0 14px; color:#6b7280;">Each collection is computed once at load time from the DepMap data layers (mutations, copy number, expression, inferred subtypes, global signatures, clinical fusions, patient metadata) plus a small set of curated publication panels. Numbers below reflect the current dataset; the live filter additionally respects any other active filters (tissue, subtype, hotspot, fusion, sex, age, oncoprint). Each entry carries an <span style="display:inline-block; font-size:9px; padding:1px 6px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em;">inclusion source</span> badge naming the underlying data layer (mutation, CN, expression, fusion, etc.).</p>`;
+        let html = `<p style="margin:0 0 14px; color:#6b7280;">Each quick filter is computed once at load time from the DepMap data layers (mutations, copy number, expression, inferred subtypes, global signatures, clinical fusions, patient metadata) plus a small set of curated publication panels. Numbers below reflect the current dataset; the live filter additionally respects any other active filters (tissue, subtype, hotspot, fusion, sex, age, oncoprint). Each entry carries an <span style="display:inline-block; font-size:9px; padding:1px 6px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em;">inclusion source</span> badge naming the underlying data layer (mutation, CN, expression, fusion, etc.).</p>`;
 
         for (const cat of catKeys) {
             // Section header — matches the live-panel green-accent banner.
@@ -24455,10 +24486,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">`
-            + `<span style="font-weight:600; color:#374151;">Filter cell lines by collection</span>`
+            + `<span style="font-weight:600; color:#374151;">Filter cell lines by quick filter</span>`
             + `<a href="#" id="clbCollectionsClear" style="color:#6b7280; text-decoration:none; font-size:10px;">clear all</a>`
             + `</div>`
-            + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#15803d;">+</b> to require, <b style="color:#991b1b;">−</b> to exclude. Multiple collections combine with AND.</div>`;
+            + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#15803d;">+</b> to require, <b style="color:#991b1b;">−</b> to exclude. Multiple quick filters combine with AND.</div>`;
 
         // One-line explainers for categories whose name is jargon-heavy.
         // Rendered as italic grey text below the category header so the user
