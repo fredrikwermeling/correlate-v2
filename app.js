@@ -3529,6 +3529,18 @@ class CorrelationExplorer {
                 geneInput.disabled = false;
                 geneInput.placeholder = defaultPlaceholder;
             }
+            // Pairing Gene Effect with Expression: default this axis's gene to the
+            // other axis's gene, so the common case (GE vs Expression of the SAME
+            // gene) works out of the box. Only auto-fills when this axis is empty.
+            if (val === 'ge' || val === 'expr') {
+                const isX = inputId === 'inspectGeneX';
+                const otherInput = document.getElementById(isX ? 'inspectGeneY' : 'inspectGeneX');
+                const otherType = document.getElementById(isX ? 'yAxisDataType' : 'xAxisDataType')?.value;
+                if (otherInput && !otherInput.disabled && (otherType === 'ge' || otherType === 'expr')
+                    && otherType !== val && otherInput.value.trim() && !geneInput.value.trim()) {
+                    geneInput.value = otherInput.value.trim();
+                }
+            }
             if (val !== 'geneset') this.updateInspectGenes();
         };
         document.getElementById('xAxisDataType')?.addEventListener('change', (e) => handleAxisTypeChange(e, 'inspectGeneX', 'X gene'));
@@ -6546,12 +6558,13 @@ class CorrelationExplorer {
         ];
         const yFit = this._computeGEYAxisLayout(yTickTexts, yTickFontSize, yLabelFontSize, 'geneEffectPlot');
 
-        // The title is centered on the plot area; it can bleed up to the right
-        // margin (30px) past the plot edge before the SVG clips it. Max safe width
-        // = plot-area width + 2×right-margin = container − marginL + right-margin.
+        // The title is centered on the plot area, which is offset right by the
+        // y-axis left margin. Wrapping to (container − marginL) keeps the centered
+        // text within the plot area plus a ~right-margin gap, so it never touches
+        // the SVG edge (the absolute clip ceiling would be + right-margin more).
         const geRightMargin = 30;
         const geContainerW = document.getElementById('geneEffectPlot')?.clientWidth || 600;
-        const geTitleMaxW = geContainerW - yFit.marginL + geRightMargin;
+        const geTitleMaxW = geContainerW - yFit.marginL;
 
         const geTitleAnn = {
             text: this._computeGETitleText(titleText, subtitleText, 25, 'geneEffectPlot', geTitleMaxW),
@@ -17560,11 +17573,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (geGsSelect) { geGsSelect.value = ''; geGsSelect.style.display = 'none'; }
 
         // Update UI
-        document.getElementById('geneEffectTitle').textContent = `${geneUpper} - Gene Effect Analysis`;
+        const geMetric = this._geMetric();
+        document.getElementById('geneEffectTitle').textContent = `${geneUpper} - ${geMetric.full} Analysis`;
         document.getElementById('geneEffectSearch').value = geneUpper;
         document.getElementById('geneEffectCurrentGene').textContent = '';
         const geCellLineSearch = document.getElementById('geCellLineSearch');
         if (geCellLineSearch) geCellLineSearch.value = '';
+        const geSummaryMeanLabel = document.getElementById('geSummaryMeanLabel');
+        if (geSummaryMeanLabel) geSummaryMeanLabel.textContent = `${geMetric.mean}:`;
         document.getElementById('geSummaryGene').textContent = geneUpper;
         document.getElementById('geSummaryMean').textContent = mean.toFixed(2);
         document.getElementById('geSummarySD').textContent = sd.toFixed(2);
@@ -18117,7 +18133,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const w = ctx.measureText(String(t)).width;
             if (w > tickPx) tickPx = w;
         }
-        tickPx = Math.ceil(tickPx);
+        // canvas.measureText (Arial fallback) underestimates Plotly's Open Sans
+        // rendering, so without a safety factor the reserved left margin is too
+        // small and the rotated y-label overlaps the tick labels at narrow widths.
+        tickPx = Math.ceil(tickPx * 1.25);
 
         // Rotated label's horizontal extent ≈ font size + small pad for stems
         const labelPx = Math.ceil(labelFontSize + 4);
@@ -18649,8 +18668,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             annotations: [
-                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : 'Gene Effect'} by Hotspot Mutation</b><br><span style="font-size:10px;color:#6b7280;">n=${data.length}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''}${pFilter ? ' | p<0.05' : ''}</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
-                { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} Gene Effect`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
+                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : this._geMetric().full} by Hotspot Mutation</b><br><span style="font-size:10px;color:#6b7280;">n=${data.length}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''}${pFilter ? ' | p<0.05' : ''}</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} ${this._geMetric().full}`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
                 zeroline: true,
@@ -18726,7 +18745,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const gene = this.currentGeneEffect?.gene || '';
             const _isGr = gene === 'Growth Rate';
             const _isGs = !_isGr && !this.geneIndex.has(gene?.toUpperCase?.());
-            const valLabel = _isGr ? 'Growth' : _isGs ? 'Score' : 'Mean GE';
+            const valLabel = _isGr ? 'Growth' : _isGs ? 'Score' : this._geMetric().mean;
             thead.innerHTML = `<tr>
                 <th style="${headerStyle}" data-sort="group" data-type="string">${groupLabel}${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="n" data-type="number">N${sortIcon}</th>
@@ -18743,7 +18762,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const gene = this.currentGeneEffect?.gene || '';
             const _isGr2 = gene === 'Growth Rate';
             const _isGs2 = !_isGr2 && !this.geneIndex.has(gene?.toUpperCase?.());
-            const vLbl = _isGr2 ? 'Growth' : _isGs2 ? 'Score' : 'GE';
+            const vLbl = _isGr2 ? 'Growth' : _isGs2 ? 'Score' : this._geMetric().short;
             thead.innerHTML = `<tr>
                 <th style="${headerStyle}" data-sort="group" data-type="string">Gene${sortIcon}</th>
                 <th style="${headerStyle}; border-left: 2px solid #2563eb;" data-sort="n0" data-type="number">N (${wtLbl})${sortIcon}</th>
@@ -18849,6 +18868,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
     }
 
+    // Metric wording for the Gene Effect modal. Switches to "Expression" when the
+    // data-type toggle (#geDataType) is set to expr, so titles / axis labels /
+    // table headers / CSV columns read correctly in whichever mode is showing.
+    // NOTE: only used by the standalone GE-modal views — the mutation-analysis
+    // gene-effect distribution always shows gene effect and never calls this.
+    _geMetric() {
+        const isExpr = (document.getElementById('geDataType')?.value === 'expr')
+            || this.currentGeneEffect?.dataType === 'expr' || this._geDataType === 'expr';
+        return isExpr
+            ? { full: 'Expression', short: 'Expr', mean: 'Mean Expression', csv: 'Expression' }
+            : { full: 'Gene Effect', short: 'GE', mean: 'Mean GE', csv: 'Gene_Effect' };
+    }
+
     showGEDetailedView(group, mode) {
         if (!this.currentGeneEffect) return;
 
@@ -18856,8 +18888,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const gene = this.currentGeneEffect.gene;
         const _isGrowthDV = gene === 'Growth Rate';
         const _isGeneSetDV = !_isGrowthDV && !this.geneIndex.has(gene?.toUpperCase?.());
-        const valLabel = _isGrowthDV ? 'Growth Rate' : _isGeneSetDV ? 'Score' : 'Gene Effect';
-        const valLabelShort = _isGrowthDV ? 'GR' : _isGeneSetDV ? 'Score' : 'GE';
+        const valLabel = _isGrowthDV ? 'Growth Rate' : _isGeneSetDV ? 'Score' : this._geMetric().full;
+        const valLabelShort = _isGrowthDV ? 'GR' : _isGeneSetDV ? 'Score' : this._geMetric().short;
 
         // Helper to calculate stats
         const calcStats = (values) => {
@@ -19545,13 +19577,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const gene = this.currentGeneEffect.gene;
         let csv = '';
 
+        const geCsvMetric = this._geMetric().csv;
         if (this.currentGEView === 'tissue') {
-            csv = 'Cancer_Type,N,Mean_GE,SD,p_value\n';
+            csv = `Cancer_Type,N,Mean_${geCsvMetric},SD,p_value\n`;
             this.currentGEStats.forEach(s => {
                 csv += `"${s.group}",${s.n},${s.mean.toFixed(2)},${s.sd.toFixed(2)},${s.pValue.toFixed(6)}\n`;
             });
         } else {
-            csv = 'Hotspot,N_Mutant,N_WT,Mean_WT,Mean_Mutant,Delta_GE,SD_Mutant,p_value\n';
+            csv = `Hotspot,N_Mutant,N_WT,Mean_WT,Mean_Mutant,Delta_${geCsvMetric},SD_Mutant,p_value\n`;
             this.currentGEStats.forEach(s => {
                 csv += `"${s.group}",${s.nMut},${s.nWT},${s.wtMean.toFixed(2)},${s.mutMean.toFixed(2)},${s.diff.toFixed(2)},${s.mutSD.toFixed(2)},${s.pValue.toFixed(6)}\n`;
             });
@@ -20807,7 +20840,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const data = this.currentGeneEffect.data;
 
         // Get sublineage info
-        let csv = 'Cell_Line_ID,Cell_Line_Name,Cancer_Type,Cancer_Subtype,Gene_Effect\n';
+        let csv = `Cell_Line_ID,Cell_Line_Name,Cancer_Type,Cancer_Subtype,${this._geMetric().csv}\n`;
 
         data.forEach(d => {
             const subtype = this.getCellLineSublineage?.(d.cellLineId) || '';
@@ -24717,7 +24750,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.geneEffectViewMode = 'geneEffect';
             this.currentGeneEffect = null;
             document.getElementById('geneEffectModal').style.display = 'flex';
-            document.getElementById('geneEffectTitle').textContent = 'Gene Effect Analysis';
+            document.getElementById('geneEffectTitle').textContent = `${this._geMetric().full} Analysis`;
             document.getElementById('geneEffectSearch').value = '';
             document.getElementById('geneEffectCurrentGene').textContent = '';
             document.getElementById('geneEffectSummary').style.display = 'none';

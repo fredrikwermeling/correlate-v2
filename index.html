@@ -1331,6 +1331,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.77 (2026-06-06)</strong></p>
+                <ul>
+                    <li><b>Gene-effect distribution plot &mdash; y-axis label no longer overlaps the tick labels at narrow widths.</b> Same root cause as the title fix: <code>canvas.measureText</code> underestimated the tick-label width, so too little left margin was reserved and the rotated &ldquo;… Functional Loss&rdquo; label sat on top of the row labels. Added the 1.25&times; safety factor to the tick measurement.</li>
+                    <li><b>Correlation scatter &mdash; pairing Gene Effect with Expression now defaults to the same gene on both axes.</b> When you switch one axis to Expression (or GE) so the two axes use different data types, the empty axis&rsquo;s gene is auto-filled from the other axis &mdash; so &ldquo;GENE gene-effect vs GENE expression&rdquo; works in one step.</li>
+                    <li><b>Gene Effect modal &mdash; correct wording in Expression mode.</b> When the data-type toggle is set to Expression, the modal title, the &ldquo;Mean&rdquo; summary label, the By-Tissue and By-Hotspot plot titles/axis labels, the results-table headers, and the CSV export headers now say &ldquo;Expression&rdquo; instead of &ldquo;Gene Effect&rdquo;/&ldquo;GE&rdquo;. The hotspot-mutation-filter tooltip is now neutral (&ldquo;Stratify the plotted values (gene effect or expression) …&rdquo;). Verified via headless-browser screenshots.</li>
+                </ul>
                 <p><strong>v.81.76 (2026-06-06)</strong></p>
                 <ul>
                     <li>Gene-effect distribution plot &mdash; follow-up to the title/subtitle wrap fix. At narrower window widths the text still clipped because <code>canvas.measureText</code> (Arial fallback) underestimates the width Plotly actually renders (Open Sans), so a line measured as &ldquo;fits&rdquo; still overflowed. Added a 1.25&times; safety factor to the measurement so wrapping happens slightly early. Verified clean at both wide and narrow widths via headless-browser screenshot.</li>
@@ -2880,7 +2886,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.76</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.77</a>
     </div>
 
     <div class="main-content">
@@ -3810,7 +3816,7 @@
                         </div>
                         <span id="geHotspotGeneGroup" style="display: none;">
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;" title="Stratify the gene effect by 0 / 1 / 2 hotspot-mutation levels of this gene">Hotspot mutation (Y):</label>
+                                <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;" title="Stratify the plotted values (gene effect or expression) by 0 / 1 / 2 hotspot-mutation levels of this gene">Hotspot mutation (Y):</label>
                                 <select id="geHotspotGeneSelect" class="form-control" style="width: 170px; font-size: 13px; padding: 6px 10px;" title="Hotspot-mutated gene whose 0 / 1 / 2 mutation levels stratify the plot. Counts show mutated cell lines under the current filters."></select>
                             </div>
                         </span>
@@ -3886,7 +3892,7 @@
                 <div id="geneEffectSummary" style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 10px 14px; margin-bottom: 15px; display: none;">
                     <div style="display: flex; gap: 25px; flex-wrap: wrap; font-size: 12px;">
                         <div><strong>Gene:</strong> <span id="geSummaryGene">-</span></div>
-                        <div><strong>Mean GE:</strong> <span id="geSummaryMean">-</span></div>
+                        <div><strong id="geSummaryMeanLabel">Mean GE:</strong> <span id="geSummaryMean">-</span></div>
                         <div><strong>SD:</strong> <span id="geSummarySD">-</span></div>
                         <div><strong>Cell lines:</strong> <span id="geSummaryN">-</span></div>
                     </div>
@@ -5054,6 +5060,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_76"></script>
+    <script src="app.js?v=v81_77"></script>
 </body>
 </html>
