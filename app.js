@@ -17412,7 +17412,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const hotspotGene = document.getElementById('hotspotGene').value;
         const hasGates = this._gateA?.length > 0 || this._gateB?.length > 0;
-        let header = 'CellLine,CellLineID,Lineage,Subtype,Gene1_Effect,Gene2_Effect';
+        // Column suffix reflects each axis's data type so a GE-vs-Expression
+        // scatter doesn't export both columns as "Effect".
+        const colSuffix = (type) => type === 'expr' ? 'Expression' : type === 'growth' ? 'GrowthRate' : type === 'geneset' ? 'GeneSetScore' : 'Effect';
+        const xType = this.currentInspect?.xType || 'ge';
+        const yType = this.currentInspect?.yType || 'ge';
+        let header = `CellLine,CellLineID,Lineage,Subtype,Gene1_${colSuffix(xType)},Gene2_${colSuffix(yType)}`;
         const csvMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
         if (csvMutSource) {
             header += `,${hotspotGene}_mutation`;
