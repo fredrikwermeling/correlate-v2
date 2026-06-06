@@ -17992,9 +17992,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const maxTitleWidth = Math.max(200, maxWidthOverride || (containerWidth - 40));
 
         const ctx = (this._geMeasureCtx ||= document.createElement('canvas').getContext('2d'));
+        // canvas.measureText (Arial fallback) underestimates the width Plotly
+        // actually renders (Open Sans, slightly wider), so without a safety factor
+        // a line measured as "fits" still overflows and clips. Inflate by ~1.25 so
+        // wrapping happens a little early rather than a little late.
+        const SAFETY = 1.25;
         const measure = (text, sizePx) => {
             ctx.font = `bold ${sizePx}px Arial, Helvetica, sans-serif`;
-            return ctx.measureText(text).width;
+            return ctx.measureText(text).width * SAFETY;
         };
 
         let fontSize = baseFontSize;
