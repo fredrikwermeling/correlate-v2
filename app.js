@@ -27480,8 +27480,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // Age is stored as a float (e.g. "58.0"); show it as a whole number.
         const ageRaw = get('age');
         const ageFmt = ageRaw !== '' && !isNaN(parseFloat(ageRaw)) ? String(Math.round(parseFloat(ageRaw))) : ageRaw;
-        // DepMap stores some free-text fields lowercase; capitalize for display.
-        const cap = (v) => v ? `<span style="text-transform:capitalize;">${v}</span>` : '';
+        // DepMap stores some free-text fields lowercase and underscore-separated
+        // (e.g. "large_intestine"); swap underscores for spaces and capitalize.
+        const cap = (v) => v ? `<span style="text-transform:capitalize;">${String(v).replace(/_/g, ' ')}</span>` : '';
         const originHtml = `
             <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Clinical information about the patient the cell line was derived from, plus how it grows in the lab.</p>
             ${row('Patient age at sampling', ageFmt)}
