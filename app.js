@@ -24578,12 +24578,32 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             btnLabel.style.fontWeight = n > 0 ? '600' : '400';
         }
 
-        // Group available collections by category. Skip ones that haven't been
-        // computed yet (expression-based collections before expression loads).
+        // Count each quick filter against the cell lines passing the OTHER active
+        // CLB filters (tissue, subtype, sex, hotspot, fusion, CN, …) plus the other
+        // active quick filters — so e.g. with a Lung filter on, BCR-ABL1 shows 0
+        // and is hidden. The filter being counted is excluded from that test so a
+        // selected filter never vanishes.
+        const baseSet = new Set(this._clbBaseFilteredLines());
+        const passesOther = (cl, exclId) => {
+            for (const [id, state] of states) {
+                if (id === exclId) continue;
+                const inSet = mem[id]?.has(cl);
+                if (state === 'include' && !inSet) return false;
+                if (state === 'exclude' && inSet) return false;
+            }
+            return true;
+        };
+
+        // Group available quick filters by category, hiding any with 0 matches
+        // under the current filter context. Skip ones not computed yet
+        // (expression-based collections before expression loads).
         const byCat = {};
         for (const [id, def] of Object.entries(catalog)) {
             if (!mem[id]) continue;
-            const n = mem[id].size;
+            let n = 0;
+            for (const cl of mem[id]) {
+                if (baseSet.has(cl) && passesOther(cl, id)) n++;
+            }
             if (!n) continue;
             (byCat[def.category] = byCat[def.category] || []).push({ id, def, n });
         }
@@ -25399,42 +25419,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('tab-network').classList.add('active');
     }
 
-    renderCellLineList() {
+    // Cell lines passing every CLB filter EXCEPT the quick-filter (collection)
+    // states. Shared by renderCellLineList (which then applies collections) and
+    // by _renderCollectionPanel (so each quick filter's count reflects the other
+    // active filters — e.g. with a Lung filter on, BCR-ABL1 shows 0 and is hidden).
+    _clbBaseFilteredLines() {
         const search = document.getElementById('clbSearch').value.trim().toLowerCase();
         const tissue = document.getElementById('clbTissueFilter').value;
         const subtype = document.getElementById('clbSubtypeFilter').value;
         const sexFilter = document.getElementById('clbSexFilter').value;
         const hotspotGene = document.getElementById('clbHotspotFilter').value;
         const transGene = document.getElementById('clbTranslocationFilter').value;
-
         const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
-        // The fusion filter accepts either a gene symbol ("ABL1" -> any line
-        // with any ABL1 fusion) or a clinically relevant fusion pair name
-        // ("BCR-ABL1" -> only the curated set with that exact validated pair).
-        // The dropdown value carries decoration ("★ BCR-ABL1 (n=11)" /
-        // "ABL1 (n=14)") so the n= is visible in narrow Safari datalists;
-        // strip it to recover the underlying name for lookup.
         const transKey = this._stripFusionFilterDecoration(transGene);
         const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
         const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
         const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
-        // Collection states: each {id → 'include'|'exclude'}. Cell line must be
-        // in every include set AND in none of the exclude sets to pass.
-        const collectionStates = this._clbCollectionStates;
-        const collectionMem = this._collectionMembership || {};
-        const passesCollections = (cl) => {
-            for (const [id, state] of collectionStates) {
-                const inSet = collectionMem[id]?.has(cl);
-                if (state === 'include' && !inSet) return false;
-                if (state === 'exclude' && inSet) return false;
-            }
-            return true;
-        };
-
-        let filtered = this.metadata.cellLines.filter(cl => {
+        return this.metadata.cellLines.filter(cl => {
             if (tissue && this.getCellLineLineage(cl) !== tissue) return false;
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
-            if (collectionStates.size > 0 && !passesCollections(cl)) return false;
             if (sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
             if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
             if (clinicalPairCells && !(cl in clinicalPairCells)) return false;
@@ -25449,6 +25452,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             return true;
         });
+    }
+
+    renderCellLineList() {
+        // Collection states: each {id → 'include'|'exclude'}. Cell line must be
+        // in every include set AND in none of the exclude sets to pass.
+        const collectionStates = this._clbCollectionStates;
+        const collectionMem = this._collectionMembership || {};
+        const passesCollections = (cl) => {
+            for (const [id, state] of collectionStates) {
+                const inSet = collectionMem[id]?.has(cl);
+                if (state === 'include' && !inSet) return false;
+                if (state === 'exclude' && inSet) return false;
+            }
+            return true;
+        };
+
+        let filtered = this._clbBaseFilteredLines();
+        if (collectionStates.size > 0) filtered = filtered.filter(passesCollections);
+
+        // Keep the quick-filter panel's counts in sync with the active filters.
+        if (document.getElementById('clbCollectionPanel')) this._renderCollectionPanel();
 
         // Sort mode: name | tissue | hotspot | damaging | fusion | ge
         const mode = this._clbSortMode || 'name';
