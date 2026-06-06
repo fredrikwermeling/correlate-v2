@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.84 (2026-06-06)</strong></p>
+                <ul>
+                    <li>Gene-effect distribution plot &mdash; cleaned up for the Functional-loss and Fusion axes (which are binary). (1) The stratifier control above the plot now reads <b>&ldquo;Functional loss (Y)&rdquo;</b> / <b>&ldquo;Fusion (Y)&rdquo;</b> instead of always &ldquo;Hotspot mutation (Y)&rdquo;, and its option counts say &ldquo;lost&rdquo; / &ldquo;fused&rdquo; instead of &ldquo;mut&rdquo;. (2) The y-axis now shows just two rows &mdash; <b>Intact</b> / <b>Lost</b> (or No&nbsp;fusion / Fusion+) &mdash; instead of an empty &ldquo;2&rdquo; level. (3) The header no longer repeats the lineage when the inspect tissue filter restates it, and the reference (WT/Intact) and mutant (Lost/Fused) stats are now on separate lines so it doesn&rsquo;t crowd or wrap.</li>
+                </ul>
                 <p><strong>v.81.83 (2026-06-06)</strong></p>
                 <ul>
                     <li><b>Mutational analysis &mdash; the Fusion axis now picks a specific fusion, not a gene.</b> The axis is relabelled simply <b>&ldquo;Fusion&rdquo;</b> and the selector lists the named driver fusions themselves (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PAX3-FOXO1, &hellip; &mdash; 23 in total), splitting cell lines into carriers vs non-carriers of that exact fusion. Previously it listed the individual participating genes (ABL1, BCR, &hellip;).</li>
@@ -2911,7 +2915,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.83</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.84</a>
     </div>
 
     <div class="main-content">
@@ -3841,7 +3845,7 @@
                         </div>
                         <span id="geHotspotGeneGroup" style="display: none;">
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;" title="Stratify the plotted values (gene effect or expression) by 0 / 1 / 2 hotspot-mutation levels of this gene">Hotspot mutation (Y):</label>
+                                <label id="geHotspotGeneLabel" style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;" title="Stratify the plotted values by this gene's status (hotspot mutation, functional loss, or fusion)">Hotspot mutation (Y):</label>
                                 <select id="geHotspotGeneSelect" class="form-control" style="width: 170px; font-size: 13px; padding: 6px 10px;" title="Hotspot-mutated gene whose 0 / 1 / 2 mutation levels stratify the plot. Counts show mutated cell lines under the current filters."></select>
                             </div>
                         </span>
@@ -5085,6 +5089,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_83"></script>
+    <script src="app.js?v=v81_84"></script>
 </body>
 </html>

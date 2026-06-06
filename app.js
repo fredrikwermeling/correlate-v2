@@ -6481,17 +6481,20 @@ class CorrelationExplorer {
 
         // Build subtitle with filter info
         let filterInfo = [];
+        let lineageComposed = null;
         if (mr.lineageFilter) {
-            let lineageText = mr.lineageFilter;
+            lineageComposed = mr.lineageFilter;
             if (mr.subLineageFilter) {
-                lineageText += ` (${mr.subLineageFilter})`;
+                lineageComposed += ` (${mr.subLineageFilter})`;
             }
-            filterInfo.push(`Lineage: ${lineageText}`);
+            filterInfo.push(`Lineage: ${lineageComposed}`);
         }
         if (inspectTissueFilter) {
-            let tissueText = `Tissue: ${inspectTissueFilter}`;
-            if (inspectSubtype) tissueText += ` (${inspectSubtype})`;
-            filterInfo.push(tissueText);
+            let tissueComposed = inspectTissueFilter;
+            if (inspectSubtype) tissueComposed += ` (${inspectSubtype})`;
+            // Skip when the inspect tissue filter just restates the analysis lineage
+            // filter (avoids "Lineage: Kidney (RCC) | Tissue: Kidney (RCC)" twice).
+            if (tissueComposed !== lineageComposed) filterInfo.push(`Tissue: ${tissueComposed}`);
         }
         if (inspectSubtype && !inspectTissueFilter) {
             filterInfo.push(`Subtype: ${inspectSubtype}`);
@@ -6529,21 +6532,27 @@ class CorrelationExplorer {
 
         // Build stats text for subtitle - split into two lines to avoid cropping
         const formatP = (p) => isNaN(p) ? '-' : (p < 0.001 ? p.toExponential(1) : p.toFixed(3));
-        const fusedLabel = isTranslocation ? 'Fused' : 'Mut';
-        const statsLine1 = `WT: n=${wtStats.n}, mean=${wtStats.mean.toFixed(2)}, med=${wtStats.median.toFixed(2)}  ·  ${fusedLabel}: n=${mutAllStats.n}, mean=${mutAllStats.mean.toFixed(2)}, med=${mutAllStats.median.toFixed(2)}`;
-        let statsLine2 = `p(WT vs ${fusedLabel}): ${formatP(pWTvsMut)}`;
-        if (mut2Stats.n >= 3 && !isDamaging) {
-            statsLine2 += `  ·  p(WT vs 2${isTranslocation ? '+' : ''}): ${formatP(pWTvs2)}`;
+        const fusedLabel = isTranslocation ? 'Fused' : isDamaging ? 'Lost' : 'Mut';
+        const wtRefLabel = isTranslocation ? 'No fusion' : isDamaging ? 'Intact' : 'WT';
+        // WT and mutant stats on their own rows so the header doesn't crowd/wrap.
+        const statsLineWT = `${wtRefLabel}: n=${wtStats.n}, mean=${wtStats.mean.toFixed(2)}, med=${wtStats.median.toFixed(2)}`;
+        const statsLineMut = `${fusedLabel}: n=${mutAllStats.n}, mean=${mutAllStats.mean.toFixed(2)}, med=${mutAllStats.median.toFixed(2)}`;
+        let statsLineP = `p(${wtRefLabel} vs ${fusedLabel}): ${formatP(pWTvsMut)}`;
+        if (mut2Stats.n >= 3 && !isDamaging && !isTranslocation) {
+            statsLineP += `  ·  p(WT vs 2): ${formatP(pWTvs2)}`;
         }
 
-        // Combine lineage info and stats in subtitle
-        const subtitle = `${lineageText}<br>${statsLine1}<br>${statsLine2}`;
+        // Combine lineage info and stats in subtitle (each stat on its own line)
+        const subtitle = `${lineageText}<br>${statsLineWT}<br>${statsLineMut}<br>${statsLineP}`;
 
         const statusLabel = isTranslocation ? 'Fusion Status' : isDamaging ? 'Functional Loss' : 'Mutation Status';
         const yAxisTitle = isTranslocation ? `${hotspotGene} Fusions` : isDamaging ? `${hotspotGene} Functional Loss` : `${hotspotGene} Mutations`;
-        const tick0Label = isTranslocation ? 'No fusion' : '0 WT';
-        const tick1Label = isTranslocation ? 'Fusion+' : isDamaging ? '1 Lost' : '1';
-        const tick2Label = isTranslocation ? '—' : '2';
+        // Functional loss and validated fusions are binary (carrier vs not), so
+        // they only get two rows; hotspot mutations keep the 0/1/2 levels.
+        const isBinaryAxis = isTranslocation || isDamaging;
+        const tick0Label = isTranslocation ? 'No fusion' : isDamaging ? 'Intact' : '0 WT';
+        const tick1Label = isTranslocation ? 'Fusion+' : isDamaging ? 'Lost' : '1';
+        const tick2Label = '2';
 
         const titleText = `${gene} Gene Effect by ${hotspotGene} ${statusLabel}`;
         const subtitleText = subtitle;
@@ -6554,11 +6563,17 @@ class CorrelationExplorer {
         // space the plot-area-centered title/subtitle actually have to wrap into.
         const yLabelFontSize = 20;
         const yTickFontSize = 17;
-        const yTickTexts = [
-            `${tick0Label} (n=${data.wt.length})`,
-            `${tick1Label} (n=${data.mut1.length})`,
-            `${tick2Label} (n=${data.mut2.length})`
-        ];
+        const yTickVals = isBinaryAxis ? [0, 1] : [0, 1, 2];
+        const yTickTexts = isBinaryAxis
+            ? [
+                `${tick0Label} (n=${data.wt.length})`,
+                `${tick1Label} (n=${data.mut1.length})`,
+              ]
+            : [
+                `${tick0Label} (n=${data.wt.length})`,
+                `${tick1Label} (n=${data.mut1.length})`,
+                `${tick2Label} (n=${data.mut2.length})`
+            ];
         const yFit = this._computeGEYAxisLayout(yTickTexts, yTickFontSize, yLabelFontSize, 'geneEffectPlot');
 
         // The title is centered on the plot area, which is offset right by the
@@ -6617,9 +6632,9 @@ class CorrelationExplorer {
             },
             yaxis: {
                 tickmode: 'array',
-                tickvals: [0, 1, 2],
+                tickvals: yTickVals,
                 ticktext: yTickTexts,
-                range: [-0.5, 2.5],
+                range: isBinaryAxis ? [-0.5, 1.5] : [-0.5, 2.5],
                 tickfont: { size: yTickFontSize }
             },
             showlegend: false,
@@ -6740,11 +6755,15 @@ class CorrelationExplorer {
             let gHtml = '';
             for (const g of sortedGenes) {
                 const sel = g === hotspotGene ? ' selected' : '';
-                const label = isTranslocation ? `${g} (${counts[g]} fused)` : `${g} (${counts[g]} mut)`;
+                const suffix = isTranslocation ? 'fused' : isDamaging ? 'lost' : 'mut';
+                const label = `${g} (${counts[g]} ${suffix})`;
                 gHtml += `<option value="${g}"${sel}>${label}</option>`;
             }
             hotspotGeneSelectEl.innerHTML = gHtml;
         }
+        // The stratifier label reflects the axis type (it's not always "Hotspot").
+        const geStratLabel = document.getElementById('geHotspotGeneLabel');
+        if (geStratLabel) geStratLabel.textContent = isTranslocation ? 'Fusion (Y):' : isDamaging ? 'Functional loss (Y):' : 'Hotspot mutation (Y):';
         document.getElementById('geHotspotGeneGroup').style.display = '';
 
         // Show gene search bar so user can change the gene (#12)
