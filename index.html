@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.73 (2026-06-06)</strong></p>
+                <ul>
+                    <li><b>Mutational analysis &mdash; the Fusion and Damaging axes now use validated data, cutting the noise.</b> The old &ldquo;Translocation/Fusion&rdquo; axis counted <em>every</em> raw DepMap fusion call (mostly passengers/read-through artifacts); it is now <b>&ldquo;Fusion (validated)&rdquo;</b> &mdash; the curated driver fusions shown in the Cell Line Browser&rsquo;s &ldquo;Clinically relevant fusions&rdquo; section (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PAX3-FOXO1, &hellip;), validated per cell line by tissue match + partner expression + partner CRISPR dependency, kept at <b>high+medium</b> confidence (36 participating genes). The old &ldquo;Damaging Mutation&rdquo; axis (DepMap&rsquo;s 8,926-gene predicted-LoF matrix, full of passengers like TTN/MUC19) is replaced by <b>&ldquo;Functional loss&rdquo;</b> &mdash; the 8 tumour suppressors from the Cell Line Browser&rsquo;s &ldquo;Functional loss&rdquo; section (APC, CDKN2A, MTAP, NF1, PTEN, RB1, TP53, VHL), DepMap&rsquo;s integrated CN+mutation+expression call that also catches deletion-driven losses the mutation matrix misses. Built by <code>scripts/build_validated_fusions.py</code> and <code>scripts/build_functional_loss.py</code>. The Cell Line Browser, Wiki, antigen-presentation and HR-deficiency views still use the full raw damaging/fusion data; the optional <em>additional</em> mutation/fusion sub-filters in the analysis also still use the raw sets.</li>
+                </ul>
                 <p><strong>v.81.72 (2026-06-06)</strong></p>
                 <ul>
                     <li>Scatter plots &mdash; <b>Shift-click any cell-line dot to open it in the Cell Line Browser</b>. Works across the main correlation scatter (including the 3-panel WT/mutant view), the expression-correlate scatter, the gene-effect distribution box plots (tissue, hotspot and tissue-comparison views), and the correlation-analysis tissue/hotspot scatters &mdash; the same destination you already get by clicking a point in the browser&rsquo;s UMAP. A plain click keeps its existing behaviour (e.g. toggling a line into the inspect panel on the main scatter); only Shift-click navigates.</li>
@@ -2864,7 +2868,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.72</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.73</a>
     </div>
 
     <div class="main-content">
@@ -2984,10 +2988,10 @@
                                     <input type="radio" name="mutAnalysisType" value="hotspot" checked> Hotspot Mutation
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                    <input type="radio" name="mutAnalysisType" value="translocation"> Translocation/Fusion
+                                    <input type="radio" name="mutAnalysisType" value="translocation"> Fusion (validated)
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                    <input type="radio" name="mutAnalysisType" value="damaging"> Damaging Mutation
+                                    <input type="radio" name="mutAnalysisType" value="damaging"> Functional loss
                                 </label>
                             </div>
                         </div>
@@ -3001,7 +3005,7 @@
                             </div>
                         </div>
                         <div id="translocationAnalysisControls" style="display: none;">
-                            <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Translocation/Fusion Gene (required):</label>
+                            <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Fusion Gene — validated (required):</label>
                             <div style="display: flex; gap: 6px; align-items: center;">
                                 <input type="text" id="translocationHotspotSelect" list="translocationHotspotList" class="form-control" placeholder="Search fusion gene..." style="flex: 1;" autocomplete="off">
                                 <datalist id="translocationHotspotList"></datalist>
@@ -3009,7 +3013,7 @@
                             </div>
                         </div>
                         <div id="damagingAnalysisControls" style="display: none;">
-                            <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Damaging Mutation Gene (required):</label>
+                            <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Functional-loss Gene (required):</label>
                             <div style="display: flex; gap: 6px; align-items: center;">
                                 <input type="text" id="damagingHotspotSelect" list="damagingHotspotList" class="form-control" placeholder="Search gene..." style="flex: 1;" autocomplete="off">
                                 <datalist id="damagingHotspotList"></datalist>
@@ -5038,6 +5042,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_72"></script>
+    <script src="app.js?v=v81_73"></script>
 </body>
 </html>

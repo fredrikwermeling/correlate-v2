@@ -50,6 +50,8 @@ class CorrelationExplorer {
         this.mutations = null;
         this.damagingMutations = null;
         this.translocations = null;
+        this.validatedFusions = null;   // curated high+medium fusion calls (fusion axis)
+        this.functionalLoss = null;     // integrated TSG functional loss (functional-loss axis)
         this.clinicalFusions = null;
         this.inferredSubtypes = null;
         this.globalSignatures = null;
@@ -216,7 +218,7 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes, clinicalCnRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes, clinicalCnRes, validatedFusionsRes, functionalLossRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
@@ -232,7 +234,9 @@ class CorrelationExplorer {
             fetch('web_data/reactome_partners.json').catch(() => null),
             fetch('web_data/hla_cn.json').catch(() => null),
             fetch('web_data/lehmann_tnbc.json').catch(() => null),
-            fetch('web_data/clinical_cn.json').catch(() => null)
+            fetch('web_data/clinical_cn.json').catch(() => null),
+            fetch('web_data/validated_fusions.json').catch(() => null),
+            fetch('web_data/functional_loss.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -271,6 +275,17 @@ class CorrelationExplorer {
         }
         if (clinicalCnRes && clinicalCnRes.ok) {
             this.clinicalCn = await clinicalCnRes.json();
+        }
+        // Validated/curated fusion calls (high+medium tier) — the primary fusion
+        // axis for the mutational analysis. Mirrors translocations.json schema.
+        if (validatedFusionsRes && validatedFusionsRes.ok) {
+            this.validatedFusions = await validatedFusionsRes.json();
+        }
+        // DepMap-integrated tumor-suppressor functional loss (8 TSGs) — the primary
+        // "Functional loss" axis, replacing the noisy damaging-mutation matrix.
+        // Mirrors damaging_mutations.json schema.
+        if (functionalLossRes && functionalLossRes.ok) {
+            this.functionalLoss = await functionalLossRes.json();
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -627,7 +642,7 @@ class CorrelationExplorer {
             if (isMutationMode) {
                 this.populateMutationHotspotSelector();
                 this.populateTranslocationHotspotSelector();
-                if (this.damagingMutations?.geneData) this._populateDamagingMutationList();
+                if (this._lossAxisData?.geneData) this._populateDamagingMutationList();
             }
         }
         if (this.translocations?.geneData) {
@@ -939,6 +954,17 @@ class CorrelationExplorer {
         }
     }
 
+    // Primary mutational-analysis axis data sources. The "Fusion (validated)" axis
+    // uses the curated high+medium fusion calls; the "Functional loss" axis uses the
+    // integrated TSG functional-loss set. Both mirror the translocations/damaging
+    // JSON schema so every axis consumer reads them identically. These are used ONLY
+    // for the primary analysis axis — the raw this.translocations / this.damagingMutations
+    // are kept for the Cell Line Browser, Wiki, antigen-presentation, HR-deficiency
+    // collections, gate sources and the secondary mutation filter. Fall back to the
+    // raw datasets if the curated files failed to load.
+    get _fusionAxisData() { return this.validatedFusions || this.translocations; }
+    get _lossAxisData() { return this.functionalLoss || this.damagingMutations; }
+
     updateMutAnalysisTypeUI() {
         const subType = document.querySelector('input[name="mutAnalysisType"]:checked')?.value || 'hotspot';
         const isTranslocation = subType === 'translocation';
@@ -950,15 +976,15 @@ class CorrelationExplorer {
         if (!this.translocations?.geneData && !this.damagingMutations?.geneData) {
             document.getElementById('mutAnalysisTypeSelector').style.display = 'none';
         }
-        // Populate damaging mutation datalist on first show
-        if (isDamaging && this.damagingMutations?.genes) {
+        // Populate functional-loss datalist on first show
+        if (isDamaging && this._lossAxisData?.genes) {
             this._populateDamagingMutationList();
         }
     }
 
     _populateDamagingMutationList() {
         const datalist = document.getElementById('damagingHotspotList');
-        if (!datalist || !this.damagingMutations?.geneData) return;
+        if (!datalist || !this._lossAxisData?.geneData) return;
 
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
@@ -977,8 +1003,8 @@ class CorrelationExplorer {
             }) : cellLines;
 
         const geneCounts = [];
-        for (const gene of Object.keys(this.damagingMutations.geneData)) {
-            const mutations = this.damagingMutations.geneData[gene].mutations;
+        for (const gene of Object.keys(this._lossAxisData.geneData)) {
+            const mutations = this._lossAxisData.geneData[gene].mutations;
             let nMut = 0;
             for (const cl of filteredCLs) {
                 if (mutations[cl] && mutations[cl] > 0) nMut++;
@@ -989,7 +1015,7 @@ class CorrelationExplorer {
 
         let html = '';
         for (const { gene, count } of geneCounts) {
-            html += `<option value="${gene}">${gene} (${count} mutated)</option>`;
+            html += `<option value="${gene}">${gene} (${count} lost)</option>`;
         }
         datalist.innerHTML = html;
     }
@@ -1044,7 +1070,7 @@ class CorrelationExplorer {
     populateTranslocationHotspotSelector() {
         const input = document.getElementById('translocationHotspotSelect');
         if (!input) return;
-        if (!this.translocations || !this.translocations.geneData) return;
+        if (!this._fusionAxisData || !this._fusionAxisData.geneData) return;
 
         const datalist = document.getElementById('translocationHotspotList');
         const lineageFilter = document.getElementById('lineageFilter').value;
@@ -1052,7 +1078,7 @@ class CorrelationExplorer {
         const hasExcluded = this.excludedTissues && this.excludedTissues.size > 0;
         const currentValue = input.value;
 
-        const genes = Object.keys(this.translocations.geneData);
+        const genes = Object.keys(this._fusionAxisData.geneData);
         const cellLines = this.metadata.cellLines;
 
         // Build filtered cell line list once
@@ -1070,7 +1096,7 @@ class CorrelationExplorer {
         // Count fusions per gene, skip genes with 0 fusions
         const geneCounts = [];
         for (const gene of genes) {
-            const translocations = this.translocations.geneData[gene].translocations;
+            const translocations = this._fusionAxisData.geneData[gene].translocations;
             let nFused = 0;
             for (const cl of filteredCLs) {
                 if (translocations[cl] && translocations[cl] > 0) nFused++;
@@ -1379,8 +1405,8 @@ class CorrelationExplorer {
     }
 
     getTissueBreakdownForDamaging(gene) {
-        if (!this.damagingMutations?.geneData?.[gene] || !this.cellLineMetadata?.lineage) return [];
-        const mutations = this.damagingMutations.geneData[gene].mutations;
+        if (!this._lossAxisData?.geneData?.[gene] || !this.cellLineMetadata?.lineage) return [];
+        const mutations = this._lossAxisData.geneData[gene].mutations;
         const cellLines = this.metadata.cellLines;
         const tissueMap = {};
 
@@ -1399,8 +1425,8 @@ class CorrelationExplorer {
     }
 
     getTissueBreakdownForTranslocation(gene) {
-        if (!this.translocations?.geneData?.[gene] || !this.cellLineMetadata?.lineage) return [];
-        const translocations = this.translocations.geneData[gene].translocations;
+        if (!this._fusionAxisData?.geneData?.[gene] || !this.cellLineMetadata?.lineage) return [];
+        const translocations = this._fusionAxisData.geneData[gene].translocations;
         const cellLines = this.metadata.cellLines;
         const tissueMap = {};
 
@@ -1491,8 +1517,8 @@ class CorrelationExplorer {
         const subBreakdowns = {};
         if (this.cellLineMetadata?.primaryDisease) {
             const cellLines = this.metadata.cellLines;
-            const mutSource = isTransloc ? this.translocations?.geneData?.[gene]?.translocations
-                : isDamaging ? this.damagingMutations?.geneData?.[gene]?.mutations
+            const mutSource = isTransloc ? this._fusionAxisData?.geneData?.[gene]?.translocations
+                : isDamaging ? this._lossAxisData?.geneData?.[gene]?.mutations
                 : this.mutations?.geneData?.[gene]?.mutations;
             if (mutSource) {
                 cellLines.forEach(cl => {
@@ -3736,9 +3762,9 @@ class CorrelationExplorer {
                 const isTransloc = this.mutationResults.isTranslocation;
                 const isDmg = this.mutationResults.isDamaging;
                 const hasData = isTransloc
-                    ? this.translocations?.geneData?.[newHotspot]
+                    ? this._fusionAxisData?.geneData?.[newHotspot]
                     : isDmg
-                        ? this.damagingMutations?.geneData?.[newHotspot]
+                        ? this._lossAxisData?.geneData?.[newHotspot]
                         : this.mutations?.geneData?.[newHotspot];
                 if (newHotspot && hasData) {
                     this.mutationResults.hotspotGene = newHotspot;
@@ -4971,24 +4997,24 @@ class CorrelationExplorer {
         const additionalTransLevel = document.getElementById('paramTranslocationLevel').value;
 
         if (!hotspotGene) {
-            this.showStatus('error', isTranslocation ? 'Please select a translocation/fusion gene' : isDamaging ? 'Please select a damaging mutation gene' : 'Please select a hotspot mutation');
+            this.showStatus('error', isTranslocation ? 'Please select a fusion gene' : isDamaging ? 'Please select a functional-loss gene' : 'Please select a hotspot mutation');
             return;
         }
-        if (isTranslocation && !this.translocations?.geneData?.[hotspotGene]) {
+        if (isTranslocation && !this._fusionAxisData?.geneData?.[hotspotGene]) {
             this.showStatus('error', `"${hotspotGene}" is not a valid fusion gene. Please select from the list.`);
             return;
         }
-        if (isDamaging && !this.damagingMutations?.geneData?.[hotspotGene]) {
-            this.showStatus('error', `"${hotspotGene}" is not a valid gene in damaging mutations data. Please select from the list.`);
+        if (isDamaging && !this._lossAxisData?.geneData?.[hotspotGene]) {
+            this.showStatus('error', `"${hotspotGene}" is not a valid gene in the functional-loss data. Please select from the list.`);
             return;
         }
 
-        this.showStatus('info', isTranslocation ? 'Running fusion analysis...' : isDamaging ? 'Running damaging mutation analysis...' : 'Running mutation analysis...');
+        this.showStatus('info', isTranslocation ? 'Running fusion analysis...' : isDamaging ? 'Running functional-loss analysis...' : 'Running mutation analysis...');
 
         // Use setTimeout to allow UI to update
         setTimeout(() => {
             try {
-                const mutDataSource = isDamaging ? this.damagingMutations : this.mutations;
+                const mutDataSource = isDamaging ? this._lossAxisData : this.mutations;
                 const analysisResult = isTranslocation
                     ? this.calculateTranslocationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel)
                     : this.calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel, mutDataSource);
@@ -5035,7 +5061,7 @@ class CorrelationExplorer {
                 document.querySelector('[data-tab="mutation"]').classList.add('active');
                 document.getElementById('tab-mutation').classList.add('active');
 
-                const analysisLabel = isTranslocation ? 'Fusion' : isDamaging ? 'Damaging Mutation' : 'Mutation';
+                const analysisLabel = isTranslocation ? 'Fusion' : isDamaging ? 'Functional Loss' : 'Mutation';
                 const nSkipped = analysisResult.nSkippedMinN || 0;
                 let statusMsg = `&#10003; ${analysisLabel} analysis complete: ${significantResults.length} genes with p < ${pThreshold}`;
                 if (significantResults.length === 0 && nSkipped > 0) {
@@ -5459,7 +5485,7 @@ class CorrelationExplorer {
     }
 
     calculateTranslocationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel) {
-        const transData = this.translocations.geneData[hotspotGene];
+        const transData = this._fusionAxisData.geneData[hotspotGene];
         if (!transData) {
             throw new Error(`No translocation data for ${hotspotGene}`);
         }
@@ -5762,7 +5788,7 @@ class CorrelationExplorer {
         const isT = mr.isTranslocation;
         const isD = mr.isDamaging;
         const wtLabel = isT ? `No ${hg} Fusion` : `${hg} WT`;
-        const mutLbl = isT ? `${hg} Fused` : isD ? `${hg} Dmg` : `${hg} Mut`;
+        const mutLbl = isT ? `${hg} Fused` : isD ? `${hg} Loss` : `${hg} Mut`;
         const thead = document.querySelector('#mutationTable thead');
         const thStyle = 'cursor: pointer;';
         const sortClick = 'onclick="app.sortMutationTable(this, event)"';
@@ -5850,7 +5876,7 @@ class CorrelationExplorer {
         });
 
         // Build settings summary
-        const typeLabel = mr.isTranslocation ? 'Fusion Gene' : mr.isDamaging ? 'Damaging Mut' : 'Hotspot';
+        const typeLabel = mr.isTranslocation ? 'Fusion Gene' : mr.isDamaging ? 'Functional Loss' : 'Hotspot';
         const mutLabel = mr.isTranslocation ? 'Fused' : 'Mutated';
         let settingsText = `${typeLabel}: ${mr.hotspotGene} | `;
         settingsText += `WT: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells`;
@@ -6178,9 +6204,9 @@ class CorrelationExplorer {
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
         const mutationData = isTranslocation
-            ? this.translocations.geneData[hotspotGene]
+            ? this._fusionAxisData.geneData[hotspotGene]
             : isDamaging
-                ? this.damagingMutations?.geneData?.[hotspotGene]
+                ? this._lossAxisData?.geneData?.[hotspotGene]
                 : this.mutations.geneData[hotspotGene];
         const geneIdx = this.geneIndex.get(gene.toUpperCase());
 
@@ -6311,7 +6337,7 @@ class CorrelationExplorer {
         const jitter = (base, spread = 0.15) => base + (Math.random() - 0.5) * spread;
 
         // Labels and colors depend on mutation type
-        const mut1Label = isTranslocation ? '1 fusion partner' : isDamaging ? 'Damaging mutation' : '1 mutation';
+        const mut1Label = isTranslocation ? '1 fusion partner' : isDamaging ? 'Functional loss' : '1 mutation';
         const mut2Label = isTranslocation ? '2+ fusion partners' : isDamaging ? '' : '2 mutations';
         const color1 = '#3b82f6';
         const color2 = '#dc2626';
@@ -6498,8 +6524,8 @@ class CorrelationExplorer {
         // Combine lineage info and stats in subtitle
         const subtitle = `${lineageText}<br>${statsLine1}<br>${statsLine2}`;
 
-        const statusLabel = isTranslocation ? 'Fusion Status' : isDamaging ? 'Damaging Mutation' : 'Mutation Status';
-        const yAxisTitle = isTranslocation ? `${hotspotGene} Fusions` : isDamaging ? `${hotspotGene} Damaging` : `${hotspotGene} Mutations`;
+        const statusLabel = isTranslocation ? 'Fusion Status' : isDamaging ? 'Functional Loss' : 'Mutation Status';
+        const yAxisTitle = isTranslocation ? `${hotspotGene} Fusions` : isDamaging ? `${hotspotGene} Functional Loss` : `${hotspotGene} Mutations`;
         const tick0Label = isTranslocation ? '0 No fusion' : '0 WT';
         const tick1Label = isTranslocation ? '1 partner' : isDamaging ? '1 Damaging' : '1';
         const tick2Label = isTranslocation ? '2+ partners' : '2';
@@ -6576,7 +6602,7 @@ class CorrelationExplorer {
 
         // Show modal
         document.getElementById('geneEffectModal').style.display = 'flex';
-        document.getElementById('geneEffectTitle').textContent = `${gene} Gene Effect by ${hotspotGene} ${isTranslocation ? 'Fusion' : isDamaging ? 'Damaging Mutation' : 'Mutation'}`;
+        document.getElementById('geneEffectTitle').textContent = `${gene} Gene Effect by ${hotspotGene} ${isTranslocation ? 'Fusion' : isDamaging ? 'Functional Loss' : 'Mutation'}`;
 
         // Populate tissue filter dropdown with ALL lineages (inspect can override analysis filters)
         const tissueFilterEl = document.getElementById('geTissueFilter');
@@ -6654,11 +6680,11 @@ class CorrelationExplorer {
         const hotspotGeneSelectEl = document.getElementById('geHotspotGeneSelect');
         if (hotspotGeneSelectEl) {
             const geneList = isTranslocation
-                ? (this.translocations?.genes || [])
+                ? (this._fusionAxisData?.genes || [])
                 : isDamaging
-                    ? (this.damagingMutations?.genes || [])
+                    ? (this._lossAxisData?.genes || [])
                     : (this.mutations?.genes || []);
-            const src = isTranslocation ? this.translocations : (isDamaging ? this.damagingMutations : this.mutations);
+            const src = isTranslocation ? this._fusionAxisData : (isDamaging ? this._lossAxisData : this.mutations);
             const innerKey = isTranslocation ? 'translocations' : 'mutations';
             // Pre-build a set of cell lines that pass mutation-analysis filters.
             const eligibleCL = new Set();
@@ -19652,11 +19678,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Cell line groups (#1)
             if (this.geneEffectViewMode === 'mutation' && mr?.hotspotGene) {
                 const hg = mr.hotspotGene;
-                const mData = (mr.isTranslocation ? this.translocations?.geneData?.[hg]?.translocations : mr.isDamaging ? this.damagingMutations?.geneData?.[hg]?.mutations : this.mutations?.geneData?.[hg]?.mutations) || {};
+                const mData = (mr.isTranslocation ? this._fusionAxisData?.geneData?.[hg]?.translocations : mr.isDamaging ? this._lossAxisData?.geneData?.[hg]?.mutations : this.mutations?.geneData?.[hg]?.mutations) || {};
                 cellLineGroups = { WT: [], mut1: [], mut2: [] };
                 cellLines.forEach(cl => { const ml = mData[cl] || 0; if (ml === 0) cellLineGroups.WT.push(cl); else if (ml === 1) cellLineGroups.mut1.push(cl); else cellLineGroups.mut2.push(cl); });
                 const filterParts = [tissueF, subtypeF, mutGeneF && mutLevelF !== 'all' ? `${mutGeneF} ${mutLevelF}` : ''].filter(Boolean).join(', ');
-                description = `${gene} gene effect stratified by ${hg} ${mr.isTranslocation ? 'fusion' : mr.isDamaging ? 'damaging mutation' : 'hotspot mutation'} count${filterParts ? ' in ' + filterParts : ''} cell lines.`;
+                description = `${gene} gene effect stratified by ${hg} ${mr.isTranslocation ? 'fusion' : mr.isDamaging ? 'functional loss' : 'hotspot mutation'} count${filterParts ? ' in ' + filterParts : ''} cell lines.`;
             } else {
                 description = `${gene} gene effect across ${tissueF || 'all'} cell lines${subtypeF ? ' (' + subtypeF + ')' : ''}.`;
             }
@@ -19715,12 +19741,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Cell line groups for mutation analysis
             if (mr?.hotspotGene) {
                 const hg = mr.hotspotGene;
-                const mData = (mr.isTranslocation ? this.translocations?.geneData?.[hg]?.translocations : mr.isDamaging ? this.damagingMutations?.geneData?.[hg]?.mutations : this.mutations?.geneData?.[hg]?.mutations) || {};
+                const mData = (mr.isTranslocation ? this._fusionAxisData?.geneData?.[hg]?.translocations : mr.isDamaging ? this._lossAxisData?.geneData?.[hg]?.mutations : this.mutations?.geneData?.[hg]?.mutations) || {};
                 cellLineGroups = { WT: [], mut1: [], mut2: [] };
                 cellLines.forEach(cl => { const ml = mData[cl] || 0; if (ml === 0) cellLineGroups.WT.push(cl); else if (ml === 1) cellLineGroups.mut1.push(cl); else cellLineGroups.mut2.push(cl); });
             }
             const filterParts = [mr?.lineageFilter, mr?.subLineageFilter].filter(Boolean).join(', ');
-            description = `Differential gene effect analysis for ${mr?.hotspotGene} ${mr?.isTranslocation ? 'fusion' : mr?.isDamaging ? 'damaging mutation' : 'hotspot mutation'}${filterParts ? ' in ' + filterParts : ''}.`;
+            description = `Differential gene effect analysis for ${mr?.hotspotGene} ${mr?.isTranslocation ? 'fusion' : mr?.isDamaging ? 'functional loss' : 'hotspot mutation'}${filterParts ? ' in ' + filterParts : ''}.`;
             // Source-specific extras: per-gene differential analysis results.
             if (mr?.allResults) {
                 extras = {
@@ -21114,9 +21140,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
         const mutationData = isTranslocation
-            ? this.translocations?.geneData?.[hotspotGene]
+            ? this._fusionAxisData?.geneData?.[hotspotGene]
             : isDamaging
-                ? this.damagingMutations?.geneData?.[hotspotGene]
+                ? this._lossAxisData?.geneData?.[hotspotGene]
                 : this.mutations?.geneData?.[hotspotGene];
         if (!mutationData) return;
 
@@ -21229,9 +21255,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
         const mainMutData = isTranslocation
-            ? this.translocations?.geneData?.[mainHotspot]
+            ? this._fusionAxisData?.geneData?.[mainHotspot]
             : isDamaging
-                ? this.damagingMutations?.geneData?.[mainHotspot]
+                ? this._lossAxisData?.geneData?.[mainHotspot]
                 : this.mutations?.geneData?.[mainHotspot];
         if (!mainMutData) return;
 
@@ -21330,9 +21356,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
         const mainMutData = isTranslocation
-            ? this.translocations?.geneData?.[mainHotspot]
+            ? this._fusionAxisData?.geneData?.[mainHotspot]
             : isDamaging
-                ? this.damagingMutations?.geneData?.[mainHotspot]
+                ? this._lossAxisData?.geneData?.[mainHotspot]
                 : this.mutations?.geneData?.[mainHotspot];
         if (!mainMutData) return;
 
@@ -21792,9 +21818,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const isTranslocation = mr?.isTranslocation;
         const isDamaging = mr?.isDamaging;
         const mutationData = mr ? (isTranslocation
-            ? this.translocations?.geneData?.[hotspotGene]
+            ? this._fusionAxisData?.geneData?.[hotspotGene]
             : isDamaging
-                ? this.damagingMutations?.geneData?.[hotspotGene]
+                ? this._lossAxisData?.geneData?.[hotspotGene]
                 : this.mutations?.geneData?.[hotspotGene]) : null;
         const targetGene = this.currentGeneEffectGene.toUpperCase();
         const targetGeneIdx = this.geneIndex.get(targetGene);
@@ -22323,9 +22349,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
         const mutationData = isTranslocation
-            ? this.translocations?.geneData?.[hotspotGene]
+            ? this._fusionAxisData?.geneData?.[hotspotGene]
             : isDamaging
-                ? this.damagingMutations?.geneData?.[hotspotGene]
+                ? this._lossAxisData?.geneData?.[hotspotGene]
                 : this.mutations?.geneData?.[hotspotGene];
         if (!mutationData) return;
 
@@ -22402,9 +22428,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
         const mainMutData = isTranslocation
-            ? this.translocations?.geneData?.[mainHotspot]
+            ? this._fusionAxisData?.geneData?.[mainHotspot]
             : isDamaging
-                ? this.damagingMutations?.geneData?.[mainHotspot]
+                ? this._lossAxisData?.geneData?.[mainHotspot]
                 : this.mutations?.geneData?.[mainHotspot];
         if (!mainMutData) return;
 
@@ -22478,9 +22504,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
         const mainMutData = isTranslocation
-            ? this.translocations?.geneData?.[mainHotspot]
+            ? this._fusionAxisData?.geneData?.[mainHotspot]
             : isDamaging
-                ? this.damagingMutations?.geneData?.[mainHotspot]
+                ? this._lossAxisData?.geneData?.[mainHotspot]
                 : this.mutations?.geneData?.[mainHotspot];
         if (!mainMutData) return;
 
