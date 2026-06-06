@@ -27444,13 +27444,20 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // are visually separated from the body text and from each other. The
         // outer section also gets more breathing room (24 px bottom margin
         // instead of 18 px) for the same reason.
+        // Card layout: each section is a self-contained white card with a slim
+        // header bar (green dot + uppercase title) and an optional muted source
+        // footer. Keeps the section()/row()/pill() signatures unchanged so every
+        // call site re-skins automatically.
         const section = (title, body, source) => `
-            <section style="margin-bottom:24px; padding-bottom:14px; border-bottom:1px solid #e5e7eb;">
-                <h3 style="margin:0 0 12px; padding:8px 12px; font-size:17px; font-weight:700; color:#15803d; background:#f0fdf4; border-left:4px solid #15803d; border-radius:0 4px 4px 0;">${title}</h3>
-                <div>${body}</div>
-                ${source ? `<div style="margin-top:8px; font-size:10px; color:#9ca3af;"><b>Source:</b> ${source}</div>` : ''}
+            <section style="margin-bottom:16px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04); overflow:hidden;">
+                <div style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #eef2f7; background:#f7fbf8;">
+                    <span style="width:8px; height:8px; border-radius:50%; background:#15803d; flex:0 0 auto;"></span>
+                    <h3 style="margin:0; font-size:13px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#15803d;">${title}</h3>
+                </div>
+                <div style="padding:12px 14px;">${body}</div>
+                ${source ? `<div style="padding:8px 14px; border-top:1px solid #f1f5f9; font-size:10px; color:#9ca3af;"><b>Source:</b> ${source}</div>` : ''}
             </section>`;
-        const row = (label, value) => value ? `<div style="display:flex; gap:8px; padding:2px 0;"><span style="flex:0 0 180px; color:#6b7280;">${label}</span><span>${value}</span></div>` : '';
+        const row = (label, value) => value ? `<div style="display:flex; gap:12px; padding:3px 0; align-items:baseline;"><span style="flex:0 0 190px; color:#6b7280; font-size:11px;">${label}</span><span style="flex:1; min-width:0;">${value}</span></div>` : '';
         const pill = (text, color) => `<span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${color}22; color:${color}; font-weight:600; font-size:10px; margin-right:4px;">${text}</span>`;
 
         // --- Classification ---
@@ -28924,7 +28931,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ? `${s1} ${bodyText}`
                 : `${s1} <span style="color:#6b7280;">No canonical driver alteration detected from the integrated DepMap layers — see &ldquo;Other alterations in this cell line&rdquo; below for non-canonical events, or consider STR re-authentication if this is surprising for the subtype.</span>`;
 
-            return `<div style="margin-bottom:20px; padding:14px 18px; background:linear-gradient(to right, #f0fdf4, #fff); border-left:4px solid #15803d; border-radius:0 6px 6px 0;">
+            return `<div style="margin-bottom:16px; padding:14px 18px; background:#fff; border:1px solid #bbf7d0; border-left:4px solid #15803d; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
                 <div style="font-size:9px; font-weight:700; color:#15803d; letter-spacing:0.06em; margin-bottom:6px;">EXECUTIVE SUMMARY</div>
                 <div style="font-size:13px; line-height:1.65; color:#374151;">${fullText}</div>
             </div>`;

@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.80 (2026-06-06)</strong></p>
+                <ul>
+                    <li>Cell Line Wiki &mdash; visual refresh (step 1 of an ongoing pass). Each section is now a clean white <b>card</b> on a light-grey backdrop, with a slim header bar (green dot + uppercase title) and a muted source footer; the executive summary and label/value rows were aligned to match. Applied consistently across all 13 sections via the shared section()/row() helpers. Data-heavy sections (genome-signature histograms, drug-response plots) render correctly inside the cards. A field-by-field data-correctness pass follows.</li>
+                </ul>
                 <p><strong>v.81.79 (2026-06-06)</strong></p>
                 <ul>
                     <li>App-wide GE-vs-Expression wording sweep. Audited the rest of the app (correlation scatter, find-correlates, expression-correlate scatter, compare modals, Cell Line Browser) &mdash; almost everything already labels axes dynamically from each axis&rsquo;s data type. Found and fixed one bug: the <b>scatter CSV export</b> hardcoded the column headers as <code>Gene1_Effect,Gene2_Effect</code> regardless of axis type, so a Gene-Effect-vs-Expression scatter exported both columns as &ldquo;Effect&rdquo;. The headers now reflect each axis (<code>_Effect</code> / <code>_Expression</code> / <code>_GrowthRate</code> / <code>_GeneSetScore</code>).</li>
@@ -2894,7 +2898,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.79</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.80</a>
     </div>
 
     <div class="main-content">
@@ -4554,7 +4558,7 @@
             <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
           </div>
         </div>
-        <div id="clbWikiBody" style="padding:16px 20px; overflow-y:auto; font-size:12px; line-height:1.55; color:#374151;"></div>
+        <div id="clbWikiBody" style="padding:16px 20px; overflow-y:auto; font-size:12px; line-height:1.55; color:#374151; background:#f9fafb;"></div>
       </div>
     </div>
 
@@ -5068,6 +5072,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_79"></script>
+    <script src="app.js?v=v81_80"></script>
 </body>
 </html>
