@@ -25692,6 +25692,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (filtered.length === 0) {
             container.innerHTML = '<div class="clb-no-results">No cell lines match your filters</div>';
             this.updateClbFilterCounts();
+            this.updateClbSelectionCount();
             return;
         }
 
@@ -25819,6 +25820,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         container.innerHTML = countCaption + caption + html;
 
         this.updateClbFilterCounts();
+        this.updateClbSelectionCount();
 
         // Refresh the open sort-drug dropdown so its per-compound
         // sensitivity counts re-score against the new visible subset
@@ -26746,7 +26748,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     }
 
     updateClbSelectionCount() {
-        document.getElementById('clbSelectionCount').textContent = `${this._clbSelectedCellLines.size} selected`;
+        const el = document.getElementById('clbSelectionCount');
+        if (!el) return;
+        const total = this._clbSelectedCellLines.size;
+        // How many of the selected lines are in the current filtered view. Shown
+        // when a filter hides some of the selection, so the count tracks filters
+        // while still reporting the full selection that Inspect/Export act on.
+        const visible = Array.isArray(this._clbVisibleCellLines) ? this._clbVisibleCellLines : [];
+        let inView = 0;
+        for (const cl of visible) if (this._clbSelectedCellLines.has(cl)) inView++;
+        el.textContent = (total > 0 && inView < total)
+            ? `${total} selected · ${inView} in view`
+            : `${total} selected`;
     }
 
     // ===== Cell Line Wiki =====
