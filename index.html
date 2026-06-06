@@ -1331,6 +1331,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.83 (2026-06-06)</strong></p>
+                <ul>
+                    <li><b>Mutational analysis &mdash; the Fusion axis now picks a specific fusion, not a gene.</b> The axis is relabelled simply <b>&ldquo;Fusion&rdquo;</b> and the selector lists the named driver fusions themselves (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PAX3-FOXO1, &hellip; &mdash; 23 in total), splitting cell lines into carriers vs non-carriers of that exact fusion. Previously it listed the individual participating genes (ABL1, BCR, &hellip;).</li>
+                    <li><b>Click a cell-line dot to open it in the Cell Line Browser.</b> On the read-only plots (gene-effect distribution / by-tissue / by-hotspot, correlation-analysis tissue &amp; hotspot, expression-correlate) a plain click on a point now opens that cell line &mdash; previously it required Shift-click, which wasn&rsquo;t discoverable. The main correlation scatter keeps its existing behaviour (plain click toggles the inspect selection; Shift-click opens the browser).</li>
+                </ul>
                 <p><strong>v.81.82 (2026-06-06)</strong></p>
                 <ul>
                     <li>Cell Line Wiki &mdash; spot-checked the data against two more lines beyond A549: <b>K562</b> (Myeloid / CML, BCR-ABL1+) and <b>HCT116</b> (MSI-high colorectal). Both render correctly &mdash; K562 shows the BCR-ABL1 fusion, female/XIST sex call, and IMATINIB as top sensitive drug (−5.4σ); HCT116 shows MSI-high (score 89, mismatch-repair deficient, hypermutated), KRAS p.G13 + PIK3CA p.H1047 hotspots, male/Y-marker sex call. One small display fix from this pass: collection-site values stored with underscores (e.g. &ldquo;large_intestine&rdquo;) now render as &ldquo;Large Intestine&rdquo;.</li>
@@ -2906,7 +2911,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.82</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.83</a>
     </div>
 
     <div class="main-content">
@@ -3026,7 +3031,7 @@
                                     <input type="radio" name="mutAnalysisType" value="hotspot" checked> Hotspot Mutation
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                    <input type="radio" name="mutAnalysisType" value="translocation"> Fusion (validated)
+                                    <input type="radio" name="mutAnalysisType" value="translocation"> Fusion
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
                                     <input type="radio" name="mutAnalysisType" value="damaging"> Functional loss
@@ -3043,9 +3048,9 @@
                             </div>
                         </div>
                         <div id="translocationAnalysisControls" style="display: none;">
-                            <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Fusion Gene — validated (required):</label>
+                            <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Fusion (required):</label>
                             <div style="display: flex; gap: 6px; align-items: center;">
-                                <input type="text" id="translocationHotspotSelect" list="translocationHotspotList" class="form-control" placeholder="Search fusion gene..." style="flex: 1;" autocomplete="off">
+                                <input type="text" id="translocationHotspotSelect" list="translocationHotspotList" class="form-control" placeholder="Search fusion (e.g. BCR-ABL1)..." style="flex: 1;" autocomplete="off">
                                 <datalist id="translocationHotspotList"></datalist>
                                 <button id="translocationTissueBreakdownBtn" type="button" style="display: none; padding: 4px 10px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this fusion">Tissues</button>
                             </div>
@@ -5080,6 +5085,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_82"></script>
+    <script src="app.js?v=v81_83"></script>
 </body>
 </html>

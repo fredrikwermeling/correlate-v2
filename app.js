@@ -5009,7 +5009,7 @@ class CorrelationExplorer {
         const additionalTransLevel = document.getElementById('paramTranslocationLevel').value;
 
         if (!hotspotGene) {
-            this.showStatus('error', isTranslocation ? 'Please select a fusion gene' : isDamaging ? 'Please select a functional-loss gene' : 'Please select a hotspot mutation');
+            this.showStatus('error', isTranslocation ? 'Please select a fusion' : isDamaging ? 'Please select a functional-loss gene' : 'Please select a hotspot mutation');
             return;
         }
         if (isTranslocation && !this._fusionAxisData?.geneData?.[hotspotGene]) {
@@ -5888,7 +5888,7 @@ class CorrelationExplorer {
         });
 
         // Build settings summary
-        const typeLabel = mr.isTranslocation ? 'Fusion Gene' : mr.isDamaging ? 'Functional Loss' : 'Hotspot';
+        const typeLabel = mr.isTranslocation ? 'Fusion' : mr.isDamaging ? 'Functional Loss' : 'Hotspot';
         const mutLabel = mr.isTranslocation ? 'Fused' : 'Mutated';
         let settingsText = `${typeLabel}: ${mr.hotspotGene} | `;
         settingsText += `WT: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells`;
@@ -6386,6 +6386,7 @@ class CorrelationExplorer {
                 name: `WT (n=${data.wt.length})`,
                 marker: { color: '#888888', size: 8, opacity: 0.7 },
                 text: data.wt.map(d => makeHoverText(d)),
+                customdata: data.wt.map(d => d.cellLine),
                 hoverinfo: 'text'
             },
             {
@@ -6396,6 +6397,7 @@ class CorrelationExplorer {
                 name: `${mut1Label} (n=${data.mut1.length})`,
                 marker: { color: color1, size: 8, opacity: 0.7 },
                 text: data.mut1.map(d => makeHoverText(d)),
+                customdata: data.mut1.map(d => d.cellLine),
                 hoverinfo: 'text'
             },
             {
@@ -6406,6 +6408,7 @@ class CorrelationExplorer {
                 name: `${mut2Label} (n=${data.mut2.length})`,
                 marker: { color: color2, size: 8, opacity: 0.7 },
                 text: data.mut2.map(d => makeHoverText(d)),
+                customdata: data.mut2.map(d => d.cellLine),
                 hoverinfo: 'text'
             }
         ];
@@ -6538,9 +6541,9 @@ class CorrelationExplorer {
 
         const statusLabel = isTranslocation ? 'Fusion Status' : isDamaging ? 'Functional Loss' : 'Mutation Status';
         const yAxisTitle = isTranslocation ? `${hotspotGene} Fusions` : isDamaging ? `${hotspotGene} Functional Loss` : `${hotspotGene} Mutations`;
-        const tick0Label = isTranslocation ? '0 No fusion' : '0 WT';
-        const tick1Label = isTranslocation ? '1 partner' : isDamaging ? '1 Lost' : '1';
-        const tick2Label = isTranslocation ? '2+ partners' : '2';
+        const tick0Label = isTranslocation ? 'No fusion' : '0 WT';
+        const tick1Label = isTranslocation ? 'Fusion+' : isDamaging ? '1 Lost' : '1';
+        const tick2Label = isTranslocation ? '—' : '2';
 
         const titleText = `${gene} Gene Effect by ${hotspotGene} ${statusLabel}`;
         const subtitleText = subtitle;
@@ -6826,6 +6829,8 @@ class CorrelationExplorer {
                 this._handleGEGateShapeRelayout(relayoutData);
             });
         });
+        // Click a cell-line point to open it in the Cell Line Browser.
+        this._attachDotShiftOpen('geneEffectPlot');
 
         // Show GE gate controls in mutation inspect mode
         const geGateCtrl = document.getElementById('geGateControls');
@@ -15550,11 +15555,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (entry) entry.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
-    // Attach a Shift-click handler to a scatter/box plot so Shift-clicking a
-    // cell-line dot opens it in the Cell Line Browser. getId(point) recovers the
-    // ACH id from the clicked point; by default it reads customdata (a plain id
-    // string, or the last element when customdata is a [lineage, id] array used
-    // for hover text). Re-attaching is safe — old listeners are cleared first.
+    // Attach a click handler to a read-only scatter/box plot so clicking a
+    // cell-line dot opens it in the Cell Line Browser. These plots have no other
+    // use for a plain click, so a plain click opens (Shift works too). The main
+    // correlation scatter is the exception — there plain-click toggles the inspect
+    // selection and only Shift-click opens (handled in setupScatterClickHandler).
+    // getId(point) recovers the ACH id from the clicked point; by default it reads
+    // customdata (a plain id string, or the last element when customdata is a
+    // [lineage, id] array used for hover text). Re-attaching clears old listeners.
     _attachDotShiftOpen(plotId, getId) {
         const el = document.getElementById(plotId);
         if (!el || !el.on) return;
@@ -15563,7 +15571,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             : pt.customdata);
         el.removeAllListeners?.('plotly_click');
         el.on('plotly_click', (eventData) => {
-            if (!eventData?.event?.shiftKey) return;
             const pt = eventData.points?.[0];
             if (!pt || !Number.isInteger(pt.pointNumber)) return;
             const id = extract(pt);
