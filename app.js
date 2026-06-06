@@ -15471,15 +15471,53 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     Math.abs(d.x - point.x) < 0.001 && Math.abs(d.y - point.y) < 0.001
                 );
                 if (matchingData) {
+                    // Shift-click opens the cell line in the Cell Line Browser
+                    // instead of toggling it into the inspect panel.
+                    if (eventData.event?.shiftKey) {
+                        this._openCellLineInBrowser(matchingData.cellLineId);
+                        return;
+                    }
                     if (this.clickedCells.has(matchingData.cellLineName)) {
                         this.clickedCells.delete(matchingData.cellLineName);
                     } else {
                         this.clickedCells.add(matchingData.cellLineName);
                     }
-        
+
                     this.updateInspectPlot();
                 }
             }
+        });
+    }
+
+    // Shift-click on any cell-line dot opens that line in the Cell Line Browser.
+    // Opens the browser modal (resetting filters) and jumps to the detail view,
+    // matching the UX of clicking a UMAP point inside the browser.
+    _openCellLineInBrowser(cellLineId) {
+        if (!cellLineId) return;
+        this.openCellLineBrowser();
+        this.showCellLineDetail(cellLineId);
+        const entry = document.querySelector(`#clbList .clb-entry[data-clid="${CSS.escape(cellLineId)}"]`);
+        if (entry) entry.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    // Attach a Shift-click handler to a scatter/box plot so Shift-clicking a
+    // cell-line dot opens it in the Cell Line Browser. getId(point) recovers the
+    // ACH id from the clicked point; by default it reads customdata (a plain id
+    // string, or the last element when customdata is a [lineage, id] array used
+    // for hover text). Re-attaching is safe — old listeners are cleared first.
+    _attachDotShiftOpen(plotId, getId) {
+        const el = document.getElementById(plotId);
+        if (!el || !el.on) return;
+        const extract = getId || (pt => Array.isArray(pt.customdata)
+            ? pt.customdata[pt.customdata.length - 1]
+            : pt.customdata);
+        el.removeAllListeners?.('plotly_click');
+        el.on('plotly_click', (eventData) => {
+            if (!eventData?.event?.shiftKey) return;
+            const pt = eventData.points?.[0];
+            if (!pt || !Number.isInteger(pt.pointNumber)) return;
+            const id = extract(pt);
+            if (typeof id === 'string' && id) this._openCellLineInBrowser(id);
         });
     }
 
@@ -17002,6 +17040,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 type: 'scatter', mode: 'markers',
                 x: xVals, y: yVals,
                 text: pts.map(p => p.cellLineName),
+                customdata: pts.map(p => p.cellLineId),
                 marker: { color: '#5a9f4a', size: 6 },
                 hovertemplate: '<b>%{text}</b><br>%{x:.3f}, %{y:.3f}<extra></extra>'
             }];
@@ -17030,6 +17069,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     name: `WT (n=${wtPts.length})`,
                     x: wtPts.map(p => p.x), y: wtPts.map(p => p.y),
                     text: wtPts.map(p => p.cellLineName),
+                    customdata: wtPts.map(p => p.cellLineId),
                     marker: { color: 'rgba(37, 99, 235, 0.6)', size: 5 },
                     hovertemplate: '<b>%{text}</b><br>%{x:.3f}, %{y:.3f}<extra>WT</extra>'
                 },
@@ -17038,6 +17078,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     name: `Mut (n=${mutPts.length})`,
                     x: mutPts.map(p => p.x), y: mutPts.map(p => p.y),
                     text: mutPts.map(p => p.cellLineName),
+                    customdata: mutPts.map(p => p.cellLineId),
                     marker: { color: 'rgba(220, 38, 38, 0.6)', size: 6 },
                     hovertemplate: '<b>%{text}</b><br>%{x:.3f}, %{y:.3f}<extra>Mut</extra>'
                 }
@@ -17055,6 +17096,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         Plotly.newPlot(plotId, traces, layout, { responsive: true });
+        this._attachDotShiftOpen(plotId);
     }
 
     filterCATable(searchTerm) {
@@ -18231,6 +18273,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             name: `${s.group} (n=${s.n})`,
             x: s.cellData.map(c => c.geneEffect),
             text: s.cellData.map(c => c.cellLineName),
+            customdata: s.cellData.map(c => c.cellLineId),
             boxpoints: 'all',
             jitter: 0.3,
             pointpos: 0,
@@ -18258,6 +18301,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     x: hlCells.map(c => c.geneEffect),
                     y: hlCells.map(() => `${s.group} (n=${s.n})`),
                     text: hlCells.map(c => c.cellLineName),
+                    customdata: hlCells.map(c => c.cellLineId),
                     hovertemplate: `<b>%{text}</b><br>${hoverMetric}: %{x:.3f}<br><span style="color:${hlColor};">Selected</span><extra></extra>`,
                     showlegend: false,
                     marker: {
@@ -18316,6 +18360,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true, edits: { annotationPosition: true }, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'] });
         this._attachGEGateHandler('geneEffectPlot');
+        this._attachDotShiftOpen('geneEffectPlot');
 
         // Highlight cell line if requested (from CLB gene link or cell line search)
         const highlightCl = this._geHighlightCellLine;
@@ -18800,14 +18845,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     name: `0 (WT), n=${stats0.n}`,
                     y: effects0,
                     text: data0.map(d => d.cellLineName),
-                    customdata: data0.map(d => d.lineage || 'Unknown'),
+                    customdata: data0.map(d => [d.lineage || 'Unknown', d.cellLineId]),
                     boxpoints: 'all',
                     jitter: 0.3,
                     pointpos: 0,
                     marker: { color: '#2563eb', size: 5 },
                     line: { color: '#1e40af', width: 2 },
                     fillcolor: 'rgba(37, 99, 235, 0.4)',
-                    hovertemplate: `<b>%{text}</b><br>%{customdata}<br>${valLabel}: %{y:.3f}<extra>0 (WT)</extra>`
+                    hovertemplate: `<b>%{text}</b><br>%{customdata[0]}<br>${valLabel}: %{y:.3f}<extra>0 (WT)</extra>`
                 }
             ];
 
@@ -18818,14 +18863,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     name: `1 mut, n=${stats1.n}`,
                     y: effects1,
                     text: data1.map(d => d.cellLineName),
-                    customdata: data1.map(d => d.lineage || 'Unknown'),
+                    customdata: data1.map(d => [d.lineage || 'Unknown', d.cellLineId]),
                     boxpoints: 'all',
                     jitter: 0.3,
                     pointpos: 0,
                     marker: { color: '#f97316', size: 5 },
                     line: { color: '#c2410c', width: 2 },
                     fillcolor: 'rgba(249, 115, 22, 0.4)',
-                    hovertemplate: `<b>%{text}</b><br>%{customdata}<br>${valLabel}: %{y:.3f}<extra>1 mutation</extra>`
+                    hovertemplate: `<b>%{text}</b><br>%{customdata[0]}<br>${valLabel}: %{y:.3f}<extra>1 mutation</extra>`
                 });
             }
 
@@ -18836,14 +18881,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     name: `2 mut, n=${stats2.n}`,
                     y: effects2,
                     text: data2.map(d => d.cellLineName),
-                    customdata: data2.map(d => d.lineage || 'Unknown'),
+                    customdata: data2.map(d => [d.lineage || 'Unknown', d.cellLineId]),
                     boxpoints: 'all',
                     jitter: 0.3,
                     pointpos: 0,
                     marker: { color: '#dc2626', size: 5 },
                     line: { color: '#991b1b', width: 2 },
                     fillcolor: 'rgba(220, 38, 38, 0.4)',
-                    hovertemplate: `<b>%{text}</b><br>%{customdata}<br>${valLabel}: %{y:.3f}<extra>2 mutations</extra>`
+                    hovertemplate: `<b>%{text}</b><br>%{customdata[0]}<br>${valLabel}: %{y:.3f}<extra>2 mutations</extra>`
                 });
             }
 
@@ -18893,6 +18938,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.geDetailedView = { mode: 'hotspot', group };
 
             Plotly.newPlot(plotId, traces, layout, { responsive: true, displaylogo: false });
+            this._attachDotShiftOpen(plotId);
             this.updateShowAllButton();
             return;
         }
@@ -18921,20 +18967,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 name: `All cells, n=${allStats.n}`,
                 y: allEffects,
                 text: data.map(d => d.cellLineName),
-                customdata: data.map(d => d.lineage || 'Unknown'),
+                customdata: data.map(d => [d.lineage || 'Unknown', d.cellLineId]),
                 boxpoints: 'all',
                 jitter: 0.3,
                 pointpos: 0,
                 marker: { color: '#6b7280', size: 4 },
                 line: { color: '#374151', width: 2 },
                 fillcolor: 'rgba(107, 114, 128, 0.3)',
-                hovertemplate: '<b>%{text}</b><br>%{customdata}<br>Gene Effect: %{y:.3f}<extra>All cells</extra>'
+                hovertemplate: '<b>%{text}</b><br>%{customdata[0]}<br>Gene Effect: %{y:.3f}<extra>All cells</extra>'
             },
             {
                 type: 'box',
                 name: `${group}, n=${groupStats.n}`,
                 y: groupEffects,
                 text: filteredData.map(d => d.cellLineName),
+                customdata: filteredData.map(d => d.cellLineId),
                 boxpoints: 'all',
                 jitter: 0.3,
                 pointpos: 0,
@@ -18995,6 +19042,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.geDetailedView = { mode: 'tissue', group };
 
         Plotly.newPlot(plotId, traces, layout, { responsive: true });
+        this._attachDotShiftOpen(plotId);
         this.updateShowAllButton();
     }
 
@@ -22005,7 +22053,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     : (mutationData.mutations[cellLine] || 0))
                 : 0;
 
-            const point = { x: geVal, y: exprVal, cellName, lineage, mutLevel };
+            const point = { x: geVal, y: exprVal, cellName, lineage, mutLevel, cellLineId: cellLine };
 
             if (mutLevel === 0) points.wt.push(point);
             else if (mutLevel === 1) points.mut1.push(point);
@@ -22071,7 +22119,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (isNaN(exprVal) || isNaN(geVal)) continue;
 
                 const cellName = this.getCellLineName(cellLine);
-                const point = { x: geVal, y: exprVal, cellName, lineage, mutLevel };
+                const point = { x: geVal, y: exprVal, cellName, lineage, mutLevel, cellLineId: cellLine };
 
                 if (mutLevel === 0) extraPoints.wt.push(point);
                 else if (mutLevel === 1) extraPoints.mut1.push(point);
@@ -22106,6 +22154,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     name: `${g.name} (n=${g.data.length})`,
                     marker: { color: g.color, size: 5, opacity: 0.4, symbol: 'diamond' },
                     text: g.data.map(p => `${p.cellName}<br>${p.lineage}<br>GE: ${p.x.toFixed(2)}<br>Expr: ${p.y.toFixed(2)}`),
+                    customdata: g.data.map(p => p.cellLineId),
                     hoverinfo: 'text'
                 });
             });
@@ -22130,6 +22179,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 name: `${g.name} (n=${g.data.length})`,
                 marker: { color: g.color, size: 8, opacity: 0.7 },
                 text: g.data.map(p => `${p.cellName}<br>${p.lineage}<br>GE: ${p.x.toFixed(2)}<br>Expr: ${p.y.toFixed(2)}`),
+                customdata: g.data.map(p => p.cellLineId),
                 hoverinfo: 'text'
             });
         });
@@ -22181,6 +22231,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('exprScatterExprGene').value = expressionGene;
 
         Plotly.newPlot('exprCorrelateScatterPlot', traces, layout, { responsive: true });
+        this._attachDotShiftOpen('exprCorrelateScatterPlot');
     }
 
     updateExprScatterGenes() {

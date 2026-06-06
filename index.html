@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.72 (2026-06-06)</strong></p>
+                <ul>
+                    <li>Scatter plots &mdash; <b>Shift-click any cell-line dot to open it in the Cell Line Browser</b>. Works across the main correlation scatter (including the 3-panel WT/mutant view), the expression-correlate scatter, the gene-effect distribution box plots (tissue, hotspot and tissue-comparison views), and the correlation-analysis tissue/hotspot scatters &mdash; the same destination you already get by clicking a point in the browser&rsquo;s UMAP. A plain click keeps its existing behaviour (e.g. toggling a line into the inspect panel on the main scatter); only Shift-click navigates.</li>
+                </ul>
                 <p><strong>v.81.71 (2026-05-17)</strong></p>
                 <ul>
                     <li>CN matrix &mdash; drop the WGS-vs-WES per-line provenance tag. The values themselves come uniformly from DepMap OmicsCNGene.csv (24Q4 release), which is already a per-line hybrid by DepMap&rsquo;s own construction. The earlier &ldquo;WGS&rdquo; / &ldquo;WES&rdquo; pill was set by looking up each line in the newer OmicsCNGeneWGS 25Q3 file &mdash; one release ahead of the values &mdash; which created false precision (a line whose 24Q4 value was still WES-derived could be flagged as WGS because DepMap had WGS&rsquo;d it since). Cleaner story: one source, one sentence. Affects both Correlate V2 (small italic &ldquo;wes&rdquo; tag on CN sort-value pills removed) and Green Listed (per-column WGS / WES badges in the CN results table removed).</li>
@@ -2860,7 +2864,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.69</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.72</a>
     </div>
 
     <div class="main-content">
@@ -5034,6 +5038,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_71"></script>
+    <script src="app.js?v=v81_72"></script>
 </body>
 </html>
