@@ -6527,15 +6527,34 @@ class CorrelationExplorer {
         const statusLabel = isTranslocation ? 'Fusion Status' : isDamaging ? 'Functional Loss' : 'Mutation Status';
         const yAxisTitle = isTranslocation ? `${hotspotGene} Fusions` : isDamaging ? `${hotspotGene} Functional Loss` : `${hotspotGene} Mutations`;
         const tick0Label = isTranslocation ? '0 No fusion' : '0 WT';
-        const tick1Label = isTranslocation ? '1 partner' : isDamaging ? '1 Damaging' : '1';
+        const tick1Label = isTranslocation ? '1 partner' : isDamaging ? '1 Lost' : '1';
         const tick2Label = isTranslocation ? '2+ partners' : '2';
 
         const titleText = `${gene} Gene Effect by ${hotspotGene} ${statusLabel}`;
         const subtitleText = subtitle;
         const xLabelText = `${gene} Gene Effect`;
 
+        // Compute the y-axis layout first: its dynamic left margin (room reserved
+        // for the rotated y-label + tick labels) determines how much horizontal
+        // space the plot-area-centered title/subtitle actually have to wrap into.
+        const yLabelFontSize = 20;
+        const yTickFontSize = 17;
+        const yTickTexts = [
+            `${tick0Label} (n=${data.wt.length})`,
+            `${tick1Label} (n=${data.mut1.length})`,
+            `${tick2Label} (n=${data.mut2.length})`
+        ];
+        const yFit = this._computeGEYAxisLayout(yTickTexts, yTickFontSize, yLabelFontSize, 'geneEffectPlot');
+
+        // The title is centered on the plot area; it can bleed up to the right
+        // margin (30px) past the plot edge before the SVG clips it. Max safe width
+        // = plot-area width + 2×right-margin = container − marginL + right-margin.
+        const geRightMargin = 30;
+        const geContainerW = document.getElementById('geneEffectPlot')?.clientWidth || 600;
+        const geTitleMaxW = geContainerW - yFit.marginL + geRightMargin;
+
         const geTitleAnn = {
-            text: this._computeGETitleText(titleText, subtitleText, 25, 'geneEffectPlot'),
+            text: this._computeGETitleText(titleText, subtitleText, 25, 'geneEffectPlot', geTitleMaxW),
             xref: 'paper', yref: 'paper',
             x: this._geUserTitlePos ? this._geUserTitlePos.x : 0.5,
             y: this._geUserTitlePos ? this._geUserTitlePos.y : 1.65,
@@ -6556,14 +6575,6 @@ class CorrelationExplorer {
             font: { size: 20 },
             _tsRole: 'xlabel'
         };
-        const yLabelFontSize = 20;
-        const yTickFontSize = 17;
-        const yTickTexts = [
-            `${tick0Label} (n=${data.wt.length})`,
-            `${tick1Label} (n=${data.mut1.length})`,
-            `${tick2Label} (n=${data.mut2.length})`
-        ];
-        const yFit = this._computeGEYAxisLayout(yTickTexts, yTickFontSize, yLabelFontSize, 'geneEffectPlot');
 
         const geYLabelAnn = {
             text: yAxisTitle,
@@ -17970,11 +17981,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
     }
 
-    _computeGETitleText(titleText, subtitleText, baseFontSize, plotDivId) {
+    _computeGETitleText(titleText, subtitleText, baseFontSize, plotDivId, maxWidthOverride) {
         const container = plotDivId ? document.getElementById(plotDivId) : null;
         const containerWidth = container?.clientWidth || 600;
-        // Safety pad so the text doesn't kiss the plot edges.
-        const maxTitleWidth = Math.max(200, containerWidth - 40);
+        // The title/subtitle are centered on the plot area (paper x=0.5), which is
+        // offset to the right by the large left margin reserved for the rotated
+        // y-axis label. Wrapping to the full container width therefore still lets
+        // wide text overflow (and get clipped) on the right. Callers pass the plot-
+        // area width as maxWidthOverride so wrapping respects the actual drawable box.
+        const maxTitleWidth = Math.max(200, maxWidthOverride || (containerWidth - 40));
 
         const ctx = (this._geMeasureCtx ||= document.createElement('canvas').getContext('2d'));
         const measure = (text, sizePx) => {
@@ -17994,9 +18009,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         const titleHtml = `<span style="font-size:${fontSize}px"><b>${lines.join('<br>')}</b></span>`;
-        const subtitleHtml = subtitleText
-            ? `<br><span style="font-size:15px;color:#666">${subtitleText}</span>`
-            : '';
+
+        // Wrap each subtitle line too (it was previously emitted unwrapped, so a long
+        // stats line — "WT: n=… · Mut: n=…" — would overflow and clip on the right).
+        let subtitleHtml = '';
+        if (subtitleText) {
+            const subFontSize = 15;
+            const segs = String(subtitleText).split('<br>');
+            const wrapped = [];
+            for (const seg of segs) {
+                if (!seg) { wrapped.push(''); continue; }
+                if (measure(seg, subFontSize) <= maxTitleWidth) wrapped.push(seg);
+                else wrapped.push(...this._wrapTextGreedy(seg, subFontSize, maxTitleWidth, measure));
+            }
+            subtitleHtml = `<br><span style="font-size:${subFontSize}px;color:#666">${wrapped.join('<br>')}</span>`;
+        }
         return titleHtml + subtitleHtml;
     }
 
