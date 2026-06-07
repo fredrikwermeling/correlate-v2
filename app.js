@@ -16861,35 +16861,41 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return;
         }
 
-        // Box plots — one per tissue, showing individual cell line gene effects
-        // X-axis = gene effect of gene1, showing how spread each tissue is
-        // This mirrors the gene effect By Tissue view exactly
-        const traces = stats.map(s => ({
-            type: 'box',
-            name: `${s.group} (n=${s.n})`,
-            x: s.cellData.map(c => c.x),
-            text: s.cellData.map(c => `${c.cellLineName}<br>${d.gene1}=${c.x.toFixed(3)}, ${d.gene2}=${c.y.toFixed(3)}<br>r=${s.correlation.toFixed(3)}`),
-            boxpoints: 'all',
-            jitter: 0.3,
-            pointpos: 0,
+        // Lollipop — one marker per tissue at its CORRELATION (r), with a stem
+        // from r=0, so the plot shows the same metric as the table beside it.
+        // (Previously it drew box plots of gene1's gene effect — a different
+        // metric with a misleading "Gene Effect" axis.) The per-cell scatter for
+        // any one tissue is still available via the row drill-down.
+        const yCats = stats.map(s => `${s.group} (n=${s.n})`);
+        const colorFor = (r) => r > 0.3 ? '#16a34a' : r < -0.3 ? '#dc2626' : '#6b7280';
+        const traces = [];
+        const stemX = [], stemY = [];
+        stats.forEach((s, i) => { stemX.push(0, s.correlation, null); stemY.push(yCats[i], yCats[i], null); });
+        traces.push({ type: 'scatter', mode: 'lines', x: stemX, y: stemY, line: { color: '#e5e7eb', width: 2 }, hoverinfo: 'skip', showlegend: false });
+        traces.push({
+            type: 'scatter', mode: 'markers',
+            x: stats.map(s => s.correlation), y: yCats,
             marker: {
-                color: s.correlation > 0.3 ? 'rgba(34, 197, 94, 0.5)' : s.correlation < -0.3 ? 'rgba(220, 38, 38, 0.6)' : 'rgba(107, 114, 128, 0.5)',
-                size: 4
+                color: stats.map(s => colorFor(s.correlation)),
+                size: 11,
+                line: { color: stats.map(s => s.pValue < 0.05 ? '#1f2937' : '#9ca3af'), width: stats.map(s => s.pValue < 0.05 ? 1.5 : 1) }
             },
-            line: { color: s.pValue < 0.05 ? '#1f2937' : '#9ca3af' },
-            fillcolor: s.correlation > 0.3 ? 'rgba(34, 197, 94, 0.15)' : s.correlation < -0.3 ? 'rgba(220, 38, 38, 0.2)' : 'rgba(156, 163, 175, 0.2)',
-            hovertemplate: '<b>%{text}</b><extra></extra>'
-        }));
+            text: stats.map(s => `r=${s.correlation.toFixed(2)}, n=${s.n}, p=${s.pValue < 0.001 ? s.pValue.toExponential(1) : s.pValue.toFixed(3)}`),
+            hovertemplate: '%{y}<br>%{text}<extra></extra>',
+            showlegend: false
+        });
 
         const numEntries = stats.length;
-        const tickFontSize = numEntries > 25 ? 7 : numEntries > 15 ? 8 : 9;
-        const boxHeight = numEntries > 25 ? 18 : numEntries > 15 ? 22 : 28;
-        const chartHeight = Math.max(350, numEntries * boxHeight + 80);
+        // Larger tissue labels (was 7–9 px) + roomier rows so they fit.
+        const tickFontSize = numEntries > 25 ? 11 : 12;
+        const rowHeight = numEntries > 25 ? 22 : 28;
+        const chartHeight = Math.max(350, numEntries * rowHeight + 90);
 
         const layout = {
-            title: { text: `${d.gene1} vs ${d.gene2} by Cancer Type`, font: { size: 13 } },
+            title: { text: `${d.gene1} vs ${d.gene2} Correlation by Cancer Type`, font: { size: 13 } },
             xaxis: {
-                title: `${d.gene1} (Gene Effect)`,
+                title: 'Correlation (r)',
+                range: [-1, 1],
                 zeroline: true,
                 zerolinecolor: '#374151',
                 zerolinewidth: 2
@@ -16975,60 +16981,41 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         hotspotStats.sort((a, b) => a.pValue - b.pValue);
         this._caCurrentStats = hotspotStats;
 
-        // Top 20 for chart — box plots matching gene effect hotspot view
+        // Top 20 by significance — dumbbell of the WT vs mutated CORRELATION per
+        // hotspot gene, so the plot shows the same thing as the table beside it
+        // (r0 / rMut). (Previously it drew box plots of gene1's gene effect, which
+        // is a different metric and confused readers.)
         const topStats = hotspotStats.slice(0, 20);
+        const yCats = topStats.map(s => s.group);
         const traces = [];
-        let showWTLegend = true, showMutLegend = true;
-
-        topStats.forEach(s => {
-            const yLabel = s.group;
-
-            // Mutated trace (red) — added first so WT overlays
-            traces.push({
-                type: 'box',
-                name: 'Mutated (1+)',
-                legendgroup: 'mut',
-                showlegend: showMutLegend,
-                y: Array(s.cellData1.length).fill(yLabel),
-                x: s.cellData1.map(c => c.x),
-                orientation: 'h',
-                boxpoints: 'outliers',
-                marker: { color: '#dc2626', size: 4, outliercolor: '#991b1b' },
-                line: { color: '#991b1b', width: 1.5 },
-                fillcolor: 'rgba(220, 38, 38, 0.6)',
-                hoverinfo: 'x',
-                offsetgroup: 'mut'
-            });
-            showMutLegend = false;
-
-            // WT trace (blue)
-            traces.push({
-                type: 'box',
-                name: '0 (WT)',
-                legendgroup: 'wt',
-                showlegend: showWTLegend,
-                y: Array(s.cellData0.length).fill(yLabel),
-                x: s.cellData0.map(c => c.x),
-                orientation: 'h',
-                boxpoints: 'outliers',
-                marker: { color: '#2563eb', size: 4, outliercolor: '#1e40af' },
-                line: { color: '#1e40af', width: 1.5 },
-                fillcolor: 'rgba(37, 99, 235, 0.6)',
-                hoverinfo: 'x',
-                offsetgroup: 'wt'
-            });
-            showWTLegend = false;
+        // Connecting line WT->Mut for each gene (null-separated single trace).
+        const lineX = [], lineY = [];
+        topStats.forEach(s => { lineX.push(s.r0, s.rMut, null); lineY.push(s.group, s.group, null); });
+        traces.push({ type: 'scatter', mode: 'lines', x: lineX, y: lineY, line: { color: '#cbd5e1', width: 2 }, hoverinfo: 'skip', showlegend: false });
+        traces.push({
+            type: 'scatter', mode: 'markers', name: '0 (WT)',
+            x: topStats.map(s => s.r0), y: yCats,
+            marker: { color: '#2563eb', size: 11, line: { color: '#1e40af', width: 1 } },
+            hovertemplate: '%{y} — WT r=%{x:.2f}<extra></extra>'
+        });
+        traces.push({
+            type: 'scatter', mode: 'markers', name: 'Mutated (1+)',
+            x: topStats.map(s => s.rMut), y: yCats,
+            marker: { color: '#dc2626', size: 11, line: { color: '#991b1b', width: 1 } },
+            hovertemplate: '%{y} — Mut r=%{x:.2f}<extra></extra>'
         });
 
         const numEntries = topStats.length;
-        const tickFontSize = numEntries > 15 ? 8 : 9;
-        const boxHeight = numEntries > 15 ? 35 : 45;
-        const chartHeight = Math.max(400, numEntries * boxHeight + 100);
+        // Larger y-axis gene labels (was 8–9 px) + roomier rows so they fit.
+        const tickFontSize = numEntries > 15 ? 12 : 13;
+        const rowHeight = numEntries > 15 ? 28 : 34;
+        const chartHeight = Math.max(400, numEntries * rowHeight + 110);
 
         const layout = {
             title: { text: `${d.gene1} vs ${d.gene2} Correlation by Hotspot Mutation`, font: { size: 13 } },
             xaxis: {
-                title: `${d.gene1} (Gene Effect)`,
+                title: 'Correlation (r)',
+                range: [-1, 1],
                 zeroline: true,
                 zerolinecolor: '#374151',
                 zerolinewidth: 2
@@ -17039,13 +17026,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 categoryorder: 'array',
                 categoryarray: topStats.map(s => s.group).reverse()
             },
-            boxmode: 'group',
-            boxgap: 0.1,
-            boxgroupgap: 0.05,
             margin: { t: 50, b: 50, l: 10, r: 30 },
             height: chartHeight,
             showlegend: true,
-            legend: { x: 0.5, y: 1.0, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'white', traceorder: 'reversed' },
+            legend: { x: 0.5, y: 1.0, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 11 }, bgcolor: 'white' },
             paper_bgcolor: 'white',
             plot_bgcolor: 'white'
         };

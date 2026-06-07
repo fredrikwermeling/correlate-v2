@@ -1331,6 +1331,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.93 (2026-06-07)</strong></p>
+                <ul>
+                    <li>Network &mdash; the Font / Node / Edge Width sliders now have <b>−</b> / <b>+</b> step buttons too.</li>
+                    <li><b>Correlation Analysis &mdash; the plot now shows the same thing as the table (correlation), not gene effect.</b> The By-Hotspot plot was drawing box plots of gene1&rsquo;s gene effect (x-axis &ldquo;… Gene Effect&rdquo;) while the table reported the WT-vs-mutated correlation &mdash; two different metrics. It&rsquo;s now a <b>dumbbell plot</b> of WT (blue) vs mutated (red) correlation per gene, and the By-Tissue plot is a <b>lollipop</b> of correlation per tissue, both on a &ldquo;Correlation (r)&rdquo; axis matching the table. The per-cell scatter for any one group is still available by clicking its table row. Also bumped the y-axis gene/tissue labels from ~8&ndash;9 px to 12&ndash;13 px so they&rsquo;re legible.</li>
+                </ul>
                 <p><strong>v.81.92 (2026-06-07)</strong></p>
                 <ul>
                     <li>Network &mdash; hover tooltip is now <b>two-stage</b> so it stops getting in the way while you drag nodes: a compact <b>mean gene-effect</b> readout appears quickly (~0.25s), and the fuller gene info (name + description + links) only follows after ~1.2s. Queued tooltips are cancelled the moment you start dragging.</li>
@@ -2949,7 +2954,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.92</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.93</a>
     </div>
 
     <div class="main-content">
@@ -3308,7 +3313,11 @@
                                     <span class="slider-bubble" id="fontSizeBubble">20</span>
                                     <span class="slider-max">40</span>
                                 </div>
-                                <input type="range" id="netFontSize" min="10" max="40" value="20" step="1">
+                                <div style="display:flex; gap:4px; align-items:center;">
+                                    <button type="button" onclick="app.adjustNumber('netFontSize', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                                    <input type="range" id="netFontSize" min="10" max="40" value="20" step="1" style="flex:1; min-width:0;">
+                                    <button type="button" onclick="app.adjustNumber('netFontSize', 1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                                </div>
                                 <div class="slider-ticks">
                                     <span>10</span><span>16</span><span>22</span><span>28</span><span>34</span><span>40</span>
                                 </div>
@@ -3320,7 +3329,11 @@
                                     <span class="slider-bubble" id="nodeSizeBubble">25</span>
                                     <span class="slider-max">60</span>
                                 </div>
-                                <input type="range" id="netNodeSize" min="10" max="60" value="25" step="1">
+                                <div style="display:flex; gap:4px; align-items:center;">
+                                    <button type="button" onclick="app.adjustNumber('netNodeSize', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                                    <input type="range" id="netNodeSize" min="10" max="60" value="25" step="1" style="flex:1; min-width:0;">
+                                    <button type="button" onclick="app.adjustNumber('netNodeSize', 1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                                </div>
                                 <div class="slider-ticks">
                                     <span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span>
                                 </div>
@@ -3332,7 +3345,11 @@
                                     <span class="slider-bubble" id="edgeWidthBubble">3</span>
                                     <span class="slider-max">10</span>
                                 </div>
-                                <input type="range" id="netEdgeWidth" min="1" max="10" value="3" step="1">
+                                <div style="display:flex; gap:4px; align-items:center;">
+                                    <button type="button" onclick="app.adjustNumber('netEdgeWidth', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                                    <input type="range" id="netEdgeWidth" min="1" max="10" value="3" step="1" style="flex:1; min-width:0;">
+                                    <button type="button" onclick="app.adjustNumber('netEdgeWidth', 1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                                </div>
                                 <div class="slider-ticks">
                                     <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
                                 </div>
@@ -5132,6 +5149,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_92"></script>
+    <script src="app.js?v=v81_93"></script>
 </body>
 </html>
