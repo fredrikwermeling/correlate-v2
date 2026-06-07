@@ -718,7 +718,7 @@
         .slider-with-value {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             font-size: 12px;
             color: var(--gray-500);
             position: relative;
@@ -1278,13 +1278,10 @@
 
         /* Responsive */
         @media (max-width: 1100px) {
-            .container {
-                flex-direction: column;
-            }
-            .sidebar {
-                width: 100%;
-                min-width: auto;
-            }
+            /* Keep the main two-column layout (sidebar + results) at every
+               window size / browser zoom so the homepage always looks the
+               same — it gracefully shrinks instead of stacking Results under
+               the sidebar. Only the inspect-modal layout still reflows. */
             .inspect-layout {
                 flex-direction: column;
             }
@@ -1330,6 +1327,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.82.2 (2026-06-07)</strong></p>
+                <ul>
+                    <li>Stable homepage layout &mdash; the main two-column layout (Reference data / 1&amp;2 on the left, <b>3. Results</b> on the right) now stays put at every browser zoom level instead of stacking Results underneath when you zoom in. It shrinks gracefully rather than reflowing.</li>
+                    <li>Network sliders &mdash; removed the redundant min/max numbers (e.g. the <code>10</code> and <code>40</code> on Font Size) above the &minus;/+ buttons; the tick scale below already shows the range. The current-value badge stays.</li>
+                </ul>
                 <p><strong>v.82.1 (2026-06-07)</strong></p>
                 <ul>
                     <li>Deep link &mdash; the cell-line-browser URL hash now also accepts the plural / spelled-out forms (<code>#cells</code>, <code>#cellbrowser</code>, <code>#cell-line-browser</code>, <code>#browser</code>), not just <code>#cell</code>. Note it&rsquo;s a URL <b>hash</b> (e.g. <code>&hellip;/#cells</code>), not a path (<code>/cells</code>) &mdash; a path won&rsquo;t work on a static host.</li>
@@ -2983,7 +2985,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.82.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.82.2</a>
     </div>
 
     <div class="main-content">
@@ -3338,9 +3340,7 @@
                             <div class="slider-group">
                                 <label>Font Size:</label>
                                 <div class="slider-with-value">
-                                    <span class="slider-min">10</span>
                                     <span class="slider-bubble" id="fontSizeBubble">20</span>
-                                    <span class="slider-max">40</span>
                                 </div>
                                 <div style="display:flex; gap:4px; align-items:center;">
                                     <button type="button" onclick="app.adjustNumber('netFontSize', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
@@ -3354,9 +3354,7 @@
                             <div class="slider-group">
                                 <label>Node Size:</label>
                                 <div class="slider-with-value">
-                                    <span class="slider-min">10</span>
                                     <span class="slider-bubble" id="nodeSizeBubble">25</span>
-                                    <span class="slider-max">60</span>
                                 </div>
                                 <div style="display:flex; gap:4px; align-items:center;">
                                     <button type="button" onclick="app.adjustNumber('netNodeSize', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
@@ -3370,9 +3368,7 @@
                             <div class="slider-group">
                                 <label>Edge Width:</label>
                                 <div class="slider-with-value">
-                                    <span class="slider-min">1</span>
                                     <span class="slider-bubble" id="edgeWidthBubble">3</span>
-                                    <span class="slider-max">10</span>
                                 </div>
                                 <div style="display:flex; gap:4px; align-items:center;">
                                     <button type="button" onclick="app.adjustNumber('netEdgeWidth', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
@@ -5179,6 +5175,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v82_1"></script>
+    <script src="app.js?v=v82_2"></script>
 </body>
 </html>
