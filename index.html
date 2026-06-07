@@ -1331,6 +1331,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.98 (2026-06-07)</strong></p>
+                <ul>
+                    <li>Network drag fix &mdash; once the hover info-box appeared, trying to drag a node would instead start selecting the legend text below the graph. The hover box now ignores the mouse (it&rsquo;s purely informational), so a click-drag always grabs the node underneath. Pinned boxes (Shift) stay clickable for their links.</li>
+                    <li>Network loading indicator &mdash; building a large graph (e.g. after a low correlation cutoff pulls in many genes) now shows a <b>spinner with a progress percentage</b> over the canvas, so it&rsquo;s clear the layout is working rather than frozen.</li>
+                </ul>
                 <p><strong>v.81.97 (2026-06-07)</strong></p>
                 <ul>
                     <li>Cell-line hover summary &mdash; hovering a cell-line dot in the scatter / gene-effect plots now shows a small <b>summary card</b> (the same identity block from the top of that line&rsquo;s Wiki: name, tissue &middot; disease &middot; subtype, age / sex / primary-vs-metastatic, and the ACH &amp; RRID ids). Appears after a brief pause and doesn&rsquo;t block clicking the dot underneath.</li>
@@ -2966,7 +2971,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.97</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.98</a>
     </div>
 
     <div class="main-content">
@@ -5161,6 +5166,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_97"></script>
+    <script src="app.js?v=v81_98"></script>
 </body>
 </html>

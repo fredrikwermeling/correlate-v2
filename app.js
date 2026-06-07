@@ -7339,6 +7339,43 @@ class CorrelationExplorer {
         document.getElementById('colorAbsoluteGroup').style.display = 'none';
     }
 
+    // Spinner + status overlay on the network canvas, shown while a large graph
+    // is being laid out (vis-network stabilization). A low correlation cutoff
+    // pulls many genes in, so the layout can take seconds — without feedback it
+    // looks frozen. Removed by _hideNetworkLoading once stabilization is done.
+    _showNetworkLoading(text) {
+        const container = document.getElementById('networkPlot');
+        if (!container) return;
+        if (!container.style.position) container.style.position = 'relative';
+        if (!document.getElementById('netSpinKeyframes')) {
+            const st = document.createElement('style');
+            st.id = 'netSpinKeyframes';
+            st.textContent = '@keyframes netspin{to{transform:rotate(360deg)}}';
+            document.head.appendChild(st);
+        }
+        let ov = document.getElementById('networkLoadingOverlay');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'networkLoadingOverlay';
+            ov.style.cssText = 'position:absolute; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:rgba(255,255,255,0.85); font-size:13px; font-weight:600; color:#15803d;';
+            ov.innerHTML = `<div style="width:38px; height:38px; border:4px solid #d1fae5; border-top-color:#15803d; border-radius:50%; animation:netspin 0.8s linear infinite;"></div><div id="networkLoadingText"></div>`;
+            container.appendChild(ov);
+        } else {
+            ov.style.display = 'flex';
+        }
+        const t = document.getElementById('networkLoadingText');
+        if (t) t.textContent = text;
+    }
+
+    _setNetworkLoadingText(text) {
+        const t = document.getElementById('networkLoadingText');
+        if (t) t.textContent = text;
+    }
+
+    _hideNetworkLoading() {
+        document.getElementById('networkLoadingOverlay')?.remove();
+    }
+
     displayNetwork() {
         const container = document.getElementById('networkPlot');
         container.innerHTML = '';
@@ -7520,6 +7557,21 @@ class CorrelationExplorer {
         this.network = new vis.Network(container, data, options);
         this.networkData = data;
 
+        // Loading feedback for big graphs: stabilization yields between
+        // iterations, so the spinner animates and the percentage climbs. Small
+        // graphs settle instantly, so skip the overlay to avoid a flash.
+        const showLoadingOverlay = nodeCount > 40;
+        if (showLoadingOverlay) {
+            this._showNetworkLoading(`Loading network… (${nodeCount} genes)`);
+            this.network.on('stabilizationProgress', (p) => {
+                const pct = p.total ? Math.round((p.iterations / p.total) * 100) : 0;
+                this._setNetworkLoadingText(`Loading network… ${pct}%`);
+            });
+            // Safety net: never leave the overlay stuck if the done event is
+            // missed (e.g. physics disabled before stabilization completes).
+            this._networkLoadingFallback = setTimeout(() => this._hideNetworkLoading(), 30000);
+        }
+
         // Keep the edge-thickness legend's line widths in sync with the
         // canvas zoom so the legend isn't visually misrepresentative when
         // the user zooms in. vis-network's `zoom` event only fires for
@@ -7597,6 +7649,8 @@ class CorrelationExplorer {
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
             this.network.fit({ animation: false });
+            clearTimeout(this._networkLoadingFallback);
+            this._hideNetworkLoading();
             if (nodeCount > 30) {
                 this.network.setOptions({ physics: { enabled: false } });
                 this.physicsEnabled = false;
@@ -21195,7 +21249,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         tooltip.dataset.pinned = pinned ? '1' : '0';
         const maxW = pinned ? 460 : 350;
         tooltip.style.cssText = `position: fixed; z-index: 10001; background: white; border: 1px solid ${pinned ? '#5a9f4a' : '#d1d5db'}; border-radius: 8px; padding: 10px 14px; max-width: ${maxW}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 11px; line-height: 1.45; color: #374151;`;
-        if (pinned) tooltip.style.pointerEvents = 'auto';
+        // A non-pinned (hover) tooltip must not capture the mouse: if it does, a
+        // mousedown over the box hits the tooltip instead of the network canvas,
+        // so dragging a node instead starts a text-selection on whatever is below
+        // (e.g. the edge-width legend). Pinned tooltips stay interactive for the
+        // links / close button.
+        tooltip.style.pointerEvents = pinned ? 'auto' : 'none';
         tooltip.innerHTML = `<div style="margin-bottom:4px;"><b style="color:#5a9f4a; font-size:13px;">${gene}</b></div>${prefixHtml || ''}<div style="color: #6b7280; margin-top:2px;">Loading info…</div>`;
 
         const x = Math.min(event.clientX + 10, window.innerWidth - maxW - 20);
