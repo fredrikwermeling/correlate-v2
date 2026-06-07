@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.91 (2026-06-07)</strong></p>
+                <ul>
+                    <li>Network &mdash; new <b>Reset</b> button (next to Aa) that restores all the appearance controls above the network to defaults in one click: font / node / edge size sliders, the Aa text settings (font family, label &amp; node colour, legend &amp; banner size/colour), the node-border toggle, and the GE / stats label &amp; colour options. Re-renders the network with the restored settings.</li>
+                </ul>
                 <p><strong>v.81.90 (2026-06-07)</strong></p>
                 <ul>
                     <li>Set parameters &mdash; <b>Correlation Cutoff</b> and <b>Min Slope</b> sliders now have <b>−</b> / <b>+</b> step buttons on either side (matching the Min Cell Lines control), so you can nudge them by one step without dragging.</li>
@@ -2940,7 +2944,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.90</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.91</a>
     </div>
 
     <div class="main-content">
@@ -3390,6 +3394,7 @@
                             </div>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
                                 <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;">Aa</button>
+                                <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network — font / node / edge size, colours, label options and node border — back to defaults">Reset</button>
                                 <label style="font-size: 10px; display: flex; align-items: center; gap: 3px; cursor: pointer;">
                                     <input type="checkbox" id="networkNodeBorder" checked> Node border
                                 </label>
@@ -5124,6 +5129,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_90"></script>
+    <script src="app.js?v=v81_91"></script>
 </body>
 </html>

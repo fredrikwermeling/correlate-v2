@@ -3266,6 +3266,7 @@ class CorrelationExplorer {
             this.updateNetworkStyle();
         });
         document.getElementById('networkAaBtn')?.addEventListener('click', () => this.openNetworkTextSettings());
+        document.getElementById('resetNetworkControls')?.addEventListener('click', () => this.resetNetworkControls());
         document.getElementById('networkNodeBorder')?.addEventListener('change', (e) => this.toggleNetworkBorder(e.target.checked));
         document.getElementById('fitNetwork').addEventListener('click', () => {
             if (this.network) this.network.fit();
@@ -7834,6 +7835,69 @@ class CorrelationExplorer {
         for (const nodeId of nodeIds) {
             this.network.moveNode(nodeId, positions[nodeId].x, positions[nodeId].y);
         }
+    }
+
+    // Reset every appearance control above the network — the font / node / edge
+    // sliders, the Aa text settings (font family, label/node colour, legend &
+    // banner size/colour), the node-border toggle and the GE / stats label/colour
+    // options — back to their defaults, then re-render. The Aa panel reads its own
+    // DOM inputs, so we set the defaults directly here rather than calling it.
+    resetNetworkControls() {
+        const setSlider = (id, val, bubble) => {
+            const el = document.getElementById(id); if (el) el.value = val;
+            const bb = document.getElementById(bubble); if (bb) bb.textContent = String(val);
+        };
+        setSlider('netFontSize', 20, 'fontSizeBubble');
+        setSlider('netNodeSize', 25, 'nodeSizeBubble');
+        setSlider('netEdgeWidth', 3, 'edgeWidthBubble');
+
+        // Aa text settings -> defaults
+        this._netFontFamily = 'Arial, sans-serif';
+        this._netLabelColor = '#333333';
+        this._netNodeColor = '#5a9f4a';
+        this._netLegendFontSize = 15;
+        this._netLegendColor = '#374151';
+        this._netBannerFontSize = 20;
+        this._netBannerColor = '#374151';
+
+        // Node border back on
+        const nb = document.getElementById('networkNodeBorder'); if (nb) nb.checked = true;
+
+        // GE / stats label + colour options off
+        ['showGeneEffect', 'showGeneEffectSD', 'colorByGeneEffect', 'colorByStats'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.checked = false;
+        });
+        ['showGESDGroup', 'colorGEOptions', 'colorStatsOptions'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.style.display = 'none';
+        });
+        const radio = (name, val) => { const el = document.querySelector(`input[name="${name}"][value="${val}"]`); if (el) el.checked = true; };
+        radio('colorGEType', 'signed'); radio('colorStatType', 'signed_lfc');
+        radio('colorScale', 'all'); radio('statsLabelDisplay', 'none');
+
+        // Re-render with the restored settings
+        this.toggleNetworkBorder?.(true);
+        this.updateNetworkStyle?.();
+        this.updateNetworkColors?.();
+        this.updateNetworkLabels?.();
+
+        // Legend / banner styling (Aa panel isn't open, so reset their DOM directly)
+        const legendEl = document.getElementById('networkLegend');
+        if (legendEl) {
+            legendEl.style.fontSize = '15px';
+            legendEl.style.color = '#374151';
+            legendEl.style.fontFamily = 'Arial, sans-serif';
+            legendEl.querySelectorAll('strong, div, span').forEach(el => {
+                el.style.fontSize = ''; el.style.color = ''; el.style.fontFamily = '';
+            });
+        }
+        const banner = document.querySelector('.network-filter-banner');
+        if (banner) {
+            banner.style.fontSize = '20px';
+            banner.style.color = '#374151';
+            banner.style.fontFamily = 'Arial, sans-serif';
+        }
+
+        this.showCopyNotification?.('Network controls reset to defaults');
     }
 
     updateNetworkStyle() {
