@@ -7659,15 +7659,14 @@ class CorrelationExplorer {
             }
             clearTimeout(this._networkTooltipTimer);
             clearTimeout(this._networkQuickTooltipTimer);
-            // Stage 1 — the compact gene-effect readout, almost immediate.
+            // Stage 1 — the standard box (gene + gene effect), almost immediate.
             this._networkQuickTooltipTimer = setTimeout(() => {
                 this._showNetworkQuickTooltip(domEvent, nodeId);
             }, 150);
-            // Stage 2 — the extended gene info ~1s later (replaces the quick one).
-            // It deliberately does NOT repeat the gene-effect line — that already
-            // showed in the quick popout, so the two don't overlap.
+            // Stage 2 — append the extended info into the SAME box ~1s later. The
+            // gene-effect line stays put and isn't repeated, so nothing overlaps.
             this._networkTooltipTimer = setTimeout(() => {
-                this.showGeneTooltip(domEvent, nodeId);
+                this._fillNetworkExtended(nodeId);
             }, 1150);
         });
         this.network.on('blurNode', () => {
@@ -21178,13 +21177,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             + `${(sd !== undefined && !isNaN(sd)) ? ` <span style="color:#9ca3af;">± ${sd.toFixed(2)}</span>` : ''}</div>`;
     }
 
-    // Stage-1 network hover tooltip: gene name + mean gene effect only, no
-    // MyGene.info fetch. Replaced by the full tooltip after the longer delay.
+    // Stage-1 network hover tooltip: gene name + mean gene effect, plus an empty
+    // slot the extended info is appended into later (so the gene-effect line stays
+    // put and isn't repeated). No MyGene.info fetch happens here.
     _showNetworkQuickTooltip(event, gene) {
         const existing = document.getElementById('geneTooltip');
         if (existing && existing.dataset.pinned === '1') return;
         this.hideGeneTooltip(true);
-        const maxW = 300;
+        const maxW = 320;
         const tooltip = document.createElement('div');
         tooltip.id = 'geneTooltip';
         tooltip.dataset.gene = gene;
@@ -21192,10 +21192,61 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         tooltip.style.cssText = `position: fixed; z-index: 10001; background: white; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; max-width: ${maxW}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 11px; line-height: 1.45; color: #374151;`;
         tooltip.innerHTML = `<b style="color:#5a9f4a; font-size:13px;">${gene}</b>`
             + this._networkGeneEffectLine(gene)
-            + `<div style="margin-top:4px; font-size:9px; color:#9ca3af;">keep hovering for details…</div>`;
-        tooltip.style.left = Math.min(event.clientX + 10, window.innerWidth - maxW - 20) + 'px';
-        tooltip.style.top = Math.min(event.clientY + 10, window.innerHeight - 120) + 'px';
+            + `<div id="geneTooltipExt"></div>`;
+        const x = Math.min(event.clientX + 10, window.innerWidth - maxW - 20);
+        const y = Math.min(event.clientY + 10, window.innerHeight - 120);
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
         document.body.appendChild(tooltip);
+
+        // Shift while hovering upgrades to the pinned, fully-readable tooltip
+        // (clickable links). The pinned box keeps the gene-effect line at top.
+        const upgrade = (ev) => {
+            if (ev.key === 'Shift') {
+                document.removeEventListener('keydown', upgrade);
+                this.showGeneTooltip({ clientX: x, clientY: y, shiftKey: true }, gene, null, this._networkGeneEffectLine(gene));
+            }
+        };
+        document.addEventListener('keydown', upgrade);
+        tooltip._cleanup = () => document.removeEventListener('keydown', upgrade);
+    }
+
+    // Stage-2 network hover: append the extended gene info (name, summary, links)
+    // into the existing quick tooltip's slot — WITHOUT a second gene-effect line,
+    // so it doesn't duplicate the line already shown above it.
+    _fillNetworkExtended(gene) {
+        const slot = document.getElementById('geneTooltipExt');
+        const el = document.getElementById('geneTooltip');
+        if (!slot || !el || el.dataset.gene !== gene || el.dataset.pinned === '1') return;
+        this.fetchGeneInfo(gene).then(info => {
+            const el2 = document.getElementById('geneTooltip');
+            const slot2 = document.getElementById('geneTooltipExt');
+            if (!el2 || !slot2 || el2.dataset.gene !== gene || el2.dataset.pinned === '1') return;
+            const links = info && info.entrezgene
+                ? `<a href="https://www.ncbi.nlm.nih.gov/gene/${info.entrezgene}" target="_blank" rel="noopener" style="color:#15803d; text-decoration:none;">NCBI Gene &#8599;</a>`
+                : `<a href="https://www.ncbi.nlm.nih.gov/gene/?term=${encodeURIComponent(gene)}" target="_blank" rel="noopener" style="color:#15803d; text-decoration:none;">NCBI Gene &#8599;</a>`;
+            const hgnc = info && info.hgnc
+                ? ` &nbsp;|&nbsp; <a href="https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${info.hgnc}" target="_blank" rel="noopener" style="color:#15803d; text-decoration:none;">HGNC &#8599;</a>`
+                : '';
+            let h = `<div style="margin-top:6px; padding-top:6px; border-top:1px solid #f3f4f6;">`;
+            if (info && info.name) h += `<div style="margin-bottom:4px; color:#374151;">${info.name}</div>`;
+            if (info && info.summary) {
+                const s = info.summary.length <= 260 ? info.summary : info.summary.substring(0, 260) + '…';
+                h += `<div style="color:#4b5563;">${s}</div>`;
+            } else if (info) {
+                h += `<div style="color:#9ca3af; font-style:italic;">No summary available.</div>`;
+            } else {
+                h += `<div style="color:#9ca3af;">No further info available.</div>`;
+            }
+            h += `<div style="margin-top:6px; font-size:10px; color:#6b7280; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;"><span>${links}${hgnc}</span><span style="color:#9ca3af;">Hold Shift to pin</span></div>`;
+            h += `</div>`;
+            slot2.innerHTML = h;
+            // Nudge up if the grown tooltip now runs off the bottom.
+            const rect = el2.getBoundingClientRect();
+            if (rect.bottom > window.innerHeight) {
+                el2.style.top = Math.max(10, window.innerHeight - rect.height - 10) + 'px';
+            }
+        });
     }
 
     showGeneTooltip(event, gene, whyContext, prefixHtml) {
