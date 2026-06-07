@@ -28760,6 +28760,47 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             };
             const topUniqueHtml = topUnique.map(renderEssRow).join(', ');
 
+            // Cancer-family view: the same z-score but computed against ONLY the
+            // other cell lines of this line's lineage, so it surfaces genes this
+            // line needs more than its same-tissue siblings (the cohort view
+            // above can be dominated by lineage-wide dependencies that aren't
+            // specific to THIS line). Needs a minimum family size to be stable.
+            const MIN_FAMILY = 5;
+            const familyIdx = [];
+            for (let i = 0; i < nC; i++) {
+                if (this.cellLineMetadata?.lineage?.[this.metadata.cellLines[i]] === lin) familyIdx.push(i);
+            }
+            let familyDepHtml = '';
+            if (lin && familyIdx.length >= MIN_FAMILY) {
+                const familyZ = [];
+                for (let g = 0; g < this.nGenes; g++) {
+                    const v = this.geneEffects[g * nC + clIdx];
+                    if (isNaN(v) || v === -999) continue;
+                    if (commonEss.has(this.geneNames[g])) continue;
+                    let sum = 0, n = 0;
+                    for (const fi of familyIdx) {
+                        const vv = this.geneEffects[g * nC + fi];
+                        if (!isNaN(vv) && vv !== -999) { sum += vv; n++; }
+                    }
+                    if (n < MIN_FAMILY) continue;
+                    const mean = sum / n;
+                    let ss = 0;
+                    for (const fi of familyIdx) {
+                        const vv = this.geneEffects[g * nC + fi];
+                        if (!isNaN(vv) && vv !== -999) { const d = vv - mean; ss += d * d; }
+                    }
+                    const sd = Math.sqrt(ss / n);
+                    if (sd < 0.05) continue;
+                    familyZ.push({ gene: this.geneNames[g], val: v, z: (v - mean) / sd });
+                }
+                const topFamily = familyZ.sort((a, b) => a.z - b.z).slice(0, 8);
+                familyDepHtml = topFamily.length > 0
+                    ? row(`Top essential vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdx.length})</span>`, topFamily.map(renderEssRow).join(', '))
+                    : '';
+            } else if (lin) {
+                familyDepHtml = `<div style="padding:6px 10px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280; margin-top:4px;">Too few ${lin} cell lines (${familyIdx.length}) for a same-lineage &ldquo;cancer family&rdquo; comparison — only the whole-cohort view above is shown.</div>`;
+            }
+
             essentialDrugTargets = allUniquelyEss.filter(g => drugTargets.has(g.gene));
             const allPathwayGenes = new Set();
             Object.values(pathways).forEach(p => p.genes.forEach(g => allPathwayGenes.add(g)));
@@ -28796,7 +28837,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumour suppressors whose knockout boosts growth</b> (red above): ${tsHits.map(g => g.gene).join(', ')}. Removing these helps the cell grow — so they are <em>still functional</em> here and have <em>not</em> been inactivated in this cell line.</div>`
                 : '';
 
-            const introPara = `<p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? The interesting dependencies are <b>selective to this line</b> — genes it needs more than usual, often downstream of its active oncogene or driver. <b>"More than usual" means compared to the entire DepMap cohort</b> (all ~1,100 cancer cell lines across every lineage, <i>not</i> only same-tissue lines) — so a gene flagged here is one this line depends on more than the average cancer cell line of any type. <b>Pan-essentials</b> (ribosomal, RNA polymerase, etc. — needed by every cell) are removed; they say nothing line-specific. Rankings use <b>z-score vs that whole cohort</b>: z &lt; &minus;2 = much more essential than typical, z &gt; +2 = knockout helps growth much more than typical. <span style="display:inline-block; margin-left:6px;">💊 = approved or clinical-stage drug targets this gene.</span></p>`;
+            const introPara = `<p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? The interesting dependencies are <b>selective to this line</b> — genes it needs more than usual, often downstream of its active oncogene or driver. <b>"More than usual" means compared to the entire DepMap cohort</b> (all ~1,100 cancer cell lines across every lineage, <i>not</i> only same-tissue lines) — so a gene flagged here is one this line depends on more than the average cancer cell line of any type. <b>Pan-essentials</b> (ribosomal, RNA polymerase, etc. — needed by every cell) are removed; they say nothing line-specific. Rankings use <b>z-score vs that whole cohort</b>: z &lt; &minus;2 = much more essential than typical, z &gt; +2 = knockout helps growth much more than typical. A second list scores the same way but <b>only against same-lineage lines (the cancer family)</b> — these are dependencies specific to <i>this</i> line beyond what its tissue siblings share. <span style="display:inline-block; margin-left:6px;">💊 = approved or clinical-stage drug targets this gene.</span></p>`;
             if (zScored.length === 0) {
                 // The cell line index is valid (we're in the clIdx >= 0
                 // branch) but no gene-effect values survived the per-gene
@@ -28807,7 +28848,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 geSigHtml = `${introPara}<div style="padding:10px 12px; background:#fef2f2; border-left:3px solid #991b1b; font-size:11px;"><b style="color:#991b1b;">No usable CRISPR gene-effect data for this cell line.</b> The cell line is indexed in the cohort but its CRISPR row contains no measurable values (NaN-only across the matrix), so the z-scored dependency view cannot be built. This happens for a handful of lines per DepMap release &mdash; usually those screened too recently to be in this quarter&rsquo;s CRISPRGeneEffect file, or dropped during QC. Other Wiki sections (Mutations, CN, Fusions, Expression, Drug response) still show available data for this line.</div>`;
             } else {
                 geSigHtml = `${introPara}
-                    ${row('Top uniquely essential (z-ranked, pan-essentials filtered)', topUniqueHtml)}
+                    ${row('Top essential vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages)</span>', topUniqueHtml)}
+                    ${familyDepHtml}
                     ${row('Top uniquely growth-promoting on knockout (z-ranked)', topGainHtml)}
                     ${interpLines.join('')}
                     ${tsInterp}`;
