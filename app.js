@@ -15611,6 +15611,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     setupScatterClickHandler(filteredData) {
+        // Hover a dot → show the cell-line summary card (matched back to a row by
+        // x/y, the same way the click handler does). Native Plotly hover still
+        // shows the quick name/lineage/value label; this adds the wiki summary.
+        const hoverEl = document.getElementById('scatterPlot');
+        let scatterHoverTimer = null;
+        hoverEl.removeAllListeners?.('plotly_hover');
+        hoverEl.removeAllListeners?.('plotly_unhover');
+        hoverEl.on('plotly_hover', (eventData) => {
+            const point = eventData.points?.[0];
+            if (!point) return;
+            const md = filteredData.find(d =>
+                Math.abs(d.x - point.x) < 0.001 && Math.abs(d.y - point.y) < 0.001
+            );
+            if (!md) return;
+            const ev = { clientX: eventData.event?.clientX, clientY: eventData.event?.clientY };
+            clearTimeout(scatterHoverTimer);
+            scatterHoverTimer = setTimeout(() => this.showCellLineTooltip(ev, md.cellLineId), 350);
+        });
+        hoverEl.on('plotly_unhover', () => { clearTimeout(scatterHoverTimer); this.hideCellLineTooltip(); });
+
         document.getElementById('scatterPlot').on('plotly_click', (eventData) => {
             if (eventData.points.length > 0) {
                 const point = eventData.points[0];
@@ -15668,6 +15688,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const id = extract(pt);
             if (typeof id === 'string' && id) this._openCellLineInBrowser(id);
         });
+        // Same plots also get the hover summary card (same id extraction).
+        this._attachDotHoverSummary(plotId, extract);
     }
 
     async _exportScatterChart(format) {
@@ -21281,6 +21303,82 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (existing.dataset.pinned === '1' && !force) return;
         if (typeof existing._cleanup === 'function') existing._cleanup();
         existing.remove();
+    }
+
+    // The same identity block shown at the top of the Cell Line Wiki, as compact
+    // hover-card HTML: name, Oncotree classification line, a few patient facts,
+    // and the ACH / RRID identifiers. Used by the scatter/box-plot dot hover.
+    _cellLineSummaryHtml(cellLineId) {
+        const name = this.getCellLineName(cellLineId) || cellLineId;
+        const m = this.cellLineMetadata || {};
+        const get = (f) => m[f]?.[cellLineId] || '';
+        const cap = (v) => v ? String(v).replace(/_/g, ' ') : '';
+        const lin = get('lineage');
+        const pd = get('primaryDisease');
+        const sub = get('oncotreeSubtype') || get('subtype');
+        const classLine = [lin, pd, sub].filter(Boolean).join(' · ');
+        const ageRaw = get('age');
+        const age = (ageRaw !== '' && !isNaN(parseFloat(ageRaw))) ? String(Math.round(parseFloat(ageRaw))) : '';
+        const facts = [];
+        if (age) facts.push(`Age ${age}`);
+        if (get('sex')) facts.push(get('sex'));
+        if (get('primaryOrMetastasis')) facts.push(cap(get('primaryOrMetastasis')));
+        const rrid = get('rrid');
+
+        let h = `<div><b style="color:#5a9f4a; font-size:13px;">${name}</b></div>`;
+        if (classLine) h += `<div style="color:#374151; margin-top:3px; text-transform:capitalize;">${classLine}</div>`;
+        if (facts.length) h += `<div style="color:#6b7280; margin-top:3px; text-transform:capitalize;">${facts.join(' · ')}</div>`;
+        h += `<div style="color:#9ca3af; font-size:10px; margin-top:4px;">${cellLineId}${rrid ? ` · RRID: ${rrid}` : ''}</div>`;
+        return h;
+    }
+
+    // Lightweight, non-interactive hover card for a cell-line dot (pointer-events
+    // off so it never blocks the click underneath). Single instance, replaced on
+    // each hover; removed by hideCellLineTooltip on unhover.
+    showCellLineTooltip(event, cellLineId) {
+        if (!cellLineId || !this.cellLineMetadata) return;
+        this.hideCellLineTooltip();
+        const maxW = 300;
+        const t = document.createElement('div');
+        t.id = 'cellLineTooltip';
+        t.dataset.clid = cellLineId;
+        t.style.cssText = `position: fixed; z-index: 10001; background: white; border: 1px solid #d1d5db; border-radius: 8px; padding: 9px 13px; max-width: ${maxW}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 11px; line-height: 1.45; color: #374151; pointer-events: none;`;
+        t.innerHTML = this._cellLineSummaryHtml(cellLineId);
+        const cx = (event && event.clientX != null) ? event.clientX : window.innerWidth / 2;
+        const cy = (event && event.clientY != null) ? event.clientY : window.innerHeight / 2;
+        t.style.left = Math.min(cx + 12, window.innerWidth - maxW - 20) + 'px';
+        t.style.top = Math.min(cy + 12, window.innerHeight - 160) + 'px';
+        document.body.appendChild(t);
+        const rect = t.getBoundingClientRect();
+        if (rect.bottom > window.innerHeight) t.style.top = Math.max(10, window.innerHeight - rect.height - 10) + 'px';
+    }
+
+    hideCellLineTooltip() {
+        document.getElementById('cellLineTooltip')?.remove();
+    }
+
+    // Wire a Plotly cell-line dot plot so hovering a dot shows the cell-line
+    // summary card after a short delay. getId recovers the ACH id from the point
+    // (defaults to customdata, matching _attachDotShiftOpen).
+    _attachDotHoverSummary(plotId, getId) {
+        const el = document.getElementById(plotId);
+        if (!el || !el.on) return;
+        const extract = getId || (pt => Array.isArray(pt.customdata)
+            ? pt.customdata[pt.customdata.length - 1]
+            : pt.customdata);
+        el.removeAllListeners?.('plotly_hover');
+        el.removeAllListeners?.('plotly_unhover');
+        let hoverTimer = null;
+        el.on('plotly_hover', (eventData) => {
+            const pt = eventData.points?.[0];
+            if (!pt || !Number.isInteger(pt.pointNumber)) return;
+            const id = extract(pt);
+            if (typeof id !== 'string' || !id) return;
+            const ev = { clientX: eventData.event?.clientX, clientY: eventData.event?.clientY };
+            clearTimeout(hoverTimer);
+            hoverTimer = setTimeout(() => this.showCellLineTooltip(ev, id), 350);
+        });
+        el.on('plotly_unhover', () => { clearTimeout(hoverTimer); this.hideCellLineTooltip(); });
     }
 
     // ===== Inline Compare by Tissue/Hotspot (in inspect modal) =====
