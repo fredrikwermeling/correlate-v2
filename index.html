@@ -1327,6 +1327,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.2 (2026-06-07)</strong></p>
+                <ul>
+                    <li>Chart export &mdash; in addition to PNG and SVG, you can now export <b>TIFF, PDF and PowerPoint (.pptx)</b>. Pick the format in the export dialog (one selector, available from every chart&rsquo;s export); size / DPI / background apply to all raster formats. TIFF is a journal-ready RGB image at your chosen DPI, PDF is a correctly-sized single page, PPTX drops the figure onto a slide sized to match.</li>
+                    <li>Cell Line Wiki &mdash; the <b>Expression profile</b> now has the same <b>&ldquo;cancer family&rdquo;</b> view as CRISPR dependencies (uniquely-high genes vs same-lineage lines), and both sections now <b>flag which whole-cohort hits are lineage-typical</b> (✓ tag) &mdash; i.e. common for the cancer type rather than specific to this line &mdash; for both gene effect and expression.</li>
+                </ul>
                 <p><strong>v.83.1 (2026-06-07)</strong></p>
                 <ul>
                     <li>Cell Line Wiki &mdash; CRISPR dependencies now also shows a <b>&ldquo;cancer family&rdquo; view</b>: the same z-scored dependency ranking but computed against <b>only the same-lineage cell lines</b>, surfacing what this line needs <i>beyond</i> what its tissue siblings share (e.g. A549 tops its lung family on <b>MDM4</b> &mdash; a p53 regulator it depends on more than other lung lines &mdash; which the all-lineages view buries). Shown alongside the whole-cohort list; needs &ge; 5 lines in the lineage.</li>
@@ -3017,7 +3022,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.2</a>
     </div>
 
     <div class="main-content">
@@ -4448,6 +4453,16 @@
             </div>
             <div class="modal-body" style="padding:14px 18px; font-size:13px; color:#374151;">
                 <div style="margin-bottom:10px;">
+                    <label style="display:block; font-weight:600; margin-bottom:4px;">Format</label>
+                    <select id="exportOptFormat" style="padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:13px;">
+                        <option value="png">PNG &mdash; raster image</option>
+                        <option value="svg">SVG &mdash; editable vector (Illustrator)</option>
+                        <option value="pdf">PDF &mdash; vector page (raster image inside)</option>
+                        <option value="tiff">TIFF &mdash; raster, journal submission</option>
+                        <option value="pptx">PowerPoint &mdash; .pptx slide</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:10px;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">Size</label>
                     <div style="display:flex; gap:4px; margin-bottom:6px;">
                         <button type="button" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 10px;" onclick="app.applyExportSizePreset(5)">Small</button>
@@ -4478,7 +4493,7 @@
                     <div style="font-size:10px; color:#9ca3af; margin-top:4px;">Presets set the width; height auto-scales to match the on-screen plot aspect.</div>
                 </div>
                 <div id="exportOptDpiRow" style="margin-bottom:10px;">
-                    <label style="display:block; font-weight:600; margin-bottom:4px;">DPI (PNG only)</label>
+                    <label style="display:block; font-weight:600; margin-bottom:4px;">DPI (raster formats)</label>
                     <span style="display:inline-flex; gap:3px; align-items:center;">
                         <button onclick="app.adjustNumber('exportOptDpi', -100)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
                         <input type="number" id="exportOptDpi" value="600" min="72" max="2400" step="100" style="width:70px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
@@ -5221,6 +5236,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_1"></script>
+    <script src="app.js?v=v83_2"></script>
 </body>
 </html>

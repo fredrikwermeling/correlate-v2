@@ -19574,9 +19574,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const modal = document.getElementById('exportOptionsModal');
             if (!modal) { resolve(null); return; }
             const titleEl = document.getElementById('exportOptionsTitle');
-            if (titleEl) titleEl.textContent = `Export chart — ${context.format.toUpperCase()}`;
             const dpiRow = document.getElementById('exportOptDpiRow');
-            if (dpiRow) dpiRow.style.display = context.format === 'png' ? '' : 'none';
+            const fmtEl = document.getElementById('exportOptFormat');
+            // Format selector: defaults to whichever button was clicked, but the
+            // user can switch to any format here (so every export bar offers
+            // PNG / SVG / PDF / TIFF / PPTX without extra buttons). DPI applies
+            // to every format except SVG (which is pure vector).
+            const syncFormatUI = () => {
+                const f = (fmtEl?.value || context.format || 'png');
+                if (titleEl) titleEl.textContent = `Export chart — ${f.toUpperCase()}`;
+                if (dpiRow) dpiRow.style.display = f === 'svg' ? 'none' : '';
+            };
+            if (fmtEl) {
+                fmtEl.value = (['png', 'svg', 'pdf', 'tiff', 'pptx'].includes(context.format)) ? context.format : 'png';
+                fmtEl.onchange = syncFormatUI;
+            }
+            syncFormatUI();
             const widthEl = document.getElementById('exportOptWidth');
             const heightEl = document.getElementById('exportOptHeight');
             const dpiEl = document.getElementById('exportOptDpi');
@@ -19611,6 +19624,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             };
             document.getElementById('exportOptConfirm').onclick = () => {
                 const opts = {
+                    format: fmtEl?.value || context.format || 'png',
                     widthCm: parseFloat(widthEl.value) || 5,
                     heightCm: parseFloat(heightEl.value) || 5,
                     dpi: parseInt(dpiEl.value) || 600,
@@ -19670,6 +19684,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const dlg = await this._showExportDialog({ format, plotW: w, plotH: h });
         if (!dlg) return;
         const { widthCm, heightCm, dpi, background } = dlg;
+        const fmt = dlg.format || format;   // user may switch format in the dialog
         const CM_TO_IN = 1 / 2.54;
 
         const svgDataUrl = await Plotly.toImage(plotEl, { format: 'svg', width: w, height: h });
@@ -19688,7 +19703,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let outSvg = expanded.svg;
         const metaJson = meta ? JSON.stringify(meta) : null;
 
-        if (format === 'svg') {
+        if (fmt === 'svg') {
             // For SVG, set absolute units on the outer tag so downstream tools
             // (Illustrator etc.) place it at the requested print size. Keep
             // viewBox in the pixel coords from Plotly so internal geometry is
@@ -19734,25 +19749,174 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // a vector source the result stays crisp at any density.
                 ctx.drawImage(img, 0, 0, targetPxW, targetPxH);
                 URL.revokeObjectURL(svgUrl);
-                const pngDataUrl = canvas.toDataURL('image/png');
-                let pngBuf = await (await fetch(pngDataUrl)).arrayBuffer();
-                // Embed DPI in the PNG's pHYs chunk so Word / PPT / LaTeX
-                // honour the real size on import.
-                pngBuf = this._setPngDpi(pngBuf, dpi);
-                if (metaJson && typeof this._addPngTextChunk === 'function') {
-                    pngBuf = this._addPngTextChunk(pngBuf, 'correlate-meta', metaJson);
-                }
-                const blob = new Blob([pngBuf], { type: 'image/png' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `${filename}.png`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                URL.revokeObjectURL(a.href);
+                // PNG / TIFF / PDF / PPTX all derive from this rasterised canvas.
+                await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson });
                 resolve();
             };
             img.onerror = () => { URL.revokeObjectURL(svgUrl); resolve(); };
             img.src = svgUrl;
         });
+    }
+
+    // Save a rendered <canvas> in the chosen raster-derived format. PNG keeps
+    // its DPI / metadata chunks; TIFF / PDF / PPTX are built from the same
+    // pixels so they match the PNG exactly. Falls back to PNG if a builder
+    // throws (e.g. JSZip missing for PPTX).
+    async _downloadCanvasAs(canvas, fmt, filename, opts = {}) {
+        const { dpi = 300, widthCm, heightCm, metaJson } = opts;
+        const save = (blob, ext) => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${filename}.${ext}`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        };
+        try {
+            if (fmt === 'tiff') { save(new Blob([this._canvasToTiff(canvas, dpi)], { type: 'image/tiff' }), 'tiff'); return; }
+            if (fmt === 'pdf') { save(new Blob([this._canvasToPdf(canvas, widthCm, heightCm)], { type: 'application/pdf' }), 'pdf'); return; }
+            if (fmt === 'pptx') { save(await this._canvasToPptx(canvas, widthCm, heightCm), 'pptx'); return; }
+        } catch (e) {
+            console.warn(`${fmt} export failed, falling back to PNG:`, e);
+        }
+        // PNG (default / fallback).
+        let buf = await (await fetch(canvas.toDataURL('image/png'))).arrayBuffer();
+        buf = this._setPngDpi(buf, dpi);
+        if (metaJson && typeof this._addPngTextChunk === 'function') buf = this._addPngTextChunk(buf, 'correlate-meta', metaJson);
+        save(new Blob([buf], { type: 'image/png' }), 'png');
+    }
+
+    // Baseline (uncompressed, little-endian) RGB TIFF from a canvas, with the
+    // export DPI written into the X/Y resolution tags. Journals routinely ask
+    // for TIFF; this produces a standard single-strip RGB file every reader
+    // accepts. Transparent pixels are composited over white.
+    _canvasToTiff(canvas, dpi) {
+        const w = canvas.width, h = canvas.height;
+        const data = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+        const strip = new Uint8Array(w * h * 3);
+        for (let i = 0, j = 0; i < data.length; i += 4) {
+            const a = data[i + 3] / 255;
+            strip[j++] = Math.round(data[i] * a + 255 * (1 - a));
+            strip[j++] = Math.round(data[i + 1] * a + 255 * (1 - a));
+            strip[j++] = Math.round(data[i + 2] * a + 255 * (1 - a));
+        }
+        const nTags = 12;
+        const ifdSize = 2 + nTags * 12 + 4;
+        const extra = 8 + ifdSize;            // after header + IFD
+        const bpsOff = extra;                 // BitsPerSample: 3 SHORTs (6 bytes)
+        const xresOff = extra + 6;            // XResolution RATIONAL (8 bytes)
+        const yresOff = extra + 14;           // YResolution RATIONAL (8 bytes)
+        const stripOff = extra + 22;
+        const buf = new ArrayBuffer(stripOff + strip.length);
+        const dv = new DataView(buf);
+        dv.setUint16(0, 0x4949, true); dv.setUint16(2, 42, true); dv.setUint32(4, 8, true);
+        let p = 8;
+        dv.setUint16(p, nTags, true); p += 2;
+        const tag = (id, type, count, value) => { dv.setUint16(p, id, true); dv.setUint16(p + 2, type, true); dv.setUint32(p + 4, count, true); dv.setUint32(p + 8, value, true); p += 12; };
+        tag(256, 4, 1, w);            // ImageWidth
+        tag(257, 4, 1, h);            // ImageLength
+        tag(258, 3, 3, bpsOff);       // BitsPerSample → offset (8,8,8)
+        tag(259, 3, 1, 1);            // Compression = none
+        tag(262, 3, 1, 2);            // PhotometricInterpretation = RGB
+        tag(273, 4, 1, stripOff);     // StripOffsets
+        tag(277, 3, 1, 3);            // SamplesPerPixel
+        tag(278, 4, 1, h);            // RowsPerStrip
+        tag(279, 4, 1, strip.length); // StripByteCounts
+        tag(282, 5, 1, xresOff);      // XResolution
+        tag(283, 5, 1, yresOff);      // YResolution
+        tag(296, 3, 1, 2);            // ResolutionUnit = inch
+        dv.setUint32(p, 0, true);     // next IFD = 0
+        dv.setUint16(bpsOff, 8, true); dv.setUint16(bpsOff + 2, 8, true); dv.setUint16(bpsOff + 4, 8, true);
+        const d = Math.round(dpi) || 300;
+        dv.setUint32(xresOff, d, true); dv.setUint32(xresOff + 4, 1, true);
+        dv.setUint32(yresOff, d, true); dv.setUint32(yresOff + 4, 1, true);
+        new Uint8Array(buf).set(strip, stripOff);
+        return buf;
+    }
+
+    // Single-page PDF with the figure embedded as a JPEG (DCTDecode). The page
+    // is sized to the requested cm so it imports at the right physical size;
+    // the raster is composited over white (JPEG has no alpha).
+    _canvasToPdf(canvas, widthCm, heightCm) {
+        const tmp = document.createElement('canvas');
+        tmp.width = canvas.width; tmp.height = canvas.height;
+        const tctx = tmp.getContext('2d');
+        tctx.fillStyle = '#fff'; tctx.fillRect(0, 0, tmp.width, tmp.height);
+        tctx.drawImage(canvas, 0, 0);
+        const b64 = tmp.toDataURL('image/jpeg', 0.95).split(',')[1];
+        const bin = atob(b64);
+        const jpeg = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) jpeg[i] = bin.charCodeAt(i);
+        const ptW = (widthCm || 10) / 2.54 * 72, ptH = (heightCm || 10) / 2.54 * 72;
+        const enc = new TextEncoder();
+        const parts = []; const offsets = []; let len = 0;
+        const push = (s) => { const b = (typeof s === 'string') ? enc.encode(s) : s; parts.push(b); len += b.length; };
+        push('%PDF-1.4\n');
+        offsets.push(len); push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+        offsets.push(len); push('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
+        offsets.push(len); push(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${ptW.toFixed(2)} ${ptH.toFixed(2)}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`);
+        offsets.push(len); push(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`);
+        push(jpeg); push('\nendstream\nendobj\n');
+        const content = `q ${ptW.toFixed(2)} 0 0 ${ptH.toFixed(2)} 0 0 cm /Im0 Do Q\n`;
+        offsets.push(len); push(`5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}endstream\nendobj\n`);
+        const xrefStart = len;
+        let xref = `xref\n0 6\n0000000000 65535 f \n`;
+        for (const off of offsets) xref += String(off).padStart(10, '0') + ' 00000 n \n';
+        push(xref);
+        push(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`);
+        const out = new Uint8Array(len); let o = 0;
+        for (const pt of parts) { out.set(pt, o); o += pt.length; }
+        return out.buffer;
+    }
+
+    // Single-slide .pptx (Open XML zip) with the figure as a full-bleed picture.
+    // Slide size = the requested cm so the image isn't rescaled on import.
+    async _canvasToPptx(canvas, widthCm, heightCm) {
+        if (typeof JSZip === 'undefined') throw new Error('JSZip unavailable');
+        const EMU = 360000;                       // EMU per cm
+        const cx = Math.round((widthCm || 10) * EMU);
+        const cy = Math.round((heightCm || 10) * EMU);
+        const pngB64 = canvas.toDataURL('image/png').split(',')[1];
+        const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+        const zip = new JSZip();
+        zip.file('[Content_Types].xml',
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/></Types>`);
+        zip.file('_rels/.rels',
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/officeDocument" Target="ppt/presentation.xml"/></Relationships>`);
+        zip.file('ppt/presentation.xml',
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="${REL}" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst><p:sldId id="256" r:id="rId2"/></p:sldIdLst><p:sldSz cx="${cx}" cy="${cy}"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`);
+        zip.file('ppt/_rels/presentation.xml.rels',
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/slideMaster" Target="slideMasters/slideMaster1.xml"/><Relationship Id="rId2" Type="${REL}/slide" Target="slides/slide1.xml"/><Relationship Id="rId3" Type="${REL}/theme" Target="theme/theme1.xml"/></Relationships>`);
+        const clrMap = `<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>`;
+        const emptyTree = `<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree>`;
+        zip.file('ppt/slideMasters/slideMaster1.xml',
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="${REL}" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld>${emptyTree}</p:cSld>${clrMap}<p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>`);
+        zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels',
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="${REL}/theme" Target="../theme/theme1.xml"/></Relationships>`);
+        zip.file('ppt/slideLayouts/slideLayout1.xml',
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="${REL}" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1"><p:cSld name="Blank">${emptyTree}</p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`);
+        zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels',
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>`);
+        zip.file('ppt/theme/theme1.xml', this._minimalPptxTheme());
+        zip.file('ppt/slides/slide1.xml',
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="${REL}" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="Figure"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`);
+        zip.file('ppt/slides/_rels/slide1.xml.rels',
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/image" Target="../media/image1.png"/><Relationship Id="rId2" Type="${REL}/slideLayout" Target="../slideLayouts/slideLayout1.xml"/></Relationships>`);
+        zip.file('ppt/media/image1.png', pngB64, { base64: true });
+        return await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+    }
+
+    // Minimal but valid Office theme (PowerPoint requires clrScheme +
+    // fontScheme + fmtScheme with exactly three fill/line/effect/bg styles).
+    _minimalPptxTheme() {
+        const A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
+        const solid = (c) => `<a:solidFill><a:srgbClr val="${c}"/></a:solidFill>`;
+        const fillLst = `<a:fillStyleLst>${solid('FFFFFF')}${solid('FFFFFF')}${solid('FFFFFF')}</a:fillStyleLst>`;
+        const lnLst = `<a:lnStyleLst><a:ln w="6350"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln><a:ln w="12700"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln><a:ln w="19050"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></a:lnStyleLst>`;
+        const effLst = `<a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst>`;
+        const bgLst = `<a:bgFillStyleLst>${solid('FFFFFF')}${solid('FFFFFF')}${solid('FFFFFF')}</a:bgFillStyleLst>`;
+        const clr = `<a:clrScheme name="Office"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="44546A"/></a:dk2><a:lt2><a:srgbClr val="E7E6E6"/></a:lt2><a:accent1><a:srgbClr val="4472C4"/></a:accent1><a:accent2><a:srgbClr val="ED7D31"/></a:accent2><a:accent3><a:srgbClr val="A5A5A5"/></a:accent3><a:accent4><a:srgbClr val="FFC000"/></a:accent4><a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme>`;
+        const font = `<a:fontScheme name="Office"><a:majorFont><a:latin typeface="Calibri Light"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme>`;
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<a:theme xmlns:a="${A}" name="Office"><a:themeElements>${clr}${font}<a:fmtScheme name="Office">${fillLst}${lnLst}${effLst}${bgLst}</a:fmtScheme></a:themeElements></a:theme>`;
     }
 
     // Write a pHYs chunk to a PNG buffer so downstream tools see the right
@@ -28752,31 +28916,24 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const allUniquelyEss = sortedByZ.filter(g => !commonEss.has(g.gene) && g.z < -1.5).slice(0, 50);
 
             const fmtZ = (z) => (z >= 0 ? '+' : '') + z.toFixed(1);
-            const renderEssRow = (g) => {
-                const isTgt = drugTargets.has(g.gene);
-                const tgtStyle = isTgt ? 'color:#15803d; font-weight:600; background:#f0fdf4; padding:1px 4px; border-radius:3px;' : '';
-                const pill = isTgt ? ' <span title="Approved or clinical-stage drug targets this gene">💊</span>' : '';
-                return `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tgtStyle}">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="GE = CRISPR knockout effect (0 = neutral, −0.5 ≈ selective, −1 = strongly essential). z-score = how unusual this GE is vs the rest of the cohort.">(GE ${g.val.toFixed(2)}, z ${fmtZ(g.z)})</span>${pill}`;
-            };
-            const topUniqueHtml = topUnique.map(renderEssRow).join(', ');
 
-            // Cancer-family view: the same z-score but computed against ONLY the
-            // other cell lines of this line's lineage, so it surfaces genes this
-            // line needs more than its same-tissue siblings (the cohort view
-            // above can be dominated by lineage-wide dependencies that aren't
-            // specific to THIS line). Needs a minimum family size to be stable.
+            // Cancer-family stats — computed first so the whole-cohort list can
+            // flag which of its hits are lineage-wide (common for the cancer
+            // type) and so we can build the same-lineage ranking below.
             const MIN_FAMILY = 5;
             const familyIdx = [];
             for (let i = 0; i < nC; i++) {
                 if (this.cellLineMetadata?.lineage?.[this.metadata.cellLines[i]] === lin) familyIdx.push(i);
             }
-            let familyDepHtml = '';
-            if (lin && familyIdx.length >= MIN_FAMILY) {
-                const familyZ = [];
+            const hasFamily = !!lin && familyIdx.length >= MIN_FAMILY;
+            // gene -> the lineage's mean cohort-z (how the whole cancer family
+            // compares to all lines). Strongly negative = the lineage as a whole
+            // depends on this gene.
+            const geLineageZ = new Map();
+            const familyZ = [];
+            if (hasFamily) {
+                const geStatsF = this._geGeneStats;
                 for (let g = 0; g < this.nGenes; g++) {
-                    const v = this.geneEffects[g * nC + clIdx];
-                    if (isNaN(v) || v === -999) continue;
-                    if (commonEss.has(this.geneNames[g])) continue;
                     let sum = 0, n = 0;
                     for (const fi of familyIdx) {
                         const vv = this.geneEffects[g * nC + fi];
@@ -28784,6 +28941,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     }
                     if (n < MIN_FAMILY) continue;
                     const mean = sum / n;
+                    if (geStatsF && geStatsF.sd[g] >= 0.05) geLineageZ.set(this.geneNames[g], (mean - geStatsF.mean[g]) / geStatsF.sd[g]);
+                    const v = this.geneEffects[g * nC + clIdx];
+                    if (isNaN(v) || v === -999 || commonEss.has(this.geneNames[g])) continue;
                     let ss = 0;
                     for (const fi of familyIdx) {
                         const vv = this.geneEffects[g * nC + fi];
@@ -28793,9 +28953,31 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     if (sd < 0.05) continue;
                     familyZ.push({ gene: this.geneNames[g], val: v, z: (v - mean) / sd });
                 }
+            }
+            // "Common for this cancer type" flag on a whole-cohort hit.
+            const lineageTagGE = (gene) => {
+                const lz = geLineageZ.get(gene);
+                return (lz != null && lz <= -1)
+                    ? ` <span style="color:#15803d; font-size:9px; font-weight:600;" title="The ${lin} lineage as a whole also depends on this gene (lineage mean z ${fmtZ(lz)}) — common for this cancer type, not specific to this line.">✓ ${lin}-typical</span>`
+                    : '';
+            };
+            const renderEssRow = (g, opts = {}) => {
+                const isTgt = drugTargets.has(g.gene);
+                const tgtStyle = isTgt ? 'color:#15803d; font-weight:600; background:#f0fdf4; padding:1px 4px; border-radius:3px;' : '';
+                const pill = isTgt ? ' <span title="Approved or clinical-stage drug targets this gene">💊</span>' : '';
+                return `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tgtStyle}">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="GE = CRISPR knockout effect (0 = neutral, −0.5 ≈ selective, −1 = strongly essential). z-score = how unusual this GE is vs the rest of the cohort.">(GE ${g.val.toFixed(2)}, z ${fmtZ(g.z)})</span>${pill}${opts.tagLineage ? lineageTagGE(g.gene) : ''}`;
+            };
+            // Whole-cohort hits, each flagged ✓ <lineage>-typical when the whole
+            // cancer family shares the dependency.
+            const topUniqueHtml = topUnique.map(g => renderEssRow(g, { tagLineage: true })).join(', ');
+
+            // Same-lineage ranking — dependencies specific to THIS line beyond
+            // what its tissue siblings share.
+            let familyDepHtml = '';
+            if (hasFamily) {
                 const topFamily = familyZ.sort((a, b) => a.z - b.z).slice(0, 8);
                 familyDepHtml = topFamily.length > 0
-                    ? row(`Top essential vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdx.length})</span>`, topFamily.map(renderEssRow).join(', '))
+                    ? row(`Top essential vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdx.length})</span>`, topFamily.map(g => renderEssRow(g)).join(', '))
                     : '';
             } else if (lin) {
                 familyDepHtml = `<div style="padding:6px 10px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280; margin-top:4px;">Too few ${lin} cell lines (${familyIdx.length}) for a same-lineage &ldquo;cancer family&rdquo; comparison — only the whole-cohort view above is shown.</div>`;
@@ -28895,16 +29077,69 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
                 const fmtZ = (z) => (z >= 0 ? '+' : '') + z.toFixed(1);
 
+                // Cancer-family stats for expression (mirrors the CRISPR
+                // section): lineage mean cohort-z per gene (to flag which
+                // whole-cohort hits are lineage-wide, i.e. common for this
+                // cancer type) + the line-vs-family ranking. Expression matrix
+                // has its OWN cell-line ordering, so family indices are computed
+                // over expressionMetadata.cellLines.
+                const MIN_FAMILY_E = 5;
+                const familyIdxE = [];
+                for (let i = 0; i < nExprCL; i++) {
+                    if (this.cellLineMetadata?.lineage?.[this.expressionMetadata.cellLines[i]] === lin) familyIdxE.push(i);
+                }
+                const hasFamilyE = !!lin && familyIdxE.length >= MIN_FAMILY_E;
+                const exprLineageZ = new Map();
+                const exprFamilyZ = [];
+                if (hasFamilyE) {
+                    for (let g = 0; g < this.expressionMetadata.genes.length; g++) {
+                        let sum = 0, n = 0;
+                        for (const fi of familyIdxE) {
+                            const vv = this.expressionData[g * nExprCL + fi];
+                            if (!isNaN(vv)) { sum += vv; n++; }
+                        }
+                        if (n < MIN_FAMILY_E) continue;
+                        const mean = sum / n;
+                        const gene = this.expressionMetadata.genes[g];
+                        if (exprStats && exprStats.sd[g] >= 0.3) exprLineageZ.set(gene, (mean - exprStats.mean[g]) / exprStats.sd[g]);
+                        const v = this.expressionData[g * nExprCL + exprCLIndex];
+                        if (isNaN(v) || v < 1) continue;
+                        let ss = 0;
+                        for (const fi of familyIdxE) {
+                            const vv = this.expressionData[g * nExprCL + fi];
+                            if (!isNaN(vv)) { const d = vv - mean; ss += d * d; }
+                        }
+                        const sd = Math.sqrt(ss / n);
+                        if (sd < 0.3) continue;
+                        exprFamilyZ.push({ gene, val: v, z: (v - mean) / sd });
+                    }
+                }
+                const lineageTagExpr = (gene) => {
+                    const lz = exprLineageZ.get(gene);
+                    return (lz != null && lz >= 1)
+                        ? ` <span style="color:#15803d; font-size:9px; font-weight:600;" title="The ${lin} lineage as a whole also over-expresses this gene (lineage mean z ${fmtZ(lz)}) — common for this cancer type, not specific to this line.">✓ ${lin}-typical</span>`
+                        : '';
+                };
+                const renderExprRow = (g, opts = {}) => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; font-weight:600;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="TPM = log2(TPM+1) expression value. z-score = how unusual this expression is vs the rest of the cohort.">(TPM ${g.val.toFixed(1)}, z ${fmtZ(g.z)})</span>${opts.tagLineage ? lineageTagExpr(g.gene) : ''}`;
+
                 // 1) Top uniquely high (most positive z). Filter to genes
                 //    with TPM >= 1 (otherwise "uniquely high" can mean
                 //    "uniquely above noise floor" which isn't informative).
+                //    Each flagged ✓ <lineage>-typical when the whole cancer
+                //    family also over-expresses it.
                 const topUniqueExpr = zScored
                     .filter(g => g.val >= 1)
                     .sort((a, b) => b.z - a.z)
                     .slice(0, 8);
                 const topUniqueHtml = topUniqueExpr.length > 0
-                    ? topUniqueExpr.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; font-weight:600;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="TPM = log2(TPM+1) expression value. z-score = how unusual this expression is vs the rest of the cohort.">(TPM ${g.val.toFixed(1)}, z ${fmtZ(g.z)})</span>`).join(', ')
+                    ? topUniqueExpr.map(g => renderExprRow(g, { tagLineage: true })).join(', ')
                     : '<em style="color:#9ca3af;">No genes with sufficient cohort variance to rank.</em>';
+                // Same-lineage ranking — genes uniquely high in THIS line vs its
+                // tissue siblings.
+                const topFamilyExpr = exprFamilyZ.sort((a, b) => b.z - a.z).slice(0, 8);
+                const exprFamilyHtml = hasFamilyE
+                    ? (topFamilyExpr.length ? row(`Top uniquely high vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdxE.length})</span>`, topFamilyExpr.map(g => renderExprRow(g)).join(', ')) : '')
+                    : (lin ? `<div style="padding:6px 10px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280; margin-top:4px;">Too few ${lin} cell lines (${familyIdxE.length}) for a same-lineage comparison.</div>` : '');
 
                 // 2) Pathway-activity signatures.
                 const signatures = this._WIKI_EXPRESSION_SIGNATURES();
@@ -28997,8 +29232,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     : '';
 
                 exprSigHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression — that list is always dominated by mitochondrial and ribosomal genes that are high in every line. "Uniquely" here is judged <b>against the entire cohort</b> (all ~1,100 cell lines across every lineage, <i>not</i> just same-tissue lines). Values are log₂(TPM+1) (≈ mRNA on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score vs that whole cohort for the gene (&gt; +2 = much more expressed than the typical cell line, &lt; &minus;2 = strongly silenced).</p>
-                    ${row('Top uniquely high expression (z vs whole cohort)', topUniqueHtml)}
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression — that list is always dominated by mitochondrial and ribosomal genes that are high in every line. "Uniquely" here is judged <b>against the entire cohort</b> (all ~1,100 cell lines across every lineage, <i>not</i> just same-tissue lines). Values are log₂(TPM+1) (≈ mRNA on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score vs that whole cohort for the gene (&gt; +2 = much more expressed than the typical cell line, &lt; &minus;2 = strongly silenced). Whole-cohort hits carry a <span style="color:#15803d; font-weight:600;">✓ lineage-typical</span> flag when the whole cancer family also over-expresses them (i.e. common for this cancer type rather than specific to this line); a second list ranks genes uniquely high <b>vs same-lineage lines only</b>.</p>
+                    ${row('Top uniquely high vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages)</span>', topUniqueHtml)}
+                    ${exprFamilyHtml}
                     ${xist !== undefined ? row('XIST', xist.toFixed(2) + (xist > 1.0 ? ' — active (the normal silencing of the extra X chromosome is working)' : ' — silenced (unusual; can re-activate X-linked genes)')) : ''}
                     ${yMean !== null ? row('Y-chromosome genes (mean)', yMean.toFixed(2) + (yMean > 1.0 ? ' — Y chromosome active' : ' — Y chromosome silent or lost')) : ''}
                     ${sigHtml}
@@ -32980,6 +33216,7 @@ ${body}
         const dlg = await this._showExportDialog({ format, plotW: composedW, plotH: composedH });
         if (!dlg) return;
         const { widthCm, heightCm, dpi, background } = dlg;
+        const fmt = dlg.format || format;
         const CM_TO_IN = 1 / 2.54;
 
         const url = await Plotly.toImage(plotDiv, { format: 'svg', width: w, height: h });
@@ -32996,7 +33233,7 @@ ${body}
             composed = composed.replace(/(<svg[^>]*>)/, `$1<rect id="correlateExportBg" x="0" y="0" width="100%" height="100%" fill="white"/>`);
         }
 
-        if (format === 'svg') {
+        if (fmt === 'svg') {
             const withMeta = composed.replace(/<\/svg>\s*$/, `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
             const blob = new Blob([withMeta], { type: 'image/svg+xml;charset=utf-8' });
             const a = document.createElement('a');
@@ -33023,17 +33260,7 @@ ${body}
             }
             ctx.drawImage(img, 0, 0, targetPxW, targetPxH);
             URL.revokeObjectURL(svgUrl);
-            const pngUrl = canvas.toDataURL('image/png');
-            const resp = await fetch(pngUrl);
-            let buf = await resp.arrayBuffer();
-            buf = this._setPngDpi(buf, dpi);
-            const withMeta = this._addPngTextChunk(buf, 'correlate-meta', metaJson);
-            const blob = new Blob([withMeta], { type: 'image/png' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `${filename}.png`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(a.href);
+            await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson });
         };
         img.onerror = () => URL.revokeObjectURL(svgUrl);
         img.src = svgUrl;
