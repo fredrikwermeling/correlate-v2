@@ -11638,7 +11638,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 hovertemplate: highlightData.map(d => `${d.cellLineName} (${d.lineage || 'Unknown'})<extra></extra>`),
                 marker: {
                     color: '#f59e0b',
-                    size: 12,
+                    size: 14,
                     symbol: 'circle',
                     line: { color: '#000', width: 2 }
                 },
@@ -11668,10 +11668,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     arrowhead: 0,
                     arrowcolor: '#999',
                     ax: saved ? saved.ax : 0,
-                    ay: saved ? saved.ay : -25,
+                    // Default the label well clear of its dot: with draggable
+                    // annotations (edits.annotationTail) the label's drag region
+                    // sits over the anchor, and a label too close was capturing
+                    // the pointer so the just-labelled dot couldn't be hovered.
+                    ay: saved ? saved.ay : -34,
                     font: { size: fontSize * 3, color: '#000' },
                     bgcolor: 'rgba(255,255,255,0.7)',
-                    borderpad: 2
+                    borderpad: 2,
+                    captureevents: false
                 });
             });
         } else {
@@ -15692,6 +15697,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         hoverEl.on('plotly_unhover', () => { clearTimeout(scatterHoverTimer); this.hideCellLineTooltip(); });
 
         document.getElementById('scatterPlot').on('plotly_click', (eventData) => {
+            // The plot re-renders on click (label toggle); drop any open hover
+            // card so it doesn't linger with stale state over the new render.
+            this.hideCellLineTooltip();
             if (eventData.points.length > 0) {
                 const point = eventData.points[0];
                 const matchingData = filteredData.find(d =>
@@ -21370,31 +21378,59 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         existing.remove();
     }
 
-    // The same identity block shown at the top of the Cell Line Wiki, as compact
-    // hover-card HTML: name, Oncotree classification line, a few patient facts,
-    // and the ACH / RRID identifiers. Used by the scatter/box-plot dot hover.
-    _cellLineSummaryHtml(cellLineId) {
-        const name = this.getCellLineName(cellLineId) || cellLineId;
+    // Plain-language "executive summary" of a cell line, synthesised from the
+    // same DepMap layers the Wiki / CLB card use: what cancer it is, the patient
+    // it came from, and its standout molecular features (driver fusions, hotspot
+    // variants, functional losses, MSI, ploidy). Returned as HTML. Shown as the
+    // cell-line hover popout and at the top of the CLB detail card.
+    _cellLineExecutiveSummary(cellLineId, opts = {}) {
         const m = this.cellLineMetadata || {};
         const get = (f) => m[f]?.[cellLineId] || '';
-        const cap = (v) => v ? String(v).replace(/_/g, ' ') : '';
+        const name = this.getCellLineName(cellLineId) || cellLineId;
         const lin = get('lineage');
         const pd = get('primaryDisease');
         const sub = get('oncotreeSubtype') || get('subtype');
-        const classLine = [lin, pd, sub].filter(Boolean).join(' · ');
-        const ageRaw = get('age');
-        const age = (ageRaw !== '' && !isNaN(parseFloat(ageRaw))) ? String(Math.round(parseFloat(ageRaw))) : '';
-        const facts = [];
-        if (age) facts.push(`Age ${age}`);
-        if (get('sex')) facts.push(get('sex'));
-        if (get('primaryOrMetastasis')) facts.push(cap(get('primaryOrMetastasis')));
-        const rrid = get('rrid');
+        const disease = sub || pd || '';
 
-        let h = `<div><b style="color:#5a9f4a; font-size:13px;">${name}</b></div>`;
-        if (classLine) h += `<div style="color:#374151; margin-top:3px; text-transform:capitalize;">${classLine}</div>`;
-        if (facts.length) h += `<div style="color:#6b7280; margin-top:3px; text-transform:capitalize;">${facts.join(' · ')}</div>`;
-        h += `<div style="color:#9ca3af; font-size:10px; margin-top:4px;">${cellLineId}${rrid ? ` · RRID: ${rrid}` : ''}</div>`;
-        return h;
+        // Sentence 1 — identity + patient origin.
+        const article = (disease && /^[aeiou]/i.test(disease)) ? 'an' : 'a';
+        let s1 = `<b style="color:#15803d;">${name}</b> is ${article} ${disease ? disease + ' ' : ''}cell line`;
+        if (lin && lin.toLowerCase() !== disease.toLowerCase()) s1 += ` (${lin})`;
+        const ageRaw = get('age');
+        const age = (ageRaw !== '' && !isNaN(parseFloat(ageRaw))) ? Math.round(parseFloat(ageRaw)) : null;
+        const sex = (get('sex') || '').toLowerCase();
+        const pomRaw = (get('primaryOrMetastasis') || '').toLowerCase();
+        const pom = pomRaw.includes('metasta') ? 'metastatic' : (pomRaw.startsWith('primary') ? 'primary' : '');
+        const person = [age ? `${age}-year-old` : '', (sex === 'male' || sex === 'female') ? sex : ''].filter(Boolean).join(' ');
+        if (person || pom) {
+            s1 += ` from a ${person}${person && pom ? ', ' : ''}${pom ? pom + ' tumour' : (person ? ' patient' : '')}`;
+        }
+        s1 += '.';
+
+        // Sentence 2 — standout molecular features (omitted silently when absent).
+        const infSub = this.inferredSubtypes?.byCellLine?.[cellLineId] || {};
+        const parts = [];
+        const fusions = (this.clinicalFusions?.byCellLine?.[cellLineId] || [])
+            .filter(c => c.tier === 'high' || c.tier === 'medium')
+            .map(c => c.fusion);
+        if (fusions.length) parts.push(`${fusions.slice(0, 3).join(', ')} fusion${fusions.length > 1 ? 's' : ''}`);
+        const hotspots = (infSub.hotspots || []).filter(h => h && !/ Hotspot$/.test(h));
+        if (hotspots.length) parts.push(hotspots.slice(0, 3).join(', '));
+        const lof = infSub.lof || [];
+        if (lof.length) parts.push(`${lof.slice(0, 4).join(', ')} loss`);
+        if (infSub.msi === true) parts.push('MSI-high');
+        const gs = this.globalSignatures?.byCellLine?.[cellLineId];
+        if (gs && gs.Ploidy != null) {
+            const pl = gs.Ploidy < 2.3 ? 'near-diploid' : gs.Ploidy < 2.7 ? 'near-triploid'
+                     : gs.Ploidy < 4.5 ? 'near-tetraploid' : 'highly polyploid';
+            parts.push(gs.WGD === true ? `${pl}, WGD` : pl);
+        }
+        const s2 = parts.length ? ` <span style="color:#4b5563;">Notable: ${parts.join('; ')}.</span>` : '';
+
+        const rrid = get('rrid');
+        const idFooter = opts.showId === false ? ''
+            : `<div style="color:#9ca3af; font-size:10px; margin-top:5px;">${cellLineId}${rrid ? ` · RRID: ${rrid}` : ''}</div>`;
+        return `<div style="line-height:1.5; color:#374151;">${s1}${s2}</div>${idFooter}`;
     }
 
     // Lightweight, non-interactive hover card for a cell-line dot (pointer-events
@@ -21403,12 +21439,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     showCellLineTooltip(event, cellLineId) {
         if (!cellLineId || !this.cellLineMetadata) return;
         this.hideCellLineTooltip();
-        const maxW = 300;
+        const maxW = 340;
         const t = document.createElement('div');
         t.id = 'cellLineTooltip';
         t.dataset.clid = cellLineId;
         t.style.cssText = `position: fixed; z-index: 10001; background: white; border: 1px solid #d1d5db; border-radius: 8px; padding: 9px 13px; max-width: ${maxW}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 11px; line-height: 1.45; color: #374151; pointer-events: none;`;
-        t.innerHTML = this._cellLineSummaryHtml(cellLineId);
+        t.innerHTML = this._cellLineExecutiveSummary(cellLineId);
         const cx = (event && event.clientX != null) ? event.clientX : window.innerWidth / 2;
         const cy = (event && event.clientY != null) ? event.clientY : window.innerHeight / 2;
         t.style.left = Math.min(cx + 12, window.innerWidth - maxW - 20) + 'px';
@@ -26586,6 +26622,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const classOne = this._classOnePresentation(cellLineId);
         let top = `<h4>${name}</h4>`;
         top += `<div class="clb-detail-id">${cellLineId}</div>`;
+        // Executive summary — plain-language overview at the very top of the card.
+        top += `<div class="clb-detail-section" style="background:#f7fbf8; border:1px solid #e5e7eb; border-left:3px solid #15803d; border-radius:6px; padding:8px 10px; margin-bottom:10px;">${this._cellLineExecutiveSummary(cellLineId, { showId: false })}</div>`;
         top += `<div class="clb-detail-section">`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
         // Subtype row, plus Lehmann TNBC subtype tag for breast lines
@@ -26669,6 +26707,10 @@ CIN (chromosomal instability): how scrambled the genome is at fine scale. Scale 
                 tooltip: `Functional inference combining B2M damaging mutations + HLA-A/B/C expression z-score + B2M-normalised HLA copy number. NOT allele-specific HLA-LOH detection (that would need raw BAMs + LOHHLA). Reasons: ${(classOne.reasons || []).join('; ')}`
             });
         }
+        // Built here (needs classOne/infSub) but appended LOWER DOWN — after the
+        // Fusions section — since these immune flags are one signal among many,
+        // not a headline feature.
+        let immunologyHtml = '';
         if (flags.length > 0) {
             // Layout matches the other detail sections (Hotspot Mutations,
             // Functional loss, etc.): section title with an optional ? help
@@ -26678,15 +26720,15 @@ CIN (chromosomal instability): how scrambled the genome is at fine scale. Scale 
             const helpImmuno = `Cell-intrinsic immune flags inferred from the DepMap layers (MSI / class-I antigen presentation).
 
 These are properties of the cell line itself — not its tumour microenvironment. Most human cancer cell lines can only be grown in immunocompromised mice in vivo, so these flags speak to "what could a CD8+ T cell see if it got there", not "what does happen in an experiment".`;
-            top += `<div class="clb-detail-section"><strong>Immunology (${flags.length})</strong>`
+            immunologyHtml += `<div class="clb-detail-section"><strong>Immunology (${flags.length})</strong>`
                 + ` <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="${helpImmuno.replace(/"/g, '&quot;')}">?</span>`;
             for (const f of flags) {
-                top += `<div style="margin:4px 0 6px; font-size:11px;">`
+                immunologyHtml += `<div style="margin:4px 0 6px; font-size:11px;">`
                     + `<div><span style="color:#4b5563; font-weight:600; border:1px solid #d1d5db; background:#f3f4f6; border-radius:8px; padding:1px 6px; font-size:10px; cursor:help;" title="${f.tooltip.replace(/"/g, '&quot;')}">${f.label}</span></div>`
                     + `<div style="color:#6b7280; margin-top:2px; line-height:1.4;">${f.caption}</div>`
                     + `</div>`;
             }
-            top += `</div>`;
+            immunologyHtml += `</div>`;
         }
 
         // Wiki entry-point sits at the top so the user lands on the deep-dive
@@ -26848,6 +26890,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             top += renderGeneList(fusionGenes, 'clb-fusion');
         }
         top += `</div>`;
+
+        // Immunology flags — placed after Fusions (built earlier from classOne).
+        top += immunologyHtml;
 
         // Gene Effect section — separator + combined stats + list headings.
         top += `<div style="border-top:1px solid #e5e7eb; margin:12px 0 8px;"></div>`;
