@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.90 (2026-06-07)</strong></p>
+                <ul>
+                    <li>Set parameters &mdash; <b>Correlation Cutoff</b> and <b>Min Slope</b> sliders now have <b>−</b> / <b>+</b> step buttons on either side (matching the Min Cell Lines control), so you can nudge them by one step without dragging.</li>
+                </ul>
                 <p><strong>v.81.89 (2026-06-07)</strong></p>
                 <ul>
                     <li>&ldquo;Test Genes w/ Stats&rdquo; now <b>writes the example data into the With-Stats input box</b> (tab-separated Gene/LFC/FDR) instead of loading it silently &mdash; so you can see and edit it. It then loads it through the normal manual-stats parser.</li>
@@ -2936,7 +2940,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.89</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.90</a>
     </div>
 
     <div class="main-content">
@@ -3038,12 +3042,20 @@
 
                     <div class="form-group" id="correlationParams">
                         <label class="form-label">Correlation Cutoff: <span class="slider-value" id="cutoffValue">0.50</span></label>
-                        <input type="range" id="correlationCutoff" min="0.1" max="0.8" step="0.05" value="0.5">
+                        <div style="display:flex; gap:3px; align-items:center;">
+                            <button type="button" onclick="app.adjustNumber('correlationCutoff', -0.05)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                            <input type="range" id="correlationCutoff" min="0.1" max="0.8" step="0.05" value="0.5" style="flex:1; min-width:0;">
+                            <button type="button" onclick="app.adjustNumber('correlationCutoff', 0.05)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                        </div>
                     </div>
 
                     <div class="form-group" id="slopeParams">
                         <label class="form-label">Min Slope: <span class="slider-value" id="slopeValue">0.10</span></label>
-                        <input type="range" id="minSlope" min="0" max="2" step="0.05" value="0.1">
+                        <div style="display:flex; gap:3px; align-items:center;">
+                            <button type="button" onclick="app.adjustNumber('minSlope', -0.05)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                            <input type="range" id="minSlope" min="0" max="2" step="0.05" value="0.1" style="flex:1; min-width:0;">
+                            <button type="button" onclick="app.adjustNumber('minSlope', 0.05)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                        </div>
                     </div>
 
                     <!-- Growth rate in correlation hidden (v.67) -->
@@ -5112,6 +5124,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_89"></script>
+    <script src="app.js?v=v81_90"></script>
 </body>
 </html>
