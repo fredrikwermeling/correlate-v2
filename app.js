@@ -28533,8 +28533,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }).join('')
             : '';
         const fusionHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Gene fusions (also called translocations) happen when two chromosomes break and join incorrectly, producing a chimeric gene. Some are textbook drivers (BCR-ABL1 in CML, EWSR1-FLI1 in Ewing sarcoma); many calls in solid tumours with chaotic genomes are passenger events or technical artifacts.</p>
-            ${clinicalFusionHtml ? `<div style="margin-bottom:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a;"><b style="color:#15803d;">Clinically relevant fusions</b> <span style="font-size:10px; color:#6b7280;">(curated drivers, validated per cell line on lineage + partner expression + partner dependency)</span>${clinicalFusionHtml}</div>` : ''}
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Gene fusions (also called translocations) happen when two chromosomes break and join incorrectly, producing a chimeric gene. <b>Validated fusions</b> (green box) are the small curated list of ~50 well-known driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, …) <i>confirmed in this specific cell line</i> on three orthogonal signals — tissue/lineage match, partner gene over/under-expression, and partner CRISPR dependency — and graded high / medium / low confidence. The <b>raw partner list</b> below is the unfiltered DepMap fusion-caller output: in rearranged genomes most of those are passenger events or technical artifacts, not drivers.</p>
+            ${clinicalFusionHtml ? `<div style="margin-bottom:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a;"><b style="color:#15803d;">Validated driver fusions</b> <span style="font-size:10px; color:#6b7280;">(curated list, confirmed in this line on lineage + partner expression + partner CRISPR dependency)</span>${clinicalFusionHtml}</div>` : ''}
             ${row('Fusion partners (total, raw)', fusionCount)}
             ${fusionPartners.length ? row('Raw partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20} more</span>` : '')) : ''}
             ${fusionCaveat}`;
@@ -28569,7 +28569,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const aneupLabel = gs.Aneuploidy != null ? (() => {
                 const desc = gs.Aneuploidy < 15 ? 'low' :
                              gs.Aneuploidy < 25 ? 'medium' : 'high';
-                return `${gs.Aneuploidy} / 39 <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; Ben-David 2021 score; high tier &ge; 25 of 39)</span>`;
+                return `${gs.Aneuploidy} / 39 <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; counts how many of the 39 chromosome arms are gained or lost — higher = more chromosomally abnormal. Ben-David <i>et al.</i> 2021 scoring; high tier &ge; 25)</span>`;
             })() : '';
             const cinLabel = gs.CIN != null ? (() => {
                 const desc = gs.CIN < 0.2 ? 'low' :
@@ -28631,6 +28631,84 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         } else {
             lofHtml = '<em style="color:#6b7280;">No integrated functional-loss data available for this cell line.</em>';
         }
+
+        // --- Key genetic alterations (consolidated) ---
+        // Fuses the old Expected-drivers + Driver-mutations + Functional-loss
+        // trio (which overlapped heavily) into one focused view: the alterations
+        // most likely central to this line's transformation — oncogene hotspots,
+        // TSG functional loss, validated driver fusions, and focal CN — each
+        // tagged typical / atypical for the subtype, then the functional pathway
+        // read-out. Answers "which genes drive THIS cell, and are they usual for
+        // this cancer type?".
+        const cnEventsWiki = this.clinicalCn?.byCellLine?.[cellLineId] || {};
+        const typFor = subKey || pd || 'this subtype';
+        const typTag = (isTypical) => isTypical
+            ? ` <span style="color:#15803d; font-size:10px; font-weight:600;" title="One of the canonical / recurrent drivers of ${typFor}">✓ typical ${typFor} driver</span>`
+            : (kb ? ` <span style="color:#9ca3af; font-size:10px;" title="Not among the handful of canonical ${typFor} hallmark genes. This is a short curated list, so 'not listed' does not necessarily mean rare — it may still be a real, even common, driver in this line.">not a canonical ${typFor} hallmark</span>` : '');
+
+        // Merge hotspot + functional-loss + CN on the same gene into one row.
+        const altByGene = new Map();
+        const pushAlt = (gene, label, weight) => {
+            if (!altByGene.has(gene)) altByGene.set(gene, { gene, labels: [], weight: 0, typical: lookForSet.has(gene) });
+            const e = altByGene.get(gene);
+            if (!e.labels.includes(label)) e.labels.push(label);
+            e.weight = Math.max(e.weight, weight);
+        };
+        for (const h of (infSub.hotspots || [])) {
+            const gene = h.split(' ')[0];
+            const v = geneVariant[gene];
+            pushAlt(gene, v ? `activating hotspot <b>${v}</b>` : 'hotspot mutation', 3);
+        }
+        for (const g of (infSub.lof || [])) pushAlt(g, 'functional loss <span style="color:#9ca3af;">(deletion / LoF / silenced)</span>', 3);
+        for (const e of (cnEventsWiki.amplifications || [])) pushAlt(e.gene, `focal amplification${e.tier === 'strong_amp' ? ' <b>(strong)</b>' : ''} <span style="color:#9ca3af;">(CN ${e.cn})</span>`, 2);
+        for (const e of (cnEventsWiki.deletions || [])) pushAlt(e.gene, `focal deletion${e.tier === 'deep_del' ? ' <b>(deep)</b>' : ''} <span style="color:#9ca3af;">(CN ${e.cn})</span>`, 2);
+
+        const geneAltRows = [...altByGene.values()]
+            .sort((a, b) => (b.typical - a.typical) || (b.weight - a.weight) || a.gene.localeCompare(b.gene))
+            .map(e => `<div style="margin:3px 0; font-size:12px;">`
+                + `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" style="cursor:help; font-weight:700; color:#111827;">${e.gene}</span> `
+                + `<span style="color:#4b5563;">${e.labels.join(' + ')}</span>${typTag(e.typical)}</div>`);
+
+        // Validated driver fusions — typical if any partner is a canonical
+        // driver for the subtype.
+        const fusionAltRows = clinicalFusionCalls.map(c => {
+            const partners = c.fusion.split(/--?/);
+            const isTyp = partners.some(g => lookForSet.has(g));
+            const atyp = c.atypicalLineage ? ` <span style="color:#a16207; font-size:10px;" title="Atypical tissue for this fusion (kept on orthogonal evidence)">⚠ atypical lineage</span>` : '';
+            return `<div style="margin:3px 0; font-size:12px;">`
+                + `<span style="font-weight:700; color:#1e3a8a;">${c.fusion}</span> `
+                + `<span style="color:#4b5563;">driver fusion <span style="font-size:9px; color:#9ca3af;">[${c.tier}]</span></span>${typTag(isTyp)}${atyp}</div>`;
+        });
+        const allAltRows = [...fusionAltRows, ...geneAltRows];
+
+        // Canonical subtype drivers NOT altered here (for context).
+        const notFoundDrivers = kb
+            ? kb.lookFor.filter(g => !altByGene.has(g) && !clinicalFusionCalls.some(c => c.fusion.split(/--?/).includes(g)))
+            : [];
+
+        const keyAltBody = allAltRows.length > 0
+            ? `<div style="line-height:1.5;">${allAltRows.join('')}</div>`
+            : `<div style="color:#6b7280; font-size:11px;">No driver-level alteration detected in the curated layers (oncogene hotspots, tumour-suppressor functional loss, validated fusions, focal CN).${kb ? ' None of the canonical ' + typFor + ' drivers are present — consider an atypical driver, a CN event outside the curated panel, or STR re-authentication.' : ''}</div>`;
+
+        const typicalContextHtml = kb
+            ? `<div style="margin-top:10px; padding:8px 12px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;">`
+                + `<div style="font-weight:600; color:#3730a3; margin-bottom:3px;">For context — typical driver pattern in ${typFor}</div>`
+                + `<div style="color:#374151;">${kb.expected}</div>`
+                + (notFoundDrivers.length ? `<div style="margin-top:5px; color:#6b7280;"><b>Canonical drivers not altered here:</b> ${notFoundDrivers.join(', ')}.</div>` : '')
+                + `</div>`
+            : `<div style="margin-top:10px; padding:8px 12px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280;">No curated driver profile for &ldquo;${typFor}&rdquo; yet (~30 common Oncotree subtypes covered), so the alterations above aren't tagged typical / atypical.</div>`;
+
+        const keyAlterationsHtml = `
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The alterations most likely <b>central to this cell line's transformation</b> — activating oncogene mutations, tumour-suppressor functional loss, validated driver fusions, and focal copy-number events — each tagged <span style="color:#15803d; font-weight:600;">✓ typical</span> or <span style="color:#b45309;">atypical</span> for its cancer subtype. Overall mutation / fusion burden and the functional pathway read-out follow.</p>
+            ${countsLine}
+            ${flagsHtml}
+            ${keyAltBody}
+            ${typicalContextHtml}
+            <div style="margin-top:12px; padding-top:10px; border-top:1px solid #e5e7eb;">
+                <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway status <span style="color:#6b7280; font-weight:400; font-size:11px;">— genotype × CRISPR dependency</span></div>
+                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">Combines the mutations above with the CRISPR-knockout read-out — catches the common case where a gene is wild-type at the DNA level but the pathway is functionally dormant (or the reverse). Gene-effect (GE) scale: 0 = no effect, &minus;0.5 = selectively essential, &minus;1 ≈ typical strongly-essential gene.</p>
+                ${pathwayStatusHtml}
+            </div>`;
 
         // --- GE signature (interpretive) ---
         // Rank by z-score against the full cohort, NOT raw gene-effect. The
@@ -28718,7 +28796,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumour suppressors whose knockout boosts growth</b> (red above): ${tsHits.map(g => g.gene).join(', ')}. Removing these helps the cell grow — so they are <em>still functional</em> here and have <em>not</em> been inactivated in this cell line.</div>`
                 : '';
 
-            const introPara = `<p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? The interesting dependencies are <b>unique to this line</b> — genes it depends on more than typical, usually because they sit downstream of its active oncogene or driver. <b>Pan-essentials</b> (ribosomal, RNA polymerase, etc. — required by every cell line) are excluded from this view; they tell you nothing about this specific line. Rankings below use <b>z-score vs the full cohort</b>: z &lt; &minus;2 = strongly more essential than typical, z &gt; +2 = knockout helps growth much more than typical. <span style="display:inline-block; margin-left:6px;">💊 = approved or clinical-stage drug targets this gene.</span></p>`;
+            const introPara = `<p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? The interesting dependencies are <b>selective to this line</b> — genes it needs more than usual, often downstream of its active oncogene or driver. <b>"More than usual" means compared to the entire DepMap cohort</b> (all ~1,100 cancer cell lines across every lineage, <i>not</i> only same-tissue lines) — so a gene flagged here is one this line depends on more than the average cancer cell line of any type. <b>Pan-essentials</b> (ribosomal, RNA polymerase, etc. — needed by every cell) are removed; they say nothing line-specific. Rankings use <b>z-score vs that whole cohort</b>: z &lt; &minus;2 = much more essential than typical, z &gt; +2 = knockout helps growth much more than typical. <span style="display:inline-block; margin-left:6px;">💊 = approved or clinical-stage drug targets this gene.</span></p>`;
             if (zScored.length === 0) {
                 // The cell line index is valid (we're in the clIdx >= 0
                 // branch) but no gene-effect values survived the per-gene
@@ -28804,7 +28882,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const activeSig = sigResults.filter(s => s.meanZ > 0.75);
                 const sigHtml = activeSig.length > 0
                     ? `<div style="margin-top:8px; padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;">`
-                        + `<b style="color:#3730a3;">Pathway-activity signatures turned ON</b> <span style="color:#9ca3af; font-size:10px;">(mean z-score over a curated panel; &gt; +0.75 shown)</span>`
+                        + `<b style="color:#3730a3;">Pathway-activity signatures turned ON</b> <span style="color:#9ca3af; font-size:10px;">(each signature = a curated gene panel for one biological program, e.g. MYC targets or interferon response; the score is the mean expression z-score of that panel vs the cohort. <b>ON</b> = the program's genes are coordinately higher than the average cell line — mean z &gt; +0.75)</span>`
                         + activeSig.map(s => `<div style="margin:3px 0 3px 4px;">`
                             + `<span style="font-weight:600; color:#3730a3;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
                             + `<span style="color:#9ca3af; font-size:10px;">— mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`
@@ -28816,7 +28894,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const inactiveSig = sigResults.filter(s => s.meanZ < -0.75);
                 const inactiveSigHtml = inactiveSig.length > 0
                     ? `<div style="margin-top:6px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6b7280; font-size:11px;">`
-                        + `<b style="color:#374151;">Pathway-activity signatures turned OFF</b> <span style="color:#9ca3af; font-size:10px;">(mean z &lt; &minus;0.75)</span>`
+                        + `<b style="color:#374151;">Pathway-activity signatures turned OFF</b> <span style="color:#9ca3af; font-size:10px;">(the program's genes are coordinately lower than the average cell line — mean panel z &lt; &minus;0.75)</span>`
                         + inactiveSig.map(s => `<div style="margin:3px 0 3px 4px;">`
                             + `<span style="font-weight:600; color:#4b5563;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
                             + `<span style="color:#9ca3af; font-size:10px;">— mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`
@@ -28877,8 +28955,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     : '';
 
                 exprSigHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression — that list is always dominated by mitochondrial and ribosomal genes that are high in every line. Values shown below are log₂(TPM+1) (≈ mRNA copies per cell on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score against the full cell-line cohort for that gene (&gt; +2 = strongly more expressed than typical, &lt; &minus;2 = strongly silenced).</p>
-                    ${row('Top uniquely high expression (z-ranked)', topUniqueHtml)}
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression — that list is always dominated by mitochondrial and ribosomal genes that are high in every line. "Uniquely" here is judged <b>against the entire cohort</b> (all ~1,100 cell lines across every lineage, <i>not</i> just same-tissue lines). Values are log₂(TPM+1) (≈ mRNA on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score vs that whole cohort for the gene (&gt; +2 = much more expressed than the typical cell line, &lt; &minus;2 = strongly silenced).</p>
+                    ${row('Top uniquely high expression (z vs whole cohort)', topUniqueHtml)}
                     ${xist !== undefined ? row('XIST', xist.toFixed(2) + (xist > 1.0 ? ' — active (the normal silencing of the extra X chromosome is working)' : ' — silenced (unusual; can re-activate X-linked genes)')) : ''}
                     ${yMean !== null ? row('Y-chromosome genes (mean)', yMean.toFixed(2) + (yMean > 1.0 ? ' — Y chromosome active' : ' — Y chromosome silent or lost')) : ''}
                     ${sigHtml}
@@ -29420,15 +29498,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'DepMap 25Q3 OmicsGlobalSignatures — PureCN ploidy / WGD / CIN / LoH, MSIsensor2, Ben-David 2021 aneuploidy.'),
 
             // ── Driver landscape ──────────────────────────────────────────
-            section(`Expected drivers for this subtype <span style="font-size:11px; color:#6b7280;">— ${subKey || 'unclassified'}</span>`,
-                hallmarksHtml,
-                'Curated from WHO classification of haematolymphoid tumours (5th ed., 2022), COSMIC Cancer Gene Census, OncoKB, NCCN guidelines. ~30 common Oncotree subtypes covered.'),
-            section('Driver mutations',
-                mutationHtml,
-                'DepMap 25Q3 hotspot + damaging mutation matrices. Specific variants (KRAS p.G12D, BRAF p.V600E …) sourced from OmicsInferredMolecularSubtypes. Pathway scan KB: ~14 pathways × ~90 genes from OncoKB / COSMIC / SIGNOR.'),
-            section('Functional loss <span style="font-size:11px; color:#6b7280;">— integrated tumour-suppressor inactivation</span>',
-                lofHtml,
-                'DepMap 25Q3 OmicsInferredMolecularSubtypes. A gene is "lost" if any of: WGS copy number &lt; 0.3, likely loss-of-function mutation with allele frequency &gt; 0.5, or expression &lt; 0.1 log-TPM. Catches deletion-driven losses (CDKN2A homo-del, RB1 deep deletion) that the damaging-mutation matrix alone misses.'),
+            section(`Key genetic alterations <span style="font-size:11px; color:#6b7280;">— what likely drives this cell line${subKey ? ' (' + subKey + ')' : ''}</span>`,
+                keyAlterationsHtml,
+                'Alterations from DepMap 25Q3 OmicsInferredMolecularSubtypes (hotspot variants + integrated functional loss: copy number &lt; 0.3, likely-LoF mutation with AF &gt; 0.5, or expression &lt; 0.1 log-TPM), curated validated fusions (this app), and the curated focal copy-number panel. "Typical / atypical" is judged against a curated driver knowledge base (WHO 2022, COSMIC Cancer Gene Census, OncoKB, NCCN; ~30 Oncotree subtypes). Pathway status combines mutation calls with CRISPRGeneEffect (Chronos).'),
             section('Fusion landscape',
                 fusionHtml,
                 'Clinically relevant fusions: curated 51-driver list validated per cell line on lineage match + partner expression z-score + partner CRISPR dependency z-score (this app). Raw partner list: DepMap 25Q3 OmicsFusionFiltered — fusion callers on hypermutated / highly rearranged cancers produce many technical and passenger calls (counts &gt;30 are flagged).'),

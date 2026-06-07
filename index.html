@@ -1327,6 +1327,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.0 (2026-06-07)</strong></p>
+                <ul>
+                    <li>Cell Line Wiki &mdash; <b>driver sections consolidated &amp; clarified</b>. The old <i>Expected drivers for this subtype</i>, <i>Driver mutations</i> and <i>Functional loss</i> sections (which overlapped a lot) are now one <b>&ldquo;Key genetic alterations&rdquo;</b> section: the alterations likely central to this line&rsquo;s transformation &mdash; activating oncogene mutations, tumour-suppressor functional loss, validated driver fusions and focal CN gains/losses &mdash; each tagged <b>✓ typical</b> or <b>not a canonical hallmark</b> for the cancer subtype, with the typical driver pattern shown for context and the genotype × CRISPR pathway read-out below.</li>
+                    <li>Wiki wording clarified for scientists: <b>Aneuploidy</b> now explains it counts chromosome-arm gains/losses (not just &ldquo;Ben-David score&rdquo;); <b>Fusion landscape</b> defines what a <i>validated</i> fusion is vs the raw caller list; <b>CRISPR dependencies</b> and <b>Expression profile</b> now state explicitly that &ldquo;unique / uniquely expressed&rdquo; is vs the <i>whole cohort across all lineages</i> (not same-tissue lines); <b>pathway-activity signatures</b> ON/OFF are now properly explained.</li>
+                </ul>
                 <p><strong>v.82.6 (2026-06-07)</strong></p>
                 <ul>
                     <li>Scatter color-by legend now <b>fully visible &amp; exported</b> &mdash; with many tissue/subtype categories the legend wraps into many rows below the plot; the canvas now grows to fit the whole legend (measured after render) so nothing is clipped on screen and the PNG / SVG / data exports include it.</li>
@@ -3008,7 +3013,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.82.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.0</a>
     </div>
 
     <div class="main-content">
@@ -5212,6 +5217,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v82_6"></script>
+    <script src="app.js?v=v83_0"></script>
 </body>
 </html>
