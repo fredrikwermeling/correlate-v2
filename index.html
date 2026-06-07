@@ -1028,16 +1028,15 @@
             max-height: calc(100vh - 220px);
         }
         .clb-list {
-            /* CSS grid (row-major fill) instead of multicolumn (column-major).
-               Row-major means reading order goes left → right → next row, so
-               sorted descending puts the highest value in the upper-left and
-               the lowest at the bottom-right end of the list. */
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            /* Multi-column (column-major) fill: the sorted list reads straight
+               down column 1 top→bottom, then continues at the top of column 2,
+               etc. — so the first sorted entry is top-left and you scan each
+               column downward in order. */
+            columns: 3;
             column-gap: 12px;
-            row-gap: 0;
         }
         .clb-entry {
+            break-inside: avoid;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -1090,11 +1089,11 @@
         .clb-no-results { text-align: center; color: var(--gray-500); padding: 40px 0; font-size: 13px; }
         .clb-selection-count { font-size: 11px; color: var(--gray-500); white-space: nowrap; }
         @media (max-width: 900px) {
-            .clb-list { grid-template-columns: repeat(2, 1fr); }
+            .clb-list { columns: 2; }
             .clb-detail { width: 240px; }
         }
         @media (max-width: 600px) {
-            .clb-list { grid-template-columns: 1fr; }
+            .clb-list { columns: 1; }
             .clb-content { flex-direction: column; }
             .clb-detail { width: 100%; border-left: none; border-top: 1px solid var(--gray-200); max-height: 200px; }
         }
@@ -1331,6 +1330,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.99 (2026-06-07)</strong></p>
+                <ul>
+                    <li>Cell-line hover &mdash; now a <b>single</b> popout. The plot&rsquo;s built-in hover label (name / tissue / x&middot;y) is suppressed so only the summary card shows, with no duplicated text. The card also appears faster, and a just-clicked / labelled (orange) dot is now hoverable too &mdash; both in the correlation scatter and the gene-effect graphs.</li>
+                    <li>Cell Line Browser &mdash; the list now fills <b>column by column</b>: read straight down the first column (top&rarr;bottom) in sort order, then continue at the top of the next column, instead of left-to-right across rows.</li>
+                </ul>
                 <p><strong>v.81.98 (2026-06-07)</strong></p>
                 <ul>
                     <li>Network drag fix &mdash; once the hover info-box appeared, trying to drag a node would instead start selecting the legend text below the graph. The hover box now ignores the mouse (it&rsquo;s purely informational), so a click-drag always grabs the node underneath. Pinned boxes (Shift) stay clickable for their links.</li>
@@ -2971,7 +2975,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.98</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.99</a>
     </div>
 
     <div class="main-content">
@@ -5166,6 +5170,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_98"></script>
+    <script src="app.js?v=v81_99"></script>
 </body>
 </html>

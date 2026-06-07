@@ -15666,9 +15666,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     setupScatterClickHandler(filteredData) {
         // Hover a dot → show the cell-line summary card (matched back to a row by
-        // x/y, the same way the click handler does). Native Plotly hover still
-        // shows the quick name/lineage/value label; this adds the wiki summary.
+        // x/y, the same way the click handler does). We suppress Plotly's own
+        // hover label so the summary card is the ONLY popout (no redundant
+        // name/lineage box). hoverinfo:'none' hides the label but still fires
+        // plotly_hover, and it applies to every trace — including the orange
+        // "Highlighted" overlay, so clicked/labelled dots are hoverable too.
         const hoverEl = document.getElementById('scatterPlot');
+        try { Plotly.restyle('scatterPlot', { hoverinfo: 'none', hovertemplate: null }); } catch (e) {}
         let scatterHoverTimer = null;
         hoverEl.removeAllListeners?.('plotly_hover');
         hoverEl.removeAllListeners?.('plotly_unhover');
@@ -15681,7 +15685,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!md) return;
             const ev = { clientX: eventData.event?.clientX, clientY: eventData.event?.clientY };
             clearTimeout(scatterHoverTimer);
-            scatterHoverTimer = setTimeout(() => this.showCellLineTooltip(ev, md.cellLineId), 350);
+            scatterHoverTimer = setTimeout(() => this.showCellLineTooltip(ev, md.cellLineId), 180);
         });
         hoverEl.on('plotly_unhover', () => { clearTimeout(scatterHoverTimer); this.hideCellLineTooltip(); });
 
@@ -21425,6 +21429,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const extract = getId || (pt => Array.isArray(pt.customdata)
             ? pt.customdata[pt.customdata.length - 1]
             : pt.customdata);
+        // Suppress the native Plotly hover label so the summary card is the only
+        // popout (hoverinfo:'none' keeps the plotly_hover event firing).
+        try { Plotly.restyle(plotId, { hoverinfo: 'none', hovertemplate: null }); } catch (e) {}
         el.removeAllListeners?.('plotly_hover');
         el.removeAllListeners?.('plotly_unhover');
         let hoverTimer = null;
@@ -21435,7 +21442,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (typeof id !== 'string' || !id) return;
             const ev = { clientX: eventData.event?.clientX, clientY: eventData.event?.clientY };
             clearTimeout(hoverTimer);
-            hoverTimer = setTimeout(() => this.showCellLineTooltip(ev, id), 350);
+            hoverTimer = setTimeout(() => this.showCellLineTooltip(ev, id), 180);
         });
         el.on('plotly_unhover', () => { clearTimeout(hoverTimer); this.hideCellLineTooltip(); });
     }
@@ -25906,11 +25913,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Caption line above the list so the inline numbers read unambiguously.
-        // grid-column: 1 / -1 makes the caption span the full row width of
-        // the multi-column grid (otherwise it would occupy the first cell
-        // and push the first cell line into position 2).
+        // column-span: all makes the caption stretch across all columns of the
+        // multi-column list (otherwise it would sit inside column 1 and push the
+        // first cell line down).
         let caption = '';
-        const captionStyle = 'grid-column: 1 / -1; padding:4px 10px; font-size:10px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;';
+        const captionStyle = 'column-span: all; break-inside: avoid; padding:4px 10px; font-size:10px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;';
         if (geMap && geValueLabel) {
             const fullLabel = geValueLabel === 'Expr' ? 'Expression (log2 TPM+1)' : 'Gene Effect (CERES)';
             const direction = geValueLabel === 'GE' ? ' — lower = more essential' : ' — higher = more expressed';
