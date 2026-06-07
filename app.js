@@ -765,14 +765,14 @@ class CorrelationExplorer {
     }
 
     populateParamTranslocationFilter() {
-        if (this.translocations && this.translocations.geneData) {
+        if (this._fusionFilterData && this._fusionFilterData.geneData) {
             const input = document.getElementById('paramTranslocationGene');
             document.getElementById('paramTranslocationFilterGroup').style.display = 'block';
 
             input.addEventListener('input', () => {
-                // Only act on valid gene names or empty (clear filter)
+                // Only act on valid fusion names or empty (clear filter)
                 const val = input.value.trim();
-                if (val === '' || this.translocations.geneData[val]) {
+                if (val === '' || this._fusionFilterData.geneData[val]) {
                     this.updateParamTranslocationLevelCounts();
                 }
             });
@@ -782,8 +782,8 @@ class CorrelationExplorer {
     }
 
     updateParamTranslocationGeneCounts() {
-        if (!this.translocations?.geneData) return;
-        const genes = Object.keys(this.translocations.geneData);
+        if (!this._fusionFilterData?.geneData) return;
+        const genes = Object.keys(this._fusionFilterData.geneData);
         const input = document.getElementById('paramTranslocationGene');
         const datalist = document.getElementById('paramTranslocationGeneList');
         const cellLines = this.metadata.cellLines;
@@ -807,7 +807,7 @@ class CorrelationExplorer {
         // Count fusions per gene, skip genes with 0 fusions
         const geneCounts = [];
         for (const gene of genes) {
-            const translocations = this.translocations.geneData[gene].translocations;
+            const translocations = this._fusionFilterData.geneData[gene].translocations;
             let nFused = 0;
             for (const cl of filteredCLs) {
                 if (translocations[cl] && translocations[cl] > 0) nFused++;
@@ -838,20 +838,20 @@ class CorrelationExplorer {
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
 
-        if (!gene || !this.translocations?.geneData?.[gene]) {
+        if (!gene || !this._fusionFilterData?.geneData?.[gene]) {
+            // Curated fusions are binary (a line carries the driver fusion or it
+            // doesn't), so the filter is just WT vs has-fusion.
             levelSelect.innerHTML = `
                 <option value="all">All cells</option>
                 <option value="0">Only WT (no fusion)</option>
-                <option value="1">Only 1 fusion partner</option>
-                <option value="2">Only 2+ fusion partners</option>
-                <option value="1+2">Only fused (1+2)</option>
+                <option value="1+2">Only with fusion</option>
             `;
             return;
         }
 
-        const translocations = this.translocations.geneData[gene].translocations;
+        const translocations = this._fusionFilterData.geneData[gene].translocations;
         const cellLines = this.metadata.cellLines;
-        let n0 = 0, n1 = 0, n2 = 0;
+        let n0 = 0, nFused = 0;
 
         cellLines.forEach(cellLine => {
             if (lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== lineageFilter) return;
@@ -859,19 +859,15 @@ class CorrelationExplorer {
 
             const level = translocations[cellLine] || 0;
             if (level === 0) n0++;
-            else if (level === 1) n1++;
-            else n2++;
+            else nFused++;
         });
 
-        const nFused = n1 + n2;
-        const total = n0 + n1 + n2;
+        const total = n0 + nFused;
 
         levelSelect.innerHTML = `
             <option value="all">All cells (n=${total})</option>
             <option value="0">Only WT (n=${n0})</option>
-            <option value="1">Only 1 partner (n=${n1})</option>
-            <option value="2">Only 2+ partners (n=${n2})</option>
-            <option value="1+2">Only fused 1+2 (n=${nFused})</option>
+            <option value="1+2">Only with fusion (n=${nFused})</option>
         `;
     }
 
@@ -966,6 +962,10 @@ class CorrelationExplorer {
     // raw datasets if the curated files failed to load.
     get _fusionAxisData() { return this.validatedFusions || this.translocations; }
     get _lossAxisData() { return this.functionalLoss || this.damagingMutations; }
+    // The "1. Set Parameters" fusion cell-subset filter also uses the curated
+    // calls now, so its picklist only offers real driver fusions (BCR-ABL1,
+    // EWSR1-FLI1, …) rather than the raw passenger-heavy DepMap fusion matrix.
+    get _fusionFilterData() { return this.validatedFusions || this.translocations; }
 
     updateMutAnalysisTypeUI() {
         const subType = document.querySelector('input[name="mutAnalysisType"]:checked')?.value || 'hotspot';
@@ -1713,7 +1713,7 @@ class CorrelationExplorer {
             const paramTrans = document.getElementById('paramTranslocationGene')?.value || '';
             const paramTransLevel = document.getElementById('paramTranslocationLevel')?.value || 'all';
             const paramHotspotMuts = paramHotspot && paramHotspotLevel !== 'all' ? (this.mutations?.geneData?.[paramHotspot]?.mutations || this.damagingMutations?.geneData?.[paramHotspot]?.mutations) : null;
-            const paramTransMuts = paramTrans && paramTransLevel !== 'all' ? this.translocations?.geneData?.[paramTrans]?.translocations : null;
+            const paramTransMuts = paramTrans && paramTransLevel !== 'all' ? this._fusionFilterData?.geneData?.[paramTrans]?.translocations : null;
             filteredCLs = this.metadata.cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
@@ -4724,10 +4724,10 @@ class CorrelationExplorer {
             }
         }
 
-        // Get translocation data for fusion filter
+        // Get translocation data for fusion filter (curated/validated fusions)
         let transData = null;
-        if (transGene && this.translocations?.geneData?.[transGene]) {
-            transData = this.translocations.geneData[transGene].translocations;
+        if (transGene && this._fusionFilterData?.geneData?.[transGene]) {
+            transData = this._fusionFilterData.geneData[transGene].translocations;
         }
 
         const indices = [];
@@ -5312,8 +5312,8 @@ class CorrelationExplorer {
         const additionalMutData = additionalHotspot ? this.mutations.geneData[additionalHotspot] : null;
 
         // Get additional translocation filter data if specified
-        const additionalTransData = (additionalTransGene && this.translocations?.geneData?.[additionalTransGene])
-            ? this.translocations.geneData[additionalTransGene].translocations : null;
+        const additionalTransData = (additionalTransGene && this._fusionFilterData?.geneData?.[additionalTransGene])
+            ? this._fusionFilterData.geneData[additionalTransGene].translocations : null;
 
         const cellLines = this.metadata.cellLines;
         const results = [];
@@ -5505,8 +5505,8 @@ class CorrelationExplorer {
         }
 
         const additionalMutData = additionalHotspot ? this.mutations?.geneData?.[additionalHotspot] : null;
-        const additionalTransFilterData = (additionalTransGene && additionalTransGene !== hotspotGene && this.translocations?.geneData?.[additionalTransGene])
-            ? this.translocations.geneData[additionalTransGene].translocations : null;
+        const additionalTransFilterData = (additionalTransGene && additionalTransGene !== hotspotGene && this._fusionFilterData?.geneData?.[additionalTransGene])
+            ? this._fusionFilterData.geneData[additionalTransGene].translocations : null;
 
         const cellLines = this.metadata.cellLines;
         const results = [];
