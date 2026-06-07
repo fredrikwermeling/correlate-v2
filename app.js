@@ -4653,21 +4653,15 @@ class CorrelationExplorer {
             { gene: 'ABL1', lfc: 0.6, fdr: 0.07 }
         ];
 
-        this.geneStats = new Map();
-        const genes = [];
-
-        testData.forEach(d => {
-            genes.push(d.gene);
-            this.geneStats.set(d.gene, d);
-        });
-
-        document.getElementById('geneTextarea').value = genes.join('\n');
-        this.updateGeneCount();
-
-        // Show stats controls
-        document.getElementById('statsControls').style.display = 'block';
-
-        alert(`Loaded ${genes.length} test genes with LFC and FDR statistics`);
+        // Write the data into the visible "With Stats" input box so the user sees
+        // it (tab-separated Gene/LFC/FDR), then load it through the normal manual-
+        // stats parser — which sets geneStats, fills the gene list, shows the stats
+        // controls and reports the count. Previously this loaded the data silently
+        // without populating the input box.
+        const text = 'Gene\tLFC\tFDR\n'
+            + testData.map(d => `${d.gene}\t${d.lfc}\t${d.fdr}`).join('\n');
+        document.getElementById('manualStatsTextarea').value = text;
+        this.loadManualStats();
     }
 
     downloadSampleStatsFile() {

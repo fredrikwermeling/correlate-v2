@@ -1331,6 +1331,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.89 (2026-06-07)</strong></p>
+                <ul>
+                    <li>&ldquo;Test Genes w/ Stats&rdquo; now <b>writes the example data into the With-Stats input box</b> (tab-separated Gene/LFC/FDR) instead of loading it silently &mdash; so you can see and edit it. It then loads it through the normal manual-stats parser.</li>
+                </ul>
                 <p><strong>v.81.88 (2026-06-06)</strong></p>
                 <ul>
                     <li>Cell Line Browser &mdash; the <b>selection count is now filter-aware</b>. It still reports the full selection (which Inspect / Export act on), but when a filter hides some of the selected lines it shows how many are currently in view, e.g. &ldquo;1186 selected · 126 in view&rdquo;. Refreshes whenever the list re-renders.</li>
@@ -2932,7 +2936,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.88</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.89</a>
     </div>
 
     <div class="main-content">
@@ -5108,6 +5112,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_88"></script>
+    <script src="app.js?v=v81_89"></script>
 </body>
 </html>
