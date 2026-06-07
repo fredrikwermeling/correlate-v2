@@ -150,6 +150,7 @@ class CorrelationExplorer {
         this._clbSelectedCellLines = new Set();
         this._clbInspectedCellLine = null;
         this._clbVisibleCellLines = [];
+        this._clbShowSelectedOnly = false;
 
         this.init();
     }
@@ -25308,6 +25309,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this._activeOncoprintFilters = null;
             this._oncoprintSyncFilters?.();
             this.clearCustomCellLineFilterCLB();
+            this._setClbShowSelectedOnly(false);
             this.renderCellLineList();
             // Reset UMAP
             this._resetUmap();
@@ -25339,8 +25341,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
         document.getElementById('clbDeselectAll').addEventListener('click', () => {
             this._clbSelectedCellLines.clear();
+            // Leaving "show selected only" on with nothing selected would show an
+            // empty list — turn the filter off so the full list returns.
+            if (this._clbShowSelectedOnly) this._setClbShowSelectedOnly(false);
             this.renderCellLineList();
             this.updateClbSelectionCount();
+        });
+        document.getElementById('clbShowSelectedOnly')?.addEventListener('click', () => {
+            this._setClbShowSelectedOnly(!this._clbShowSelectedOnly);
+            this.renderCellLineList();
         });
         // Gene link clicks in detail panel
         document.getElementById('clbDetailGeneLists').addEventListener('click', (e) => {
@@ -25609,6 +25618,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbDetailContent').style.display = 'none';
         document.getElementById('clbDetailPlaceholder').style.display = '';
         this._clbInspectedCellLine = null;
+        this._setClbShowSelectedOnly(false);
 
         this.renderCellLineList();
         this.updateClbSelectionCount();
@@ -25686,6 +25696,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         let filtered = this._clbBaseFilteredLines();
         if (collectionStates.size > 0) filtered = filtered.filter(passesCollections);
+        // "Show Selected" toggle: narrow the list to the current selection
+        // (still respecting the other active filters).
+        if (this._clbShowSelectedOnly) filtered = filtered.filter(cl => this._clbSelectedCellLines.has(cl));
 
         // Keep the quick-filter panel's counts in sync with the active filters.
         if (document.getElementById('clbCollectionPanel')) this._renderCollectionPanel();
@@ -26961,6 +26974,17 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
 
         document.getElementById('clbDetailGeneLists').innerHTML = gl;
+    }
+
+    // Toggle the "Show Selected" filter and keep the button's label/active state
+    // in sync. Re-rendering is left to the caller.
+    _setClbShowSelectedOnly(on) {
+        this._clbShowSelectedOnly = !!on;
+        const btn = document.getElementById('clbShowSelectedOnly');
+        if (btn) {
+            btn.classList.toggle('btn-active', this._clbShowSelectedOnly);
+            btn.textContent = this._clbShowSelectedOnly ? 'Show All' : 'Show Selected';
+        }
     }
 
     updateClbSelectionCount() {
