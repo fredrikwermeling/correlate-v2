@@ -1331,6 +1331,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.81.92 (2026-06-07)</strong></p>
+                <ul>
+                    <li>Network &mdash; hover tooltip is now <b>two-stage</b> so it stops getting in the way while you drag nodes: a compact <b>mean gene-effect</b> readout appears quickly (~0.25s), and the fuller gene info (name + description + links) only follows after ~1.2s. Queued tooltips are cancelled the moment you start dragging.</li>
+                    <li>Network &mdash; removed the <b>Show Hidden</b> button (redundant: removed nodes already appear in a &ldquo;Removed&rdquo; list where you can click any one to restore it, or use Restore All) and the <b>Layout</b> button (the alternative layouts weren&rsquo;t useful).</li>
+                </ul>
                 <p><strong>v.81.91 (2026-06-07)</strong></p>
                 <ul>
                     <li>Network &mdash; new <b>Reset</b> button (next to Aa) that restores all the appearance controls above the network to defaults in one click: font / node / edge size sliders, the Aa text settings (font family, label &amp; node colour, legend &amp; banner size/colour), the node-border toggle, and the GE / stats label &amp; colour options. Re-renders the network with the restored settings.</li>
@@ -2944,7 +2949,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.91</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.81.92</a>
     </div>
 
     <div class="main-content">
@@ -3386,11 +3391,9 @@
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">View Controls:</label>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
                                 <button class="btn btn-secondary" id="fitNetwork">Fit</button>
-                                <button class="btn btn-secondary" id="showHiddenNodes">Show Hidden</button>
                                 <button class="btn btn-secondary" id="toggleSelectMode">Select Mode</button>
                                 <button class="btn btn-secondary" id="toggleRemoveMode">Remove Mode</button>
                                 <button class="btn btn-secondary" id="togglePhysics">Lock</button>
-                                <button class="btn btn-secondary" id="changeLayout">Layout</button>
                             </div>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
                                 <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;">Aa</button>
@@ -5129,6 +5132,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v81_91"></script>
+    <script src="app.js?v=v81_92"></script>
 </body>
 </html>

@@ -3271,7 +3271,6 @@ class CorrelationExplorer {
         document.getElementById('fitNetwork').addEventListener('click', () => {
             if (this.network) this.network.fit();
         });
-        document.getElementById('showHiddenNodes').addEventListener('click', () => this.showHiddenNodes());
         document.getElementById('restoreAllNodes').addEventListener('click', () => this.showHiddenNodes());
         document.getElementById('showGeneEffect').addEventListener('change', (e) => {
             document.getElementById('showGESDGroup').style.display = e.target.checked ? 'inline' : 'none';
@@ -3320,7 +3319,6 @@ class CorrelationExplorer {
 
         // Physics toggle, layout change, and remove mode buttons
         document.getElementById('togglePhysics').addEventListener('click', () => this.togglePhysics());
-        document.getElementById('changeLayout').addEventListener('click', () => this.changeNetworkLayout());
         document.getElementById('toggleRemoveMode').addEventListener('click', () => this.toggleRemoveMode());
         document.getElementById('toggleSelectMode').addEventListener('click', () => this.toggleSelectMode());
         document.getElementById('clearSelectedNodes').addEventListener('click', () => this.clearSelectedNodes());
@@ -7618,6 +7616,10 @@ class CorrelationExplorer {
         this.network.on('dragStart', (params) => {
             isDragging = true;
             dragStartPos = params.pointer.canvas;
+            // Don't let a queued hover tooltip pop up mid-drag.
+            clearTimeout(this._networkTooltipTimer);
+            clearTimeout(this._networkQuickTooltipTimer);
+            this.hideGeneTooltip();
         });
 
         // Track drag end
@@ -7643,6 +7645,7 @@ class CorrelationExplorer {
 
         // Hover over node to show gene info tooltip
         this.network.on('hoverNode', (params) => {
+            if (isDragging) return;
             const nodeId = params.node;
             const domEvent = params.event && params.event.center ?
                 { clientX: params.event.center.x, clientY: params.event.center.y } :
@@ -7655,12 +7658,21 @@ class CorrelationExplorer {
                 domEvent.clientY += rect.top;
             }
             clearTimeout(this._networkTooltipTimer);
+            clearTimeout(this._networkQuickTooltipTimer);
+            // Stage 1 — a quick, compact gene-effect readout (feels immediate).
+            this._networkQuickTooltipTimer = setTimeout(() => {
+                this._showNetworkQuickTooltip(domEvent, nodeId);
+            }, 250);
+            // Stage 2 — the fuller gene info, delayed ~1s more so casual hovering
+            // / dragging doesn't pop the big tooltip in the way. The gene-effect
+            // line is kept at the top of the expanded tooltip too.
             this._networkTooltipTimer = setTimeout(() => {
-                this.showGeneTooltip(domEvent, nodeId);
-            }, 400);
+                this.showGeneTooltip(domEvent, nodeId, null, this._networkGeneEffectLine(nodeId));
+            }, 1200);
         });
         this.network.on('blurNode', () => {
             clearTimeout(this._networkTooltipTimer);
+            clearTimeout(this._networkQuickTooltipTimer);
             this.hideGeneTooltip();
         });
 
@@ -9918,7 +9930,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         // Show which layout is active
         const layoutBtn = document.getElementById('changeLayout');
         const layoutNames = { 'default': 'Default', 'forceAtlas2Based': 'Force Atlas', 'hierarchical': 'Hierarchical' };
-        layoutBtn.textContent = layoutNames[layoutName];
+        if (layoutBtn) layoutBtn.textContent = layoutNames[layoutName];
 
         // Re-center after layout change
         setTimeout(() => this.network?.fit(), 500);
@@ -21167,7 +21179,42 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return null;
     }
 
-    showGeneTooltip(event, gene, whyContext) {
+    // Compact "mean gene effect ± SD" line for a gene, or '' when unavailable.
+    // Used as the immediate (stage-1) network hover readout and kept at the top
+    // of the expanded tooltip.
+    _networkGeneEffectLine(gene) {
+        if (!gene || !this.geneIndex || !this.geneEffects) return '';
+        this._ensureGeGeneStats();
+        const idx = this.geneIndex.get(gene.toUpperCase());
+        if (idx === undefined || !this._geGeneStats) return '';
+        const mean = this._geGeneStats.mean[idx];
+        if (mean === undefined || isNaN(mean)) return '';
+        const sd = this._geGeneStats.sd[idx];
+        return `<div style="margin:2px 0; color:#374151;">Mean gene effect: <b>${mean.toFixed(2)}</b>`
+            + `${(sd !== undefined && !isNaN(sd)) ? ` <span style="color:#9ca3af;">± ${sd.toFixed(2)}</span>` : ''}</div>`;
+    }
+
+    // Stage-1 network hover tooltip: gene name + mean gene effect only, no
+    // MyGene.info fetch. Replaced by the full tooltip after the longer delay.
+    _showNetworkQuickTooltip(event, gene) {
+        const existing = document.getElementById('geneTooltip');
+        if (existing && existing.dataset.pinned === '1') return;
+        this.hideGeneTooltip(true);
+        const maxW = 300;
+        const tooltip = document.createElement('div');
+        tooltip.id = 'geneTooltip';
+        tooltip.dataset.gene = gene;
+        tooltip.dataset.pinned = '0';
+        tooltip.style.cssText = `position: fixed; z-index: 10001; background: white; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; max-width: ${maxW}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 11px; line-height: 1.45; color: #374151;`;
+        tooltip.innerHTML = `<b style="color:#5a9f4a; font-size:13px;">${gene}</b>`
+            + this._networkGeneEffectLine(gene)
+            + `<div style="margin-top:4px; font-size:9px; color:#9ca3af;">keep hovering for details…</div>`;
+        tooltip.style.left = Math.min(event.clientX + 10, window.innerWidth - maxW - 20) + 'px';
+        tooltip.style.top = Math.min(event.clientY + 10, window.innerHeight - 120) + 'px';
+        document.body.appendChild(tooltip);
+    }
+
+    showGeneTooltip(event, gene, whyContext, prefixHtml) {
         // If a pinned tooltip for the same gene is already showing, leave it.
         const existing = document.getElementById('geneTooltip');
         if (existing && existing.dataset.pinned === '1' && existing.dataset.gene === gene) return;
@@ -21182,7 +21229,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const maxW = pinned ? 460 : 350;
         tooltip.style.cssText = `position: fixed; z-index: 10001; background: white; border: 1px solid ${pinned ? '#5a9f4a' : '#d1d5db'}; border-radius: 8px; padding: 10px 14px; max-width: ${maxW}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 11px; line-height: 1.45; color: #374151;`;
         if (pinned) tooltip.style.pointerEvents = 'auto';
-        tooltip.innerHTML = `<div style="color: #6b7280;">Loading ${gene} info...</div>`;
+        tooltip.innerHTML = `<div style="margin-bottom:4px;"><b style="color:#5a9f4a; font-size:13px;">${gene}</b></div>${prefixHtml || ''}<div style="color: #6b7280; margin-top:2px;">Loading info…</div>`;
 
         const x = Math.min(event.clientX + 10, window.innerWidth - maxW - 20);
         const y = Math.min(event.clientY + 10, window.innerHeight - 200);
@@ -21242,6 +21289,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             html += `<div style="margin-bottom: 4px; padding-right:${el.dataset.pinned === '1' ? '18px' : '0'};"><b style="color: #5a9f4a; font-size: 13px;">${info ? info.symbol : gene}</b>`;
             if (info && info.name) html += ` <span style="color: #374151;">${info.name}</span>`;
             html += `</div>`;
+            // Keep the gene-effect line (from the quick hover) at the top.
+            if (prefixHtml) html += prefixHtml;
 
             // Optional "why this gene is highlighted here" context — used by
             // chips in the CLB detail card (functional-loss, focal-CN) to
