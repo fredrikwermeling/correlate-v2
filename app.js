@@ -2553,6 +2553,28 @@ class CorrelationExplorer {
         });
     }
 
+    // After rendering a colour-by scatter, measure the horizontal legend and
+    // grow the canvas height + bottom margin by any overflow so the entire
+    // legend is visible on-screen and captured by PNG/SVG/JSON export. Keeps
+    // the plot area the same size (height and margin grow together).
+    _fitColorByLegend(plotEl) {
+        if (!plotEl || !plotEl._fullLayout) return;
+        try {
+            const legend = plotEl.querySelector('g.legend');
+            if (!legend) return;
+            const lb = legend.getBoundingClientRect();
+            const cb = plotEl.getBoundingClientRect();
+            const overflow = lb.bottom - cb.bottom;
+            if (overflow > 2) {
+                const grow = Math.ceil(overflow + 20);
+                const newH = (plotEl._fullLayout.height || cb.height) + grow;
+                const newB = (plotEl._fullLayout.margin?.b || 100) + grow;
+                Plotly.relayout(plotEl, { height: newH, 'margin.b': newB });
+                plotEl.style.height = newH + 'px';
+            }
+        } catch (e) { /* non-fatal */ }
+    }
+
     // Re-render the custom hotspot-filter dropdown — mirrors the fusion filter:
     // one line per gene with its live n= mutated count, narrowed by typed text.
     _renderHotspotFilterDropdown(filter) {
@@ -11929,6 +11951,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             layout.width = availableWidth;
             if (widthEl) widthEl.value = plotAreaW;
         }
+        // When colouring by tissue/subtype, the horizontal legend sits below the
+        // plot and wraps into many rows (DepMap has 40+ subtypes). With a fixed
+        // small bottom margin it was clipped off the canvas (and out of exports).
+        // Grow the bottom margin / total height to fit the whole legend so it's
+        // visible on screen AND captured in the PNG/SVG/JSON exports.
+        if (colorByCategory && colorByCategories && colorByCategories.length) {
+            const legendFont = (sts?.legendSize) || 17;
+            const perRow = Math.max(1, Math.floor(plotAreaW / 130));
+            const rows = Math.ceil(colorByCategories.length / perRow);
+            const legendH = rows * Math.round(legendFont * 1.7) + 30;
+            layout.margin.b = Math.max(100, Math.round(0.15 * plotAreaH) + legendH + 20);
+            layout.height = plotAreaH + m.t + layout.margin.b;
+        }
         plotContainer.style.width = layout.width + 'px';
         plotContainer.style.height = layout.height + 'px';
 
@@ -11985,6 +12020,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Add click handler
             this.setupScatterClickHandler(filteredData);
             this._currentFilteredData = filteredData;
+
+            // Grow the canvas if the colour-by legend still overflows the bottom
+            // (the pre-estimate gets close; this corrects it exactly so the whole
+            // legend is on-canvas and included in exports).
+            if (colorByCategory) this._fitColorByLegend(document.getElementById('scatterPlot'));
 
             // Build custom HTML legend for color-by mode
             if (colorByCategories) {

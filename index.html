@@ -1327,6 +1327,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.82.6 (2026-06-07)</strong></p>
+                <ul>
+                    <li>Scatter color-by legend now <b>fully visible &amp; exported</b> &mdash; with many tissue/subtype categories the legend wraps into many rows below the plot; the canvas now grows to fit the whole legend (measured after render) so nothing is clipped on screen and the PNG / SVG / data exports include it.</li>
+                    <li>Help text refreshed for recent changes &mdash; the Cell Line Browser &ldquo;?&rdquo; now covers the CN filter, the Ploidy / Aneuploidy / CIN / Copy-number / Drug-response sorts, the hotspot dropdown, the executive-summary card and the Show Selected toggle; the &ldquo;How it works&rdquo; mutation-analysis note now reads &ldquo;validated driver fusions / functional loss&rdquo;.</li>
+                </ul>
                 <p><strong>v.82.5 (2026-06-07)</strong></p>
                 <ul>
                     <li>Scatter &ldquo;color by tissue/subtype&rdquo; &mdash; expanded the palette from 20 to <b>40 distinct colors</b> and made it cycle instead of dumping the overflow into grey, so far fewer categories collapse to the same look.</li>
@@ -3003,7 +3008,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.82.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.82.6</a>
     </div>
 
     <div class="main-content">
@@ -4602,7 +4607,7 @@
                         <div style="background: white; border: 1px solid #c5e8bc; border-radius: 10px; padding: 14px;">
                             <div style="font-weight: 700; color: #3a7333; font-size: 14px; margin-bottom: 6px;">🧬 Mutation Analysis</div>
                             <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
-                                Compare gene effect in cells with specific <em>hotspot mutations</em> or <em>translocations</em> vs wild-type. Identify genes with differential dependency in mutant backgrounds.
+                                Compare gene effect in cells with specific <em>hotspot mutations</em>, <em>validated driver fusions</em>, or <em>functional loss</em> vs wild-type. Identify genes with differential dependency in mutant backgrounds.
                             </p>
                         </div>
                         <!-- Cell Line Browser -->
@@ -4703,6 +4708,8 @@
             <li><b>CN amp/del filter</b> &mdash; the dropdown lists curated focal amplifications (▲) and tumor-suppressor deletions (▼) with live n=; selecting one filters to lines carrying that focal copy-number event.</li>
             <li><b>Oncoprint</b> &mdash; mutation heatmap across filtered cell lines (hotspot filter only).</li>
           </ul>
+          <p style="margin-top:14px;"><strong>Selecting cell lines</strong> &mdash; tick lines (or <b>Select Visible</b>) to build a set for Inspect / Export. <b>Show Selected</b> collapses the list to just your ticked lines (click again &mdash; now <b>Show All</b> &mdash; to restore); it also turns off on Deselect All / Reset. The list fills <b>column by column</b> (down the first column in sort order, then the next).</p>
+          <p style="margin-top:10px;"><strong>Detail card</strong> &mdash; clicking a line opens a card that now leads with a plain-language <b>executive summary</b> (cancer type, patient origin, and standout molecular features), the same overview shown when you hover a cell-line dot on any plot.</p>
           <p style="margin-top:14px;"><strong>Hotspot variants</strong> &mdash; when DepMap's inferred-subtype pipeline calls a specific codon (KRAS p.G12D, BRAF p.V600E, EGFR p.L858R, JAK2 p.V617F, EGFR exon-19 del), the variant is appended in green next to the gene name in the Hotspot Mutations list. Generic group calls like KRAS p.G12 (any G12 not specifically D or C) are also shown when no specific call is available. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
 
           <p><strong>Functional loss</strong> &mdash; integrated tumor-suppressor inactivation calls (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC) shown as red-bordered chips in the detail panel. A gene is "lost" if any of: WGS-based relative CN &lt; 0.3, likely-LoF mutation with AF &gt; 0.5, or expression &lt; 0.1 log-TPM. This catches <em>deletion-driven</em> losses that the damaging-mutation matrix alone misses &mdash; e.g. CDKN2A homozygous deletion in 445 lines (~37% of the panel), most of which look mutation-clean. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
@@ -5205,6 +5212,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v82_5"></script>
+    <script src="app.js?v=v82_6"></script>
 </body>
 </html>
