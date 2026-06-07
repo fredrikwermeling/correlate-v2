@@ -7659,16 +7659,16 @@ class CorrelationExplorer {
             }
             clearTimeout(this._networkTooltipTimer);
             clearTimeout(this._networkQuickTooltipTimer);
-            // Stage 1 — a quick, compact gene-effect readout (feels immediate).
+            // Stage 1 — the compact gene-effect readout, almost immediate.
             this._networkQuickTooltipTimer = setTimeout(() => {
                 this._showNetworkQuickTooltip(domEvent, nodeId);
-            }, 250);
-            // Stage 2 — the fuller gene info, delayed ~1s more so casual hovering
-            // / dragging doesn't pop the big tooltip in the way. The gene-effect
-            // line is kept at the top of the expanded tooltip too.
+            }, 150);
+            // Stage 2 — the extended gene info ~1s later (replaces the quick one).
+            // It deliberately does NOT repeat the gene-effect line — that already
+            // showed in the quick popout, so the two don't overlap.
             this._networkTooltipTimer = setTimeout(() => {
-                this.showGeneTooltip(domEvent, nodeId, null, this._networkGeneEffectLine(nodeId));
-            }, 1200);
+                this.showGeneTooltip(domEvent, nodeId);
+            }, 1150);
         });
         this.network.on('blurNode', () => {
             clearTimeout(this._networkTooltipTimer);
