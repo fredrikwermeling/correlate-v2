@@ -29,11 +29,19 @@ function csvName(stem) {
 }
 
 class CorrelationExplorer {
+    // 40 visually-distinct categorical colours. DepMap has ~40+ disease
+    // subtypes, so a 20-colour palette left most of them grey; the most
+    // common categories (sorted by count) get the most distinct hues first,
+    // and colour assignment cycles (modulo) rather than falling back to grey.
     static CATEGORY_COLORS = [
         '#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4',
         '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990',
-        '#dcbeff', '#9A6324', '#800000', '#aaffc3', '#808000',
-        '#000075', '#a9a9a9', '#e6beff', '#ffe119', '#ffd8b1'
+        '#dcbeff', '#9a6324', '#800000', '#aaffc3', '#808000',
+        '#000075', '#ffe119', '#ffd8b1', '#e6beff', '#a9a9a9',
+        '#ff1493', '#00ced1', '#ff8c00', '#8b008b', '#556b2f',
+        '#1e90ff', '#dc143c', '#228b22', '#daa520', '#4b0082',
+        '#ff4500', '#2e8b57', '#6a5acd', '#b22222', '#20b2aa',
+        '#9932cc', '#cd853f', '#008b8b', '#bdb76b', '#c71585'
     ];
 
     static PRIORITY_FUSION_GENES = new Set([
@@ -755,6 +763,7 @@ class CorrelationExplorer {
         const nMut = n1 + n2;
         const total = n0 + n1 + n2;
 
+        const prev = levelSelect.value;
         levelSelect.innerHTML = `
             <option value="all">All cells (n=${total})</option>
             <option value="0">Only WT (n=${n0})</option>
@@ -762,6 +771,10 @@ class CorrelationExplorer {
             <option value="2">Only 2 mutations (n=${n2})</option>
             <option value="1+2">Only mutated 1+2 (n=${nMut})</option>
         `;
+        // Picking a gene implies you want the mutated cells — default to "Only
+        // mutated" rather than "All cells". Keep an explicit prior non-default
+        // pick (e.g. WT) if the user already chose one.
+        levelSelect.value = (prev && prev !== 'all') ? prev : '1+2';
     }
 
     populateParamTranslocationFilter() {
@@ -864,11 +877,14 @@ class CorrelationExplorer {
 
         const total = n0 + nFused;
 
+        const prev = levelSelect.value;
         levelSelect.innerHTML = `
             <option value="all">All cells (n=${total})</option>
             <option value="0">Only WT (n=${n0})</option>
             <option value="1+2">Only with fusion (n=${nFused})</option>
         `;
+        // Default to the fused cells when a fusion is picked (see hotspot note).
+        levelSelect.value = (prev && prev !== 'all') ? prev : '1+2';
     }
 
     updateAnalysisModeUI() {
@@ -2531,6 +2547,39 @@ class CorrelationExplorer {
                     input.value = el.dataset.value;
                     input.dispatchEvent(new Event('change'));
                 }
+                dd.style.display = 'none';
+                this.renderCellLineList();
+            });
+        });
+    }
+
+    // Re-render the custom hotspot-filter dropdown — mirrors the fusion filter:
+    // one line per gene with its live n= mutated count, narrowed by typed text.
+    _renderHotspotFilterDropdown(filter) {
+        const dd = document.getElementById('clbHotspotDropdown');
+        if (!dd) return;
+        const items = this._hotspotFilterItems || [];
+        const q = (filter || '').toLowerCase().trim();
+        const matches = q ? items.filter(it => it.value.toLowerCase().includes(q)) : items;
+        if (matches.length === 0) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No matching hotspot-mutated gene.</div>`;
+            return;
+        }
+        const visible = matches.slice(0, 200);
+        dd.innerHTML = visible.map(it =>
+            `<div class="clb-hotspot-opt" data-value="${it.value}" `
+            + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
+            + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
+            + `<div style="font-weight:600; color:#374151;">${it.primary} `
+            + `<span style="color:#6b7280; font-weight:400; font-size:10px;">n=${it.count}</span></div>`
+            + `<div style="font-size:10px; color:#9ca3af;">${it.secondary}</div>`
+            + `</div>`
+        ).join('');
+        const input = document.getElementById('clbHotspotFilter');
+        dd.querySelectorAll('.clb-hotspot-opt').forEach(el => {
+            el.addEventListener('mousedown', (e) => e.preventDefault());
+            el.addEventListener('click', () => {
+                if (input) { input.value = el.dataset.value; input.dispatchEvent(new Event('change')); }
                 dd.style.display = 'none';
                 this.renderCellLineList();
             });
@@ -11591,7 +11640,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             colorByColors = CorrelationExplorer.CATEGORY_COLORS;
             colorByCategories.forEach((cat, i) => {
                 const catData = categoryMap[cat];
-                const color = i < colorByColors.length ? colorByColors[i] : '#999';
+                const color = colorByColors[i % colorByColors.length];
                 colorByTraceIndices[cat] = [traces.length];
                 traces.push({
                     x: catData.map(d => d.x),
@@ -12034,7 +12083,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         mode: 'markers', type: 'scatter',
                         text: catData.map(d => `${d.cellLineName}<br>${cat}`),
                         hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                        marker: { color: ci < colors.length ? colors[ci] : '#999', size: cfg.size, opacity: 0.8 },
+                        marker: { color: colors[ci % colors.length], size: cfg.size, opacity: 0.8 },
                         name: `${cat} (${catData.length})`,
                         showlegend: i === 0,
                         legendgroup: cat
@@ -25133,12 +25182,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('collectionsInfoModal').style.display = 'none';
         });
         document.getElementById('clbSexFilter').addEventListener('change', () => this.renderCellLineList());
-        // Hotspot/translocation filters are now <input> + <datalist> — trigger on change and input
+        // Hotspot filter — custom multi-line dropdown (same pattern as fusion/CN).
         const clbHotspotInput = document.getElementById('clbHotspotFilter');
         clbHotspotInput.addEventListener('change', () => this.renderCellLineList());
         clbHotspotInput.addEventListener('input', () => {
-            // Clear filter if input is empty
+            this._renderHotspotFilterDropdown(clbHotspotInput.value);
+            const dd = document.getElementById('clbHotspotDropdown');
+            if (dd) dd.style.display = '';
             if (!clbHotspotInput.value) this.renderCellLineList();
+        });
+        clbHotspotInput.addEventListener('focus', () => {
+            this._renderHotspotFilterDropdown(clbHotspotInput.value);
+            const dd = document.getElementById('clbHotspotDropdown');
+            if (dd) dd.style.display = '';
+        });
+        document.addEventListener('click', (e) => {
+            const wrap = document.getElementById('clbHotspotFilterWrap');
+            const dd = document.getElementById('clbHotspotDropdown');
+            if (!wrap || !dd) return;
+            if (!wrap.contains(e.target)) dd.style.display = 'none';
         });
         const clbTransInput = document.getElementById('clbTranslocationFilter');
         clbTransInput.addEventListener('change', () => this.renderCellLineList());
@@ -26315,31 +26377,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             subSelect.innerHTML = '<option value="">All subtypes</option>';
         }
 
-        // Update hotspot filter counts (hotspot + damaging)
-        if (this.mutations?.geneData || this.damagingMutations?.geneData) {
+        // Hotspot filter dropdown items — same custom multi-line dropdown as the
+        // fusion / CN filters (gene + live n= mutated count in the current base
+        // set). Stored on this._hotspotFilterItems; rendered by
+        // _renderHotspotFilterDropdown on focus / input.
+        if (this.mutations?.geneData) {
             const hotspotBase = getBaseSet('hotspot');
             const hotspotBaseSet = new Set(hotspotBase);
-            const hotspotInput = document.getElementById('clbHotspotFilter');
-            const hotspotList = document.getElementById('clbHotspotList');
-            const hotspotVal = hotspotInput.value;
-            let hotspotHtml = '';
-            if (this.mutations?.geneData) {
-                const geneCounts = [];
-                for (const gene of Object.keys(this.mutations.geneData)) {
-                    const muts = this.mutations.geneData[gene].mutations;
-                    let n = 0;
-                    for (const [cl, v] of Object.entries(muts)) {
-                        if (v > 0 && hotspotBaseSet.has(cl)) n++;
-                    }
-                    if (n > 0) geneCounts.push({ gene, n });
+            const items = [];
+            for (const gene of Object.keys(this.mutations.geneData)) {
+                const muts = this.mutations.geneData[gene].mutations;
+                let n = 0;
+                for (const [cl, v] of Object.entries(muts)) {
+                    if (v > 0 && hotspotBaseSet.has(cl)) n++;
                 }
-                geneCounts.sort((a, b) => b.n - a.n);
-                for (const { gene, n } of geneCounts) {
-                    hotspotHtml += `<option value="${gene}">${gene} (n=${n})</option>`;
-                }
+                if (n > 0) items.push({ value: gene, primary: gene, count: n, secondary: 'hotspot mutation' });
             }
-            hotspotList.innerHTML = hotspotHtml;
-            hotspotInput.value = hotspotVal;
+            items.sort((a, b) => b.count - a.count);
+            this._hotspotFilterItems = items;
+            const hotspotInput = document.getElementById('clbHotspotFilter');
+            this._renderHotspotFilterDropdown(hotspotInput ? hotspotInput.value : '');
         }
 
         // Custom fusion-filter dropdown — multi-line entries (Safari's native
