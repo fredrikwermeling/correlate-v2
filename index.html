@@ -1378,6 +1378,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.14 (2026-06-08)</strong></p>
+                <ul>
+                    <li>Export dialog format list now reads with " / " separators (e.g. "PDF / vector (scalable, selectable text)"), and the dialog title is "Export chart / FORMAT". The earlier "raster image inside" wording for PDF is gone, since PDF is true vector.</li>
+                    <li>"How it works" updated: mutation analysis now lists copy-number amplification / deep deletion alongside hotspots, fusions and functional loss.</li>
+                    <li>Writing pass across the app: removed em-dashes from labels, tooltips, the "How it works" panel, the Cell Line Browser help, and the cell-line wiki text, using "/" as a separator and commas/colons for clauses.</li>
+                </ul>
                 <p><strong>v.83.13 (2026-06-08)</strong></p>
                 <ul>
                     <li>Export dialog &mdash; corrected the format descriptions now that PDF is true vector: <b>&ldquo;PDF &mdash; vector (scalable, selectable text)&rdquo;</b> (it previously, wrongly, still said &ldquo;raster image inside&rdquo;).</li>
@@ -3131,7 +3137,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.13</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.14</a>
     </div>
 
     <div class="main-content">
@@ -3146,7 +3152,7 @@
                         Loading data...
                     </div>
                     <div style="font-size: 11px; color: #4b5563; margin-top: 8px; line-height: 1.45;">
-                        <!-- Compact summary — three named sources on one line each.
+                        <!-- Compact summary, three named sources on one line each.
                              Full file / KB list is hidden behind a "Show details"
                              toggle so the card doesn't dominate the homepage. -->
                         <div><span style="color:#374151; font-weight:600;">Cell-line data:</span> <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a></div>
@@ -3154,7 +3160,7 @@
                         <div><span style="color:#374151; font-weight:600;">Curated annotations:</span> in-app KBs (clinical fusions, subtype hallmarks, STR)</div>
                         <a href="#" id="referenceDetailsToggle" style="display:inline-block; margin-top:6px; font-size:10px; color:var(--green-700); text-decoration:none;">&#x25BE; show files &amp; details</a>
                         <div id="referenceDetailsBody" style="display:none; margin-top:6px; font-size:10px; color:#666;">
-                            <p style="margin: 0; font-weight:600; color:#374151;">Cell-line data &mdash; <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a></p>
+                            <p style="margin: 0; font-weight:600; color:#374151;">Cell-line data: <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a></p>
                             <ul style="margin: 4px 0 0 0; padding-left: 16px;">
                                 <li>CRISPRGeneEffect.csv <span style="color:#999;">(gene effects)</span></li>
                                 <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
@@ -3209,9 +3215,9 @@
                                 <input type="radio" name="analysisMode" value="analysis" checked>
                                 Correlate genes within my set
                             </label>
-                            <label style="margin-left:14px;" title="Take your genes as seeds and search ALL ~18,000 genes for ones whose gene-effect profile correlates with them — grows the network beyond your input.">
+                            <label style="margin-left:14px;" title="Take your genes as seeds and search ALL ~18,000 genes for ones whose gene-effect profile correlates with them, grows the network beyond your input.">
                                 <input type="radio" name="analysisMode" value="design">
-                                Expand my set — find correlated genes
+                                Expand my set to find correlated genes
                             </label>
                             <div id="designExpandOption" style="display: none; margin-top: 2px; margin-bottom: 4px; margin-left: 32px;">
                                 <label style="font-size: 11px; color: #4b5563;" title="By default only correlations TO your seed genes are drawn. Tick this to also compute correlations among the newly discovered genes, filling in the rest of the network.">
@@ -3270,10 +3276,10 @@
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
                                     <input type="radio" name="mutAnalysisType" value="damaging"> Functional loss
                                 </label>
-                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;" title="Stratify by focal copy-number amplification (≥ 3× diploid) of a curated oncogene panel — e.g. MYC, ERBB2, MDM2, CDK4.">
+                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;" title="Stratify by focal copy-number amplification (≥ 3× diploid) of a curated oncogene panel, e.g. MYC, ERBB2, MDM2, CDK4.">
                                     <input type="radio" name="mutAnalysisType" value="cn_amp"> CN amplification
                                 </label>
-                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;" title="Stratify by focal deep (near-homozygous) deletion of a curated tumour-suppressor panel — e.g. CDKN2A/B, PTEN, SMAD4, STK11.">
+                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;" title="Stratify by focal deep (near-homozygous) deletion of a curated tumour-suppressor panel, e.g. CDKN2A/B, PTEN, SMAD4, STK11.">
                                     <input type="radio" name="mutAnalysisType" value="cn_del"> CN deep deletion
                                 </label>
                             </div>
@@ -3381,7 +3387,7 @@
                             <option value="1+2">Only with fusion</option>
                         </select>
                         <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 4px; font-size: 9px; color: #92400e;">
-                            Selecting for mutations or fusions may introduce bias — they are often enriched in specific cancer types.
+                            Selecting for mutations or fusions may introduce bias; they are often enriched in specific cancer types.
                         </div>
                     </div>
                     </div> <!-- end card-content -->
@@ -3599,7 +3605,7 @@
                             </div>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
                                 <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;">Aa</button>
-                                <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network — font / node / edge size, colours, label options and node border — back to defaults">Reset</button>
+                                <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network, font / node / edge size, colours, label options and node border, back to defaults">Reset</button>
                                 <label style="font-size: 10px; display: flex; align-items: center; gap: 3px; cursor: pointer;">
                                     <input type="checkbox" id="networkNodeBorder" checked> Node border
                                 </label>
@@ -3615,7 +3621,7 @@
                             </div>
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">Export:</label>
                             <div class="button-group-horizontal">
-                                <button class="btn btn-secondary" id="downloadNetworkPNG" title="Export the network — choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                                <button class="btn btn-secondary" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                                 <button class="btn btn-secondary" id="downloadNetworkSVG" style="display:none;">SVG</button>
                                 <button class="btn btn-secondary" id="downloadFullPagePNG" title="Screenshot the full page as high-res PNG for publication">Screenshot PNG</button>
                                 <button class="btn btn-info" id="downloadAllData">All Data (ZIP)</button>
@@ -3672,8 +3678,8 @@
                         <button class="btn btn-outline btn-sm" id="filterCorrelationsToggle" title="Toggle column filters">Filters</button>
                         <button class="btn btn-outline btn-sm" id="copyCorrelationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadCorrelations">Download CSV</button>
-                        <button class="btn btn-secondary btn-sm enrichrBtn" data-source="correlations" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr — Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
-                        <!-- AI button removed — Full Export supersedes it -->
+                        <button class="btn btn-secondary btn-sm enrichrBtn" data-source="correlations" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
+                        <!-- AI button removed, Full Export supersedes it -->
                     </div>
                     <div class="table-container">
                         <table class="data-table" id="correlationsTable">
@@ -3706,8 +3712,8 @@
                         <button class="btn btn-outline btn-sm" id="filterClustersToggle" title="Toggle column filters">Filters</button>
                         <button class="btn btn-outline btn-sm" id="copyClustersGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadClusters">Download CSV</button>
-                        <button class="btn btn-secondary btn-sm enrichrBtn" data-source="clusters" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr — Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
-                        <!-- AI button removed — Full Export supersedes it -->
+                        <button class="btn btn-secondary btn-sm enrichrBtn" data-source="clusters" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
+                        <!-- AI button removed, Full Export supersedes it -->
                     </div>
                     <div class="table-container">
                         <table class="data-table" id="clustersTable">
@@ -3756,7 +3762,7 @@
                             <option value="diff_pos">Δ GE &gt; 0</option>
                             <option value="filtered">Visible</option>
                         </select>
-                        <button class="btn btn-secondary btn-sm" id="mutEnrichrBtn" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr — Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
+                        <button class="btn btn-secondary btn-sm" id="mutEnrichrBtn" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
                     </div>
                     <!-- Row 2: Export -->
                     <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
@@ -3764,7 +3770,7 @@
                         <button class="btn btn-outline btn-sm" id="downloadMutationResults" title="Download table as CSV spreadsheet">.csv</button>
                         <button class="btn btn-sm" id="mutAnalyzeWithAI" style="background:#0369a1;color:white;font-size:10px;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
                         <button class="btn btn-outline btn-sm" id="exportMutTableSVG" style="display:none;" title="Export visible table as SVG vector image">.svg</button>
-                        <button class="btn btn-outline btn-sm" id="exportMutTablePNG" title="Export the visible table — choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                        <button class="btn btn-outline btn-sm" id="exportMutTablePNG" title="Export the visible table, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                         <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
                         <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="filterMutationToggle" title="Toggle column value filters">Filters</button>
@@ -4017,7 +4023,7 @@
                             <span style="font-size:10px;color:rgba(255,255,255,0.8);margin-right:2px;">Export:</span>
                             <button id="exportGateReportPNG" class="btn btn-sm" style="font-size: 10px; padding: 2px 8px; background: #374151; color: white;" title="Export gate comparison as PNG">PNG</button>
                             <button id="exportGateReportSVG" class="btn btn-sm" style="font-size: 10px; padding: 2px 8px; background: #374151; color: white;" title="Export gate comparison as SVG">SVG</button>
-                            <!-- AI button removed — Full Export supersedes it -->
+                            <!-- AI button removed, Full Export supersedes it -->
                             <button id="closeGateCompare" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
                         </div>
                     </div>
@@ -4042,20 +4048,20 @@
             </div>
             <div class="modal-footer" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                 <button class="btn btn-outline btn-sm" id="scatterTextSettingsBtn" style="font-weight:700;" title="Text & Font Settings">Aa</button>
-                <button class="btn btn-outline btn-sm" id="resetScatterAll" style="font-size:10px;" title="Reset all filters, gates, fonts, and overlays — keep selected genes">Reset</button>
+                <button class="btn btn-outline btn-sm" id="resetScatterAll" style="font-size:10px;" title="Reset all filters, gates, fonts, and overlays, keep selected genes">Reset</button>
                 <span style="font-size:10px; color:#9ca3af;">Export:</span>
-                <button class="btn btn-outline btn-sm" id="downloadScatterPNG" title="Export the scatter plot — choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                <button class="btn btn-outline btn-sm" id="downloadScatterPNG" title="Export the scatter plot, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                 <button class="btn btn-outline btn-sm" id="downloadScatterSVG" title="Export scatter plot as SVG vector">.svg</button>
                 <button class="btn btn-outline btn-sm" id="downloadScatterCSV" title="Download data as CSV spreadsheet">.csv</button>
                 <button class="btn btn-sm" id="scatterAnalyzeWithAI" style="background:#0369a1;color:white;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
-                <button class="btn btn-outline btn-sm" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart — choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                <button class="btn btn-outline btn-sm" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                 <button class="btn btn-outline btn-sm" id="downloadTissueSVG" style="display:none;" title="Export tissue chart as SVG">.svg</button>
                 <button class="btn btn-outline btn-sm" id="downloadTissueCSV" style="display:none;" title="Download tissue table as CSV">.csv</button>
                 <span style="font-size:10px; display:inline-flex; gap:8px; align-items:center; color:#666; margin-left:4px;">
                     <label style="cursor:pointer;"><input type="checkbox" id="exportWhitePlotBg" checked> White bg</label>
                     <label style="cursor:pointer;"><input type="checkbox" id="exportTransparentBg"> Transparent</label>
                 </span>
-                <!-- Open button hidden — available on main page -->
+                <!-- Open button hidden, available on main page -->
                 <label class="btn btn-outline btn-sm" style="display:none;">Open <input type="file" id="restoreFromSvgInput" accept=".svg,.png" style="display:none;"></label>
                 <button class="btn btn-secondary btn-sm" id="closeInspectBtn">Close</button>
             </div>
@@ -4114,10 +4120,10 @@
                         <select id="geSubtypeFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Filter by disease subtype">
                             <option value="">All subtypes</option>
                         </select>
-                        <select id="geHotspotFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Additional hotspot filter — only show cell lines mutated in this gene">
+                        <select id="geHotspotFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Additional hotspot filter, only show cell lines mutated in this gene">
                             <option value="">No hotspot mutation</option>
                         </select>
-                        <span id="geHotspotBiasWarning" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias — mutations are often enriched in specific cancer types.">&#9888;</span>
+                        <span id="geHotspotBiasWarning" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
                         <span style="border-left: 1px solid #e5e7eb; height: 16px; margin: 0 2px;"></span>
                         <input type="text" id="geMutGeneFilter" list="geMutGeneFilterList" class="form-control" placeholder="Mut filter..." style="width: 90px; font-size: 11px; padding: 3px 6px;" title="Filter by mutation status (e.g. NRAS)" autocomplete="off">
                         <datalist id="geMutGeneFilterList"></datalist>
@@ -4126,7 +4132,7 @@
                             <option value="mut">Mut only</option>
                             <option value="all" selected>All</option>
                         </select>
-                        <select id="geFusionFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Fusion filter — only show cell lines with this fusion">
+                        <select id="geFusionFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Fusion filter, only show cell lines with this fusion">
                             <option value="">No fusion filter</option>
                         </select>
                         <span style="font-size:10px; color:#6b7280; white-space:nowrap;" title="Minimum cell lines per tissue group to display">Min n:</span>
@@ -4141,7 +4147,7 @@
                         <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">View:</label>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;" title="Box plot of gene effect grouped by tissue / lineage">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan table: how each mutation-prone gene's hotspot (WT vs mutated) shifts this gene's effect">By Hotspot</button>
-                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Same layout as the mutational-analysis Inspect — pick one hotspot-mutated gene to stratify this gene's effect by 0 / 1 / 2 hotspot-mutation levels. Change the hotspot gene in the selector above the plot.">Hotspot Mutation Inspect</button>
+                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Same layout as the mutational-analysis Inspect, pick one hotspot-mutated gene to stratify this gene's effect by 0 / 1 / 2 hotspot-mutation levels. Change the hotspot gene in the selector above the plot.">Hotspot Mutation Inspect</button>
                         <span id="geGatesGroup" style="display: none; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 8px; margin-left: 2px;">
                             <label style="font-size: 12px; font-weight: 600; color: #374151; white-space: nowrap;">Gates:</label>
                             <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle on the scatter plot to define Gate A">Gate A</button>
@@ -4257,7 +4263,7 @@
                     <div id="geInlineCompareBody"></div>
                 </div>
 
-                <!-- GE Gate Compare Controls removed — using toolbar buttons (lines 2794-2798) -->
+                <!-- GE Gate Compare Controls removed, using toolbar buttons (lines 2794-2798) -->
 
                 <!-- GE Gate Comparison Results Panel -->
                 <div id="geGateComparePanel" style="display: none; margin-top: 12px; border: 2px solid #5a9f4a; border-radius: 8px; overflow: hidden;">
@@ -4289,7 +4295,7 @@
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                     <button class="btn btn-outline btn-sm" id="geTextSettingsBtn" style="font-weight:700;" title="Text & Font Settings">Aa</button>
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
-                    <button class="btn btn-outline btn-sm" id="downloadGeneEffectPNG" title="Export the chart — choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                    <button class="btn btn-outline btn-sm" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                     <button class="btn btn-outline btn-sm" id="downloadGeneEffectSVG">SVG</button>
                     <button class="btn btn-sm btn-outline" id="geExpandFullBtn" title="Show the full analysis (filters + statistics table)" style="font-size:11px;">⤢ Full view</button>
                     <span style="font-size: 12px; color: #6b7280; margin-left: 15px; margin-right: 5px;">Export CSV:</span>
@@ -4345,7 +4351,7 @@
                                 <input type="text" id="exprCorrelatesSearch" class="form-control" placeholder="Search genes..." style="width: 160px; font-size: 12px; padding: 4px 8px;">
                                 <button class="btn btn-outline btn-sm" id="filterExprCorrelatesToggle" title="Toggle column filters">Filters</button>
                                 <button class="btn btn-secondary btn-sm enrichrBtn" data-source="exprCorrelates">Enrichr</button>
-                                <!-- AI button removed — Full Export supersedes it -->
+                                <!-- AI button removed, Full Export supersedes it -->
                                 <span id="exprCorrelatesCount" style="font-size: 12px; color: #6b7280;"></span>
                             </div>
                             <div class="table-container" style="max-height: 350px; overflow-y: auto;">
@@ -4370,7 +4376,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <button class="btn btn-sm btn-outline" id="backToExprResults" style="border-color: #5a9f4a; color: #5a9f4a;">← Back to results</button>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-outline btn-sm" id="downloadExprScatterPNG" style="border-color: #5a9f4a; color: #5a9f4a;" title="Export the chart — choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                                    <button class="btn btn-outline btn-sm" id="downloadExprScatterPNG" style="border-color: #5a9f4a; color: #5a9f4a;" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                                     <button class="btn btn-outline btn-sm" id="downloadExprScatterSVG" style="border-color: #5a9f4a; color: #5a9f4a;">SVG</button>
                                 </div>
                             </div>
@@ -4433,11 +4439,11 @@
                         <select id="caTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
                             <option value="">All tissues</option>
                         </select>
-                        <select id="caHotspotFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Hotspot filter — only show cell lines mutated in this gene">
+                        <select id="caHotspotFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Hotspot filter, only show cell lines mutated in this gene">
                             <option value="">No hotspot mutation</option>
                         </select>
-                        <span id="caHotspotBiasWarning" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias — mutations are often enriched in specific cancer types.">&#9888;</span>
-                        <select id="caFusionFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Fusion filter — only show cell lines with this fusion">
+                        <span id="caHotspotBiasWarning" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
+                        <select id="caFusionFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Fusion filter, only show cell lines with this fusion">
                             <option value="">No fusion filter</option>
                         </select>
                         <input type="text" id="caCellLineSearch" class="form-control" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
@@ -4501,7 +4507,7 @@
                 <!-- Download buttons (same as gene effect) -->
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
-                    <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisPNG" title="Export the chart — choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                    <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                     <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisSVG">SVG</button>
                     <span style="font-size: 12px; color: #6b7280; margin-left: 15px; margin-right: 5px;">Export CSV:</span>
                     <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisCSV">By Group</button>
@@ -4529,7 +4535,7 @@
     <div id="collectionsInfoModal" style="display:none; position:fixed; inset:0; z-index:1380; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;">
         <div style="background:#fff; width:100%; max-width:min(94vw,760px); max-height:calc(100vh - 40px); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
             <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg,#f0fdf4 0%,#fff 100%);">
-                <h3 style="margin:0; font-size:17px; color:#15803d;">Quick filters — inclusion criteria</h3>
+                <h3 style="margin:0; font-size:17px; color:#15803d;">Quick filters, inclusion criteria</h3>
                 <button id="collectionsInfoClose" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
             </div>
             <div id="collectionsInfoBody" style="padding:14px 18px; overflow-y:auto; font-size:12px; color:#374151; line-height:1.55;"></div>
@@ -4580,11 +4586,11 @@
                 <div style="margin-bottom:10px;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">Format</label>
                     <select id="exportOptFormat" style="padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:13px;">
-                        <option value="png">PNG &mdash; raster image</option>
-                        <option value="svg">SVG &mdash; editable vector (Illustrator)</option>
-                        <option value="pdf">PDF &mdash; vector (scalable, selectable text)</option>
-                        <option value="tiff">TIFF &mdash; raster, journal submission</option>
-                        <option value="pptx">PowerPoint &mdash; vector on a 16:9 slide</option>
+                        <option value="png">PNG / raster image</option>
+                        <option value="svg">SVG / editable vector (Illustrator)</option>
+                        <option value="pdf">PDF / vector (scalable, selectable text)</option>
+                        <option value="tiff">TIFF / raster, journal submission</option>
+                        <option value="pptx">PowerPoint / vector on a 16:9 slide</option>
                     </select>
                 </div>
                 <div style="margin-bottom:10px;">
@@ -4659,7 +4665,7 @@
                     <h4 style="margin: 0 0 10px; color: #2d5a27; font-size: 16px;">What is Correlate?</h4>
                     <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
                         Correlate analyses <strong>gene effect scores</strong> (CRISPR knockout fitness) across <strong>1,100+ cancer cell lines</strong> from the DepMap project.
-                        Genes whose knockout produces correlated fitness effects across cell lines are likely to share <strong>functional relationships</strong> &mdash; shared pathways, protein complexes, or regulatory dependencies.
+                        Genes whose knockout produces correlated fitness effects across cell lines are likely to share <strong>functional relationships</strong>: shared pathways, protein complexes, or regulatory dependencies.
                     </p>
                 </div>
 
@@ -4675,7 +4681,7 @@
                             <div style="font-size: 32px; margin-bottom: 4px;">↗</div>
                             <div style="font-weight: 700; color: #3182ce; font-size: 15px;">Positive (r &gt; 0)</div>
                             <p style="font-size: 12px; color: #555; margin: 6px 0 0; line-height: 1.5;">
-                                Knockout of both genes affects the <strong>same</strong> cell lines <strong>in the same way</strong> &mdash; suggesting shared pathway or complex membership.
+                                Knockout of both genes affects the <strong>same</strong> cell lines <strong>in the same way</strong>, suggesting shared pathway or complex membership.
                             </p>
                         </div>
                         <!-- No correlation -->
@@ -4691,7 +4697,7 @@
                             <div style="font-size: 32px; margin-bottom: 4px;">↘</div>
                             <div style="font-weight: 700; color: #e53e3e; font-size: 15px;">Negative (r &lt; 0)</div>
                             <p style="font-size: 12px; color: #555; margin: 6px 0 0; line-height: 1.5;">
-                                Gene knockouts have <strong>opposite</strong> effects across cell lines &mdash; when one is essential, the other is dispensable, suggesting compensatory or antagonistic roles.
+                                Gene knockouts have <strong>opposite</strong> effects across cell lines: when one is essential, the other is dispensable, suggesting compensatory or antagonistic roles.
                             </p>
                         </div>
                     </div>
@@ -4701,7 +4707,7 @@
                             <img src="scatter_example.svg" alt="TSC1 vs TSC2 scatter plot showing strong positive correlation (r=0.90)" style="max-width: 100%; height: auto; border-radius: 6px;">
                             <div style="margin-top: auto; padding-top: 8px; border-top: 1px solid #f0f0f0;">
                                 <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">
-                                    <strong>Example:</strong> TSC1 vs TSC2 gene effect across 1,186 cell lines (r = 0.90). Knockout of either gene produces nearly identical fitness effects, yet the impact is highly context-dependent &mdash; some cell lines thrive while others are depleted.
+                                    <strong>Example:</strong> TSC1 vs TSC2 gene effect across 1,186 cell lines (r = 0.90). Knockout of either gene produces nearly identical fitness effects, yet the impact is highly context-dependent: some cell lines thrive while others are depleted.
                                 </p>
                             </div>
                         </div>
@@ -4711,7 +4717,7 @@
                             </div>
                             <div style="margin-top: auto; padding-top: 8px; border-top: 1px solid #f0f0f0;">
                                 <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">
-                                    The strong correlation reveals that TSC1 and TSC2 function as an obligate complex &mdash; without prior knowledge of the pathway. This is the power of unbiased correlation analysis: it discovers functional relationships directly from the data.
+                                    The strong correlation reveals that TSC1 and TSC2 function as an obligate complex, without prior knowledge of the pathway. This is the power of unbiased correlation analysis: it discovers functional relationships directly from the data.
                                 </p>
                                 <p style="margin: 4px 0 0; font-size: 10px; color: #999; font-style: italic;">
                                     Pathway adapted from Huang &amp; Manning, Cell Res (2008) 18:62&ndash;69
@@ -4756,14 +4762,14 @@
                         <div style="background: white; border: 1px solid #c5e8bc; border-radius: 10px; padding: 14px;">
                             <div style="font-weight: 700; color: #3a7333; font-size: 14px; margin-bottom: 6px;">🧬 Mutation Analysis</div>
                             <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
-                                Compare gene effect in cells with specific <em>hotspot mutations</em>, <em>validated driver fusions</em>, or <em>functional loss</em> vs wild-type. Identify genes with differential dependency in mutant backgrounds.
+                                Compare gene effect in cells with specific <em>hotspot mutations</em>, <em>validated driver fusions</em>, <em>functional loss</em>, or <em>copy-number amplification / deep deletion</em> vs wild-type. Identify genes with differential dependency in altered backgrounds.
                             </p>
                         </div>
                         <!-- Cell Line Browser -->
                         <div style="background: white; border: 1px solid #c5e8bc; border-radius: 10px; padding: 14px;">
                             <div style="font-weight: 700; color: #3a7333; font-size: 14px; margin-bottom: 6px;">📊 Cell Line Browser</div>
                             <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
-                                Explore individual cell lines &mdash; filter by tissue, mutation, or gene effect. View top dependencies and select cell line subsets for focused analyses.
+                                Explore individual cell lines: filter by tissue, mutation, or gene effect. View top dependencies and select cell line subsets for focused analyses.
                             </p>
                         </div>
                     </div>
@@ -4811,7 +4817,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid #444;">
           <div>
             <h3 id="enrichrTitle" style="margin:0; color:#e0e0e0; font-size:15px;">Enrichr Pathway Analysis</h3>
-            <div style="font-size:10px; color:#888; margin-top:2px;">Powered by <a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" style="color:#7cabcf; text-decoration:none;">Enrichr</a> — Chen et al. <a href="https://doi.org/10.1186/1471-2105-14-128" target="_blank" rel="noopener" style="color:#7cabcf; text-decoration:none;">BMC Bioinformatics 2013</a></div>
+            <div style="font-size:10px; color:#888; margin-top:2px;">Powered by <a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" style="color:#7cabcf; text-decoration:none;">Enrichr</a>, Chen et al. <a href="https://doi.org/10.1186/1471-2105-14-128" target="_blank" rel="noopener" style="color:#7cabcf; text-decoration:none;">BMC Bioinformatics 2013</a></div>
           </div>
           <div style="display:flex; gap:8px; align-items:center;">
             <button id="enrichrDownloadBtn" class="btn btn-outline btn-sm" style="color:#ccc; border-color:#555;">Download CSV</button>
@@ -4844,50 +4850,50 @@
     <div id="clbInfoModal" style="display:none; position:fixed; inset:0; z-index:1360; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:40px;">
       <div style="background:#fff; max-width:720px; width:100%; max-height:80vh; overflow-y:auto; border-radius:8px; padding:20px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="margin:0; font-size:16px;">Cell Line Browser — Help</h3>
+          <h3 style="margin:0; font-size:16px;">Cell Line Browser / Help</h3>
           <button id="clbInfoCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1;">&times;</button>
         </div>
         <div style="font-size:12px; line-height:1.55; color:#374151;">
-          <p style="margin-top:0;"><strong>Filters</strong> &mdash; stack with AND. Click Reset to clear.</p>
+          <p style="margin-top:0;"><strong>Filters</strong>: stack with AND. Click Reset to clear.</p>
           <ul style="margin:4px 0 10px 20px;">
-            <li><b>Tissue / Subtype</b> &mdash; DepMap OncotreeLineage and primary disease subtype.</li>
-            <li><b>Sex</b> &mdash; annotation and expression are two independent axes (see below).</li>
-            <li><b>Hotspot filter</b> &mdash; only show cell lines mutated in this gene at a hotspot position. The dropdown lists genes with live n= mutated counts (matching the Fusion / CN filter style).</li>
-            <li><b>Fusion filter</b> &mdash; the dropdown lists <b>clinically relevant fusion pairs</b> first (★ BCR-ABL1, ★ EWSR1-FLI1, &hellip;) followed by the gene-based long tail. Selecting a pair filters to the curated set; selecting a gene returns any line with any fusion involving that gene.</li>
-            <li><b>CN amp/del filter</b> &mdash; the dropdown lists curated focal amplifications (▲) and tumor-suppressor deletions (▼) with live n=; selecting one filters to lines carrying that focal copy-number event.</li>
-            <li><b>Oncoprint</b> &mdash; mutation heatmap across filtered cell lines (hotspot filter only).</li>
+            <li><b>Tissue / Subtype</b>: DepMap OncotreeLineage and primary disease subtype.</li>
+            <li><b>Sex</b>: annotation and expression are two independent axes (see below).</li>
+            <li><b>Hotspot filter</b>: only show cell lines mutated in this gene at a hotspot position. The dropdown lists genes with live n= mutated counts (matching the Fusion / CN filter style).</li>
+            <li><b>Fusion filter</b>: the dropdown lists <b>clinically relevant fusion pairs</b> first (★ BCR-ABL1, ★ EWSR1-FLI1, &hellip;) followed by the gene-based long tail. Selecting a pair filters to the curated set; selecting a gene returns any line with any fusion involving that gene.</li>
+            <li><b>CN amp/del filter</b>: the dropdown lists curated focal amplifications (▲) and tumor-suppressor deletions (▼) with live n=; selecting one filters to lines carrying that focal copy-number event.</li>
+            <li><b>Oncoprint</b>: mutation heatmap across filtered cell lines (hotspot filter only).</li>
           </ul>
-          <p style="margin-top:14px;"><strong>Selecting cell lines</strong> &mdash; tick lines (or <b>Select Visible</b>) to build a set for Inspect / Export. <b>Show Selected</b> collapses the list to just your ticked lines (click again &mdash; now <b>Show All</b> &mdash; to restore); it also turns off on Deselect All / Reset. The list fills <b>column by column</b> (down the first column in sort order, then the next).</p>
-          <p style="margin-top:10px;"><strong>Detail card</strong> &mdash; clicking a line opens a card that now leads with a plain-language <b>executive summary</b> (cancer type, patient origin, and standout molecular features), the same overview shown when you hover a cell-line dot on any plot.</p>
-          <p style="margin-top:14px;"><strong>Hotspot variants</strong> &mdash; when DepMap's inferred-subtype pipeline calls a specific codon (KRAS p.G12D, BRAF p.V600E, EGFR p.L858R, JAK2 p.V617F, EGFR exon-19 del), the variant is appended in green next to the gene name in the Hotspot Mutations list. Generic group calls like KRAS p.G12 (any G12 not specifically D or C) are also shown when no specific call is available. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
+          <p style="margin-top:14px;"><strong>Selecting cell lines</strong>: tick lines (or <b>Select Visible</b>) to build a set for Inspect / Export. <b>Show Selected</b> collapses the list to just your ticked lines (click again, now <b>Show All</b>, to restore); it also turns off on Deselect All / Reset. The list fills <b>column by column</b> (down the first column in sort order, then the next).</p>
+          <p style="margin-top:10px;"><strong>Detail card</strong>: clicking a line opens a card that now leads with a plain-language <b>executive summary</b> (cancer type, patient origin, and standout molecular features), the same overview shown when you hover a cell-line dot on any plot.</p>
+          <p style="margin-top:14px;"><strong>Hotspot variants</strong>: when DepMap's inferred-subtype pipeline calls a specific codon (KRAS p.G12D, BRAF p.V600E, EGFR p.L858R, JAK2 p.V617F, EGFR exon-19 del), the variant is appended in green next to the gene name in the Hotspot Mutations list. Generic group calls like KRAS p.G12 (any G12 not specifically D or C) are also shown when no specific call is available. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
 
-          <p><strong>Functional loss</strong> &mdash; integrated tumor-suppressor inactivation calls (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC) shown as red-bordered chips in the detail panel. A gene is "lost" if any of: WGS-based relative CN &lt; 0.3, likely-LoF mutation with AF &gt; 0.5, or expression &lt; 0.1 log-TPM. This catches <em>deletion-driven</em> losses that the damaging-mutation matrix alone misses &mdash; e.g. CDKN2A homozygous deletion in 445 lines (~37% of the panel), most of which look mutation-clean. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
+          <p><strong>Functional loss</strong>: integrated tumor-suppressor inactivation calls (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC) shown as red-bordered chips in the detail panel. A gene is "lost" if any of: WGS-based relative CN &lt; 0.3, likely-LoF mutation with AF &gt; 0.5, or expression &lt; 0.1 log-TPM. This catches <em>deletion-driven</em> losses that the damaging-mutation matrix alone misses: e.g. CDKN2A homozygous deletion in 445 lines (~37% of the panel), most of which look mutation-clean. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
 
-          <p><strong>MSI badge</strong> &mdash; small red <span style="background:#dc2626; color:#fff; font-size:9px; font-weight:600; padding:0 4px; border-radius:6px;">MSI</span> chip next to the cell-line ID when MSIsensor2 score &ge; 20 (DepMap's threshold for microsatellite instability).</p>
+          <p><strong>MSI badge</strong>: small red <span style="background:#dc2626; color:#fff; font-size:9px; font-weight:600; padding:0 4px; border-radius:6px;">MSI</span> chip next to the cell-line ID when MSIsensor2 score &ge; 20 (DepMap's threshold for microsatellite instability).</p>
 
-          <p><strong>Genome signatures</strong> (small row near the top of the detail panel) &mdash; <em>Ploidy</em> (PureCN avg chromosome dosage), <em>WGD</em> (whole-genome doubling, shown in red when positive &mdash; ~58% of the panel), <em>Aneuploidy</em> (Ben-David 2021 score, 0&ndash;39), <em>CIN</em> (chromosomal instability). These shape interpretation when comparing gene effect across cell lines &mdash; WGD-positive lines are systematically different. Source: <code>OmicsGlobalSignatures.csv</code>.</p>
+          <p><strong>Genome signatures</strong> (small row near the top of the detail panel): <em>Ploidy</em> (PureCN avg chromosome dosage), <em>WGD</em> (whole-genome doubling, shown in red when positive, ~58% of the panel), <em>Aneuploidy</em> (Ben-David 2021 score, 0&ndash;39), <em>CIN</em> (chromosomal instability). These shape interpretation when comparing gene effect across cell lines: WGD-positive lines are systematically different. Source: <code>OmicsGlobalSignatures.csv</code>.</p>
 
           <p>Each new section in the detail panel has an inline <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;">?</span> with a hover tooltip recapping the key explanation, so you don't need to come back to this modal to remember what a tier or column means.</p>
 
-          <p style="margin-top:14px;"><strong>Clinically relevant fusions</strong> &mdash; shown as green/amber/red chips in the cell line detail panel.</p>
+          <p style="margin-top:14px;"><strong>Clinically relevant fusions</strong>: shown as green/amber/red chips in the cell line detail panel.</p>
           <ul style="margin:4px 0 10px 20px;">
             <li>Curated list of ~50 well-validated driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, TMPRSS2-ERG, &hellip;) sourced from COSMIC fusion gene census.</li>
-            <li>Each call is validated per cell line on three orthogonal signals: <b>lineage match</b>, <b>partner expression</b> z-score vs lineage-matched negatives, and <b>partner dependency</b> (CRISPR gene effect) z-score. Only the signals the curator marked as informative for that fusion are scored &mdash; e.g. BCR-ABL1 doesn't elevate ABL1 mRNA, so expression isn't checked and the call rests on the strong ABL1 dependency.</li>
-            <li><span style="color:#16a34a; font-weight:600;">high</span> &mdash; both informative signals support the call (or one strong + the other directionally supportive).</li>
-            <li><span style="color:#ca8a04; font-weight:600;">med</span> &mdash; partial orthogonal support, or curated + lineage match without orthogonal validation.</li>
-            <li><span style="color:#dc2626; font-weight:600;">low</span> &mdash; neither signal supports and lineage doesn't match the canonical disease &mdash; suspect, often artifact.</li>
-            <li><span style="color:#b45309; font-weight:600;">&#9888; atypical</span> &mdash; the cell line's tissue isn't the canonical context for this fusion (e.g. EML4-ALK in a Bowel line). Lineage is a <em>modifier</em>, not a gate: when orthogonal evidence is strong the call is kept and flagged, not hidden &mdash; could be a misclassified line or a genuine rare event worth investigating.</li>
+            <li>Each call is validated per cell line on three orthogonal signals: <b>lineage match</b>, <b>partner expression</b> z-score vs lineage-matched negatives, and <b>partner dependency</b> (CRISPR gene effect) z-score. Only the signals the curator marked as informative for that fusion are scored: e.g. BCR-ABL1 doesn't elevate ABL1 mRNA, so expression isn't checked and the call rests on the strong ABL1 dependency.</li>
+            <li><span style="color:#16a34a; font-weight:600;">high</span>: both informative signals support the call (or one strong + the other directionally supportive).</li>
+            <li><span style="color:#ca8a04; font-weight:600;">med</span>: partial orthogonal support, or curated + lineage match without orthogonal validation.</li>
+            <li><span style="color:#dc2626; font-weight:600;">low</span>: neither signal supports and lineage doesn't match the canonical disease (suspect, often artifact).</li>
+            <li><span style="color:#b45309; font-weight:600;">&#9888; atypical</span>: the cell line's tissue isn't the canonical context for this fusion (e.g. EML4-ALK in a Bowel line). Lineage is a <em>modifier</em>, not a gate: when orthogonal evidence is strong the call is kept and flagged, not hidden (could be a misclassified line or a genuine rare event worth investigating).</li>
             <li>Source: Arriba-annotated fusion calls from <code>OmicsFusionFilteredSupplementary.csv</code>, filtered to confidence=high with read-through transcripts dropped.</li>
           </ul>
-          <p><strong>Sex</strong> &mdash; two independent axes:</p>
+          <p><strong>Sex</strong>: two independent axes:</p>
           <ul style="margin:4px 0 10px 20px;">
-            <li><b>Sex (annotation)</b> &mdash; from DepMap's Model table (patient-reported). Values: Male, Female, Unknown.</li>
-            <li><b>Sex (expression)</b> &mdash; computed from Y-chromosome markers (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y) and XIST expression. Rules: Y-mean &gt; 1.0 log-TPM &rarr; male; XIST &gt; 1.0 with Y low &rarr; female; otherwise unknown. Validated on DepMap-labeled cells: ~3% false-positive on males, ~0.14% on females.</li>
+            <li><b>Sex (annotation)</b>: from DepMap's Model table (patient-reported). Values: Male, Female, Unknown.</li>
+            <li><b>Sex (expression)</b>: computed from Y-chromosome markers (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y) and XIST expression. Rules: Y-mean &gt; 1.0 log-TPM &rarr; male; XIST &gt; 1.0 with Y low &rarr; female; otherwise unknown. Validated on DepMap-labeled cells: ~3% false-positive on males, ~0.14% on females.</li>
           </ul>
           <p><b>When expression is &ldquo;Unknown&rdquo;:</b></p>
           <ul style="margin:4px 0 10px 20px;">
-            <li>Annotation Male &rarr; <i>&ldquo;Unknown (likely Y-chromosome loss)&rdquo;</i> &mdash; Y loss is common in cancer, esp. older male patients and advanced tumors.</li>
-            <li>Annotation Female &rarr; <i>&ldquo;Unknown (likely XIST silencing)&rdquo;</i> &mdash; XIST silencing is documented in breast and other cancers.</li>
+            <li>Annotation Male &rarr; <i>&ldquo;Unknown (likely Y-chromosome loss)&rdquo;</i>: Y loss is common in cancer, esp. older male patients and advanced tumors.</li>
+            <li>Annotation Female &rarr; <i>&ldquo;Unknown (likely XIST silencing)&rdquo;</i>: XIST silencing is documented in breast and other cancers.</li>
           </ul>
           <p><strong>Sex symbols in the list</strong></p>
           <ul style="margin:4px 0 10px 20px;">
@@ -4899,16 +4905,16 @@
           </ul>
           <p><strong>Sort options</strong></p>
           <ul style="margin:4px 0 10px 20px;">
-            <li><b>Name</b> &mdash; alphabetical.</li>
-            <li><b>Tissue + Subtype</b> &mdash; alphabetical by tissue, then subtype within each tissue.</li>
-            <li><b>Hotspot muts</b> &mdash; number of hotspot-mutated genes per cell line (descending by default).</li>
-            <li><b>Damaging muts</b> &mdash; number of genes with damaging (deleterious / loss-of-function) somatic mutations per cell line (descending). Source: DepMap <code>OmicsSomaticMutationsMatrixDamaging</code>.</li>
-            <li><b>Fusions</b> &mdash; number of distinct fusion/translocation partner genes per cell line (descending).</li>
-            <li><b>Ploidy / Aneuploidy / CIN</b> &mdash; genome-signature sorts: average chromosome dosage (PureCN), Ben-David 2021 aneuploidy score (0&ndash;39), and chromosomal instability. Source: <code>OmicsGlobalSignatures.csv</code>.</li>
-            <li><b>GE for gene(s)</b> &mdash; enter one or more genes; cells sorted by CRISPR gene effect (Chronos score). For multiple genes the mean across the panel is used &mdash; rank cells by combined essentiality.</li>
-            <li><b>Expression of gene(s)</b> &mdash; enter one or more genes; cells sorted by log&#8322;(TPM+1) expression (descending by default, so highest-expressing cells surface first). Multiple genes are averaged, so a panel like <code>CDKN2A, RB1</code> or <code>ASCL1, NEUROD1, CHGA, SYP</code> finds cells with the strongest combined signature.</li>
-            <li><b>Copy number of gene</b> &mdash; enter a gene; cells sorted by DepMap relative CN (1.0 = diploid), each tagged deep&nbsp;del / het&nbsp;loss / WT / gain / amp / strong&nbsp;amp.</li>
-            <li><b>Drug response (PRISM AUC)</b> &mdash; type a compound (the picker lists PRISM Repurposing compounds, ranked by how many of the currently-visible cells they kill); cells sorted by area-under-curve, most-sensitive first (lower AUC = more killing).</li>
+            <li><b>Name</b>: alphabetical.</li>
+            <li><b>Tissue + Subtype</b>: alphabetical by tissue, then subtype within each tissue.</li>
+            <li><b>Hotspot muts</b>: number of hotspot-mutated genes per cell line (descending by default).</li>
+            <li><b>Damaging muts</b>: number of genes with damaging (deleterious / loss-of-function) somatic mutations per cell line (descending). Source: DepMap <code>OmicsSomaticMutationsMatrixDamaging</code>.</li>
+            <li><b>Fusions</b>: number of distinct fusion/translocation partner genes per cell line (descending).</li>
+            <li><b>Ploidy / Aneuploidy / CIN</b>: genome-signature sorts: average chromosome dosage (PureCN), Ben-David 2021 aneuploidy score (0&ndash;39), and chromosomal instability. Source: <code>OmicsGlobalSignatures.csv</code>.</li>
+            <li><b>GE for gene(s)</b>: enter one or more genes; cells sorted by CRISPR gene effect (Chronos score). For multiple genes the mean across the panel is used: rank cells by combined essentiality.</li>
+            <li><b>Expression of gene(s)</b>: enter one or more genes; cells sorted by log&#8322;(TPM+1) expression (descending by default, so highest-expressing cells surface first). Multiple genes are averaged, so a panel like <code>CDKN2A, RB1</code> or <code>ASCL1, NEUROD1, CHGA, SYP</code> finds cells with the strongest combined signature.</li>
+            <li><b>Copy number of gene</b>: enter a gene; cells sorted by DepMap relative CN (1.0 = diploid), each tagged deep&nbsp;del / het&nbsp;loss / WT / gain / amp / strong&nbsp;amp.</li>
+            <li><b>Drug response (PRISM AUC)</b>: type a compound (the picker lists PRISM Repurposing compounds, ranked by how many of the currently-visible cells they kill); cells sorted by area-under-curve, most-sensitive first (lower AUC = more killing).</li>
           </ul>
           <p style="color:#6b7280;"><b>Gene-sort input:</b> comma, semicolon, newline or whitespace can separate multiple symbols.</p>
           <p style="color:#6b7280; margin-bottom:0;"><b>Data source:</b> DepMap 25Q3. All filters and sorts use the data currently loaded in the browser; changing tissue / subtype filters narrows the visible set that subsequent sorts operate on.</p>
@@ -4929,7 +4935,7 @@
           <input type="text" id="clbSearch" placeholder="Search cell lines...">
           <select id="clbTissueFilter"><option value="">All tissues</option></select>
           <select id="clbSubtypeFilter" style="display:none;"><option value="">All subtypes</option></select>
-          <select id="clbSexFilter" style="font-size:12px;" title="Filter by sex. Annotation (from DepMap) and expression-based calls (Y-markers + XIST) are independent axes — they often disagree.">
+          <select id="clbSexFilter" style="font-size:12px;" title="Filter by sex. Annotation (from DepMap) and expression-based calls (Y-markers + XIST) are independent axes, they often disagree.">
             <option value="">All sexes</option>
             <optgroup label="By annotation">
               <option value="ann_male">Male</option>
@@ -4942,7 +4948,7 @@
               <option value="exp_unknown">Unknown</option>
             </optgroup>
           </select>
-          <!-- Hotspot filter — same custom multi-line dropdown pattern as the
+          <!-- Hotspot filter, same custom multi-line dropdown pattern as the
                fusion / CN filters (lists genes with live n= mutated counts;
                native datalist truncated options in Safari). Oncoprint button
                kept inline. -->
@@ -4951,7 +4957,7 @@
             <button id="clbOncoprintBtn" type="button" style="padding:3px 6px; font-size:9px; background:#5a9f4a; color:white; border:none; border-radius:3px; cursor:pointer; white-space:nowrap;" title="Show oncoprint of hotspot mutations for filtered cell lines">Oncoprint</button>
             <div id="clbHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
           </div>
-          <!-- Fusion filter — custom two-line dropdown (clinically relevant
+          <!-- Fusion filter, custom two-line dropdown (clinically relevant
                pairs at top with name + n + disease context, then gene-based
                long tail). Replaces a native datalist that Safari truncated to
                the input width and rendered unreadably. -->
@@ -4959,7 +4965,7 @@
             <input type="text" id="clbTranslocationFilter" placeholder="Fusion filter" autocomplete="off" style="width:140px;">
             <div id="clbTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
           </div>
-          <!-- Focal CN filter — same multi-line dropdown pattern as fusion
+          <!-- Focal CN filter, same multi-line dropdown pattern as fusion
                filter. Lists curated amplifications (▲) and TSG deletions
                (▼) with live n=. Selecting an entry filters the cell-line
                list to lines carrying that focal CN event. -->
@@ -5003,19 +5009,19 @@
             <button id="clbSelectVisible" class="btn btn-outline btn-sm">Select Visible</button>
             <button id="clbDeselectAll" class="btn btn-outline btn-sm">Deselect All</button>
             <button id="clbShowSelectedOnly" class="btn btn-outline btn-sm" title="Show only the cell lines you've selected (toggle)">Show Selected</button>
-            <button id="clbCopyNamesBtn" class="btn btn-outline btn-sm" title="Copy the names of the selected cell lines (one per line) to the clipboard — ready to paste into Custom CLs">Copy Names</button>
+            <button id="clbCopyNamesBtn" class="btn btn-outline btn-sm" title="Copy the names of the selected cell lines (one per line) to the clipboard, ready to paste into Custom CLs">Copy Names</button>
 
             <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
 
             <!-- Inspect group (analysis on selected cell lines) -->
-            <button id="clbInspectGEBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Top gene-effect hits in the selected cell lines — and top Δ vs the rest. Fast (~seconds).">Inspect<br><span style="font-size:9px;font-weight:normal;">Gene Effects</span></button>
-            <button id="clbInspectCorrBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Unbiased all-vs-all gene correlations in the selected cell lines. Slow — can take 5–10 minutes depending on selection size and hardware.">Inspect<br><span style="font-size:9px;font-weight:normal;">Correlations</span></button>
+            <button id="clbInspectGEBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Top gene-effect hits in the selected cell lines, and top Δ vs the rest. Fast (~seconds).">Inspect<br><span style="font-size:9px;font-weight:normal;">Gene Effects</span></button>
+            <button id="clbInspectCorrBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Unbiased all-vs-all gene correlations in the selected cell lines. Slow, can take 5–10 minutes depending on selection size and hardware.">Inspect<br><span style="font-size:9px;font-weight:normal;">Correlations</span></button>
             <button id="clbOpenInspectBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Re-open a previously saved selection-inspect (Gene Effects or Correlations) JSON file without re-running the analysis">Open<br><span style="font-size:9px;font-weight:normal;">Saved Inspect</span></button>
 
             <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
 
             <!-- Export group (raw data CSVs for selected cell lines) -->
-            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="CSV with one row per selected cell line — metadata (tissue, subtype, sex) plus GE and Expression for the gene(s) you type in">Export<br><span style="font-size:9px;font-weight:normal;">Genes CSV</span></button>
+            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="CSV with one row per selected cell line, metadata (tissue, subtype, sex) plus GE and Expression for the gene(s) you type in">Export<br><span style="font-size:9px;font-weight:normal;">Genes CSV</span></button>
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="Gene Effect values for all genes × selected cell lines (CSV)">GE matrix<br><span style="font-size:9px;font-weight:normal;">CSV</span></button>
             <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="Everything for selected cell lines: GE + Expression + Hotspot + Damaging + Fusion matrices (CSVs zipped)">All matrices<br><span style="font-size:9px;font-weight:normal;">CSV</span></button>
           </div>
@@ -5076,7 +5082,7 @@
             <div style="margin-bottom:6px;">
                 <strong style="font-size:12px;">Dimensionality Reduction</strong>
             </div>
-            <!-- Row 1: Compute — what to analyse + run -->
+            <!-- Row 1: Compute, what to analyse + run -->
             <div class="clb-umap-row">
                 <select id="clbUmapMethod" class="clb-umap-ctl">
                     <option value="pca" selected>PCA</option>
@@ -5107,7 +5113,7 @@
                 <button id="clbUmapRunBtn" class="clb-umap-btn" style="background:#16a34a; color:white; border-color:#16a34a;">Run Analysis</button>
                 <button id="clbUmapResetBtn" class="clb-umap-btn" style="background:#ef4444; color:white; border-color:#ef4444;" title="Clear everything and start fresh">Reset</button>
             </div>
-            <!-- Row 2: Display — axes, size (shown once data is loaded) -->
+            <!-- Row 2: Display, axes, size (shown once data is loaded) -->
             <div id="clbUmapComponentRow" class="clb-umap-row" style="display:none;">
                 <span class="clb-umap-lbl">Axes</span>
                 <select id="clbUmapCompX" class="clb-umap-ctl"></select>
@@ -5133,7 +5139,7 @@
                 </label>
                 <span id="clbUmapLoadingsLabel" class="clb-umap-lbl" style="display:none;"></span>
             </div>
-            <!-- Row 3: Overlays — color-by-gene, split, gate compare -->
+            <!-- Row 3: Overlays, color-by-gene, split, gate compare -->
             <div class="clb-umap-row">
                 <span class="clb-umap-lbl">Color by gene</span>
                 <input type="text" id="clbUmapColorGene" class="clb-umap-ctl" placeholder="Symbol" style="width:110px;" autocomplete="off">
@@ -5347,7 +5353,7 @@
         <div style="padding:14px 18px;">
           <!-- Source + cohort summary -->
           <div id="aiDialogSource" style="font-size:12px; color:#0369a1; font-weight:600; margin-bottom:6px;"></div>
-          <!-- Tier / scope info — what's actually getting exported -->
+          <!-- Tier / scope info, what's actually getting exported -->
           <div id="aiDataTierInfo" style="font-size:11px; color:#374151; margin:0 0 10px; padding:8px 10px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:4px; line-height:1.5;"></div>
 
           <label for="aiQuestion" style="display:block; font-size:11px; font-weight:600; color:#374151; margin-bottom:4px;">Question for the LLM <span style="color:#6b7280; font-weight:400;">(optional)</span></label>
@@ -5358,7 +5364,7 @@
                other LLMs that accept .json.gz attachments work too. -->
           <div style="margin-top:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a; border-radius:0 4px 4px 0; font-size:11px; line-height:1.5;">
             <div style="font-weight:600; color:#15803d; margin-bottom:3px;">After download:</div>
-            Upload the <code>.json.gz</code> to an LLM that accepts attachments — <a href="https://claude.ai" target="_blank" rel="noopener" style="color:#15803d; text-decoration:underline;">claude.ai ↗</a> is the natural fit (the embedded <code>aiInstructions</code> are tuned for its analysis style; ChatGPT / Gemini also work). The LLM will open with a one-line description of what you exported, restate your question, then run the analysis.
+            Upload the <code>.json.gz</code> to an LLM that accepts attachments, <a href="https://claude.ai" target="_blank" rel="noopener" style="color:#15803d; text-decoration:underline;">claude.ai ↗</a> is the natural fit (the embedded <code>aiInstructions</code> are tuned for its analysis style; ChatGPT / Gemini also work). The LLM will open with a one-line description of what you exported, restate your question, then run the analysis.
           </div>
 
           <div style="display:flex; gap:8px; align-items:center; margin-top:12px;">
@@ -5369,6 +5375,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_13"></script>
+    <script src="app.js?v=v83_14"></script>
 </body>
 </html>
