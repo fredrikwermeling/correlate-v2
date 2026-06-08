@@ -3695,6 +3695,7 @@ class CorrelationExplorer {
         document.getElementById('filterCorrelationsToggle')?.addEventListener('click', () => this.toggleTableFilters('correlationsTable'));
         document.getElementById('filterClustersToggle')?.addEventListener('click', () => this.toggleTableFilters('clustersTable'));
         document.getElementById('filterMutationToggle')?.addEventListener('click', () => this.toggleTableFilters('mutationTable'));
+        document.getElementById('mutPvalueFilter')?.addEventListener('change', () => this.displayMutationResults());
         document.getElementById('filterExprCorrelatesToggle')?.addEventListener('click', () => this.toggleTableFilters('exprCorrelatesTable'));
 
         // Enrichr buttons
@@ -5857,7 +5858,15 @@ class CorrelationExplorer {
         if (!this.mutationResults) return;
 
         const mr = this.mutationResults;
-        const results = mr.significantResults;
+        // "only p < 0.05 (mutant vs WT)" filter (on by default): a gene enters
+        // significantResults if ANY comparison (1+2 vs 0, 2 vs 0, 2 vs 1, fused)
+        // is significant — which surfaces genes with a poor PRIMARY p-value that
+        // only pass on a secondary column. When checked, restrict to the primary
+        // 1+2-vs-WT comparison being significant at 0.05.
+        const pFilterOn = document.getElementById('mutPvalueFilter')?.checked !== false;
+        const results = pFilterOn
+            ? mr.significantResults.filter(r => r.p_mut != null && r.p_mut < 0.05)
+            : mr.significantResults;
         const hasFusion = mr.hasFusionData && mr.isTranslocation;
         const tbody = document.getElementById('mutationTableBody');
         tbody.innerHTML = '';
@@ -5930,7 +5939,7 @@ class CorrelationExplorer {
                 : '';
             let html = `
                 <td><a href="#" class="inspect-link" onclick="app.showGeneEffectDistribution('${r.gene}'); return false;">Inspect</a></td>
-                <td class="gene-hover" data-gene="${r.gene}"><a href="#" style="color: var(--green-700); text-decoration: none; cursor: pointer;" onclick="app.openGeneEffectModal('${r.gene}', 'tissue'); return false;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${r.gene}</a>${polymorphicMark}</td>
+                <td class="gene-hover" data-gene="${r.gene}"><a href="#" style="color: var(--green-700); text-decoration: none; cursor: pointer;" onclick="app.openGeneEffectModal('${r.gene}', 'tissue', {dataType:'ge'}); return false;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${r.gene}</a>${polymorphicMark}</td>
                 <td style="border-left: 2px solid #2563eb;">${r.n_wt}</td>
                 <td>${r.mean_wt.toFixed(2)}</td>
                 <td style="border-left: 2px solid #f97316;">${r.n_mut}</td>
@@ -6016,7 +6025,7 @@ class CorrelationExplorer {
         }
 
         document.getElementById('mutationResultsCount').innerHTML =
-            `<strong>${results.length} genes</strong> with p &lt; ${mr.pThreshold}<br>
+            `<strong>${results.length} genes</strong> ${pFilterOn ? 'with primary p &lt; 0.05 (mutant vs WT)' : `passing p &lt; ${mr.pThreshold} on any comparison`}<br>
             <small style="color: #666;">${settingsText}</small>`;
 
         // Store for sorting
@@ -8498,7 +8507,7 @@ class CorrelationExplorer {
         // Add event listeners to buttons
         tbody.querySelectorAll('.gene-effect-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                this.openGeneEffectModal(btn.dataset.gene, 'tissue');
+                this.openGeneEffectModal(btn.dataset.gene, 'tissue', { dataType: 'ge' });
                 // Apply active parameter filters to the GE modal
                 this._applyParamFiltersToGEModal();
             });
@@ -17760,6 +17769,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     openGeneEffectModal(gene, view = 'tissue', opts = {}) {
         const geneUpper = gene.toUpperCase();
+        // When a gene link specifies its data type (GE vs Expression), honour it
+        // — otherwise the modal's GE/Expression toggle would "leak" the last
+        // choice (e.g. clicking a GE-list gene after viewing an expression gene
+        // would wrongly show expression).
+        if (opts.dataType === 'ge' || opts.dataType === 'expr') {
+            const dt = document.getElementById('geDataType');
+            if (dt) dt.value = opts.dataType;
+        }
         // Read the data-type toggle (GE / Expression). The data field is
         // still called "geneEffect" downstream for backwards compatibility —
         // it holds whichever value the current data type specifies.
@@ -17956,7 +17973,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // (plot + export only) ON TOP instead.
         const geModalEl = document.getElementById('geneEffectModal');
         let topZ = 0;
-        document.querySelectorAll('.modal-overlay, #clbWikiModal').forEach(el => {
+        document.querySelectorAll('.modal-overlay, #clbWikiModal, #cellLineBrowserModal').forEach(el => {
             if (el.id === 'geneEffectModal' || getComputedStyle(el).display === 'none') return;
             const z = parseInt(getComputedStyle(el).zIndex) || 0;
             if (z > topZ) topZ = z;
@@ -19010,7 +19027,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     openGeneEffectFromNetwork(gene) {
-        this.openGeneEffectModal(gene, 'tissue');
+        this.openGeneEffectModal(gene, 'tissue', { dataType: 'ge' });
         this._applyParamFiltersToGEModal();
     }
 
@@ -25598,9 +25615,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // If the gene was clicked inside the Expression-profile section, open
             // the popout on the Expression data type; otherwise Gene Effect.
             const secTitle = link.closest('section')?.querySelector('h3')?.textContent || '';
-            const dt = document.getElementById('geDataType');
-            if (dt) dt.value = /expression profile/i.test(secTitle) ? 'expr' : 'ge';
-            this.openGeneEffectModal(link.dataset.gene, 'tissue');
+            const dataType = /expression profile/i.test(secTitle) ? 'expr' : 'ge';
+            this.openGeneEffectModal(link.dataset.gene, 'tissue', { dataType });
             this._applyParamFiltersToGEModal();
         });
 
@@ -25675,13 +25691,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.renderCellLineList();
         });
         // Gene link clicks in detail panel
+        // Clicking a gene anywhere in the detail card's top block (hotspots,
+        // functional loss, focal CN, gene-effect lists) opens the GE popout on
+        // top of the browser, for a quick look. These are all gene-effect values.
+        document.getElementById('clbDetailTop')?.addEventListener('click', (e) => {
+            const link = e.target.closest('.clb-gene-link');
+            if (!link) return;
+            e.preventDefault();
+            this._geHighlightCellLine = this._clbInspectedCellLine;
+            this.openGeneEffectModal(link.dataset.gene, 'tissue', { dataType: 'ge', condensed: true });
+            this._applyParamFiltersToGEModal();
+        });
         document.getElementById('clbDetailGeneLists').addEventListener('click', (e) => {
             const link = e.target.closest('.clb-gene-link');
             if (link) {
                 e.preventDefault();
                 const gene = link.dataset.gene;
                 this._geHighlightCellLine = this._clbInspectedCellLine;
-                this.openGeneEffectModal(gene, 'tissue');
+                // Card gene lists (Most Depleted / Enriched / Uniquely …) are all
+                // gene-effect values — force GE so it can't inherit a leaked type.
+                this.openGeneEffectModal(gene, 'tissue', { dataType: 'ge', condensed: true });
                 this._applyParamFiltersToGEModal();
                 return;
             }
@@ -29201,7 +29230,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const activeSig = sigResults.filter(s => s.meanZ > 0.75);
                 const sigHtml = activeSig.length > 0
                     ? `<div style="margin-top:8px; padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;">`
-                        + `<b style="color:#3730a3;">Pathway-activity signatures turned ON</b> <span style="color:#9ca3af; font-size:10px;">(each signature = a curated gene panel for one biological program, e.g. MYC targets or interferon response; the score is the mean expression z-score of that panel vs the cohort. <b>ON</b> = the program's genes are coordinately higher than the average cell line — mean z &gt; +0.75)</span>`
+                        + `<b style="color:#3730a3;">Pathway-activity signatures — elevated</b> <span style="color:#9ca3af; font-size:10px;">(each signature = a curated gene panel for one biological program, e.g. MYC targets or interferon response; the score is the mean expression z-score of that panel vs the cohort. <b>Elevated</b> = the program's genes are coordinately higher-expressed than the average cell line — mean z &gt; +0.75)</span>`
                         + activeSig.map(s => `<div style="margin:3px 0 3px 4px;">`
                             + `<span style="font-weight:600; color:#3730a3;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
                             + `<span style="color:#9ca3af; font-size:10px;">— mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`
@@ -29213,7 +29242,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const inactiveSig = sigResults.filter(s => s.meanZ < -0.75);
                 const inactiveSigHtml = inactiveSig.length > 0
                     ? `<div style="margin-top:6px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6b7280; font-size:11px;">`
-                        + `<b style="color:#374151;">Pathway-activity signatures turned OFF</b> <span style="color:#9ca3af; font-size:10px;">(the program's genes are coordinately lower than the average cell line — mean panel z &lt; &minus;0.75)</span>`
+                        + `<b style="color:#374151;">Pathway-activity signatures — reduced</b> <span style="color:#9ca3af; font-size:10px;">(the program's genes are coordinately lower-expressed than the average cell line — mean panel z &lt; &minus;0.75)</span>`
                         + inactiveSig.map(s => `<div style="margin:3px 0 3px 4px;">`
                             + `<span style="font-weight:600; color:#4b5563;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
                             + `<span style="color:#9ca3af; font-size:10px;">— mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`
@@ -29821,7 +29850,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             section('CRISPR dependencies <span style="font-size:11px; color:#6b7280;">— what this cell line uniquely needs to survive</span>',
                 geSigHtml,
                 'DepMap 25Q3 CRISPRGeneEffect (Chronos). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s GE − cohort mean) / cohort SD. Pan-essentials filtered against the DepMap common-essentials list. Druggable dependencies cross-referenced against a curated ~60-gene panel with approved or clinical-stage inhibitors.'),
-            section('Expression profile <span style="font-size:11px; color:#6b7280;">— what is uniquely turned on in this cell line</span>',
+            section('Expression profile <span style="font-size:11px; color:#6b7280;">— what is uniquely highly expressed in this cell line</span>',
                 exprSigHtml,
                 'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s expression − cohort mean) / cohort SD. Pathway-activity signatures: ~9 curated gene panels (MYC targets, E2F / S-phase, G2/M, IFN response, EMT, TGF-β, hypoxia, NRF2, stem) — mean z over each panel; pathways with |mean z| &gt; 0.75 are highlighted. Lineage-marker panels: ~15 markers per Oncotree lineage. Druggable targets: ~60-gene panel with approved or clinical-stage inhibitors. Potential FACS markers: curated ~100-gene panel of well-known cell-surface antigens (CD molecules, RTKs, immune checkpoints, ADC / bispecific targets, adhesion molecules); TPM &gt; 4 cutoff for inclusion.'),
             section('Drug response <span style="font-size:11px; color:#6b7280;">— PRISM Repurposing</span>',
@@ -30454,7 +30483,7 @@ ${body}
                     const gene = tr.dataset.gene;
                     document.getElementById('selectionInspectModal').style.display = 'none';
                     this._geSelectionHighlight = new Set(selected);
-                    this.openGeneEffectModal(gene, 'tissue');
+                    this.openGeneEffectModal(gene, 'tissue', { dataType: 'ge' });
                 });
                 tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
                 tr.addEventListener('mouseleave', () => tr.style.background = '');
