@@ -1378,6 +1378,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.15 (2026-06-08)</strong></p>
+                <ul>
+                    <li>Renamed the leftover "Design mode" wording to match the current label "Expand my set": the &lt; 20 genes warning, the stats-table note, and the "How it works" card.</li>
+                </ul>
                 <p><strong>v.83.14 (2026-06-08)</strong></p>
                 <ul>
                     <li>Export dialog format list now reads with " / " separators (e.g. "PDF / vector (scalable, selectable text)"), and the dialog title is "Export chart / FORMAT". The earlier "raster image inside" wording for PDF is gone, since PDF is true vector.</li>
@@ -3137,7 +3141,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.14</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.15</a>
     </div>
 
     <div class="main-content">
@@ -3408,7 +3412,7 @@
                         <div class="form-group">
                             <label class="form-label">Gene symbols (one per line):</label>
                             <div id="designModeHint" style="display: none; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 6px 10px; margin-bottom: 8px; font-size: 11px; color: #92400e;">
-                                <strong>Design mode:</strong> Enter &lt; 20 genes for best results
+                                <strong>Expand my set:</strong> enter fewer than 20 genes for best results
                             </div>
                             <textarea id="geneTextarea" class="form-control" placeholder="TP53&#10;BRCA1&#10;MYC&#10;..." style="min-height: 180px;"></textarea>
                         </div>
@@ -3706,7 +3710,7 @@
                     <div id="clustersFilterInfo" style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; display: none;">
                         <strong>Filters:</strong> <span id="clustersFilterText"></span>
                     </div>
-                    <p class="help-text" style="margin-bottom: 15px;">Mean (All) = all cells, Mean (Filt) = filtered cells. * indicates genes from your input list (Design mode). All input genes are shown; "Corr" column indicates if correlations were found.</p>
+                    <p class="help-text" style="margin-bottom: 15px;">Mean (All) = all cells, Mean (Filt) = filtered cells. * indicates genes from your input list (when expanding your set). All input genes are shown; "Corr" column indicates if correlations were found.</p>
                     <div class="table-controls">
                         <input type="text" class="table-search" id="clustersSearch" placeholder="Search...">
                         <button class="btn btn-outline btn-sm" id="filterClustersToggle" title="Toggle column filters">Filters</button>
@@ -4753,7 +4757,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
                         <!-- Design Mode -->
                         <div style="background: white; border: 1px solid #c5e8bc; border-radius: 10px; padding: 14px;">
-                            <div style="font-weight: 700; color: #3a7333; font-size: 14px; margin-bottom: 6px;">🔍 Design Mode</div>
+                            <div style="font-weight: 700; color: #3a7333; font-size: 14px; margin-bottom: 6px;">🔍 Expand my set</div>
                             <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
                                 Enter seed genes and discover what <em>correlates</em> with them. Expand beyond your input list to find unexpected functional partners.
                             </p>
