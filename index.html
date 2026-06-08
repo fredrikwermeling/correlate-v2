@@ -1330,6 +1330,10 @@
         #geneEffectModal.ge-condensed #geGateCompareSection { display: none !important; }
         #geneEffectModal.ge-condensed #geChartContainer { flex: 1 1 100% !important; }
         #geneEffectModal:not(.ge-condensed) #geExpandFullBtn { display: none; }
+        /* Expression Correlates needs a mutation-analysis subgroup context, which
+           the condensed popout (opened from the Cell Line Browser) doesn't have,
+           so hide it there. It stays available in the full gene-effect modal. */
+        #geneEffectModal.ge-condensed #toggleExprCorrelatesBtn { display: none !important; }
         /* Chart exports consolidated to a single "Export image" button (the PNG
            button, relabelled) that opens the format popout (PNG/SVG/TIFF/PDF/
            PPTX). The old per-format SVG buttons are hidden — !important so the
@@ -1378,6 +1382,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.17 (2026-06-08)</strong></p>
+                <ul>
+                    <li>Breast lines now show their receptor subtype by expression (HR+ / luminal, HER2+, or triple-negative) in the executive summary: the hover card, the Cell Line Browser detail card, and the wiki.</li>
+                    <li>Gene-effect chart: the gene name is now a proper x-axis title (e.g. "RAN Gene Effect") under the scale, so it shows in the condensed popout and in exports instead of being clipped behind the button bar.</li>
+                    <li>Hid the Expression Correlates button in the condensed gene-effect popout (it needs a mutation-analysis subgroup that the popout doesn't have); it stays available in the full gene-effect view.</li>
+                </ul>
                 <p><strong>v.83.16 (2026-06-08)</strong></p>
                 <ul>
                     <li>Fixed: "Export image" did nothing when the condensed gene-effect popout was open over the Cell Line Browser. The export dialog was opening behind the popout; it now stacks above whatever is on top, so export works from that popout.</li>
@@ -3145,7 +3155,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.16</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.17</a>
     </div>
 
     <div class="main-content">
@@ -5383,6 +5393,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_16"></script>
+    <script src="app.js?v=v83_17"></script>
 </body>
 </html>

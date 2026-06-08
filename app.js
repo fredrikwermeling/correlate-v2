@@ -18803,10 +18803,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         const layout = {
             annotations: [
-                { text: `<b>${geTissueTitle}</b>${subtitleParts.length ? '<br><span style="font-size:11px;color:#6b7280;">' + subtitleParts.join(' | ') + '</span>' : ''}`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 19 }, _tsRole: 'title' },
-                { text: dataLabel, xref: 'paper', yref: 'paper', x: 0.5, y: -0.06, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 17 }, _tsRole: 'xlabel' }
+                { text: `<b>${geTissueTitle}</b>${subtitleParts.length ? '<br><span style="font-size:11px;color:#6b7280;">' + subtitleParts.join(' | ') + '</span>' : ''}`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 19 }, _tsRole: 'title' }
             ],
             xaxis: {
+                // Gene name as the axis title (e.g. "RAN Gene Effect"): rendered
+                // tight under the tick numbers so it stays visible even in the
+                // condensed popout, where a far-below floating annotation was
+                // getting clipped behind the button bar. Always included in export.
+                title: { text: dataLabel, font: { size: 16 }, standoff: 8 },
                 zeroline: true,
                 zerolinecolor: '#374151',
                 zerolinewidth: 2,
@@ -21893,10 +21897,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         const s2 = parts.length ? ` <span style="color:#4b5563;">Notable: ${parts.join('; ')}.</span>` : '';
 
+        // Breast lines: surface the receptor subtype (expression surrogate) from
+        // the authoritative collection membership, so it shows in the hover card,
+        // the CLB detail card and the wiki summary.
+        let sBreast = '';
+        if ((lin || '').toLowerCase().includes('breast')) {
+            const mem = this._collectionMembership || {};
+            let sub = '';
+            if (mem.her2_pos_breast?.has(cellLineId)) sub = 'HER2+';
+            else if (mem.tnbc?.has(cellLineId)) sub = 'triple-negative';
+            else if (mem.hr_pos_breast?.has(cellLineId)) sub = 'HR+ / luminal';
+            if (sub) sBreast = ` <span style="color:#4b5563;">Receptor status (by expression): <b>${sub}</b>.</span>`;
+        }
+
         const rrid = get('rrid');
         const idFooter = opts.showId === false ? ''
             : `<div style="color:#9ca3af; font-size:10px; margin-top:5px;">${cellLineId}${rrid ? ` · RRID: ${rrid}` : ''}</div>`;
-        return `<div style="line-height:1.5; color:#374151;">${s1}${s2}</div>${idFooter}`;
+        return `<div style="line-height:1.5; color:#374151;">${s1}${sBreast}${s2}</div>${idFooter}`;
     }
 
     // Lightweight, non-interactive hover card for a cell-line dot (pointer-events
@@ -29853,6 +29870,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             let s1 = `<b>${name}</b> is a ${lineageTxt} cell line`;
             if (originParts.length) s1 += ` <span style="color:#6b7280;">(${originParts.join(', ')})</span>`;
             s1 += '.';
+            // Breast lines: receptor subtype (expression surrogate), from the
+            // authoritative collection membership.
+            if ((lin || '').toLowerCase().includes('breast')) {
+                const bm = this._collectionMembership || {};
+                const bsub = bm.her2_pos_breast?.has(cellLineId) ? 'HER2+'
+                           : bm.tnbc?.has(cellLineId) ? 'triple-negative'
+                           : bm.hr_pos_breast?.has(cellLineId) ? 'HR+ / luminal' : '';
+                if (bsub) s1 += ` Receptor status (by expression): <b>${bsub}</b>.`;
+            }
 
             // Driver sentence, fusion > canonical oncogene hotspot > canonical TSG LoF.
             const driverParts = [];
