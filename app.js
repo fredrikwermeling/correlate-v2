@@ -29056,9 +29056,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // so the raw number is interpretable without hovering or scrolling to
             // the histogram. Thresholds are the same ones used elsewhere in the
             // app (card view, immunogenicity / genome-instability collections).
+            // WGD is only meaningful when PureCN actually produced a call. A
+            // missing value must NOT render as "No", that wrongly implies the
+            // line was tested and came back negative.
             const wgdLabel = gs.WGD === true
                 ? '<span style="color:#dc2626; font-weight:600;">Yes</span> <span style="font-size:10px; color:#6b7280;">, genome doubled at some point in tumour evolution; common (~58% of panel) and shapes downstream interpretation</span>'
-                : 'No <span style="font-size:10px; color:#6b7280;">, no whole-genome doubling event detected</span>';
+                : gs.WGD === false
+                    ? 'No <span style="font-size:10px; color:#6b7280;">, no whole-genome doubling event detected</span>'
+                    : '';
             const msiVal = gs.MSIScore;
             let msiLabel = '';
             if (msiVal != null) {
@@ -29094,15 +29099,25 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                              gs.LoHFraction < 0.3 ? 'medium' : 'high';
                 return `${gs.LoHFraction.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; fraction of the genome where one parental copy has been lost; high tier &ge; 0.3, often seen in WGD-positive or HRD lines)</span>`;
             })() : '';
+            // Whether PureCN produced any structural call for this line. Some
+            // lines have only an MSI score (PureCN ploidy / WGD / CIN / LoH /
+            // aneuploidy never ran or failed QC), so we must say so explicitly
+            // rather than silently dropping the rows (which reads as "calm
+            // genome" when it's really "no data").
+            const hasStructural = gs.WGD != null || gs.Ploidy != null || gs.Aneuploidy != null
+                || gs.CIN != null || gs.LoHFraction != null;
+            const structuralNote = hasStructural ? '' :
+                `<div style="margin:6px 0; padding:6px 10px; background:#fffbeb; border-left:3px solid #f59e0b; font-size:11px; color:#92400e;"><b>Structural genome metrics not available</b> for this cell line (PureCN ploidy / WGD / aneuploidy / CIN / LoH did not produce a call). Only the MSI score below is available, the absence of a WGD or ploidy value here does <i>not</i> mean the genome is normal.</div>`;
             genomeSigHtml = `
                 <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Genome-wide <b>structural / chromosomal</b> metrics, whole-genome doubling, arm-level aneuploidy, fine-scale chromosomal instability, loss of heterozygosity, microsatellite stability. Useful interpretive context: WGD-positive and MSI-high lines behave systematically differently in many comparisons. <b>Note:</b> these are <i>not</i> point-mutation burden, a cell line can be mutationally noisy (e.g. <b>POLE / POLD1 ultramutator</b> or <b>MSI-high</b>) while remaining chromosomally calm here. See the <i>Driver mutations</i> section above for the point-mutation view.</p>
+                ${structuralNote}
                 ${row('Whole-genome doubling (WGD)', wgdLabel)}
                 ${row('Ploidy', ploidyLabel)}
                 ${row('Aneuploidy score', aneupLabel)}
                 ${row('Chromosomal instability', cinLabel)}
                 ${row('Loss of heterozygosity', lohLabel)}
                 ${row('MSI score', msiLabel)}
-
+                ${hasStructural ? `
                 <div style="margin-top:16px; padding-top:12px; border-top:1px dashed #e5e7eb;">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                         <div style="font-weight:600; color:#374151; font-size:12px;">Where this line sits in the cohort</div>
@@ -29115,7 +29130,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                         <div id="clbWikiHistCin" style="height:170px;"></div>
                         <div id="clbWikiHistWgd" style="height:170px;"></div>
                     </div>
-                </div>`;
+                </div>` : ''}`;
         } else {
             genomeSigHtml = '<em style="color:#6b7280;">No genome signatures available for this cell line.</em>';
         }
