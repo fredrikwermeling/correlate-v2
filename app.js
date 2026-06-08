@@ -1032,6 +1032,17 @@ class CorrelationExplorer {
         };
         return T[key];
     }
+
+    // Subgroup (mutation-level) labels for the detailed / compare views. Binary
+    // axes (fusion, functional loss, CN amp/del) collapse the 0/1/2 levels into
+    // reference vs carrier; hotspot keeps the graded levels.
+    _mutSubgroupLabels(f) {
+        const L = this._mutAxisLabels(f);
+        if (f?.isDamaging || f?.isTranslocation) {
+            return { '0': L.ref, '1': L.carrier, '1+2': L.carrier, '2': L.carrier, 'all': 'All' };
+        }
+        return { '0': 'WT', '1': 'Mutated (1)', '1+2': 'Mutated (1+2)', '2': 'High (2)', 'all': 'All' };
+    }
     // The "1. Set Parameters" fusion cell-subset filter also uses the curated
     // calls now, so its picklist only offers real driver fusions (BCR-ABL1,
     // EWSR1-FLI1, …) rather than the raw passenger-heavy DepMap fusion matrix.
@@ -6376,6 +6387,7 @@ class CorrelationExplorer {
         const hotspotGene = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
+        if (isDamaging) this._cnAxisMode = mr.cnMode || null;
         const L = this._mutAxisLabels(mr);
         const mutationData = isTranslocation
             ? this._fusionAxisData.geneData[hotspotGene]
@@ -19813,6 +19825,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let outSvg = expanded.svg;
         const metaJson = meta ? JSON.stringify(meta) : null;
 
+        // White background for vector outputs (PDF / PPTX embed the SVG directly,
+        // so they need the rect baked in — the raster path paints white on canvas
+        // separately, and an extra white rect there is harmless).
+        if (background === 'white' && !/<rect[^>]*id="correlateExportBg"/.test(outSvg)) {
+            outSvg = outSvg.replace(/(<svg[^>]*>)/, `$1<rect id="correlateExportBg" x="0" y="0" width="100%" height="100%" fill="white"/>`);
+        }
+
         if (fmt === 'svg') {
             // For SVG, set absolute units on the outer tag so downstream tools
             // (Illustrator etc.) place it at the requested print size. Keep
@@ -19859,8 +19878,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // a vector source the result stays crisp at any density.
                 ctx.drawImage(img, 0, 0, targetPxW, targetPxH);
                 URL.revokeObjectURL(svgUrl);
-                // PNG / TIFF / PDF / PPTX all derive from this rasterised canvas.
-                await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson });
+                // PNG / TIFF use this rasterised canvas; PDF / PPTX prefer the
+                // vector SVG (passed through) and fall back to the canvas.
+                await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson, svg: outSvg, widthPx: w, heightPx: h });
                 resolve();
             };
             img.onerror = () => { URL.revokeObjectURL(svgUrl); resolve(); };
@@ -19873,7 +19893,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // pixels so they match the PNG exactly. Falls back to PNG if a builder
     // throws (e.g. JSZip missing for PPTX).
     async _downloadCanvasAs(canvas, fmt, filename, opts = {}) {
-        const { dpi = 300, widthCm, heightCm, metaJson } = opts;
+        const { dpi = 300, widthCm, heightCm, metaJson, svg } = opts;
         const save = (blob, ext) => {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -19883,8 +19903,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
         try {
             if (fmt === 'tiff') { save(new Blob([this._canvasToTiff(canvas, dpi)], { type: 'image/tiff' }), 'tiff'); return; }
-            if (fmt === 'pdf') { save(new Blob([this._canvasToPdf(canvas, widthCm, heightCm)], { type: 'application/pdf' }), 'pdf'); return; }
-            if (fmt === 'pptx') { save(await this._canvasToPptx(canvas, widthCm, heightCm), 'pptx'); return; }
+            if (fmt === 'pdf') {
+                // Prefer a true vector PDF (svg2pdf) when we have the source SVG
+                // and the plugin loaded; otherwise fall back to the raster PDF.
+                if (svg && this._canVectorExport()) {
+                    save(await this._svgToPdfVector(svg, widthCm, heightCm), 'pdf'); return;
+                }
+                save(new Blob([this._canvasToPdf(canvas, widthCm, heightCm)], { type: 'application/pdf' }), 'pdf'); return;
+            }
+            if (fmt === 'pptx') { save(await this._canvasToPptx(canvas, widthCm, heightCm, svg), 'pptx'); return; }
         } catch (e) {
             console.warn(`${fmt} export failed, falling back to PNG:`, e);
         }
@@ -19943,9 +19970,48 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return buf;
     }
 
+    // True if jsPDF + the svg2pdf plugin are both loaded (CDN), so we can write
+    // a fully vector PDF instead of an embedded raster.
+    _canVectorExport() {
+        const JS = window.jspdf?.jsPDF || window.jsPDF;
+        return !!(JS && JS.API && typeof JS.API.svg === 'function');
+    }
+
+    // Vector PDF: render the post-processed Plotly SVG straight into a jsPDF page
+    // via svg2pdf, so paths and text stay scalable. Page sized to the requested
+    // cm (points) so it imports at the right physical size. svg2pdf needs the SVG
+    // as a live DOM node, so we stage it off-screen, convert, then remove it.
+    async _svgToPdfVector(svgStr, widthCm, heightCm) {
+        const JS = window.jspdf?.jsPDF || window.jsPDF;
+        if (!JS) throw new Error('jsPDF unavailable');
+        const ptW = (widthCm || 10) / 2.54 * 72;
+        const ptH = (heightCm || 10) / 2.54 * 72;
+        const pdf = new JS({
+            unit: 'pt',
+            orientation: ptW >= ptH ? 'landscape' : 'portrait',
+            format: [Math.min(ptW, ptH), Math.max(ptW, ptH)],
+            compress: true
+        });
+        const pw = pdf.internal.pageSize.getWidth();
+        const ph = pdf.internal.pageSize.getHeight();
+        const holder = document.createElement('div');
+        holder.style.cssText = 'position:fixed; left:-99999px; top:0; width:0; height:0; overflow:hidden;';
+        holder.innerHTML = svgStr;
+        const svgEl = holder.querySelector('svg');
+        if (!svgEl) throw new Error('no svg element to vectorise');
+        document.body.appendChild(holder);
+        try {
+            await pdf.svg(svgEl, { x: 0, y: 0, width: pw, height: ph });
+        } finally {
+            document.body.removeChild(holder);
+        }
+        return pdf.output('blob');
+    }
+
     // Single-page PDF with the figure embedded as a JPEG (DCTDecode). The page
     // is sized to the requested cm so it imports at the right physical size;
-    // the raster is composited over white (JPEG has no alpha).
+    // the raster is composited over white (JPEG has no alpha). Used as the
+    // fallback when the vector pipeline isn't available.
     _canvasToPdf(canvas, widthCm, heightCm) {
         const tmp = document.createElement('canvas');
         tmp.width = canvas.width; tmp.height = canvas.height;
@@ -19980,16 +20046,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     // Single-slide .pptx (Open XML zip) with the figure as a full-bleed picture.
     // Slide size = the requested cm so the image isn't rescaled on import.
-    async _canvasToPptx(canvas, widthCm, heightCm) {
+    async _canvasToPptx(canvas, widthCm, heightCm, svgStr) {
         if (typeof JSZip === 'undefined') throw new Error('JSZip unavailable');
         const EMU = 360000;                       // EMU per cm
         const cx = Math.round((widthCm || 10) * EMU);
         const cy = Math.round((heightCm || 10) * EMU);
         const pngB64 = canvas.toDataURL('image/png').split(',')[1];
+        // PowerPoint 2016+ renders an embedded SVG as true vector, keeping the
+        // PNG only as a compatibility fallback. We embed both when we have the
+        // SVG; otherwise the slide is the PNG alone (raster).
+        const useSvg = !!svgStr;
         const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
         const zip = new JSZip();
         zip.file('[Content_Types].xml',
-            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/></Types>`);
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/>${useSvg ? '<Default Extension="svg" ContentType="image/svg+xml"/>' : ''}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/></Types>`);
         zip.file('_rels/.rels',
             `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/officeDocument" Target="ppt/presentation.xml"/></Relationships>`);
         zip.file('ppt/presentation.xml',
@@ -20007,11 +20077,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels',
             `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>`);
         zip.file('ppt/theme/theme1.xml', this._minimalPptxTheme());
+        // blipFill: when embedding SVG, the <a:blip> points at the PNG fallback
+        // (rId1) and carries an svgBlip extension pointing at the SVG (rId3).
+        const blip = useSvg
+            ? `<a:blip r:embed="rId1"><a:extLst><a:ext uri="{96DAC541-7B7A-43D3-8B79-37D633B846F1}"><asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" r:embed="rId3"/></a:ext></a:extLst></a:blip>`
+            : `<a:blip r:embed="rId1"/>`;
         zip.file('ppt/slides/slide1.xml',
-            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="${REL}" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="Figure"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`);
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="${REL}" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="Figure"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill>${blip}<a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`);
         zip.file('ppt/slides/_rels/slide1.xml.rels',
-            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/image" Target="../media/image1.png"/><Relationship Id="rId2" Type="${REL}/slideLayout" Target="../slideLayouts/slideLayout1.xml"/></Relationships>`);
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/image" Target="../media/image1.png"/><Relationship Id="rId2" Type="${REL}/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>${useSvg ? `<Relationship Id="rId3" Type="${REL}/image" Target="../media/image2.svg"/>` : ''}</Relationships>`);
         zip.file('ppt/media/image1.png', pngB64, { base64: true });
+        if (useSvg) zip.file('ppt/media/image2.svg', svgStr);
         return await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
     }
 
@@ -21859,6 +21935,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hotspotGene = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
+        if (isDamaging) this._cnAxisMode = mr.cnMode || null;
         const mutationData = isTranslocation
             ? this._fusionAxisData?.geneData?.[hotspotGene]
             : isDamaging
@@ -21933,7 +22010,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Build rows
         const rows = [];
-        const mutLabel = isTranslocation ? 'Fused' : 'Mut';
+        const mutLabel = isTranslocation ? 'Fused' : isDamaging ? this._mutAxisLabels(mr).carrier : 'Mut';
         if (allWT.length > 0 && allMut.length > 0) {
             const meanWT = allWT.reduce((a, b) => a + b, 0) / allWT.length;
             const meanMut = allMut.reduce((a, b) => a + b, 0) / allMut.length;
@@ -21974,6 +22051,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const mainHotspot = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
+        if (isDamaging) this._cnAxisMode = mr.cnMode || null;
         const mainMutData = isTranslocation
             ? this._fusionAxisData?.geneData?.[mainHotspot]
             : isDamaging
@@ -22021,7 +22099,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         const rows = [];
-        const mutLabel = isTranslocation ? 'Fused' : 'Mut';
+        const mutLabel = isTranslocation ? 'Fused' : isDamaging ? this._mutAxisLabels(mr).carrier : 'Mut';
         const noneWT = baseCells.filter(c => c.mainMut === 0).map(c => c.ge);
         const noneMut = baseCells.filter(c => c.mainMut >= 1).map(c => c.ge);
         if (noneWT.length > 0 && noneMut.length > 0) {
@@ -22051,7 +22129,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const refRow = rows.filter(r => r.isRef);
         const otherRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-        const typeLabel = isTranslocation ? 'Fusion' : 'Hotspot';
+        const typeLabel = isTranslocation ? 'Fusion' : isDamaging ? this._mutAxisLabels(mr).noun : 'Hotspot';
         this._inlineCompareData = {
             title: `${gene} GE — comparison of ${mainHotspot} ${mutLabel} vs WT, repeated within each additional-${typeLabel.toLowerCase()} subset`,
             subsetLabel: `Additional ${typeLabel}`,
@@ -22075,6 +22153,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const mainHotspot = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
+        if (isDamaging) this._cnAxisMode = mr.cnMode || null;
         const mainMutData = isTranslocation
             ? this._fusionAxisData?.geneData?.[mainHotspot]
             : isDamaging
@@ -22122,7 +22201,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         const rows = [];
-        const mutLabel = isTranslocation ? 'Fused' : 'Mut';
+        const mutLabel = isTranslocation ? 'Fused' : isDamaging ? this._mutAxisLabels(mr).carrier : 'Mut';
         const noneWT = baseCells.filter(c => c.mainMut === 0).map(c => c.ge);
         const noneMut = baseCells.filter(c => c.mainMut >= 1).map(c => c.ge);
         if (noneWT.length > 0 && noneMut.length > 0) {
@@ -22675,7 +22754,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             inspectTissueFilter
         };
 
-        const subgroupLabels = { '0': 'WT', '1': 'Mutated (1)', '1+2': 'Mutated (1+2)', '2': 'High (2)', 'all': 'All' };
+        const subgroupLabels = this._mutSubgroupLabels(mr);
         let statusText = `${results.length} genes (|r| >= 0.2), ${subgroupIndices.length} cell lines (${subgroupLabels[subgroup]})`;
         if (inspectTissueFilter) statusText += ` [${inspectTissueFilter}]`;
         statusEl.textContent = statusText;
@@ -22951,7 +23030,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         }
 
-        const subgroupLabels = { '0': 'WT', '1': 'Mutated (1)', '1+2': 'Mutated', '2': 'High (2)', 'all': 'All' };
+        const subgroupLabels = this._mutSubgroupLabels(mr);
         const additionalText = allExtraPoints.length > 0 ? ` + ${allExtraPoints.length} additional` : '';
 
         const layout = {
@@ -23040,7 +23119,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (!this.expressionCorrelateResults || this.expressionCorrelateResults.length === 0) return;
 
         const ctx = this._exprCorrelateContext;
-        const subgroupLabels = { '0': 'WT', '1': 'Mutated (1)', '1+2': 'Mutated (1+2)', '2': 'High (2)', 'all': 'All' };
+        const subgroupLabels = this._mutSubgroupLabels(this.mutationResults);
 
         let csv = `# Expression Correlates\n`;
         csv += `# Target Gene: ${ctx?.targetGene || '-'}\n`;
@@ -23068,6 +23147,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hotspotGene = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
+        if (isDamaging) this._cnAxisMode = mr.cnMode || null;
         const mutationData = isTranslocation
             ? this._fusionAxisData?.geneData?.[hotspotGene]
             : isDamaging
@@ -23147,6 +23227,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const mainHotspot = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
+        if (isDamaging) this._cnAxisMode = mr.cnMode || null;
         const mainMutData = isTranslocation
             ? this._fusionAxisData?.geneData?.[mainHotspot]
             : isDamaging
@@ -23223,6 +23304,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const mainHotspot = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
+        if (isDamaging) this._cnAxisMode = mr.cnMode || null;
         const mainMutData = isTranslocation
             ? this._fusionAxisData?.geneData?.[mainHotspot]
             : isDamaging
@@ -33521,7 +33603,7 @@ ${body}
             }
             ctx.drawImage(img, 0, 0, targetPxW, targetPxH);
             URL.revokeObjectURL(svgUrl);
-            await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson });
+            await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson, svg: composed });
         };
         img.onerror = () => URL.revokeObjectURL(svgUrl);
         img.src = svgUrl;
