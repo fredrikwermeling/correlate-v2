@@ -3290,7 +3290,9 @@ class CorrelationExplorer {
 
         // Gene effect distribution modal
         document.getElementById('closeGeneEffect').addEventListener('click', () => {
-            document.getElementById('geneEffectModal').style.display = 'none';
+            const m = document.getElementById('geneEffectModal');
+            m.style.display = 'none';
+            m.classList.remove('ge-condensed'); m.style.zIndex = '1200';
             this._geHighlightCellLine = null;
             this._geSelectionHighlight = null;
         });
@@ -4007,6 +4009,12 @@ class CorrelationExplorer {
         });
         document.getElementById('geTableSearch')?.addEventListener('input', (e) => {
             this.filterGETable(e.target.value);
+        });
+        document.getElementById('geExpandFullBtn')?.addEventListener('click', () => {
+            // Un-condense the gene-effect popout in place (keeps it on top of the
+            // wiki) so the filters + stats table become visible.
+            document.getElementById('geneEffectModal').classList.remove('ge-condensed');
+            this.switchGeneEffectView(this.currentGEView || 'tissue');
         });
         document.getElementById('downloadGeneEffectPNG')?.addEventListener('click', () => this.downloadGeneEffectChartPNG());
         document.getElementById('downloadGeneEffectSVG')?.addEventListener('click', () => this.downloadGeneEffectChartSVG());
@@ -17756,7 +17764,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Gene Effect Modal Methods
     // ============================================================
 
-    openGeneEffectModal(gene, view = 'tissue') {
+    openGeneEffectModal(gene, view = 'tissue', opts = {}) {
         const geneUpper = gene.toUpperCase();
         // Read the data-type toggle (GE / Expression). The data field is
         // still called "geneEffect" downstream for backwards compatibility —
@@ -17948,8 +17956,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('toggleExprCorrelatesBtn').style.display = '';
         document.getElementById('exprCorrelatesPanel').style.display = 'none';
 
-        // Show modal
-        document.getElementById('geneEffectModal').style.display = 'flex';
+        // Show modal. If a higher overlay is open (e.g. the Cell Line Wiki at
+        // z 1370), this modal (z 1200) would render BEHIND it — so detect the
+        // topmost open overlay and, if we'd be hidden, show a CONDENSED version
+        // (plot + export only) ON TOP instead.
+        const geModalEl = document.getElementById('geneEffectModal');
+        let topZ = 0;
+        document.querySelectorAll('.modal-overlay, #clbWikiModal').forEach(el => {
+            if (el.id === 'geneEffectModal' || getComputedStyle(el).display === 'none') return;
+            const z = parseInt(getComputedStyle(el).zIndex) || 0;
+            if (z > topZ) topZ = z;
+        });
+        const condensed = (opts && opts.condensed != null) ? opts.condensed : (topZ >= 1200);
+        geModalEl.classList.toggle('ge-condensed', condensed);
+        geModalEl.style.zIndex = condensed ? String(topZ + 10) : '1200';
+        geModalEl.style.display = 'flex';
         this._updateGeOncoprintLabel();
 
         // Render the selected view
