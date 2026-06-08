@@ -52,6 +52,29 @@
             color: #1f2937;
             margin: 0;
             padding: 0;
+            /* Typography polish (see jakub.kr "details that make interfaces feel
+               better"): crisper text rendering, and pretty wrapping so body text
+               doesn't leave a single orphaned word on the last line. */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-wrap: pretty;
+        }
+
+        /* Headings, labels and button text read best balanced — line lengths
+           are evened out so no line is left lopsidedly short. Falls back to
+           normal wrapping in browsers without text-wrap: balance. */
+        h1, h2, h3, h4, h5, h6,
+        .form-label, label, .card-header,
+        button, .btn, .nav-link {
+            text-wrap: balance;
+        }
+
+        /* Tabular figures so numbers keep a fixed width and don't shimmy as
+           they update (counts, badges, table cells, numeric inputs, code). */
+        table, td, th,
+        .value-badge, code,
+        input[type="number"], input[inputmode="decimal"] {
+            font-variant-numeric: tabular-nums;
         }
 
         /* Logo Header - centered like Green Listed */
@@ -495,6 +518,9 @@
 
         .button-row .btn {
             flex: 1;
+            /* Keep short two-word labels (e.g. "Test Genes") on one line rather
+               than wrapping inside the equal-width flex column. */
+            white-space: nowrap;
         }
 
         /* Tabs - exact Shiny nav-tabs match */
@@ -1352,6 +1378,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.12 (2026-06-08)</strong></p>
+                <ul>
+                    <li>Typography polish across the app: <b>balanced wrapping</b> for headings, labels and buttons (no more lopsided lines or a single word stranded on its own line), <b>pretty wrapping</b> for body text, crisper font rendering, and <b>tabular figures</b> so numbers in tables/badges keep a fixed width. Tidied the Analysis-mode sub-labels and stopped short button labels (e.g. &ldquo;Test Genes&rdquo;) from breaking across two lines.</li>
+                </ul>
                 <p><strong>v.83.11 (2026-06-08)</strong></p>
                 <ul>
                     <li>Image export &mdash; <b>PDF and PowerPoint are now true vector</b> for chart exports (previously the figure was embedded as a raster image). PDFs are written straight from the plot SVG (scalable paths + selectable text); PPTX embeds the SVG natively (PowerPoint 2016+) with a PNG fallback for older viewers. TIFF/PNG remain raster as before.</li>
@@ -3096,7 +3126,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.11</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.12</a>
     </div>
 
     <div class="main-content">
@@ -3169,7 +3199,7 @@
                     <div class="form-group">
                         <label class="form-label">Analysis Mode:</label>
                         <div class="radio-group">
-                            <div style="font-weight:600; font-size:12px; color:#374151; margin-bottom:3px;">Gene set analysis <span style="font-weight:400; color:#9ca3af; font-size:10px;">— correlate gene-effect profiles</span></div>
+                            <div style="font-weight:600; font-size:12px; color:#374151; margin-bottom:3px;">Gene set analysis<span style="display:block; font-weight:400; color:#9ca3af; font-size:10px; text-wrap:balance;">correlate gene-effect profiles</span></div>
                             <label style="margin-left:14px;" title="Correlate the genes you entered against each other only. Best when you already have a focused gene set and want the relationships within it.">
                                 <input type="radio" name="analysisMode" value="analysis" checked>
                                 Correlate genes within my set
@@ -3184,7 +3214,7 @@
                                     also correlate the discovered genes with each other
                                 </label>
                             </div>
-                            <div style="font-weight:600; font-size:12px; color:#374151; margin:8px 0 3px;">Mutation analysis <span style="font-weight:400; color:#9ca3af; font-size:10px;">— effect of an alteration</span></div>
+                            <div style="font-weight:600; font-size:12px; color:#374151; margin:8px 0 3px;">Mutation analysis<span style="display:block; font-weight:400; color:#9ca3af; font-size:10px; text-wrap:balance;">effect of an alteration</span></div>
                             <label style="margin-left:14px;" title="Pick a gene that is mutated / fused / CN-altered in some cell lines. The cohort is split into altered vs wild-type lines, and the genes whose CRISPR gene-effect differs most between the two groups are ranked.">
                                 <input type="radio" name="analysisMode" value="mutation">
                                 Genes affected by a mutation (mutant vs wild-type)
