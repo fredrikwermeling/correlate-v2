@@ -1349,6 +1349,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.10 (2026-06-08)</strong></p>
+                <ul>
+                    <li>Mutation analysis &mdash; two new stratification sub-types: <b>CN amplification</b> (focal ≥ 3× oncogene amp; MYC, ERBB2, MDM2, CDK4 &hellip;) and <b>CN deep deletion</b> (near-homozygous TSG loss; CDKN2A/B, PTEN, SMAD4, STK11 &hellip;), both drawn from the curated focal copy-number panel. Pick a gene and the whole analysis (split, plots, tissue breakdown, table) runs against amplified-vs-neutral or deep-deleted-vs-neutral lines.</li>
+                    <li>Cell Line Wiki &mdash; breast lines now show a <b>Receptor status</b> block: ESR1 / PGR / ERBB2 expression as histograms across all breast lines (this line marked), with the expression-surrogate call (HR+ / HER2+ / triple-negative) shown alongside.</li>
+                </ul>
                 <p><strong>v.83.9 (2026-06-08)</strong></p>
                 <ul>
                     <li>Gene-link clicks now always open the <b>correct data type</b>: a gene clicked in a gene-effect context opens the GE popout, one clicked in an expression context opens expression &mdash; previously the popout could inherit the last-used type (e.g. clicking a gene-effect hit after viewing an expression gene wrongly showed expression).</li>
@@ -3082,7 +3087,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.9</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.10</a>
     </div>
 
     <div class="main-content">
@@ -3221,6 +3226,12 @@
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
                                     <input type="radio" name="mutAnalysisType" value="damaging"> Functional loss
                                 </label>
+                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;" title="Stratify by focal copy-number amplification (≥ 3× diploid) of a curated oncogene panel — e.g. MYC, ERBB2, MDM2, CDK4.">
+                                    <input type="radio" name="mutAnalysisType" value="cn_amp"> CN amplification
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;" title="Stratify by focal deep (near-homozygous) deletion of a curated tumour-suppressor panel — e.g. CDKN2A/B, PTEN, SMAD4, STK11.">
+                                    <input type="radio" name="mutAnalysisType" value="cn_del"> CN deep deletion
+                                </label>
                             </div>
                         </div>
                         <div id="hotspotAnalysisControls">
@@ -3242,7 +3253,7 @@
                             </div>
                         </div>
                         <div id="damagingAnalysisControls" style="display: none;">
-                            <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Functional-loss Gene (required):</label>
+                            <label id="damagingControlsLabel" class="form-label" style="color: #5a9f4a; font-weight: 600;">Functional-loss Gene (required):</label>
                             <div style="display: flex; gap: 6px; align-items: center;">
                                 <select id="damagingHotspotSelect" class="form-control" style="flex: 1;">
                                     <option value="">Select gene...</option>
@@ -5311,6 +5322,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_9"></script>
+    <script src="app.js?v=v83_10"></script>
 </body>
 </html>

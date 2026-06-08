@@ -285,6 +285,7 @@ class CorrelationExplorer {
         }
         if (clinicalCnRes && clinicalCnRes.ok) {
             this.clinicalCn = await clinicalCnRes.json();
+            this._buildCnAxisData();
         }
         // Validated/curated fusion calls (high+medium tier) — the primary fusion
         // axis for the mutational analysis. Mirrors translocations.json schema.
@@ -972,7 +973,65 @@ class CorrelationExplorer {
     // collections, gate sources and the secondary mutation filter. Fall back to the
     // raw datasets if the curated files failed to load.
     get _fusionAxisData() { return this.validatedFusions || this.translocations; }
-    get _lossAxisData() { return this.functionalLoss || this.damagingMutations; }
+    // The "Functional loss" axis also doubles as the carrier for the two
+    // copy-number stratification sub-types (amplification / deep deletion):
+    // when _cnAxisMode is set, the getter returns the matching CN dataset so
+    // every isDamaging consumer reads CN data unchanged. Falls back to
+    // functional loss when no CN mode is active.
+    get _lossAxisData() {
+        if (this._cnAxisMode === 'amp') return this.cnAmpData || this.functionalLoss || this.damagingMutations;
+        if (this._cnAxisMode === 'del') return this.cnDelData || this.functionalLoss || this.damagingMutations;
+        return this.functionalLoss || this.damagingMutations;
+    }
+
+    // Derive two binary stratification datasets from the curated focal-CN panel
+    // (clinical_cn.json): amplification (tier amp/strong_amp, cn ≥ 3.0) and deep
+    // deletion (tier deep_del, cn ≤ 0.3 — near-homozygous, LoF-equivalent). Both
+    // mirror the functional_loss.json schema so every mutational-analysis axis
+    // consumer reads them identically. Lines absent from the curated panel have
+    // no focal event called → treated as copy-number-neutral (WT side of the split).
+    _buildCnAxisData() {
+        const cn = this.clinicalCn?.byCellLine;
+        if (!cn) return;
+        const ampGD = {}, delGD = {};
+        const add = (gd, gene, cl) => {
+            if (!gd[gene]) gd[gene] = { mutations: {}, counts: { 0: 0, 1: 0 }, total_mutated: 0 };
+            if (!gd[gene].mutations[cl]) { gd[gene].mutations[cl] = 1; gd[gene].total_mutated++; gd[gene].counts[1]++; }
+        };
+        for (const [cl, e] of Object.entries(cn)) {
+            for (const a of (e.amplifications || [])) add(ampGD, a.gene, cl);
+            for (const d of (e.deletions || [])) { if (d.tier === 'deep_del') add(delGD, d.gene, cl); }
+        }
+        const pack = (gd) => {
+            const genes = Object.keys(gd).sort((a, b) => gd[b].total_mutated - gd[a].total_mutated);
+            const geneCounts = {};
+            for (const g of genes) geneCounts[g] = gd[g].total_mutated;
+            return { genes, geneCounts, geneData: gd };
+        };
+        this.cnAmpData = pack(ampGD);
+        this.cnDelData = pack(delGD);
+    }
+
+    // Central axis-label table for the mutational analysis. Keyed off the active
+    // sub-type so labels stay correct for hotspot / fusion / functional-loss and
+    // the two CN sub-types without scattering ternaries everywhere. Pass either
+    // a mutationResults object or a {isTranslocation,isDamaging,cnMode} bag.
+    _mutAxisLabels(f) {
+        const isT = !!f?.isTranslocation;
+        const isD = !!f?.isDamaging;
+        const cn = f?.cnMode || (isD ? this._cnAxisMode : null);
+        let key = 'hotspot';
+        if (isT) key = 'fusion';
+        else if (isD) key = cn === 'amp' ? 'amp' : cn === 'del' ? 'del' : 'loss';
+        const T = {
+            hotspot: { analysis: 'Mutation', noun: 'Mutation', carrier: 'Mut', ref: 'WT', status: 'Mutation Status', yaxis: 'Mutations', tick0: '0 WT', tick1: '1', selectLabel: 'Hotspot Mutation', selectNoun: 'hotspot mutation', countVerb: 'mutated' },
+            fusion:  { analysis: 'Fusion', noun: 'Fusion', carrier: 'Fused', ref: 'No fusion', status: 'Fusion Status', yaxis: 'Fusions', tick0: 'No fusion', tick1: 'Fusion+', selectLabel: 'Fusion', selectNoun: 'fusion', countVerb: 'fused' },
+            loss:    { analysis: 'Functional Loss', noun: 'Functional loss', carrier: 'Lost', ref: 'Intact', status: 'Functional Loss', yaxis: 'Functional Loss', tick0: 'Intact', tick1: 'Lost', selectLabel: 'Functional-loss Gene', selectNoun: 'functional-loss gene', countVerb: 'lost' },
+            amp:     { analysis: 'CN Amplification', noun: 'Amplification', carrier: 'Amp', ref: 'Neutral', status: 'Amplification Status', yaxis: 'Amplification', tick0: 'Neutral', tick1: 'Amp', selectLabel: 'Amplified Gene', selectNoun: 'amplified gene', countVerb: 'amplified' },
+            del:     { analysis: 'CN Deep Deletion', noun: 'Deep deletion', carrier: 'Del', ref: 'Neutral', status: 'Deep-deletion Status', yaxis: 'Deep Deletion', tick0: 'Neutral', tick1: 'Del', selectLabel: 'Deep-deleted Gene', selectNoun: 'deep-deleted gene', countVerb: 'deep-deleted' },
+        };
+        return T[key];
+    }
     // The "1. Set Parameters" fusion cell-subset filter also uses the curated
     // calls now, so its picklist only offers real driver fusions (BCR-ABL1,
     // EWSR1-FLI1, …) rather than the raw passenger-heavy DepMap fusion matrix.
@@ -981,15 +1040,21 @@ class CorrelationExplorer {
     updateMutAnalysisTypeUI() {
         const subType = document.querySelector('input[name="mutAnalysisType"]:checked')?.value || 'hotspot';
         const isTranslocation = subType === 'translocation';
-        const isDamaging = subType === 'damaging';
+        // The two CN sub-types reuse the functional-loss ("damaging") control
+        // block and code path, switched via _cnAxisMode.
+        this._cnAxisMode = subType === 'cn_amp' ? 'amp' : subType === 'cn_del' ? 'del' : null;
+        const isDamaging = subType === 'damaging' || subType === 'cn_amp' || subType === 'cn_del';
         document.getElementById('hotspotAnalysisControls').style.display = (!isTranslocation && !isDamaging) ? '' : 'none';
         document.getElementById('translocationAnalysisControls').style.display = isTranslocation ? '' : 'none';
         document.getElementById('damagingAnalysisControls').style.display = isDamaging ? '' : 'none';
+        // Relabel the shared gene-picker block for the active axis.
+        const dmgLabel = document.getElementById('damagingControlsLabel');
+        if (dmgLabel) dmgLabel.textContent = `${this._mutAxisLabels({ isDamaging: true }).selectLabel} (required):`;
         // Hide type selector if no extra data types
         if (!this.translocations?.geneData && !this.damagingMutations?.geneData) {
             document.getElementById('mutAnalysisTypeSelector').style.display = 'none';
         }
-        // Populate the fusion / functional-loss dropdowns on show.
+        // Populate the fusion / functional-loss / CN dropdowns on show.
         if (isTranslocation && this._fusionAxisData?.genes) {
             this.populateTranslocationHotspotSelector();
         }
@@ -1032,9 +1097,10 @@ class CorrelationExplorer {
         }
         geneCounts.sort((a, b) => b.count - a.count);
 
+        const verb = this._mutAxisLabels({ isDamaging: true }).countVerb;
         let html = '<option value="">Select gene...</option>';
         for (const { gene, count } of geneCounts) {
-            html += `<option value="${gene}">${gene} (${count} lost)</option>`;
+            html += `<option value="${gene}">${gene} (${count} ${verb})</option>`;
         }
         select.innerHTML = html;
         if (currentValue && geneCounts.some(g => g.gene === currentValue)) select.value = currentValue;
@@ -1483,7 +1549,7 @@ class CorrelationExplorer {
         if (breakdown.length === 0) return;
 
         const currentLineage = document.getElementById('lineageFilter').value;
-        const mutLabel = isTransloc ? 'Fused' : isDamaging ? 'Dmg' : 'Mut';
+        const mutLabel = isTransloc ? 'Fused' : isDamaging ? this._mutAxisLabels({ isDamaging: true }).carrier : 'Mut';
 
         const popup = document.createElement('div');
         popup.id = 'tissueBreakdownPopup';
@@ -5062,7 +5128,11 @@ class CorrelationExplorer {
         // Check mutation analysis sub-type
         const mutAnalysisType = document.querySelector('input[name="mutAnalysisType"]:checked')?.value || 'hotspot';
         const isTranslocation = mutAnalysisType === 'translocation';
-        const isDamaging = mutAnalysisType === 'damaging';
+        // CN amp / deep-del sub-types ride the functional-loss ("damaging") path.
+        const cnMode = mutAnalysisType === 'cn_amp' ? 'amp' : mutAnalysisType === 'cn_del' ? 'del' : null;
+        this._cnAxisMode = cnMode;
+        const isDamaging = mutAnalysisType === 'damaging' || cnMode != null;
+        const axisLbls = this._mutAxisLabels({ isTranslocation, isDamaging, cnMode });
 
         const hotspotGene = isTranslocation
             ? document.getElementById('translocationHotspotSelect').value
@@ -5083,7 +5153,7 @@ class CorrelationExplorer {
         const additionalTransLevel = document.getElementById('paramTranslocationLevel').value;
 
         if (!hotspotGene) {
-            this.showStatus('error', isTranslocation ? 'Please select a fusion' : isDamaging ? 'Please select a functional-loss gene' : 'Please select a hotspot mutation');
+            this.showStatus('error', `Please select a ${axisLbls.selectNoun}`);
             return;
         }
         if (isTranslocation && !this._fusionAxisData?.geneData?.[hotspotGene]) {
@@ -5091,11 +5161,11 @@ class CorrelationExplorer {
             return;
         }
         if (isDamaging && !this._lossAxisData?.geneData?.[hotspotGene]) {
-            this.showStatus('error', `"${hotspotGene}" is not a valid gene in the functional-loss data. Please select from the list.`);
+            this.showStatus('error', `"${hotspotGene}" is not a valid ${axisLbls.selectNoun}. Please select from the list.`);
             return;
         }
 
-        this.showStatus('info', isTranslocation ? 'Running fusion analysis...' : isDamaging ? 'Running functional-loss analysis...' : 'Running mutation analysis...');
+        this.showStatus('info', `Running ${axisLbls.analysis.toLowerCase()} analysis...`);
 
         // Use setTimeout to allow UI to update
         setTimeout(() => {
@@ -5128,6 +5198,7 @@ class CorrelationExplorer {
                     additionalTransLevel,
                     isTranslocation,
                     isDamaging,
+                    cnMode,
                     excludedTissues: new Set(this.excludedTissues),
                     nWT: analysisResult.nWT,
                     nMut: analysisResult.nMut,
@@ -5147,7 +5218,7 @@ class CorrelationExplorer {
                 document.querySelector('[data-tab="mutation"]').classList.add('active');
                 document.getElementById('tab-mutation').classList.add('active');
 
-                const analysisLabel = isTranslocation ? 'Fusion' : isDamaging ? 'Functional Loss' : 'Mutation';
+                const analysisLabel = axisLbls.analysis;
                 const nSkipped = analysisResult.nSkippedMinN || 0;
                 let statusMsg = `&#10003; ${analysisLabel} analysis complete: ${significantResults.length} genes with p < ${pThreshold}`;
                 if (significantResults.length === 0 && nSkipped > 0) {
@@ -5858,6 +5929,9 @@ class CorrelationExplorer {
         if (!this.mutationResults) return;
 
         const mr = this.mutationResults;
+        // Keep the CN-axis getter (_lossAxisData) aligned with the result being
+        // rendered, in case the radio was changed since this analysis was run.
+        if (mr.isDamaging) this._cnAxisMode = mr.cnMode || null;
         // "only p < 0.05 (mutant vs WT)" filter (on by default): a gene enters
         // significantResults if ANY comparison (1+2 vs 0, 2 vs 0, 2 vs 1, fused)
         // is significant — which surfaces genes with a poor PRIMARY p-value that
@@ -5881,8 +5955,9 @@ class CorrelationExplorer {
         const hg = mr.hotspotGene || 'Hotspot';
         const isT = mr.isTranslocation;
         const isD = mr.isDamaging;
-        const wtLabel = isT ? `No ${hg} Fusion` : `${hg} WT`;
-        const mutLbl = isT ? `${hg} Fused` : isD ? `${hg} Loss` : `${hg} Mut`;
+        const _Lh = this._mutAxisLabels(mr);
+        const wtLabel = isT ? `No ${hg} Fusion` : isD ? `${hg} ${_Lh.ref}` : `${hg} WT`;
+        const mutLbl = isT ? `${hg} Fused` : isD ? `${hg} ${_Lh.carrier}` : `${hg} Mut`;
         const thead = document.querySelector('#mutationTable thead');
         const thStyle = 'cursor: pointer;';
         const sortClick = 'onclick="app.sortMutationTable(this, event)"';
@@ -5970,8 +6045,9 @@ class CorrelationExplorer {
         });
 
         // Build settings summary
-        const typeLabel = mr.isTranslocation ? 'Fusion' : mr.isDamaging ? 'Functional Loss' : 'Hotspot';
-        const mutLabel = mr.isTranslocation ? 'Fused' : 'Mutated';
+        const _L = this._mutAxisLabels(mr);
+        const typeLabel = mr.isDamaging ? _L.analysis : (mr.isTranslocation ? 'Fusion' : 'Hotspot');
+        const mutLabel = mr.isTranslocation ? 'Fused' : mr.isDamaging ? _L.carrier : 'Mutated';
         let settingsText = `${typeLabel}: ${mr.hotspotGene} | `;
         settingsText += `WT: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells`;
         if (hasFusion) {
@@ -6296,9 +6372,11 @@ class CorrelationExplorer {
         if (gene === '⚡ Growth Rate' || gene?.startsWith('📊')) return; // pseudo-gene, not a real gene
 
         const mr = this.mutationResults;
+        if (mr.isDamaging) this._cnAxisMode = mr.cnMode || null;
         const hotspotGene = mr.hotspotGene;
         const isTranslocation = mr.isTranslocation;
         const isDamaging = mr.isDamaging;
+        const L = this._mutAxisLabels(mr);
         const mutationData = isTranslocation
             ? this._fusionAxisData.geneData[hotspotGene]
             : isDamaging
@@ -6433,7 +6511,7 @@ class CorrelationExplorer {
         const jitter = (base, spread = 0.15) => base + (Math.random() - 0.5) * spread;
 
         // Labels and colors depend on mutation type
-        const mut1Label = isTranslocation ? '1 fusion partner' : isDamaging ? 'Functional loss' : '1 mutation';
+        const mut1Label = isTranslocation ? '1 fusion partner' : isDamaging ? L.noun : '1 mutation';
         const mut2Label = isTranslocation ? '2+ fusion partners' : isDamaging ? '' : '2 mutations';
         const color1 = '#3b82f6';
         const color2 = '#dc2626';
@@ -6616,8 +6694,8 @@ class CorrelationExplorer {
 
         // Build stats text for subtitle - split into two lines to avoid cropping
         const formatP = (p) => isNaN(p) ? '-' : (p < 0.001 ? p.toExponential(1) : p.toFixed(3));
-        const fusedLabel = isTranslocation ? 'Fused' : isDamaging ? 'Lost' : 'Mut';
-        const wtRefLabel = isTranslocation ? 'No fusion' : isDamaging ? 'Intact' : 'WT';
+        const fusedLabel = L.carrier;
+        const wtRefLabel = L.ref;
         // WT and mutant stats on their own rows so the header doesn't crowd/wrap.
         const statsLineWT = `${wtRefLabel}: n=${wtStats.n}, mean=${wtStats.mean.toFixed(2)}, med=${wtStats.median.toFixed(2)}`;
         const statsLineMut = `${fusedLabel}: n=${mutAllStats.n}, mean=${mutAllStats.mean.toFixed(2)}, med=${mutAllStats.median.toFixed(2)}`;
@@ -6629,13 +6707,13 @@ class CorrelationExplorer {
         // Combine lineage info and stats in subtitle (each stat on its own line)
         const subtitle = `${lineageText}<br>${statsLineWT}<br>${statsLineMut}<br>${statsLineP}`;
 
-        const statusLabel = isTranslocation ? 'Fusion Status' : isDamaging ? 'Functional Loss' : 'Mutation Status';
-        const yAxisTitle = isTranslocation ? `${hotspotGene} Fusions` : isDamaging ? `${hotspotGene} Functional Loss` : `${hotspotGene} Mutations`;
-        // Functional loss and validated fusions are binary (carrier vs not), so
-        // they only get two rows; hotspot mutations keep the 0/1/2 levels.
+        const statusLabel = L.status;
+        const yAxisTitle = `${hotspotGene} ${L.yaxis}`;
+        // Functional loss, CN events and validated fusions are binary (carrier vs
+        // not), so they only get two rows; hotspot mutations keep the 0/1/2 levels.
         const isBinaryAxis = isTranslocation || isDamaging;
-        const tick0Label = isTranslocation ? 'No fusion' : isDamaging ? 'Intact' : '0 WT';
-        const tick1Label = isTranslocation ? 'Fusion+' : isDamaging ? 'Lost' : '1';
+        const tick0Label = L.tick0;
+        const tick1Label = L.tick1;
         const tick2Label = '2';
 
         const titleText = `${gene} Gene Effect by ${hotspotGene} ${statusLabel}`;
@@ -6728,7 +6806,7 @@ class CorrelationExplorer {
 
         // Show modal
         document.getElementById('geneEffectModal').style.display = 'flex';
-        document.getElementById('geneEffectTitle').textContent = `${gene} Gene Effect by ${hotspotGene} ${isTranslocation ? 'Fusion' : isDamaging ? 'Functional Loss' : 'Mutation'}`;
+        document.getElementById('geneEffectTitle').textContent = `${gene} Gene Effect by ${hotspotGene} ${L.noun}`;
 
         // Populate tissue filter dropdown with ALL lineages (inspect can override analysis filters)
         const tissueFilterEl = document.getElementById('geTissueFilter');
@@ -6839,7 +6917,7 @@ class CorrelationExplorer {
             let gHtml = '';
             for (const g of sortedGenes) {
                 const sel = g === hotspotGene ? ' selected' : '';
-                const suffix = isTranslocation ? 'fused' : isDamaging ? 'lost' : 'mut';
+                const suffix = isTranslocation ? 'fused' : isDamaging ? L.countVerb : 'mut';
                 const label = `${g} (${counts[g]} ${suffix})`;
                 gHtml += `<option value="${g}"${sel}>${label}</option>`;
             }
@@ -6847,7 +6925,7 @@ class CorrelationExplorer {
         }
         // The stratifier label reflects the axis type (it's not always "Hotspot").
         const geStratLabel = document.getElementById('geHotspotGeneLabel');
-        if (geStratLabel) geStratLabel.textContent = isTranslocation ? 'Fusion (Y):' : isDamaging ? 'Functional loss (Y):' : 'Hotspot mutation (Y):';
+        if (geStratLabel) geStratLabel.textContent = isTranslocation ? 'Fusion (Y):' : isDamaging ? `${L.noun} (Y):` : 'Hotspot mutation (Y):';
         document.getElementById('geHotspotGeneGroup').style.display = '';
 
         // Show gene search bar so user can change the gene (#12)
@@ -28148,6 +28226,91 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             ${row('DepMap type', dmtype)}
             ${row('Molecular features', psf)}`;
 
+        // --- Breast receptor status (expression surrogate) ---
+        // For breast lines only: ESR1 / PGR / ERBB2 transcript levels are a
+        // surrogate for clinical ER / PR / HER2 status. We render three mini
+        // histograms (this line marked vs all breast lines) plus a one-line
+        // subtype call, mirroring the drug-response histogram pattern. The
+        // call is computed relative to the breast population (median for
+        // ESR1/PGR, top quintile for ERBB2) so it matches the breast-subtype
+        // collections elsewhere in the app.
+        let receptorHtml = '';
+        this._receptorHistPending = null;
+        const _isBreast = (lin || '').toLowerCase().includes('breast');
+        if (_isBreast && this.expressionLoaded && this.expressionData && this.expressionMetadata && this.expressionGeneIndex) {
+            const nExprCL = this.expressionMetadata.nCellLines;
+            const exprIdx = new Map();
+            this.expressionMetadata.cellLines.forEach((cl, i) => exprIdx.set(cl, i));
+            const myEi = exprIdx.get(cellLineId);
+            // Collect breast-line expression indices.
+            const breastEis = [];
+            for (const cl of this.expressionMetadata.cellLines) {
+                if ((this.cellLineMetadata?.lineage?.[cl] || '').toLowerCase().includes('breast')) {
+                    breastEis.push(exprIdx.get(cl));
+                }
+            }
+            const valsFor = (gene) => {
+                const gi = this.expressionGeneIndex.get(gene);
+                if (gi === undefined) return null;
+                const off = gi * nExprCL;
+                const arr = [];
+                for (const ei of breastEis) { const v = this.expressionData[off + ei]; if (!isNaN(v)) arr.push(v); }
+                const mine = (myEi !== undefined) ? this.expressionData[off + myEi] : NaN;
+                return { arr, mine: isNaN(mine) ? null : mine };
+            };
+            const median = (a) => { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y); return s.length % 2 ? s[(s.length - 1) / 2] : 0.5 * (s[s.length / 2 - 1] + s[s.length / 2]); };
+            const pct = (a, v) => a.length ? Math.round(100 * a.filter(x => x < v).length / a.length) : null;
+            const esrD = valsFor('ESR1');
+            const pgrD = valsFor('PGR');
+            const herD = valsFor('ERBB2');
+            if (esrD && pgrD && herD && (esrD.mine != null || pgrD.mine != null || herD.mine != null)) {
+                const esrMed = median(esrD.arr), pgrMed = median(pgrD.arr);
+                // HER2+ threshold = top quintile of ERBB2 among breast lines.
+                const herSorted = [...herD.arr].sort((a, b) => b - a);
+                const herThresh = herSorted.length ? herSorted[Math.max(0, Math.ceil(herSorted.length / 5) - 1)] : Infinity;
+                // Prefer the app's authoritative collection membership (which
+                // includes the Lehmann-annotated TNBC fallback that the plain
+                // median split misses for borderline lines like MDA-MB-468);
+                // fall back to an inline median/quintile call if collections
+                // haven't been built yet.
+                const _mem = this._collectionMembership || {};
+                let call, callColor;
+                if (_mem.her2_pos_breast?.has(cellLineId)) { call = 'HER2+ (approximate)'; callColor = '#7c3aed'; }
+                else if (_mem.tnbc?.has(cellLineId)) { call = 'Triple-negative (approximate)'; callColor = '#dc2626'; }
+                else if (_mem.hr_pos_breast?.has(cellLineId)) { call = 'HR+ / luminal (approximate)'; callColor = '#2563eb'; }
+                else {
+                    const isHer2 = herD.mine != null && herD.mine >= herThresh;
+                    const hrPos = (esrD.mine != null && esrD.mine >= esrMed) || (pgrD.mine != null && pgrD.mine >= pgrMed);
+                    if (isHer2) { call = 'HER2+ (approximate)'; callColor = '#7c3aed'; }
+                    else if (hrPos) { call = 'HR+ / luminal (approximate)'; callColor = '#2563eb'; }
+                    else { call = 'Triple-negative (approximate)'; callColor = '#dc2626'; }
+                }
+                const targets = [
+                    { gene: 'ESR1', label: 'ESR1 (ER)', d: esrD },
+                    { gene: 'PGR', label: 'PGR (PR)', d: pgrD },
+                    { gene: 'ERBB2', label: 'ERBB2 (HER2)', d: herD },
+                ];
+                const panels = targets.map(t => {
+                    const pc = (t.d.mine != null) ? pct(t.d.arr, t.d.mine) : null;
+                    const sub = pc == null ? 'not measured'
+                        : `<b style="color:${callColor};">${t.d.mine.toFixed(1)}</b> log₂-TPM &nbsp;<span style="color:#9ca3af;">(${pc}th pct of breast lines)</span>`;
+                    return `<div style="flex:1; min-width:150px;">
+                        <div style="font-size:11px; font-weight:600; color:#374151; margin-bottom:2px;">${t.label}</div>
+                        <div style="font-size:10px; color:#6b7280; margin-bottom:2px;">${sub}</div>
+                        <div id="clbWikiHistRecept_${t.gene}" style="height:70px;"></div>
+                    </div>`;
+                }).join('');
+                receptorHtml = `
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red dashed line</span> marks this cell line. Calls are made <i>relative to breast lines</i> (median split for ER/PR, top quintile for HER2) — a transcript surrogate, not clinical IHC/FISH.</p>
+                    <div style="margin:0 0 10px;">Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span></div>
+                    <div style="display:flex; gap:14px; flex-wrap:wrap;">${panels}</div>`;
+                this._receptorHistPending = {
+                    cellLineId,
+                    panels: targets.map(t => ({ gene: t.gene, vals: t.d.arr, mine: t.d.mine }))
+                };
+            }
+        }
+
         // --- Patient/tumor origin ---
         // Age is stored as a float (e.g. "58.0"); show it as a whole number.
         const ageRaw = get('age');
@@ -29826,6 +29989,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             section('Cancer classification',
                 classificationHtml,
                 'DepMap 25Q3 Model table (Oncotree lineage / subtype / code, patient-tumour features).'),
+            receptorHtml ? section('Receptor status <span style="font-size:11px; color:#6b7280;">— expression surrogate for ER / PR / HER2</span>',
+                receptorHtml,
+                'DepMap 25Q3 OmicsExpressionTPMLogp1 (log₂-TPM+1) for ESR1 / PGR / ERBB2. Thresholds computed across breast lines in this cohort (median for ER/PR, top quintile for HER2). Transcript-based surrogate — clinical receptor status is defined by IHC (and FISH for HER2) and may differ.') : '',
             section('Patient & sample origin',
                 originHtml,
                 'DepMap 25Q3 Model table — donor demographics and tissue collection metadata.'),
@@ -29882,6 +30048,47 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (this._drugHistPending && this._drugHistPending.cellLineId === cellLineId) {
             requestAnimationFrame(() => this._renderDrugDistributions(this._drugHistPending));
         }
+        // Breast receptor-status histograms (ESR1 / PGR / ERBB2).
+        if (this._receptorHistPending && this._receptorHistPending.cellLineId === cellLineId) {
+            requestAnimationFrame(() => this._renderReceptorDistributions(this._receptorHistPending));
+        }
+    }
+
+    // Breast receptor-status histograms for the Wiki's Receptor-status section.
+    // One small Plotly panel per gene (ESR1 / PGR / ERBB2): the distribution
+    // across all breast lines as grey bars, this cell line's value marked by a
+    // red dashed vertical line. Mirrors _renderDrugDistributions.
+    _renderReceptorDistributions(pending) {
+        if (typeof Plotly === 'undefined') return;
+        if (!pending || !Array.isArray(pending.panels)) return;
+        const config = { displaylogo: false, responsive: true, staticPlot: false, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'] };
+        for (const p of pending.panels) {
+            const el = document.getElementById(`clbWikiHistRecept_${p.gene}`);
+            if (!el || !p.vals || !p.vals.length) continue;
+            const maxV = Math.max(...p.vals, p.mine != null ? p.mine : 0);
+            const binSize = Math.max(0.25, maxV / 24);
+            const trace = {
+                type: 'histogram',
+                x: p.vals,
+                xbins: { size: binSize, start: 0, end: maxV + binSize },
+                marker: { color: '#9ca3af', line: { width: 0 } },
+                hovertemplate: '<b>%{x} log₂-TPM</b>: %{y} breast lines<extra></extra>',
+                opacity: 0.85
+            };
+            const lay = {
+                margin: { l: 22, r: 8, t: 4, b: 22 },
+                xaxis: { title: { text: 'log₂-TPM across breast lines', font: { size: 9 } }, tickfont: { size: 8 }, showgrid: false, zeroline: false },
+                yaxis: { tickfont: { size: 8 }, showgrid: true, gridcolor: '#f3f4f6', zeroline: false, showticklabels: false },
+                bargap: 0.02, showlegend: false,
+                paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Open Sans, sans-serif' }, height: 70
+            };
+            if (p.mine != null) {
+                lay.shapes = [{ type: 'line', x0: p.mine, x1: p.mine, y0: 0, y1: 1, yref: 'paper', line: { color: '#dc2626', width: 2, dash: 'dash' } }];
+            }
+            Plotly.newPlot(el, [trace], lay, config);
+        }
+        this._receptorHistPending = null;
     }
 
     // Per-compound PRISM-AUC histograms for the Wiki's Drug-response section.
