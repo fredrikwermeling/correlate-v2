@@ -1349,6 +1349,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.8 (2026-06-08)</strong></p>
+                <ul>
+                    <li>Wiki &mdash; <b>Key genetic alterations</b> now also lists hotspot-mutated canonical drivers that lack a specific-variant call (e.g. STK11, KEAP1 in lung adeno), so they show as ✓ typical and are no longer wrongly listed under &ldquo;not altered.&rdquo; A <b>POLE / POLD1 damaging mutation</b> is now surfaced even without an elevated mutation burden (flagged as likely-not-a-functional-ultramutator). The driver tags read &ldquo;typical / not a canonical hallmark&rdquo; (no more confusing &ldquo;atypical&rdquo;).</li>
+                    <li>Wiki &mdash; removed treatment / drug-recommendation language (these are cell lines, not patients): pathway-status no longer suggests inhibitors/therapies, the &ldquo;targeted therapies matched&rdquo; block and the executive-summary &ldquo;model for … therapy&rdquo; / &ldquo;drug-target candidate&rdquo; lines are gone. In-vitro PRISM drug-<i>sensitivity</i> data is kept (it characterises the line). Pathway status now states it covers only a few curated high-level pathways.</li>
+                    <li>Wiki &mdash; the patient-origin row is relabelled <b>&ldquo;Sample taken from&rdquo;</b> and clarifies it&rsquo;s the tumour site this cell line was <i>established from</i> (primary vs metastasis), not the patient&rsquo;s overall disease stage.</li>
+                    <li>Quick filters &mdash; breast receptor subtypes now consistently labelled &ldquo;approximate&rdquo; (expression surrogate); a &ldquo;hover any filter for how it&rsquo;s defined&rdquo; hint added at the top; the &ldquo;Pathway-activity expression signatures&rdquo; group renamed <b>Active expression programs</b>.</li>
+                </ul>
                 <p><strong>v.83.7 (2026-06-08)</strong></p>
                 <ul>
                     <li>Analysis mode reorganized into two clearer choices: <b>Gene set analysis</b> (with a sub-choice of <i>correlations within my gene set</i> vs <i>find new correlated genes across all genes</i>, and the &ldquo;also correlate the discovered genes with each other&rdquo; option) and <b>Mutation analysis</b>. &ldquo;2. Input Genes&rdquo; renamed <b>2. Input Gene Set</b>.</li>
@@ -3067,7 +3074,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.7</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.8</a>
     </div>
 
     <div class="main-content">
@@ -5291,6 +5298,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_7"></script>
+    <script src="app.js?v=v83_8"></script>
 </body>
 </html>

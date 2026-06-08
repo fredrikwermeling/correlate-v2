@@ -23768,17 +23768,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             },
             tnbc: {
                 label: 'Triple-negative breast (approximate)',
-                category: 'Breast — receptor subtype',
+                category: 'Breast — receptor subtype (expression surrogate)',
                 description: '<b>Inclusion (two paths, either qualifies):</b> <b>(a)</b> breast lineage AND ESR1 expression below the breast-line median AND PGR expression below the breast-line median AND ERBB2 expression NOT in the top 20 % of breast lines (transcript surrogates of ER, PR, HER2 status); <b>OR</b> <b>(b)</b> the line carries a Lehmann TNBC subtype annotation from the curated 2011 / 2016 panels (path (a) sometimes misses borderline lines that the Lehmann papers explicitly called TNBC, e.g. when ESR1 / PGR sit near the breast median). This guarantees that the TNBC parent set is a superset of the Lehmann sub-types — Lehmann &sube; TNBC by construction. <b>Caveat:</b> clinical TNBC is defined by IHC (and FISH for HER2); transcript and protein don\'t always agree.'
             },
             hr_pos_breast: {
-                label: 'HR+ breast (luminal-like)',
-                category: 'Breast — receptor subtype',
+                label: 'HR+ / luminal breast (approximate)',
+                category: 'Breast — receptor subtype (expression surrogate)',
                 description: '<b>Inclusion:</b> breast lineage AND ESR1 OR PGR expression at or above the breast-line median AND ERBB2 expression NOT in the top 20 % of breast lines. <b>Why:</b> approximates ER+/PR+/HER2− (luminal A/B) breast cancer by transcript surrogates. <b>Caveat:</b> see TNBC entry — transcript-based receptor status is approximate, not clinical.'
             },
             her2_pos_breast: {
                 label: 'HER2+ breast (approximate)',
-                category: 'Breast — receptor subtype',
+                category: 'Breast — receptor subtype (expression surrogate)',
                 description: '<b>Inclusion:</b> breast lineage AND ERBB2 expression in the top 20 % of breast lines. <b>Why:</b> approximates HER2-amplified breast cancer by transcript level. <b>Caveat:</b> clinical HER2+ status is defined by IHC 3+ or FISH amplification — high transcript expression is correlated but not equivalent. Without copy-number data here, this is a surrogate.'
             },
             class_i_reduced: {
@@ -24083,7 +24083,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 description: '<b>Inclusion:</b> PIK3CA hotspot/damaging OR PTEN functional loss, AND best of (PIK3CA, AKT1, AKT2, AKT3) CRISPR gene-effect &lt; &minus;0.5. <b>Why:</b> functionally PI3K-pathway-dependent — context for PI3K-α inhibitors (alpelisib for PIK3CA-mut), AKT inhibitors, or mTOR inhibitors.'
             },
 
-            // Pathway-activity expression signatures. One collection per panel
+            // Active expression programs. One collection per panel
             // in _WIKI_EXPRESSION_SIGNATURES (skipping EMT — already covered
             // by the existing `emt` collection). Membership: mean z-score
             // across the panel genes > +0.75 in this cell line. Requires
@@ -24092,42 +24092,42 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // collections.
             myc_pathway_active: {
                 label: 'MYC pathway active (expression signature)',
-                category: 'Pathway-activity expression signatures',
+                category: 'Active expression programs',
                 description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across the curated MYC-target panel (NPM1, NCL, NOP56, MYBBP1A, PA2G4, SLC19A1, EIF4A1, EIF4E, EIF4G1, TFRC). <b>Why:</b> ribosome-biogenesis and translation targets up-regulated, consistent with active MYC. <b>Caveat:</b> high signature can also reflect non-MYC drivers of translation (e.g. mTOR activation).'
             },
             e2f_active: {
                 label: 'E2F / S-phase active (expression signature)',
-                category: 'Pathway-activity expression signatures',
+                category: 'Active expression programs',
                 description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across an E2F / replication-machinery panel (MCM2-7, PCNA, TOP2A, TYMS, CDK2, RRM1/2). <b>Why:</b> rapidly cycling lines with active E2F transcription. Often co-elevated with the G2/M signature.'
             },
             g2m_active: {
                 label: 'G2/M progression active (expression signature)',
-                category: 'Pathway-activity expression signatures',
+                category: 'Active expression programs',
                 description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a mitotic-progression panel (CDK1, CCNB1/2, AURKA/B, PLK1, BIRC5, CENPF, TPX2, KIF20A). <b>Why:</b> actively dividing lines; useful for aurora-kinase / PLK1 / WEE1-inhibitor work.'
             },
             ifn_response_active: {
                 label: 'IFN response active (expression signature)',
-                category: 'Pathway-activity expression signatures',
+                category: 'Active expression programs',
                 description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a curated IFN-stimulated-gene panel (ISG15, IFIT1, IFIT3, MX1, OAS1, STAT1, IRF7, IFI6, IFITM1, IFI44). <b>Why:</b> active type-I/II interferon signalling — cell-autonomous (cytosolic DNA / viral mimicry from endogenous retroelements) or paracrine. Often co-occurs with intact MHC-I and tumour-immunogenic phenotype.'
             },
             tgfb_response_active: {
                 label: 'TGF-β response active (expression signature)',
-                category: 'Pathway-activity expression signatures',
+                category: 'Active expression programs',
                 description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a TGF-β / SMAD-response panel (SMAD7, TGFB1, TGFBI, COL1A1, COL3A1, SERPINE1, CTGF). <b>Why:</b> active TGF-β signalling — frequently coupled with EMT in carcinomas; often a marker of TGF-β-driven invasive phenotype.'
             },
             hypoxia_active: {
                 label: 'Hypoxia / HIF target program active (expression signature)',
-                category: 'Pathway-activity expression signatures',
+                category: 'Active expression programs',
                 description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a HIF-target panel (VEGFA, CA9, SLC2A1, LDHA, PGK1, ENO1, PDK1, BNIP3). <b>Why:</b> active hypoxic transcriptional program. Can be hypoxia-driven or constitutive in HIF-stabilising backgrounds (e.g. VHL-loss → HIF-2α-active ccRCC).'
             },
             nrf2_signature_active: {
                 label: 'NRF2 program active (expression signature)',
-                category: 'Pathway-activity expression signatures',
+                category: 'Active expression programs',
                 description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across an NRF2-target panel (NQO1, GCLC, HMOX1, GPX2, TXN, SLC7A11, AKR1C1, GSR). <b>Why:</b> active NRF2 antioxidant program — often driven by KEAP1 LoF or NFE2L2 hotspots, but can also occur via other mechanisms (the existing <i>"KEAP1-NRF2 pathway activated"</i> collection captures only the mutation-based subset; this one is expression-based and broader).'
             },
             stem_active: {
                 label: 'Stem / lineage-plasticity program active (expression signature)',
-                category: 'Pathway-activity expression signatures',
+                category: 'Active expression programs',
                 description: '<b>Inclusion:</b> mean z-score &gt; +0.75 across a pluripotency / cancer-stem-cell panel (SOX2, NANOG, POU5F1, KLF4, PROM1, ALDH1A1, BMI1). <b>Why:</b> de-differentiated / stem-like state — typically a chemo-resistant background.'
             },
 
@@ -24252,7 +24252,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // === Expression-based DNA-damage response predictor ===
             slfn11_high: {
                 label: 'SLFN11-high (DNA-damage drug responder)',
-                category: 'Pathway-activity expression signatures',
+                category: 'Active expression programs',
                 description: '<b>Inclusion:</b> SLFN11 expression z-score &gt; +1.0 vs the full cell-line cohort. <b>Why:</b> SLFN11 (Schlafen 11) is the single strongest expression-based predictor of response to DNA-damaging agents — platinum, topoisomerase I/II inhibitors, PARP inhibitors, alkylators. SLFN11 commits cells to apoptosis at stalled replication forks. <b>Caveat:</b> SLFN11 expression varies massively between cell lines (commonly epigenetically silenced); the predictor works best as a continuous variable but this binary high / not-high cut captures the strongest-responder subset.'
             },
 
@@ -24821,7 +24821,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (!hrPos && !isHer2) mem.tnbc.add(cl);
             }
 
-            // Pathway-activity expression signatures — mean z-score across
+            // Active expression programs — mean z-score across
             // each curated panel; cell lines with mean z > +0.75 join the
             // "active" set for that signature. Excludes EMT (already covered
             // by the existing emt collection, which uses a slightly different
@@ -24946,7 +24946,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const CATEGORY_NOTES = {
             'Driver oncogene mutations': 'Common oncogene activating mutations (KRAS / BRAF / EGFR / PIK3CA hotspots; CTNNB1 Wnt activators; IDH 2-HG producers). Mutation status only — see "Oncogene addiction" for the stricter mutation-plus-CRISPR-dependency-confirmed set.',
             'Oncogene addiction (mutation × CRISPR dependency)': 'Cancer cells that have become functionally dependent on a driver gene — knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only "Driver oncogene mutations" set above.',
-            'Pathway-activity expression signatures': 'Each set marks lines where the pathway is transcriptionally active (mean z > +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.',
+            'Active expression programs': 'Each set marks lines where the pathway is transcriptionally active (mean z > +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.',
             'Tumor-suppressor functional loss': 'A gene is "functionally lost" when DepMap\'s integrated call (CN, mutation, expression) says it is — catches deletions and silenced loci that the damaging-mutation list alone would miss.',
             'Focal amplifications': 'Curated oncogene amplifications from the clinical CN panel — gain-of-function dosage events that point mutations cannot produce.',
             'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called — Philadelphia-positive leukaemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL, synovial sarcoma, alveolar RMS, prostate, ALCL.',
@@ -24960,7 +24960,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'Focal amplifications',
             'Driver oncogene mutations',
             'Oncogene addiction (mutation × CRISPR dependency)',
-            'Breast — receptor subtype',
+            'Breast — receptor subtype (expression surrogate)',
             'TNBC molecular subtypes (Lehmann)',
             'Patient age at diagnosis',
             'Immunology',
@@ -24968,7 +24968,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'Genome — ploidy / instability',
             'Chromatin remodelling — SWI/SNF complex',
             'Oxidative-stress response',
-            'Pathway-activity expression signatures',
+            'Active expression programs',
             'Expression signature'
         ];
 
@@ -25023,7 +25023,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             pdl1_high: 'expression',
             likely_immunogenic: 'mutation count + immunophenotype',
             likely_non_immunogenic: 'mutation count + immunophenotype',
-            // Pathway-activity expression signatures
+            // Active expression programs
             myc_pathway_active: 'expression signature', e2f_active: 'expression signature',
             g2m_active: 'expression signature', ifn_response_active: 'expression signature',
             tgfb_response_active: 'expression signature', hypoxia_active: 'expression signature',
@@ -25134,7 +25134,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             + `<span style="font-weight:600; color:#374151;">Filter cell lines by quick filter</span>`
             + `<a href="#" id="clbCollectionsClear" style="color:#6b7280; text-decoration:none; font-size:10px;">clear all</a>`
             + `</div>`
-            + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#15803d;">+</b> to require, <b style="color:#991b1b;">−</b> to exclude. Multiple quick filters combine with AND.</div>`;
+            + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#15803d;">+</b> to require, <b style="color:#991b1b;">−</b> to exclude. Multiple quick filters combine with AND. <b>Hover any filter name for how it's defined.</b></div>`;
 
         // One-line explainers for categories whose name is jargon-heavy.
         // Rendered as italic grey text below the category header so the user
@@ -25142,7 +25142,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const CATEGORY_NOTES = {
             'Driver oncogene mutations': 'Common oncogene activating mutations (KRAS / BRAF / EGFR / PIK3CA hotspots; CTNNB1 Wnt activators; IDH 2-HG producers). Mutation status only — see "Oncogene addiction" for the stricter mutation-plus-CRISPR-dependency-confirmed set.',
             'Oncogene addiction (mutation × CRISPR dependency)': 'Cancer cells that have become functionally dependent on a driver gene — knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only "Driver oncogene mutations" set above.',
-            'Pathway-activity expression signatures': 'Each set marks lines where the pathway is transcriptionally active (mean z > +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.',
+            'Active expression programs': 'Each set marks lines where the pathway is transcriptionally active (mean z > +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.',
             'Tumor-suppressor functional loss': 'A gene is "functionally lost" when DepMap\'s integrated call (CN, mutation, expression) says it is — catches deletions and silenced loci that the damaging-mutation list alone would miss.',
             'Focal amplifications': 'Curated oncogene amplifications from the clinical CN panel — gain-of-function dosage events that point mutations cannot produce.',
             'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called — Philadelphia-positive leukaemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL, synovial sarcoma, alveolar RMS, prostate, ALCL.',
@@ -25163,7 +25163,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'Driver oncogene mutations',
             'Oncogene addiction (mutation × CRISPR dependency)',
             // Disease subtype groupings
-            'Breast — receptor subtype',
+            'Breast — receptor subtype (expression surrogate)',
             'TNBC molecular subtypes (Lehmann)',
             // Patient demographics
             'Patient age at diagnosis',
@@ -25176,7 +25176,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Pathway / functional state
             'Chromatin remodelling — SWI/SNF complex',
             'Oxidative-stress response',
-            'Pathway-activity expression signatures',
+            'Active expression programs',
             'Expression signature'
         ];
         const catKeys = Object.keys(byCat).sort((a, b) => {
@@ -28132,7 +28132,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             ${row('Age category', get('ageCategory'))}
             ${row('Patient sex (recorded)', get('sex'))}
             ${row('Ancestry', cap(get('patientRace')))}
-            ${row('Primary vs metastatic', get('primaryOrMetastasis'))}
+            ${row('Sample taken from', get('primaryOrMetastasis') ? `${cap(get('primaryOrMetastasis'))} <span style="font-size:10px; color:#9ca3af;">— the tumour site this cell line was established from (a primary tumour vs a metastasis); not a statement about the patient's overall disease stage</span>` : '')}
             ${row('Where sample was taken', cap(get('sampleCollectionSite')))}
             ${row('Tumour grade', get('patientTumorGrade'))}
             ${row('Growth pattern in culture', get('growthPattern'))}
@@ -28181,7 +28181,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const mmrHits = MMR_GENES.filter(damHit);
         if (mmrHits.length > 0) flagCards.push({
             title: 'Mismatch repair is broken',
-            body: `Damaging mutation in ${mmrHits.map(g => `<b>${g}</b>`).join(', ')}. Cells can't correct replication errors, so they accumulate many mutations and show microsatellite instability. Typically a model for checkpoint-immunotherapy response.`,
+            body: `Damaging mutation in ${mmrHits.map(g => `<b>${g}</b>`).join(', ')}. Cells can't correct replication errors, so they accumulate many mutations and show microsatellite instability.`,
             color: '#dc2626'
         });
         // POLE / POLD1 proofreading-deficient — the OTHER hypermutator route,
@@ -28192,8 +28192,16 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const polePoldHits = ['POLE', 'POLD1'].filter(damHit);
         if (polePoldHits.length > 0 && damagingCount > 200) flagCards.push({
             title: `${polePoldHits.join(' / ')} proofreading-deficient (ultramutator)`,
-            body: `Damaging mutation in <b>${polePoldHits.join(', ')}</b> &mdash; the DNA-polymerase exonuclease (proofreading) domain is broken. Replication errors are not corrected, producing an <i>ultramutated</i> point-mutation burden (often &gt; 100 mut/Mb) but with a structurally calm, near-diploid genome (low CIN, low aneuploidy, no WGD, MSS). Distinct from MMR-deficiency, which is the other major hypermutator route. Among the strongest checkpoint-immunotherapy responder backgrounds. <b>Caveat:</b> at this mutation burden, many individual damaging-mutation calls are passenger noise rather than drivers &mdash; treat single-gene driver inferences with caution.`,
+            body: `Damaging mutation in ${polePoldHits.join(', ')} — the DNA-polymerase exonuclease (proofreading) domain is broken. Replication errors are not corrected, producing an ultramutated point-mutation burden (often > 100 mut/Mb) with a structurally calm, near-diploid genome (low CIN, low aneuploidy, no WGD, MSS). Distinct from MMR-deficiency, the other major hypermutator route. Caveat: at this burden many individual damaging-mutation calls are passenger noise, not drivers.`,
             color: '#dc2626'
+        });
+        // POLE/POLD1 damaging mutation WITHOUT an elevated burden — surface it
+        // (a line can be selected by a "POLE/POLD1-mutated" filter on this basis)
+        // but make clear it is NOT a functional ultramutator.
+        else if (polePoldHits.length > 0) flagCards.push({
+            title: `${polePoldHits.join(' / ')} damaging mutation`,
+            body: `Damaging mutation in ${polePoldHits.join(', ')} (DNA-polymerase proofreading gene). The mutation burden here is NOT elevated (${damagingCount.toLocaleString()} damaging mutations), so this is unlikely to be a functional proofreading-deficient ultramutator — the variant may not hit the exonuclease domain, or may be a passenger. Shown because it is a recurrently-noted DNA-repair gene.`,
+            color: '#6b7280'
         });
         if (damagingCount > 1000) flagCards.push({
             title: 'Very high mutation burden (passenger noise warning)',
@@ -28209,7 +28217,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const hrHits = hrGenes.filter(damHit);
         if (hrHits.length > 0) flagCards.push({
             title: 'Homologous-recombination repair is broken',
-            body: `Damaging mutation in ${hrHits.map(g => `<b>${g}</b>`).join(', ')}. The cell can't accurately repair DNA double-strand breaks and often depends on backup pathways. Typically sensitive to PARP inhibitors.`,
+            body: `Damaging mutation in ${hrHits.map(g => `<b>${g}</b>`).join(', ')}. The cell can't accurately repair DNA double-strand breaks and often depends on backup pathways (homologous-recombination deficiency).`,
             color: '#15803d'
         });
         // TP53 and G1/S flag cards are deliberately NOT added here — the
@@ -28290,10 +28298,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
             let synthesis, color;
             if (tp53Mut) {
-                synthesis = '<b>Pathway inactivated</b> by the TP53 mutation. p53-restoring therapies (e.g. MDM2 inhibitors) unlikely to help.';
+                synthesis = '<b>Pathway inactivated</b> by the TP53 mutation.';
                 color = '#dc2626';
             } else if (tp53GE !== null && tp53GE > 0.2) {
-                synthesis = '<b>Pathway active.</b> TP53 is wild-type and functional. MDM2 inhibitors can be a therapeutic option.';
+                synthesis = '<b>Pathway active.</b> TP53 is wild-type and functional, and the cell still depends on MDM2 to hold p53 in check.';
                 color = '#059669';
             } else if (tp53GE !== null && Math.abs(tp53GE) < 0.2) {
                 synthesis = '<b>Pathway functionally dormant</b> despite WT TP53 — suggests inactivation downstream (copy-number loss of CDKN1A/PUMA, epigenetic silencing, or a dominant-negative partner).';
@@ -28334,7 +28342,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 // "inhibitors likely active" reading is wrong — append the
                 // caveat that aligns the bullet with the synthesis below.
                 if (rb1Mut && cdkGE < -0.2) {
-                    bullet += ` <span style="color:#991b1b;">But RB1 is lost — RB1 sits <i>downstream</i> of CDK4/6, so clinical CDK4/6 inhibitors are typically not effective even when the cell is CDK4/6-dependent by gene-effect.</span>`;
+                    bullet += ` <span style="color:#991b1b;">But RB1 is lost — and RB1 sits <i>downstream</i> of CDK4/6, so the CDK4/6 dependency by gene-effect is decoupled from the (broken) CDK4/6→RB control point.</span>`;
                 }
                 lines.push(bullet);
             }
@@ -28343,16 +28351,16 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
             let synthesis, color;
             if ((cdkn2aMut || ccnd1Hot) && cdkGE !== null && cdkGE < -0.2) {
-                synthesis = '<b>G1/S brake released</b> at the genome level <em>and</em> the cell remains CDK4/6-dependent — classic CDK4/6-inhibitor target.';
+                synthesis = '<b>G1/S brake released</b> at the genome level <em>and</em> the cell remains CDK4/6-dependent by gene-effect.';
                 color = '#059669';
             } else if (rb1Mut) {
-                synthesis = '<b>RB1 lost</b> — downstream of CDK4/6, so CDK4/6 inhibitors are typically ineffective.';
+                synthesis = '<b>RB1 lost</b> — the cell cycle is driven downstream of CDK4/6.';
                 color = '#dc2626';
             } else if (cdkGE !== null && cdkGE < -0.3) {
-                synthesis = '<b>CDK4/6 dependent</b> by gene-effect, with no obvious mutation driving it — pathway still a viable inhibitor target.';
+                synthesis = '<b>CDK4/6 dependent</b> by gene-effect, with no obvious mutation driving it.';
                 color = '#059669';
             } else if (cdkGE !== null && cdkGE > -0.1) {
-                synthesis = '<b>Cell cycle not CDK4/6-driven</b> — CDK4/6 inhibitors unlikely to help.';
+                synthesis = '<b>Cell cycle not CDK4/6-driven</b> in this line.';
                 color = '#6b7280';
             } else {
                 synthesis = 'Mixed / insufficient signal.';
@@ -28388,7 +28396,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
             if (brafMut && brafGE !== null) {
                 lines.push(brafGE < -0.5
-                    ? `BRAF knockout <b>strongly reduces growth</b> (${fmtGE(brafGE)}) — cell line is <b>BRAF-addicted</b>; BRAF/MEK inhibitors expected to be effective.`
+                    ? `BRAF knockout <b>strongly reduces growth</b> (${fmtGE(brafGE)}) — cell line is <b>BRAF-addicted</b>.`
                     : brafGE < -0.2
                         ? `BRAF knockout <b>moderately reduces growth</b> (${fmtGE(brafGE)}) — partial BRAF dependency.`
                         : `BRAF knockout has limited effect (${fmtGE(brafGE)}) — bypass mechanism may be present.`);
@@ -28400,7 +28408,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
             let synthesis, color;
             if ((krasMut && krasGE !== null && krasGE < -0.3) || (brafMut && brafGE !== null && brafGE < -0.3)) {
-                synthesis = '<b>Oncogene-addicted</b> to its driver mutation. Direct inhibitor of the mutant gene is the rational therapy.';
+                synthesis = '<b>Oncogene-addicted</b> to its driver mutation (mutated AND functionally depended on by gene-effect).';
                 color = '#059669';
             } else if (geno.length === 0 && mekGE !== null && mekGE < -0.3) {
                 synthesis = '<b>MAPK-dependent without an obvious driver mutation</b> — check for upstream RTK amplification or fusion.';
@@ -28451,10 +28459,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
             let synthesis, color;
             if ((pikMut || ptenLoss) && (pi3kGE !== null && pi3kGE < -0.5 || aktcombGE !== null && aktcombGE < -0.5)) {
-                synthesis = '<b>Pathway active with strong functional dependency</b> — PI3K-α inhibitors (alpelisib for PIK3CA-mut), AKT inhibitors, or mTOR inhibitors are rational candidates.';
+                synthesis = '<b>Pathway active with strong functional dependency</b> (driver lesion present and the cell depends on PI3K/AKT by gene-effect).';
                 color = '#059669';
             } else if ((pikMut || ptenLoss) && (pi3kGE !== null && pi3kGE < -0.2 || aktcombGE !== null && aktcombGE < -0.2)) {
-                synthesis = '<b>Pathway active with partial dependency</b> — PI3K/AKT/mTOR inhibitors worth testing, but cell is not strongly addicted.';
+                synthesis = '<b>Pathway active with partial dependency.</b>';
                 color = '#d97706';
             } else if (geno.length === 0 && (pi3kGE === null || pi3kGE > -0.1)) {
                 synthesis = 'No evidence of PI3K/AKT pathway dependency.';
@@ -28475,15 +28483,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const lines = ['<b>BCR-ABL fusion detected</b>'];
                 if (ablGE !== null) {
                     lines.push(ablGE < -0.5
-                        ? `ABL1 knockout <b>strongly reduces growth</b> (${fmtGE(ablGE)}) — BCR-ABL-addicted, classic imatinib target.`
+                        ? `ABL1 knockout <b>strongly reduces growth</b> (${fmtGE(ablGE)}) — the cell line is BCR-ABL-addicted.`
                         : ablGE < -0.2
                             ? `ABL1 knockout <b>moderately reduces growth</b> (${fmtGE(ablGE)}) — partial BCR-ABL dependency.`
-                            : `ABL1 knockout has limited effect (${fmtGE(ablGE)}) — check for resistance mutations or bypass.`);
+                            : `ABL1 knockout has limited effect (${fmtGE(ablGE)}).`);
                 }
                 pathwayStatuses.push({
                     name: 'BCR-ABL fusion',
                     lines,
-                    synthesis: ablGE !== null && ablGE < -0.5 ? '<b>ABL TKI candidate</b> (imatinib, dasatinib, nilotinib).' : 'Fusion present but functional dependency limited.',
+                    synthesis: ablGE !== null && ablGE < -0.5 ? '<b>BCR-ABL-addicted</b> by gene-effect.' : 'Fusion present but functional dependency limited.',
                     color: ablGE !== null && ablGE < -0.5 ? '#059669' : '#d97706'
                 });
             }
@@ -28503,7 +28511,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 }
                 let synthesis, color;
                 if (egfrMut && egfrGE !== null && egfrGE < -0.5) {
-                    synthesis = '<b>EGFR-addicted</b> — classic context for EGFR TKIs (erlotinib, gefitinib, osimertinib).';
+                    synthesis = '<b>EGFR-addicted</b> (mutated and strongly depended on by gene-effect).';
                     color = '#059669';
                 } else if (egfrMut) {
                     synthesis = 'EGFR mutation present but cell may have escaped dependency.';
@@ -28737,7 +28745,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             let msiLabel = '';
             if (msiVal != null) {
                 if (msiVal >= 20) {
-                    msiLabel = `<span style="color:#dc2626; font-weight:600;">${msiVal.toFixed(1)} (MSI-high)</span> <span style="font-size:10px; color:#6b7280;">— well above the MSI-high cutoff of 20; mismatch repair lost; hypermutated, classic checkpoint-immunotherapy responder</span>`;
+                    msiLabel = `<span style="color:#dc2626; font-weight:600;">${msiVal.toFixed(1)} (MSI-high)</span> <span style="font-size:10px; color:#6b7280;">— well above the MSI-high cutoff of 20; mismatch repair lost; hypermutated</span>`;
                 } else if (msiVal >= 3.5) {
                     msiLabel = `${msiVal.toFixed(1)} <span style="font-size:10px; color:#6b7280;">(borderline; MSS &lt; 3.5, MSI-high &ge; 20)</span>`;
                 } else {
@@ -28838,10 +28846,24 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             if (!e.labels.includes(label)) e.labels.push(label);
             e.weight = Math.max(e.weight, weight);
         };
+        // (1) Curated specific hotspot variants (KRAS p.G12D, BRAF V600E, …).
         for (const h of (infSub.hotspots || [])) {
             const gene = h.split(' ')[0];
             const v = geneVariant[gene];
             pushAlt(gene, v ? `activating hotspot <b>${v}</b>` : 'hotspot mutation', 3);
+        }
+        // (2) Other hotspot-mutated driver genes from the hotspot matrix without a
+        //     specific-variant call (e.g. STK11, KEAP1 in lung adeno). Restrict
+        //     to canonical subtype drivers + curated cancer-pathway genes and
+        //     skip polymorphic loci (HLA/MIC/KIR) so the list stays driver-focused.
+        const _driverPanel = new Set();
+        Object.values(pathways).forEach(p => (p.genes || []).forEach(g => _driverPanel.add(g)));
+        for (const h of hotspotsMutated) {
+            const g = h.gene;
+            if (altByGene.has(g) || this._isPolymorphicLocus?.(g)) continue;
+            if (!(lookForSet.has(g) || _driverPanel.has(g))) continue;
+            const v = geneVariant[g];
+            pushAlt(g, v ? `activating hotspot <b>${v}</b>` : 'hotspot mutation', 3);
         }
         for (const g of (infSub.lof || [])) pushAlt(g, 'functional loss <span style="color:#9ca3af;">(deletion / LoF / silenced)</span>', 3);
         for (const e of (cnEventsWiki.amplifications || [])) pushAlt(e.gene, `focal amplification${e.tier === 'strong_amp' ? ' <b>(strong)</b>' : ''} <span style="color:#9ca3af;">(CN ${e.cn})</span>`, 2);
@@ -28883,14 +28905,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             : `<div style="margin-top:10px; padding:8px 12px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280;">No curated driver profile for &ldquo;${typFor}&rdquo; yet (~30 common Oncotree subtypes covered), so the alterations above aren't tagged typical / atypical.</div>`;
 
         const keyAlterationsHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The alterations most likely <b>central to this cell line's transformation</b> — activating oncogene mutations, tumour-suppressor functional loss, validated driver fusions, and focal copy-number events — each tagged <span style="color:#15803d; font-weight:600;">✓ typical</span> or <span style="color:#b45309;">atypical</span> for its cancer subtype. Overall mutation / fusion burden and the functional pathway read-out follow.</p>
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The alterations most likely <b>central to this cell line's transformation</b> — activating oncogene mutations, tumour-suppressor functional loss, validated driver fusions, and focal copy-number events — each tagged <span style="color:#15803d; font-weight:600;">✓ typical</span> driver of, or <span style="color:#6b7280;">not a canonical hallmark</span> of, its cancer subtype. Overall mutation / fusion burden and the functional pathway read-out follow.</p>
             ${countsLine}
             ${flagsHtml}
             ${keyAltBody}
             ${typicalContextHtml}
             <div style="margin-top:12px; padding-top:10px; border-top:1px solid #e5e7eb;">
                 <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway status <span style="color:#6b7280; font-weight:400; font-size:11px;">— genotype × CRISPR dependency</span></div>
-                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">Combines the mutations above with the CRISPR-knockout read-out — catches the common case where a gene is wild-type at the DNA level but the pathway is functionally dormant (or the reverse). Gene-effect (GE) scale: 0 = no effect, &minus;0.5 = selectively essential, &minus;1 ≈ typical strongly-essential gene.</p>
+                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">A curated set of <b>a few high-level cancer pathways</b> (p53, cell cycle / RB, RAS-MAPK, PI3K-AKT, plus a fusion/RTK panel when relevant) &mdash; not an exhaustive pathway scan. For each, the mutation calls above are combined with the CRISPR-knockout read-out to flag whether the pathway is functionally active in this line (it catches the common case where a gene is wild-type at the DNA level but the pathway is functionally dormant, or the reverse). Gene-effect (GE) scale: 0 = no effect, &minus;0.5 = selectively essential, &minus;1 ≈ typical strongly-essential gene.</p>
                 ${pathwayStatusHtml}
             </div>`;
 
@@ -29408,19 +29430,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     if (hits.length) ctxSections.push({ label: 'Lymphoid → BCR/BCL2 axis', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
                 }
 
-                const ctxHtml = ctxSections.length
-                    ? '<div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;"><div style="font-weight:600; margin-bottom:4px; color:#374151;">Targeted therapies matched to this cell line\'s alterations</div>'
-                        + '<div style="font-size:11px; color:#6b7280; margin-bottom:6px;">For each driver alteration detected in this cell line, the PRISM compounds with a matching target are listed below, sorted by sensitivity in this line (most-sensitive first). Useful for confirming whether the matched-target drug actually kills this line at the screened doses.</div>'
-                        + ctxSections.map(s => `<div style="margin-bottom:8px; padding:6px 10px; background:#f9fafb; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">${s.label}</b><ul style="margin:4px 0 0 16px; padding:0;">${s.items.map(c => {
-                            const z = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1);
-                            const word = c.z < 0 ? 'below avg' : 'above avg';
-                            const sc = c._sensCounts;
-                            const cohortStr = sc ? ` <span style="color:#9ca3af; font-size:10px;">[${sc.very} very-sens · ${sc.part} partly-sens in PRISM]</span>` : '';
-                            const indicationStr = c.indication ? ` — <span style="color:#9ca3af;">Used in:</span> <i>${c.indication}</i>` : '';
-                            return `<li><span style="font-weight:500;">${c.name}</span> — viability <b title="AUC: area under the dose-response curve. 0 = all cells killed; 1 = no killing.">${c.v.toFixed(2)}</b> (${z}σ ${word})${indicationStr}${cohortStr}</li>`;
-                        }).join('')}</ul></div>`).join('')
-                        + '</div>'
-                    : '';
+                // "Targeted therapies matched to this line's alterations" removed —
+                // this is a cell-line characterisation tool, not a treatment guide.
+                const ctxHtml = '';
 
                 drugHtml = `
                     <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive — for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug &mdash; it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ. The mini-histogram under each compound shows the full AUC distribution across all PRISM-tested cell lines (red dashed line = this cell line's value), mirroring the per-metric histograms in the Genome section.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, the viability score and z-score for <i>this</i> cell line, and a &ldquo;<b>Used in:</b>&rdquo; line listing the clinical disease(s) the drug is approved or used for (e.g. CRC, SCLC, pancreatic).</p>
@@ -29767,7 +29779,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
             // If nothing beyond the identity sentence triggered, fall back to a
             // gentler note so the summary box doesn't read as truncated.
-            const bodyText = [s2, s3, s4, s5, s6].filter(Boolean).join(' ');
+            // s5 ("model for … therapy") and s6 ("drug-target candidates") dropped
+            // — this is a cell-line characterisation, not a treatment guide.
+            const bodyText = [s2, s3, s4].filter(Boolean).join(' ');
             const fullText = bodyText
                 ? `${s1} ${bodyText}`
                 : `${s1} <span style="color:#6b7280;">No canonical driver alteration detected from the integrated DepMap layers — see &ldquo;Other alterations in this cell line&rdquo; below for non-canonical events, or consider STR re-authentication if this is surprising for the subtype.</span>`;
