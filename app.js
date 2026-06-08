@@ -19736,6 +19736,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (frameEl) frameEl.checked = !!prev.legendFrame;
             if (lockEl) lockEl.checked = prev.lockAspect !== false;  // default on
 
+            // Stack the dialog above whatever is currently on top. The condensed
+            // gene-effect popout opened over the Cell Line Browser sits at a high
+            // dynamic z-index (~1360); this dialog's default 1300 would open
+            // behind it and look broken. Compute the topmost visible overlay and
+            // sit above it.
+            let topZ = 0;
+            document.querySelectorAll('.modal-overlay, #geneEffectModal, #clbWikiModal, #cellLineBrowserModal').forEach(el => {
+                if (el === modal || getComputedStyle(el).display === 'none') return;
+                const z = parseInt(getComputedStyle(el).zIndex) || 0;
+                if (z > topZ) topZ = z;
+            });
+            modal.style.zIndex = String(Math.max(1300, topZ + 10));
+
             modal.style.display = 'flex';
 
             const cleanup = () => {
