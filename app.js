@@ -20044,13 +20044,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return out.buffer;
     }
 
-    // Single-slide .pptx (Open XML zip) with the figure as a full-bleed picture.
-    // Slide size = the requested cm so the image isn't rescaled on import.
+    // Single-slide .pptx (Open XML zip). The slide is a standard 16:9 widescreen
+    // deck (13.333in × 7.5in); the figure is scaled to fit with a small margin
+    // and centred, so the export drops straight into a normal presentation
+    // instead of producing an oddly-sized slide cropped to the figure.
     async _canvasToPptx(canvas, widthCm, heightCm, svgStr) {
         if (typeof JSZip === 'undefined') throw new Error('JSZip unavailable');
         const EMU = 360000;                       // EMU per cm
-        const cx = Math.round((widthCm || 10) * EMU);
-        const cy = Math.round((heightCm || 10) * EMU);
+        // Standard PowerPoint widescreen slide (16:9).
+        const cx = 12192000;                      // 13.333 in
+        const cy = 6858000;                       // 7.5 in
+        // Fit the figure inside the slide with a 6% margin, preserving aspect,
+        // then centre it. Vector (SVG) scales cleanly, so up- or down-scaling
+        // to fill the slide is fine.
+        const figW = (widthCm || 10) * EMU;
+        const figH = (heightCm || 10) * EMU;
+        const availW = cx * 0.88, availH = cy * 0.88;
+        const scale = Math.min(availW / figW, availH / figH);
+        const picW = Math.round(figW * scale);
+        const picH = Math.round(figH * scale);
+        const offX = Math.round((cx - picW) / 2);
+        const offY = Math.round((cy - picH) / 2);
         const pngB64 = canvas.toDataURL('image/png').split(',')[1];
         // PowerPoint 2016+ renders an embedded SVG as true vector, keeping the
         // PNG only as a compatibility fallback. We embed both when we have the
@@ -20083,7 +20097,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ? `<a:blip r:embed="rId1"><a:extLst><a:ext uri="{96DAC541-7B7A-43D3-8B79-37D633B846F1}"><asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" r:embed="rId3"/></a:ext></a:extLst></a:blip>`
             : `<a:blip r:embed="rId1"/>`;
         zip.file('ppt/slides/slide1.xml',
-            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="${REL}" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="Figure"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill>${blip}<a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`);
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="${REL}" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="Figure"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill>${blip}<a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${offX}" y="${offY}"/><a:ext cx="${picW}" cy="${picH}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`);
         zip.file('ppt/slides/_rels/slide1.xml.rels',
             `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/image" Target="../media/image1.png"/><Relationship Id="rId2" Type="${REL}/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>${useSvg ? `<Relationship Id="rId3" Type="${REL}/image" Target="../media/image2.svg"/>` : ''}</Relationships>`);
         zip.file('ppt/media/image1.png', pngB64, { base64: true });

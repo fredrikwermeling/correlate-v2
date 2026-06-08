@@ -1378,6 +1378,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.13 (2026-06-08)</strong></p>
+                <ul>
+                    <li>Export dialog &mdash; corrected the format descriptions now that PDF is true vector: <b>&ldquo;PDF &mdash; vector (scalable, selectable text)&rdquo;</b> (it previously, wrongly, still said &ldquo;raster image inside&rdquo;).</li>
+                    <li>PowerPoint export now places the figure on a <b>standard 16:9 widescreen slide</b> (13.33&times;7.5in), scaled to fit with a margin and centred, instead of sizing the slide to the figure &mdash; so it drops straight into a normal deck.</li>
+                </ul>
                 <p><strong>v.83.12 (2026-06-08)</strong></p>
                 <ul>
                     <li>Typography polish across the app: <b>balanced wrapping</b> for headings, labels and buttons (no more lopsided lines or a single word stranded on its own line), <b>pretty wrapping</b> for body text, crisper font rendering, and <b>tabular figures</b> so numbers in tables/badges keep a fixed width. Tidied the Analysis-mode sub-labels and stopped short button labels (e.g. &ldquo;Test Genes&rdquo;) from breaking across two lines.</li>
@@ -3126,7 +3131,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.12</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.13</a>
     </div>
 
     <div class="main-content">
@@ -4577,9 +4582,9 @@
                     <select id="exportOptFormat" style="padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:13px;">
                         <option value="png">PNG &mdash; raster image</option>
                         <option value="svg">SVG &mdash; editable vector (Illustrator)</option>
-                        <option value="pdf">PDF &mdash; vector page (raster image inside)</option>
+                        <option value="pdf">PDF &mdash; vector (scalable, selectable text)</option>
                         <option value="tiff">TIFF &mdash; raster, journal submission</option>
-                        <option value="pptx">PowerPoint &mdash; .pptx slide</option>
+                        <option value="pptx">PowerPoint &mdash; vector on a 16:9 slide</option>
                     </select>
                 </div>
                 <div style="margin-bottom:10px;">
@@ -5364,6 +5369,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_11"></script>
+    <script src="app.js?v=v83_13"></script>
 </body>
 </html>
