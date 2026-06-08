@@ -1307,6 +1307,11 @@
            JS that show/hides the scatter vs tissue buttons can't re-reveal them. */
         #downloadScatterSVG, #downloadTissueSVG, #downloadGeneEffectSVG,
         #downloadExprScatterSVG, #downloadCorrAnalysisSVG { display: none !important; }
+        /* Keep the color-by chip legend inside its control box — never let its
+           chips widen the inspect control panel and break the layout. */
+        .control-box-compact { min-width: 0; }
+        #colorByLegend { width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; }
+        #colorByLegend .color-by-chip { white-space: normal !important; max-width: 100%; }
     </style>
     <!-- Matomo -->
     <script>
@@ -1344,6 +1349,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.6 (2026-06-08)</strong></p>
+                <ul>
+                    <li>Color-by-subtype legend &mdash; entries are now sized to the full subtype name so they no longer overlap (long names get their own row), the whole legend stays visible below the plot and is included in exports, and the chip legend in the controls panel no longer widens the panel / breaks the layout.</li>
+                    <li>Fusion filter in <b>1. Set Parameters</b> is now a dropdown (matching the Hotspot filter) instead of a search box, and the &ldquo;selecting for mutations/fusions may introduce bias&rdquo; note sits below it.</li>
+                    <li>Clicking a gene in the Wiki&rsquo;s <b>Expression profile</b> section now opens the popout showing <b>expression</b> (not gene effect).</li>
+                </ul>
                 <p><strong>v.83.5 (2026-06-08)</strong></p>
                 <ul>
                     <li>Chart exports consolidated to a single <b>Export image ▾</b> button (was separate PNG / SVG). Clicking it opens the format popup where you choose <b>PNG / SVG / TIFF / PDF / PowerPoint</b> plus size, DPI and background. Applied to the correlation scatter, the tissue chart, the Gene Effect chart, the expression-correlate scatter, and the correlation-analysis chart.</li>
@@ -3051,7 +3062,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.6</a>
     </div>
 
     <div class="main-content">
@@ -3275,24 +3286,23 @@
                                 <option value="2">Only 2 mutations</option>
                                 <option value="1+2">Only mutated (1+2)</option>
                             </select>
-                            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 4px; font-size: 9px; color: #92400e;">
-                                Selecting for mutations may introduce bias — mutations are often enriched in specific cancer types.
-                            </div>
                         </div>
                         <div id="oncoprintFilterLabel" style="display:none; font-size:11px; color:#5a9f4a; margin-top:4px; cursor:pointer;" title="Click to clear oncoprint filters"></div>
                     </div>
 
                     <div class="form-group" id="paramTranslocationFilterGroup" style="display: none;">
                         <label class="form-label">Fusion Filter (curated):</label>
-                        <input type="text" id="paramTranslocationGene" list="paramTranslocationGeneList" class="form-control" placeholder="Search fusion, e.g. BCR-ABL1..." style="margin-bottom: 4px;" autocomplete="off">
-                        <datalist id="paramTranslocationGeneList"></datalist>
+                        <select id="paramTranslocationGene" class="form-control" style="margin-bottom: 4px;">
+                            <option value="">No filter</option>
+                        </select>
                         <select id="paramTranslocationLevel" class="form-control">
                             <option value="all">All cells</option>
                             <option value="0">Only WT (no fusion)</option>
-                            <option value="1">Only 1 fusion partner</option>
-                            <option value="2">Only 2+ fusion partners</option>
-                            <option value="1+2">Only fused (1+2)</option>
+                            <option value="1+2">Only with fusion</option>
                         </select>
+                        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 4px; font-size: 9px; color: #92400e;">
+                            Selecting for mutations or fusions may introduce bias — they are often enriched in specific cancer types.
+                        </div>
                     </div>
                     </div> <!-- end card-content -->
                 </div>
@@ -5266,6 +5276,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_5"></script>
+    <script src="app.js?v=v83_6"></script>
 </body>
 </html>

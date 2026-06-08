@@ -782,13 +782,9 @@ class CorrelationExplorer {
             const input = document.getElementById('paramTranslocationGene');
             document.getElementById('paramTranslocationFilterGroup').style.display = 'block';
 
-            input.addEventListener('input', () => {
-                // Only act on valid fusion names or empty (clear filter)
-                const val = input.value.trim();
-                if (val === '' || this._fusionFilterData.geneData[val]) {
-                    this.updateParamTranslocationLevelCounts();
-                }
-            });
+            // Dropdown (<select>) like the hotspot filter — recompute level counts
+            // when the chosen fusion changes.
+            input.addEventListener('change', () => this.updateParamTranslocationLevelCounts());
 
             this.updateParamTranslocationGeneCounts();
         }
@@ -798,7 +794,6 @@ class CorrelationExplorer {
         if (!this._fusionFilterData?.geneData) return;
         const genes = Object.keys(this._fusionFilterData.geneData);
         const input = document.getElementById('paramTranslocationGene');
-        const datalist = document.getElementById('paramTranslocationGeneList');
         const cellLines = this.metadata.cellLines;
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
@@ -834,11 +829,11 @@ class CorrelationExplorer {
             return b.nFused - a.nFused;
         });
 
-        let html = '';
+        let html = '<option value="">No filter</option>';
         geneCounts.forEach(({ gene, nFused }) => {
             html += `<option value="${gene}">${gene} (n=${nFused} fused)</option>`;
         });
-        datalist.innerHTML = html;
+        input.innerHTML = html;
 
         if (currentValue) input.value = currentValue;
 
@@ -3250,11 +3245,8 @@ class CorrelationExplorer {
         });
 
         // Parameter translocation filter
-        document.getElementById('paramTranslocationGene')?.addEventListener('input', () => {
-            const val = document.getElementById('paramTranslocationGene').value.trim();
-            if (val === '' || this.translocations?.geneData?.[val]) {
-                this.updateParamTranslocationLevelCounts();
-            }
+        document.getElementById('paramTranslocationGene')?.addEventListener('change', () => {
+            this.updateParamTranslocationLevelCounts();
         });
         document.getElementById('paramTranslocationLevel')?.addEventListener('change', () => {
             // Counts stay the same; filter applies on Run
@@ -11668,6 +11660,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Sort categories by count descending
             colorByCategories = Object.keys(categoryMap).sort((a, b) => categoryMap[b].length - categoryMap[a].length);
             colorByColors = CorrelationExplorer.CATEGORY_COLORS;
+            // Reserve enough width per legend entry for its full label (name +
+            // count) so entries never overlap; long subtype names end up ~1 per
+            // row, short ones share a row. Plotly under-measures Open Sans, so
+            // we pad generously.
+            const _lf = this._savedScatterTextSettings?.legendSize || 17;
+            const _maxLabel = colorByCategories.reduce((m, c) => Math.max(m, (`${c} (${categoryMap[c].length})`).length), 0);
+            this._colorByLegendEntryW = Math.min(470, Math.max(150, Math.round(_maxLabel * _lf * 0.55 + 36)));
             colorByCategories.forEach((cat, i) => {
                 const catData = categoryMap[cat];
                 const color = colorByColors[i % colorByColors.length];
@@ -11897,7 +11896,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 borderwidth: 1,
                 font: { size: 17 },
                 tracegroupgap: 0,
-                entrywidth: 120,
+                entrywidth: this._colorByLegendEntryW || 120,
                 entrywidthmode: 'pixels'
             } : {
                 x: 0.02,
@@ -11966,9 +11965,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // visible on screen AND captured in the PNG/SVG/JSON exports.
         if (colorByCategory && colorByCategories && colorByCategories.length) {
             const legendFont = (sts?.legendSize) || 17;
-            const perRow = Math.max(1, Math.floor(plotAreaW / 130));
+            const perRow = Math.max(1, Math.floor(plotAreaW / (this._colorByLegendEntryW || 130)));
             const rows = Math.ceil(colorByCategories.length / perRow);
-            const legendH = rows * Math.round(legendFont * 1.7) + 30;
+            const legendH = rows * Math.round(legendFont * 1.9) + 30;
             layout.margin.b = Math.max(100, Math.round(0.15 * plotAreaH) + legendH + 20);
             layout.height = plotAreaH + m.t + layout.margin.b;
         }
@@ -25601,6 +25600,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const link = e.target.closest('.clb-gene-link');
             if (!link) return;
             this._geHighlightCellLine = this._clbInspectedCellLine;
+            // If the gene was clicked inside the Expression-profile section, open
+            // the popout on the Expression data type; otherwise Gene Effect.
+            const secTitle = link.closest('section')?.querySelector('h3')?.textContent || '';
+            const dt = document.getElementById('geDataType');
+            if (dt) dt.value = /expression profile/i.test(secTitle) ? 'expr' : 'ge';
             this.openGeneEffectModal(link.dataset.gene, 'tissue');
             this._applyParamFiltersToGEModal();
         });
