@@ -6119,20 +6119,22 @@ class CorrelationExplorer {
         const maxVisibleRows = Math.min(rows.length, 17);
         const visibleRows = rows.slice(0, maxVisibleRows);
 
-        if (format === 'png') {
+        // One "Export image" entry point: ask the format (PNG / SVG / TIFF / PDF
+        // / PowerPoint). SVG uses the hand-built vector table below; the raster
+        // formats come from an html2canvas capture via _downloadCanvasAs.
+        const dlg = await this._showExportDialog({ format, plotW: tableContainer?.offsetWidth || 600, plotH: tableContainer?.offsetHeight || 400 });
+        if (!dlg) return;
+        const fmt = dlg.format;
+
+        if (fmt !== 'svg') {
             // Use html2canvas on the visible portion only
             try {
                 // Don't expand — keep current scroll state so it captures what's on screen
                 const canvas = await html2canvas(tableContainer, { scale: 2, backgroundColor: '#ffffff', scrollY: -window.scrollY });
-                const a = document.createElement('a');
-                a.href = canvas.toDataURL('image/png');
-                a.download = `${filename}.png`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+                await this._downloadCanvasAs(canvas, fmt, filename, { dpi: dlg.dpi, widthCm: dlg.widthCm, heightCm: dlg.heightCm });
             } catch (e) {
-                console.error('Table PNG export failed:', e);
-                alert('PNG export failed. Try SVG instead.');
+                console.error('Table image export failed:', e);
+                alert('Image export failed. Try SVG instead.');
             }
         } else {
             // Build clean SVG table
@@ -8797,6 +8799,9 @@ Results:
 
         const dlg = await this._showExportDialog({ format: 'png', plotW: totalWidth, plotH: totalHeight, hasLegendFrame: true });
         if (!dlg) return;
+        // SVG = vector reconstruction; hand off (reusing this dialog so the user
+        // isn't asked twice). PNG/TIFF/PDF/PPTX build the raster canvas below.
+        if (dlg.format === 'svg') return this.downloadNetworkSVG(dlg);
         const { widthCm, heightCm, dpi, background, legendFrame } = dlg;
         const transparentBg = background === 'transparent';
         const CM_TO_IN = 1 / 2.54;
@@ -9136,24 +9141,14 @@ Results:
             networkSettings: this._captureNetworkSettings(),
             oncoprintFilters: this._activeOncoprintFilters || null
         });
-        const dataURL = canvas.toDataURL('image/png');
-        fetch(dataURL).then(r => r.arrayBuffer()).then(buf => {
-            // Encode the chosen DPI in pHYs so Word / PowerPoint / LaTeX
-            // place the image at its real physical size.
-            buf = this._setPngDpi(buf, dpi);
-            const pngWithMeta = this._addPngTextChunk(buf, 'correlate-meta', JSON.stringify(meta));
-            const blob = new Blob([pngWithMeta], { type: 'image/png' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'correlation_network.png';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(a.href);
+        // PNG / TIFF / PDF / PPTX all come from this composed canvas; SVG uses
+        // the dedicated vector reconstruction (reusing the dialog we just shew).
+        await this._downloadCanvasAs(canvas, dlg.format, 'correlation_network', {
+            dpi, widthCm, heightCm, metaJson: JSON.stringify(meta)
         });
     }
 
-    async downloadNetworkSVG() {
+    async downloadNetworkSVG(dlgOverride = null) {
         if (!this.network || !this.networkData) return;
 
         // Build SVG from network data
@@ -9168,7 +9163,7 @@ Results:
         const headerH = filterText ? Math.round(svgBannerFs * 1.6 + 12) : 0;
         const totalHeight = headerH + networkHeight + legendHeight;
 
-        const dlg = await this._showExportDialog({ format: 'svg', plotW: width, plotH: totalHeight, hasLegendFrame: true });
+        const dlg = dlgOverride || await this._showExportDialog({ format: 'svg', plotW: width, plotH: totalHeight, hasLegendFrame: true });
         if (!dlg) return;
         const { widthCm, heightCm, background, legendFrame } = dlg;
         const transparentBg = background === 'transparent';
@@ -31349,7 +31344,7 @@ ${body}
         if (format === 'svg') {
             await this._composeGateReportSVG(mainDataUrl, settings.mainW, settings.mainH, genePlotDataUrl, settings.geneW, settings.geneH, filters, filenameBase);
         } else {
-            await this._composeGateReportImage(mainDataUrl, settings.mainW, settings.mainH, genePlotDataUrl, settings.geneW, settings.geneH, filters, filenameBase, settings.pngScale, settings.bgColor);
+            await this._composeGateReportImage(mainDataUrl, settings.mainW, settings.mainH, genePlotDataUrl, settings.geneW, settings.geneH, filters, filenameBase, settings.pngScale, settings.bgColor, format);
         }
     }
 
@@ -31399,7 +31394,7 @@ ${body}
         return lines;
     }
 
-    async _composeGateReportImage(mainDataUrl, mainW, mainH, genePlotDataUrl, genePlotW, genePlotH, filterLines, filenameBase, pngScale, bgColor) {
+    async _composeGateReportImage(mainDataUrl, mainW, mainH, genePlotDataUrl, genePlotW, genePlotH, filterLines, filenameBase, pngScale, bgColor, fmt = 'png') {
         const scale = pngScale || 2;
         const padding = 20;
         const textLineHeight = 18;
@@ -31454,18 +31449,9 @@ ${body}
             gene1: this.currentInspect?.gene1,
             gene2: this.currentInspect?.gene2
         });
-        const pngDataUrl = canvas.toDataURL('image/png');
-        const pngResp = await fetch(pngDataUrl);
-        const pngBuf = await pngResp.arrayBuffer();
-        const pngWithMeta = this._addPngTextChunk(pngBuf, 'correlate-meta', JSON.stringify(meta));
-        const blob = new Blob([pngWithMeta], { type: 'image/png' });
-        const link = document.createElement('a');
-        link.download = `${filenameBase}.png`;
-        link.href = URL.createObjectURL(blob);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
+        // PNG / TIFF / PDF / PPTX from the composed canvas.
+        const wCm = canvas.width / 150 * 2.54, hCm = canvas.height / 150 * 2.54;
+        await this._downloadCanvasAs(canvas, fmt, filenameBase, { dpi: 150, widthCm: wCm, heightCm: hCm, metaJson: JSON.stringify(meta) });
     }
 
     async _composeGateReportSVG(mainSvgStr, mainW, mainH, genePlotSvgStr, genePlotW, genePlotH, filterLines, filenameBase) {

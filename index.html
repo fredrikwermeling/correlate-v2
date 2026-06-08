@@ -1349,6 +1349,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.7 (2026-06-08)</strong></p>
+                <ul>
+                    <li>Analysis mode reorganized into two clearer choices: <b>Gene set analysis</b> (with a sub-choice of <i>correlations within my gene set</i> vs <i>find new correlated genes across all genes</i>, and the &ldquo;also correlate the discovered genes with each other&rdquo; option) and <b>Mutation analysis</b>. &ldquo;2. Input Genes&rdquo; renamed <b>2. Input Gene Set</b>.</li>
+                    <li>TIFF / PDF / PowerPoint now offered <b>everywhere an image is exported</b> &mdash; the network graph, the mutation-analysis table, and the gate-comparison report now use the same single-button / format-popup as the charts (in addition to the correlation scatter, tissue, gene-effect, expression-correlate and correlation-analysis charts).</li>
+                </ul>
                 <p><strong>v.83.6 (2026-06-08)</strong></p>
                 <ul>
                     <li>Color-by-subtype legend &mdash; entries are now sized to the full subtype name so they no longer overlap (long names get their own row), the whole legend stays visible below the plot and is included in exports, and the chip legend in the controls panel no longer widens the panel / breaks the layout.</li>
@@ -3062,7 +3067,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.7</a>
     </div>
 
     <div class="main-content">
@@ -3135,23 +3140,25 @@
                     <div class="form-group">
                         <label class="form-label">Analysis Mode:</label>
                         <div class="radio-group">
-                            <label>
+                            <div style="font-weight:600; font-size:12px; color:#374151; margin-bottom:3px;">Gene set analysis</div>
+                            <label style="margin-left:14px;">
                                 <input type="radio" name="analysisMode" value="analysis" checked>
-                                Analysis (within input genes)
+                                Correlations within my gene set
                             </label>
-                            <label>
+                            <label style="margin-left:14px;">
                                 <input type="radio" name="analysisMode" value="design">
-                                Design (all genes)
+                                Find new correlated genes (search all genes)
                             </label>
-                            <div id="designExpandOption" style="display: none; margin-top: 2px; margin-bottom: 4px; margin-left: 20px;">
+                            <div id="designExpandOption" style="display: none; margin-top: 2px; margin-bottom: 4px; margin-left: 32px;">
                                 <label style="font-size: 11px; color: #4b5563;">
                                     <input type="checkbox" id="designExpandNetwork">
-                                    Expand network (find correlations between discovered genes)
+                                    also correlate the discovered genes with each other
                                 </label>
                             </div>
-                            <label>
+                            <div style="font-weight:600; font-size:12px; color:#374151; margin:8px 0 3px;">Mutation analysis</div>
+                            <label style="margin-left:14px;">
                                 <input type="radio" name="analysisMode" value="mutation">
-                                Mutation Analysis (differential GE)
+                                Differential gene effect (mutated vs WT)
                             </label>
                             <!-- Synonym/Ortholog Lookup removed as a standalone analysis mode (v.82.4),
                                  kept in code so it can be restored. The synonym matching itself still
@@ -3309,7 +3316,7 @@
 
                 <!-- Gene Input Card -->
                 <div class="card sidebar-card-half" id="geneInputCard">
-                    <div class="card-title">2. Input Genes</div>
+                    <div class="card-title">2. Input Gene Set</div>
                     <div class="card-content">
                     <!-- Input method tabs -->
                     <div class="input-tabs">
@@ -3535,8 +3542,8 @@
                             </div>
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">Export:</label>
                             <div class="button-group-horizontal">
-                                <button class="btn btn-secondary" id="downloadNetworkPNG">PNG</button>
-                                <button class="btn btn-secondary" id="downloadNetworkSVG">SVG</button>
+                                <button class="btn btn-secondary" id="downloadNetworkPNG" title="Export the network — choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                                <button class="btn btn-secondary" id="downloadNetworkSVG" style="display:none;">SVG</button>
                                 <button class="btn btn-secondary" id="downloadFullPagePNG" title="Screenshot the full page as high-res PNG for publication">Screenshot PNG</button>
                                 <button class="btn btn-info" id="downloadAllData">All Data (ZIP)</button>
                             </div>
@@ -3678,8 +3685,8 @@
                         <span style="font-size: 10px; color: #9ca3af;">Export:</span>
                         <button class="btn btn-outline btn-sm" id="downloadMutationResults" title="Download table as CSV spreadsheet">.csv</button>
                         <button class="btn btn-sm" id="mutAnalyzeWithAI" style="background:#0369a1;color:white;font-size:10px;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
-                        <button class="btn btn-outline btn-sm" id="exportMutTableSVG" title="Export visible table as SVG vector image">.svg</button>
-                        <button class="btn btn-outline btn-sm" id="exportMutTablePNG" title="Export visible table as PNG image">.png</button>
+                        <button class="btn btn-outline btn-sm" id="exportMutTableSVG" style="display:none;" title="Export visible table as SVG vector image">.svg</button>
+                        <button class="btn btn-outline btn-sm" id="exportMutTablePNG" title="Export the visible table — choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                         <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
                         <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="filterMutationToggle" title="Toggle column value filters">Filters</button>
@@ -5225,9 +5232,17 @@
             <div id="exportPreviewFilters" style="margin-top:8px; font-size:12px; color:#374151; padding:8px; background:#f9fafb; border-radius:4px;"></div>
 
             <!-- Export buttons -->
-            <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end;">
-                <button onclick="app.doExportFromPreview('png')" class="btn btn-sm" style="background:#16a34a;color:white;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;">Download PNG</button>
-                <button onclick="app.doExportFromPreview('svg')" class="btn btn-sm" style="background:#2563eb;color:white;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;">Download SVG</button>
+            <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end; align-items:center;">
+                <label style="font-size:12px; color:#374151;">Format:
+                    <select id="gateReportFormat" style="padding:5px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; margin-left:4px;">
+                        <option value="png">PNG</option>
+                        <option value="svg">SVG</option>
+                        <option value="pdf">PDF</option>
+                        <option value="tiff">TIFF</option>
+                        <option value="pptx">PowerPoint</option>
+                    </select>
+                </label>
+                <button onclick="app.doExportFromPreview(document.getElementById('gateReportFormat').value)" class="btn btn-sm" style="background:#16a34a;color:white;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;">Download</button>
             </div>
         </div>
     </div>
@@ -5276,6 +5291,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_6"></script>
+    <script src="app.js?v=v83_7"></script>
 </body>
 </html>
