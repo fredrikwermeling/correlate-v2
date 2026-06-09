@@ -1382,6 +1382,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.20 (2026-06-09)</strong></p>
+                <ul>
+                    <li>Wiki "Download PDF" now saves a real PDF file directly (no print dialog / PDF-printer needed). Multi-page, white background, charts embedded as images; a few MB.</li>
+                    <li>The "not found" gene-suggestion box now checks the mouse to human ortholog table first, so it correctly suggests <b>Trp53 to TP53</b> instead of unrelated fuzzy matches (ARPC3 / BRPF3 / LRP3). Real typos still fall back to nearest-match suggestions. Also fixed the "Find Synonyms" ortholog lookup to handle lower-case input.</li>
+                </ul>
                 <p><strong>v.83.19 (2026-06-09)</strong></p>
                 <ul>
                     <li>Wiki download is now a clean <b>PDF</b> (via the print view) instead of a raw HTML file. Each chart is embedded as a flat white image rather than the live Plotly layers, so it no longer looks broken.</li>
@@ -3164,7 +3169,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.19</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.20</a>
     </div>
 
     <div class="main-content">
@@ -4865,7 +4870,7 @@
             <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Open a print view to save this Wiki as a PDF (charts embedded as images, white background)">Download PDF</button>
+            <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Download this Wiki as a multi-page PDF (charts embedded as images, white background)">Download PDF</button>
             <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
           </div>
         </div>
@@ -5402,6 +5407,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_19"></script>
+    <script src="app.js?v=v83_20"></script>
 </body>
 </html>

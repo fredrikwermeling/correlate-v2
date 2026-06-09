@@ -4269,10 +4269,22 @@ class CorrelationExplorer {
         if (!this.geneIndex || this.geneIndex.size === 0) return suggestions;
 
         const allGenes = Array.from(this.geneIndex.keys());
+        const orth = this.orthologs?.mouseToHuman || {};
 
         for (const query of notFoundGenes) {
             const upper = query.toUpperCase();
             const matches = [];
+
+            // 0. Mouse -> human ortholog (e.g. Trp53 -> TP53). This is the
+            //    strongest signal and matches what the "Find Synonyms" button
+            //    does; when we have it, suggest only that and skip the fuzzy
+            //    edit-distance fallback (which otherwise returns nonsense like
+            //    ARPC3 / BRPF3 / LRP3 for TRP53). Orthologs load at startup.
+            const ortho = orth[upper];
+            if (ortho && this.geneIndex.has(ortho.toUpperCase())) {
+                suggestions.set(query, [ortho.toUpperCase()]);
+                continue;
+            }
 
             // 1. Check prefix matches
             for (const gene of allGenes) {
@@ -4380,8 +4392,10 @@ class CorrelationExplorer {
                 }
             }
 
-            // Fallback: Check ortholog lookup (mouse to human)
-            const humanGene = this.orthologs?.mouseToHuman?.[gene];
+            // Fallback: Check ortholog lookup (mouse to human). Keys are
+            // upper-case, so match on upperGene (raw `gene` missed lower-case
+            // input like "trp53").
+            const humanGene = this.orthologs?.mouseToHuman?.[upperGene];
             if (humanGene && this.geneIndex.has(humanGene.toUpperCase())) {
                 replacements.push({
                     original: gene,
@@ -30472,7 +30486,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     const w = Math.max(300, gd.offsetWidth || 500);
                     const h = Math.max(120, gd.offsetHeight || 200);
                     if (typeof Plotly !== 'undefined') {
-                        dataUrl = await Plotly.toImage(gd, { format: 'png', width: w, height: h, scale: 2 });
+                        dataUrl = await Plotly.toImage(gd, { format: 'png', width: w, height: h, scale: 1.5 });
                     }
                 } catch (e) { /* leave dataUrl empty -> drop the node */ }
                 if (dataUrl) {
@@ -30487,36 +30501,84 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // Strip interactive-only chrome that shouldn't be in a static document.
             clone.querySelectorAll('.modebar, .modebar-container, button, .js-plotly-plot').forEach(e => e.remove());
 
-            const printHtml = `<!DOCTYPE html>
+            const safeName = (title.replace(/[^A-Za-z0-9_-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')) || 'CellLineWiki';
+            const fileName = `${safeName}_${date}.pdf`;
+
+            // Lay the cleaned content into an off-screen, fixed-width container so
+            // jsPDF + html2canvas render a real .pdf FILE directly (no print
+            // dialog / no "Save as PDF" printer needed).
+            const holder = document.createElement('div');
+            holder.style.cssText = "position:fixed; left:-99999px; top:0; width:760px; background:#fff; padding:26px; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:#374151; line-height:1.5; font-size:12.5px;";
+            holder.innerHTML = `<h1 style="color:#15803d;margin:0 0 4px;font-size:22px;">${title}</h1>
+                <div style="font-size:11px;color:#6b7280;margin-bottom:16px;">${subtitle}</div>
+                ${clone.innerHTML}
+                <div style="margin-top:20px;font-size:10px;color:#9ca3af;">Generated ${date} by Correlate V2, data from DepMap 25Q3 and Cellosaurus.</div>`;
+            document.body.appendChild(holder);
+
+            const JS = window.jspdf?.jsPDF || window.jsPDF;
+            let pdfDone = false;
+            if (JS && typeof window.html2canvas !== 'undefined') {
+                try {
+                    // Rasterise the whole document once, then slice it into A4
+                    // pages added as JPEG. JPEG (vs jsPDF.html's lossless PNG
+                    // pages) keeps the file a few MB instead of ~25 MB while
+                    // staying crisp for text + the embedded chart images.
+                    const canvas = await window.html2canvas(holder, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+                    const pdf = new JS({ unit: 'pt', format: 'a4', compress: true });
+                    const margin = 24;
+                    const pageW = pdf.internal.pageSize.getWidth();
+                    const pageH = pdf.internal.pageSize.getHeight();
+                    const contentW = pageW - margin * 2;
+                    const ptPerPx = contentW / canvas.width;               // source px -> pt
+                    const pageSlicePx = Math.floor((pageH - margin * 2) / ptPerPx); // source px per page
+                    let y = 0, page = 0;
+                    while (y < canvas.height) {
+                        const sliceH = Math.min(pageSlicePx, canvas.height - y);
+                        const pageCanvas = document.createElement('canvas');
+                        pageCanvas.width = canvas.width;
+                        pageCanvas.height = sliceH;
+                        const pctx = pageCanvas.getContext('2d');
+                        pctx.fillStyle = '#ffffff';
+                        pctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                        pctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+                        const jpeg = pageCanvas.toDataURL('image/jpeg', 0.82);
+                        if (page > 0) pdf.addPage();
+                        pdf.addImage(jpeg, 'JPEG', margin, margin, contentW, sliceH * ptPerPx);
+                        y += sliceH;
+                        page++;
+                    }
+                    pdf.save(fileName);
+                    pdfDone = true;
+                } catch (e) {
+                    console.warn('jsPDF wiki export failed, falling back to print view:', e);
+                } finally {
+                    if (holder.parentNode) holder.parentNode.removeChild(holder);
+                }
+            } else if (holder.parentNode) {
+                holder.parentNode.removeChild(holder);
+            }
+
+            // Fallback: print view (browser "Save as PDF") if jsPDF isn't available.
+            if (!pdfDone) {
+                const printHtml = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${title} (${date})</title>
 <style>
   @page { margin: 14mm; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#374151; max-width:900px; margin:0 auto; padding:0 8px; line-height:1.55; font-size:12.5px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   h1 { color:#15803d; margin:0 0 4px; font-size:22px; }
   h3 { color:#15803d; font-size:16px; font-weight:700; margin:0 0 10px; padding:7px 11px; background:#f0fdf4; border-left:4px solid #15803d; border-radius:0 4px 4px 0; }
-  h4 { color:#15803d; font-size:13px; margin:0 0 6px; }
   .subtitle { font-size:11px; color:#6b7280; margin-bottom:18px; }
   section { margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #e5e7eb; page-break-inside:avoid; }
-  img { page-break-inside:avoid; }
-  a { color:#15803d; text-decoration:none; }
-  .wiki-footer { margin-top:22px; font-size:10px; color:#9ca3af; }
-</style>
-</head><body>
-<h1>${title}</h1>
-<div class="subtitle">${subtitle}</div>
+  img { page-break-inside:avoid; } a { color:#15803d; text-decoration:none; }
+</style></head><body>
+<h1>${title}</h1><div class="subtitle">${subtitle}</div>
 ${clone.innerHTML}
-<div class="wiki-footer">Generated ${date} by Correlate V2, data from DepMap 25Q3 and Cellosaurus.</div>
 <script>window.onload=function(){setTimeout(function(){window.focus();window.print();},250);};<\/script>
 </body></html>`;
-
-            // Open in a print window; the browser's print dialog offers "Save as
-            // PDF". This yields crisp, selectable text with embedded white chart
-            // images, rather than a raster screenshot.
-            const win = window.open('', '_blank');
-            if (!win) { alert('Pop-up blocked. Allow pop-ups for this site to save the Wiki as PDF.'); return; }
-            win.document.open();
-            win.document.write(printHtml);
-            win.document.close();
+                const win = window.open('', '_blank');
+                if (!win) { alert('Could not generate the PDF (pop-up blocked). Allow pop-ups and retry.'); }
+                else { win.document.open(); win.document.write(printHtml); win.document.close(); }
+            }
         } finally {
             if (btn) { btn.textContent = btnLabel; btn.disabled = false; }
         }
