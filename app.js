@@ -30230,7 +30230,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 xaxis: { title: { text: 'log₂-TPM across breast lines', font: { size: 9 } }, tickfont: { size: 8 }, showgrid: false, zeroline: false },
                 yaxis: { tickfont: { size: 8 }, showgrid: true, gridcolor: '#f3f4f6', zeroline: false, showticklabels: false },
                 bargap: 0.02, showlegend: false,
-                paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff',
                 font: { family: 'Open Sans, sans-serif' }, height: 70
             };
             if (p.mine != null) {
@@ -30267,8 +30267,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             },
             bargap: 0.02,
             showlegend: false,
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)',
+            paper_bgcolor: '#ffffff',
+            plot_bgcolor: '#ffffff',
             font: { family: 'Open Sans, sans-serif' },
             height: 70
         };
@@ -30344,8 +30344,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             yaxis: { title: { text: yTitle, font: { size: 10 } }, tickfont: { size: 9 }, showgrid: true, gridcolor: '#f3f4f6', zeroline: false },
             bargap: 0.02,
             showlegend: false,
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)',
+            // White (not transparent) so the Plotly camera-button PNG download
+            // has a white background instead of a see-through / grey one. The
+            // panels sit on a white section card, so no on-page change.
+            paper_bgcolor: '#ffffff',
+            plot_bgcolor: '#ffffff',
             font: { family: 'Open Sans, sans-serif' }
         });
         const config = { displaylogo: false, responsive: true, modeBarButtonsToRemove: ['lasso2d', 'select2d'] };
@@ -30442,32 +30445,81 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     // Save the currently-open Wiki as a standalone HTML file. Replaces the
     // removed "Cell Line Detail Report" CSV export, a self-contained HTML
     // file keeps the pill/card styling intact and prints cleanly.
-    downloadCellLineWiki() {
+    async downloadCellLineWiki() {
         const title = document.getElementById('clbWikiTitle')?.textContent || 'Cell Line Wiki';
         const subtitle = document.getElementById('clbWikiSubtitle')?.textContent || '';
-        const body = document.getElementById('clbWikiBody')?.innerHTML || '';
-        if (!body.trim()) { alert('Open a cell-line Wiki first.'); return; }
-        const safeName = title.replace(/[^A-Za-z0-9_-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        const liveBody = document.getElementById('clbWikiBody');
+        if (!liveBody || !liveBody.innerHTML.trim()) { alert('Open a cell-line Wiki first.'); return; }
         const date = new Date().toISOString().slice(0, 10);
-        const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${title}</title>
+
+        const btn = document.getElementById('clbWikiDownloadBtn');
+        const btnLabel = btn ? btn.textContent : '';
+        if (btn) { btn.textContent = 'Preparing…'; btn.disabled = true; }
+
+        try {
+            // Clone the body, then swap each live Plotly chart for a flat white
+            // PNG. Serialising the live DOM (the old behaviour) captured Plotly's
+            // raw multi-layer <svg> + modebar icons, which rendered as a mess.
+            const clone = liveBody.cloneNode(true);
+            const livePlots = liveBody.querySelectorAll('.js-plotly-plot');
+            const clonePlots = clone.querySelectorAll('.js-plotly-plot');
+            for (let i = 0; i < livePlots.length; i++) {
+                const gd = livePlots[i];
+                const target = clonePlots[i];
+                if (!target) continue;
+                let dataUrl = '';
+                try {
+                    const w = Math.max(300, gd.offsetWidth || 500);
+                    const h = Math.max(120, gd.offsetHeight || 200);
+                    if (typeof Plotly !== 'undefined') {
+                        dataUrl = await Plotly.toImage(gd, { format: 'png', width: w, height: h, scale: 2 });
+                    }
+                } catch (e) { /* leave dataUrl empty -> drop the node */ }
+                if (dataUrl) {
+                    const img = document.createElement('img');
+                    img.src = dataUrl;
+                    img.style.cssText = 'max-width:100%; height:auto; display:block; margin:4px 0;';
+                    target.replaceWith(img);
+                } else {
+                    target.remove();
+                }
+            }
+            // Strip interactive-only chrome that shouldn't be in a static document.
+            clone.querySelectorAll('.modebar, .modebar-container, button, .js-plotly-plot').forEach(e => e.remove());
+
+            const printHtml = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${title} (${date})</title>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#374151; max-width:900px; margin:30px auto; padding:0 20px; line-height:1.55; font-size:13px; }
+  @page { margin: 14mm; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#374151; max-width:900px; margin:0 auto; padding:0 8px; line-height:1.55; font-size:12.5px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   h1 { color:#15803d; margin:0 0 4px; font-size:22px; }
-  h3 { color:#15803d; font-size:17px; font-weight:700; margin:0 0 12px; padding:8px 12px; background:#f0fdf4; border-left:4px solid #15803d; border-radius:0 4px 4px 0; }
-  h4 { color:#15803d; font-size:14px; margin:0 0 6px; }
-  .subtitle { font-size:11px; color:#6b7280; margin-bottom:20px; }
-  section { margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #e5e7eb; }
-  a { color:#15803d; }
-  .wiki-footer { margin-top:24px; font-size:10px; color:#9ca3af; }
+  h3 { color:#15803d; font-size:16px; font-weight:700; margin:0 0 10px; padding:7px 11px; background:#f0fdf4; border-left:4px solid #15803d; border-radius:0 4px 4px 0; }
+  h4 { color:#15803d; font-size:13px; margin:0 0 6px; }
+  .subtitle { font-size:11px; color:#6b7280; margin-bottom:18px; }
+  section { margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #e5e7eb; page-break-inside:avoid; }
+  img { page-break-inside:avoid; }
+  a { color:#15803d; text-decoration:none; }
+  .wiki-footer { margin-top:22px; font-size:10px; color:#9ca3af; }
 </style>
 </head><body>
 <h1>${title}</h1>
 <div class="subtitle">${subtitle}</div>
-${body}
+${clone.innerHTML}
 <div class="wiki-footer">Generated ${date} by Correlate V2, data from DepMap 25Q3 and Cellosaurus.</div>
+<script>window.onload=function(){setTimeout(function(){window.focus();window.print();},250);};<\/script>
 </body></html>`;
-        this.downloadFile(html, `${safeName || 'CellLineWiki'}_${date}.html`, 'text/html');
+
+            // Open in a print window; the browser's print dialog offers "Save as
+            // PDF". This yields crisp, selectable text with embedded white chart
+            // images, rather than a raster screenshot.
+            const win = window.open('', '_blank');
+            if (!win) { alert('Pop-up blocked. Allow pop-ups for this site to save the Wiki as PDF.'); return; }
+            win.document.open();
+            win.document.write(printHtml);
+            win.document.close();
+        } finally {
+            if (btn) { btn.textContent = btnLabel; btn.disabled = false; }
+        }
     }
 
     // Show/update a generic progress overlay. Call _hideProgress() to close.
