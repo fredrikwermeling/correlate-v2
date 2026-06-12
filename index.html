@@ -39,6 +39,12 @@
             --gray-200: #e5e7eb;
             --gray-100: #f3f4f6;
             --brand-green: #5a9f4a;
+            /* Earthy bronze accent for data-download / export actions, an
+               earth-toned companion to the brand green (replaces the old
+               purple so the palette stays green + natural earth tones). */
+            --earth-700: #8a6a3a;
+            --earth-300: #d6c19a;
+            --earth-50: #f5efe2;
         }
 
         * {
@@ -1392,6 +1398,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.31 (2026-06-12)</strong></p>
+                <ul>
+                    <li>Removed the <b>Inspect Correlations</b> button from the Cell Line Browser toolbar.</li>
+                    <li>The Cell Line Browser export buttons are now grouped under an explicit <b>Export CSV:</b> label (and the inspect buttons under <b>Inspect:</b>) so it's clear what they do.</li>
+                    <li>Colour cleanup: the export / screenshot / data-download buttons swap their off-palette purple for an <b>earthy bronze</b> that sits alongside the brand green. Semantic colours (subtype calls, mutation badges) are unchanged.</li>
+                </ul>
                 <p><strong>v.83.30 (2026-06-12)</strong></p>
                 <ul>
                     <li><b>Open in new tab now carries the full view.</b> The new tab reproduces the same gene(s) plus the current filters and settings (data type, tissue / subtype / hotspot / fusion / mutation filters, stratification gene, min group size, axis ranges, colours, etc.), not just the gene and view.</li>
@@ -3225,7 +3237,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.30</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.31</a>
     </div>
 
     <div class="main-content">
@@ -3957,7 +3969,7 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="inspectTitle" style="flex:1; margin:0;">Correlation: Gene1 vs Gene2</h3>
                 <button onclick="app.openCorrelationInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same genes, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('inspectModalInner','correlate_correlation')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
+                <button onclick="app.screenshotPopout('inspectModalInner','correlate_correlation')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeInspect">&times;</button>
             </div>
             <div class="modal-body">
@@ -4185,7 +4197,7 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="geneEffectTitle" style="flex:1; margin:0;">Gene Effect Analysis</h3>
                 <button onclick="app.openGeneEffectInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same gene, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('geneEffectModalInner','correlate_gene_effect')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
+                <button onclick="app.screenshotPopout('geneEffectModalInner','correlate_gene_effect')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeGeneEffect">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
@@ -4517,7 +4529,7 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="corrAnalysisTitle" style="flex:1; margin:0;">Correlation Analysis</h3>
                 <button onclick="app.openCorrAnalysisInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same genes, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('corrAnalysisModalInner','correlate_correlation_analysis')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area).">&#128247; Screenshot</button>
+                <button onclick="app.screenshotPopout('corrAnalysisModalInner','correlate_correlation_analysis')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area).">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeCorrAnalysis">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
@@ -4948,8 +4960,8 @@
             <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot the wiki for a figure (PNG / TIFF / PDF, full content or visible area)">&#128247; Screenshot</button>
-            <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:#7c3aed; border-color:#c4b5fd;" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN / deep deletions) as a CSV">Export gene info (.csv)</button>
+            <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot the wiki for a figure (PNG / TIFF / PDF, full content or visible area)">&#128247; Screenshot</button>
+            <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN / deep deletions) as a CSV">Export gene info (.csv)</button>
             <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Download this Wiki as a multi-page PDF (charts embedded as images, white background)">Download PDF</button>
             <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
           </div>
@@ -5118,16 +5130,17 @@
             <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
 
             <!-- Inspect group (analysis on selected cell lines) -->
+            <span style="font-size:10px; font-weight:600; color:var(--green-700); white-space:nowrap;">Inspect:</span>
             <button id="clbInspectGEBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Top gene-effect hits in the selected cell lines, and top Δ vs the rest. Fast (~seconds).">Inspect<br><span style="font-size:9px;font-weight:normal;">Gene Effects</span></button>
-            <button id="clbInspectCorrBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Unbiased all-vs-all gene correlations in the selected cell lines. Slow, can take 5–10 minutes depending on selection size and hardware.">Inspect<br><span style="font-size:9px;font-weight:normal;">Correlations</span></button>
-            <button id="clbOpenInspectBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Re-open a previously saved selection-inspect (Gene Effects or Correlations) JSON file without re-running the analysis">Open<br><span style="font-size:9px;font-weight:normal;">Saved Inspect</span></button>
+            <button id="clbOpenInspectBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Re-open a previously saved selection-inspect JSON file without re-running the analysis">Open<br><span style="font-size:9px;font-weight:normal;">Saved Inspect</span></button>
 
             <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
 
             <!-- Export group (raw data CSVs for selected cell lines) -->
-            <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="One or a few selected cell lines: Gene Effect + Expression for every gene (CSV). Includes DepMap version and citation.">Cell line:<br><span style="font-size:9px;font-weight:normal;">GE + expression</span></button>
-            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="Selected cell line(s): full profile for every gene, GE + Expression + Hotspot + Damaging + Fusion + focal CN / deep deletions (CSV).">Cell line:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
-            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="One or a few genes: full profile (GE, Expression, Hotspot, Damaging, Fusion, focal CN) across the selected / visible cell lines (CSV).">Genes:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
+            <span style="font-size:10px; font-weight:600; color:var(--earth-700); white-space:nowrap;">Export CSV:</span>
+            <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="One or a few selected cell lines: Gene Effect + Expression for every gene (CSV). Includes DepMap version and citation.">Cell line:<br><span style="font-size:9px;font-weight:normal;">GE + expression</span></button>
+            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="Selected cell line(s): full profile for every gene, GE + Expression + Hotspot + Damaging + Fusion + focal CN / deep deletions (CSV).">Cell line:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
+            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="One or a few genes: full profile (GE, Expression, Hotspot, Damaging, Fusion, focal CN) across the selected / visible cell lines (CSV).">Genes:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
           </div>
         </div>
         <!-- Row 2: Curated collections + help -->
@@ -5479,6 +5492,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_30"></script>
+    <script src="app.js?v=v83_31"></script>
 </body>
 </html>
