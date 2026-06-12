@@ -212,11 +212,66 @@ class CorrelationExplorer {
     // safest deep-link primitive for a static-page SPA (no server
     // rewrite rules required, works under any host path).
     _handleUrlHash() {
-        const h = (window.location.hash || '').toLowerCase().replace(/^#/, '');
+        const raw = (window.location.hash || '').replace(/^#/, '');
+        // "Open in new tab" deep link: #restore=<base64 metadata>. Handled
+        // before lowercasing because base64 is case-sensitive.
+        if (raw.startsWith('restore=')) {
+            this._handleRestoreHash(raw.slice('restore='.length));
+            return;
+        }
+        const h = raw.toLowerCase();
         const CELL_BROWSER_ROUTES = ['cell', 'cells', 'cellbrowser', 'cellsbrowser', 'cell-line-browser', 'celllinebrowser', 'browser'];
         if (CELL_BROWSER_ROUTES.includes(h)) {
             try { this.openCellLineBrowser(); }
             catch (e) { console.warn('Could not open cell-line browser from #cell route:', e); }
+        }
+    }
+
+    // Serialize a popout's recreate-metadata into a URL and open it in a new
+    // browser tab, so the user can keep working in the original tab while the
+    // popout lives on its own. The new tab boots a fresh app instance and
+    // reopens just that popout via _handleExportMeta.
+    openPopoutInNewTab(meta) {
+        if (!meta) return;
+        try {
+            const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(meta))));
+            const url = window.location.origin + window.location.pathname + window.location.search + '#restore=' + encodeURIComponent(b64);
+            window.open(url, '_blank');
+        } catch (e) {
+            alert('Could not open in a new tab: ' + (e?.message || e));
+        }
+    }
+
+    // Decode a #restore= payload and recreate the popout once data is ready.
+    _handleRestoreHash(encoded) {
+        let meta;
+        try {
+            meta = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(encoded)))));
+        } catch (e) { console.warn('Could not decode restore hash:', e); return; }
+        if (!meta || typeof meta !== 'object') return;
+        // Clear the hash so a manual refresh doesn't replay the restore.
+        try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
+        const go = () => {
+            try {
+                // Route the supported popouts directly (avoids _handleExportMeta's
+                // gene1/gene2-first ordering misrouting correlation_analysis).
+                if (meta.graphType === 'gene_effect' && meta.gene) {
+                    this._setAnalysisLocked(false);
+                    this.openGeneEffectModal(meta.gene, meta.view || 'tissue', meta.dataType ? { dataType: meta.dataType } : {});
+                } else if (meta.graphType === 'correlation_analysis' && meta.gene1 && meta.gene2) {
+                    this._setAnalysisLocked(false);
+                    this.openCorrelationAnalysisModal(meta.gene1, meta.gene2, meta.view || 'tissue');
+                } else {
+                    this._handleExportMeta(meta);
+                }
+            } catch (e) { console.warn('Restore failed:', e); }
+        };
+        // Expression-backed views need the expression matrix loaded first.
+        const needsExpr = meta.dataType === 'expr' || meta.graphType === 'expr_correlate';
+        if (needsExpr && !this.expressionLoaded) {
+            this.loadExpressionData().then(go).catch(go);
+        } else {
+            go();
         }
     }
 
@@ -16961,6 +17016,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     openCorrelationAnalysisModal(gene1, gene2, view = 'tissue') {
         const g1 = gene1.toUpperCase();
         const g2 = gene2.toUpperCase();
+        // Remember the open pair/view so "Open in new tab" can serialize it.
+        this._caGene1 = g1; this._caGene2 = g2; this._caView = view;
 
         if (!this.geneIndex.has(g1) || !this.geneIndex.has(g2)) {
             alert(`One or both genes not found in dataset.`);
@@ -17932,6 +17989,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     openGeneEffectModal(gene, view = 'tissue', opts = {}) {
         const geneUpper = gene.toUpperCase();
+        // Remember the open gene/view so "Open in new tab" can serialize it.
+        this._geGene = geneUpper;
+        this.currentGEView = view;
         // When a gene link specifies its data type (GE vs Expression), honour it
         //, otherwise the modal's GE/Expression toggle would "leak" the last
         // choice (e.g. clicking a GE-list gene after viewing an expression gene
