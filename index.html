@@ -167,6 +167,14 @@
             filter: grayscale(0.4);
             transition: opacity 0.2s ease;
         }
+        /* Draw attention to the Options card on load (until Analysis is clicked)
+           with a crisp black outline. Outline (not border) so layout doesn't
+           shift when it's removed. */
+        #optionsCard.options-highlight {
+            outline: 2px solid #111;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 4px rgba(0,0,0,0.05), 0 3px 10px rgba(0,0,0,0.16);
+        }
 
         .sidebar-row {
             display: flex;
@@ -1398,6 +1406,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.35 (2026-06-12)</strong></p>
+                <ul>
+                    <li><b>Correlation chart spacing</b>: the title block is lifted off the top of the plot and the rotated y-axis title is pushed clear of the tick numbers.</li>
+                    <li><b>Cleaner popout screenshots</b>: charts are flattened to a crisp image before capture (no more nudged grey plot background), and text inside input boxes (gene names, plot size, axis ranges) is now vertically centred.</li>
+                    <li><b>Options box</b> is outlined in black on load (until Analysis is clicked) so it's the obvious starting point.</li>
+                    <li><b>Text settings travel with the view</b>: font sizes are saved into the metadata and re-applied when you open a metadata file or open a view in a new tab.</li>
+                </ul>
                 <p><strong>v.83.34 (2026-06-12)</strong></p>
                 <ul>
                     <li>Removed <b>Open Saved Inspect</b> from the Cell Line Browser. Re-opening a view is now done from <b>Open</b> on the first page, mainly via the metadata (<code>.correlate.json</code>) file saved next to every image export.</li>
@@ -3251,7 +3266,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.34</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.35</a>
     </div>
 
     <div class="main-content">
@@ -5505,6 +5520,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_34"></script>
+    <script src="app.js?v=v83_35"></script>
 </body>
 </html>

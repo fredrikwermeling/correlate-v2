@@ -290,18 +290,24 @@ class CorrelationExplorer {
     // setting control). Shared by "Open in new tab" and the image-export sidecar
     // so opening either regenerates the exact same graph, filters and settings.
     _buildPopoutMeta(kind, extra = {}) {
+        // Plot text settings (font sizes etc.) travel with the popout so the
+        // restored chart matches exactly. Use the caller-supplied capture if
+        // given, else read the popout's plot.
+        const TS_PLOT = { gene_effect: 'geneEffectPlot', scatter: 'scatterPlot', correlation_analysis: 'corrAnalysisTissuePlot' };
+        const { textSettings: extraTs, ...restExtra } = extra;
+        const textSettings = extraTs || (TS_PLOT[kind] ? this._capturePlotTextSettings(TS_PLOT[kind]) : null);
         let popout;
         if (kind === 'gene_effect') {
-            popout = { kind, gene: this.currentGeneEffect?.gene || this._geGene, view: this.currentGEView || 'tissue', dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS()) };
+            popout = { kind, gene: this.currentGeneEffect?.gene || this._geGene, view: this.currentGEView || 'tissue', dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS()), textSettings };
         } else if (kind === 'scatter') {
-            popout = { kind, gene1: this.currentInspect && this.currentInspect.gene1, gene2: this.currentInspect && this.currentInspect.gene2, controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS()) };
+            popout = { kind, gene1: this.currentInspect && this.currentInspect.gene1, gene2: this.currentInspect && this.currentInspect.gene2, controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS()), textSettings };
         } else if (kind === 'correlation_analysis') {
-            popout = { kind, gene1: this._caGene1, gene2: this._caGene2, view: this._caView || 'tissue', controls: this._captureControls(this._CA_NEWTAB_CONTROLS()) };
+            popout = { kind, gene1: this._caGene1, gene2: this._caGene2, view: this._caView || 'tissue', controls: this._captureControls(this._CA_NEWTAB_CONTROLS()), textSettings };
         } else {
             popout = { kind };
         }
         return {
-            ...this._buildExportMetadata(kind, extra),
+            ...this._buildExportMetadata(kind, restExtra),
             network: this._captureFullAnalysisState(),
             popout
         };
@@ -317,15 +323,19 @@ class CorrelationExplorer {
     _openRestorePopout(popout) {
         if (!popout) return;
         this._setAnalysisLocked(false);
+        // Plot text settings (font sizes) are re-applied just before each
+        // re-render, opening a popout resets _savedScatterTextSettings, so it
+        // has to be set inside the render callback to survive.
+        const ts = popout.textSettings || null;
         if (popout.kind === 'gene_effect' && popout.gene) {
             this.openGeneEffectModal(popout.gene, popout.view || 'tissue', popout.dataType ? { dataType: popout.dataType } : {});
-            this._restorePopoutControls(popout.controls, 'geTissueFilter', () => this.switchGeneEffectView(popout.view || 'tissue'));
+            this._restorePopoutControls(popout.controls, 'geTissueFilter', () => { this._savedScatterTextSettings = ts; this.switchGeneEffectView(popout.view || 'tissue'); });
         } else if (popout.kind === 'correlation_analysis' && popout.gene1 && popout.gene2) {
             this.openCorrelationAnalysisModal(popout.gene1, popout.gene2, popout.view || 'tissue');
-            this._restorePopoutControls(popout.controls, 'caTissueFilter', () => this.switchCorrAnalysisView(popout.view || 'tissue'));
+            this._restorePopoutControls(popout.controls, 'caTissueFilter', () => { this._savedScatterTextSettings = ts; this.switchCorrAnalysisView(popout.view || 'tissue'); });
         } else if (popout.kind === 'scatter' && popout.gene1 && popout.gene2) {
             this.openInspectByGenes(popout.gene1, popout.gene2);
-            this._restorePopoutControls(popout.controls, 'scatterCancerFilter', () => this.updateInspectPlot());
+            this._restorePopoutControls(popout.controls, 'scatterCancerFilter', () => { this._savedScatterTextSettings = ts; this.updateInspectPlot(); });
         }
     }
 
@@ -12145,7 +12155,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Title as draggable annotation
         const titleAnnotation = {
             x: this._userTitlePosition ? this._userTitlePosition.x : 0.5,
-            y: this._userTitlePosition ? this._userTitlePosition.y : 1.0,
+            // Lift the title block off the plot top so the last subtitle line
+            // isn't flush against the gridlines.
+            y: this._userTitlePosition ? this._userTitlePosition.y : 1.04,
             xref: 'paper', yref: 'paper',
             xanchor: this._userTitlePosition ? 'auto' : 'center',
             yanchor: this._userTitlePosition ? 'auto' : 'bottom',
@@ -12155,8 +12167,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             _tsRole: 'title'
         };
 
-        // Calculate margin based on title lines, spacing scales with subtitle font size
-        const topMargin = 80 + (titleLines.length * Math.max(subSize * 1.2, 14));
+        // Calculate margin based on title lines, spacing scales with subtitle
+        // font size. Extra base headroom accounts for the title gap above.
+        const topMargin = 94 + (titleLines.length * Math.max(subSize * 1.2, 14));
 
         const showZero = document.getElementById('showZeroLines')?.checked !== false;
 
@@ -12175,7 +12188,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             _tsRole: 'xlabel'
         };
         const yLabelAnnotation = {
-            x: this._userYLabelPos ? this._userYLabelPos.x : -0.12,
+            // Push the rotated y-axis title further left so it clears the tick
+            // numbers (paired with the wider left margin below).
+            x: this._userYLabelPos ? this._userYLabelPos.x : -0.17,
             y: this._userYLabelPos ? this._userYLabelPos.y : 0.5,
             xref: 'paper', yref: 'paper',
             xanchor: this._userYLabelPos ? 'auto' : 'center',
@@ -12205,7 +12220,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 tickfont: { size: sts?.yTickSize || 17 }
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: 30, b: colorByCategory ? 100 : 60, l: 80, autoexpand: false },
+            margin: { t: topMargin, r: 30, b: colorByCategory ? 100 : 60, l: 96, autoexpand: false },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: colorByCategory ? {
                 orientation: 'h',
@@ -16560,6 +16575,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const el = document.getElementById(id);
             if (el) el.classList.toggle('analysis-locked', locked);
         });
+        // Highlight the Options card while the workspace is locked, so it's the
+        // obvious place to start; drop the highlight once Analysis is clicked.
+        document.getElementById('optionsCard')?.classList.toggle('options-highlight', locked);
         // While locked, "Analysis" is the emphasized (filled green) action;
         // once unlocked it drops to the same green-outline style as its peers.
         const startBtn = document.getElementById('startAnalysisBtn');
@@ -20215,9 +20233,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (!dlg) return;
         const { widthCm, heightCm, dpi, background, fmt: _f, scope } = dlg;
         const fmt = dlg.format || 'png';
+        const rootId = (typeof elOrId === 'string') ? elOrId : root.id;
         // html2canvas scale maps CSS px (96 dpi) to the target density; cap so
         // a large popout doesn't blow up into an unrenderable canvas.
         const scale = Math.min(8, Math.max(1, dpi / 96));
+
+        // html2canvas mis-renders live Plotly SVGs (the grey plot background ends
+        // up nudged), so flatten each chart to a crisp PNG first and swap it into
+        // the clone. Rendered at the capture scale so it stays sharp.
+        const livePlots = [...root.querySelectorAll('.js-plotly-plot')];
+        const plotImgs = [];
+        for (const gd of livePlots) {
+            try {
+                const pw = gd.offsetWidth || 600, ph = gd.offsetHeight || 400;
+                const url = (typeof Plotly !== 'undefined') ? await Plotly.toImage(gd, { format: 'png', width: pw, height: ph, scale }) : null;
+                plotImgs.push(url ? { w: pw, h: ph, url } : null);
+            } catch (e) { plotImgs.push(null); }
+        }
+        // Native <input>/<select> text renders low in html2canvas; capture each
+        // control's height so we can set line-height = height in the clone.
+        const ctrlHeights = [...root.querySelectorAll('input, select, textarea')].map(el => el.offsetHeight);
+
         // For full-content capture, temporarily lift height/overflow clamps so
         // scrolled-out rows are included, then restore.
         const saved = [];
@@ -20238,7 +20274,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 scale,
                 backgroundColor: background === 'transparent' ? null : '#ffffff',
                 useCORS: true, logging: false,
-                windowWidth: document.documentElement.scrollWidth
+                windowWidth: document.documentElement.scrollWidth,
+                onclone: (clonedDoc) => {
+                    const scopeEl = (rootId && clonedDoc.getElementById(rootId)) || clonedDoc.body;
+                    // Swap each Plotly chart for its flattened PNG.
+                    scopeEl.querySelectorAll('.js-plotly-plot').forEach((el, i) => {
+                        const info = plotImgs[i];
+                        if (!info || !info.url) return;
+                        el.innerHTML = '';
+                        const img = clonedDoc.createElement('img');
+                        img.src = info.url;
+                        img.style.cssText = `width:${info.w}px;height:${info.h}px;display:block;`;
+                        el.appendChild(img);
+                    });
+                    // Vertically centre control text (line-height = control height).
+                    scopeEl.querySelectorAll('input, select, textarea').forEach((el, i) => {
+                        const h = ctrlHeights[i];
+                        if (h && el.tagName !== 'TEXTAREA') {
+                            el.style.lineHeight = h + 'px';
+                            el.style.paddingTop = '0px';
+                            el.style.paddingBottom = '0px';
+                        }
+                    });
+                }
             });
         } catch (e) {
             saved.forEach(s => { for (const p in s.prev) s.el.style[p] = s.prev[p]; });
@@ -20265,7 +20323,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         btn.type = 'button';
         btn.title = 'Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area)';
         btn.style.cssText = 'font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);';
-        btn.innerHTML = '&#128247; Figure';
+        btn.innerHTML = '&#128247; Screenshot';
         btn.addEventListener('click', (e) => { e.stopPropagation(); this.screenshotPopout(rootEl, fileStem, metaExtra); });
         headerEl.appendChild(btn);
     }
