@@ -454,6 +454,14 @@ class CorrelationExplorer {
         this.metadata = await metadataRes.json();
         this.cellLineMetadata = await cellLineRes.json();
         this.mutations = await mutationsRes.json();
+        // HLA / MIC / KIR calls are germline allelic divergence, not somatic
+        // hotspots, so drop them from the hotspot gene list that every hotspot
+        // picker / stratifier iterates (Gene Effect, scatter, Correlation
+        // Analysis, parameters). geneData keeps them for any direct lookup. This
+        // makes the hotspot filter consistent everywhere, matching the CLB.
+        if (Array.isArray(this.mutations?.genes)) {
+            this.mutations.genes = this.mutations.genes.filter(g => !this._isPolymorphicLocus(g));
+        }
         this.orthologs = await orthologsRes.json();
         if (damagingMutRes && damagingMutRes.ok) {
             this.damagingMutations = await damagingMutRes.json();
