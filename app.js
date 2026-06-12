@@ -3287,6 +3287,16 @@ class CorrelationExplorer {
         // Reset App button
         document.getElementById('resetAppBtn')?.addEventListener('click', () => location.reload());
 
+        // Options banner: boxes 1/2/3 start locked and are enabled by "Analysis".
+        // Locking is done here in JS (not in HTML) so a script failure fails open
+        // and leaves the workspace usable. Reset reloads the page, re-locking.
+        this._setAnalysisLocked(true);
+        document.getElementById('startAnalysisBtn')?.addEventListener('click', () => {
+            this._setAnalysisLocked(false);
+            // Drop focus to the gene input so the user can start typing.
+            document.getElementById('geneTextarea')?.focus();
+        });
+
         // Reset excluded tissues button
         document.getElementById('resetExcludedTissuesBtn')?.addEventListener('click', () => {
             document.querySelectorAll('#tissueExcludeList input[type="checkbox"]').forEach(cb => cb.checked = false);
@@ -5066,6 +5076,8 @@ class CorrelationExplorer {
     }
 
     runAnalysis() {
+        // Any analysis run reveals boxes 1/2/3 (safety net for programmatic runs).
+        this._setAnalysisLocked(false);
         // Reset network settings to defaults when running new analysis
         this.resetNetworkSettings();
 
@@ -16346,6 +16358,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         alert('No Correlate data found in this file.');
     }
 
+    // Gray out / enable boxes 1 (Set Parameters), 2 (Input Gene Set) and
+    // 3 (Results). Locked on load; "Analysis" in the Options banner unlocks.
+    _setAnalysisLocked(locked) {
+        ['paramsCard', 'geneInputCard', 'resultsCard'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('analysis-locked', locked);
+        });
+        const startBtn = document.getElementById('startAnalysisBtn');
+        if (startBtn) {
+            startBtn.style.background = locked ? '#fff' : 'rgba(255,255,255,0.25)';
+            startBtn.style.boxShadow = locked ? '0 0 0 2px rgba(255,255,255,0.5)' : 'none';
+        }
+        const hint = document.getElementById('optionsBannerHint');
+        if (hint) {
+            hint.innerHTML = locked
+                ? 'Click <b>Analysis</b> to set parameters and build a network, or jump straight to a tool.'
+                : 'Set parameters and enter a gene set in boxes 1 and 2, then build a network.';
+        }
+    }
+
     _resetForRestore() {
         // Reset parameter filters so they don't bleed into restored view
         const resetEl = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
@@ -16371,6 +16403,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     _handleExportMeta(meta) {
+        // Opening a saved view counts as starting analysis, so reveal boxes 1/2/3.
+        this._setAnalysisLocked(false);
         this._resetForRestore();
 
         // Scatter-like exports with gene pair → restore inspect view
@@ -16549,6 +16583,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     async _restoreFromState(state) {
         if (!state.gene1 || !state.gene2) { alert('Missing gene information in state.'); return; }
+        this._setAnalysisLocked(false);
         this._resetForRestore();
 
         // Restore oncoprint multi-gene filters if saved
