@@ -1,21 +1,18 @@
+- Export buttons in the cell line browser need to be renamed. The function should be to have one that focuses on one (or a few) selected cell lines and shows GE and expression for all genes (currently called "GE matrix"). One export that focuses on one cell line and gives all information about all genes for that cell line (including damaging mutation hotspots, fusions, deep deletions, etc.). This is currently called "all matrices". and one button that focus on one or a few genes (and gives all info about those genes (GE, expression, deep deletions, hotspot etc) for all or a slection of cell lines (currently called "export genes"). the export that gives extensive information about all genes in one cell line, should also be possible to export from the wiki for the cel lline with a button next to the "download PDF" in the wiki, eg export gene info ?? .csv. 
+- in the wiki, there shold be the possiblity to export drug responses as .csv so the user could make there own graph. same should be true for the breast cancer gene expression data.  also, try to make the 
+
+- add a screenshot button to all popouts, this is to facilitate making figures for the manuscript or information material. it should thus be highquality export including both raster and vector based that could go into publication. it should also allow for showing the full screen, or only the part that is visble on the screen as the button is pressed 
+
+
+Plan for v1 (that will be pushed to corrleta.cmm.se by IT department, and which will be basis for manuscript):
+- intially thought to only be based on GE to limit size, but we now want to expand to be rather similar to V2, but not including dimension reduction in cell line browser, and gates in eg the correlate popout.  v1 should also contain the .json export options in differnt plasces, but not expression correlates.  
+
+
+
+older:
 in v. 1 (but probably in other apps too): In mutational analysis, selected eg BRAF hotspot mutation. If you select only TP53 in the oncoprint, the oblique hotspot mutation also changes. These should be separated.
 in v. 1 (but probably in other apps too): analyis of a gene set and applied TP53 mut and BRAF mut in oncoprint. in the network, the legend in the header say TP53 level all, it should say WT or mut. 
 in v.1 (but probably in other apps too): ehen using design mode, searched genes are darker green and collerated geesn are lighter green. thuis is good. but when change the size in the "Aa" settings, the öighter gereen color diseapear. 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 Better long-term fix in your correlate app: Another item for Claude Code. The SVG lines probably use absolute stroke-width values. Add this to your prompt:
 When generating SVGs for export, add vector-effect="non-scaling-stroke" to line/path elements if you want strokes to stay consistent, OR (preferred for Inkscape compatibility) make sure all stroke-widths are set as proportional values and include the attribute style="vector-effect: none" on the root SVG so that Inkscape scales strokes with transforms. Also, avoid using SVG transform="scale()" on groups. Instead, set actual coordinate values so that when the user scales in Inkscape, everything behaves predictably.
