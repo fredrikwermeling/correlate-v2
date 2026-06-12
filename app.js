@@ -25377,8 +25377,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             (byCat[def.category] = byCat[def.category] || []).push({ id, def, n });
         }
 
-        let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">`
-            + `<span style="font-weight:600; color:#374151;">Filter cell lines by quick filter</span>`
+        let html = `<div id="clbCollectionDragHandle" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; cursor:move; user-select:none;">`
+            + `<span style="font-weight:600; color:#374151;">Filter cell lines by quick filter <span style="font-weight:400; color:#9ca3af; font-size:10px;">(drag to move)</span></span>`
             + `<a href="#" id="clbCollectionsClear" style="color:#6b7280; text-decoration:none; font-size:10px;">clear all</a>`
             + `</div>`
             + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#15803d;">+</b> to require, <b style="color:#991b1b;">−</b> to exclude. Multiple quick filters combine with AND. <b>Hover any filter name for how it's defined.</b></div>`;
@@ -25488,6 +25488,81 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 this.renderCellLineList();
             });
         }
+        // Drag-to-move via the header, so the panel can always be repositioned.
+        this._makeDraggable(panel, document.getElementById('clbCollectionDragHandle'));
+    }
+
+    // Shared drag-to-move for popouts/panels. `handle` (defaults to el) starts
+    // the drag; the element is pinned to fixed viewport coordinates on first
+    // drag so it moves independently of any scroll container, and is always
+    // clamped to stay fully within the viewport.
+    _makeDraggable(el, handle) {
+        if (!el) return;
+        handle = handle || el;
+        handle.style.cursor = 'move';
+        handle.addEventListener('mousedown', (e) => {
+            // Don't hijack drags that begin on interactive controls.
+            if (e.target.closest('a, button, input, select, textarea')) return;
+            e.preventDefault();
+            const rect = el.getBoundingClientRect();
+            el.style.position = 'fixed';
+            el.style.margin = '0';
+            el.style.right = 'auto';
+            el.style.bottom = 'auto';
+            el.style.left = rect.left + 'px';
+            el.style.top = rect.top + 'px';
+            const dx = e.clientX - rect.left, dy = e.clientY - rect.top;
+            const onMove = (e2) => {
+                const w = el.offsetWidth, h = el.offsetHeight;
+                const maxLeft = Math.max(0, window.innerWidth - w);
+                const maxTop = Math.max(0, window.innerHeight - h);
+                el.style.left = Math.min(maxLeft, Math.max(0, e2.clientX - dx)) + 'px';
+                el.style.top = Math.min(maxTop, Math.max(0, e2.clientY - dy)) + 'px';
+            };
+            const onUp = () => {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+            };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+    }
+
+    // Clamp an open popup so it sits fully within the viewport. Switches it to
+    // fixed positioning only when it would overflow, so nothing (e.g. the last
+    // quick-filter rows) ends up below the fold on small screens. The element
+    // keeps its own max-height / overflow for internal scrolling.
+    _fitPopupInViewport(el, margin = 12) {
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const overflowsRight = rect.right > vw - margin;
+        const overflowsBottom = rect.bottom > vh - margin;
+        const overflowsLeft = rect.left < margin;
+        const overflowsTop = rect.top < margin;
+        if (!overflowsRight && !overflowsBottom && !overflowsLeft && !overflowsTop) return;
+        const w = Math.min(rect.width, vw - 2 * margin);
+        const h = Math.min(rect.height, vh - 2 * margin);
+        const left = Math.max(margin, Math.min(rect.left, vw - w - margin));
+        const top = Math.max(margin, Math.min(rect.top, vh - h - margin));
+        el.style.position = 'fixed';
+        el.style.margin = '0';
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+        el.style.left = left + 'px';
+        el.style.top = top + 'px';
+    }
+
+    // Restore a panel to its anchored (under-the-button) default after a drag
+    // or viewport-fit pinned it to fixed coordinates.
+    _resetPanelAnchor(el, top = '100%', left = '0') {
+        if (!el) return;
+        el.style.position = 'absolute';
+        el.style.top = top;
+        el.style.left = left;
+        el.style.right = '';
+        el.style.bottom = '';
+        el.style.margin = '';
     }
 
     _toggleCollectionState(id, action) {
@@ -25633,8 +25708,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (isOpen) {
                     clbCollectionPanel.style.display = 'none';
                 } else {
+                    // Re-anchor under the button (a previous drag may have pinned
+                    // it to fixed coords), render, then clamp into the viewport so
+                    // the last rows stay reachable on small screens.
+                    this._resetPanelAnchor(clbCollectionPanel);
                     this._renderCollectionPanel();
                     clbCollectionPanel.style.display = '';
+                    requestAnimationFrame(() => this._fitPopupInViewport(clbCollectionPanel));
                 }
             });
             document.addEventListener('click', (e) => {
