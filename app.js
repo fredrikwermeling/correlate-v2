@@ -16287,10 +16287,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     async restoreFromExport(file) {
-        if (file.name.toLowerCase().endsWith('.png')) {
+        const lower = file.name.toLowerCase();
+        // Sidecar metadata file is the primary recreate path.
+        if (lower.endsWith('.json')) {
+            return this.restoreFromMeta(file);
+        }
+        if (lower.endsWith('.png')) {
             return this.restoreFromPng(file);
         }
         return this.restoreFromSvg(file);
+    }
+
+    // Recreate a view from a .correlate.json sidecar (or any exported metadata
+    // object). Mirrors the embedded-metadata path so both behave identically.
+    async restoreFromMeta(file) {
+        let meta;
+        try { meta = JSON.parse(await file.text()); }
+        catch (e) { alert('Could not read this Correlate metadata file (invalid JSON).'); return; }
+        if (!meta || typeof meta !== 'object') { alert('No Correlate metadata found in this file.'); return; }
+        return this._handleExportMeta(meta);
     }
 
     async restoreFromPng(file) {
@@ -19892,6 +19907,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             a.download = `${filename}.svg`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(a.href);
+            this._downloadMetaSidecar(filename, metaJson);
             return;
         }
 
@@ -19932,8 +19948,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // its DPI / metadata chunks; TIFF / PDF / PPTX are built from the same
     // pixels so they match the PNG exactly. Falls back to PNG if a builder
     // throws (e.g. JSZip missing for PPTX).
+    // Write the export's metadata as a sidecar .correlate.json next to the
+    // image. This is the primary way to recreate a figure later: the Open
+    // button reads it back and restores the exact view (filters, settings,
+    // genes, cohort), independent of whether the image itself is re-imported.
+    _downloadMetaSidecar(filename, metaJson) {
+        if (!metaJson) return;
+        try {
+            const blob = new Blob([metaJson], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${filename}.correlate.json`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        } catch (e) { /* sidecar is best-effort, never block the image export */ }
+    }
+
     async _downloadCanvasAs(canvas, fmt, filename, opts = {}) {
-        const { dpi = 300, widthCm, heightCm, metaJson, svg } = opts;
+        const { dpi = 300, widthCm, heightCm, metaJson, svg, skipSidecar } = opts;
         const save = (blob, ext) => {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -19941,6 +19973,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(a.href);
         };
+        // Companion metadata file (unless the caller already emits one).
+        if (!skipSidecar) this._downloadMetaSidecar(filename, metaJson);
         try {
             if (fmt === 'tiff') { save(new Blob([this._canvasToTiff(canvas, dpi)], { type: 'image/tiff' }), 'tiff'); return; }
             if (fmt === 'pdf') {
