@@ -14498,8 +14498,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
                 const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
                 const typeBadge = m.type === 'hotspot'
-                    ? '<span style="background:#f59e0b;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
-                    : '<span style="background:#8b5cf6;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
+                    ? '<span style="background:#b58a3c;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
+                    : '<span style="background:#a8553a;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
                 html += `<tr>
                     <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation();app.showGateGenePlot('${m.gene}','mutation')">${m.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;">${typeBadge}</td>
@@ -15392,8 +15392,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
                 const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
                 const typeBadge = m.type === 'hotspot'
-                    ? '<span style="background:#f59e0b;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
-                    : '<span style="background:#8b5cf6;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
+                    ? '<span style="background:#b58a3c;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
+                    : '<span style="background:#a8553a;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
                 html += `<tr>
                     <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation();app.showGEGateGenePlot('${m.gene}','mutation')">${m.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;">${typeBadge}</td>
@@ -27056,9 +27056,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const subtype = document.getElementById('clbSubtypeFilter')?.value;
         const hotspot = document.getElementById('clbHotspotFilter')?.value;
         const trans = this._stripFusionFilterDecoration(document.getElementById('clbTranslocationFilter')?.value);
-        if (tissue) parts.push(`<span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:10px;">${tissue}${subtype ? ' · ' + subtype : ''}</span>`);
-        if (hotspot) parts.push(`<span style="background:#dcfce7;color:#16a34a;padding:1px 6px;border-radius:10px;">${hotspot} mutated</span>`);
-        if (trans) parts.push(`<span style="background:#fae8ff;color:#7c3aed;padding:1px 6px;border-radius:10px;">${trans} fused</span>`);
+        if (tissue) parts.push(`<span style="background:var(--earth-50);color:var(--earth-700);padding:1px 6px;border-radius:10px;">${tissue}${subtype ? ' · ' + subtype : ''}</span>`);
+        if (hotspot) parts.push(`<span style="background:#e6efde;color:#5a7d35;padding:1px 6px;border-radius:10px;">${hotspot} mutated</span>`);
+        if (trans) parts.push(`<span style="background:#efe7ec;color:#7d5a66;padding:1px 6px;border-radius:10px;">${trans} fused</span>`);
         // Collection include/exclude chips. Green = "must be in"; red = "must
         // not be in". Each chip has an inline × that clears that one state.
         for (const [id, state] of this._clbCollectionStates) {
@@ -28798,15 +28798,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 // haven't been built yet.
                 const _mem = this._collectionMembership || {};
                 let call, callColor;
-                if (_mem.her2_pos_breast?.has(cellLineId)) { call = 'HER2+ (approximate)'; callColor = '#7c3aed'; }
-                else if (_mem.tnbc?.has(cellLineId)) { call = 'Triple-negative (approximate)'; callColor = '#dc2626'; }
-                else if (_mem.hr_pos_breast?.has(cellLineId)) { call = 'HR+ / luminal (approximate)'; callColor = '#2563eb'; }
+                if (_mem.her2_pos_breast?.has(cellLineId)) { call = 'HER2+ (approximate)'; callColor = '#b58a3c'; }
+                else if (_mem.tnbc?.has(cellLineId)) { call = 'Triple-negative (approximate)'; callColor = '#b05a3c'; }
+                else if (_mem.hr_pos_breast?.has(cellLineId)) { call = 'HR+ / luminal (approximate)'; callColor = '#6e8b4a'; }
                 else {
                     const isHer2 = herD.mine != null && herD.mine >= herThresh;
                     const hrPos = (esrD.mine != null && esrD.mine >= esrMed) || (pgrD.mine != null && pgrD.mine >= pgrMed);
-                    if (isHer2) { call = 'HER2+ (approximate)'; callColor = '#7c3aed'; }
-                    else if (hrPos) { call = 'HR+ / luminal (approximate)'; callColor = '#2563eb'; }
-                    else { call = 'Triple-negative (approximate)'; callColor = '#dc2626'; }
+                    if (isHer2) { call = 'HER2+ (approximate)'; callColor = '#b58a3c'; }
+                    else if (hrPos) { call = 'HR+ / luminal (approximate)'; callColor = '#6e8b4a'; }
+                    else { call = 'Triple-negative (approximate)'; callColor = '#b05a3c'; }
                 }
                 const targets = [
                     { gene: 'ESR1', label: 'ESR1 (ER)', d: esrD },
@@ -33225,8 +33225,8 @@ ${clone.innerHTML}
                 const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
                 const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
                 const badge = m.type === 'hotspot'
-                    ? '<span style="background:#f59e0b;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
-                    : '<span style="background:#8b5cf6;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
+                    ? '<span style="background:#b58a3c;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
+                    : '<span style="background:#a8553a;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
                 html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation();app.showUmapGateGenePlot('${m.gene}','mutation')">${m.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;">${badge}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.mutA}</td>
