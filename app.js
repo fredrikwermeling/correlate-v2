@@ -19749,8 +19749,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (titleEl) titleEl.textContent = `Export chart / ${f.toUpperCase()}`;
                 if (dpiRow) dpiRow.style.display = f === 'svg' ? 'none' : '';
             };
+            // Scope (full content vs visible area), shown for DOM popout
+            // screenshots only. rasterOnly hides the SVG choice because a DOM
+            // capture has no vector source.
+            const scopeRow = document.getElementById('exportOptScopeRow');
+            if (scopeRow) scopeRow.style.display = context.allowScope ? '' : 'none';
+            const svgOpt = document.getElementById('exportOptFormatSvg');
+            if (svgOpt) svgOpt.style.display = context.rasterOnly ? 'none' : '';
             if (fmtEl) {
-                fmtEl.value = (['png', 'svg', 'pdf', 'tiff', 'pptx'].includes(context.format)) ? context.format : 'png';
+                const allowed = context.rasterOnly ? ['png', 'pdf', 'tiff', 'pptx'] : ['png', 'svg', 'pdf', 'tiff', 'pptx'];
+                fmtEl.value = allowed.includes(context.format) ? context.format : 'png';
                 fmtEl.onchange = syncFormatUI;
             }
             syncFormatUI();
@@ -19807,7 +19815,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     dpi: parseInt(dpiEl.value) || 600,
                     background: document.querySelector('input[name="exportOptBg"]:checked')?.value || 'white',
                     legendFrame: !!frameEl?.checked,
-                    lockAspect: !!(lockEl ? lockEl.checked : true)
+                    lockAspect: !!(lockEl ? lockEl.checked : true),
+                    scope: document.querySelector('input[name="exportOptScope"]:checked')?.value || 'full'
                 };
                 this._lastExportOpts = opts;
                 cleanup();
@@ -19948,6 +19957,77 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // its DPI / metadata chunks; TIFF / PDF / PPTX are built from the same
     // pixels so they match the PNG exactly. Falls back to PNG if a builder
     // throws (e.g. JSZip missing for PPTX).
+    // Publication screenshot of any popout / DOM element. Raster (PNG / TIFF /
+    // PDF / PPTX) via html2canvas at the chosen DPI, with a full-content vs
+    // visible-area choice and the usual .correlate.json sidecar. Pure-chart
+    // popouts keep their own vector (SVG/PDF) export; this captures the whole
+    // popout (chart + surrounding context) as one figure.
+    async screenshotPopout(elOrId, fileStem, metaExtra = {}) {
+        const root = (typeof elOrId === 'string') ? document.getElementById(elOrId) : elOrId;
+        if (!root) { alert('Nothing to capture.'); return; }
+        if (typeof html2canvas === 'undefined') { alert('Screenshot library not loaded.'); return; }
+        const dlg = await this._showExportDialog({
+            format: 'png', plotW: root.offsetWidth || 600, plotH: root.offsetHeight || 400,
+            allowScope: true, rasterOnly: true
+        });
+        if (!dlg) return;
+        const { widthCm, heightCm, dpi, background, fmt: _f, scope } = dlg;
+        const fmt = dlg.format || 'png';
+        // html2canvas scale maps CSS px (96 dpi) to the target density; cap so
+        // a large popout doesn't blow up into an unrenderable canvas.
+        const scale = Math.min(8, Math.max(1, dpi / 96));
+        // For full-content capture, temporarily lift height/overflow clamps so
+        // scrolled-out rows are included, then restore.
+        const saved = [];
+        if (scope === 'full') {
+            const stash = (el, props) => { const prev = {}; props.forEach(p => { prev[p] = el.style[p]; el.style[p] = (p === 'overflow' || p === 'overflowY' || p === 'overflowX') ? 'visible' : (p === 'maxHeight' || p === 'maxWidth') ? 'none' : 'auto'; }); saved.push({ el, prev }); };
+            stash(root, ['maxHeight', 'overflow', 'overflowY', 'height']);
+            // Also lift clamps on scrollable descendants.
+            root.querySelectorAll('*').forEach(el => {
+                const cs = getComputedStyle(el);
+                if (cs.overflowY === 'auto' || cs.overflowY === 'scroll' || cs.overflow === 'auto' || cs.overflow === 'scroll') {
+                    stash(el, ['maxHeight', 'overflow', 'overflowY']);
+                }
+            });
+        }
+        let canvas;
+        try {
+            canvas = await html2canvas(root, {
+                scale,
+                backgroundColor: background === 'transparent' ? null : '#ffffff',
+                useCORS: true, logging: false,
+                windowWidth: document.documentElement.scrollWidth
+            });
+        } catch (e) {
+            saved.forEach(s => { for (const p in s.prev) s.el.style[p] = s.prev[p]; });
+            alert('Screenshot failed: ' + (e?.message || e));
+            return;
+        }
+        saved.forEach(s => { for (const p in s.prev) s.el.style[p] = s.prev[p]; });
+        const date = new Date().toISOString().slice(0, 10);
+        const filename = `${fileStem || 'correlate_figure'}_${date}`;
+        const meta = (typeof this._buildExportMetadata === 'function')
+            ? this._buildExportMetadata('popout_screenshot', { scope, ...metaExtra })
+            : null;
+        const metaJson = meta ? JSON.stringify(meta) : null;
+        await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson });
+    }
+
+    // Inject a small camera button into a popout header that captures the given
+    // root element. `headerEl` is where the button is appended; `rootEl` is what
+    // gets captured. Guards against double-injection.
+    _addScreenshotButton(headerEl, rootEl, fileStem, metaExtra = {}) {
+        if (!headerEl || !rootEl || headerEl.querySelector('.popout-screenshot-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'popout-screenshot-btn btn btn-outline btn-sm';
+        btn.type = 'button';
+        btn.title = 'Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area)';
+        btn.style.cssText = 'font-size:11px; padding:3px 8px; color:#7c3aed; border-color:#c4b5fd;';
+        btn.innerHTML = '&#128247; Figure';
+        btn.addEventListener('click', (e) => { e.stopPropagation(); this.screenshotPopout(rootEl, fileStem, metaExtra); });
+        headerEl.appendChild(btn);
+    }
+
     // Write the export's metadata as a sidecar .correlate.json next to the
     // image. This is the primary way to recreate a figure later: the Open
     // button reads it back and restores the exact view (filters, settings,
