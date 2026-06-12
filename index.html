@@ -161,8 +161,6 @@
             filter: grayscale(0.4);
             transition: opacity 0.2s ease;
         }
-        #optionsBanner .btn { font-size: 12px; padding: 4px 12px; }
-        #optionsBanner .btn:hover { filter: brightness(1.06); }
 
         .sidebar-row {
             display: flex;
@@ -1394,6 +1392,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.29 (2026-06-12)</strong></p>
+                <ul>
+                    <li><b>Options</b> is now a normal card matching the rest of the app (same green title bar, same font) instead of the bright banner. Its header sits on the same row as the <b>Reference Data</b> header, with the action buttons on the row below.</li>
+                </ul>
                 <p><strong>v.83.28 (2026-06-12)</strong></p>
                 <ul>
                     <li><b>Open a popout in a new tab.</b> The Gene Effect, Correlation and Correlation Analysis popouts now have a <b>New tab &#8599;</b> button. It opens the same view in a fresh browser tab (the view's settings travel in the URL), so you can park e.g. <i>TP53 gene effect by tissue</i> in one tab and keep working on the network in the other.</li>
@@ -3218,26 +3220,10 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.28</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.29</a>
     </div>
 
     <div class="main-content">
-    <!-- Options banner: actions moved above the workspace. "Analysis" enables
-         boxes 1/2/3; the other buttons jump straight to a tool. -->
-    <div id="optionsBanner" style="background:linear-gradient(90deg,#15803d 0%, #22c55e 100%); color:#fff; padding:8px 14px; border-radius:8px; margin:0 0 12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; box-shadow:0 2px 6px rgba(0,0,0,0.12);">
-        <span style="font-weight:700; font-size:15px; letter-spacing:0.3px;">Options</span>
-        <span id="optionsBannerHint" style="font-size:11px; opacity:0.92;">Click <b>Analysis</b> to set parameters and build a network, or jump straight to a tool.</span>
-        <div style="display:flex; gap:6px; margin-left:auto; flex-wrap:wrap;">
-            <button class="btn btn-sm" id="startAnalysisBtn" style="background:#fff; color:#15803d; font-weight:700; border:1px solid #fff;" title="Enable boxes 1 / 2 / 3 to set parameters, enter genes and build a correlation network">Analysis</button>
-            <button class="btn btn-sm" id="showGeneEffectDirect" style="background:rgba(255,255,255,0.14); color:#fff; border:1px solid rgba(255,255,255,0.65);">Gene Effect</button>
-            <button class="btn btn-sm" id="showCorrelationDirect" style="background:rgba(255,255,255,0.14); color:#fff; border:1px solid rgba(255,255,255,0.65);">Correlation</button>
-            <button class="btn btn-sm" id="showCellLineBrowser" style="background:rgba(255,255,255,0.14); color:#fff; border:1px solid rgba(255,255,255,0.65);">Cell Line Browser</button>
-            <label class="btn btn-sm" style="background:rgba(255,255,255,0.14); color:#fff; border:1px solid rgba(255,255,255,0.65); cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">
-                Open <input type="file" id="restoreFromExportInput" accept=".json,.svg,.png" style="display:none;">
-            </label>
-            <button class="btn btn-sm" id="resetAppBtn" style="background:rgba(0,0,0,0.12); color:#fff; border:1px solid rgba(255,255,255,0.65);">Reset</button>
-        </div>
-    </div>
     <div class="container">
         <!-- Left Sidebar -->
         <div class="sidebar">
@@ -3574,6 +3560,25 @@
 
         <!-- Main Panel -->
         <div class="main-panel">
+            <!-- Options card: workspace actions. Its green title bar lines up
+                 with the Reference Data title on the same row; "Analysis"
+                 enables boxes 1/2/3, the other buttons jump straight to a tool. -->
+            <div class="card" id="optionsCard">
+                <div class="card-title">Options</div>
+                <div class="card-content" style="padding: 12px 16px;">
+                    <div id="optionsBannerHint" style="font-size:11px; color:#6b7280; margin-bottom:8px;">Click <b>Analysis</b> to set parameters and build a network, or jump straight to a tool.</div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="btn btn-success btn-sm" id="startAnalysisBtn" title="Enable boxes 1 / 2 / 3 to set parameters, enter genes and build a correlation network">Analysis</button>
+                        <button class="btn btn-outline btn-sm" id="showGeneEffectDirect" style="color:var(--green-700); border-color:var(--green-400);">Gene Effect</button>
+                        <button class="btn btn-outline btn-sm" id="showCorrelationDirect" style="color:var(--green-700); border-color:var(--green-400);">Correlation</button>
+                        <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="color:var(--green-700); border-color:var(--green-400);">Cell Line Browser</button>
+                        <label class="btn btn-outline btn-sm" style="cursor:pointer; color:var(--green-700); border-color:var(--green-400); display:flex; align-items:center; justify-content:center;" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">
+                            Open <input type="file" id="restoreFromExportInput" accept=".json,.svg,.png" style="display:none;">
+                        </label>
+                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid #9ca3af;">Reset</button>
+                    </div>
+                </div>
+            </div>
             <div class="card" id="resultsCard" style="padding-bottom: 0;">
                 <div class="card-title">3. Results</div>
                 <div class="card-content" style="padding-bottom: 0;">
@@ -5469,6 +5474,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_28"></script>
+    <script src="app.js?v=v83_29"></script>
 </body>
 </html>

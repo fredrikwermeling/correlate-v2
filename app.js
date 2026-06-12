@@ -16420,10 +16420,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const el = document.getElementById(id);
             if (el) el.classList.toggle('analysis-locked', locked);
         });
+        // While locked, "Analysis" is the emphasized (filled green) action;
+        // once unlocked it drops to the same green-outline style as its peers.
         const startBtn = document.getElementById('startAnalysisBtn');
         if (startBtn) {
-            startBtn.style.background = locked ? '#fff' : 'rgba(255,255,255,0.25)';
-            startBtn.style.boxShadow = locked ? '0 0 0 2px rgba(255,255,255,0.5)' : 'none';
+            startBtn.classList.toggle('btn-success', locked);
+            startBtn.classList.toggle('btn-outline', !locked);
+            startBtn.style.color = locked ? '' : 'var(--green-700)';
+            startBtn.style.borderColor = locked ? '' : 'var(--green-400)';
         }
         const hint = document.getElementById('optionsBannerHint');
         if (hint) {
