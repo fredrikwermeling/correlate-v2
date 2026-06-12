@@ -25834,6 +25834,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('clbWikiModal').style.display = 'none';
         });
         document.getElementById('clbWikiDownloadBtn')?.addEventListener('click', () => this.downloadCellLineWiki());
+        document.getElementById('clbWikiExportGenesBtn')?.addEventListener('click', () => this.exportWikiCellLineGenesCSV());
         document.getElementById('clbWikiModal')?.addEventListener('click', (e) => {
             if (e.target.id === 'clbWikiModal') e.target.style.display = 'none';
         });
@@ -28283,6 +28284,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     }
 
     async openCellLineWiki(cellLineId) {
+        // Remember which cell line the wiki is showing so the header export
+        // buttons (gene-info CSV etc.) know what to export.
+        this._wikiCellLineId = cellLineId;
         // Ensure the common-essentials gene list is loaded, used to filter
         // pan-essentials out of the "uniquely essential" view below. Small
         // file; loaded once and cached for the session. Silently falls back
@@ -30469,6 +30473,29 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     // Save the currently-open Wiki as a standalone HTML file. Replaces the
     // removed "Cell Line Detail Report" CSV export, a self-contained HTML
     // file keeps the pill/card styling intact and prints cleanly.
+    // Export the full per-gene profile for the cell line the wiki is showing.
+    // Reuses the same builder as the Cell Line Browser "full profile" export.
+    async exportWikiCellLineGenesCSV() {
+        const clId = this._wikiCellLineId;
+        if (!clId) { alert('Open a cell-line Wiki first.'); return; }
+        const ci = this.metadata.cellLines.indexOf(clId);
+        if (ci < 0) { alert('Cell line not found in the dataset.'); return; }
+        const btn = document.getElementById('clbWikiExportGenesBtn');
+        const label = btn ? btn.textContent : '';
+        if (btn) { btn.textContent = 'Preparing…'; btn.disabled = true; }
+        try {
+            if (!this.expressionLoaded) {
+                try { await this.loadExpressionData(); } catch (e) { /* expr cols blank */ }
+            }
+            const name = (this.getCellLineName(clId) || clId).replace(/[^A-Za-z0-9]/g, '');
+            const csv = this._buildCellLineFullProfileCsv([ci], [this.getCellLineName(clId) || clId]);
+            this.downloadFile(csv, csvName(`correlate_full_profile_${name}`), 'text/csv');
+            this.showCopyNotification?.(`Exported full gene profile for ${this.getCellLineName(clId) || clId}`);
+        } finally {
+            if (btn) { btn.textContent = label; btn.disabled = false; }
+        }
+    }
+
     async downloadCellLineWiki() {
         const title = document.getElementById('clbWikiTitle')?.textContent || 'Cell Line Wiki';
         const subtitle = document.getElementById('clbWikiSubtitle')?.textContent || '';
@@ -31392,10 +31419,62 @@ ${clone.innerHTML}
     // then GE_<gene> and Expr_<gene> for every gene the user types in.
     // Aimed at quickly pulling a tidy table to explore or plot outside the
     // app.
-    exportCellLineBrowserGenesCSV() {
+    // Map gene -> focal copy-number event ({ cn, tier, kind }) for one cell
+    // line, from the curated clinical CN panel (clinical_cn.json). Used to add
+    // a deep-deletion / amplification column to the full-profile exports.
+    _cnEventMapForCellLine(clId) {
+        const m = new Map();
+        const entry = this.clinicalCn?.byCellLine?.[clId];
+        if (!entry) return m;
+        for (const a of (entry.amplifications || [])) m.set(a.gene, { cn: a.cn, tier: a.tier, kind: 'amp' });
+        for (const d of (entry.deletions || [])) m.set(d.gene, { cn: d.cn, tier: d.tier, kind: 'del' });
+        return m;
+    }
+
+    // Build the "full profile" CSV (every gene x given cell lines, with GE,
+    // Expression, Hotspot, Damaging, Fusion and focal CN/deep-deletion columns).
+    // Shared by the Cell Line Browser "full profile" export and the wiki's
+    // per-cell-line "Export gene info" button. Assumes expression is loaded.
+    _buildCellLineFullProfileCsv(clIndices, clNames) {
+        const cnMaps = clIndices.map(ci => this._cnEventMapForCellLine(this.metadata.cellLines[ci]));
+        const headerParts = ['Gene'];
+        for (const name of clNames) {
+            const n = name.replace(/,/g, '');
+            headerParts.push(`${n}_GE`, `${n}_Expr`, `${n}_Hotspot`, `${n}_Damaging`, `${n}_Fusion`, `${n}_FocalCN`);
+        }
+        const lines = [
+            `# Full per-gene profile for ${clNames.length} cell line${clNames.length === 1 ? '' : 's'}`,
+            `# Columns per cell line: GE (CRISPR gene effect), Expr (log2 TPM+1), Hotspot (0/1/2), Damaging (0/1), Fusion (0/1/2), FocalCN (curated amp/deep-del, blank if none)`,
+            `# Data source: DepMap ${DEPMAP_VERSION} (https://depmap.org/) - please acknowledge DepMap if you use this data`,
+            `# Tsherniak A et al. Defining a Cancer Dependency Map. Cell. 2017.`,
+            `# Date: ${new Date().toISOString().slice(0, 10)}`,
+            headerParts.join(',')
+        ];
+        for (let g = 0; g < this.nGenes; g++) {
+            const geneName = this.geneNames[g];
+            const row = [geneName];
+            for (let c = 0; c < clIndices.length; c++) {
+                const ci = clIndices[c];
+                const clId = this.metadata.cellLines[ci];
+                const ge = this.geneEffects[g * this.nCellLines + ci];
+                row.push((!isNaN(ge) && ge !== -999) ? ge.toFixed(4) : '');
+                const eVal = this.getExpressionValueByGEIndex(geneName, ci);
+                row.push(!isNaN(eVal) ? eVal.toFixed(4) : '');
+                row.push(this.mutations?.geneData?.[geneName]?.mutations?.[clId] || 0);
+                row.push(this.damagingMutations?.geneData?.[geneName]?.mutations?.[clId] ? 1 : 0);
+                row.push(this.translocations?.geneData?.[geneName]?.translocations?.[clId] || 0);
+                const cn = cnMaps[c].get(geneName);
+                row.push(cn ? `${cn.tier}:${cn.cn}` : '');
+            }
+            lines.push(row.join(','));
+        }
+        return lines.join('\n');
+    }
+
+    async exportCellLineBrowserGenesCSV() {
         const input = prompt(
             'Enter one or more gene symbols (comma, semicolon, newline, or whitespace separated).\n\n' +
-            'Each gene adds two columns, GE (gene effect) and Expr (log₂-TPM+1), per row.',
+            'Each gene adds GE, Expression, Hotspot, Damaging, Fusion and focal-CN columns, per cell line.',
             'TP53, MDM2'
         );
         if (input === null) return;
@@ -31412,40 +31491,19 @@ ${clone.innerHTML}
         }
         if (!ids.length) { alert('No cell lines to export.'); return; }
 
-        // Resolve gene indices in both datasets up front.
-        const resolved = genes.map(g => ({
-            gene: g,
-            geIdx: this.geneIndex.get(g),
-            exprIdx: this.expressionGeneIndex ? this.expressionGeneIndex.get(g) : undefined
-        }));
-        const missing = resolved.filter(r => r.geIdx === undefined && r.exprIdx === undefined);
+        // Load expression on demand so the Expr columns are populated.
+        if (!this.expressionLoaded) {
+            try { await this.loadExpressionData(); }
+            catch (e) { /* expression columns will be blank */ }
+        }
+
+        const resolved = genes.map(g => ({ gene: g, geIdx: this.geneIndex.get(g) }));
+        const missing = resolved.filter(r => r.geIdx === undefined && (this.expressionGeneIndex?.get(r.gene) === undefined));
         if (missing.length) {
             alert(`Not found: ${missing.map(m => m.gene).join(', ')}. These columns will be empty.`);
         }
-        if (!this.expressionLoaded && resolved.some(r => r.exprIdx !== undefined)) {
-            // Shouldn't normally hit this, but just in case.
-            alert('Expression data is still loading, expression columns will be empty.');
-        }
 
         const clIndexOf = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
-        // Expression matrix has its own ordering / cohort, getExpr must
-        // resolve the cell line through the expression-matrix index map,
-        // not the GE one.
-        const exprClIndexOf = new Map((this.expressionMetadata?.cellLines || []).map((cl, i) => [cl, i]));
-        const nExprCL = this.expressionMetadata?.nCellLines || 0;
-        const getGE = (clIdx, gIdx) => {
-            if (gIdx === undefined || clIdx === undefined) return '';
-            const v = this.geneEffects[gIdx * this.nCellLines + clIdx];
-            return (!isNaN(v) && v !== -999) ? v.toFixed(4) : '';
-        };
-        const getExpr = (cl, eIdx) => {
-            if (eIdx === undefined || !this.expressionLoaded) return '';
-            const ei = exprClIndexOf.get(cl);
-            if (ei === undefined) return '';
-            const v = this.expressionData[eIdx * nExprCL + ei];
-            return (!isNaN(v)) ? v.toFixed(3) : '';
-        };
-
         const csvEsc = (s) => {
             if (s == null) return '';
             const str = String(s);
@@ -31453,11 +31511,19 @@ ${clone.innerHTML}
         };
 
         const header = ['CellLineID', 'CellLineName', 'Tissue', 'Subtype', 'Sex'];
-        resolved.forEach(r => { header.push(`GE_${r.gene}`); header.push(`Expr_${r.gene}`); });
+        resolved.forEach(r => {
+            header.push(`GE_${r.gene}`, `Expr_${r.gene}`, `Hotspot_${r.gene}`, `Damaging_${r.gene}`, `Fusion_${r.gene}`, `FocalCN_${r.gene}`);
+        });
 
-        const rows = [header.join(',')];
+        const rows = [
+            `# Per-gene profile for ${genes.length} gene${genes.length === 1 ? '' : 's'} across ${ids.length} ${source} cell line${ids.length === 1 ? '' : 's'}`,
+            `# Columns per gene: GE (CRISPR gene effect), Expr (log2 TPM+1), Hotspot (0/1/2), Damaging (0/1), Fusion (0/1/2), FocalCN (curated amp/deep-del, blank if none)`,
+            `# Data source: DepMap ${DEPMAP_VERSION} (https://depmap.org/) - please acknowledge DepMap if you use this data`,
+            header.join(',')
+        ];
         for (const cl of ids) {
             const ci = clIndexOf.get(cl);
+            const cnMap = this._cnEventMapForCellLine(cl);
             const sex = this._getCellLineSex ? this._getCellLineSex(cl) : { annotation: '' };
             const row = [
                 csvEsc(cl),
@@ -31467,22 +31533,24 @@ ${clone.innerHTML}
                 csvEsc(sex.annotation || '')
             ];
             resolved.forEach(r => {
-                row.push(getGE(ci, r.geIdx));
-                row.push(getExpr(cl, r.exprIdx));
+                const ge = (r.geIdx !== undefined && ci !== undefined) ? this.geneEffects[r.geIdx * this.nCellLines + ci] : NaN;
+                row.push((!isNaN(ge) && ge !== -999) ? ge.toFixed(4) : '');
+                const eVal = (ci !== undefined) ? this.getExpressionValueByGEIndex(r.gene, ci) : NaN;
+                row.push(!isNaN(eVal) ? eVal.toFixed(4) : '');
+                row.push(this.mutations?.geneData?.[r.gene]?.mutations?.[cl] || 0);
+                row.push(this.damagingMutations?.geneData?.[r.gene]?.mutations?.[cl] ? 1 : 0);
+                row.push(this.translocations?.geneData?.[r.gene]?.translocations?.[cl] || 0);
+                const cn = cnMap.get(r.gene);
+                row.push(cn ? `${cn.tier}:${cn.cn}` : '');
             });
             rows.push(row.join(','));
         }
 
         const date = new Date().toISOString().slice(0, 10);
         const nGenes = resolved.length;
-        const filename = `correlate_CLB_${source}_${ids.length}cl_${nGenes}gene${nGenes === 1 ? '' : 's'}_${date}.csv`;
-        const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-        this.showCopyNotification?.(`Exported ${ids.length} cell lines × ${nGenes} gene${nGenes === 1 ? '' : 's'} → ${filename}`);
+        const filename = `correlate_gene_profile_${source}_${ids.length}cl_${nGenes}gene${nGenes === 1 ? '' : 's'}_${date}.csv`;
+        this.downloadFile(rows.join('\n'), filename, 'text/csv;charset=utf-8');
+        this.showCopyNotification?.(`Exported ${nGenes} gene${nGenes === 1 ? '' : 's'} × ${ids.length} cell lines → ${filename}`);
     }
 
     async exportCellLineBrowserCSV(mode) {
@@ -31499,19 +31567,35 @@ ${clone.innerHTML}
             : `_${clNames.length}cl`;
 
         if (mode === 'minimal') {
-            // Gene x cell line Gene Effect matrix
-            const headerParts = ['Gene_Effect'];
-            clNames.forEach(n => headerParts.push(n.replace(/,/g, '')));
-            const lines = [`# Gene Effect (CRISPR DepMap) matrix for ${clNames.length} selected cell lines`, `# Source: DepMap 25Q3 CRISPRGeneEffect`, `# Date: ${new Date().toISOString().slice(0, 10)}`, headerParts.join(',')];
+            // (A) Gene Effect + Expression for every gene, one column pair per
+            // selected cell line. Expression is loaded on demand so the column
+            // is populated even if the user hasn't opened an expression view.
+            if (!this.expressionLoaded) {
+                try { await this.loadExpressionData(); }
+                catch (e) { /* leave expression columns blank if it fails */ }
+            }
+            const headerParts = ['Gene'];
+            clNames.forEach(n => { const nn = n.replace(/,/g, ''); headerParts.push(`${nn}_GE`, `${nn}_Expr`); });
+            const lines = [
+                `# Gene Effect (CRISPR) + Expression (log2 TPM+1) for ${clNames.length} selected cell line${clNames.length === 1 ? '' : 's'}`,
+                `# Data source: DepMap ${DEPMAP_VERSION} (https://depmap.org/) - please acknowledge DepMap if you use this data`,
+                `# Tsherniak A et al. Defining a Cancer Dependency Map. Cell. 2017.`,
+                `# Date: ${new Date().toISOString().slice(0, 10)}`,
+                headerParts.join(',')
+            ];
             for (let g = 0; g < this.nGenes; g++) {
-                const row = [this.geneNames[g]];
+                const geneName = this.geneNames[g];
+                const row = [geneName];
                 for (let c = 0; c < clIndices.length; c++) {
-                    const val = this.geneEffects[g * this.nCellLines + clIndices[c]];
-                    row.push((!isNaN(val) && val !== -999) ? val.toFixed(4) : '');
+                    const ci = clIndices[c];
+                    const ge = this.geneEffects[g * this.nCellLines + ci];
+                    row.push((!isNaN(ge) && ge !== -999) ? ge.toFixed(4) : '');
+                    const eVal = this.getExpressionValueByGEIndex(geneName, ci);
+                    row.push(!isNaN(eVal) ? eVal.toFixed(4) : '');
                 }
                 lines.push(row.join(','));
             }
-            this.downloadFile(lines.join('\n'), csvName(`correlate_GE_matrix${namePart}`), 'text/csv');
+            this.downloadFile(lines.join('\n'), csvName(`correlate_GE_expression${namePart}`), 'text/csv');
         } else if (mode === 'full') {
             // Report: cell line info + gene lists
             const N = parseInt(document.getElementById('clbTopN').value) || 10;
@@ -31607,56 +31691,15 @@ ${clone.innerHTML}
 
             this.downloadFile(lines.join('\n'), csvName(`correlate_report${namePart}`), 'text/csv');
         } else if (mode === 'comprehensive') {
-            // Ensure expression data is loaded
+            // (B) Full per-gene profile (GE, Expression, Hotspot, Damaging,
+            // Fusion, focal CN) for the selected cell lines. Expression loaded
+            // on demand; row building shared with the wiki export.
             if (!this.expressionLoaded) {
                 try { await this.loadExpressionData(); }
                 catch (e) { alert('Failed to load expression data: ' + e.message); return; }
             }
-            // Gene × cell line matrix with GE, Expression, Hotspot, Damaging, Translocation
-            const headerParts = ['Gene'];
-            for (const name of clNames) {
-                const n = name.replace(/,/g, '');
-                headerParts.push(`${n}_GE`, `${n}_Expr`, `${n}_Hotspot`, `${n}_Damaging`, `${n}_Translocation`);
-            }
-            const lines = [headerParts.join(',')];
-
-            for (let g = 0; g < this.nGenes; g++) {
-                const geneName = this.geneNames[g];
-                const row = [geneName];
-                for (let c = 0; c < clIndices.length; c++) {
-                    const ci = clIndices[c];
-                    const clId = this.metadata.cellLines[ci];
-                    // Gene effect
-                    const ge = this.geneEffects[g * this.nCellLines + ci];
-                    row.push((!isNaN(ge) && ge !== -999) ? ge.toFixed(4) : '');
-                    // Expression
-                    let expr = '';
-                    if (this.expressionLoaded) {
-                        const eIdx = this.expressionGeneIndex?.get(geneName.toUpperCase());
-                        if (eIdx !== undefined) {
-                            const eVal = this.getExpressionValueByGEIndex(geneName, ci);
-                            if (!isNaN(eVal)) expr = eVal.toFixed(4);
-                        }
-                    }
-                    row.push(expr);
-                    // Hotspot mutation (0/1/2)
-                    const hotspot = this.mutations?.geneData?.[geneName]?.mutations?.[clId] || 0;
-                    row.push(hotspot);
-                    // Damaging mutation (0/1)
-                    const damaging = this.damagingMutations?.geneData?.[geneName]?.mutations?.[clId] ? 1 : 0;
-                    row.push(damaging);
-                    // Translocation (0/1/2)
-                    const trans = this.translocations?.geneData?.[geneName]?.translocations?.[clId] || 0;
-                    row.push(trans);
-                }
-                lines.push(row.join(','));
-            }
-
-            // Footer with citation
-            lines.push('');
-            lines.push('# Data source: DepMap 25Q1 (https://depmap.org/)');
-            lines.push('# Tsherniak A et al. Defining a Cancer Dependency Map. Cell. 2017.');
-            this.downloadFile(lines.join('\n'), csvName(`correlate_comprehensive${namePart}`), 'text/csv');
+            const csv = this._buildCellLineFullProfileCsv(clIndices, clNames);
+            this.downloadFile(csv, csvName(`correlate_full_profile${namePart}`), 'text/csv');
         }
     }
 

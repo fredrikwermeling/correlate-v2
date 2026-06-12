@@ -1382,6 +1382,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.22 (2026-06-12)</strong></p>
+                <ul>
+                    <li><b>Cell line browser exports renamed and expanded.</b> Three clearer exports: <b>Cell line: GE + expression</b> (selected lines, every gene), <b>Cell line: full profile</b> (selected lines, every gene with GE + Expression + Hotspot + Damaging + Fusion + focal CN / deep deletions), and <b>Genes: full profile</b> (one or a few genes, all that info across the selected/visible lines). All include the DepMap version and citation.</li>
+                    <li><b>Export gene info (.csv)</b> button added to the cell line Wiki, next to Download PDF, exporting the full per-gene profile for that one cell line.</li>
+                </ul>
                 <p><strong>v.83.21 (2026-06-12)</strong></p>
                 <ul>
                     <li><b>Sort: Drug response</b> &mdash; broadly cytotoxic compounds now sort to the <b>top</b> of the compound list (they kill the most lines) instead of being pushed to the bottom. They keep the &ldquo;broadly cytotoxic %&rdquo; badge so it stays clear they're broad killers, not targeted hits.</li>
@@ -3175,7 +3180,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.21</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.22</a>
     </div>
 
     <div class="main-content">
@@ -4876,6 +4881,7 @@
             <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
+            <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:#7c3aed; border-color:#c4b5fd;" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN / deep deletions) as a CSV">Export gene info (.csv)</button>
             <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Download this Wiki as a multi-page PDF (charts embedded as images, white background)">Download PDF</button>
             <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
           </div>
@@ -5051,9 +5057,9 @@
             <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
 
             <!-- Export group (raw data CSVs for selected cell lines) -->
-            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="CSV with one row per selected cell line, metadata (tissue, subtype, sex) plus GE and Expression for the gene(s) you type in">Export<br><span style="font-size:9px;font-weight:normal;">Genes CSV</span></button>
-            <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="Gene Effect values for all genes × selected cell lines (CSV)">GE matrix<br><span style="font-size:9px;font-weight:normal;">CSV</span></button>
-            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="Everything for selected cell lines: GE + Expression + Hotspot + Damaging + Fusion matrices (CSVs zipped)">All matrices<br><span style="font-size:9px;font-weight:normal;">CSV</span></button>
+            <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="One or a few selected cell lines: Gene Effect + Expression for every gene (CSV). Includes DepMap version and citation.">Cell line:<br><span style="font-size:9px;font-weight:normal;">GE + expression</span></button>
+            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="Selected cell line(s): full profile for every gene, GE + Expression + Hotspot + Damaging + Fusion + focal CN / deep deletions (CSV).">Cell line:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
+            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:#7c3aed; border-color:#c4b5fd; line-height:1.2; padding:4px 8px;" title="One or a few genes: full profile (GE, Expression, Hotspot, Damaging, Fusion, focal CN) across the selected / visible cell lines (CSV).">Genes:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
           </div>
         </div>
         <!-- Row 2: Curated collections + help -->
@@ -5405,6 +5411,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_21"></script>
+    <script src="app.js?v=v83_22"></script>
 </body>
 </html>
