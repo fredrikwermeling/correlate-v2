@@ -1382,6 +1382,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.21 (2026-06-12)</strong></p>
+                <ul>
+                    <li><b>Sort: Drug response</b> &mdash; broadly cytotoxic compounds now sort to the <b>top</b> of the compound list (they kill the most lines) instead of being pushed to the bottom. They keep the &ldquo;broadly cytotoxic %&rdquo; badge so it stays clear they're broad killers, not targeted hits.</li>
+                    <li><b>HLA / polymorphic loci no longer counted as hotspot mutations.</b> Calls in HLA / MIC / KIR genes reflect germline allelic divergence from GRCh38, not somatic hotspots, so they're excluded from hotspot counts, the cell-line hotspot list, the oncoprint, the wiki, and the hotspot-gene pickers.</li>
+                    <li><b>Sort menu trimmed</b> in the cell line browser to the four that matter: Name (default), GE, Expression, Drug response.</li>
+                </ul>
                 <p><strong>v.83.20 (2026-06-09)</strong></p>
                 <ul>
                     <li>Wiki "Download PDF" now saves a real PDF file directly (no print dialog / PDF-printer needed). Multi-page, white background, charts embedded as images; a few MB.</li>
@@ -3169,7 +3175,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.20</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.21</a>
     </div>
 
     <div class="main-content">
@@ -5007,16 +5013,8 @@
           </div>
           <select id="clbSortBy" style="font-size:12px;" title="Sort the cell line list">
             <option value="name">Sort: Name</option>
-            <option value="tissue">Sort: Tissue + Subtype</option>
-            <option value="hotspot">Sort: Hotspot muts</option>
-            <option value="damaging">Sort: Damaging muts</option>
-            <option value="fusion">Sort: Fusions</option>
-            <option value="ploidy">Sort: Ploidy</option>
-            <option value="aneuploidy">Sort: Aneuploidy</option>
-            <option value="cin">Sort: CIN (chromosomal instability)</option>
             <option value="ge">Sort: GE for gene(s)</option>
             <option value="expr">Sort: Expression of gene(s)</option>
-            <option value="cn">Sort: Copy number of gene</option>
             <option value="drug">Sort: Drug response (PRISM AUC)</option>
           </select>
           <!-- Sort identifier input. For GE / Expression sort the user types
@@ -5407,6 +5405,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_20"></script>
+    <script src="app.js?v=v83_21"></script>
 </body>
 </html>

@@ -550,6 +550,10 @@ class CorrelationExplorer {
             if (mutFilterGeneSelect) mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>';
 
             this.mutations.genes.forEach(g => {
+                // Skip polymorphic loci (HLA / MIC / KIR), their hotspot calls
+                // are germline allelic divergence, not somatic hotspots, and
+                // would otherwise top the list with an inflated mutation count.
+                if (this._isPolymorphicLocus(g)) return;
                 const mutData = this.mutations.geneData?.[g]?.mutations || {};
                 let count = 0;
                 filteredCellLines.forEach(cl => { if (mutData[cl] > 0) count++; });
@@ -1141,9 +1145,12 @@ class CorrelationExplorer {
                 return true;
             }) : cellLines;
 
-        // Count mutations per gene, skip genes with 0
+        // Count mutations per gene, skip genes with 0. Polymorphic loci
+        // (HLA / MIC / KIR) are excluded, their germline allelic divergence
+        // would otherwise top this count-sorted hotspot-gene picker.
         const geneCounts = [];
         for (const gene of genes) {
+            if (this._isPolymorphicLocus(gene)) continue;
             const mutations = this.mutations.geneData[gene].mutations;
             let nMut = 0;
             for (const cl of filteredCLs) {
@@ -1834,10 +1841,14 @@ class CorrelationExplorer {
         const maxCLs = 200;
         const clsToShow = filteredCLs.slice(0, maxCLs);
 
-        // Get top N hotspot genes by mutation count in filtered cell lines
+        // Get top N hotspot genes by mutation count in filtered cell lines.
+        // Polymorphic loci (HLA / MIC / KIR) are excluded, their calls reflect
+        // germline allelic divergence from GRCh38 and would otherwise dominate
+        // the oncoprint as if they were recurrent somatic hotspots.
         const maxGenes = 25;
         const geneCounts = [];
         for (const gene of Object.keys(this.mutations.geneData)) {
+            if (this._isPolymorphicLocus(gene)) continue;
             const muts = this.mutations.geneData[gene].mutations;
             let n = 0;
             for (const cl of clsToShow) {
@@ -2738,17 +2749,15 @@ class CorrelationExplorer {
             return hay.includes(q);
         });
 
-        // Sort by selective potency. Compounds where most of the cohort
-        // is "very sensitive" (≥ 40%) are broadly cytotoxic, they sort
-        // BELOW selective hits with the same raw v-count so the user
-        // sees targeted therapies (BRAF/MEK/EGFR/ABL/etc.) at the top
-        // instead of HDAC inhibitors and dNTP-depletion chemotherapies.
-        // Ties within each tier broken by veryN desc, then partN desc,
-        // then alphabetically.
+        // Sort by potency in the cohort. Compounds where most of the cohort
+        // is "very sensitive" (≥ 40%) are broadly cytotoxic; they sort to the
+        // TOP (they kill the most lines), still tagged so the user knows they
+        // are broad killers rather than targeted hits. Ties within each tier
+        // broken by veryN desc, then partN desc, then alphabetically.
         const isPanTox = (m) => (m.totalN > 0 && (m.veryN / m.totalN) >= 0.4);
         matches.sort((a, b) => {
             const aPan = isPanTox(a), bPan = isPanTox(b);
-            if (aPan !== bPan) return aPan ? 1 : -1;
+            if (aPan !== bPan) return aPan ? -1 : 1;
             if (b.veryN !== a.veryN) return b.veryN - a.veryN;
             if (b.partN !== a.partN) return b.partN - a.partN;
             return (a.c.name || '').localeCompare(b.c.name || '');
@@ -2758,7 +2767,7 @@ class CorrelationExplorer {
             + `Compounds ranked by potency in the <b>${visibleCls.length}</b> currently-visible cell line${visibleCls.length === 1 ? '' : 's'}.`
             + ` Counts: <span style="color:#15803d; font-weight:600;">v</span> = very-sensitive (AUC &lt; 0.3, &ldquo;kills most cells&rdquo;), `
             + `<span style="color:#a16207; font-weight:600;">p</span> = partly-sensitive (AUC 0.3&ndash;0.6, &ldquo;kills many cells&rdquo;). `
-            + `Compounds tagged <span style="background:#fef3c7; color:#92400e; padding:1px 4px; border-radius:6px; font-size:9px; font-weight:600; border:1px solid #fde68a;">broadly cytotoxic</span> hit &ge; 40 % of the cohort, usually chemo / HDACi / proteasome inhibitors, not targeted therapies. Sorted with selective hits first.`
+            + `Compounds tagged <span style="background:#fef3c7; color:#92400e; padding:1px 4px; border-radius:6px; font-size:9px; font-weight:600; border:1px solid #fde68a;">broadly cytotoxic</span> hit &ge; 40 % of the cohort, usually chemo / HDACi / proteasome inhibitors, not targeted therapies. Sorted most-potent first, so broad killers sit at the top.`
             + `</div>`;
 
         if (matches.length === 0) {
@@ -23940,9 +23949,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._hotspotCountByCL = new Map();
         this._damagingCountByCL = new Map();
         this._fusionCountByCL = new Map();
-        const tally = (src, getInner, target) => {
+        const tally = (src, getInner, target, skipGene) => {
             if (!src?.geneData) return;
             for (const gene of Object.keys(src.geneData)) {
+                if (skipGene && skipGene(gene)) continue;
                 const inner = getInner(src.geneData[gene]);
                 if (!inner) continue;
                 for (const [cl, v] of Object.entries(inner)) {
@@ -23950,7 +23960,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
         };
-        tally(this.mutations, d => d.mutations, this._hotspotCountByCL);
+        // HLA / MIC / KIR calls in the hotspot matrix reflect germline allelic
+        // divergence from GRCh38, not somatic hotspots, so they are not counted.
+        tally(this.mutations, d => d.mutations, this._hotspotCountByCL, g => this._isPolymorphicLocus(g));
         tally(this.damagingMutations, d => d.mutations, this._damagingCountByCL);
         tally(this.translocations, d => d.translocations, this._fusionCountByCL);
     }
@@ -26992,10 +27004,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const sublineage = this.getCellLineSublineage(cellLineId);
         const N = parseInt(document.getElementById('clbTopN').value) || 10;
 
-        // Count hotspot mutations
+        // Count hotspot mutations. HLA / MIC / KIR calls in the hotspot matrix
+        // reflect germline allelic divergence from GRCh38, not somatic hotspots,
+        // so they are excluded rather than presented as cancer-driver hotspots.
         const mutGenes = [];
         if (this.mutations?.geneData) {
             for (const gene of Object.keys(this.mutations.geneData)) {
+                if (this._isPolymorphicLocus(gene)) continue;
                 if (this.mutations.geneData[gene].mutations?.[cellLineId] >= 1) mutGenes.push(gene);
             }
         }
@@ -27266,14 +27281,9 @@ These are properties of the cell line itself, not its tumour microenvironment. M
         top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutGenes.length})</strong>`;
-        // Polymorphic loci (HLA / MIC / KIR) are tucked behind "show all"
-        // because hotspot calls in those genes are usually allelic divergence
-        // from GRCh38 rather than somatic events, surfacing them in the
-        // default view falsely implies they're cancer-driver hotspots.
-        top += renderGeneList(mutGenes, 'clb-hotspot', geneVariant, {
-            relevantPredicate: g => !this._isPolymorphicLocus(g),
-            emptyVisibleLabel: 'No non-polymorphic hotspot mutations'
-        });
+        // Polymorphic loci (HLA / MIC / KIR) are excluded from mutGenes above,
+        // so the hotspot list and count never present them as somatic hotspots.
+        top += renderGeneList(mutGenes, 'clb-hotspot', geneVariant);
         top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Damaging Mutations (${damagingCount})</strong>`;
@@ -28874,8 +28884,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         hotspotsMutated.sort((a, b) => b.level - a.level);
         // Polymorphic loci (HLA / MIC / KIR) are filtered out of the "top
         // hotspot hits" line, calls there are usually allelic divergence
-        // from GRCh38, not somatic events. They're still available in the
-        // full hotspot list on the detail card via "show all".
+        // from GRCh38, not somatic events, so they are not presented as
+        // hotspot mutations anywhere in the cell-line view.
         const topHotspots = hotspotsMutated
             .filter(h => !this._isPolymorphicLocus(h.gene))
             .slice(0, 10)
