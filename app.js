@@ -285,26 +285,31 @@ class CorrelationExplorer {
         };
     }
 
-    openGeneEffectInNewTab() {
-        this.openPopoutInNewTab({
+    // Build the full recreate-metadata for one popout: the underlying analysis/
+    // network state plus the popout itself (gene(s), view, and every filter /
+    // setting control). Shared by "Open in new tab" and the image-export sidecar
+    // so opening either regenerates the exact same graph, filters and settings.
+    _buildPopoutMeta(kind, extra = {}) {
+        let popout;
+        if (kind === 'gene_effect') {
+            popout = { kind, gene: this.currentGeneEffect?.gene || this._geGene, view: this.currentGEView || 'tissue', dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS()) };
+        } else if (kind === 'scatter') {
+            popout = { kind, gene1: this.currentInspect && this.currentInspect.gene1, gene2: this.currentInspect && this.currentInspect.gene2, controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS()) };
+        } else if (kind === 'correlation_analysis') {
+            popout = { kind, gene1: this._caGene1, gene2: this._caGene2, view: this._caView || 'tissue', controls: this._captureControls(this._CA_NEWTAB_CONTROLS()) };
+        } else {
+            popout = { kind };
+        }
+        return {
+            ...this._buildExportMetadata(kind, extra),
             network: this._captureFullAnalysisState(),
-            popout: { kind: 'gene_effect', gene: this._geGene, view: this.currentGEView || 'tissue', dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS()) }
-        });
+            popout
+        };
     }
 
-    openCorrelationInNewTab() {
-        this.openPopoutInNewTab({
-            network: this._captureFullAnalysisState(),
-            popout: { kind: 'scatter', gene1: this.currentInspect && this.currentInspect.gene1, gene2: this.currentInspect && this.currentInspect.gene2, controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS()) }
-        });
-    }
-
-    openCorrAnalysisInNewTab() {
-        this.openPopoutInNewTab({
-            network: this._captureFullAnalysisState(),
-            popout: { kind: 'correlation_analysis', gene1: this._caGene1, gene2: this._caGene2, view: this._caView || 'tissue', controls: this._captureControls(this._CA_NEWTAB_CONTROLS()) }
-        });
-    }
+    openGeneEffectInNewTab() { this.openPopoutInNewTab(this._buildPopoutMeta('gene_effect')); }
+    openCorrelationInNewTab() { this.openPopoutInNewTab(this._buildPopoutMeta('scatter')); }
+    openCorrAnalysisInNewTab() { this.openPopoutInNewTab(this._buildPopoutMeta('correlation_analysis')); }
 
     // Open one restored popout (used after the network is rebuilt, or directly
     // when there's no network behind it). Mirrors the live "open" paths and
@@ -343,7 +348,7 @@ class CorrelationExplorer {
         setTimeout(apply, 150);
     }
 
-    // Decode a #restore= payload and recreate the popout once data is ready.
+    // Decode a #restore= payload (new-tab duplicate) and recreate it.
     _handleRestoreHash(encoded) {
         let meta;
         try {
@@ -352,45 +357,53 @@ class CorrelationExplorer {
         if (!meta || typeof meta !== 'object') return;
         // Clear the hash so a manual refresh doesn't replay the restore.
         try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
-        const go = () => {
-            try {
-                if (meta.network && meta.network.geneList && meta.network.geneList.length) {
-                    // Composite duplicate: rebuild the whole analysis/network first,
-                    // then drop the popout on top once results are ready, so the new
-                    // tab is a full copy (close the popout and the network is there).
-                    this._setAnalysisLocked(false);
-                    this._handleExportMeta({ graphType: 'network', ...meta.network });
-                    if (meta.popout) {
-                        let tries = 0;
-                        const waitOpen = () => {
-                            if (this.results?.success || tries > 80) this._openRestorePopout(meta.popout);
-                            else { tries++; setTimeout(waitOpen, 150); }
-                        };
-                        setTimeout(waitOpen, 300);
-                    }
-                } else if (meta.popout) {
-                    // Popout only (was opened standalone, no network behind it).
-                    this._openRestorePopout(meta.popout);
-                } else if (meta.graphType === 'gene_effect' && meta.gene) {
-                    // Backward-compat with the older flat payload shape.
-                    this._openRestorePopout({ kind: 'gene_effect', gene: meta.gene, view: meta.view, dataType: meta.dataType, controls: meta.controls });
-                } else if (meta.graphType === 'correlation_analysis' && meta.gene1 && meta.gene2) {
-                    this._openRestorePopout({ kind: 'correlation_analysis', gene1: meta.gene1, gene2: meta.gene2, view: meta.view, controls: meta.controls });
-                } else if (meta.gene1 && meta.gene2) {
-                    this._openRestorePopout({ kind: 'scatter', gene1: meta.gene1, gene2: meta.gene2, controls: meta.controls });
-                } else {
-                    this._handleExportMeta(meta);
-                }
-            } catch (e) { console.warn('Restore failed:', e); }
-        };
-        // Expression-backed views need the expression matrix loaded first.
+        this._applyRestoreMeta(meta);
+    }
+
+    // Recreate a view from a metadata object, the single entry point shared by
+    // the new-tab duplicate (#restore=), the "Open" metadata-file flow, and the
+    // embedded PNG/SVG metadata. Loads expression first if the view needs it,
+    // then rebuilds the network (if captured) and opens the popout on top so the
+    // exact graph, filters and settings are regenerated.
+    _applyRestoreMeta(meta) {
+        if (!meta || typeof meta !== 'object') return;
         const popoutDataType = meta.popout?.dataType || meta.dataType;
         const needsExpr = popoutDataType === 'expr' || meta.graphType === 'expr_correlate';
-        if (needsExpr && !this.expressionLoaded) {
-            this.loadExpressionData().then(go).catch(go);
-        } else {
-            go();
-        }
+        const run = () => this._doApplyRestoreMeta(meta);
+        if (needsExpr && !this.expressionLoaded) this.loadExpressionData().then(run).catch(run);
+        else run();
+    }
+
+    _doApplyRestoreMeta(meta) {
+        try {
+            if (meta.network && meta.network.geneList && meta.network.geneList.length) {
+                // Composite: rebuild the whole analysis/network first, then drop
+                // the popout on top once results are ready, so the restore is a
+                // full copy (close the popout and the network is there).
+                this._setAnalysisLocked(false);
+                this._handleExportMeta({ graphType: 'network', ...meta.network });
+                if (meta.popout) {
+                    let tries = 0;
+                    const waitOpen = () => {
+                        if (this.results?.success || tries > 80) this._openRestorePopout(meta.popout);
+                        else { tries++; setTimeout(waitOpen, 150); }
+                    };
+                    setTimeout(waitOpen, 300);
+                }
+            } else if (meta.popout) {
+                // Popout only (was opened standalone, no network behind it).
+                this._openRestorePopout(meta.popout);
+            } else if (meta.graphType === 'gene_effect' && meta.gene) {
+                // Backward-compat with the older flat payload shape.
+                this._openRestorePopout({ kind: 'gene_effect', gene: meta.gene, view: meta.view, dataType: meta.dataType, controls: meta.controls });
+            } else if (meta.graphType === 'correlation_analysis' && meta.gene1 && meta.gene2) {
+                this._openRestorePopout({ kind: 'correlation_analysis', gene1: meta.gene1, gene2: meta.gene2, view: meta.view, controls: meta.controls });
+            } else if (meta.gene1 && meta.gene2) {
+                this._openRestorePopout({ kind: 'scatter', gene1: meta.gene1, gene2: meta.gene2, controls: meta.controls });
+            } else {
+                this._handleExportMeta(meta);
+            }
+        } catch (e) { console.warn('Restore failed:', e); }
     }
 
     hideLoading() {
@@ -16182,7 +16195,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             h: plotEl._fullLayout?.height || plotEl.layout?.height || plotEl.offsetHeight,
             format,
             filename: `scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`,
-            meta: this._buildExportMetadata('scatter', { gene1: this.currentInspect?.gene1, gene2: this.currentInspect?.gene2 }),
+            meta: this._buildPopoutMeta('scatter'),
             // Plotly's legend has a clipPath that crops long entries (gene
             // symbols can exceed the assumed Open-Sans width). Remove the
             // clipPath, remeasure widest entry with canvas.measureText
@@ -16497,7 +16510,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         try { meta = JSON.parse(await file.text()); }
         catch (e) { alert('Could not read this Correlate metadata file (invalid JSON).'); return; }
         if (!meta || typeof meta !== 'object') { alert('No Correlate metadata found in this file.'); return; }
-        return this._handleExportMeta(meta);
+        // Unified restore: rebuilds the network (if captured) and the popout with
+        // its exact filters/settings; loads expression first when needed.
+        return this._applyRestoreMeta(meta);
     }
 
     async restoreFromPng(file) {
@@ -16589,6 +16604,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     _handleExportMeta(meta) {
         // Opening a saved view counts as starting analysis, so reveal boxes 1/2/3.
         this._setAnalysisLocked(false);
+        // Composite payloads (new-tab duplicate + enriched image sidecars) carry
+        // the network and/or the full popout, route them through the unified
+        // restore so the exact graph, filters and settings are regenerated.
+        if (meta && (meta.popout || meta.network)) {
+            return this._applyRestoreMeta(meta);
+        }
         this._resetForRestore();
 
         // Scatter-like exports with gene pair → restore inspect view
@@ -17793,7 +17814,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             h: plotEl._fullLayout?.height || plotEl.offsetHeight,
             format,
             filename: `correlation_${d.gene1}_vs_${d.gene2}_by_${this._caView}`,
-            meta: this._buildExportMetadata('correlation_analysis', { gene1: d.gene1, gene2: d.gene2, view: this._caView })
+            meta: this._buildPopoutMeta('correlation_analysis')
         });
     }
 
@@ -19901,10 +19922,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             h: plotEl?._fullLayout?.height || plotEl?.offsetHeight || 500,
             format: 'png',
             filename: `gene_effect_${this.currentGeneEffect.gene}_by_${this.currentGEView}`,
-            meta: this._buildExportMetadata('gene_effect', {
-                gene: this.currentGeneEffect.gene, view: this.currentGEView,
-                textSettings: this._capturePlotTextSettings(plotId)
-            })
+            meta: this._buildPopoutMeta('gene_effect', { textSettings: this._capturePlotTextSettings(plotId) })
         });
     }
 
@@ -20568,10 +20586,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             h: plotEl?._fullLayout?.height || plotEl?.offsetHeight || 500,
             format: 'svg',
             filename: `gene_effect_${this.currentGeneEffect.gene}_by_${this.currentGEView}`,
-            meta: this._buildExportMetadata('gene_effect', {
-                gene: this.currentGeneEffect?.gene, view: this.currentGEView,
-                textSettings: this._capturePlotTextSettings(plotId)
-            })
+            meta: this._buildPopoutMeta('gene_effect', { textSettings: this._capturePlotTextSettings(plotId) })
         });
     }
 
