@@ -270,26 +270,58 @@ class CorrelationExplorer {
     _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
     _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCellLineSearch']; }
 
+    // Snapshot the underlying analysis/network so a new tab can rebuild the
+    // whole app (genes, mode, cutoff, filters, network settings), not just the
+    // popout sitting on top of it. Returns null when there's no successful run.
+    _captureFullAnalysisState() {
+        if (!this.results?.success) return null;
+        return {
+            geneList: this.getGeneList(),
+            mode: this.results?.mode,
+            cutoff: this.results?.cutoff,
+            nCellLines: this.results?.nCellLines,
+            networkSettings: this._captureNetworkSettings(),
+            oncoprintFilters: this._activeOncoprintFilters || null
+        };
+    }
+
     openGeneEffectInNewTab() {
         this.openPopoutInNewTab({
-            graphType: 'gene_effect', gene: this._geGene, view: this.currentGEView || 'tissue',
-            dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS())
+            network: this._captureFullAnalysisState(),
+            popout: { kind: 'gene_effect', gene: this._geGene, view: this.currentGEView || 'tissue', dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS()) }
         });
     }
 
     openCorrelationInNewTab() {
         this.openPopoutInNewTab({
-            gene1: this.currentInspect && this.currentInspect.gene1,
-            gene2: this.currentInspect && this.currentInspect.gene2,
-            controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS())
+            network: this._captureFullAnalysisState(),
+            popout: { kind: 'scatter', gene1: this.currentInspect && this.currentInspect.gene1, gene2: this.currentInspect && this.currentInspect.gene2, controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS()) }
         });
     }
 
     openCorrAnalysisInNewTab() {
         this.openPopoutInNewTab({
-            graphType: 'correlation_analysis', gene1: this._caGene1, gene2: this._caGene2,
-            view: this._caView || 'tissue', controls: this._captureControls(this._CA_NEWTAB_CONTROLS())
+            network: this._captureFullAnalysisState(),
+            popout: { kind: 'correlation_analysis', gene1: this._caGene1, gene2: this._caGene2, view: this._caView || 'tissue', controls: this._captureControls(this._CA_NEWTAB_CONTROLS()) }
         });
+    }
+
+    // Open one restored popout (used after the network is rebuilt, or directly
+    // when there's no network behind it). Mirrors the live "open" paths and
+    // replays the saved filter/setting controls.
+    _openRestorePopout(popout) {
+        if (!popout) return;
+        this._setAnalysisLocked(false);
+        if (popout.kind === 'gene_effect' && popout.gene) {
+            this.openGeneEffectModal(popout.gene, popout.view || 'tissue', popout.dataType ? { dataType: popout.dataType } : {});
+            this._restorePopoutControls(popout.controls, 'geTissueFilter', () => this.switchGeneEffectView(popout.view || 'tissue'));
+        } else if (popout.kind === 'correlation_analysis' && popout.gene1 && popout.gene2) {
+            this.openCorrelationAnalysisModal(popout.gene1, popout.gene2, popout.view || 'tissue');
+            this._restorePopoutControls(popout.controls, 'caTissueFilter', () => this.switchCorrAnalysisView(popout.view || 'tissue'));
+        } else if (popout.kind === 'scatter' && popout.gene1 && popout.gene2) {
+            this.openInspectByGenes(popout.gene1, popout.gene2);
+            this._restorePopoutControls(popout.controls, 'scatterCancerFilter', () => this.updateInspectPlot());
+        }
     }
 
     // Apply saved controls once a popout's selectors have populated, then
@@ -322,28 +354,38 @@ class CorrelationExplorer {
         try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
         const go = () => {
             try {
-                // Route the supported popouts directly (avoids _handleExportMeta's
-                // gene1/gene2-first ordering misrouting correlation_analysis), then
-                // replay the saved filters/settings so the view matches exactly.
-                if (meta.graphType === 'gene_effect' && meta.gene) {
+                if (meta.network && meta.network.geneList && meta.network.geneList.length) {
+                    // Composite duplicate: rebuild the whole analysis/network first,
+                    // then drop the popout on top once results are ready, so the new
+                    // tab is a full copy (close the popout and the network is there).
                     this._setAnalysisLocked(false);
-                    this.openGeneEffectModal(meta.gene, meta.view || 'tissue', meta.dataType ? { dataType: meta.dataType } : {});
-                    this._restorePopoutControls(meta.controls, 'geTissueFilter', () => this.switchGeneEffectView(meta.view || 'tissue'));
+                    this._handleExportMeta({ graphType: 'network', ...meta.network });
+                    if (meta.popout) {
+                        let tries = 0;
+                        const waitOpen = () => {
+                            if (this.results?.success || tries > 80) this._openRestorePopout(meta.popout);
+                            else { tries++; setTimeout(waitOpen, 150); }
+                        };
+                        setTimeout(waitOpen, 300);
+                    }
+                } else if (meta.popout) {
+                    // Popout only (was opened standalone, no network behind it).
+                    this._openRestorePopout(meta.popout);
+                } else if (meta.graphType === 'gene_effect' && meta.gene) {
+                    // Backward-compat with the older flat payload shape.
+                    this._openRestorePopout({ kind: 'gene_effect', gene: meta.gene, view: meta.view, dataType: meta.dataType, controls: meta.controls });
                 } else if (meta.graphType === 'correlation_analysis' && meta.gene1 && meta.gene2) {
-                    this._setAnalysisLocked(false);
-                    this.openCorrelationAnalysisModal(meta.gene1, meta.gene2, meta.view || 'tissue');
-                    this._restorePopoutControls(meta.controls, 'caTissueFilter', () => this.switchCorrAnalysisView(meta.view || 'tissue'));
+                    this._openRestorePopout({ kind: 'correlation_analysis', gene1: meta.gene1, gene2: meta.gene2, view: meta.view, controls: meta.controls });
                 } else if (meta.gene1 && meta.gene2) {
-                    this._setAnalysisLocked(false);
-                    this.openInspect({ gene1: meta.gene1, gene2: meta.gene2, correlation: null });
-                    this._restorePopoutControls(meta.controls, 'scatterCancerFilter', () => this.updateInspectPlot());
+                    this._openRestorePopout({ kind: 'scatter', gene1: meta.gene1, gene2: meta.gene2, controls: meta.controls });
                 } else {
                     this._handleExportMeta(meta);
                 }
             } catch (e) { console.warn('Restore failed:', e); }
         };
         // Expression-backed views need the expression matrix loaded first.
-        const needsExpr = meta.dataType === 'expr' || meta.graphType === 'expr_correlate';
+        const popoutDataType = meta.popout?.dataType || meta.dataType;
+        const needsExpr = popoutDataType === 'expr' || meta.graphType === 'expr_correlate';
         if (needsExpr && !this.expressionLoaded) {
             this.loadExpressionData().then(go).catch(go);
         } else {
@@ -10997,14 +11039,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     // Inspect Modal
     openInspectByGenes(gene1, gene2) {
-        // Find the correlation entry by gene names
-        const c = this.results.correlations.find(corr =>
+        // Find the correlation entry by gene names. If it isn't in the current
+        // results (e.g. a discovered-gene edge, or after a filtered re-run via
+        // "best filter"), fall back to a minimal entry so the scatter still
+        // opens instead of silently doing nothing, openInspect recomputes the
+        // scatter itself and doesn't depend on the stored r.
+        let c = this.results?.correlations?.find(corr =>
             (corr.gene1 === gene1 && corr.gene2 === gene2) ||
             (corr.gene1 === gene2 && corr.gene2 === gene1)
         );
         if (!c) {
-            console.error('Correlation not found for', gene1, gene2);
-            return;
+            if (!this.geneIndex?.has(gene1) || !this.geneIndex?.has(gene2)) {
+                console.error('Correlation not found for', gene1, gene2);
+                return;
+            }
+            c = { gene1, gene2, correlation: null };
         }
         this.openInspect(c);
         // Apply current network filters to the scatter inspect
