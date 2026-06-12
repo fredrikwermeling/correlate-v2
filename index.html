@@ -1392,6 +1392,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.30 (2026-06-12)</strong></p>
+                <ul>
+                    <li><b>Open in new tab now carries the full view.</b> The new tab reproduces the same gene(s) plus the current filters and settings (data type, tissue / subtype / hotspot / fusion / mutation filters, stratification gene, min group size, axis ranges, colours, etc.), not just the gene and view.</li>
+                    <li>The popout <b>Figure</b> button is renamed <b>Screenshot</b>.</li>
+                </ul>
                 <p><strong>v.83.29 (2026-06-12)</strong></p>
                 <ul>
                     <li><b>Options</b> is now a normal card matching the rest of the app (same green title bar, same font) instead of the bright banner. Its header sits on the same row as the <b>Reference Data</b> header, with the action buttons on the row below.</li>
@@ -3220,7 +3225,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.29</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.30</a>
     </div>
 
     <div class="main-content">
@@ -3951,8 +3956,8 @@
         <div class="modal" id="inspectModalInner">
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="inspectTitle" style="flex:1; margin:0;">Correlation: Gene1 vs Gene2</h3>
-                <button onclick="app.openPopoutInNewTab({gene1: app.currentInspect&&app.currentInspect.gene1, gene2: app.currentInspect&&app.currentInspect.gene2})" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('inspectModalInner','correlate_correlation')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Figure</button>
+                <button onclick="app.openCorrelationInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same genes, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
+                <button onclick="app.screenshotPopout('inspectModalInner','correlate_correlation')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeInspect">&times;</button>
             </div>
             <div class="modal-body">
@@ -4179,8 +4184,8 @@
         <div class="modal" id="geneEffectModalInner" style="max-width: 95vw; width: 1300px;">
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="geneEffectTitle" style="flex:1; margin:0;">Gene Effect Analysis</h3>
-                <button onclick="app.openPopoutInNewTab({graphType:'gene_effect', gene: app._geGene, view: app.currentGEView||'tissue', dataType: app._geDataType||'ge'})" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('geneEffectModalInner','correlate_gene_effect')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Figure</button>
+                <button onclick="app.openGeneEffectInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same gene, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
+                <button onclick="app.screenshotPopout('geneEffectModalInner','correlate_gene_effect')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeGeneEffect">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
@@ -4511,8 +4516,8 @@
         <div class="modal" id="corrAnalysisModalInner" style="max-width: 95vw; width: 1300px;">
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="corrAnalysisTitle" style="flex:1; margin:0;">Correlation Analysis</h3>
-                <button onclick="app.openPopoutInNewTab({graphType:'correlation_analysis', gene1: app._caGene1, gene2: app._caGene2, view: app._caView||'tissue'})" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('corrAnalysisModalInner','correlate_correlation_analysis')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area).">&#128247; Figure</button>
+                <button onclick="app.openCorrAnalysisInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same genes, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
+                <button onclick="app.screenshotPopout('corrAnalysisModalInner','correlate_correlation_analysis')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area).">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeCorrAnalysis">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
@@ -4943,7 +4948,7 @@
             <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot the wiki for a figure (PNG / TIFF / PDF, full content or visible area)">&#128247; Figure</button>
+            <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:#7c3aed; border-color:#c4b5fd;" title="Screenshot the wiki for a figure (PNG / TIFF / PDF, full content or visible area)">&#128247; Screenshot</button>
             <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:#7c3aed; border-color:#c4b5fd;" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN / deep deletions) as a CSV">Export gene info (.csv)</button>
             <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Download this Wiki as a multi-page PDF (charts embedded as images, white background)">Download PDF</button>
             <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
@@ -5474,6 +5479,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_29"></script>
+    <script src="app.js?v=v83_30"></script>
 </body>
 </html>

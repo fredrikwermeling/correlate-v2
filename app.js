@@ -242,6 +242,75 @@ class CorrelationExplorer {
         }
     }
 
+    // Snapshot the values of a set of form controls by id (checkbox → boolean,
+    // everything else → value). Skips controls that don't exist.
+    _captureControls(ids) {
+        const s = {};
+        (ids || []).forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            s[id] = (el.type === 'checkbox') ? el.checked : el.value;
+        });
+        return s;
+    }
+
+    _applyControls(map) {
+        if (!map) return;
+        Object.entries(map).forEach(([id, v]) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.type === 'checkbox') el.checked = !!v;
+            else el.value = v;
+        });
+    }
+
+    // Filter/setting controls captured for "Open in new tab" so the new tab
+    // reproduces the same view (not just the gene/pair).
+    _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geMutGeneFilter', 'geMutLevelFilter', 'geFusionFilter', 'geMinGroupSize', 'geCellLineSearch']; }
+    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
+    _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCellLineSearch']; }
+
+    openGeneEffectInNewTab() {
+        this.openPopoutInNewTab({
+            graphType: 'gene_effect', gene: this._geGene, view: this.currentGEView || 'tissue',
+            dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS())
+        });
+    }
+
+    openCorrelationInNewTab() {
+        this.openPopoutInNewTab({
+            gene1: this.currentInspect && this.currentInspect.gene1,
+            gene2: this.currentInspect && this.currentInspect.gene2,
+            controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS())
+        });
+    }
+
+    openCorrAnalysisInNewTab() {
+        this.openPopoutInNewTab({
+            graphType: 'correlation_analysis', gene1: this._caGene1, gene2: this._caGene2,
+            view: this._caView || 'tissue', controls: this._captureControls(this._CA_NEWTAB_CONTROLS())
+        });
+    }
+
+    // Apply saved controls once a popout's selectors have populated, then
+    // re-render via the popout's own refresh function. `readyId` is a select
+    // that gets options after the popout opens; we poll until it's ready.
+    _restorePopoutControls(controls, readyId, rerender) {
+        if (!controls) return;
+        let tries = 0;
+        const apply = () => {
+            const ready = readyId ? document.getElementById(readyId) : null;
+            const populated = !readyId || (ready && (ready.tagName !== 'SELECT' || ready.options.length > 1));
+            if (populated || tries > 30) {
+                this._applyControls(controls);
+                try { rerender && rerender(); } catch (e) { console.warn('Restore re-render failed:', e); }
+            } else {
+                tries++; setTimeout(apply, 120);
+            }
+        };
+        setTimeout(apply, 150);
+    }
+
     // Decode a #restore= payload and recreate the popout once data is ready.
     _handleRestoreHash(encoded) {
         let meta;
@@ -254,13 +323,20 @@ class CorrelationExplorer {
         const go = () => {
             try {
                 // Route the supported popouts directly (avoids _handleExportMeta's
-                // gene1/gene2-first ordering misrouting correlation_analysis).
+                // gene1/gene2-first ordering misrouting correlation_analysis), then
+                // replay the saved filters/settings so the view matches exactly.
                 if (meta.graphType === 'gene_effect' && meta.gene) {
                     this._setAnalysisLocked(false);
                     this.openGeneEffectModal(meta.gene, meta.view || 'tissue', meta.dataType ? { dataType: meta.dataType } : {});
+                    this._restorePopoutControls(meta.controls, 'geTissueFilter', () => this.switchGeneEffectView(meta.view || 'tissue'));
                 } else if (meta.graphType === 'correlation_analysis' && meta.gene1 && meta.gene2) {
                     this._setAnalysisLocked(false);
                     this.openCorrelationAnalysisModal(meta.gene1, meta.gene2, meta.view || 'tissue');
+                    this._restorePopoutControls(meta.controls, 'caTissueFilter', () => this.switchCorrAnalysisView(meta.view || 'tissue'));
+                } else if (meta.gene1 && meta.gene2) {
+                    this._setAnalysisLocked(false);
+                    this.openInspect({ gene1: meta.gene1, gene2: meta.gene2, correlation: null });
+                    this._restorePopoutControls(meta.controls, 'scatterCancerFilter', () => this.updateInspectPlot());
                 } else {
                     this._handleExportMeta(meta);
                 }
