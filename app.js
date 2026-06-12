@@ -28451,12 +28451,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     return `<div style="flex:1; min-width:150px;">
                         <div style="font-size:11px; font-weight:600; color:#374151; margin-bottom:2px;">${t.label}</div>
                         <div style="font-size:10px; color:#6b7280; margin-bottom:2px;">${sub}</div>
-                        <div id="clbWikiHistRecept_${t.gene}" style="height:70px;"></div>
+                        <div id="clbWikiHistRecept_${t.gene}" style="height:84px;"></div>
                     </div>`;
                 }).join('');
                 receptorHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red dashed line</span> marks this cell line. Calls are made <i>relative to breast lines</i> (median split for ER/PR, top quintile for HER2), a transcript surrogate, not clinical IHC/FISH.</p>
-                    <div style="margin:0 0 10px;">Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span></div>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. Calls are made <i>relative to breast lines</i> (median split for ER/PR, top quintile for HER2), a transcript surrogate, not clinical IHC/FISH.</p>
+                    <div style="margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <span>Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span></span>
+                        <button onclick="window.app.exportWikiBreastExpressionCSV()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Export ESR1 / PGR / ERBB2 expression for every breast line (this line flagged) as a CSV, so you can make your own plot">Export .csv</button>
+                    </div>
                     <div style="display:flex; gap:14px; flex-wrap:wrap;">${panels}</div>`;
                 this._receptorHistPending = {
                     cellLineId,
@@ -29739,7 +29742,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                         <span style="font-size:10px; color:#6b7280;">${c.target} &middot; ${c.moa}</span><br>
                         <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}), <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span>${indicationStr}</span>
                         ${cohortStr}
-                        <div id="${histId}" style="margin: 4px 0 0 170px; height: 70px;"></div></li>`;
+                        <div id="${histId}" style="margin: 4px 0 0 170px; height: 84px;"></div></li>`;
                 };
 
                 // Context-aware cross-checks based on what this wiki has already detected
@@ -29796,7 +29799,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const ctxHtml = '';
 
                 drugHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive, for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug, it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ. The mini-histogram under each compound shows the full AUC distribution across all PRISM-tested cell lines (red dashed line = this cell line's value), mirroring the per-metric histograms in the Genome section.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, the viability score and z-score for <i>this</i> cell line, and a &ldquo;<b>Used in:</b>&rdquo; line listing the clinical disease(s) the drug is approved or used for (e.g. CRC, SCLC, pancreatic).</p>
+                    <div style="margin:0 0 8px;"><button onclick="window.app.exportWikiDrugResponseCSV()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; color:#7c3aed; border-color:#c4b5fd;" title="Export every PRISM compound with this cell line's AUC, the cohort mean/SD and z-score, plus target / mechanism / indication, as a CSV so you can make your own plot">Export drug responses (.csv)</button></div>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive, for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug, it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ. The mini-histogram under each compound shows the full AUC distribution across all PRISM-tested cell lines (red line = this cell line's value), mirroring the per-metric histograms in the Genome section.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, the viability score and z-score for <i>this</i> cell line, and a &ldquo;<b>Used in:</b>&rdquo; line listing the clinical disease(s) the drug is approved or used for (e.g. CRC, SCLC, pancreatic).</p>
                     ${sensitive.length ? `<div><b style="color:#15803d;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
                     ${resistant.length ? `<div><b style="color:#991b1b;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
                     ${ctxHtml}`;
@@ -30232,10 +30236,36 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
     }
 
+    // Shared look for the Wiki cohort-distribution histograms (receptor,
+    // drug-response, genome) so they match instead of each being a flat-grey
+    // blob: soft-filled bars with a thin border.
+    _wikiHistMarker() {
+        return { color: '#dbeafe', line: { color: '#60a5fa', width: 1 } };
+    }
+    // This cell line's value as a solid red marker line plus a small value
+    // pill above the plot. Returns {} when no value, so it spreads cleanly
+    // into a layout object.
+    _wikiHistMarkerLine(currentVal, decimals = 2) {
+        if (currentVal == null) return {};
+        return {
+            shapes: [{
+                type: 'line', x0: currentVal, x1: currentVal, y0: 0, y1: 1, yref: 'paper',
+                line: { color: '#dc2626', width: 2 }
+            }],
+            annotations: [{
+                x: currentVal, y: 1.08, yref: 'paper',
+                text: `<b>${currentVal.toFixed(decimals)}</b>`,
+                showarrow: false, xanchor: 'center',
+                font: { size: 9, color: '#ffffff' },
+                bgcolor: '#dc2626', borderpad: 2
+            }]
+        };
+    }
+
     // Breast receptor-status histograms for the Wiki's Receptor-status section.
     // One small Plotly panel per gene (ESR1 / PGR / ERBB2): the distribution
-    // across all breast lines as grey bars, this cell line's value marked by a
-    // red dashed vertical line. Mirrors _renderDrugDistributions.
+    // across all breast lines, this cell line's value marked by a red line.
+    // Mirrors _renderDrugDistributions.
     _renderReceptorDistributions(pending) {
         if (typeof Plotly === 'undefined') return;
         if (!pending || !Array.isArray(pending.panels)) return;
@@ -30249,21 +30279,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 type: 'histogram',
                 x: p.vals,
                 xbins: { size: binSize, start: 0, end: maxV + binSize },
-                marker: { color: '#9ca3af', line: { width: 0 } },
-                hovertemplate: '<b>%{x} log₂-TPM</b>: %{y} breast lines<extra></extra>',
-                opacity: 0.85
+                marker: this._wikiHistMarker(),
+                hovertemplate: '<b>%{x} log₂-TPM</b>: %{y} breast lines<extra></extra>'
             };
             const lay = {
-                margin: { l: 22, r: 8, t: 4, b: 22 },
-                xaxis: { title: { text: 'log₂-TPM across breast lines', font: { size: 9 } }, tickfont: { size: 8 }, showgrid: false, zeroline: false },
-                yaxis: { tickfont: { size: 8 }, showgrid: true, gridcolor: '#f3f4f6', zeroline: false, showticklabels: false },
-                bargap: 0.02, showlegend: false,
+                margin: { l: 22, r: 10, t: 16, b: 26 },
+                xaxis: { title: { text: 'log₂-TPM across breast lines', font: { size: 9, color: '#6b7280' } }, tickfont: { size: 8, color: '#9ca3af' }, showgrid: false, zeroline: false, showline: true, linecolor: '#e5e7eb' },
+                yaxis: { tickfont: { size: 8 }, showgrid: true, gridcolor: '#f1f5f9', zeroline: false, showticklabels: false },
+                bargap: 0.06, showlegend: false,
                 paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff',
-                font: { family: 'Open Sans, sans-serif' }, height: 70
+                font: { family: 'Open Sans, sans-serif' }, height: 84,
+                ...this._wikiHistMarkerLine(p.mine, 2)
             };
-            if (p.mine != null) {
-                lay.shapes = [{ type: 'line', x0: p.mine, x1: p.mine, y0: 0, y1: 1, yref: 'paper', line: { color: '#dc2626', width: 2, dash: 'dash' } }];
-            }
             Plotly.newPlot(el, [trace], lay, config);
         }
         this._receptorHistPending = null;
@@ -30283,22 +30310,22 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         for (const c of dr.compounds) byName.set(c.name, c);
 
         const layout = {
-            margin: { l: 26, r: 8, t: 4, b: 24 },
+            margin: { l: 26, r: 10, t: 16, b: 26 },
             xaxis: {
-                title: { text: 'AUC across PRISM cohort', font: { size: 9 } },
-                tickfont: { size: 8 }, showgrid: false, zeroline: false,
-                range: [0, 1.1]
+                title: { text: 'AUC across PRISM cohort', font: { size: 9, color: '#6b7280' } },
+                tickfont: { size: 8, color: '#9ca3af' }, showgrid: false, zeroline: false,
+                showline: true, linecolor: '#e5e7eb', range: [0, 1.1]
             },
             yaxis: {
-                tickfont: { size: 8 }, showgrid: true, gridcolor: '#f3f4f6',
+                tickfont: { size: 8 }, showgrid: true, gridcolor: '#f1f5f9',
                 zeroline: false, showticklabels: false
             },
-            bargap: 0.02,
+            bargap: 0.06,
             showlegend: false,
             paper_bgcolor: '#ffffff',
             plot_bgcolor: '#ffffff',
             font: { family: 'Open Sans, sans-serif' },
-            height: 70
+            height: 84
         };
         const config = { displaylogo: false, responsive: true, staticPlot: false, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'] };
 
@@ -30316,25 +30343,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 type: 'histogram',
                 x: vals,
                 xbins: { size: 0.025, start: 0, end: 1.025 },
-                marker: { color: '#9ca3af', line: { width: 0 } },
-                hovertemplate: '<b>AUC %{x}</b>: %{y} lines<extra></extra>',
-                opacity: 0.85
+                marker: this._wikiHistMarker(),
+                hovertemplate: '<b>AUC %{x}</b>: %{y} lines<extra></extra>'
             };
-            const lay = JSON.parse(JSON.stringify(layout));
-            if (t.currentVal != null) {
-                lay.shapes = [{
-                    type: 'line',
-                    x0: t.currentVal, x1: t.currentVal,
-                    y0: 0, y1: 1, yref: 'paper',
-                    line: { color: '#dc2626', width: 2, dash: 'dash' }
-                }];
-                lay.annotations = [{
-                    x: t.currentVal, y: 1.04, yref: 'paper',
-                    text: `<b>${t.currentVal.toFixed(2)}</b>`,
-                    showarrow: false, xanchor: 'left',
-                    font: { size: 9, color: '#dc2626' }
-                }];
-            }
+            const lay = { ...JSON.parse(JSON.stringify(layout)), ...this._wikiHistMarkerLine(t.currentVal, 2) };
             Plotly.newPlot(el, [trace], lay, config);
         }
         // Clear pending so a stale draw doesn't re-fire on next modal open.
@@ -30367,10 +30379,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // four panels readable at 170 px tall; Plotly's modebar (PNG / SVG /
         // pan / zoom) stays on for export.
         const baseLayout = (xTitle, yTitle = '# lines') => ({
-            margin: { l: 36, r: 8, t: 8, b: 32 },
-            xaxis: { title: { text: xTitle, font: { size: 10 } }, tickfont: { size: 9 }, showgrid: false, zeroline: false },
-            yaxis: { title: { text: yTitle, font: { size: 10 } }, tickfont: { size: 9 }, showgrid: true, gridcolor: '#f3f4f6', zeroline: false },
-            bargap: 0.02,
+            margin: { l: 36, r: 10, t: 16, b: 34 },
+            xaxis: { title: { text: xTitle, font: { size: 10, color: '#6b7280' } }, tickfont: { size: 9, color: '#9ca3af' }, showgrid: false, zeroline: false, showline: true, linecolor: '#e5e7eb' },
+            yaxis: { title: { text: yTitle, font: { size: 10, color: '#6b7280' } }, tickfont: { size: 9, color: '#9ca3af' }, showgrid: true, gridcolor: '#f1f5f9', zeroline: false },
+            bargap: 0.06,
             showlegend: false,
             // White (not transparent) so the Plotly camera-button PNG download
             // has a white background instead of a see-through / grey one. The
@@ -30388,25 +30400,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 type: 'histogram',
                 x: vals,
                 xbins: { size: binSize },
-                marker: { color: '#9ca3af', line: { width: 0 } },
-                hovertemplate: `<b>%{x}</b>: %{y} lines<extra></extra>`,
-                opacity: 0.85
+                marker: this._wikiHistMarker(),
+                hovertemplate: `<b>%{x}</b>: %{y} lines<extra></extra>`
             };
-            const layout = baseLayout(xTitle);
-            if (currentVal != null) {
-                layout.shapes = [{
-                    type: 'line',
-                    x0: currentVal, x1: currentVal,
-                    y0: 0, y1: 1, yref: 'paper',
-                    line: { color: '#dc2626', width: 2, dash: 'dash' }
-                }];
-                layout.annotations = [{
-                    x: currentVal, y: 1.02, yref: 'paper',
-                    text: `<b>${currentVal.toFixed(decimals)}</b>`,
-                    showarrow: false, xanchor: 'left',
-                    font: { size: 10, color: '#dc2626' }
-                }];
-            }
+            const layout = { ...baseLayout(xTitle), ...this._wikiHistMarkerLine(currentVal, decimals) };
             Plotly.newPlot(el, [trace], layout, config);
         };
 
@@ -30421,14 +30418,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const isWgd = gs.WGD === true;
             const isKnown = gs.WGD != null;
             const colors = [
-                (isKnown && !isWgd) ? '#dc2626' : '#9ca3af',
-                (isKnown && isWgd)  ? '#dc2626' : '#9ca3af'
+                (isKnown && !isWgd) ? '#dc2626' : '#dbeafe',
+                (isKnown && isWgd)  ? '#dc2626' : '#dbeafe'
+            ];
+            const lineColors = [
+                (isKnown && !isWgd) ? '#dc2626' : '#60a5fa',
+                (isKnown && isWgd)  ? '#dc2626' : '#60a5fa'
             ];
             const trace = {
                 type: 'bar',
                 x: ['No WGD', 'WGD-positive'],
                 y: [arrs.WGD_no, arrs.WGD_yes],
-                marker: { color: colors, line: { width: 0 } },
+                marker: { color: colors, line: { color: lineColors, width: 1 } },
                 text: [arrs.WGD_no, arrs.WGD_yes].map(String),
                 textposition: 'outside',
                 textfont: { size: 10, color: '#374151' },
@@ -30494,6 +30495,98 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         } finally {
             if (btn) { btn.textContent = label; btn.disabled = false; }
         }
+    }
+
+    // Export every PRISM compound for the wiki's cell line: this line's AUC,
+    // the cohort mean / SD / z-score, plus target / MoA / indication. Lets the
+    // user re-plot drug sensitivity in their own tool.
+    exportWikiDrugResponseCSV() {
+        const clId = this._wikiCellLineId;
+        if (!clId) { alert('Open a cell-line Wiki first.'); return; }
+        if (!this.drugResponse?.compounds) { alert('No drug-response data is loaded.'); return; }
+        const csvEsc = (s) => {
+            if (s == null) return '';
+            const str = String(s);
+            return /[,"\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+        };
+        const name = this.getCellLineName(clId) || clId;
+        const rows = [
+            `# PRISM drug response for ${name} (${clId})`,
+            `# AUC viability score: 0 = all cells killed, 1 = no killing. z = (this line AUC - cohort mean) / cohort SD.`,
+            `# Data source: DepMap ${DEPMAP_VERSION} PRISM Repurposing (https://depmap.org/) - please acknowledge DepMap if you use this data`,
+            ['Compound', 'Target', 'MoA', 'Indication', 'AUC', 'CohortMeanAUC', 'CohortSD', 'ZScore', 'CohortN'].join(',')
+        ];
+        for (const c of this.drugResponse.compounds) {
+            const auc = c.auc || {};
+            const vals = [];
+            for (const v of Object.values(auc)) { if (v != null && !isNaN(v)) vals.push(v); }
+            const n = vals.length;
+            const mean = n ? vals.reduce((a, b) => a + b, 0) / n : NaN;
+            const sd = n > 1 ? Math.sqrt(vals.reduce((a, b) => a + (b - mean) * (b - mean), 0) / n) : NaN;
+            const mine = auc[clId];
+            const z = (mine != null && !isNaN(mine) && sd > 1e-9) ? (mine - mean) / sd : NaN;
+            rows.push([
+                csvEsc(c.name), csvEsc(c.target), csvEsc(c.moa), csvEsc(c.indication),
+                (mine != null && !isNaN(mine)) ? mine.toFixed(4) : '',
+                !isNaN(mean) ? mean.toFixed(4) : '',
+                !isNaN(sd) ? sd.toFixed(4) : '',
+                !isNaN(z) ? z.toFixed(3) : '',
+                n
+            ].join(','));
+        }
+        const safe = name.replace(/[^A-Za-z0-9]/g, '');
+        this.downloadFile(rows.join('\n'), csvName(`correlate_drug_response_${safe}`), 'text/csv');
+        this.showCopyNotification?.(`Exported drug responses for ${name}`);
+    }
+
+    // Export ESR1 / PGR / ERBB2 expression for every breast line in the cohort,
+    // with the wiki's cell line flagged, so the user can re-plot the receptor
+    // histograms. Only meaningful for breast lines.
+    exportWikiBreastExpressionCSV() {
+        const clId = this._wikiCellLineId;
+        if (!clId) { alert('Open a cell-line Wiki first.'); return; }
+        if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata || !this.expressionGeneIndex) {
+            alert('Expression data is not loaded.'); return;
+        }
+        const nExprCL = this.expressionMetadata.nCellLines;
+        const exprIdx = new Map();
+        this.expressionMetadata.cellLines.forEach((cl, i) => exprIdx.set(cl, i));
+        const genes = ['ESR1', 'PGR', 'ERBB2'];
+        const geneOff = genes.map(g => {
+            const gi = this.expressionGeneIndex.get(g);
+            return gi === undefined ? null : gi * nExprCL;
+        });
+        const breastLines = this.expressionMetadata.cellLines.filter(
+            cl => (this.cellLineMetadata?.lineage?.[cl] || '').toLowerCase().includes('breast')
+        );
+        if (!breastLines.length) { alert('No breast lines found in the cohort.'); return; }
+        const csvEsc = (s) => {
+            if (s == null) return '';
+            const str = String(s);
+            return /[,"\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+        };
+        const name = this.getCellLineName(clId) || clId;
+        const rows = [
+            `# Breast-line receptor expression (log2 TPM+1) for ESR1 / PGR / ERBB2`,
+            `# Flagged line: ${name} (${clId})`,
+            `# Data source: DepMap ${DEPMAP_VERSION} (https://depmap.org/) - please acknowledge DepMap if you use this data`,
+            ['CellLineID', 'CellLineName', 'Subtype', 'ESR1', 'PGR', 'ERBB2', 'IsFlaggedLine'].join(',')
+        ];
+        for (const cl of breastLines) {
+            const ei = exprIdx.get(cl);
+            const vals = geneOff.map(off => {
+                if (off == null || ei === undefined) return '';
+                const v = this.expressionData[off + ei];
+                return isNaN(v) ? '' : v.toFixed(4);
+            });
+            rows.push([
+                csvEsc(cl), csvEsc(this.getCellLineName(cl) || ''), csvEsc(this.getCellLineSublineage(cl) || ''),
+                vals[0], vals[1], vals[2], cl === clId ? '1' : '0'
+            ].join(','));
+        }
+        const safe = name.replace(/[^A-Za-z0-9]/g, '');
+        this.downloadFile(rows.join('\n'), csvName(`correlate_breast_receptor_expr_${safe}`), 'text/csv');
+        this.showCopyNotification?.(`Exported breast receptor expression (this line: ${name})`);
     }
 
     async downloadCellLineWiki() {

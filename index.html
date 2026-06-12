@@ -1382,6 +1382,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.23 (2026-06-12)</strong></p>
+                <ul>
+                    <li>Wiki <b>drug responses</b> can be exported as a CSV (every PRISM compound with this line's AUC, the cohort mean / SD / z-score, and target / mechanism / indication) so you can make your own plot.</li>
+                    <li>Wiki <b>breast receptor expression</b> can be exported as a CSV (ESR1 / PGR / ERBB2 for every breast line, this line flagged).</li>
+                    <li>Wiki <b>histograms refreshed</b>: soft-filled bars with a thin border, a crisp solid red marker with a value pill for this cell line, cleaner axes and a touch more height. Receptor, drug-response and genome panels now share one look.</li>
+                </ul>
                 <p><strong>v.83.22 (2026-06-12)</strong></p>
                 <ul>
                     <li><b>Cell line browser exports renamed and expanded.</b> Three clearer exports: <b>Cell line: GE + expression</b> (selected lines, every gene), <b>Cell line: full profile</b> (selected lines, every gene with GE + Expression + Hotspot + Damaging + Fusion + focal CN / deep deletions), and <b>Genes: full profile</b> (one or a few genes, all that info across the selected/visible lines). All include the DepMap version and citation.</li>
@@ -3180,7 +3186,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.22</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.23</a>
     </div>
 
     <div class="main-content">
@@ -5411,6 +5417,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_22"></script>
+    <script src="app.js?v=v83_23"></script>
 </body>
 </html>
