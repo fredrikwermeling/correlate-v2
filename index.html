@@ -1406,6 +1406,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.36 (2026-06-12)</strong></p>
+                <ul>
+                    <li><b>Fix:</b> opening a GE-vs-expression scatter (or any mixed-axis pair) in a new tab now keeps both axis data types, instead of falling back to GE vs GE.</li>
+                    <li><b>Fix:</b> popout screenshots now always include the chart again, the crisp Plotly image is composited onto the capture (fixing the offset grey background) rather than swapped into the clone (which html2canvas didn't always render). Input/box text centring improved.</li>
+                </ul>
                 <p><strong>v.83.35 (2026-06-12)</strong></p>
                 <ul>
                     <li><b>Correlation chart spacing</b>: the title block is lifted off the top of the plot and the rotated y-axis title is pushed clear of the tick numbers.</li>
@@ -3266,7 +3271,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.35</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.36</a>
     </div>
 
     <div class="main-content">
@@ -5520,6 +5525,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_35"></script>
+    <script src="app.js?v=v83_36"></script>
 </body>
 </html>

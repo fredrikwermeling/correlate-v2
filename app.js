@@ -267,7 +267,7 @@ class CorrelationExplorer {
     // Filter/setting controls captured for "Open in new tab" so the new tab
     // reproduces the same view (not just the gene/pair).
     _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geMutGeneFilter', 'geMutLevelFilter', 'geFusionFilter', 'geMinGroupSize', 'geCellLineSearch']; }
-    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
+    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
     _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCellLineSearch']; }
 
     // Snapshot the underlying analysis/network so a new tab can rebuild the
@@ -334,6 +334,11 @@ class CorrelationExplorer {
             this.openCorrelationAnalysisModal(popout.gene1, popout.gene2, popout.view || 'tissue');
             this._restorePopoutControls(popout.controls, 'caTissueFilter', () => { this._savedScatterTextSettings = ts; this.switchCorrAnalysisView(popout.view || 'tissue'); });
         } else if (popout.kind === 'scatter' && popout.gene1 && popout.gene2) {
+            // Axis data types (GE / expression / growth) must be set BEFORE
+            // openInspect reads them, otherwise both axes fall back to GE.
+            const c = popout.controls || {};
+            const setAxis = (id) => { const el = document.getElementById(id); if (el && c[id] != null) el.value = c[id]; };
+            setAxis('xAxisDataType'); setAxis('yAxisDataType');
             this.openInspectByGenes(popout.gene1, popout.gene2);
             this._restorePopoutControls(popout.controls, 'scatterCancerFilter', () => { this._savedScatterTextSettings = ts; this.updateInspectPlot(); });
         }
@@ -378,7 +383,8 @@ class CorrelationExplorer {
     _applyRestoreMeta(meta) {
         if (!meta || typeof meta !== 'object') return;
         const popoutDataType = meta.popout?.dataType || meta.dataType;
-        const needsExpr = popoutDataType === 'expr' || meta.graphType === 'expr_correlate';
+        const pc = meta.popout?.controls || {};
+        const needsExpr = popoutDataType === 'expr' || pc.xAxisDataType === 'expr' || pc.yAxisDataType === 'expr' || meta.graphType === 'expr_correlate';
         const run = () => this._doApplyRestoreMeta(meta);
         if (needsExpr && !this.expressionLoaded) this.loadExpressionData().then(run).catch(run);
         else run();
@@ -20238,21 +20244,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // a large popout doesn't blow up into an unrenderable canvas.
         const scale = Math.min(8, Math.max(1, dpi / 96));
 
-        // html2canvas mis-renders live Plotly SVGs (the grey plot background ends
-        // up nudged), so flatten each chart to a crisp PNG first and swap it into
-        // the clone. Rendered at the capture scale so it stays sharp.
+        // Pre-render each Plotly chart to a crisp PNG with Plotly's own renderer
+        // (loaded into an Image), so we can composite it over the screenshot.
+        // html2canvas DOES render the live chart, but with a slightly offset grey
+        // background, the composite both fixes that and keeps it sharp. If a
+        // chart fails to render here, html2canvas's own version still shows.
         const livePlots = [...root.querySelectorAll('.js-plotly-plot')];
-        const plotImgs = [];
+        const plotPngs = [];
         for (const gd of livePlots) {
+            let img = null;
             try {
                 const pw = gd.offsetWidth || 600, ph = gd.offsetHeight || 400;
                 const url = (typeof Plotly !== 'undefined') ? await Plotly.toImage(gd, { format: 'png', width: pw, height: ph, scale }) : null;
-                plotImgs.push(url ? { w: pw, h: ph, url } : null);
-            } catch (e) { plotImgs.push(null); }
+                if (url) { img = new Image(); await new Promise(res => { img.onload = res; img.onerror = () => { img = null; res(); }; img.src = url; }); }
+            } catch (e) { img = null; }
+            plotPngs.push({ gd, img });
         }
-        // Native <input>/<select> text renders low in html2canvas; capture each
-        // control's height so we can set line-height = height in the clone.
-        const ctrlHeights = [...root.querySelectorAll('input, select, textarea')].map(el => el.offsetHeight);
+        // Capture each control's content height so input/select text can be
+        // vertically centred in the clone (html2canvas renders it low).
+        const liveCtrls = [...root.querySelectorAll('input, select, textarea')];
+        const ctrlH = liveCtrls.map(el => el.clientHeight);
 
         // For full-content capture, temporarily lift height/overflow clamps so
         // scrolled-out rows are included, then restore.
@@ -20268,6 +20279,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             });
         }
+        // Plot positions relative to root, measured after the stash so the
+        // composite lands exactly where html2canvas drew the (blank) chart.
+        const rootRect = root.getBoundingClientRect();
+        const plotRects = plotPngs.map(p => {
+            const r = p.gd.getBoundingClientRect();
+            return { x: r.left - rootRect.left, y: r.top - rootRect.top, w: p.gd.offsetWidth, h: p.gd.offsetHeight };
+        });
         let canvas;
         try {
             canvas = await html2canvas(root, {
@@ -20277,19 +20295,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 windowWidth: document.documentElement.scrollWidth,
                 onclone: (clonedDoc) => {
                     const scopeEl = (rootId && clonedDoc.getElementById(rootId)) || clonedDoc.body;
-                    // Swap each Plotly chart for its flattened PNG.
-                    scopeEl.querySelectorAll('.js-plotly-plot').forEach((el, i) => {
-                        const info = plotImgs[i];
-                        if (!info || !info.url) return;
-                        el.innerHTML = '';
-                        const img = clonedDoc.createElement('img');
-                        img.src = info.url;
-                        img.style.cssText = `width:${info.w}px;height:${info.h}px;display:block;`;
-                        el.appendChild(img);
-                    });
-                    // Vertically centre control text (line-height = control height).
+                    // Vertically centre control text (line-height = content height).
                     scopeEl.querySelectorAll('input, select, textarea').forEach((el, i) => {
-                        const h = ctrlHeights[i];
+                        const h = ctrlH[i];
                         if (h && el.tagName !== 'TEXTAREA') {
                             el.style.lineHeight = h + 'px';
                             el.style.paddingTop = '0px';
@@ -20303,6 +20311,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             alert('Screenshot failed: ' + (e?.message || e));
             return;
         }
+        // Composite the crisp Plotly PNGs over their plot areas.
+        try {
+            const cctx = canvas.getContext('2d');
+            plotPngs.forEach((p, i) => {
+                if (!p.img) return;
+                const r = plotRects[i];
+                cctx.drawImage(p.img, Math.round(r.x * scale), Math.round(r.y * scale), Math.round(r.w * scale), Math.round(r.h * scale));
+            });
+        } catch (e) { /* keep html2canvas's own chart render if compositing fails */ }
         saved.forEach(s => { for (const p in s.prev) s.el.style[p] = s.prev[p]; });
         const date = new Date().toISOString().slice(0, 10);
         const filename = `${fileStem || 'correlate_figure'}_${date}`;
