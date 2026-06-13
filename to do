@@ -1,3 +1,8 @@
+- Look at the correlation_network-2.pdf in download folder. the edge thickness needs to scale to the zoom. tsc1-tsc2 should be around 0.9, but it looks much smaller in the exported (while the on screen image seems to scale correctly).
+
+
+
+
 - Export buttons in the cell line browser need to be renamed. The function should be to have one that focuses on one (or a few) selected cell lines and shows GE and expression for all genes (currently called "GE matrix"). One export that focuses on one cell line and gives all information about all genes for that cell line (including damaging mutation hotspots, fusions, deep deletions, etc.). This is currently called "all matrices". and one button that focus on one or a few genes (and gives all info about those genes (GE, expression, deep deletions, hotspot etc) for all or a slection of cell lines (currently called "export genes"). the export that gives extensive information about all genes in one cell line, should also be possible to export from the wiki for the cel lline with a button next to the "download PDF" in the wiki, eg export gene info ?? .csv. 
 - in the wiki, there shold be the possiblity to export drug responses as .csv so the user could make there own graph. same should be true for the breast cancer gene expression data.  also, try to make the histograms in the wiki look a bit better, they look pretty primitive. 
 - add a screenshot button to all popouts, this is to facilitate making figures for the manuscript or information material. It should thus be a high-quality export, including both raster and vector-based, that could go into publication. it should also allow for showing the full screen, or only the part that is visible on the screen as the button is pressed 
