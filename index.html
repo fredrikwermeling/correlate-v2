@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.70 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Phone: the Custom CLs (paste cell line IDs/names) filter is now hidden everywhere it appears, the scatter Inspect and Gene Effect popouts as well as the Cell Line Browser.</li>
+                </ul>
                 <p><strong>v.83.69 (2026-06-13)</strong></p>
                 <ul>
                     <li>Phone: chart titles and axis labels can no longer be dragged / moved (they were too easy to nudge by accident on a touch screen). Dragging stays enabled on desktop for repositioning labels.</li>
@@ -3489,7 +3493,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.69</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.70</a>
     </div>
 
     <div class="main-content">
@@ -4344,7 +4348,7 @@
                                 </select>
                                 <div id="colorByLegend" style="display:none; margin-top:2px; max-height:20vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:3px; padding:2px;"></div>
                             </div>
-                            <div class="control-box-compact" id="customCellLineFilterBox" style="flex:1;">
+                            <div class="control-box-compact mobile-hide" id="customCellLineFilterBox" style="flex:1;">
                                 <span class="control-label" style="font-size:10px;">Custom Cell Lines</span>
                                 <textarea id="customCellLineFilter" placeholder="Paste IDs or names..." style="font-size:10px; width:100%; height:28px; max-height:60px; resize:vertical; border:1px solid #d1d5db; border-radius:3px; padding:2px; box-sizing:border-box;"></textarea>
                                 <div style="display:flex; gap:3px; margin-top:2px;">
@@ -4551,8 +4555,8 @@
                             <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE within each curated driver fusion" style="display: none;">Δ Curated Fusion</button>
                         </span>
                     </div>
-                    <!-- Row 3: Custom Cell Line Filter -->
-                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap;">
+                    <!-- Row 3: Custom Cell Line Filter (hidden on phones) -->
+                    <div class="mobile-hide" style="display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap;">
                         <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Custom CLs:</span>
                         <textarea id="customCellLineFilterGE" placeholder="Paste cell line IDs or names..." style="font-size:10px; width:260px; height:32px; resize:vertical; border:1.5px solid #d1d5db; border-radius:6px; padding:4px;"></textarea>
                         <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilterGE()" style="font-size:10px; padding:3px 8px;">Apply</button>
