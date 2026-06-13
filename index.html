@@ -1388,10 +1388,16 @@
             .inspect-layout { flex-direction: column !important; }
             .inspect-controls { grid-template-columns: 1fr !important; width: 100% !important; }
             .inspect-plot, #scatterPlot { width: 100% !important; min-width: 0 !important; }
-            /* Cell Line Browser: single-column list, detail stacks under */
+            /* Cell Line Browser: fullscreen, single-column list, detail stacks under.
+               (It uses a custom overlay, not .modal, so it needs its own rules.) */
+            #cellLineBrowserModal { padding: 0 !important; align-items: stretch !important; }
+            #cellLineBrowserModal > div { max-width: 100% !important; height: 100% !important; max-height: 100% !important; margin-top: 0 !important; border-radius: 0 !important; }
             .clb-list { columns: 1 !important; }
             .clb-content { flex-direction: column !important; }
             .clb-detail { width: 100% !important; border-left: none !important; border-top: 1px solid var(--gray-200) !important; }
+            /* Strip secondary controls / decorative chrome so the chart + key
+               text get the space. Tagged elements keep working on desktop. */
+            .mobile-hide { display: none !important; }
         }
         /* Expression Correlates needs a mutation-analysis subgroup context, which
            the condensed popout (opened from the Cell Line Browser) doesn't have,
@@ -1445,6 +1451,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.52 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Phone decluttering: on narrow screens (&le;640px) secondary controls are now hidden so the chart and key text get the space, the Min n stepper, Highlight cell line search, mutation-bias warning, the scatter Plot Size / Axis Ranges tuning boxes, the Aa text-settings buttons, and the Cell Line Browser CSV export buttons. All stay available on desktop.</li>
+                    <li>The Cell Line Browser now also goes fullscreen on phones (it uses a custom overlay, so it needed its own rule).</li>
+                </ul>
                 <p><strong>v.83.51 (2026-06-13)</strong></p>
                 <ul>
                     <li>Phone / small-screen support: on narrow screens (&le;640px) the Cell Line Browser, Gene Effect, Correlation and Inspect popouts now use the full screen, the chart-beside-table layouts stack so the chart spans the full width, dense toolbars wrap, and controls shrink, so the main chart and text stay reachable instead of overflowing off-screen.</li>
@@ -3374,7 +3385,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.51</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.52</a>
     </div>
 
     <div class="main-content">
@@ -4133,7 +4144,7 @@
                         </div>
 
                         <!-- Row 2: Plot Size | Axis Ranges -->
-                        <div class="control-box-compact" style="padding: 3px 6px;">
+                        <div class="control-box-compact mobile-hide" style="padding: 3px 6px;">
                             <span class="control-label" style="font-size:9px;">Plot Size</span>
                             <div style="display: flex; gap: 3px; align-items: center; font-size:10px;">
                                 <button onclick="app.adjustPlotSize('width',-50)" style="font-size:9px;padding:0 3px;border:1px solid #ddd;border-radius:3px;background:#f9f9f9;cursor:pointer;">−</button>
@@ -4150,7 +4161,7 @@
                                 <label style="cursor:pointer; display:flex; align-items:center; gap:2px;"><input type="color" id="scatterDotColor" value="#6b9fcf" style="width:12px; height:10px; border:none; padding:0; cursor:pointer;" onchange="app.applyScatterDotColor(this.value)"> Color</label>
                             </div>
                         </div>
-                        <div class="control-box-compact" style="padding: 3px 6px;">
+                        <div class="control-box-compact mobile-hide" style="padding: 3px 6px;">
                             <span class="control-label" style="font-size:9px;">Axis Ranges</span>
                             <div class="axis-inputs" style="gap: 2px; font-size:9px;">
                                 <div><label style="font-size:8px;">X min</label><div style="display:flex; gap:1px;"><button onclick="app.adjustAxis('scatterXmin',-0.5)" style="font-size:9px;padding:0 3px;border:1px solid #ddd;border-radius:2px;background:#f9f9f9;cursor:pointer;">−</button><input type="text" id="scatterXmin" style="flex:1; min-width:0; font-size:9px;"><button onclick="app.adjustAxis('scatterXmin',0.5)" style="font-size:9px;padding:0 3px;border:1px solid #ddd;border-radius:2px;background:#f9f9f9;cursor:pointer;">+</button></div></div>
@@ -4310,7 +4321,7 @@
                 <div id="byTissueContainer" style="display: none;"></div>
             </div>
             <div class="modal-footer" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button class="btn btn-outline btn-sm" id="scatterTextSettingsBtn" style="font-weight:700;" title="Text & Font Settings">Aa</button>
+                <button class="btn btn-outline btn-sm mobile-hide" id="scatterTextSettingsBtn" style="font-weight:700;" title="Text & Font Settings">Aa</button>
                 <button class="btn btn-outline btn-sm" id="resetScatterAll" style="font-size:10px;" title="Reset all filters, gates, fonts, and overlays, keep selected genes">Reset</button>
                 <span style="font-size:10px; color:#9ca3af;">Export:</span>
                 <button class="btn btn-outline btn-sm" id="downloadScatterPNG" title="Export the scatter plot, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
@@ -4388,8 +4399,8 @@
                         <select id="geHotspotFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Additional hotspot filter, only show cell lines mutated in this gene">
                             <option value="">No hotspot mutation</option>
                         </select>
-                        <span id="geHotspotBiasWarning" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
-                        <span style="border-left: 1px solid #e5e7eb; height: 16px; margin: 0 2px;"></span>
+                        <span id="geHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
+                        <span class="mobile-hide" style="border-left: 1px solid #e5e7eb; height: 16px; margin: 0 2px;"></span>
                         <input type="text" id="geMutGeneFilter" list="geMutGeneFilterList" class="form-control" placeholder="Mut filter..." style="width: 90px; font-size: 11px; padding: 3px 6px;" title="Filter by mutation status (e.g. NRAS)" autocomplete="off">
                         <datalist id="geMutGeneFilterList"></datalist>
                         <select id="geMutLevelFilter" style="font-size: 11px; padding: 2px 4px; border: 1px solid #ddd; border-radius: 4px;">
@@ -4405,11 +4416,13 @@
                             <input type="text" id="geCnFilter" class="form-control" placeholder="Amp / deep-del..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal CN filter, amplifications (▲) and deep deletions (▼)">
                             <div id="geCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
-                        <span style="font-size:10px; color:#6b7280; white-space:nowrap;" title="Minimum cell lines per tissue group to display">Min n:</span>
-                        <button onclick="app.adjustNumber('geMinGroupSize', -1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
-                        <input type="number" id="geMinGroupSize" value="1" min="1" max="50" style="width:36px; font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; text-align:center;" title="Minimum cell lines per tissue to show" onchange="app.switchGeneEffectView(app.currentGEView || 'tissue')">
-                        <button onclick="app.adjustNumber('geMinGroupSize', 1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
-                        <input type="text" id="geCellLineSearch" class="form-control" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
+                        <span class="mobile-hide" style="display:inline-flex; align-items:center; gap:8px;">
+                            <span style="font-size:10px; color:#6b7280; white-space:nowrap;" title="Minimum cell lines per tissue group to display">Min n:</span>
+                            <button onclick="app.adjustNumber('geMinGroupSize', -1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                            <input type="number" id="geMinGroupSize" value="1" min="1" max="50" style="width:36px; font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; text-align:center;" title="Minimum cell lines per tissue to show" onchange="app.switchGeneEffectView(app.currentGEView || 'tissue')">
+                            <button onclick="app.adjustNumber('geMinGroupSize', 1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                        </span>
+                        <input type="text" id="geCellLineSearch" class="form-control mobile-hide" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span id="geOncoprintLabel" style="display:none; font-size:10px; gap:3px; align-items:center; flex-wrap:wrap;"></span>
                     </div>
                     <!-- Row 3: View + Gates -->
@@ -4564,7 +4577,7 @@
 
                 <!-- Download buttons -->
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
-                    <button class="btn btn-outline btn-sm" id="geTextSettingsBtn" style="font-weight:700;" title="Text & Font Settings">Aa</button>
+                    <button class="btn btn-outline btn-sm mobile-hide" id="geTextSettingsBtn" style="font-weight:700;" title="Text & Font Settings">Aa</button>
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
                     <button class="btn btn-outline btn-sm" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                     <button class="btn btn-outline btn-sm" id="downloadGeneEffectSVG">SVG</button>
@@ -4716,7 +4729,7 @@
                             <input type="text" id="caHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
                             <div id="caHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
-                        <span id="caHotspotBiasWarning" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
+                        <span id="caHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
                         <div id="caFusionFilterWrap" style="position:relative; display:none;">
                             <input type="text" id="caFusionFilter" class="form-control" placeholder="Curated fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, curated driver pairs (★) and validated fusion genes">
                             <div id="caFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
@@ -4725,7 +4738,7 @@
                             <input type="text" id="caCnFilter" class="form-control" placeholder="Amp / deep-del..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal CN filter, amplifications (▲) and deep deletions (▼)">
                             <div id="caCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
-                        <input type="text" id="caCellLineSearch" class="form-control" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
+                        <input type="text" id="caCellLineSearch" class="form-control mobile-hide" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
                         <button class="btn btn-sm" id="caViewTissue" style="background: #5a9f4a; color: white;">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="caViewHotspot">By Hotspot</button>
@@ -5296,13 +5309,14 @@
             <span style="font-size:10px; font-weight:600; color:var(--green-700); white-space:nowrap;">Inspect:</span>
             <button id="clbInspectGEBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Top gene-effect hits in the selected cell lines, and top Δ vs the rest. Fast (~seconds).">Inspect<br><span style="font-size:9px;font-weight:normal;">Gene Effects</span></button>
 
+            <!-- Export group (raw data CSVs for selected cell lines) — hidden on phones to declutter -->
+            <span class="mobile-hide" style="display:contents;">
             <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
-
-            <!-- Export group (raw data CSVs for selected cell lines) -->
             <span style="font-size:10px; font-weight:600; color:var(--earth-700); white-space:nowrap;">Export CSV:</span>
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="One or a few selected cell lines: Gene Effect + Expression for every gene (CSV). Includes DepMap version and citation.">Cell line:<br><span style="font-size:9px;font-weight:normal;">GE + expression</span></button>
             <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="Selected cell line(s): full profile for every gene, GE + Expression + Hotspot + Damaging + Fusion + focal CN / deep deletions (CSV).">Cell line:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
             <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="One or a few genes: full profile (GE, Expression, Hotspot, Damaging, Fusion, focal CN) across the selected / visible cell lines (CSV).">Genes:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
+            </span>
           </div>
         </div>
         <!-- Row 2: Curated collections + help -->
