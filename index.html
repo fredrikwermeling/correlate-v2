@@ -1459,6 +1459,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.56 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Phone decluttering: image / figure exports are hidden on narrow screens (&le;640px), the Screenshot and Export image buttons across the Correlation, Gene Effect and Correlation Analysis popouts, the network and mutation-table exports, and the wiki Download PDF. These aren't practical on a phone; all stay on desktop.</li>
+                </ul>
                 <p><strong>v.83.55 (2026-06-13)</strong></p>
                 <ul>
                     <li>Phone decluttering: the whole Cell Line Browser action row (selection buttons, Inspect Gene Effects, CSV exports) and the selection count are now hidden on narrow screens (&le;640px), since those select-and-analyse workflows aren't practical on a phone. All remain on desktop.</li>
@@ -3405,7 +3409,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.55</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.56</a>
     </div>
 
     <div class="main-content">
@@ -3899,7 +3903,7 @@
                             </div>
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">Export:</label>
                             <div class="button-group-horizontal">
-                                <button class="btn btn-secondary" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                                <button class="btn btn-secondary mobile-hide" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                                 <button class="btn btn-secondary" id="downloadNetworkSVG" style="display:none;">SVG</button>
                                 <button class="btn btn-secondary" id="downloadFullPagePNG" title="Screenshot the full page as high-res PNG for publication">Screenshot PNG</button>
                                 <button class="btn btn-info" id="downloadAllData">All Data (ZIP)</button>
@@ -4048,7 +4052,7 @@
                         <button class="btn btn-outline btn-sm" id="downloadMutationResults" title="Download table as CSV spreadsheet">.csv</button>
                         <button class="btn btn-sm" id="mutAnalyzeWithAI" style="background:#0369a1;color:white;font-size:10px;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
                         <button class="btn btn-outline btn-sm" id="exportMutTableSVG" style="display:none;" title="Export visible table as SVG vector image">.svg</button>
-                        <button class="btn btn-outline btn-sm" id="exportMutTablePNG" title="Export the visible table, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                        <button class="btn btn-outline btn-sm mobile-hide" id="exportMutTablePNG" title="Export the visible table, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                         <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
                         <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="filterMutationToggle" title="Toggle column value filters">Filters</button>
@@ -4137,7 +4141,7 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="inspectTitle" style="flex:1; margin:0;">Correlation: Gene1 vs Gene2</h3>
                 <button onclick="app.openCorrelationInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same genes, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('inspectModalInner','correlate_correlation')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
+                <button onclick="app.screenshotPopout('inspectModalInner','correlate_correlation')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeInspect">&times;</button>
             </div>
             <div class="modal-body">
@@ -4344,11 +4348,11 @@
                 <button class="btn btn-outline btn-sm mobile-hide" id="scatterTextSettingsBtn" style="font-weight:700;" title="Text & Font Settings">Aa</button>
                 <button class="btn btn-outline btn-sm" id="resetScatterAll" style="font-size:10px;" title="Reset all filters, gates, fonts, and overlays, keep selected genes">Reset</button>
                 <span style="font-size:10px; color:#9ca3af;">Export:</span>
-                <button class="btn btn-outline btn-sm" id="downloadScatterPNG" title="Export the scatter plot, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                <button class="btn btn-outline btn-sm mobile-hide" id="downloadScatterPNG" title="Export the scatter plot, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                 <button class="btn btn-outline btn-sm" id="downloadScatterSVG" title="Export scatter plot as SVG vector">.svg</button>
                 <button class="btn btn-outline btn-sm" id="downloadScatterCSV" title="Download data as CSV spreadsheet">.csv</button>
                 <button class="btn btn-sm" id="scatterAnalyzeWithAI" style="background:#0369a1;color:white;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
-                <button class="btn btn-outline btn-sm" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                <button class="btn btn-outline btn-sm mobile-hide" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                 <button class="btn btn-outline btn-sm" id="downloadTissueSVG" style="display:none;" title="Export tissue chart as SVG">.svg</button>
                 <button class="btn btn-outline btn-sm" id="downloadTissueCSV" style="display:none;" title="Download tissue table as CSV">.csv</button>
                 <span style="font-size:10px; display:inline-flex; gap:8px; align-items:center; color:#666; margin-left:4px;">
@@ -4379,7 +4383,7 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="geneEffectTitle" style="flex:1; margin:0;">Gene Effect Analysis</h3>
                 <button onclick="app.openGeneEffectInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same gene, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('geneEffectModalInner','correlate_gene_effect')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
+                <button onclick="app.screenshotPopout('geneEffectModalInner','correlate_gene_effect')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeGeneEffect">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
@@ -4599,7 +4603,7 @@
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                     <button class="btn btn-outline btn-sm mobile-hide" id="geTextSettingsBtn" style="font-weight:700;" title="Text & Font Settings">Aa</button>
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
-                    <button class="btn btn-outline btn-sm" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                    <button class="btn btn-outline btn-sm mobile-hide" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                     <button class="btn btn-outline btn-sm" id="downloadGeneEffectSVG">SVG</button>
                     <button class="btn btn-sm btn-outline" id="geExpandFullBtn" title="Show the full analysis (filters + statistics table)" style="font-size:11px;">⤢ Full view</button>
                     <span style="font-size: 12px; color: #6b7280; margin-left: 15px; margin-right: 5px;">Export CSV:</span>
@@ -4680,7 +4684,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <button class="btn btn-sm btn-outline" id="backToExprResults" style="border-color: #5a9f4a; color: #5a9f4a;">← Back to results</button>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-outline btn-sm" id="downloadExprScatterPNG" style="border-color: #5a9f4a; color: #5a9f4a;" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                                    <button class="btn btn-outline btn-sm mobile-hide" id="downloadExprScatterPNG" style="border-color: #5a9f4a; color: #5a9f4a;" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                                     <button class="btn btn-outline btn-sm" id="downloadExprScatterSVG" style="border-color: #5a9f4a; color: #5a9f4a;">SVG</button>
                                 </div>
                             </div>
@@ -4719,7 +4723,7 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="corrAnalysisTitle" style="flex:1; margin:0;">Correlation Analysis</h3>
                 <button onclick="app.openCorrAnalysisInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same genes, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('corrAnalysisModalInner','correlate_correlation_analysis')" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area).">&#128247; Screenshot</button>
+                <button onclick="app.screenshotPopout('corrAnalysisModalInner','correlate_correlation_analysis')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area).">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeCorrAnalysis">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
@@ -4819,7 +4823,7 @@
                 <!-- Download buttons (same as gene effect) -->
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
-                    <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                    <button class="btn btn-outline btn-sm mobile-hide" id="downloadCorrAnalysisPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                     <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisSVG">SVG</button>
                     <span style="font-size: 12px; color: #6b7280; margin-left: 15px; margin-right: 5px;">Export CSV:</span>
                     <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisCSV">By Group</button>
@@ -5156,9 +5160,9 @@
             <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot the wiki for a figure (PNG / TIFF / PDF, full content or visible area)">&#128247; Screenshot</button>
+            <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot the wiki for a figure (PNG / TIFF / PDF, full content or visible area)">&#128247; Screenshot</button>
             <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN / deep deletions) as a CSV">Export gene info (.csv)</button>
-            <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Download this Wiki as a multi-page PDF (charts embedded as images, white background)">Download PDF</button>
+            <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Download this Wiki as a multi-page PDF (charts embedded as images, white background)">Download PDF</button>
             <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
           </div>
         </div>
