@@ -1412,6 +1412,11 @@
             #clbDetailTop > .clb-detail-section:not(.clb-keep-mobile),
             #clbDetailGeneLists { display: none !important; }
             #clbDetailCloseBtn { display: block !important; }
+            /* Wiki key/value rows: the 190px label column squeezed the value into
+               many wrapped lines on a phone; narrow the label so the value (right
+               column) gets the room, and tighten the gap. */
+            .wiki-kv { gap: 8px !important; }
+            .wiki-kv-label { flex-basis: 110px !important; }
             /* Drug-response sort dropdown: shrink the explainer header (it was
                eating the panel) and give the compound list more room. */
             #clbSortDrugDropdown { max-height: 60vh !important; min-width: 0 !important; max-width: calc(100vw - 24px) !important; }
@@ -1475,6 +1480,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.64 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Phone: in the cell line Wiki, the label column was too wide and squeezed the value column into many wrapped lines (e.g. Sample taken from). The label column is now narrower on phones so the value gets the room.</li>
+                </ul>
                 <p><strong>v.83.63 (2026-06-13)</strong></p>
                 <ul>
                     <li>Phone: the cell-line detail (executive summary) now has a Close button at the top, so you can dismiss it and get the list back instead of it taking over the screen.</li>
@@ -3455,7 +3464,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.63</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.64</a>
     </div>
 
     <div class="main-content">
@@ -5741,6 +5750,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_63"></script>
+    <script src="app.js?v=v83_64"></script>
 </body>
 </html>

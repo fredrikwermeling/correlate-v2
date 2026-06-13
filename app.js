@@ -29537,7 +29537,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 <div style="padding:12px 14px;">${body}</div>
                 ${source ? `<div style="padding:8px 14px; border-top:1px solid #f1f5f9; font-size:10px; color:#9ca3af;"><b>Source:</b> ${source}</div>` : ''}
             </section>`;
-        const row = (label, value) => value ? `<div style="display:flex; gap:12px; padding:3px 0; align-items:baseline;"><span style="flex:0 0 190px; color:#6b7280; font-size:11px;">${label}</span><span style="flex:1; min-width:0;">${value}</span></div>` : '';
+        const row = (label, value) => value ? `<div class="wiki-kv" style="display:flex; gap:12px; padding:3px 0; align-items:baseline;"><span class="wiki-kv-label" style="flex:0 0 190px; color:#6b7280; font-size:11px;">${label}</span><span style="flex:1; min-width:0;">${value}</span></div>` : '';
         const pill = (text, color) => `<span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${color}22; color:${color}; font-weight:600; font-size:10px; margin-right:4px;">${text}</span>`;
 
         // --- Classification ---
