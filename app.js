@@ -267,7 +267,7 @@ class CorrelationExplorer {
     // Filter/setting controls captured for "Open in new tab" so the new tab
     // reproduces the same view (not just the gene/pair).
     _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geMutGeneFilter', 'geMutLevelFilter', 'geFusionFilter', 'geMinGroupSize', 'geCellLineSearch']; }
-    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
+    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
     _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCellLineSearch']; }
 
     // Snapshot the underlying analysis/network so a new tab can rebuild the
@@ -11667,6 +11667,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('compareAllTranslocationsBtn').style.display = 'none';
         }
 
+        // Searchable hotspot / fusion (★ clinical pairs) / CN (▲ amp / ▼ deep-del)
+        // filters, matching the Cell Line Browser. Wired once; each re-renders.
+        // Reset on open (the old <select>s rebuilt to "No filter" each time).
+        const mfg = document.getElementById('mutationFilterGene'); if (mfg) mfg.value = '';
+        const scf = document.getElementById('scatterCnFilter'); if (scf) scf.value = '';
+        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this.updateInspectPlot());
+        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this.updateInspectPlot());
+        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this.updateInspectPlot());
+        const scatterCnBox = document.getElementById('scatterCnFilterBox');
+        if (scatterCnBox) scatterCnBox.style.display = this.clinicalCn?.byCellLine ? 'block' : 'none';
+
         // Calculate stats for ALL cells (unfiltered) for the title
         const allCellsStats = this.pearsonWithSlope(plotData.map(d => d.x), plotData.map(d => d.y));
         const xLbl = xType === 'geneset' ? 'Set' : xType === 'growth' ? 'Growth' : xType === 'expr' ? 'Expr' : 'GE';
@@ -11847,6 +11858,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('translocationGene').value = '';
         document.getElementById('translocationMode').value = 'color';
 
+        // Reset focal CN filter
+        const cnReset = document.getElementById('scatterCnFilter');
+        if (cnReset) cnReset.value = '';
+
         // Reset color-by
         document.getElementById('colorByCategory').value = '';
 
@@ -11915,17 +11930,30 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         }
 
-        // Apply translocation filter
-        if (transFilterGene && this.translocations?.geneData?.[transFilterGene] && transFilterLevel !== 'all') {
-            const filterTrans = this.translocations.geneData[transFilterGene].translocations;
-            filteredData = filteredData.filter(d => {
-                const tLevel = filterTrans[d.cellLineId] || 0;
-                if (transFilterLevel === '0') return tLevel === 0;
-                if (transFilterLevel === '1') return tLevel === 1;
-                if (transFilterLevel === '2') return tLevel >= 2;
-                if (transFilterLevel === '1+2') return tLevel >= 1;
-                return true;
-            });
+        // Apply fusion filter: a curated clinical pair (★) filters by presence;
+        // a fusion gene honours the 0/1/2 level selector as before.
+        if (transFilterGene) {
+            const fKey = this._stripFusionFilterDecoration(transFilterGene);
+            const pairCells = this.clinicalFusions?.fusionData?.[fKey]?.cellLines;
+            if (pairCells) {
+                filteredData = filteredData.filter(d => d.cellLineId in pairCells);
+            } else if (this.translocations?.geneData?.[fKey] && transFilterLevel !== 'all') {
+                const filterTrans = this.translocations.geneData[fKey].translocations;
+                filteredData = filteredData.filter(d => {
+                    const tLevel = filterTrans[d.cellLineId] || 0;
+                    if (transFilterLevel === '0') return tLevel === 0;
+                    if (transFilterLevel === '1') return tLevel === 1;
+                    if (transFilterLevel === '2') return tLevel >= 2;
+                    if (transFilterLevel === '1+2') return tLevel >= 1;
+                    return true;
+                });
+            }
+        }
+
+        // Apply focal CN (amp / deep-del) filter.
+        const cnFilterVal = document.getElementById('scatterCnFilter')?.value || '';
+        if (cnFilterVal) {
+            filteredData = filteredData.filter(d => this._cellLinePassesCnFilter(d.cellLineId, cnFilterVal));
         }
 
         // Apply custom cell line filter
