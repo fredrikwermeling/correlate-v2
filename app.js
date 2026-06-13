@@ -31,7 +31,15 @@
         }
         return layout;
     };
-    const lockConfig = (config) => Object.assign({}, config, { scrollZoom: false });
+    const lockConfig = (config) => {
+        config = config || {};
+        // Strip the Plotly modebar camera ("Download plot as png") from every
+        // chart, it's redundant with the dedicated Export buttons on desktop and
+        // unwanted everywhere else. Merge with any buttons the chart already removes.
+        const existing = Array.isArray(config.modeBarButtonsToRemove) ? config.modeBarButtonsToRemove : [];
+        const remove = existing.includes('toImage') ? existing : existing.concat(['toImage']);
+        return Object.assign({}, config, { scrollZoom: false, modeBarButtonsToRemove: remove, displaylogo: false });
+    };
     ['newPlot', 'react'].forEach((fn) => {
         const orig = Plotly[fn];
         if (typeof orig !== 'function') return;
