@@ -1406,6 +1406,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.40 (2026-06-13)</strong></p>
+                <ul>
+                    <li><b>Fix:</b> opening a correlation view in a new tab now keeps the <b>sub-lineage / subtype</b> filter too (e.g. Lymphoid &rarr; Mature B-Cell), so closing the popout shows the same underlying network. The restore now repopulates the subtype options before setting the value.</li>
+                    <li>Gene Effect popout: &ldquo;Hotspot Mutation Inspect&rdquo; renamed <b>Mutation Inspect</b>.</li>
+                </ul>
                 <p><strong>v.83.39 (2026-06-13)</strong></p>
                 <ul>
                     <li>Groundwork for unified filters: the searchable hotspot / fusion (★ clinical pairs) / CN (▲ amp / ▼ deep-del) filter widget and its apply logic are now reusable across the app (no visible change yet, the Cell Line Browser behaves exactly as before). Wiring it into the first-page parameters and the Gene Effect / scatter / Correlation Analysis popouts follows.</li>
@@ -3283,7 +3288,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.39</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.40</a>
     </div>
 
     <div class="main-content">
@@ -4307,7 +4312,7 @@
                         <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">View:</label>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;" title="Box plot of gene effect grouped by tissue / lineage">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan table: how each mutation-prone gene's hotspot (WT vs mutated) shifts this gene's effect">By Hotspot</button>
-                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Same layout as the mutational-analysis Inspect, pick one hotspot-mutated gene to stratify this gene's effect by 0 / 1 / 2 hotspot-mutation levels. Change the hotspot gene in the selector above the plot.">Hotspot Mutation Inspect</button>
+                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Stratify this gene's effect by another gene's status, pick a hotspot mutation, a curated fusion, or a focal amplification / deep deletion in the selector above the plot.">Mutation Inspect</button>
                         <span id="geGatesGroup" style="display: none; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 8px; margin-left: 2px;">
                             <label style="font-size: 12px; font-weight: 600; color: #374151; white-space: nowrap;">Gates:</label>
                             <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle on the scatter plot to define Gate A">Gate A</button>
@@ -5537,6 +5542,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_39"></script>
+    <script src="app.js?v=v83_40"></script>
 </body>
 </html>

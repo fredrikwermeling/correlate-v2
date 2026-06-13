@@ -16777,6 +16777,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (ns.minSlope) document.getElementById('minSlope').value = ns.minSlope;
                 if (ns.minCellLines) document.getElementById('minCellLines').value = ns.minCellLines;
                 if (ns.lineageFilter) document.getElementById('lineageFilter').value = ns.lineageFilter;
+                // Populate the sub-lineage options for the restored lineage BEFORE
+                // setting the sub value, otherwise the option doesn't exist yet and
+                // the sub-filter (e.g. "Mature B-Cell") silently fails to stick.
+                this.updateSubLineageFilter();
                 if (ns.subLineageFilter) {
                     const subEl = document.getElementById('subLineageFilter');
                     if (subEl) subEl.value = ns.subLineageFilter;
