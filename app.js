@@ -7337,8 +7337,13 @@ class CorrelationExplorer {
         // Compute the y-axis layout first: its dynamic left margin (room reserved
         // for the rotated y-label + tick labels) determines how much horizontal
         // space the plot-area-centered title/subtitle actually have to wrap into.
-        const yLabelFontSize = 20;
-        const yTickFontSize = 17;
+        // On phones the plot is only ~350px wide, so the desktop-tuned 17-20px
+        // axis fonts overlap and crowd the plot out. Scale the fonts, title and
+        // margins down on small screens so the box plot is actually visible.
+        const _gePhone = (typeof window !== 'undefined') && window.innerWidth <= 640;
+        const _geFS = _gePhone ? 0.62 : 1;
+        const yLabelFontSize = Math.round(20 * _geFS);
+        const yTickFontSize = Math.round(17 * _geFS);
         const yTickVals = isBinaryAxis ? [0, 1] : [0, 1, 2];
         const yTickTexts = isBinaryAxis
             ? [
@@ -7361,14 +7366,14 @@ class CorrelationExplorer {
         const geTitleMaxW = geContainerW - yFit.marginL;
 
         const geTitleAnn = {
-            text: this._computeGETitleText(titleText, subtitleText, 25, 'geneEffectPlot', geTitleMaxW),
+            text: this._computeGETitleText(titleText, subtitleText, Math.round(25 * _geFS), 'geneEffectPlot', geTitleMaxW),
             xref: 'paper', yref: 'paper',
             x: this._geUserTitlePos ? this._geUserTitlePos.x : 0.5,
-            y: this._geUserTitlePos ? this._geUserTitlePos.y : 1.65,
+            y: this._geUserTitlePos ? this._geUserTitlePos.y : (_gePhone ? 1.4 : 1.65),
             xanchor: this._geUserTitlePos ? 'auto' : 'center',
             yanchor: this._geUserTitlePos ? 'auto' : 'top',
             showarrow: false,
-            font: { size: Math.round(15 * 0.85) },
+            font: { size: Math.round(15 * 0.85 * (_gePhone ? 0.85 : 1)) },
             _tsRole: 'title'
         };
         const geXLabelAnn = {
@@ -7379,7 +7384,7 @@ class CorrelationExplorer {
             xanchor: this._geUserXLabelPos ? 'auto' : 'center',
             yanchor: this._geUserXLabelPos ? 'auto' : 'top',
             showarrow: false,
-            font: { size: 20 },
+            font: { size: Math.round(20 * _geFS) },
             _tsRole: 'xlabel'
         };
 
@@ -7414,7 +7419,7 @@ class CorrelationExplorer {
                 tickfont: { size: yTickFontSize }
             },
             showlegend: false,
-            margin: { t: 180, r: 30, b: 75, l: yFit.marginL },
+            margin: { t: _gePhone ? 120 : 180, r: 30, b: _gePhone ? 52 : 75, l: yFit.marginL },
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
