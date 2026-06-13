@@ -1411,6 +1411,13 @@
                executive summary + the Wiki button (deep dive opens the wiki). */
             #clbDetailTop > .clb-detail-section:not(.clb-keep-mobile),
             #clbDetailGeneLists { display: none !important; }
+            /* Drug-response sort dropdown: shrink the explainer header (it was
+               eating the panel) and give the compound list more room. */
+            #clbSortDrugDropdown { max-height: 60vh !important; min-width: 0 !important; max-width: calc(100vw - 24px) !important; }
+            #clbSortDrugDropdown .clb-drug-dd-header {
+                font-size: 9px !important; line-height: 1.25 !important; padding: 4px 8px !important;
+                display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+            }
             /* Strip secondary controls / decorative chrome so the chart + key
                text get the space. Tagged elements keep working on desktop. */
             .mobile-hide { display: none !important; }
@@ -1467,6 +1474,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.62 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Phone: the drug-response sort dropdown explainer text is now smaller / clamped so the compound list gets the space, and the dropdown is taller.</li>
+                    <li>Phone: the Cell Line Browser Custom CLs (paste IDs) filter is hidden.</li>
+                </ul>
                 <p><strong>v.83.61 (2026-06-13)</strong></p>
                 <ul>
                     <li>Phone: tapping a search box or filter no longer auto-zooms the page in (which left users stuck zoomed). Page zoom is now fixed at 1x on phones.</li>
@@ -3438,7 +3450,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.61</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.62</a>
     </div>
 
     <div class="main-content">
@@ -5393,8 +5405,8 @@
           </div>
           <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm" title="Show inclusion criteria for each quick filter" style="padding:2px 8px; font-size:10px; font-weight:700;">?</button>
         </div>
-        <!-- Custom Cell Line Filter for CLB -->
-        <div style="padding: 4px 12px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+        <!-- Custom Cell Line Filter for CLB (hidden on phones) -->
+        <div class="mobile-hide" style="padding: 4px 12px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
           <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Custom CLs:</span>
           <textarea id="customCellLineFilterCLB" placeholder="Paste cell line IDs or names..." style="font-size:10px; width:260px; height:28px; resize:vertical; border:1.5px solid #d1d5db; border-radius:6px; padding:4px;"></textarea>
           <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilterCLB()" style="font-size:10px; padding:3px 8px;">Apply</button>
@@ -5723,6 +5735,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_60"></script>
+    <script src="app.js?v=v83_62"></script>
 </body>
 </html>

@@ -3003,7 +3003,7 @@ class CorrelationExplorer {
             return (a.c.name || '').localeCompare(b.c.name || '');
         });
 
-        const headerHtml = `<div style="padding:6px 10px; background:#f9fafb; border-bottom:1px solid #e5e7eb; font-size:10px; color:#6b7280; position:sticky; top:0;">`
+        const headerHtml = `<div class="clb-drug-dd-header" style="padding:6px 10px; background:#f9fafb; border-bottom:1px solid #e5e7eb; font-size:10px; color:#6b7280; position:sticky; top:0;">`
             + `Compounds ranked by potency in the <b>${visibleCls.length}</b> currently-visible cell line${visibleCls.length === 1 ? '' : 's'}.`
             + ` Counts: <span style="color:#15803d; font-weight:600;">v</span> = very-sensitive (AUC &lt; 0.3, &ldquo;kills most cells&rdquo;), `
             + `<span style="color:#a16207; font-weight:600;">p</span> = partly-sensitive (AUC 0.3&ndash;0.6, &ldquo;kills many cells&rdquo;). `
