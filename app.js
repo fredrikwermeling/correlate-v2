@@ -11510,6 +11510,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         this.currentInspect.data = plotData;
 
+        // Flag when one gene's sparse data limits the cohort, so a small point
+        // count doesn't look like a filter is hiding cells (e.g. CD99 and other
+        // pseudoautosomal genes have gene-effect data in very few lines).
+        let n1 = 0, n2 = 0;
+        for (let i = 0; i < this.nCellLines; i++) {
+            if (!isNaN(this.getAxisValue(c.gene1, i, xType, geData1))) n1++;
+            if (!isNaN(this.getAxisValue(c.gene2, i, yType, geData2))) n2++;
+        }
+        const fewer = (n1 <= n2) ? { g: c.gene1, n: n1, t: xType } : { g: c.gene2, n: n2, t: yType };
+        const dataLbl = (t) => t === 'expr' ? 'expression' : t === 'growth' ? 'growth-rate' : 'gene-effect';
+        this.currentInspect.sparseNote = (fewer.n < this.nCellLines * 0.25 && fewer.n < 400)
+            ? `${fewer.g} has ${dataLbl(fewer.t)} data in only ${fewer.n} lines, so the plot is limited to lines with data for both genes (not a filter)`
+            : null;
+
         // Set axis limits with 10% padding on each side
         const xVals = plotData.map(d => d.x);
         const yVals = plotData.map(d => d.y);
@@ -12280,6 +12294,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         titleLines.push(`<span style="font-size:${subSize}px;">n=${filteredData.length}, r=${allStats.correlation.toFixed(3)}, slope=${allStats.slope.toFixed(3)}</span>`);
         titleLines.push(`<span style="font-size:${subSize}px;">mean (X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)}) median (X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})</span>`);
+        if (this.currentInspect?.sparseNote) {
+            titleLines.push(`<span style="font-size:${Math.round(subSize * 0.85)}px; color:#b45309;">&#9888; ${this.currentInspect.sparseNote}</span>`);
+        }
 
         if (hotspotMode === 'color' && hotspotGene) {
             titleLines.push(`<span style="font-size:${subSize}px;"><b>${hotspotGene}:</b> WT n=${wt.length} r=${wtStats.correlation.toFixed(3)} | 1mut n=${mut1.length} r=${mut1Stats.correlation.toFixed(3)} | 2mut n=${mut2.length} r=${mut2Stats.correlation.toFixed(3)}</span>`);
@@ -20399,10 +20416,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             } catch (e) { img = null; }
             plotPngs.push({ gd, img });
         }
-        // Capture each control's content height so input/select text can be
-        // vertically centred in the clone (html2canvas renders it low).
-        const liveCtrls = [...root.querySelectorAll('input, select, textarea')];
-        const ctrlH = liveCtrls.map(el => el.clientHeight);
+        // html2canvas renders <input> text low / off-centre. Snapshot each text
+        // input as a flex-centred <div> (reliable centring) and keep the
+        // line-height trick for <select>. Indices align with the clone because
+        // we query the same selectors in the same order.
+        const liveInputs = [...root.querySelectorAll('input')];
+        const inputSnap = liveInputs.map(el => {
+            const t = (el.type || 'text').toLowerCase();
+            if (['checkbox', 'radio', 'color', 'file', 'range', 'hidden'].includes(t)) return null;
+            const cs = getComputedStyle(el);
+            const just = cs.textAlign === 'center' ? 'center' : cs.textAlign === 'right' ? 'flex-end' : 'flex-start';
+            const padX = cs.textAlign === 'center' ? '0px' : (cs.paddingRight || '2px');
+            return {
+                value: el.value,
+                css: `box-sizing:border-box;width:${el.offsetWidth}px;height:${el.offsetHeight}px;`
+                    + `border:1px solid ${cs.borderTopColor};border-radius:${cs.borderTopLeftRadius};`
+                    + `background:${cs.backgroundColor};color:${cs.color};font-family:${cs.fontFamily};`
+                    + `font-size:${cs.fontSize};font-weight:${cs.fontWeight};display:flex;align-items:center;`
+                    + `justify-content:${just};padding:0 ${padX};overflow:hidden;white-space:nowrap;`
+                    + `vertical-align:${cs.verticalAlign};`
+            };
+        });
+        const liveSelects = [...root.querySelectorAll('select')];
+        const selectH = liveSelects.map(el => el.clientHeight);
 
         // For full-content capture, temporarily lift height/overflow clamps so
         // scrolled-out rows are included, then restore.
@@ -20434,14 +20470,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 windowWidth: document.documentElement.scrollWidth,
                 onclone: (clonedDoc) => {
                     const scopeEl = (rootId && clonedDoc.getElementById(rootId)) || clonedDoc.body;
-                    // Vertically centre control text (line-height = content height).
-                    scopeEl.querySelectorAll('input, select, textarea').forEach((el, i) => {
-                        const h = ctrlH[i];
-                        if (h && el.tagName !== 'TEXTAREA') {
-                            el.style.lineHeight = h + 'px';
-                            el.style.paddingTop = '0px';
-                            el.style.paddingBottom = '0px';
-                        }
+                    // Replace text inputs with flex-centred divs (reliable centring).
+                    scopeEl.querySelectorAll('input').forEach((el, i) => {
+                        const snap = inputSnap[i];
+                        if (!snap || !el.parentNode) return;
+                        const div = clonedDoc.createElement('div');
+                        div.textContent = snap.value;
+                        div.setAttribute('style', snap.css);
+                        el.parentNode.replaceChild(div, el);
+                    });
+                    // Selects: line-height = content height so the value centres.
+                    scopeEl.querySelectorAll('select').forEach((el, i) => {
+                        const h = selectH[i];
+                        if (h) { el.style.lineHeight = h + 'px'; el.style.paddingTop = '0px'; el.style.paddingBottom = '0px'; }
                     });
                 }
             });

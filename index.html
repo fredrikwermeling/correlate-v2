@@ -1406,6 +1406,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.43 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Popout screenshots: text inside small input boxes (e.g. the Highlight/Color size) is now reliably centred, the inputs are rendered as flex-centred boxes in the capture instead of relying on line-height.</li>
+                    <li>Correlation scatter: when one gene has sparse data (e.g. CD99 and other pseudoautosomal genes have gene-effect data in very few lines), the plot now notes that it's limited to lines with data for <b>both</b> genes, so a small point count isn't mistaken for a hidden filter.</li>
+                </ul>
                 <p><strong>v.83.42 (2026-06-13)</strong></p>
                 <ul>
                     <li>Gene Effect &rarr; Mutation Inspect: the Y-axis stratifier (&ldquo;Stratify Y by&rdquo;) now offers <b>hotspot mutations, curated fusions, amplifications and deep deletions</b> in grouped options, not just hotspot. Picking one flips the stratification axis to that type.</li>
@@ -3296,7 +3301,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.42</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.43</a>
     </div>
 
     <div class="main-content">
@@ -5551,6 +5556,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_42"></script>
+    <script src="app.js?v=v83_43"></script>
 </body>
 </html>
