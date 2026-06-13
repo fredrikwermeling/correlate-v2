@@ -12599,6 +12599,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const titleText = titleLines.join('<br>');
 
+        // On phones the desktop left margin (96px) + 17-20px y-axis fonts ate a
+        // third of the screen width, leaving the scatter very narrow in x. Shrink
+        // the y-axis margin / fonts on small screens so the plot gets the width.
+        const _isPhone = (typeof window !== 'undefined') && window.innerWidth <= 640;
+
         // Title as draggable annotation
         const titleAnnotation = {
             x: this._userTitlePosition ? this._userTitlePosition.x : 0.5,
@@ -12637,14 +12642,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const yLabelAnnotation = {
             // Push the rotated y-axis title further left so it clears the tick
             // numbers (paired with the wider left margin below).
-            x: this._userYLabelPos ? this._userYLabelPos.x : -0.17,
+            x: this._userYLabelPos ? this._userYLabelPos.x : (_isPhone ? -0.12 : -0.17),
             y: this._userYLabelPos ? this._userYLabelPos.y : 0.5,
             xref: 'paper', yref: 'paper',
             xanchor: this._userYLabelPos ? 'auto' : 'center',
             yanchor: this._userYLabelPos ? 'auto' : 'middle',
             text: yLabelText,
             showarrow: false,
-            font: { size: sts?.yLabelFontSize || 20 },
+            font: { size: sts?.yLabelFontSize || (_isPhone ? 13 : 20) },
             textangle: -90,
             _tsRole: 'ylabel'
         };
@@ -12664,10 +12669,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 zeroline: showZero,
                 zerolinecolor: showZero ? '#000' : '#ddd',
                 zerolinewidth: showZero ? 2 : 0,
-                tickfont: { size: sts?.yTickSize || 17 }
+                tickfont: { size: sts?.yTickSize || (_isPhone ? 11 : 17) }
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: 30, b: colorByCategory ? 100 : 60, l: 96, autoexpand: false },
+            margin: { t: topMargin, r: _isPhone ? 14 : 30, b: colorByCategory ? 100 : 60, l: _isPhone ? 52 : 96, autoexpand: false },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: colorByCategory ? {
                 orientation: 'h',
