@@ -4284,7 +4284,8 @@ class CorrelationExplorer {
         // Inline compare buttons
         document.getElementById('geCompareByTissueBtn')?.addEventListener('click', () => this.showInlineCompareByTissue());
         document.getElementById('geCompareByHotspotBtn')?.addEventListener('click', () => this.showInlineCompareByHotspot());
-        document.getElementById('geCompareByTranslocationBtn')?.addEventListener('click', () => this.showInlineCompareByTranslocation());
+        document.getElementById('geCompareByTranslocationBtn')?.addEventListener('click', () => this.showInlineCompareByCuratedFusion());
+        document.getElementById('geCompareByCnBtn')?.addEventListener('click', () => this.showInlineCompareByCn());
         document.getElementById('geInlineCompareClose')?.addEventListener('click', () => {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         });
@@ -7317,7 +7318,9 @@ class CorrelationExplorer {
         document.getElementById('geCompareButtons').style.display = '';
         document.getElementById('geResetFiltersBtn').style.display = '';
         document.getElementById('geCompareByTranslocationBtn').style.display =
-            this.translocations?.genes?.length > 0 ? '' : 'none';
+            this.clinicalFusions?.fusionData ? '' : 'none';
+        const geCnBtn = document.getElementById('geCompareByCnBtn');
+        if (geCnBtn) geCnBtn.style.display = this.clinicalCn?.byCellLine ? '' : 'none';
         // Keep the View toggle visible so the user can switch back to
         // By Tissue / By Hotspot from Mutation Inspect without closing the
         // modal. Highlight "Mutation Inspect" as the active view.
@@ -22864,6 +22867,127 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._renderInlineCompareTable();
     }
 
+    // Shared base-cohort builder for the inline Δ-compare tables (Δ Curated
+    // Fusion / Δ Amp-Del). Applies the same tissue / subtype / additional-hotspot
+    // filters as the other compares and returns the per-cell gene effect plus the
+    // main stratifier's level. Returns null when prerequisites are missing.
+    _geCompareBaseCells() {
+        if (!this.mutationResults || !this.currentGeneEffectGene) return null;
+        const mr = this.mutationResults;
+        const gene = this.currentGeneEffectGene;
+        const mainHotspot = mr.hotspotGene;
+        const isTranslocation = mr.isTranslocation;
+        const isDamaging = mr.isDamaging;
+        if (isDamaging) this._cnAxisMode = mr.cnMode || null;
+        const mainMutData = isTranslocation
+            ? this._fusionAxisData?.geneData?.[mainHotspot]
+            : isDamaging
+                ? this._lossAxisData?.geneData?.[mainHotspot]
+                : this.mutations?.geneData?.[mainHotspot];
+        if (!mainMutData) return null;
+        const geneIdx = this.geneIndex.get(gene.toUpperCase());
+        if (geneIdx === undefined) return null;
+        const cellLines = this.metadata.cellLines;
+        const tissueFilter = document.getElementById('geTissueFilter')?.value || '';
+        const inspectSubtype = document.getElementById('geSubtypeFilter')?.value || '';
+        const baseCells = [];
+        cellLines.forEach((cellLine, idx) => {
+            if (tissueFilter) {
+                const lineage = this.cellLineMetadata?.lineage?.[cellLine] || '';
+                if (lineage !== tissueFilter) return;
+            } else {
+                if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
+                if (mr.excludedTissues && mr.excludedTissues.size > 0) {
+                    const lineage = this.cellLineMetadata?.lineage?.[cellLine];
+                    if (lineage && mr.excludedTissues.has(lineage)) return;
+                }
+            }
+            if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
+            if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
+                const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
+                if (addMutData) {
+                    const addMutLevel = addMutData.mutations[cellLine] || 0;
+                    if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
+                    if (mr.additionalHotspotLevel === '1' && addMutLevel !== 1) return;
+                    if (mr.additionalHotspotLevel === '2' && addMutLevel < 2) return;
+                    if (mr.additionalHotspotLevel === '1+2' && addMutLevel === 0) return;
+                }
+            }
+            const ge = this.geneEffects[geneIdx * this.nCellLines + idx];
+            if (isNaN(ge)) return;
+            const mainLevel = isTranslocation ? (mainMutData.translocations[cellLine] || 0) : (mainMutData.mutations[cellLine] || 0);
+            baseCells.push({ cellLine, idx, ge, mainMut: mainLevel });
+        });
+        const mutLabel = isTranslocation ? 'Fused' : isDamaging ? this._mutAxisLabels(mr).carrier : 'Mut';
+        return { mr, gene, mainHotspot, mutLabel, baseCells };
+    }
+
+    // Helper: given a base-cell list and a subset predicate, build a Δ-compare
+    // row (main-stratifier mutated vs WT, within that subset).
+    _geCompareRow(baseCells, predicate, label, extra) {
+        const filtered = baseCells.filter(predicate);
+        const wtGE = filtered.filter(c => c.mainMut === 0).map(c => c.ge);
+        const mutGE = filtered.filter(c => c.mainMut >= 1).map(c => c.ge);
+        if (wtGE.length === 0 || mutGE.length === 0) return null;
+        const meanWT = wtGE.reduce((a, b) => a + b, 0) / wtGE.length;
+        const meanMut = mutGE.reduce((a, b) => a + b, 0) / mutGE.length;
+        return { label, nSubset: wtGE.length + mutGE.length, nWT: wtGE.length, meanWT, nMut: mutGE.length, meanMut, delta: meanMut - meanWT, ...extra };
+    }
+
+    // Δ Curated Fusion: repeat the main stratifier's mutated-vs-WT Δ GE within
+    // the cells carrying each curated (clinical) driver fusion.
+    showInlineCompareByCuratedFusion() {
+        if (!this.clinicalFusions?.fusionData) { alert('No curated fusion data loaded.'); return; }
+        const ctx = this._geCompareBaseCells();
+        if (!ctx) return;
+        this._inlineSortCol = null; this._inlineSortAsc = true;
+        const { gene, mainHotspot, mutLabel, baseCells } = ctx;
+        const rows = [];
+        const ref = this._geCompareRow(baseCells, () => true, 'None (no extra filter)', { isRef: true, fusion: '' });
+        if (ref) rows.push(ref);
+        for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
+            const cells = fd.cellLines || {};
+            const row = this._geCompareRow(baseCells, c => c.cellLine in cells, `★ ${fname}`, { fusion: fname });
+            if (row) rows.push(row);
+        }
+        const refRows = rows.filter(r => r.isRef);
+        const sortableRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+        this._inlineCompareData = {
+            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs WT, repeated within each curated fusion`,
+            subsetLabel: 'Curated fusion', subsetCountHeader: 'N (with fusion)', mainGene: mainHotspot, mutLabel,
+            refRows, sortableRows, mode: 'fusion'
+        };
+        this._renderInlineCompareTable();
+    }
+
+    // Δ Amp/Del: repeat the main stratifier's mutated-vs-WT Δ GE within the cells
+    // carrying each focal amplification / deep deletion in the curated CN panel.
+    showInlineCompareByCn() {
+        if (!this.clinicalCn?.byCellLine) { alert('No focal copy-number data loaded.'); return; }
+        const ctx = this._geCompareBaseCells();
+        if (!ctx) return;
+        this._inlineSortCol = null; this._inlineSortAsc = true;
+        const { gene, mainHotspot, mutLabel, baseCells } = ctx;
+        const rows = [];
+        const ref = this._geCompareRow(baseCells, () => true, 'None (no extra filter)', { isRef: true, cn: '' });
+        if (ref) rows.push(ref);
+        const items = this._ensureGlobalFilterItems().cn || [];
+        for (const it of items) {
+            const label = `${it.kind === 'amp' ? '▲' : '▼'} ${it.gene} ${it.kind === 'amp' ? 'amp' : 'del'}`;
+            const row = this._geCompareRow(baseCells, c => this._cellLinePassesCnFilter(c.cellLine, it.value), label, { cn: it.value });
+            if (row) rows.push(row);
+        }
+        const refRows = rows.filter(r => r.isRef);
+        const sortableRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+        this._inlineCompareData = {
+            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs WT, repeated within each focal CN event`,
+            subsetLabel: 'Focal CN event', subsetCountHeader: 'N (with event)', mainGene: mainHotspot, mutLabel,
+            refRows, sortableRows, mode: 'cn'
+        };
+        this._renderInlineCompareTable();
+    }
+
     sortInlineCompare(colIndex) {
         if (!this._inlineCompareData) return;
         if (this._inlineSortCol === colIndex) {
@@ -22957,10 +23081,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 ? `app.onInlineCompareTissueClick('${(clickVal || '').replace(/'/g, "\\'")}')`
                 : rowMode === 'fusion'
                 ? `app.onInlineCompareFusionClick('${(clickVal || '').replace(/'/g, "\\'")}')`
+                : rowMode === 'cn'
+                ? ''
                 : `app.onInlineCompareHotspotClick('${(clickVal || '').replace(/'/g, "\\'")}')`;
 
             const nSubset = row.nSubset ?? (row.nWT + row.nMut);
-            html += `<tr onclick="${clickFn}" style="cursor:pointer; ${bold}">`;
+            html += `<tr ${clickFn ? `onclick="${clickFn}" style="cursor:pointer; ${bold}"` : `style="${bold}"`}>`;
             html += `<td style="padding:2px 6px; border-bottom:1px solid #e5e7eb;">${row.label}</td>`;
             html += `<td style="padding:2px 10px 2px 6px; border-bottom:1px solid #e5e7eb; border-right:2px solid #d1d5db; text-align:right;">${nSubset}</td>`;
             html += `<td style="padding:2px 6px; border-bottom:1px solid #e5e7eb; text-align:right;">${row.nWT}</td>`;

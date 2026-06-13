@@ -1406,6 +1406,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.41 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Gene Effect &rarr; Mutation Inspect: two new compare buttons besides Δ Tissue / Δ Hotspot. <b>Δ Amp/Del</b> shows the Δ gene effect within each focal amplification / deep deletion, and <b>Δ Curated Fusion</b> within each curated driver fusion (replaces the old raw-fusion Δ).</li>
+                </ul>
                 <p><strong>v.83.40 (2026-06-13)</strong></p>
                 <ul>
                     <li><b>Fix:</b> opening a correlation view in a new tab now keeps the <b>sub-lineage / subtype</b> filter too (e.g. Lymphoid &rarr; Mature B-Cell), so closing the popout shows the same underlying network. The restore now repopulates the subtype options before setting the value.</li>
@@ -3288,7 +3292,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.40</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.41</a>
     </div>
 
     <div class="main-content">
@@ -4325,7 +4329,8 @@
                             <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
                             <button class="btn btn-secondary btn-sm" id="geCompareByTissueBtn" title="Show Δ GE per tissue for this gene">Δ Tissue</button>
                             <button class="btn btn-secondary btn-sm" id="geCompareByHotspotBtn" title="Show Δ GE per additional hotspot for this gene">Δ Hotspot</button>
-                            <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE per fusion gene" style="display: none;">Δ Fusion</button>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByCnBtn" title="Show Δ GE within each focal amplification / deep deletion" style="display: none;">Δ Amp/Del</button>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE within each curated driver fusion" style="display: none;">Δ Curated Fusion</button>
                         </span>
                     </div>
                     <!-- Row 3: Custom Cell Line Filter -->
@@ -5542,6 +5547,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_40"></script>
+    <script src="app.js?v=v83_41"></script>
 </body>
 </html>
