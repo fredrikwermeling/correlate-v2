@@ -3541,6 +3541,29 @@ class CorrelationExplorer {
         sel.value = cur;
     }
 
+    // Re-order the Correlation-Analysis Tissue filter by the active hotspot /
+    // fusion / CN cohort (mirrors the scatter). Preserves the selection.
+    _updateCaTissueOptions() {
+        const sel = document.getElementById('caTissueFilter');
+        if (!sel || !Array.isArray(this._corrAnalysisData?.data)) return;
+        const mutActive = !!document.getElementById('caHotspotFilter')?.value
+            || !!document.getElementById('caFusionFilter')?.value
+            || !!document.getElementById('caCnFilter')?.value;
+        if (!mutActive) return;
+        const cur = sel.value;
+        const cohort = this._caCohortExcluding('tissue');
+        const counts = {}; let total = 0;
+        for (const p of this._corrAnalysisData.data) {
+            if (!cohort.has(p.cellLineId)) continue;
+            total++;
+            if (p.lineage) counts[p.lineage] = (counts[p.lineage] || 0) + 1;
+        }
+        if (cur && counts[cur] === undefined) counts[cur] = 0;
+        const lineages = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        sel.innerHTML = `<option value="">All tissues (n=${total})</option>` + lineages.map(l => `<option value="${l}">${l} (n=${counts[l]})</option>`).join('');
+        sel.value = cur;
+    }
+
     // Cells passing all active Correlation-Analysis filters EXCEPT the named kind.
     _caCohortExcluding(kind) {
         const data = this._corrAnalysisData?.data || [];
@@ -3551,7 +3574,7 @@ class CorrelationExplorer {
         const set = new Set();
         for (const p of data) {
             const cl = p.cellLineId;
-            if (tissue && p.lineage !== tissue) continue;
+            if (kind !== 'tissue' && tissue && p.lineage !== tissue) continue;
             if (kind !== 'hotspot' && hot) { const mm = this.mutations?.geneData?.[hot]?.mutations || this.damagingMutations?.geneData?.[hot]?.mutations; if (!mm || !(mm[cl] >= 1)) continue; }
             if (kind !== 'fusion' && fus) {
                 const fk = this._stripFusionFilterDecoration(fus);
@@ -17745,6 +17768,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._caView = view;
         this._caDetailedView = null;
         document.getElementById('caShowAllBtn').style.display = 'none';
+        // Re-order the Tissue filter by the active mutation/fusion/CN cohort.
+        this._updateCaTissueOptions();
 
         const tissueBtn = document.getElementById('caViewTissue');
         const hotspotBtn = document.getElementById('caViewHotspot');
