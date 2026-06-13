@@ -1406,6 +1406,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.45 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Correlation scatter <b>Compare</b> row is now <b>Tissue / Hotspot / Amp/Del / Curated Fusion</b>. The fusion comparison uses only curated driver pairs (★) and validated fusion genes, the old noisy all-genes fusion comparison is gone, and a new Amp/Del comparison (focal amplifications / deep deletions) was added, matching the Gene Effect popout.</li>
+                </ul>
                 <p><strong>v.83.44 (2026-06-13)</strong></p>
                 <ul>
                     <li>Filter unification (1 of 4 &mdash; the correlation scatter): the Hotspot and Fusion filters are now the same searchable dropdowns as the Cell Line Browser (fusion includes <b>★ curated driver pairs</b>), and a new <b>CN amp/del</b> filter (▲ amplification / ▼ deep deletion) was added. Same widget will follow on the first-page parameters and the Gene Effect / Correlation Analysis filter rows.</li>
@@ -3305,7 +3309,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.44</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.45</a>
     </div>
 
     <div class="main-content">
@@ -4133,7 +4137,8 @@
                                 <div style="display:flex; gap:3px; flex-wrap:wrap;">
                                     <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size:10px; padding:2px 5px;">Tissue</button>
                                     <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size:10px; padding:2px 5px;">Hotspot</button>
-                                    <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size:10px; padding:2px 5px; display:none;">Fusion</button>
+                                    <button class="btn btn-secondary btn-sm" id="compareAllCnBtn" style="font-size:10px; padding:2px 5px; display:none;">Amp/Del</button>
+                                    <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size:10px; padding:2px 5px; display:none;">Curated Fusion</button>
                                     <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size:10px; padding:2px 5px;">Reset</button>
                                 </div>
                             </div>
@@ -5573,6 +5578,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_44"></script>
+    <script src="app.js?v=v83_45"></script>
 </body>
 </html>

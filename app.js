@@ -4052,6 +4052,7 @@ class CorrelationExplorer {
         document.getElementById('scatterFontSize')?.addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('compareAllMutationsBtn')?.addEventListener('click', () => this.showCompareAllMutations());
         document.getElementById('compareAllTranslocationsBtn')?.addEventListener('click', () => this.showCompareAllTranslocations());
+        document.getElementById('compareAllCnBtn')?.addEventListener('click', () => this.showCompareAllCn());
         document.getElementById('compareAllCancerTypesBtn')?.addEventListener('click', () => this.showCompareAllCancerTypes());
         document.getElementById('updateInspectGenes')?.addEventListener('click', () => this.updateInspectGenes());
         document.getElementById('inspectFindCorrelatesBtn')?.addEventListener('click', () => this.findInspectCorrelates());
@@ -11677,6 +11678,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this.updateInspectPlot());
         const scatterCnBox = document.getElementById('scatterCnFilterBox');
         if (scatterCnBox) scatterCnBox.style.display = this.clinicalCn?.byCellLine ? 'block' : 'none';
+        // Compare row: Tissue / Hotspot always; Curated Fusion when clinical
+        // fusions are loaded; Amp/Del when focal CN data is loaded.
+        const cmpFusBtn = document.getElementById('compareAllTranslocationsBtn');
+        if (cmpFusBtn) cmpFusBtn.style.display = this.clinicalFusions?.fusionData ? '' : 'none';
+        const cmpCnBtn = document.getElementById('compareAllCnBtn');
+        if (cmpCnBtn) cmpCnBtn.style.display = this.clinicalCn?.byCellLine ? '' : 'none';
 
         // Calculate stats for ALL cells (unfiltered) for the title
         const allCellsStats = this.pearsonWithSlope(plotData.map(d => d.x), plotData.map(d => d.y));
@@ -13349,83 +13356,155 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.setupSortableTable('compareMutationsTable');
     }
 
+    // Apply all active inspect-modal filters to the current scatter data,
+    // returning the filtered points + a description. Shared by the Δ compare
+    // tables so they match the scatter exactly (incl. curated fusion + CN).
+    _getInspectCompareFilteredData() {
+        const data = this.currentInspect?.data || [];
+        const cancerFilter = document.getElementById('scatterCancerFilter')?.value || '';
+        const subtypeFilter = document.getElementById('scatterSubtypeFilter')?.value || '';
+        const mutFilterGene = document.getElementById('mutationFilterGene')?.value || '';
+        const mutFilterLevel = document.getElementById('mutationFilterLevel')?.value || 'all';
+        const transFilterGene = document.getElementById('translocationFilterGene')?.value || '';
+        const transFilterLevel = document.getElementById('translocationFilterLevel')?.value || 'all';
+        const cnFilterVal = document.getElementById('scatterCnFilter')?.value || '';
+        let fd = cancerFilter ? data.filter(d => d.lineage === cancerFilter) : data.slice();
+        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) fd = fd.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
+        if (mutFilterGene && mutFilterLevel !== 'all') {
+            const mm = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
+            if (mm) fd = fd.filter(d => { const l = mm[d.cellLineId] || 0; if (mutFilterLevel === '0') return l === 0; if (mutFilterLevel === '1') return l === 1; if (mutFilterLevel === '2') return l >= 2; if (mutFilterLevel === '1+2') return l >= 1; return true; });
+        }
+        if (transFilterGene) {
+            const key = this._stripFusionFilterDecoration(transFilterGene);
+            const pair = this.clinicalFusions?.fusionData?.[key]?.cellLines;
+            if (pair) fd = fd.filter(d => d.cellLineId in pair);
+            else if (this.translocations?.geneData?.[key] && transFilterLevel !== 'all') {
+                const tt = this.translocations.geneData[key].translocations;
+                fd = fd.filter(d => { const l = tt[d.cellLineId] || 0; if (transFilterLevel === '0') return l === 0; if (transFilterLevel === '1') return l === 1; if (transFilterLevel === '2') return l >= 2; if (transFilterLevel === '1+2') return l >= 1; return true; });
+            }
+        }
+        if (cnFilterVal) fd = fd.filter(d => this._cellLinePassesCnFilter(d.cellLineId, cnFilterVal));
+        if (this._customCellLineFilter) fd = fd.filter(d => this._customCellLineFilter.has(d.cellLineId));
+        const parts = [];
+        if (cancerFilter) parts.push(`Cancer: ${cancerFilter}${subtypeFilter ? ` (${subtypeFilter})` : ''}`);
+        if (mutFilterGene && mutFilterLevel !== 'all') parts.push(`${mutFilterGene}: ${mutFilterLevel}`);
+        if (transFilterGene) parts.push(`Fusion: ${this._stripFusionFilterDecoration(transFilterGene)}`);
+        if (cnFilterVal) parts.push(`CN: ${this._stripCnFilterDecoration(cnFilterVal)}`);
+        if (this._customCellLineFilter) parts.push(`Custom: ${this._customCellLineFilter.size} CLs`);
+        return { filteredData: fd, filterDesc: parts.join(' | ') };
+    }
+
+    // Curated-fusion subsets: clinical driver pairs (★) + validated fusion genes,
+    // never the raw noisy fusion matrix.
+    _curatedFusionSubsets() {
+        const subsets = [];
+        if (this.clinicalFusions?.fusionData) {
+            for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
+                const cells = fd.cellLines || {};
+                subsets.push({ label: `★ ${fname}`, isCarrier: (cl) => cl in cells, colorGene: '' });
+            }
+        }
+        const vf = this.validatedFusions;
+        if (vf?.genes) {
+            for (const g of vf.genes) {
+                const td = vf.geneData?.[g]?.translocations || this.translocations?.geneData?.[g]?.translocations;
+                if (!td) continue;
+                subsets.push({ label: g, isCarrier: (cl) => (td[cl] || 0) >= 1, colorGene: g });
+            }
+        }
+        return subsets;
+    }
+
+    // Focal CN subsets: each curated amplification / deep deletion.
+    _cnSubsets() {
+        const items = this._ensureGlobalFilterItems().cn || [];
+        return items.map(it => ({
+            label: `${it.kind === 'amp' ? '▲' : '▼'} ${it.gene} ${it.kind === 'amp' ? 'amp' : 'del'}`,
+            isCarrier: (cl) => this._cellLinePassesCnFilter(cl, it.value),
+            colorGene: ''
+        }));
+    }
+
+    // Generic WT-vs-carrier correlation comparison table (Δ Curated Fusion, Δ Amp/Del).
+    _renderSubsetCorrComparison(filteredData, gene1, gene2, filterDesc, subsets, o) {
+        o = o || {};
+        const carrierWord = o.carrierWord || 'Carrier';
+        const tableId = o.tableId || 'compareSubsetTable';
+        const cellIdSet = new Set(filteredData.map(d => d.cellLineId));
+        const rows = [];
+        for (const sub of subsets) {
+            let n = 0; for (const cl of cellIdSet) { if (sub.isCarrier(cl) && ++n >= 3) break; }
+            if (n < 3) continue;
+            const wt = filteredData.filter(d => !sub.isCarrier(d.cellLineId));
+            const carr = filteredData.filter(d => sub.isCarrier(d.cellLineId));
+            if (wt.length < 3 || carr.length < 3) continue;
+            const wtS = this.pearsonWithSlope(wt.map(d => d.x), wt.map(d => d.y));
+            const cS = this.pearsonWithSlope(carr.map(d => d.x), carr.map(d => d.y));
+            const z1 = 0.5 * Math.log((1 + wtS.correlation) / (1 - wtS.correlation));
+            const z2 = 0.5 * Math.log((1 + cS.correlation) / (1 - cS.correlation));
+            const se = Math.sqrt(1 / (wt.length - 3) + 1 / (carr.length - 3));
+            const pR = 2 * (1 - this.normalCDF(Math.abs((z2 - z1) / se)));
+            rows.push({ label: sub.label, colorGene: sub.colorGene || '', nWT: wt.length, rWT: wtS.correlation, slopeWT: wtS.slope, nC: carr.length, rC: cS.correlation, slopeC: cS.slope, deltaR: cS.correlation - wtS.correlation, deltaSlope: cS.slope - wtS.slope, pR });
+        }
+        rows.sort((a, b) => a.pR - b.pR);
+        const filterInfo = filterDesc ? `<p style="font-size:11px;color:#333;margin-bottom:8px;background:#f0f9ff;padding:4px 8px;border-radius:4px;"><b>Filter:</b> ${filterDesc}</p>` : '';
+        let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h4 style="margin:0;">${o.heading || `${carrierWord} affecting ${gene1} vs ${gene2}`}</h4><div><button class="btn btn-primary btn-sm" id="backToGraphBtnSubset" style="margin-right:8px;">← Back to Graph</button><button class="btn btn-success btn-sm" id="downloadSubsetCSV">Download CSV</button></div></div>${filterInfo}<p style="font-size:11px;color:#666;margin-bottom:6px;">Comparing WT vs ${carrierWord}. Sorted by p-value.</p>${o.clickNote ? `<p style="font-size:11px;color:#059669;margin-bottom:8px;">${o.clickNote}</p>` : ''}<div class="table-container" style="max-height:380px;overflow-y:auto;"><table id="${tableId}" class="data-table" style="width:100%;font-size:11px;"><thead><tr><th data-sort="label" data-type="string" style="cursor:pointer;">${o.subsetCol || carrierWord} ↕</th><th data-sort="nWT" data-type="number" style="cursor:pointer;border-left:2px solid #2563eb;">N(WT) ↕</th><th data-sort="rWT" data-type="number" style="cursor:pointer;">r(WT) ↕</th><th data-sort="nC" data-type="number" style="cursor:pointer;border-left:2px solid #dc2626;">N(${carrierWord}) ↕</th><th data-sort="rC" data-type="number" style="cursor:pointer;">r(${carrierWord}) ↕</th><th data-sort="deltaR" data-type="number" style="cursor:pointer;border-left:2px solid #6b7280;">Δr ↕</th><th data-sort="pR" data-type="number" style="cursor:pointer;">p(Δr) ↕</th></tr></thead><tbody>`;
+        rows.forEach(row => {
+            const dc = row.deltaR < 0 ? '#dc2626' : '#5a9f4a';
+            const hl = row.pR < 0.05 ? 'background:#fef3c7;' : '';
+            html += `<tr class="${row.colorGene ? 'clickable-subset-row' : ''}" data-color-gene="${row.colorGene}" style="${hl}${row.colorGene ? 'cursor:pointer;' : ''}"><td><b>${row.label}</b></td><td style="text-align:center;border-left:2px solid #2563eb;">${row.nWT}</td><td style="text-align:center;">${row.rWT.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #dc2626;">${row.nC}</td><td style="text-align:center;">${row.rC.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #6b7280;color:${dc};font-weight:600;">${row.deltaR.toFixed(3)}</td><td style="text-align:center;">${row.pR.toExponential(1)}</td></tr>`;
+        });
+        html += `</tbody></table></div><p style="font-size:11px;color:#666;margin-top:8px;">Yellow = p &lt; 0.05. ${o.biasNote || 'This analysis may be biased as these events select for cancer types.'}</p>`;
+        document.getElementById('compareTable').innerHTML = html;
+        document.getElementById('backToGraphBtnSubset')?.addEventListener('click', () => {
+            document.getElementById('compareTable').style.display = 'none';
+            document.getElementById('scatterPlot').style.display = 'block';
+        });
+        document.getElementById('downloadSubsetCSV')?.addEventListener('click', () => {
+            let csv = `${o.subsetCol || 'Subset'},N_WT,r_WT,slope_WT,N_${carrierWord},r_${carrierWord},slope_${carrierWord},Delta_r,p_Delta_r,Delta_slope\n`;
+            rows.forEach(r => { csv += `"${r.label}",${r.nWT},${r.rWT.toFixed(4)},${r.slopeWT.toFixed(4)},${r.nC},${r.rC.toFixed(4)},${r.slopeC.toFixed(4)},${r.deltaR.toFixed(4)},${r.pR.toExponential(2)},${r.deltaSlope.toFixed(4)}\n`; });
+            this.downloadFile(csv, csvName(`${gene1}_vs_${gene2}_${o.csvStem || 'comparison'}`), 'text/csv');
+        });
+        document.querySelectorAll(`#${tableId} .clickable-subset-row`).forEach(row => {
+            row.addEventListener('click', () => {
+                const cg = row.dataset.colorGene;
+                if (!cg) return;
+                document.getElementById('translocationGene').value = cg;
+                document.getElementById('translocationMode').value = 'color';
+                document.getElementById('compareTable').style.display = 'none';
+                document.getElementById('scatterPlot').style.display = 'block';
+                this.updateInspectPlot();
+            });
+        });
+        this.setupSortableTable(tableId);
+    }
+
     showCompareAllTranslocations() {
         if (!this.currentInspect) return;
-
-        const { gene1, gene2, data } = this.currentInspect;
-
-        // Apply current filters
-        const cancerFilter = document.getElementById('scatterCancerFilter').value;
-        const subtypeFilter = document.getElementById('scatterSubtypeFilter').value;
-        const mutFilterGene = document.getElementById('mutationFilterGene').value;
-        const mutFilterLevel = document.getElementById('mutationFilterLevel').value;
-        const transFilterGene = document.getElementById('translocationFilterGene').value;
-        const transFilterLevel = document.getElementById('translocationFilterLevel').value;
-
-        let filteredData = cancerFilter ?
-            data.filter(d => d.lineage === cancerFilter) : data;
-
-        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
-            filteredData = filteredData.filter(d =>
-                this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter
-            );
-        }
-
-        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
-            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
-            filteredData = filteredData.filter(d => {
-                const mutLevel = filterMutations[d.cellLineId] || 0;
-                if (mutFilterLevel === '0') return mutLevel === 0;
-                if (mutFilterLevel === '1') return mutLevel === 1;
-                if (mutFilterLevel === '2') return mutLevel >= 2;
-                if (mutFilterLevel === '1+2') return mutLevel >= 1;
-                return true;
-            });
-        }
-
-        if (transFilterGene && this.translocations?.geneData?.[transFilterGene] && transFilterLevel !== 'all') {
-            const filterTrans = this.translocations.geneData[transFilterGene].translocations;
-            filteredData = filteredData.filter(d => {
-                const tLevel = filterTrans[d.cellLineId] || 0;
-                if (transFilterLevel === '0') return tLevel === 0;
-                if (transFilterLevel === '1') return tLevel === 1;
-                if (transFilterLevel === '2') return tLevel >= 2;
-                if (transFilterLevel === '1+2') return tLevel >= 1;
-                return true;
-            });
-        }
-
-        let filterParts = [];
-        if (cancerFilter) {
-            let cancerText = `Cancer: ${cancerFilter}`;
-            if (subtypeFilter) cancerText += ` (${subtypeFilter})`;
-            filterParts.push(cancerText);
-        }
-        if (mutFilterGene && mutFilterLevel !== 'all') {
-            const levelText = mutFilterLevel === '0' ? 'WT' :
-                              mutFilterLevel === '1' ? '1 mut' :
-                              mutFilterLevel === '2' ? '2 mut' : '1+2 mut';
-            filterParts.push(`${mutFilterGene}: ${levelText}`);
-        }
-        if (transFilterGene && transFilterLevel !== 'all') {
-            const levelText = transFilterLevel === '0' ? 'WT' :
-                              transFilterLevel === '1' ? '1 fusion' :
-                              transFilterLevel === '2' ? '2 fusions' : '1+2 fusions';
-            filterParts.push(`${transFilterGene}: ${levelText}`);
-        }
-
-        // Apply custom cell line filter
-        if (this._customCellLineFilter) {
-            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
-            filterParts.push(`Custom: ${this._customCellLineFilter.size} CLs`);
-        }
-
-        const filterDesc = filterParts.length > 0 ? filterParts.join(' | ') : '';
-
+        const { filteredData, filterDesc } = this._getInspectCompareFilteredData();
+        const { gene1, gene2 } = this.currentInspect;
         document.getElementById('scatterPlot').style.display = 'none';
         document.getElementById('compareTable').style.display = 'block';
+        this._renderSubsetCorrComparison(filteredData, gene1, gene2, filterDesc, this._curatedFusionSubsets(), {
+            carrierWord: 'Fused', tableId: 'compareTranslocationsTable', subsetCol: 'Curated fusion',
+            heading: `Curated fusions affecting ${gene1} vs ${gene2}`, csvStem: 'fusion_comparison',
+            clickNote: 'Click a fusion-gene row to color the scatter by that fusion',
+            biasNote: 'This analysis may be biased as fusions select for cancer types.'
+        });
+    }
 
-        this.renderTranslocationComparisonTable(filteredData, gene1, gene2, filterDesc);
+    showCompareAllCn() {
+        if (!this.currentInspect) return;
+        if (!this.clinicalCn?.byCellLine) { alert('No focal copy-number data loaded.'); return; }
+        const { filteredData, filterDesc } = this._getInspectCompareFilteredData();
+        const { gene1, gene2 } = this.currentInspect;
+        document.getElementById('scatterPlot').style.display = 'none';
+        document.getElementById('compareTable').style.display = 'block';
+        this._renderSubsetCorrComparison(filteredData, gene1, gene2, filterDesc, this._cnSubsets(), {
+            carrierWord: 'CN+', tableId: 'compareCnTable', subsetCol: 'Focal CN event',
+            heading: `Focal amp / deep-del affecting ${gene1} vs ${gene2}`, csvStem: 'cn_comparison',
+            biasNote: 'This analysis may be biased as CN events select for cancer types.'
+        });
     }
 
     renderTranslocationComparisonTable(filteredData, gene1, gene2, filterDesc = '') {
@@ -18190,6 +18269,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('translocationFilterBox').style.display = 'none';
             document.getElementById('compareAllTranslocationsBtn').style.display = 'none';
         }
+
+        // Mirror the searchable filter widgets + compare-row visibility from the
+        // primary populate (wiring is idempotent; no value reset here).
+        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this.updateInspectPlot());
+        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this.updateInspectPlot());
+        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this.updateInspectPlot());
+        const scatterCnBox2 = document.getElementById('scatterCnFilterBox');
+        if (scatterCnBox2) scatterCnBox2.style.display = this.clinicalCn?.byCellLine ? 'block' : 'none';
+        const cmpFusBtn2 = document.getElementById('compareAllTranslocationsBtn');
+        if (cmpFusBtn2) cmpFusBtn2.style.display = this.clinicalFusions?.fusionData ? '' : 'none';
+        const cmpCnBtn2 = document.getElementById('compareAllCnBtn');
+        if (cmpCnBtn2) cmpCnBtn2.style.display = this.clinicalCn?.byCellLine ? '' : 'none';
 
         // Reset hotspot mode to default
         document.getElementById('hotspotMode').value = 'none';
