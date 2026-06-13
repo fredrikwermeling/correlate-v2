@@ -1362,6 +1362,14 @@
            the body scroll so the chart and key text stay reachable. The homepage
            keeps its two-column layout per the note above. */
         @media (max-width: 640px) {
+            /* Homepage: stack the two columns so the Options card (in the right
+               panel) is visible instead of pushed off-screen by the fixed-width
+               sidebar. Options surfaces first since it's the entry point. */
+            .main-content { padding: 0 10px 16px 10px !important; }
+            .container { flex-direction: column !important; max-width: 100% !important; gap: 10px !important; }
+            .sidebar { width: 100% !important; min-width: 0 !important; }
+            .main-panel { width: 100% !important; order: -1 !important; }
+            .sidebar-row { flex-direction: column !important; }
             .modal-overlay { padding: 0 !important; align-items: stretch !important; }
             .modal {
                 width: 100% !important; max-width: 100% !important;
@@ -1451,6 +1459,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.53 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Phone homepage fix: the Options card (Analysis / Gene Effect / Correlation / Cell Line Browser / Open / Reset) was pushed off-screen on narrow screens by the fixed-width sidebar. On phones (&le;640px) the homepage now stacks into a single column with the Options card surfaced first, so the tool buttons are immediately visible.</li>
+                </ul>
                 <p><strong>v.83.52 (2026-06-13)</strong></p>
                 <ul>
                     <li>Phone decluttering: on narrow screens (&le;640px) secondary controls are now hidden so the chart and key text get the space, the Min n stepper, Highlight cell line search, mutation-bias warning, the scatter Plot Size / Axis Ranges tuning boxes, the Aa text-settings buttons, and the Cell Line Browser CSV export buttons. All stay available on desktop.</li>
@@ -3385,7 +3397,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.52</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.53</a>
     </div>
 
     <div class="main-content">
