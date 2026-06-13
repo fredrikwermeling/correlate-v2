@@ -6,15 +6,39 @@
  * Based on: https://github.com/fredrikwermeling/correlation-app
  */
 
-// Override Plotly default font: use Arial (universally available in Inkscape/Illustrator)
+// Override Plotly defaults globally, in one place, for every chart:
+//  - font: Arial (universally available in Inkscape / Illustrator for SVG edits).
+//  - zoom locked off: every axis gets fixedrange:true and scrollZoom is disabled,
+//    so charts can't be zoomed or panned by drag / wheel / pinch / double-click.
+//    Plot zoom interferes with scrolling and reading on phones, and we don't want
+//    accidental zoom on desktop either. dragmode is left untouched, so the
+//    gate-draw (drawrect) and UMAP / cluster lasso-select tools still work (they
+//    create shapes / selections, they don't change axis ranges). All chart types
+//    here are cartesian (scatter / box / bar / histogram), so locking x/y axes is
+//    safe everywhere. Programmatic range setting (the Axis Ranges controls) still
+//    works, fixedrange only blocks interactive zoom.
 (function() {
-    const _origNewPlot = Plotly.newPlot;
-    Plotly.newPlot = function(div, data, layout, config) {
+    const lockLayout = (layout) => {
         layout = layout || {};
         if (!layout.font) layout.font = {};
         if (!layout.font.family) layout.font.family = 'Arial, Helvetica, sans-serif';
-        return _origNewPlot.call(this, div, data, layout, config);
+        if (!layout.xaxis) layout.xaxis = {};
+        if (!layout.yaxis) layout.yaxis = {};
+        for (const k of Object.keys(layout)) {
+            if (/^[xy]axis\d*$/.test(k) && layout[k] && typeof layout[k] === 'object') {
+                layout[k].fixedrange = true;
+            }
+        }
+        return layout;
     };
+    const lockConfig = (config) => Object.assign({}, config, { scrollZoom: false });
+    ['newPlot', 'react'].forEach((fn) => {
+        const orig = Plotly[fn];
+        if (typeof orig !== 'function') return;
+        Plotly[fn] = function(div, data, layout, config) {
+            return orig.call(this, div, data, lockLayout(layout), lockConfig(config));
+        };
+    });
 })();
 
 // Single source of truth for DepMap release.
