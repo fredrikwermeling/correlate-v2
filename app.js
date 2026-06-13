@@ -2800,10 +2800,13 @@ class CorrelationExplorer {
     // on the top line, disease context (or "any-fusion") on the second line.
     // Optionally narrowed by the current input text, case-insensitive prefix
     // and substring match against the canonical name.
-    _renderFusionFilterDropdown(filter) {
-        const dd = document.getElementById('clbTranslocationDropdown');
+    _renderFusionFilterDropdown(filter, opts = {}) {
+        const ddId = opts.dropdownId || 'clbTranslocationDropdown';
+        const inId = opts.inputId || 'clbTranslocationFilter';
+        const onSelect = opts.onSelect || (() => this.renderCellLineList());
+        const dd = document.getElementById(ddId);
         if (!dd) return;
-        const items = this._fusionFilterItems || [];
+        const items = opts.items || this._fusionFilterItems || [];
         const q = (filter || '').toLowerCase().trim();
         const stripped = this._stripFusionFilterDecoration(filter || '').toLowerCase();
         const matches = items.filter(it => {
@@ -2830,7 +2833,7 @@ class CorrelationExplorer {
         }).join('');
         // Wire each item, clicking sets the canonical value on the input,
         // hides the dropdown, and triggers the filter render.
-        const input = document.getElementById('clbTranslocationFilter');
+        const input = document.getElementById(inId);
         dd.querySelectorAll('.clb-fusion-opt').forEach(el => {
             el.addEventListener('mousedown', (e) => {
                 e.preventDefault(); // prevent input blur before our click handler
@@ -2841,7 +2844,7 @@ class CorrelationExplorer {
                     input.dispatchEvent(new Event('change'));
                 }
                 dd.style.display = 'none';
-                this.renderCellLineList();
+                onSelect();
             });
         });
     }
@@ -2870,10 +2873,13 @@ class CorrelationExplorer {
 
     // Re-render the custom hotspot-filter dropdown, mirrors the fusion filter:
     // one line per gene with its live n= mutated count, narrowed by typed text.
-    _renderHotspotFilterDropdown(filter) {
-        const dd = document.getElementById('clbHotspotDropdown');
+    _renderHotspotFilterDropdown(filter, opts = {}) {
+        const ddId = opts.dropdownId || 'clbHotspotDropdown';
+        const inId = opts.inputId || 'clbHotspotFilter';
+        const onSelect = opts.onSelect || (() => this.renderCellLineList());
+        const dd = document.getElementById(ddId);
         if (!dd) return;
-        const items = this._hotspotFilterItems || [];
+        const items = opts.items || this._hotspotFilterItems || [];
         const q = (filter || '').toLowerCase().trim();
         const matches = q ? items.filter(it => it.value.toLowerCase().includes(q)) : items;
         if (matches.length === 0) {
@@ -2890,13 +2896,13 @@ class CorrelationExplorer {
             + `<div style="font-size:10px; color:#9ca3af;">${it.secondary}</div>`
             + `</div>`
         ).join('');
-        const input = document.getElementById('clbHotspotFilter');
+        const input = document.getElementById(inId);
         dd.querySelectorAll('.clb-hotspot-opt').forEach(el => {
             el.addEventListener('mousedown', (e) => e.preventDefault());
             el.addEventListener('click', () => {
                 if (input) { input.value = el.dataset.value; input.dispatchEvent(new Event('change')); }
                 dd.style.display = 'none';
-                this.renderCellLineList();
+                onSelect();
             });
         });
     }
@@ -3257,10 +3263,13 @@ class CorrelationExplorer {
         });
     }
 
-    _renderCnFilterDropdown(filter) {
-        const dd = document.getElementById('clbCnDropdown');
+    _renderCnFilterDropdown(filter, opts = {}) {
+        const ddId = opts.dropdownId || 'clbCnDropdown';
+        const inId = opts.inputId || 'clbCnFilter';
+        const onSelect = opts.onSelect || (() => this.renderCellLineList());
+        const dd = document.getElementById(ddId);
         if (!dd) return;
-        const items = this._cnFilterItems || [];
+        const items = opts.items || this._cnFilterItems || [];
         const q = (filter || '').toLowerCase().trim();
         const stripped = this._stripCnFilterDecoration(filter || '').toLowerCase();
         const matches = items.filter(it => {
@@ -3284,7 +3293,7 @@ class CorrelationExplorer {
                 + `<div style="font-size:10px; color:#9ca3af; opacity:0.85;">${it.context || ''}</div>`
                 + `</div>`;
         }).join('');
-        const input = document.getElementById('clbCnFilter');
+        const input = document.getElementById(inId);
         dd.querySelectorAll('.clb-cn-opt').forEach(el => {
             el.addEventListener('mousedown', (e) => e.preventDefault());
             el.addEventListener('click', () => {
@@ -3293,7 +3302,7 @@ class CorrelationExplorer {
                     input.dispatchEvent(new Event('change'));
                 }
                 dd.style.display = 'none';
-                this.renderCellLineList();
+                onSelect();
             });
         });
     }
@@ -3317,6 +3326,104 @@ class CorrelationExplorer {
         if (!entry) return false;
         const list = kind === 'amp' ? (entry.amplifications || []) : (entry.deletions || []);
         return list.some(e => e.gene.toUpperCase() === gene.toUpperCase());
+    }
+
+    // --- Unified mutation / fusion / CN filter widget (shared by the Cell Line
+    // Browser, the first-page parameters, and the Gene Effect / scatter /
+    // Correlation Analysis popouts so the filters look and behave identically.
+
+    // Build hotspot / fusion / CN filter option lists against the FULL cohort,
+    // so any context (popouts, parameters) can show the same searchable menu the
+    // CLB does. Cached, recomputed lazily. Mirrors the CLB item builders.
+    _ensureGlobalFilterItems() {
+        if (this._globalFilterItems) return this._globalFilterItems;
+        // Hotspot genes (this.mutations.genes already excludes polymorphic loci).
+        const hotspot = [];
+        if (this.mutations?.geneData && Array.isArray(this.mutations.genes)) {
+            for (const gene of this.mutations.genes) {
+                const muts = this.mutations.geneData[gene]?.mutations || {};
+                let n = 0; for (const cl in muts) if (muts[cl] >= 1) n++;
+                if (n > 0) hotspot.push({ value: gene, primary: gene, count: n, secondary: 'hotspot mutation' });
+            }
+            hotspot.sort((a, b) => b.count - a.count);
+        }
+        // Fusions: clinical pairs (★) first, then any-gene fusions.
+        const fusion = [];
+        if (this.clinicalFusions?.fusionData) {
+            const pairs = [];
+            for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
+                const n = Object.keys(fd.cellLines || {}).length;
+                if (n > 0) pairs.push({ value: fname, kind: 'clinical', primary: `★ ${fname}`, count: n, secondary: fd.diseaseContext || 'clinically relevant' });
+            }
+            pairs.sort((a, b) => b.count - a.count);
+            fusion.push(...pairs);
+        }
+        if (Array.isArray(this._fusionGeneCounts)) {
+            const genes = [];
+            this._fusionGeneCounts.forEach(({ gene }) => {
+                const td = this.translocations?.geneData?.[gene]?.translocations;
+                if (!td) return;
+                let n = 0; for (const cl in td) if (td[cl] >= 1) n++;
+                if (n > 0) genes.push({ value: gene, kind: 'gene', primary: gene, count: n, secondary: 'any fusion involving this gene' });
+            });
+            genes.sort((a, b) => b.count - a.count);
+            fusion.push(...genes);
+        }
+        // Focal CN events: amplifications (▲) then deep deletions (▼).
+        const cnMap = {};
+        if (this.clinicalCn?.byCellLine) {
+            for (const entry of Object.values(this.clinicalCn.byCellLine)) {
+                for (const a of (entry.amplifications || [])) { const k = `${a.gene}_amp`; (cnMap[k] = cnMap[k] || { gene: a.gene, kind: 'amp', n: 0, context: a.context }).n++; }
+                for (const d of (entry.deletions || [])) { const k = `${d.gene}_del`; (cnMap[k] = cnMap[k] || { gene: d.gene, kind: 'del', n: 0, context: d.context }).n++; }
+            }
+        }
+        const cn = Object.entries(cnMap).map(([k, v]) => ({ value: k, gene: v.gene, kind: v.kind, count: v.n, context: v.context }));
+        cn.sort((a, b) => (a.kind !== b.kind) ? (a.kind === 'amp' ? -1 : 1) : b.count - a.count);
+        this._globalFilterItems = { hotspot, fusion, cn };
+        return this._globalFilterItems;
+    }
+
+    // Does a cell line pass the given hotspot / fusion / CN filter values?
+    // Mirrors the CLB's _clbBaseFilteredLines logic so every location filters
+    // identically. Empty values are ignored.
+    _cellLinePassesMutFilters(cl, f) {
+        if (f.hotspot) {
+            const m = this.mutations?.geneData?.[f.hotspot]?.mutations || this.damagingMutations?.geneData?.[f.hotspot]?.mutations;
+            if (!m || !(m[cl] >= 1)) return false;
+        }
+        if (f.fusion) {
+            const key = this._stripFusionFilterDecoration(f.fusion);
+            const clinicalPairCells = this.clinicalFusions?.fusionData?.[key]?.cellLines;
+            if (clinicalPairCells) {
+                if (!(cl in clinicalPairCells)) return false;
+            } else {
+                const t = this.translocations?.geneData?.[key]?.translocations;
+                if (!t || !(t[cl] >= 1)) return false;
+            }
+        }
+        if (f.cn && !this._cellLinePassesCnFilter(cl, f.cn)) return false;
+        return true;
+    }
+
+    // Wire one CLB-style filter input + dropdown (searchable, click-to-select)
+    // for a given kind ('hotspot' | 'fusion' | 'cn'). `onChange` is called when
+    // the value changes (clear/select). Reuses the shared global option lists.
+    _setupMutFilterWidget(kind, inputId, dropdownId, onChange) {
+        const input = document.getElementById(inputId);
+        const dd = document.getElementById(dropdownId);
+        if (!input || !dd || input._mutFilterWired) return;
+        input._mutFilterWired = true;
+        const items = this._ensureGlobalFilterItems()[kind] || [];
+        const render = kind === 'hotspot' ? '_renderHotspotFilterDropdown'
+            : kind === 'fusion' ? '_renderFusionFilterDropdown' : '_renderCnFilterDropdown';
+        const open = () => { this[render](input.value, { inputId, dropdownId, items, onSelect: onChange }); dd.style.display = ''; };
+        input.addEventListener('focus', open);
+        input.addEventListener('input', () => { open(); if (!input.value) onChange(); });
+        input.addEventListener('change', () => { /* value set programmatically by a pick */ });
+        // Outside-click closes this dropdown.
+        document.addEventListener('click', (e) => {
+            if (e.target !== input && !dd.contains(e.target)) dd.style.display = 'none';
+        });
     }
 
     getGeneData(geneIndex) {

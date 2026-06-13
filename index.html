@@ -1406,6 +1406,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.39 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Groundwork for unified filters: the searchable hotspot / fusion (★ clinical pairs) / CN (▲ amp / ▼ deep-del) filter widget and its apply logic are now reusable across the app (no visible change yet, the Cell Line Browser behaves exactly as before). Wiring it into the first-page parameters and the Gene Effect / scatter / Correlation Analysis popouts follows.</li>
+                </ul>
                 <p><strong>v.83.38 (2026-06-13)</strong></p>
                 <ul>
                     <li>Wiki drug response: added a short, prominent note that <b>&ldquo;standout sensitive&rdquo; means selective, not strong</b>, a line can be more sensitive than others (low z) yet still not very sensitive in absolute terms (high AUC). Read AUC and z-score together.</li>
@@ -3279,7 +3283,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.38</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.39</a>
     </div>
 
     <div class="main-content">
@@ -5533,6 +5537,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_38"></script>
+    <script src="app.js?v=v83_39"></script>
 </body>
 </html>
