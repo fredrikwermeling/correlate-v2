@@ -1459,6 +1459,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.54 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Phone decluttering: the Cell Line Browser bulk-selection buttons (Select Visible / Deselect All / Show Selected / Copy Names) are now hidden on narrow screens (&le;640px). Tap individual lines to select; all buttons stay on desktop.</li>
+                </ul>
                 <p><strong>v.83.53 (2026-06-13)</strong></p>
                 <ul>
                     <li>Phone homepage fix: the Options card (Analysis / Gene Effect / Correlation / Cell Line Browser / Open / Reset) was pushed off-screen on narrow screens by the fixed-width sidebar. On phones (&le;640px) the homepage now stacks into a single column with the Options card surfaced first, so the tool buttons are immediately visible.</li>
@@ -3397,7 +3401,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.53</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.54</a>
     </div>
 
     <div class="main-content">
@@ -5309,11 +5313,13 @@
                Vertical separator bars distinguish the groups so the user can
                find the right action without scanning all 9 buttons. -->
           <div style="margin-left:auto; display:flex; gap:6px; align-items:center;">
-            <!-- Selection group -->
+            <!-- Selection group — bulk-select helpers, hidden on phones to declutter -->
+            <span class="mobile-hide" style="display:contents;">
             <button id="clbSelectVisible" class="btn btn-outline btn-sm">Select Visible</button>
             <button id="clbDeselectAll" class="btn btn-outline btn-sm">Deselect All</button>
             <button id="clbShowSelectedOnly" class="btn btn-outline btn-sm" title="Show only the cell lines you've selected (toggle)">Show Selected</button>
             <button id="clbCopyNamesBtn" class="btn btn-outline btn-sm" title="Copy the names of the selected cell lines (one per line) to the clipboard, ready to paste into Custom CLs">Copy Names</button>
+            </span>
 
             <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
 
