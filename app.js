@@ -4257,16 +4257,22 @@ class CorrelationExplorer {
         // Hotspot gene selector (Y axis mutation gene)
         document.getElementById('geHotspotGeneSelect')?.addEventListener('change', () => {
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene && this.mutationResults) {
-                const newHotspot = document.getElementById('geHotspotGeneSelect').value;
-                const isTransloc = this.mutationResults.isTranslocation;
-                const isDmg = this.mutationResults.isDamaging;
-                const hasData = isTransloc
-                    ? this._fusionAxisData?.geneData?.[newHotspot]
-                    : isDmg
-                        ? this._lossAxisData?.geneData?.[newHotspot]
-                        : this.mutations?.geneData?.[newHotspot];
-                if (newHotspot && hasData) {
-                    this.mutationResults.hotspotGene = newHotspot;
+                const raw = document.getElementById('geHotspotGeneSelect').value;
+                // Value is "type:gene" (type ∈ hotspot|damaging|fusion|amp|del);
+                // flip the stratification axis to match the chosen type.
+                const m = raw.match(/^(hotspot|damaging|fusion|amp|del):(.+)$/);
+                const type = m ? m[1] : 'hotspot';
+                const gene = m ? m[2] : raw;
+                const mr = this.mutationResults;
+                if (type === 'fusion') { mr.isTranslocation = true; mr.isDamaging = false; mr.cnMode = null; this._cnAxisMode = null; }
+                else if (type === 'amp' || type === 'del') { mr.isTranslocation = false; mr.isDamaging = true; mr.cnMode = type; this._cnAxisMode = type; }
+                else if (type === 'damaging') { mr.isTranslocation = false; mr.isDamaging = true; mr.cnMode = null; this._cnAxisMode = null; }
+                else { mr.isTranslocation = false; mr.isDamaging = false; mr.cnMode = null; this._cnAxisMode = null; }
+                const src = type === 'fusion' ? this._fusionAxisData
+                    : (type === 'amp' || type === 'del' || type === 'damaging') ? this._lossAxisData
+                    : this.mutations;
+                if (gene && src?.geneData?.[gene]) {
+                    mr.hotspotGene = gene;
                     this.showGeneEffectDistribution(this.currentGeneEffectGene);
                 }
             }
@@ -7248,13 +7254,6 @@ class CorrelationExplorer {
         // so the user knows whether a gene has enough samples to stratify by.
         const hotspotGeneSelectEl = document.getElementById('geHotspotGeneSelect');
         if (hotspotGeneSelectEl) {
-            const geneList = isTranslocation
-                ? (this._fusionAxisData?.genes || [])
-                : isDamaging
-                    ? (this._lossAxisData?.genes || [])
-                    : (this.mutations?.genes || []);
-            const src = isTranslocation ? this._fusionAxisData : (isDamaging ? this._lossAxisData : this.mutations);
-            const innerKey = isTranslocation ? 'translocations' : 'mutations';
             // Pre-build a set of cell lines that pass mutation-analysis filters.
             const eligibleCL = new Set();
             for (const cl of this.metadata.cellLines) {
@@ -7266,31 +7265,49 @@ class CorrelationExplorer {
                 if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) continue;
                 eligibleCL.add(cl);
             }
-            const counts = {};
-            for (const g of geneList) {
-                const inner = src?.geneData?.[g]?.[innerKey] || {};
-                let n = 0;
-                for (const cl in inner) {
-                    if (inner[cl] >= 1 && eligibleCL.has(cl)) n++;
-                }
-                counts[g] = n;
+            // Current stratifier type, so the right option stays selected.
+            const curType = isTranslocation ? 'fusion'
+                : this._cnAxisMode === 'amp' ? 'amp'
+                : this._cnAxisMode === 'del' ? 'del'
+                : isDamaging ? 'damaging' : 'hotspot';
+            // The Y-axis can be stratified by any of these, not just the type the
+            // analysis started in (value is "type:gene" so the change handler can
+            // flip the axis mode). Curated fusions + focal amp / deep-del added.
+            const groups = [
+                { type: 'hotspot', label: 'Hotspot mutation', src: this.mutations, innerKey: 'mutations', suffix: 'mut' },
+                { type: 'fusion', label: 'Curated fusion', src: this._fusionAxisData, innerKey: 'translocations', suffix: 'fused' },
+                { type: 'amp', label: 'Amplification', src: this.cnAmpData, innerKey: 'mutations', suffix: 'amp' },
+                { type: 'del', label: 'Deep deletion', src: this.cnDelData, innerKey: 'mutations', suffix: 'del' },
+            ];
+            // Keep a Functional-loss group when the analysis started there.
+            if (curType === 'damaging') {
+                groups.splice(1, 0, { type: 'damaging', label: L.noun || 'Functional loss', src: (this.functionalLoss || this.damagingMutations), innerKey: 'mutations', suffix: L.countVerb || 'lost' });
             }
-            // Sort genes so the most-mutated option surfaces first, but keep
-            // the selected gene findable at its alpha position if the user
-            // expects alphabetical. A descending-count sort is more useful.
-            const sortedGenes = [...geneList].sort((a, b) => counts[b] - counts[a]);
             let gHtml = '';
-            for (const g of sortedGenes) {
-                const sel = g === hotspotGene ? ' selected' : '';
-                const suffix = isTranslocation ? 'fused' : isDamaging ? L.countVerb : 'mut';
-                const label = `${g} (${counts[g]} ${suffix})`;
-                gHtml += `<option value="${g}"${sel}>${label}</option>`;
+            for (const grp of groups) {
+                const genes = grp.src?.genes || (grp.src?.geneData ? Object.keys(grp.src.geneData) : []);
+                if (!genes.length) continue;
+                const counts = {};
+                for (const g of genes) {
+                    const inner = grp.src.geneData?.[g]?.[grp.innerKey] || {};
+                    let n = 0;
+                    for (const cl in inner) { if (inner[cl] >= 1 && eligibleCL.has(cl)) n++; }
+                    counts[g] = n;
+                }
+                const sorted = genes.filter(g => counts[g] > 0).sort((a, b) => counts[b] - counts[a]);
+                if (!sorted.length) continue;
+                gHtml += `<optgroup label="${grp.label}">`;
+                for (const g of sorted) {
+                    const sel = (grp.type === curType && g === hotspotGene) ? ' selected' : '';
+                    gHtml += `<option value="${grp.type}:${g}"${sel}>${g} (${counts[g]} ${grp.suffix})</option>`;
+                }
+                gHtml += '</optgroup>';
             }
             hotspotGeneSelectEl.innerHTML = gHtml;
         }
-        // The stratifier label reflects the axis type (it's not always "Hotspot").
+        // The stratifier now spans multiple axis types, so the label is generic.
         const geStratLabel = document.getElementById('geHotspotGeneLabel');
-        if (geStratLabel) geStratLabel.textContent = isTranslocation ? 'Fusion (Y):' : isDamaging ? `${L.noun} (Y):` : 'Hotspot mutation (Y):';
+        if (geStratLabel) geStratLabel.textContent = 'Stratify Y by:';
         document.getElementById('geHotspotGeneGroup').style.display = '';
 
         // Show gene search bar so user can change the gene (#12)
