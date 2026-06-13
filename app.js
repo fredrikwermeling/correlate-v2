@@ -3408,22 +3408,130 @@ class CorrelationExplorer {
     // Wire one CLB-style filter input + dropdown (searchable, click-to-select)
     // for a given kind ('hotspot' | 'fusion' | 'cn'). `onChange` is called when
     // the value changes (clear/select). Reuses the shared global option lists.
-    _setupMutFilterWidget(kind, inputId, dropdownId, onChange) {
+    // Build hotspot / fusion / CN filter options with counts computed within a
+    // given cohort (Set of cell-line ids) and ordered by count, so the options
+    // reflect the other active filters (e.g. with Melanoma selected, BRAF rises
+    // to the top of the hotspot list).
+    _buildFilterItems(kind, cohortSet) {
+        if (kind === 'hotspot') {
+            const items = [];
+            for (const gene of (this.mutations?.genes || [])) {
+                const muts = this.mutations.geneData?.[gene]?.mutations || {};
+                let n = 0; for (const cl in muts) if (muts[cl] >= 1 && cohortSet.has(cl)) n++;
+                if (n > 0) items.push({ value: gene, primary: gene, count: n, secondary: 'hotspot mutation' });
+            }
+            items.sort((a, b) => b.count - a.count);
+            return items;
+        }
+        if (kind === 'fusion') {
+            const pairs = [];
+            if (this.clinicalFusions?.fusionData) for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
+                const cells = fd.cellLines || {}; let n = 0; for (const cl in cells) if (cohortSet.has(cl)) n++;
+                if (n > 0) pairs.push({ value: fname, kind: 'clinical', primary: `★ ${fname}`, count: n, secondary: fd.diseaseContext || 'clinically relevant' });
+            }
+            pairs.sort((a, b) => b.count - a.count);
+            const genes = [];
+            if (Array.isArray(this._fusionGeneCounts)) this._fusionGeneCounts.forEach(({ gene }) => {
+                const td = this.translocations?.geneData?.[gene]?.translocations; if (!td) return;
+                let n = 0; for (const cl in td) if (td[cl] >= 1 && cohortSet.has(cl)) n++;
+                if (n > 0) genes.push({ value: gene, kind: 'gene', primary: gene, count: n, secondary: 'any fusion involving this gene' });
+            });
+            genes.sort((a, b) => b.count - a.count);
+            return [...pairs, ...genes];
+        }
+        if (kind === 'cn') {
+            const cnMap = {};
+            for (const cl of cohortSet) {
+                const entry = this.clinicalCn?.byCellLine?.[cl]; if (!entry) continue;
+                for (const a of (entry.amplifications || [])) { const k = `${a.gene}_amp`; (cnMap[k] = cnMap[k] || { gene: a.gene, kind: 'amp', n: 0, context: a.context }).n++; }
+                for (const d of (entry.deletions || [])) { const k = `${d.gene}_del`; (cnMap[k] = cnMap[k] || { gene: d.gene, kind: 'del', n: 0, context: d.context }).n++; }
+            }
+            const items = Object.entries(cnMap).map(([k, v]) => ({ value: k, gene: v.gene, kind: v.kind, count: v.n, context: v.context }));
+            items.sort((a, b) => a.kind !== b.kind ? (a.kind === 'amp' ? -1 : 1) : b.count - a.count);
+            return items;
+        }
+        return [];
+    }
+
+    _setupMutFilterWidget(kind, inputId, dropdownId, onChange, cohortFn) {
         const input = document.getElementById(inputId);
         const dd = document.getElementById(dropdownId);
-        if (!input || !dd || input._mutFilterWired) return;
+        if (!input || !dd) return;
+        // Keep latest cohort/onChange so re-setup on each modal open updates them.
+        input._mutCohortFn = cohortFn || null;
+        input._mutOnChange = onChange;
+        if (input._mutFilterWired) return;
         input._mutFilterWired = true;
-        const items = this._ensureGlobalFilterItems()[kind] || [];
         const render = kind === 'hotspot' ? '_renderHotspotFilterDropdown'
             : kind === 'fusion' ? '_renderFusionFilterDropdown' : '_renderCnFilterDropdown';
-        const open = () => { this[render](input.value, { inputId, dropdownId, items, onSelect: onChange }); dd.style.display = ''; };
+        const open = () => {
+            const cf = input._mutCohortFn;
+            const cohort = cf ? cf() : null;
+            const items = cohort ? this._buildFilterItems(kind, cohort) : (this._ensureGlobalFilterItems()[kind] || []);
+            this[render](input.value, { inputId, dropdownId, items, onSelect: () => input._mutOnChange && input._mutOnChange() });
+            dd.style.display = '';
+        };
         input.addEventListener('focus', open);
-        input.addEventListener('input', () => { open(); if (!input.value) onChange(); });
-        input.addEventListener('change', () => { /* value set programmatically by a pick */ });
-        // Outside-click closes this dropdown.
+        input.addEventListener('input', () => { open(); if (!input.value && input._mutOnChange) input._mutOnChange(); });
         document.addEventListener('click', (e) => {
             if (e.target !== input && !dd.contains(e.target)) dd.style.display = 'none';
         });
+    }
+
+    // Cells (from the current scatter data) passing all active inspect filters
+    // EXCEPT the named kind, used to make that filter's options context-aware.
+    _inspectCohortExcluding(kind) {
+        const data = this.currentInspect?.data || [];
+        const cancer = document.getElementById('scatterCancerFilter')?.value || '';
+        const subtype = document.getElementById('scatterSubtypeFilter')?.value || '';
+        const mfg = document.getElementById('mutationFilterGene')?.value || '';
+        const mfl = document.getElementById('mutationFilterLevel')?.value || 'all';
+        const tfg = document.getElementById('translocationFilterGene')?.value || '';
+        const tfl = document.getElementById('translocationFilterLevel')?.value || 'all';
+        const cnv = document.getElementById('scatterCnFilter')?.value || '';
+        const set = new Set();
+        for (const d of data) {
+            const cl = d.cellLineId;
+            if (cancer && d.lineage !== cancer) continue;
+            if (subtype && this.cellLineMetadata?.primaryDisease?.[cl] !== subtype) continue;
+            if (kind !== 'hotspot' && mfg && mfl !== 'all') {
+                const mm = (this.mutations?.geneData?.[mfg] || this.damagingMutations?.geneData?.[mfg])?.mutations;
+                if (mm) { const l = mm[cl] || 0; if (mfl === '0' && l !== 0) continue; if (mfl === '1' && l !== 1) continue; if (mfl === '2' && l < 2) continue; if (mfl === '1+2' && l < 1) continue; }
+            }
+            if (kind !== 'fusion' && tfg) {
+                const fk = this._stripFusionFilterDecoration(tfg);
+                const pair = this.clinicalFusions?.fusionData?.[fk]?.cellLines;
+                if (pair) { if (!(cl in pair)) continue; }
+                else if (this.translocations?.geneData?.[fk] && tfl !== 'all') { const t = this.translocations.geneData[fk].translocations; const l = t[cl] || 0; if (tfl === '0' && l !== 0) continue; if (tfl === '1' && l !== 1) continue; if (tfl === '2' && l < 2) continue; if (tfl === '1+2' && l < 1) continue; }
+            }
+            if (kind !== 'cn' && cnv && !this._cellLinePassesCnFilter(cl, cnv)) continue;
+            set.add(cl);
+        }
+        return set;
+    }
+
+    // Cells passing all active Correlation-Analysis filters EXCEPT the named kind.
+    _caCohortExcluding(kind) {
+        const data = this._corrAnalysisData?.data || [];
+        const tissue = document.getElementById('caTissueFilter')?.value || '';
+        const hot = document.getElementById('caHotspotFilter')?.value || '';
+        const fus = document.getElementById('caFusionFilter')?.value || '';
+        const cn = document.getElementById('caCnFilter')?.value || '';
+        const set = new Set();
+        for (const p of data) {
+            const cl = p.cellLineId;
+            if (tissue && p.lineage !== tissue) continue;
+            if (kind !== 'hotspot' && hot) { const mm = this.mutations?.geneData?.[hot]?.mutations || this.damagingMutations?.geneData?.[hot]?.mutations; if (!mm || !(mm[cl] >= 1)) continue; }
+            if (kind !== 'fusion' && fus) {
+                const fk = this._stripFusionFilterDecoration(fus);
+                const pair = this.clinicalFusions?.fusionData?.[fk]?.cellLines;
+                if (pair) { if (!(cl in pair)) continue; }
+                else { const td = this.translocations?.geneData?.[fk]?.translocations; if (!td || !(td[cl] >= 1)) continue; }
+            }
+            if (kind !== 'cn' && cn && !this._cellLinePassesCnFilter(cl, cn)) continue;
+            set.add(cl);
+        }
+        return set;
     }
 
     getGeneData(geneIndex) {
@@ -11674,9 +11782,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Reset on open (the old <select>s rebuilt to "No filter" each time).
         const mfg = document.getElementById('mutationFilterGene'); if (mfg) mfg.value = '';
         const scf = document.getElementById('scatterCnFilter'); if (scf) scf.value = '';
-        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this.updateInspectPlot());
-        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this.updateInspectPlot());
-        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this.updateInspectPlot());
+        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('hotspot'));
+        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('fusion'));
+        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('cn'));
         const scatterCnBox = document.getElementById('scatterCnFilterBox');
         if (scatterCnBox) scatterCnBox.style.display = this.clinicalCn?.byCellLine ? 'block' : 'none';
         // Compare row: Tissue / Hotspot always; Curated Fusion when clinical
@@ -17535,9 +17643,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // filters, matching the Cell Line Browser. Reset on open; each re-renders.
         const caReRender = () => this.switchCorrAnalysisView(this._caView || 'tissue');
         ['caHotspotFilter', 'caFusionFilter', 'caCnFilter'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-        this._setupMutFilterWidget('hotspot', 'caHotspotFilter', 'caHotspotDropdown', caReRender);
-        this._setupMutFilterWidget('fusion', 'caFusionFilter', 'caFusionDropdown', caReRender);
-        this._setupMutFilterWidget('cn', 'caCnFilter', 'caCnDropdown', caReRender);
+        this._setupMutFilterWidget('hotspot', 'caHotspotFilter', 'caHotspotDropdown', caReRender, () => this._caCohortExcluding('hotspot'));
+        this._setupMutFilterWidget('fusion', 'caFusionFilter', 'caFusionDropdown', caReRender, () => this._caCohortExcluding('fusion'));
+        this._setupMutFilterWidget('cn', 'caCnFilter', 'caCnDropdown', caReRender, () => this._caCohortExcluding('cn'));
         const caHotWrap = document.getElementById('caHotspotFilterWrap');
         if (caHotWrap) caHotWrap.style.display = 'inline-block';
         const caFusWrap = document.getElementById('caFusionFilterWrap');
@@ -18258,9 +18366,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Mirror the searchable filter widgets + compare-row visibility from the
         // primary populate (wiring is idempotent; no value reset here).
-        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this.updateInspectPlot());
-        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this.updateInspectPlot());
-        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this.updateInspectPlot());
+        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('hotspot'));
+        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('fusion'));
+        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('cn'));
         const scatterCnBox2 = document.getElementById('scatterCnFilterBox');
         if (scatterCnBox2) scatterCnBox2.style.display = this.clinicalCn?.byCellLine ? 'block' : 'none';
         const cmpFusBtn2 = document.getElementById('compareAllTranslocationsBtn');
