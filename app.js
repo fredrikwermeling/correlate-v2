@@ -38,7 +38,11 @@
         // unwanted everywhere else. Merge with any buttons the chart already removes.
         const existing = Array.isArray(config.modeBarButtonsToRemove) ? config.modeBarButtonsToRemove : [];
         const remove = existing.includes('toImage') ? existing : existing.concat(['toImage']);
-        return Object.assign({}, config, { scrollZoom: false, modeBarButtonsToRemove: remove, displaylogo: false });
+        const out = Object.assign({}, config, { scrollZoom: false, modeBarButtonsToRemove: remove, displaylogo: false });
+        // On phones, disable dragging of titles / axis labels / legends / shapes,
+        // they were far too easy to nudge by accident on a touch screen.
+        if (typeof window !== 'undefined' && window.innerWidth <= 640) out.edits = {};
+        return out;
     };
     ['newPlot', 'react'].forEach((fn) => {
         const orig = Plotly[fn];
