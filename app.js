@@ -28329,7 +28329,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let top = `<h4>${name}</h4>`;
         top += `<div class="clb-detail-id">${cellLineId}</div>`;
         // Executive summary, plain-language overview at the very top of the card.
-        top += `<div class="clb-detail-section" style="background:#f7fbf8; border:1px solid #e5e7eb; border-left:3px solid #15803d; border-radius:6px; padding:8px 10px; margin-bottom:10px;">${this._cellLineExecutiveSummary(cellLineId, { showId: false })}</div>`;
+        top += `<div class="clb-detail-section clb-keep-mobile" style="background:#f7fbf8; border:1px solid #e5e7eb; border-left:3px solid #15803d; border-radius:6px; padding:8px 10px; margin-bottom:10px;">${this._cellLineExecutiveSummary(cellLineId, { showId: false })}</div>`;
         top += `<div class="clb-detail-section">`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
         // Subtype row, plus Lehmann TNBC subtype tag for breast lines
@@ -28439,7 +28439,7 @@ These are properties of the cell line itself, not its tumour microenvironment. M
 
         // Wiki entry-point sits at the top so the user lands on the deep-dive
         // before scrolling through the summary lists.
-        top += `<div class="clb-detail-section" style="margin-bottom:12px;">`;
+        top += `<div class="clb-detail-section clb-keep-mobile" style="margin-bottom:12px;">`;
         top += `<button id="clbWikiBtn" class="btn btn-outline btn-sm" style="width:100%; font-size:11px; padding:5px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open the cell line Wiki (patient origin, classification, mutation profile, fusions, signatures, STR authentication)">Wiki, deep dive on this cell line</button>`;
         top += `</div>`;
 
