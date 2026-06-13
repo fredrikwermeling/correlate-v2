@@ -1406,6 +1406,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.50 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Gene Effect popout filter row now matches the rest of the app: the fusion filter is a searchable, curated list (clinical driver pairs ★ + validated fusion genes, no noisy genes), and there's a new focal copy-number filter (amplifications ▲ / deep deletions ▼).</li>
+                    <li>Both new Gene Effect filters scale with the others, their options and counts reflect the active tissue/subtype/mutation filters.</li>
+                    <li>Compare table: amp/del rows are now clickable to apply that copy-number event as a filter, like the tissue/hotspot/fusion rows.</li>
+                </ul>
                 <p><strong>v.83.49 (2026-06-13)</strong></p>
                 <ul>
                     <li>Correlation Analysis popout: its Tissue filter now re-orders by a selected mutation/fusion/CN too (same as the scatter), so the popouts behave consistently.</li>
@@ -3325,7 +3331,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.49</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.50</a>
     </div>
 
     <div class="main-content">
@@ -4348,9 +4354,14 @@
                             <option value="mut">Mut only</option>
                             <option value="all" selected>All</option>
                         </select>
-                        <select id="geFusionFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Fusion filter, only show cell lines with this fusion">
-                            <option value="">No fusion filter</option>
-                        </select>
+                        <div id="geFusionFilterWrap" style="position:relative; display:none;">
+                            <input type="text" id="geFusionFilter" class="form-control" placeholder="Curated fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, curated driver pairs (★) and validated fusion genes">
+                            <div id="geFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                        </div>
+                        <div id="geCnFilterWrap" style="position:relative; display:none;">
+                            <input type="text" id="geCnFilter" class="form-control" placeholder="Amp / deep-del..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal CN filter, amplifications (▲) and deep deletions (▼)">
+                            <div id="geCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                        </div>
                         <span style="font-size:10px; color:#6b7280; white-space:nowrap;" title="Minimum cell lines per tissue group to display">Min n:</span>
                         <button onclick="app.adjustNumber('geMinGroupSize', -1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
                         <input type="number" id="geMinGroupSize" value="1" min="1" max="50" style="width:36px; font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; text-align:center;" title="Minimum cell lines per tissue to show" onchange="app.switchGeneEffectView(app.currentGEView || 'tissue')">
@@ -5600,6 +5611,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_49"></script>
+    <script src="app.js?v=v83_50"></script>
 </body>
 </html>

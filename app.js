@@ -266,7 +266,7 @@ class CorrelationExplorer {
 
     // Filter/setting controls captured for "Open in new tab" so the new tab
     // reproduces the same view (not just the gene/pair).
-    _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geMutGeneFilter', 'geMutLevelFilter', 'geFusionFilter', 'geMinGroupSize', 'geCellLineSearch']; }
+    _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geMutGeneFilter', 'geMutLevelFilter', 'geFusionFilter', 'geCnFilter', 'geMinGroupSize', 'geCellLineSearch']; }
     _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
     _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCnFilter', 'caCellLineSearch']; }
 
@@ -3328,6 +3328,19 @@ class CorrelationExplorer {
         return list.some(e => e.gene.toUpperCase() === gene.toUpperCase());
     }
 
+    // Gene-effect fusion filter predicate. Mirrors the scatter applier: a curated
+    // clinical pair (★) filters by presence; a validated fusion gene filters by
+    // having at least one fusion. Returns true when no filter is set.
+    _geFusionPasses(cellLineId, fusionVal) {
+        if (!fusionVal) return true;
+        const key = this._stripFusionFilterDecoration(fusionVal);
+        const pairCells = this.clinicalFusions?.fusionData?.[key]?.cellLines;
+        if (pairCells) return cellLineId in pairCells;
+        const td = this.translocations?.geneData?.[key]?.translocations;
+        if (td) return (td[cellLineId] || 0) >= 1;
+        return true;
+    }
+
     // --- Unified mutation / fusion / CN filter widget (shared by the Cell Line
     // Browser, the first-page parameters, and the Gene Effect / scatter /
     // Correlation Analysis popouts so the filters look and behave identically.
@@ -3582,6 +3595,36 @@ class CorrelationExplorer {
                 if (pair) { if (!(cl in pair)) continue; }
                 else { const td = this.translocations?.geneData?.[fk]?.translocations; if (!td || !(td[cl] >= 1)) continue; }
             }
+            if (kind !== 'cn' && cn && !this._cellLinePassesCnFilter(cl, cn)) continue;
+            set.add(cl);
+        }
+        return set;
+    }
+
+    // Gene-effect popout cohort passing all active GE filters EXCEPT the named
+    // kind, so the fusion / CN filter menus show context-aware options + counts.
+    _geCohortExcluding(kind) {
+        const data = this.currentGeneEffect?.data || [];
+        const tissue = document.getElementById('geTissueFilter')?.value || '';
+        const subtype = document.getElementById('geSubtypeFilter')?.value || '';
+        const hotspot = document.getElementById('geHotspotFilter')?.value || '';
+        const mutGene = document.getElementById('geMutGeneFilter')?.value?.trim() || '';
+        const mutLevel = document.getElementById('geMutLevelFilter')?.value || 'all';
+        const fus = document.getElementById('geFusionFilter')?.value || '';
+        const cn = document.getElementById('geCnFilter')?.value || '';
+        const set = new Set();
+        for (const d of data) {
+            const cl = d.cellLineId;
+            if (kind !== 'tissue') {
+                if (tissue && d.lineage !== tissue) continue;
+                if (subtype && this.cellLineMetadata?.primaryDisease?.[cl] !== subtype) continue;
+            }
+            if (hotspot) { const hs = this.mutations?.geneData?.[hotspot] || this.damagingMutations?.geneData?.[hotspot]; if (hs && (hs.mutations[cl] || 0) < 1) continue; }
+            if (mutGene && mutLevel !== 'all') {
+                const mm = (this.mutations?.geneData?.[mutGene] || this.damagingMutations?.geneData?.[mutGene])?.mutations;
+                if (mm) { const l = mm[cl] || 0; if (mutLevel === 'wt' && l !== 0) continue; if (mutLevel === 'mut' && l < 1) continue; }
+            }
+            if (kind !== 'fusion' && fus && !this._geFusionPasses(cl, fus)) continue;
             if (kind !== 'cn' && cn && !this._cellLinePassesCnFilter(cl, cn)) continue;
             set.add(cl);
         }
@@ -4403,14 +4446,16 @@ class CorrelationExplorer {
                 _refreshGEView();
             }
         });
-        // Inspect-level fusion filter
-        document.getElementById('geFusionFilter')?.addEventListener('change', () => {
+        // Inspect-level fusion + focal-CN filters (searchable, curated, context-aware)
+        const _geFilterReRender = () => {
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             } else if (this.geneEffectViewMode === 'geneEffect') {
                 _refreshGEView();
             }
-        });
+        };
+        this._setupMutFilterWidget('fusion', 'geFusionFilter', 'geFusionDropdown', _geFilterReRender, () => this._geCohortExcluding('fusion'));
+        this._setupMutFilterWidget('cn', 'geCnFilter', 'geCnDropdown', _geFilterReRender, () => this._geCohortExcluding('cn'));
         // p-value filter toggle, applies to both tissue and hotspot views
         document.getElementById('gePvalueFilter')?.addEventListener('change', () => {
             this.switchGeneEffectView(this.currentGEView || 'tissue');
@@ -6934,7 +6979,7 @@ class CorrelationExplorer {
 
         // Compute inspect-level fusion filter
         const inspectFusion = document.getElementById('geFusionFilter')?.value || '';
-        const inspFusionData = inspectFusion ? this.translocations?.geneData?.[inspectFusion]?.translocations : null;
+        const inspectCn = document.getElementById('geCnFilter')?.value || '';
 
         // Compute inspect-level subtype filter
         const inspectSubtype = document.getElementById('geSubtypeFilter')?.value || '';
@@ -7005,11 +7050,10 @@ class CorrelationExplorer {
                 }
             }
 
-            // Check inspect-level fusion filter
-            if (inspectFusion && inspFusionData) {
-                const fusionLevel = inspFusionData[cellLine] || 0;
-                if (fusionLevel < 1) return;
-            }
+            // Check inspect-level fusion filter (curated ★ pair or validated gene)
+            if (inspectFusion && !this._geFusionPasses(cellLine, inspectFusion)) return;
+            // Check inspect-level focal-CN filter (amp / deep-del)
+            if (inspectCn && !this._cellLinePassesCnFilter(cellLine, inspectCn)) return;
 
             // Check custom cell line filter (GE modal)
             if (this._customCellLineFilterGE && !this._customCellLineFilterGE.has(cellLine)) return;
@@ -7223,7 +7267,10 @@ class CorrelationExplorer {
             filterInfo.push(`Also ${inspectHotspot}-mutated`);
         }
         if (inspectFusion) {
-            filterInfo.push(`Also ${inspectFusion}-fused`);
+            filterInfo.push(`Also ${this._stripFusionFilterDecoration(inspectFusion)}-fused`);
+        }
+        if (inspectCn) {
+            filterInfo.push(this._stripCnFilterDecoration(inspectCn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del'));
         }
         const lineageText = filterInfo.length > 0 ? filterInfo.join(' | ') : 'All lineages';
 
@@ -7399,18 +7446,8 @@ class CorrelationExplorer {
             hotspotFilterEl.innerHTML = hHtml;
         }
 
-        // Populate inspect-level fusion filter dropdown (using pre-computed cache)
-        const fusionFilterEl = document.getElementById('geFusionFilter');
-        if (fusionFilterEl && this._fusionGeneCounts?.length > 0) {
-            const currentFusion = fusionFilterEl.value;
-            let html = '<option value="">No fusion filter</option>';
-            for (const { gene, nFused } of this._fusionGeneCounts) {
-                if (gene === hotspotGene) continue;
-                const sel = gene === currentFusion ? ' selected' : '';
-                html += `<option value="${gene}"${sel}>${gene} (${nFused} fused)</option>`;
-            }
-            fusionFilterEl.innerHTML = html;
-        }
+        // Inspect-level fusion filter is now a searchable widget (curated ★ pairs +
+        // validated fusion genes); it builds its own context-aware options on focus.
 
         // Populate and show hotspot gene selector (Y axis mutation/fusion).
         // Counts reflect cell lines mutated under the currently-active
@@ -7494,8 +7531,11 @@ class CorrelationExplorer {
 
         // Show mutation inspect controls, hide non-mutation view buttons
         document.getElementById('geHotspotFilter').style.display = '';
-        document.getElementById('geFusionFilter').style.display =
-            this.translocations?.genes?.length > 0 ? '' : 'none';
+        const geFusWrap = document.getElementById('geFusionFilterWrap');
+        if (geFusWrap) geFusWrap.style.display =
+            (this.clinicalFusions?.fusionData || this.translocations?.genes?.length > 0) ? 'inline-block' : 'none';
+        const geCnWrap = document.getElementById('geCnFilterWrap');
+        if (geCnWrap) geCnWrap.style.display = this.clinicalCn?.byCellLine ? 'inline-block' : 'none';
         document.getElementById('geCompareButtons').style.display = '';
         document.getElementById('geResetFiltersBtn').style.display = '';
         document.getElementById('geCompareByTranslocationBtn').style.display =
@@ -18770,16 +18810,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (_gatesGroup) _gatesGroup.style.display = 'none';
         this.clearGEGates();
 
-        // Populate and show fusion filter
-        const fusionFilterEl = document.getElementById('geFusionFilter');
-        if (fusionFilterEl && this._fusionGeneCounts?.length > 0) {
-            let fHtml = '<option value="">No fusion filter</option>';
-            for (const { gene, nFused } of this._fusionGeneCounts) {
-                fHtml += `<option value="${gene}">${gene} (${nFused} fused)</option>`;
-            }
-            fusionFilterEl.innerHTML = fHtml;
-            fusionFilterEl.value = '';
-            fusionFilterEl.style.display = '';
+        // Show fusion + focal-CN filters (searchable widgets, curated + context-aware)
+        const geFusWrapS = document.getElementById('geFusionFilterWrap');
+        if (geFusWrapS) {
+            geFusWrapS.style.display =
+                (this.clinicalFusions?.fusionData || this.translocations?.genes?.length > 0) ? 'inline-block' : 'none';
+            const fIn = document.getElementById('geFusionFilter'); if (fIn) fIn.value = '';
+        }
+        const geCnWrapS = document.getElementById('geCnFilterWrap');
+        if (geCnWrapS) {
+            geCnWrapS.style.display = this.clinicalCn?.byCellLine ? 'inline-block' : 'none';
+            const cIn = document.getElementById('geCnFilter'); if (cIn) cIn.value = '';
         }
 
         // Restore view buttons (may have been hidden by mutation inspect)
@@ -19313,6 +19354,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (geSubEl) geSubEl.style.display = 'none';
         document.getElementById('geHotspotFilter').value = '';
         document.getElementById('geFusionFilter').value = '';
+        const geCnClear = document.getElementById('geCnFilter'); if (geCnClear) geCnClear.value = '';
         document.getElementById('geMutGeneFilter').value = '';
         document.getElementById('geMutLevelFilter').value = 'all';
         document.getElementById('gePvalueFilter').checked = false;
@@ -19329,12 +19371,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const subtype = document.getElementById('geSubtypeFilter')?.value;
         const hotspot = document.getElementById('geHotspotFilter')?.value;
         const fusion = document.getElementById('geFusionFilter')?.value;
+        const cn = document.getElementById('geCnFilter')?.value;
         const mutGene = document.getElementById('geMutGeneFilter')?.value?.trim();
         const mutLevel = document.getElementById('geMutLevelFilter')?.value;
         if (tissue) parts.push(tissue);
         if (subtype) parts.push(subtype);
         if (hotspot) parts.push(`${hotspot} mutated`);
-        if (fusion) parts.push(`${fusion} fused`);
+        if (fusion) parts.push(`${this._stripFusionFilterDecoration(fusion)} fused`);
+        if (cn) parts.push(this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del'));
         if (mutGene && mutLevel !== 'all') parts.push(`${mutGene} ${mutLevel === 'wt' ? 'WT' : 'Mut'}`);
         if (this._activeOncoprintFilters?.length > 0) {
             this._activeOncoprintFilters.forEach(f => parts.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`));
@@ -19361,11 +19405,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const mutData = geFilterMutSource.mutations || {};
             data = data.filter(d => (mutData[d.cellLineId] || 0) >= 1);
         }
-        // Fusion filter, only show cell lines with this fusion
+        // Fusion filter (curated ★ clinical pair or validated fusion gene)
         const fusionGene = document.getElementById('geFusionFilter')?.value;
-        if (fusionGene && this.translocations?.geneData?.[fusionGene]) {
-            const transData = this.translocations.geneData[fusionGene].translocations || {};
-            data = data.filter(d => (transData[d.cellLineId] || 0) >= 1);
+        if (fusionGene) {
+            data = data.filter(d => this._geFusionPasses(d.cellLineId, fusionGene));
+        }
+        // Focal-CN filter (amp / deep-del)
+        const geCnVal = document.getElementById('geCnFilter')?.value;
+        if (geCnVal) {
+            data = data.filter(d => this._cellLinePassesCnFilter(d.cellLineId, geCnVal));
         }
         // Oncoprint multi-gene filters
         if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
@@ -22897,7 +22945,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cellLines = this.metadata.cellLines;
         const inspectHotspot = document.getElementById('geHotspotFilter')?.value || '';
         const inspectFusion = document.getElementById('geFusionFilter')?.value || '';
-        const inspFusionData = inspectFusion ? this.translocations?.geneData?.[inspectFusion]?.translocations : null;
+        const inspectCn = document.getElementById('geCnFilter')?.value || '';
         const inspectSubtype = document.getElementById('geSubtypeFilter')?.value || '';
 
         // Determine if we should group by subtype (when a lineage filter is active)
@@ -22938,9 +22986,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     if (inspMutLevel === 0) return;
                 }
             }
-            if (inspectFusion && inspFusionData) {
-                if ((inspFusionData[cellLine] || 0) < 1) return;
-            }
+            if (inspectFusion && !this._geFusionPasses(cellLine, inspectFusion)) return;
+            if (inspectCn && !this._cellLinePassesCnFilter(cellLine, inspectCn)) return;
 
             const ge = this.geneEffects[geneIdx * this.nCellLines + idx];
             if (isNaN(ge)) return;
@@ -23407,13 +23454,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const bgColor = `rgb(${r},${g},${b})`;
             const bold = row.isAll || row.isRef ? 'font-weight:600;' : '';
             const rowMode = row.clickMode || mode;
-            const clickVal = rowMode === 'tissue' ? row.tissue : rowMode === 'fusion' ? (row.fusion ?? '') : row.hotspot;
+            const clickVal = rowMode === 'tissue' ? row.tissue : rowMode === 'fusion' ? (row.fusion ?? '') : rowMode === 'cn' ? (row.cn ?? '') : row.hotspot;
             const clickFn = rowMode === 'tissue'
                 ? `app.onInlineCompareTissueClick('${(clickVal || '').replace(/'/g, "\\'")}')`
                 : rowMode === 'fusion'
                 ? `app.onInlineCompareFusionClick('${(clickVal || '').replace(/'/g, "\\'")}')`
                 : rowMode === 'cn'
-                ? ''
+                ? (clickVal ? `app.onInlineCompareCnClick('${clickVal.replace(/'/g, "\\'")}')` : '')
                 : `app.onInlineCompareHotspotClick('${(clickVal || '').replace(/'/g, "\\'")}')`;
 
             const nSubset = row.nSubset ?? (row.nWT + row.nMut);
@@ -23469,6 +23516,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     onInlineCompareFusionClick(fusion) {
         document.getElementById('geFusionFilter').value = fusion;
+        this._keepInlineCompare = true;
+        this.showGeneEffectDistribution(this.currentGeneEffectGene);
+    }
+
+    onInlineCompareCnClick(cn) {
+        const el = document.getElementById('geCnFilter');
+        if (el) el.value = cn;
         this._keepInlineCompare = true;
         this.showGeneEffectDistribution(this.currentGeneEffectGene);
     }
