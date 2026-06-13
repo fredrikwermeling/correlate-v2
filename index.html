@@ -1406,6 +1406,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.48 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Correlation scatter: the <b>Tissue filter re-orders</b> by a selected mutation/fusion/CN, picking <b>BRAF</b> floats <b>Melanoma</b> to the top (with per-tissue counts in that cohort). The current selection is always preserved.</li>
+                </ul>
                 <p><strong>v.83.47 (2026-06-13)</strong></p>
                 <ul>
                     <li>Popout filters are now <b>context-aware</b>: the searchable Hotspot / Fusion / CN dropdowns (scatter + Correlation Analysis) recompute their counts within the cells passing the other active filters and re-order by count, so e.g. with <b>Melanoma</b> selected, <b>BRAF</b> rises to the top of the hotspot list. (Tissue-filter re-ordering by a selected mutation still to come.)</li>
@@ -3317,7 +3321,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.47</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.48</a>
     </div>
 
     <div class="main-content">
@@ -5592,6 +5596,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_47"></script>
+    <script src="app.js?v=v83_48"></script>
 </body>
 </html>

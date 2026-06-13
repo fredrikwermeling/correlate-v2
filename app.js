@@ -3492,8 +3492,11 @@ class CorrelationExplorer {
         const set = new Set();
         for (const d of data) {
             const cl = d.cellLineId;
-            if (cancer && d.lineage !== cancer) continue;
-            if (subtype && this.cellLineMetadata?.primaryDisease?.[cl] !== subtype) continue;
+            // For tissue ordering, count across all tissues (skip tissue filter).
+            if (kind !== 'tissue') {
+                if (cancer && d.lineage !== cancer) continue;
+                if (subtype && this.cellLineMetadata?.primaryDisease?.[cl] !== subtype) continue;
+            }
             if (kind !== 'hotspot' && mfg && mfl !== 'all') {
                 const mm = (this.mutations?.geneData?.[mfg] || this.damagingMutations?.geneData?.[mfg])?.mutations;
                 if (mm) { const l = mm[cl] || 0; if (mfl === '0' && l !== 0) continue; if (mfl === '1' && l !== 1) continue; if (mfl === '2' && l < 2) continue; if (mfl === '1+2' && l < 1) continue; }
@@ -3508,6 +3511,34 @@ class CorrelationExplorer {
             set.add(cl);
         }
         return set;
+    }
+
+    // Re-order the scatter Tissue filter by how many cells in the active
+    // hotspot / fusion / CN cohort fall in each tissue, so picking e.g. BRAF
+    // floats Melanoma to the top. Only re-orders when a mutation/fusion/CN
+    // filter is active; otherwise the default ordering stands. Preserves the
+    // current selection.
+    _updateScatterTissueOptions() {
+        const sel = document.getElementById('scatterCancerFilter');
+        if (!sel || !Array.isArray(this.currentInspect?.data)) return;
+        const mutActive = (document.getElementById('mutationFilterGene')?.value && document.getElementById('mutationFilterLevel')?.value !== 'all')
+            || !!document.getElementById('translocationFilterGene')?.value
+            || !!document.getElementById('scatterCnFilter')?.value;
+        if (!mutActive) return;
+        const cur = sel.value;
+        const cohort = this._inspectCohortExcluding('tissue');
+        const counts = {}; let total = 0;
+        for (const d of this.currentInspect.data) {
+            if (!cohort.has(d.cellLineId)) continue;
+            total++;
+            if (d.lineage) counts[d.lineage] = (counts[d.lineage] || 0) + 1;
+        }
+        // Always keep the selected tissue available so re-ordering never
+        // silently clears it (even if it has 0 cells in the current cohort).
+        if (cur && counts[cur] === undefined) counts[cur] = 0;
+        const lineages = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        sel.innerHTML = `<option value="">All tissues (n=${total})</option>` + lineages.map(l => `<option value="${l}">${l} (n=${counts[l]})</option>`).join('');
+        sel.value = cur;
     }
 
     // Cells passing all active Correlation-Analysis filters EXCEPT the named kind.
@@ -11995,6 +12026,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     updateInspectPlot() {
         if (!this.currentInspect) return;
+
+        // Re-order the Tissue filter by the active mutation/fusion/CN cohort
+        // (preserves selection). Runs before reading the filter values below.
+        this._updateScatterTissueOptions();
 
         const data = this.currentInspect.data;
         const gene1 = this.currentInspect.gene1;
