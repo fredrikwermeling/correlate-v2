@@ -1,4 +1,5 @@
 - Look at the correlation_network-2.pdf in download folder. the edge thickness needs to scale to the zoom. tsc1-tsc2 should be around 0.9, but it looks much smaller in the exported (while the on screen image seems to scale correctly).
+- I find HLA in several of the hotspot mutations filters. 
 
 
 
