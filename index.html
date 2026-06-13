@@ -1354,6 +1354,45 @@
         #geneEffectModal.ge-condensed #geGateCompareSection { display: none !important; }
         #geneEffectModal.ge-condensed #geChartContainer { flex: 1 1 100% !important; }
         #geneEffectModal:not(.ge-condensed) #geExpandFullBtn { display: none; }
+        /* ---- Phone / narrow-screen scaling (<=640px) ----
+           Optimised for the popouts where the analysis happens (Cell Line
+           Browser, Gene Effect, Correlation Analysis, scatter Inspect): give
+           them the whole screen, shrink the chrome, stack the chart-beside-table
+           layouts so the chart spans full width, and let dense toolbars wrap +
+           the body scroll so the chart and key text stay reachable. The homepage
+           keeps its two-column layout per the note above. */
+        @media (max-width: 640px) {
+            .modal-overlay { padding: 0 !important; align-items: stretch !important; }
+            .modal {
+                width: 100% !important; max-width: 100% !important;
+                height: 100% !important; max-height: 100% !important;
+                margin-top: 0 !important; border-radius: 0 !important;
+            }
+            #geneEffectModalInner, #corrAnalysisModalInner, #inspectModalInner {
+                width: 100% !important; max-width: 100% !important;
+            }
+            #geneEffectModal.ge-condensed .modal { width: 100% !important; max-width: 100% !important; }
+            .modal-header { padding: 6px 10px !important; }
+            .modal-header h3 { font-size: 0.9em !important; }
+            .modal-body { padding: 8px 10px !important; -webkit-overflow-scrolling: touch; }
+            .modal-footer { padding: 6px 10px !important; flex-wrap: wrap !important; }
+            .modal-body .form-control, .modal-body select, .modal-body input { font-size: 11px !important; }
+            .modal-body .btn { font-size: 11px !important; padding: 3px 8px !important; }
+            /* Stack the chart-beside-table layouts; chart spans full width.
+               Plotly renders at a fixed pixel width, so allow horizontal pan
+               instead of clipping when a chart is wider than the phone. */
+            #geChartTableLayout, #caChartTableLayout { flex-direction: column !important; gap: 10px !important; }
+            #geChartContainer, #caChartContainer { flex: 1 1 100% !important; width: 100% !important; overflow-x: auto !important; }
+            #geTableContainer { min-width: 0 !important; width: 100% !important; overflow-x: auto !important; }
+            /* Scatter Inspect: single-column controls, full-width plot */
+            .inspect-layout { flex-direction: column !important; }
+            .inspect-controls { grid-template-columns: 1fr !important; width: 100% !important; }
+            .inspect-plot, #scatterPlot { width: 100% !important; min-width: 0 !important; }
+            /* Cell Line Browser: single-column list, detail stacks under */
+            .clb-list { columns: 1 !important; }
+            .clb-content { flex-direction: column !important; }
+            .clb-detail { width: 100% !important; border-left: none !important; border-top: 1px solid var(--gray-200) !important; }
+        }
         /* Expression Correlates needs a mutation-analysis subgroup context, which
            the condensed popout (opened from the Cell Line Browser) doesn't have,
            so hide it there. It stays available in the full gene-effect modal. */
@@ -1406,6 +1445,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.51 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Phone / small-screen support: on narrow screens (&le;640px) the Cell Line Browser, Gene Effect, Correlation and Inspect popouts now use the full screen, the chart-beside-table layouts stack so the chart spans the full width, dense toolbars wrap, and controls shrink, so the main chart and text stay reachable instead of overflowing off-screen.</li>
+                </ul>
                 <p><strong>v.83.50 (2026-06-13)</strong></p>
                 <ul>
                     <li>Gene Effect popout filter row now matches the rest of the app: the fusion filter is a searchable, curated list (clinical driver pairs ★ + validated fusion genes, no noisy genes), and there's a new focal copy-number filter (amplifications ▲ / deep deletions ▼).</li>
@@ -3331,7 +3374,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.50</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.51</a>
     </div>
 
     <div class="main-content">
