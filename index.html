@@ -1459,6 +1459,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.58 (2026-06-13)</strong></p>
+                <ul>
+                    <li>Phone decluttering: the Cell Line Browser Dimensionality Reduction (UMAP / PCA) section is now hidden on narrow screens (&le;640px), it's a heavy interactive analysis not practical on a phone.</li>
+                    <li>Gate tools are now hidden on phones everywhere they appear, the scatter Inspect gate buttons + comparison panel, the Gene Effect gate buttons + comparison panel, and the UMAP gate-compare controls. All stay on desktop.</li>
+                </ul>
                 <p><strong>v.83.57 (2026-06-13)</strong></p>
                 <ul>
                     <li>Chart zoom is now locked off on every plot (phone and desktop): charts can't be zoomed or panned by drag / wheel / pinch / double-click, so they no longer get in the way of scrolling or accidentally zoom. Hover still works, and the gate-draw and UMAP / cluster lasso-select tools are unaffected. Done globally via per-axis fixedrange, so it applies to all current and future charts.</li>
@@ -3413,7 +3418,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.57</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.58</a>
     </div>
 
     <div class="main-content">
@@ -4280,7 +4285,7 @@
                         </div>
 
                         <!-- Gate -->
-                        <div class="control-box-compact" style="grid-column: span 2;">
+                        <div class="control-box-compact mobile-hide" style="grid-column: span 2;">
                             <div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap;">
                                 <span style="font-size:11px; color:#666;">Gate:</span>
                                 <button class="btn btn-sm" id="setGateABtn" style="font-size:10px; padding:2px 6px; background:#2563eb; color:white;">Set Gate A</button>
@@ -4318,7 +4323,7 @@
                     </div>
                 </div>
                 <!-- Gate Comparison Results -->
-                <div id="gateComparePanel" style="display: none; margin-top: 15px; border: 2px solid #5a9f4a; border-radius: 8px; overflow: hidden;">
+                <div id="gateComparePanel" class="mobile-hide" style="display: none; margin-top: 15px; border: 2px solid #5a9f4a; border-radius: 8px; overflow: hidden;">
                     <div style="background: #5a9f4a; color: white; padding: 8px 15px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
                         <span>Gate Comparison: <span id="gateCompareTitle">Gate A vs Gate B</span></span>
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -4459,7 +4464,7 @@
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;" title="Box plot of gene effect grouped by tissue / lineage">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan table: how each mutation-prone gene's hotspot (WT vs mutated) shifts this gene's effect">By Hotspot</button>
                         <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Stratify this gene's effect by another gene's status, pick a hotspot mutation, a curated fusion, or a focal amplification / deep deletion in the selector above the plot.">Mutation Inspect</button>
-                        <span id="geGatesGroup" style="display: none; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 8px; margin-left: 2px;">
+                        <span id="geGatesGroup" class="mobile-hide" style="display: none; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 8px; margin-left: 2px;">
                             <label style="font-size: 12px; font-weight: 600; color: #374151; white-space: nowrap;">Gates:</label>
                             <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle on the scatter plot to define Gate A">Gate A</button>
                             <button class="btn btn-sm" id="geSetGateBBtn" style="font-size: 10px; padding: 2px 8px; background: #dc2626; color: white;" disabled title="Draw rectangle on the scatter plot to define Gate B">Gate B</button>
@@ -4578,7 +4583,7 @@
                 <!-- GE Gate Compare Controls removed, using toolbar buttons (lines 2794-2798) -->
 
                 <!-- GE Gate Comparison Results Panel -->
-                <div id="geGateComparePanel" style="display: none; margin-top: 12px; border: 2px solid #5a9f4a; border-radius: 8px; overflow: hidden;">
+                <div id="geGateComparePanel" class="mobile-hide" style="display: none; margin-top: 12px; border: 2px solid #5a9f4a; border-radius: 8px; overflow: hidden;">
                     <div style="background: #5a9f4a; color: white; padding: 8px 15px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
                         <span>Gate Comparison: <span id="geGateCompareTitle">Gate A vs Gate B</span></span>
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -5400,8 +5405,8 @@
             </div>
           </div>
         </div>
-        <!-- UMAP Section -->
-        <div id="clbUmapSection" style="border-top:1px solid #e5e7eb; padding:10px 16px; position:relative;">
+        <!-- UMAP Section (hidden on phones — heavy interactive analysis) -->
+        <div id="clbUmapSection" class="mobile-hide" style="border-top:1px solid #e5e7eb; padding:10px 16px; position:relative;">
             <div style="margin-bottom:6px;">
                 <strong style="font-size:12px;">Dimensionality Reduction</strong>
             </div>
