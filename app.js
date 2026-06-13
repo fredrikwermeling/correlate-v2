@@ -7367,12 +7367,18 @@ class CorrelationExplorer {
         // the SVG edge (the absolute clip ceiling would be + right-margin more).
         const geRightMargin = 30;
         const geContainerW = document.getElementById('geneEffectPlot')?.clientWidth || 600;
-        const geTitleMaxW = geContainerW - yFit.marginL;
+        // On phones the wide y-axis left margin squeezed the heading into many
+        // wrapped rows. Wrap to (almost) the full container width instead, and
+        // recentre the title on the whole container so the wider text doesn't
+        // clip on the right (paper x is relative to the plot area, not container).
+        const geTitleMaxW = _gePhone ? (geContainerW - 2 * geRightMargin) : (geContainerW - yFit.marginL);
+        const _gePlotW = Math.max(1, geContainerW - yFit.marginL - geRightMargin);
+        const geTitleX = _gePhone ? ((geContainerW / 2 - yFit.marginL) / _gePlotW) : 0.5;
 
         const geTitleAnn = {
             text: this._computeGETitleText(titleText, subtitleText, Math.round(25 * _geFS), 'geneEffectPlot', geTitleMaxW),
             xref: 'paper', yref: 'paper',
-            x: this._geUserTitlePos ? this._geUserTitlePos.x : 0.5,
+            x: this._geUserTitlePos ? this._geUserTitlePos.x : geTitleX,
             y: this._geUserTitlePos ? this._geUserTitlePos.y : (_gePhone ? 1.4 : 1.65),
             xanchor: this._geUserTitlePos ? 'auto' : 'center',
             yanchor: this._geUserTitlePos ? 'auto' : 'top',
@@ -19242,7 +19248,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // stats line, "WT: n=… · Mut: n=…", would overflow and clip on the right).
         let subtitleHtml = '';
         if (subtitleText) {
-            const subFontSize = 15;
+            // Scale the subtitle with the title's base font, so on phones (smaller
+            // base) the stats line shrinks too and wraps into far fewer rows.
+            const subFontSize = Math.round(baseFontSize * 0.6);
             const segs = String(subtitleText).split('<br>');
             const wrapped = [];
             for (const seg of segs) {
