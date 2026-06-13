@@ -28149,6 +28149,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
     }
 
+    // Collapse the cell-line detail panel back to the placeholder. Used by the
+    // phone-only Close button, since on a phone the detail stacks under the list
+    // and the executive summary otherwise takes over the screen with no way out.
+    closeCellLineDetail() {
+        const panel = document.getElementById('clbDetailPanel');
+        const content = document.getElementById('clbDetailContent');
+        const placeholder = document.getElementById('clbDetailPlaceholder');
+        if (panel) panel.classList.remove('active');
+        if (content) content.style.display = 'none';
+        if (placeholder) placeholder.style.display = '';
+        this._clbInspectedCellLine = null;
+        document.querySelectorAll('#clbList .clb-entry.clb-inspected').forEach(el => el.classList.remove('clb-inspected'));
+    }
+
     showCellLineDetail(cellLineId) {
         this._clbInspectedCellLine = cellLineId;
         document.querySelectorAll('#clbList .clb-entry').forEach(el => {
