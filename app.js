@@ -7339,26 +7339,45 @@ class CorrelationExplorer {
         const _gePlotW = Math.max(1, geContainerW - yFit.marginL - geRightMargin);
         const geTitleX = _gePhone ? ((geContainerW / 2 - yFit.marginL) / _gePlotW) : 0.5;
 
-        // Title base font. The annotation font.size must MATCH the embedded title
-        // span size so Plotly reserves the right line height, otherwise the bold
-        // rows overlap. Desktop was 25 (too tall a block, overlapping the graph) —
-        // 18 keeps it readable but compact.
-        // Desktop title is back to the original look (title 25, line-height 13,
-        // anchored at the top). Phone keeps its scaled-down tuning.
         const geTitleBaseFont = _gePhone ? Math.round(25 * _geFS) : 25;
         const geSubFont = _gePhone ? Math.round(geTitleBaseFont * 0.6) : 15;
-        const geTitleLineFont = _gePhone ? geTitleBaseFont : Math.round(15 * 0.85);
+        const titleParts = this._computeGETitleText(titleText, subtitleText, geTitleBaseFont, 'geneEffectPlot', geTitleMaxW, geSubFont);
+
+        // Two-annotation header: the title and the stats subtitle are SEPARATE
+        // annotations, each with its own font.size (= line-height). A single
+        // annotation forced one line-height on both, so a 2-row title overlapped
+        // itself and the stats spread out. They are stacked just above the plot and
+        // grow up into the top margin, so the heading never overlaps the graph
+        // (on screen and in exports, which use the same layout).
+        const _geChartH = Math.round(400 * (this.geChartHeightRatio || 1));
+        const _subBlockPx = titleParts.nSub * titleParts.subFont * 1.4;
+        const _titleBlockPx = titleParts.nTitle * titleParts.titleFont * 1.4;
+        const _geBotM = _gePhone ? 64 : 75;
+        // Top margin grows to fit the whole header block above the plot.
+        const _geTopM = Math.max(_gePhone ? 120 : 180, Math.ceil(12 + _subBlockPx + 4 + _titleBlockPx + 10));
+        const _gePlotHpx = Math.max(60, _geChartH - _geTopM - _geBotM);
+        const _subBottomY = 1 + 10 / _gePlotHpx;                         // stats bottom just above the plot
+        const _titleBottomY = 1 + (10 + _subBlockPx + 4) / _gePlotHpx;   // title bottom above the stats
         const geTitleAnn = {
-            text: this._computeGETitleText(titleText, subtitleText, geTitleBaseFont, 'geneEffectPlot', geTitleMaxW, geSubFont),
+            text: titleParts.titleHtml,
             xref: 'paper', yref: 'paper',
             x: this._geUserTitlePos ? this._geUserTitlePos.x : geTitleX,
-            y: this._geUserTitlePos ? this._geUserTitlePos.y : (_gePhone ? 1.4 : 1.65),
+            y: this._geUserTitlePos ? this._geUserTitlePos.y : _titleBottomY,
             xanchor: this._geUserTitlePos ? 'auto' : 'center',
-            yanchor: this._geUserTitlePos ? 'auto' : 'top',
+            yanchor: this._geUserTitlePos ? 'auto' : 'bottom',
             showarrow: false,
-            font: { size: geTitleLineFont },
+            font: { size: titleParts.titleFont },
             _tsRole: 'title'
         };
+        const geSubtitleAnn = titleParts.subtitleHtml ? {
+            text: titleParts.subtitleHtml,
+            xref: 'paper', yref: 'paper',
+            x: geTitleX, y: _subBottomY,
+            xanchor: 'center', yanchor: 'bottom',
+            showarrow: false,
+            font: { size: titleParts.subFont },
+            _tsRole: 'subtitle'
+        } : null;
         const geXLabelAnn = {
             text: xLabelText,
             xref: 'paper', yref: 'paper',
@@ -7386,7 +7405,7 @@ class CorrelationExplorer {
 
         const showZero = document.getElementById('geShowZeroLine')?.checked !== false;
         const layout = {
-            annotations: [geTitleAnn, geXLabelAnn, geYLabelAnn],
+            annotations: [geTitleAnn, geSubtitleAnn, geXLabelAnn, geYLabelAnn].filter(Boolean),
             xaxis: {
                 range: [xMin, xMax],
                 zeroline: showZero,
@@ -7402,7 +7421,7 @@ class CorrelationExplorer {
                 tickfont: { size: yTickFontSize }
             },
             showlegend: false,
-            margin: { t: _gePhone ? 120 : 180, r: 30, b: _gePhone ? 64 : 75, l: yFit.marginL },
+            margin: { t: _geTopM, r: 30, b: _geBotM, l: yFit.marginL },
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
@@ -19207,11 +19226,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Wrap each subtitle line too (it was previously emitted unwrapped, so a long
         // stats line, "WT: n=… · Mut: n=…", would overflow and clip on the right).
+        const subFontSize = subFontSizeOverride || Math.round(baseFontSize * 0.6);
         let subtitleHtml = '';
+        let subLines = 0;
         if (subtitleText) {
-            // Scale the subtitle with the title's base font, so on phones (smaller
-            // base) the stats line shrinks too and wraps into far fewer rows.
-            const subFontSize = subFontSizeOverride || Math.round(baseFontSize * 0.6);
             const segs = String(subtitleText).split('<br>');
             const wrapped = [];
             for (const seg of segs) {
@@ -19219,9 +19237,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (measure(seg, subFontSize) <= maxTitleWidth) wrapped.push(seg);
                 else wrapped.push(...this._wrapTextGreedy(seg, subFontSize, maxTitleWidth, measure));
             }
-            subtitleHtml = `<br><span style="font-size:${subFontSize}px;color:#666">${wrapped.join('<br>')}</span>`;
+            subLines = wrapped.length;
+            subtitleHtml = `<span style="font-size:${subFontSize}px;color:#666">${wrapped.join('<br>')}</span>`;
         }
-        return titleHtml + subtitleHtml;
+        // Return the title and stats as SEPARATE pieces so the caller can place them
+        // in two annotations — one annotation forced a single line-height on both,
+        // which made a big title's rows overlap or the stats spread too far apart.
+        return { titleHtml, subtitleHtml, nTitle: lines.length, nSub: subLines, titleFont: fontSize, subFont: subFontSize };
     }
 
     // Runtime bbox checks for the three GE-modal layout invariants.
@@ -36456,9 +36478,14 @@ ${clone.innerHTML}
             if (subtitleEl) {
                 const lines = subtitleEl.value.split('\n').filter(l => l.trim());
                 lines.forEach(line => { html += `<br><span style="font-size:${subSize}px;color:#666">${wrapBI(line, subBold, subItalic)}</span>`; });
+                updates[`annotations[${titleIdx}].font.size`] = Math.round(subSize * 0.85);
+            } else {
+                // Title-only annotation (e.g. the Gene Effect header where the stats
+                // are a separate annotation): keep its font.size = the title size so
+                // a multi-row title keeps the right line spacing and doesn't overlap.
+                updates[`annotations[${titleIdx}].font.size`] = titleSizeVal;
             }
             updates[`annotations[${titleIdx}].text`] = html;
-            updates[`annotations[${titleIdx}].font.size`] = Math.round(subSize * 0.85);
         } else if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
             const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
             let html = `<span style="font-size:${titleSizeVal}px">${wrapBI(titleText, titleBold, titleItalic)}</span>`;
