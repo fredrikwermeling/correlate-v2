@@ -3396,7 +3396,8 @@ class CorrelationExplorer {
             }
             hotspot.sort((a, b) => b.count - a.count);
         }
-        // Fusions: clinical pairs (★) first, then any-gene fusions.
+        // Fusions: only curated clinical driver pairs (★). The broad per-gene
+        // "any fusion involving this gene" list was mostly noise, so it's dropped.
         const fusion = [];
         if (this.clinicalFusions?.fusionData) {
             const pairs = [];
@@ -3406,17 +3407,6 @@ class CorrelationExplorer {
             }
             pairs.sort((a, b) => b.count - a.count);
             fusion.push(...pairs);
-        }
-        if (Array.isArray(this._fusionGeneCounts)) {
-            const genes = [];
-            this._fusionGeneCounts.forEach(({ gene }) => {
-                const td = this.translocations?.geneData?.[gene]?.translocations;
-                if (!td) return;
-                let n = 0; for (const cl in td) if (td[cl] >= 1) n++;
-                if (n > 0) genes.push({ value: gene, kind: 'gene', primary: gene, count: n, secondary: 'any fusion involving this gene' });
-            });
-            genes.sort((a, b) => b.count - a.count);
-            fusion.push(...genes);
         }
         // Focal CN events: amplifications (▲) then deep deletions (▼).
         const cnMap = {};
@@ -3479,14 +3469,9 @@ class CorrelationExplorer {
                 if (n > 0) pairs.push({ value: fname, kind: 'clinical', primary: `★ ${fname}`, count: n, secondary: fd.diseaseContext || 'clinically relevant' });
             }
             pairs.sort((a, b) => b.count - a.count);
-            const genes = [];
-            if (Array.isArray(this._fusionGeneCounts)) this._fusionGeneCounts.forEach(({ gene }) => {
-                const td = this.translocations?.geneData?.[gene]?.translocations; if (!td) return;
-                let n = 0; for (const cl in td) if (td[cl] >= 1 && cohortSet.has(cl)) n++;
-                if (n > 0) genes.push({ value: gene, kind: 'gene', primary: gene, count: n, secondary: 'any fusion involving this gene' });
-            });
-            genes.sort((a, b) => b.count - a.count);
-            return [...pairs, ...genes];
+            // Only curated clinical driver pairs (★). The broad "any fusion
+            // involving this gene" list was mostly noise, so it's no longer shown.
+            return pairs;
         }
         if (kind === 'cn') {
             const cnMap = {};
@@ -4518,6 +4503,7 @@ class CorrelationExplorer {
         document.getElementById('geInlineCompareClose')?.addEventListener('click', () => {
             document.getElementById('geInlineCompareTable').style.display = 'none';
         });
+        document.getElementById('geRestartBtn')?.addEventListener('click', () => this.restartGE());
         document.getElementById('geResetFiltersBtn')?.addEventListener('click', () => {
             this._resetGEFilters();
             // Clear analysis-level filters so inspect truly shows ALL cell lines
@@ -19341,6 +19327,34 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
     }
 
+    // Full restart of the Gene Effect analysis: clear the gene, filters, gates,
+    // scan-type toggles and plot size, and return to the empty starting state.
+    restartGE() {
+        this._resetGEFilters();
+        const search = document.getElementById('geneEffectSearch'); if (search) search.value = '';
+        const cur = document.getElementById('geneEffectCurrentGene'); if (cur) cur.textContent = '';
+        this._geScanTypes = { hotspot: true, fusion: true, cn: true };
+        ['geScanHotspot', 'geScanFusion', 'geScanCn'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = true; });
+        this.geChartWidthRatio = 1; this.geChartHeightRatio = 1;
+        const zl = document.getElementById('geShowZeroLine'); if (zl) zl.checked = true;
+        this._geUserTitlePos = null; this._geUserXLabelPos = null; this._geUserYLabelPos = null;
+        this._activeOncoprintFilters = [];
+        this.currentGeneEffect = null; this.currentGeneEffectGene = null; this.mutationResults = null;
+        this.geneEffectViewMode = 'geneEffect'; this.currentGEView = 'tissue'; this.geDetailedView = null;
+        document.getElementById('geByTissueView').style.display = 'none';
+        document.getElementById('geByHotspotView').style.display = 'none';
+        const tbl = document.getElementById('geTableContainer'); if (tbl) tbl.style.display = 'none';
+        const ph = document.getElementById('gePlotPlaceholder'); if (ph) ph.style.display = 'flex';
+        this._updateGEPlaceholderVisibility?.();
+        ['geViewTissue', 'geViewHotspot', 'geViewMutation'].forEach(id => {
+            const b = document.getElementById(id); if (!b) return;
+            const active = id === 'geViewTissue';
+            b.style.background = active ? '#5a9f4a' : '';
+            b.style.color = active ? 'white' : '';
+            b.classList.toggle('btn-secondary', !active);
+        });
+    }
+
     _resetGEFilters() {
         document.getElementById('geTissueFilter').value = '';
         document.getElementById('geSubtypeFilter').value = '';
@@ -19712,10 +19726,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const cells = fd.cellLines || {};
                 fus.push({ label: `★ ${fname}`, clickVal: fname, has: (cl) => cl in cells });
             }
-            if (Array.isArray(this._fusionGeneCounts)) for (const { gene: fg } of this._fusionGeneCounts) {
-                const td = this.translocations?.geneData?.[fg]?.translocations; if (!td) continue;
-                fus.push({ label: fg, clickVal: fg, has: (cl) => (td[cl] || 0) >= 1 });
-            }
+            // Only curated clinical driver pairs, the broad per-gene fusion list
+            // flooded the scan with noisy, uninterpretable rows.
             for (const f of fus) {
                 const c0 = [], c1 = [];
                 data.forEach(d => { (f.has(d.cellLineId) ? c1 : c0).push(mkInfo(d)); });
@@ -19990,8 +20002,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const mean2Str = isNaN(s.mean2) ? '-' : s.mean2.toFixed(2);
                 const diffStr = s.diff !== undefined ? s.diff.toFixed(2) : '-';
                 const diffColor = s.diff > 0 ? '#16a34a' : s.diff < 0 ? '#dc2626' : '#374151';
+                const tChip = s.type === 'fusion'
+                    ? '<span style="background:#ede9fe;color:#6d28d9;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600;">fusion</span>'
+                    : s.type === 'cn'
+                    ? '<span style="background:#ccfbf1;color:#0f766e;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600;">amp/del</span>'
+                    : '<span style="background:#f3f4f6;color:#374151;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600;">hotspot</span>';
                 tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" data-ftype="${s.type || 'hotspot'}" data-clickval="${(s.clickVal || s.group).replace(/"/g, '&quot;')}" style="cursor: pointer;">
-                    <td>${s.group}</td>
+                    <td>${tChip} ${s.group}</td>
                     <td style="text-align: center; color: #2563eb; border-left: 2px solid #2563eb;">${s.n0}</td>
                     <td style="text-align: center; color: #2563eb;">${s.mean0.toFixed(2)}</td>
                     <td style="text-align: center; color: #f97316; border-left: 2px solid #f97316;">${s.n1 || '-'}</td>
