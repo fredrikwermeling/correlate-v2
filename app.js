@@ -7545,8 +7545,9 @@ class CorrelationExplorer {
         document.getElementById('geByTissueView').style.display = 'block';
         document.getElementById('geByHotspotView').style.display = 'none';
 
-        // Make chart container full width
-        document.getElementById('geChartContainer').style.flex = '1';
+        // Chart width was already set to its width-ratio above (≈55%), matching the
+        // other views; do NOT force full width here (that made the by-mutation plot
+        // far wider than the others and shifted the y-axis label off-screen).
 
         // Mark this as mutation analysis view
         this.geneEffectViewMode = 'mutation';
@@ -22955,7 +22956,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Lightweight, non-interactive hover card for a cell-line dot (pointer-events
     // off so it never blocks the click underneath). Single instance, replaced on
     // each hover; removed by hideCellLineTooltip on unhover.
-    showCellLineTooltip(event, cellLineId) {
+    showCellLineTooltip(event, cellLineId, hint) {
         if (!cellLineId || !this.cellLineMetadata) return;
         this.hideCellLineTooltip();
         const maxW = 340;
@@ -22963,7 +22964,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         t.id = 'cellLineTooltip';
         t.dataset.clid = cellLineId;
         t.style.cssText = `position: fixed; z-index: 10001; background: white; border: 1px solid #d1d5db; border-radius: 8px; padding: 9px 13px; max-width: ${maxW}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 11px; line-height: 1.45; color: #374151; pointer-events: none;`;
-        t.innerHTML = this._cellLineExecutiveSummary(cellLineId);
+        t.innerHTML = this._cellLineExecutiveSummary(cellLineId)
+            + (hint ? `<div style="margin-top:6px; padding-top:5px; border-top:1px solid #eee; font-size:10px; color:#6b7280;">${hint}</div>` : '');
         const cx = (event && event.clientX != null) ? event.clientX : window.innerWidth / 2;
         const cy = (event && event.clientY != null) ? event.clientY : window.innerHeight / 2;
         t.style.left = Math.min(cx + 12, window.innerWidth - maxW - 20) + 'px';
@@ -22980,7 +22982,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Wire a Plotly cell-line dot plot so hovering a dot shows the cell-line
     // summary card after a short delay. getId recovers the ACH id from the point
     // (defaults to customdata, matching _attachDotShiftOpen).
-    _attachDotHoverSummary(plotId, getId) {
+    _attachDotHoverSummary(plotId, getId, hint) {
         const el = document.getElementById(plotId);
         if (!el || !el.on) return;
         const extract = getId || (pt => Array.isArray(pt.customdata)
@@ -22999,33 +23001,36 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (typeof id !== 'string' || !id) return;
             const ev = { clientX: eventData.event?.clientX, clientY: eventData.event?.clientY };
             clearTimeout(hoverTimer);
-            hoverTimer = setTimeout(() => this.showCellLineTooltip(ev, id), 180);
+            hoverTimer = setTimeout(() => this.showCellLineTooltip(ev, id, hint), 180);
         });
         el.on('plotly_unhover', () => { clearTimeout(hoverTimer); this.hideCellLineTooltip(); });
     }
 
-    // Click behaviour for a cell-line dot plot: single click toggles a name label
-    // on the dot, double click opens that cell line's Wiki on top (closing it
-    // returns to the plot), and Shift-click opens the Cell Line Browser.
+    // Click behaviour for a cell-line dot plot: a plain click toggles a name label
+    // on the dot (click the label again to remove it), and Shift-click opens that
+    // cell line's Wiki on top of the plot (closing it returns to the plot).
     _attachDotClickLabelWiki(plotId) {
         const el = document.getElementById(plotId);
         if (!el || !el.on) return;
         const extract = (pt) => Array.isArray(pt.customdata) ? pt.customdata[pt.customdata.length - 1] : pt.customdata;
         el.removeAllListeners?.('plotly_click');
-        let clickTimer = null;
         el.on('plotly_click', (eventData) => {
             const pt = eventData.points?.[0];
             if (!pt || !Number.isInteger(pt.pointNumber)) return;
             const id = extract(pt);
             if (typeof id !== 'string' || !id) return;
-            if (eventData.event?.shiftKey) { clearTimeout(clickTimer); clickTimer = null; this._openCellLineInBrowser(id); return; }
-            if (clickTimer) {                    // second click within the window = double-click
-                clearTimeout(clickTimer); clickTimer = null;
-                this.hideCellLineTooltip?.();
-                this.openCellLineWiki(id);
-                return;
+            if (eventData.event?.shiftKey) { this.hideCellLineTooltip?.(); this.openCellLineWiki(id); return; }
+            this._toggleDotLabel(plotId, pt, id);
+        });
+        // Click a placed name label to remove it.
+        el.removeAllListeners?.('plotly_clickannotation');
+        el.on('plotly_clickannotation', (ev) => {
+            const ann = ev.annotation;
+            if (ann && ann._dotLabel) {
+                ev.event?.preventDefault?.();
+                const anns = (el.layout.annotations || []).filter(a => a._dotLabel !== ann._dotLabel);
+                Plotly.relayout(plotId, { annotations: anns });
             }
-            clickTimer = setTimeout(() => { clickTimer = null; this._toggleDotLabel(plotId, pt, id); }, 260);
         });
     }
 
@@ -23041,14 +23046,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             x: pt.x, y: pt.y, xref: 'x', yref: 'y', text: name,
             showarrow: true, arrowhead: 0, arrowwidth: 1, arrowcolor: '#6b7280', ax: 0, ay: -18,
             font: { size: 10, color: '#111' }, bgcolor: 'rgba(255,255,255,0.88)',
-            bordercolor: '#d1d5db', borderwidth: 1, borderpad: 2, _dotLabel: id
+            bordercolor: '#d1d5db', borderwidth: 1, borderpad: 2, captureevents: true,
+            _dotLabel: id, hovertext: 'Click to remove'
         });
         Plotly.relayout(plotId, { annotations: anns });
     }
 
     // Wire hover (exec summary) + click (label / double-click Wiki) on a GE dot plot.
     _attachGECellInteractivity(plotId) {
-        this._attachDotHoverSummary(plotId);
+        this._attachDotHoverSummary(plotId, null, 'Click to label this cell line · Shift-click to open its Wiki');
         this._attachDotClickLabelWiki(plotId);
     }
 

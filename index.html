@@ -1485,6 +1485,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.95 (2026-06-14)</strong></p>
+                <ul>
+                    <li>Fixed: the Gene Effect by-mutation plot was forced to full width (overriding the ~55% used elsewhere), which also pushed the y-axis label off-screen. It now matches the other views and the y-axis label shows.</li>
+                    <li>Gene Effect dots: click a placed name label to remove it; Shift-click now opens the cell line's Wiki (instead of double-click), and the hover card spells out "Click to label · Shift-click to open its Wiki".</li>
+                </ul>
                 <p><strong>v.83.94 (2026-06-14)</strong></p>
                 <ul>
                     <li>Homepage: the Analysis button is no longer filled-green on load, it matches the other tool buttons at all times (the Options box is what is emphasised).</li>
@@ -3602,7 +3607,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.94</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.95</a>
     </div>
 
     <div class="main-content">
@@ -5901,6 +5906,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_94"></script>
+    <script src="app.js?v=v83_95"></script>
 </body>
 </html>
