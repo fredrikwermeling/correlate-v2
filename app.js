@@ -19751,8 +19751,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // "By genetic change" scan: each row is a genetic feature (hotspot gene,
         // curated fusion, or focal amp / deep-del) and compares the target gene's
-        // effect in cells WITH that feature vs WITHOUT (WT). Hotspot rows keep the
-        // 0 / 1 / 2 dose levels; fusion / CN rows are binary (carriers go in level 1).
+        // effect in cells WITH that feature (Altered) vs WITHOUT (WT). Every type is
+        // binary here so the rows are consistent, the 0/1/2 hotspot dose detail
+        // lives in Mutation Inspect for a single gene.
         const inc = this._geScanTypes || (this._geScanTypes = { hotspot: true, fusion: false, cn: false });
         const hotspotStats = [];
         const mkInfo = (d) => ({ geneEffect: d.geneEffect, cellLineName: d.cellLineName || d.cellLineId, cellLineId: d.cellLineId });
@@ -19775,11 +19776,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         };
 
-        // Hotspot mutations (0 / 1 / 2 levels)
+        // Hotspot mutations, binary (WT vs mutated) like the other types.
         if (inc.hotspot) this.mutations.genes.forEach(hotspotGene => {
             const mutData = this.mutations.geneData?.[hotspotGene]?.mutations || {};
             const c0 = [], c1 = [], c2 = [];
-            data.forEach(d => { const l = mutData[d.cellLineId] || 0; (l === 0 ? c0 : l === 1 ? c1 : c2).push(mkInfo(d)); });
+            data.forEach(d => { ((mutData[d.cellLineId] || 0) >= 1 ? c1 : c0).push(mkInfo(d)); });
             pushFeature(hotspotGene, 'hotspot', hotspotGene, c0, c1, c2);
         });
 
@@ -20005,8 +20006,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 <th style="${headerStyle}" data-sort="mean0" data-type="number">${vLbl} (WT)${sortIcon}</th>
                 <th style="${headerStyle}; border-left: 2px solid #f97316;" data-sort="n1" data-type="number">N (Altered)${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="mean1" data-type="number">${vLbl} (Altered)${sortIcon}</th>
-                <th style="${headerStyle}; border-left: 2px solid #dc2626;" data-sort="n2" data-type="number">N (2 hits)${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean2" data-type="number">${vLbl} (2 hits)${sortIcon}</th>
                 <th style="${headerStyle}; border-left: 2px solid #6b7280;" data-sort="diff" data-type="number">Δ ${vLbl}${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="pValue" data-type="number">p-value${sortIcon}</th>
             </tr>`;
@@ -20078,8 +20077,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <td style="text-align: center; color: #2563eb;">${s.mean0.toFixed(2)}</td>
                     <td style="text-align: center; color: #f97316; border-left: 2px solid #f97316;">${s.n1 || '-'}</td>
                     <td style="text-align: center; color: #f97316;">${mean1Str}</td>
-                    <td style="text-align: center; color: #dc2626; border-left: 2px solid #dc2626;">${s.n2 || '-'}</td>
-                    <td style="text-align: center; color: #dc2626;">${mean2Str}</td>
                     <td style="text-align: center; color: ${diffColor}; font-weight: 500; border-left: 2px solid #6b7280;">${diffStr}</td>
                     <td style="text-align: center; ${s.pValue < 0.05 ? 'font-weight: 600;' : ''}">${pStr}</td>
                 </tr>`;

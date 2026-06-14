@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.90 (2026-06-14)</strong></p>
+                <ul>
+                    <li>By genetic change: every row is now a clean binary comparison, WT vs Altered, for all types (hotspot mutations are no longer split into 1 / 2 hits here, which looked odd next to the binary fusion / CN rows). The 0/1/2 mutation dose detail is still in Mutation Inspect for a single gene. The table dropped the now-empty "2 hits" columns.</li>
+                </ul>
                 <p><strong>v.83.89 (2026-06-14)</strong></p>
                 <ul>
                     <li>Homepage: the Analysis button is no longer emphasised (now a normal outline button like the other tools), and the Options box itself gets a stronger green outline + glow on load to draw the eye.</li>
@@ -3581,7 +3585,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.89</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.90</a>
     </div>
 
     <div class="main-content">
@@ -5880,6 +5884,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_89"></script>
+    <script src="app.js?v=v83_90"></script>
 </body>
 </html>
