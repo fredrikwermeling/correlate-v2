@@ -1485,6 +1485,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.83 (2026-06-14)</strong></p>
+                <ul>
+                    <li>Gene Effect by-mutation header: reverted to the original look.</li>
+                    <li>By genetic change: new "Min cell lines" filter (default 3) so only changes present in at least that many lines are shown. The table now puts the type chip on its own line above the full change name.</li>
+                    <li>Gene Effect: the redundant blue summary banner is gone; active filters now show as chips on the Custom CLs row (like the Cell Line Browser).</li>
+                    <li>Fixed: the Custom CLs filter now actually restricts the Gene Effect plots to the pasted cell lines, in every view.</li>
+                </ul>
                 <p><strong>v.83.82 (2026-06-14)</strong></p>
                 <ul>
                     <li>Gene Effect by-mutation header: the title is now larger (closer to the axis-label size) while the stats lines stay tightly packed.</li>
@@ -3547,7 +3554,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.82</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.83</a>
     </div>
 
     <div class="main-content">
@@ -4612,6 +4619,8 @@
                         <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilterGE()" style="font-size:10px; padding:3px 8px;">Apply</button>
                         <button class="btn btn-sm btn-outline" onclick="app.clearCustomCellLineFilterGE()" style="font-size:10px; padding:3px 8px;">Clear</button>
                         <span id="customCLFilterCountGE" style="font-size:9px; color:#6b7280;"></span>
+                        <span style="border-left: 1px solid #e5e7eb; height: 18px; margin: 0 2px;"></span>
+                        <span id="geActiveFilters" style="display:inline-flex; gap:4px; flex-wrap:wrap; align-items:center;"></span>
                     </div>
                 </div>
 
@@ -4668,6 +4677,8 @@
                                 <label style="cursor:pointer; display:flex; align-items:center; gap:4px;"><input type="checkbox" id="geScanHotspot" checked onchange="app.setGEScanType('hotspot', this.checked)"> Hotspot mutations</label>
                                 <label style="cursor:pointer; display:flex; align-items:center; gap:4px;"><input type="checkbox" id="geScanFusion" checked onchange="app.setGEScanType('fusion', this.checked)"> Fusions (★)</label>
                                 <label style="cursor:pointer; display:flex; align-items:center; gap:4px;"><input type="checkbox" id="geScanCn" checked onchange="app.setGEScanType('cn', this.checked)"> Amp / deep-del (▲▼)</label>
+                                <span style="border-left:1px solid #d1d5db; height:14px;"></span>
+                                <label style="display:flex; align-items:center; gap:4px; white-space:nowrap;" title="Only include changes present in at least this many cell lines">Min cell lines <input type="number" id="geScanMinN" value="3" min="1" max="500" style="width:46px; font-size:11px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px; text-align:center;" onchange="app.setGEScanMinN(this.value)"></label>
                             </div>
                             <div id="geneEffectHotspotPlot" style="width: 100%; min-height: 400px;"></div>
                         </div>
@@ -5835,6 +5846,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_82"></script>
+    <script src="app.js?v=v83_83"></script>
 </body>
 </html>

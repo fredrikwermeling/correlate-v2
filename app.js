@@ -6950,6 +6950,7 @@ class CorrelationExplorer {
     showGeneEffectDistribution(gene, tissueOverride, inspectHotspotOverride) {
         if (!this.mutationResults) return;
         if (gene === '⚡ Growth Rate' || gene?.startsWith('📊')) return; // pseudo-gene, not a real gene
+        this._updateGEActiveFilters();
 
         const mr = this.mutationResults;
         if (mr.isDamaging) this._cnAxisMode = mr.cnMode || null;
@@ -7344,23 +7345,18 @@ class CorrelationExplorer {
         // span size so Plotly reserves the right line height, otherwise the bold
         // rows overlap. Desktop was 25 (too tall a block, overlapping the graph) —
         // 18 keeps it readable but compact.
-        const geTitleBaseFont = _gePhone ? Math.round(25 * _geFS) : 18;
-        // Subtitle (stats) sits below the title. Use a small line-height so the
-        // stats rows pack tightly, while the embedded title font stays large so
-        // the heading reads at a similar size to the axis label. Desktop:
-        // title 18 / subtitle 11 / line-height 14.
-        const geSubFont = _gePhone ? Math.round(geTitleBaseFont * 0.6) : 11;
-        const geTitleLineFont = _gePhone ? geTitleBaseFont : 14;
+        // Desktop title is back to the original look (title 25, line-height 13,
+        // anchored at the top). Phone keeps its scaled-down tuning.
+        const geTitleBaseFont = _gePhone ? Math.round(25 * _geFS) : 25;
+        const geSubFont = _gePhone ? Math.round(geTitleBaseFont * 0.6) : 15;
+        const geTitleLineFont = _gePhone ? geTitleBaseFont : Math.round(15 * 0.85);
         const geTitleAnn = {
             text: this._computeGETitleText(titleText, subtitleText, geTitleBaseFont, 'geneEffectPlot', geTitleMaxW, geSubFont),
             xref: 'paper', yref: 'paper',
             x: this._geUserTitlePos ? this._geUserTitlePos.x : geTitleX,
-            // Desktop: anchor the block's BOTTOM just above the plot and grow up
-            // into the top margin (like the scatter title), so the heading never
-            // overlaps the graph however many rows it has.
-            y: this._geUserTitlePos ? this._geUserTitlePos.y : (_gePhone ? 1.4 : 1.06),
+            y: this._geUserTitlePos ? this._geUserTitlePos.y : (_gePhone ? 1.4 : 1.65),
             xanchor: this._geUserTitlePos ? 'auto' : 'center',
-            yanchor: this._geUserTitlePos ? 'auto' : (_gePhone ? 'top' : 'bottom'),
+            yanchor: this._geUserTitlePos ? 'auto' : 'top',
             showarrow: false,
             font: { size: geTitleLineFont },
             _tsRole: 'title'
@@ -7408,7 +7404,7 @@ class CorrelationExplorer {
                 tickfont: { size: yTickFontSize }
             },
             showlegend: false,
-            margin: { t: _gePhone ? 120 : 148, r: 30, b: _gePhone ? 64 : 75, l: yFit.marginL },
+            margin: { t: _gePhone ? 120 : 180, r: 30, b: _gePhone ? 64 : 75, l: yFit.marginL },
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
@@ -12014,9 +12010,38 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._customCellLineFilterGE = result.matched;
         const countEl = document.getElementById('customCLFilterCountGE');
         if (countEl) countEl.textContent = `${result.matched.size}/${result.total} matched`;
-        if (this.currentGeneEffectGene) {
+        this._rerenderCurrentGEView();
+    }
+
+    // Re-render whichever Gene Effect view is currently showing.
+    _rerenderCurrentGEView() {
+        if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
             this.showGeneEffectDistribution(this.currentGeneEffectGene);
+        } else if (this.currentGeneEffect) {
+            this.switchGeneEffectView(this.currentGEView || 'tissue');
         }
+    }
+
+    // Show the active Gene Effect filters as chips (like the Cell Line Browser),
+    // so it's clear what's applied without reading every control.
+    _updateGEActiveFilters() {
+        const el = document.getElementById('geActiveFilters');
+        if (!el) return;
+        const tissue = document.getElementById('geTissueFilter')?.value;
+        const subtype = document.getElementById('geSubtypeFilter')?.value;
+        const hotspot = document.getElementById('geHotspotFilter')?.value;
+        const fusion = document.getElementById('geFusionFilter')?.value;
+        const cn = document.getElementById('geCnFilter')?.value;
+        const mk = (txt, c) => `<span style="background:${c[0]}; color:${c[1]}; border:1px solid ${c[2]}; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:600; white-space:nowrap;">${txt}</span>`;
+        const blue = ['#eff6ff', '#1d4ed8', '#bfdbfe'], green = ['#f0fdf4', '#15803d', '#bbf7d0'], amber = ['#fffbeb', '#b45309', '#fde68a'];
+        const chips = [];
+        if (tissue) chips.push(mk(tissue, blue));
+        if (subtype) chips.push(mk(subtype, blue));
+        if (hotspot) chips.push(mk(`${hotspot} mut`, green));
+        if (fusion) chips.push(mk(`${this._stripFusionFilterDecoration(fusion)} fusion`, green));
+        if (cn) chips.push(mk(this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del'), amber));
+        if (this._customCellLineFilterGE) chips.push(mk(`custom CLs: ${this._customCellLineFilterGE.size}`, blue));
+        el.innerHTML = chips.length ? `<span style="font-size:10px; color:#6b7280; font-weight:600;">Active:</span> ${chips.join(' ')}` : '';
     }
 
     clearCustomCellLineFilterGE() {
@@ -12025,9 +12050,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._customCellLineFilterGE = null;
         const countEl = document.getElementById('customCLFilterCountGE');
         if (countEl) countEl.textContent = '';
-        if (this.currentGeneEffectGene) {
-            this.showGeneEffectDistribution(this.currentGeneEffectGene);
-        }
+        this._rerenderCurrentGEView();
     }
 
     applyCustomCellLineFilterCLB() {
@@ -18748,7 +18771,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('geSummaryMean').textContent = mean.toFixed(2);
         document.getElementById('geSummarySD').textContent = sd.toFixed(2);
         document.getElementById('geSummaryN').textContent = allEffects.length;
-        document.getElementById('geneEffectSummary').style.display = 'block';
+        // Blue summary banner removed as redundant (the title + active-filter chips
+        // + table cover it, and its "Cell lines" count ignored the active filters).
+        document.getElementById('geneEffectSummary').style.display = 'none';
 
         // Populate tissue filter dropdown
         const tissueFilter = document.getElementById('geTissueFilter');
@@ -18852,6 +18877,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     switchGeneEffectView(view) {
         this.currentGEView = view;
+        this._updateGEActiveFilters();
 
         // Restore table, clear gates
         document.getElementById('geTableContainer').style.display = '';
@@ -19426,6 +19452,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
             data = data.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId));
         }
+        // Custom cell-line list (paste IDs/names): restrict to just those lines.
+        if (this._customCellLineFilterGE) {
+            data = data.filter(d => this._customCellLineFilterGE.has(d.cellLineId));
+        }
         return data;
     }
 
@@ -19658,6 +19688,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.renderGETable(tableStats, 'tissue');
     }
 
+    // Minimum cell lines a change must occur in to appear in the scan.
+    setGEScanMinN(v) {
+        const n = parseInt(v, 10);
+        if (Number.isFinite(n) && n >= 1) { this._geScanMinN = n; this.renderGeneEffectByHotspot(); }
+    }
+
     // Toggle which feature types the "By genetic change" scan includes.
     setGEScanType(type, on) {
         this._geScanTypes = this._geScanTypes || { hotspot: true, fusion: true, cn: true };
@@ -19760,9 +19796,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Apply p-value filter if enabled
         const pFilter = document.getElementById('gePvalueFilter')?.checked;
+        const minWith = Number.isFinite(this._geScanMinN) ? this._geScanMinN : 3;
         const topStats = pFilter
-            ? hotspotStats.filter(s => s.pValue < 0.05 && s.nMut >= 3)
-            : hotspotStats.filter(s => s.nMut >= 3).slice(0, 10);
+            ? hotspotStats.filter(s => s.pValue < 0.05 && s.nMut >= minWith)
+            : hotspotStats.filter(s => s.nMut >= minWith).slice(0, 10);
 
         // Create box plots for 3 mutation levels (0, 1, 2) for each hotspot
         const traces = [];
@@ -20012,7 +20049,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     ? '<span style="background:#ccfbf1;color:#0f766e;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600;">amp/del</span>'
                     : '<span style="background:#f3f4f6;color:#374151;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600;">hotspot</span>';
                 tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" data-ftype="${s.type || 'hotspot'}" data-clickval="${(s.clickVal || s.group).replace(/"/g, '&quot;')}" style="cursor: pointer;">
-                    <td>${tChip} ${s.group}</td>
+                    <td style="line-height:1.35;">${tChip}<br>${s.group}</td>
                     <td style="text-align: center; color: #2563eb; border-left: 2px solid #2563eb;">${s.n0}</td>
                     <td style="text-align: center; color: #2563eb;">${s.mean0.toFixed(2)}</td>
                     <td style="text-align: center; color: #f97316; border-left: 2px solid #f97316;">${s.n1 || '-'}</td>
