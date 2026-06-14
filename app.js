@@ -19843,75 +19843,55 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ? hotspotStats.filter(s => s.pValue < 0.05 && s.nMut >= minWith)
             : hotspotStats.filter(s => s.nMut >= minWith).slice(0, 10);
 
-        // Create box plots for 3 mutation levels (0, 1, 2) for each hotspot
+        // Each feature row shows individual cell lines as dots (WT blue vs Altered
+        // orange) with a mean line, not a box plot. Dots carry the cell line id in
+        // customdata so hovering shows the executive summary and Shift-click opens
+        // the Wiki (wired by _attachGECellInteractivity below).
         const traces = [];
         const yCategories = [];
-
-        // Track which legend items need to be shown
-        let show0Legend = true, show1Legend = true, show2Legend = true;
+        const yTickVals = [];
+        const jit = () => (Math.random() - 0.5) * 0.26;   // vertical spread within a subgroup
+        const off = 0.19;                                 // WT / Altered offset around the row centre
+        let showWtLegend = true, showAltLegend = true;
 
         topStats.forEach((s, idx) => {
-            const yLabel = `${s.group}`;
-            yCategories.push(yLabel);
+            yCategories.push(`${s.group}`);
+            yTickVals.push(idx);
+            const wt = s.cellData0;
+            const alt = [...s.cellData1, ...s.cellData2];
+            const wtCenter = idx - off, altCenter = idx + off;
 
-            // Add traces in reverse order so WT appears first (top) in each group
-            // 2 mutations trace (red) - added first, appears at bottom
-            if (s.cellData2.length > 0) {
-                traces.push({
-                    type: 'box',
-                    name: '2 hits',
-                    legendgroup: '2',
-                    showlegend: show2Legend,
-                    y: Array(s.cellData2.length).fill(yLabel),
-                    x: s.cellData2.map(c => c.geneEffect),
-                    orientation: 'h',
-                    boxpoints: 'all', boxmean: true, jitter: 0.55, pointpos: 0,
-                    marker: { color: '#dc2626', size: 4, outliercolor: '#991b1b' },
-                    line: { color: '#991b1b', width: 1.5 },
-                    fillcolor: 'rgba(220, 38, 38, 0.08)',
-                    hoverinfo: 'x',
-                    offsetgroup: '2'
-                });
-                show2Legend = false;
-            }
-
-            // 1 mutation trace (orange)
-            if (s.cellData1.length > 0) {
-                traces.push({
-                    type: 'box',
-                    name: 'Altered',
-                    legendgroup: '1',
-                    showlegend: show1Legend,
-                    y: Array(s.cellData1.length).fill(yLabel),
-                    x: s.cellData1.map(c => c.geneEffect),
-                    orientation: 'h',
-                    boxpoints: 'all', boxmean: true, jitter: 0.55, pointpos: 0,
-                    marker: { color: '#f97316', size: 4, outliercolor: '#c2410c' },
-                    line: { color: '#c2410c', width: 1.5 },
-                    fillcolor: 'rgba(249, 115, 22, 0.08)',
-                    hoverinfo: 'x',
-                    offsetgroup: '1'
-                });
-                show1Legend = false;
-            }
-
-            // WT trace (blue) - 0 mutations - added last, appears at top
+            // WT individual dots (blue)
             traces.push({
-                type: 'box',
-                name: 'WT',
-                legendgroup: '0',
-                showlegend: show0Legend,
-                y: Array(s.cellData0.length).fill(yLabel),
-                x: s.cellData0.map(c => c.geneEffect),
-                orientation: 'h',
-                boxpoints: 'all', boxmean: true, jitter: 0.55, pointpos: 0,
-                marker: { color: '#2563eb', size: 4, outliercolor: '#1e40af' },
-                line: { color: '#1e40af', width: 1.5 },
-                fillcolor: 'rgba(37, 99, 235, 0.08)',
-                hoverinfo: 'x',
-                offsetgroup: '0'
+                type: 'scatter', mode: 'markers', name: 'WT', legendgroup: 'WT', showlegend: showWtLegend,
+                x: wt.map(c => c.geneEffect), y: wt.map(() => wtCenter + jit()),
+                customdata: wt.map(c => c.cellLineId),
+                marker: { color: 'rgba(37, 99, 235, 0.55)', size: 5, line: { width: 0 } }
             });
-            show0Legend = false;
+            showWtLegend = false;
+            // WT mean line
+            traces.push({
+                type: 'scatter', mode: 'lines', showlegend: false, legendgroup: 'WT',
+                x: [s.mean0, s.mean0], y: [wtCenter - off * 0.85, wtCenter + off * 0.85],
+                line: { color: '#1e40af', width: 2.5 }, hoverinfo: 'skip'
+            });
+
+            // Altered individual dots (orange) + mean line
+            if (alt.length) {
+                const meanAlt = alt.reduce((a, c) => a + c.geneEffect, 0) / alt.length;
+                traces.push({
+                    type: 'scatter', mode: 'markers', name: 'Altered', legendgroup: 'Alt', showlegend: showAltLegend,
+                    x: alt.map(c => c.geneEffect), y: alt.map(() => altCenter + jit()),
+                    customdata: alt.map(c => c.cellLineId),
+                    marker: { color: 'rgba(249, 115, 22, 0.6)', size: 5, line: { width: 0 } }
+                });
+                showAltLegend = false;
+                traces.push({
+                    type: 'scatter', mode: 'lines', showlegend: false, legendgroup: 'Alt',
+                    x: [meanAlt, meanAlt], y: [altCenter - off * 0.85, altCenter + off * 0.85],
+                    line: { color: '#c2410c', width: 2.5 }, hoverinfo: 'skip'
+                });
+            }
         });
 
         // Calculate dynamic sizing
@@ -19933,16 +19913,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             yaxis: {
                 automargin: true,
                 tickfont: { size: tickFontSize },
-                categoryorder: 'array',
-                categoryarray: yCategories.slice().reverse()
+                tickvals: yTickVals,
+                ticktext: yCategories,
+                range: [numEntries - 0.5, -0.5]
             },
-            boxmode: 'group',
-            boxgap: 0.1,
-            boxgroupgap: 0.05,
             margin: { t: 130, b: 78, l: 10, r: 30 },
             height: chartHeight,
             showlegend: true,
-            legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 11 }, bgcolor: 'white', traceorder: 'reversed' },
+            legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 11 }, bgcolor: 'white' },
+            hovermode: 'closest',
             paper_bgcolor: 'white',
             plot_bgcolor: 'white'
         };
@@ -19954,6 +19933,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             displaylogo: false
         });
         this._attachGEGateHandler('geneEffectHotspotPlot');
+        this._attachGECellInteractivity('geneEffectHotspotPlot');
 
         // Store stats for table, sync with what's shown in graph
         const tableSource = topStats;
