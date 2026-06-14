@@ -19857,10 +19857,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     y: Array(s.cellData2.length).fill(yLabel),
                     x: s.cellData2.map(c => c.geneEffect),
                     orientation: 'h',
-                    boxpoints: 'outliers',
+                    boxpoints: 'all', boxmean: true, jitter: 0.55, pointpos: 0,
                     marker: { color: '#dc2626', size: 4, outliercolor: '#991b1b' },
                     line: { color: '#991b1b', width: 1.5 },
-                    fillcolor: 'rgba(220, 38, 38, 0.6)',
+                    fillcolor: 'rgba(220, 38, 38, 0.08)',
                     hoverinfo: 'x',
                     offsetgroup: '2'
                 });
@@ -19877,10 +19877,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     y: Array(s.cellData1.length).fill(yLabel),
                     x: s.cellData1.map(c => c.geneEffect),
                     orientation: 'h',
-                    boxpoints: 'outliers',
+                    boxpoints: 'all', boxmean: true, jitter: 0.55, pointpos: 0,
                     marker: { color: '#f97316', size: 4, outliercolor: '#c2410c' },
                     line: { color: '#c2410c', width: 1.5 },
-                    fillcolor: 'rgba(249, 115, 22, 0.6)',
+                    fillcolor: 'rgba(249, 115, 22, 0.08)',
                     hoverinfo: 'x',
                     offsetgroup: '1'
                 });
@@ -19896,10 +19896,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 y: Array(s.cellData0.length).fill(yLabel),
                 x: s.cellData0.map(c => c.geneEffect),
                 orientation: 'h',
-                boxpoints: 'outliers',
+                boxpoints: 'all', boxmean: true, jitter: 0.55, pointpos: 0,
                 marker: { color: '#2563eb', size: 4, outliercolor: '#1e40af' },
                 line: { color: '#1e40af', width: 1.5 },
-                fillcolor: 'rgba(37, 99, 235, 0.6)',
+                fillcolor: 'rgba(37, 99, 235, 0.08)',
                 hoverinfo: 'x',
                 offsetgroup: '0'
             });
