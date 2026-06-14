@@ -1485,6 +1485,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.96 (2026-06-14)</strong></p>
+                <ul>
+                    <li>Wiki PDF export now breaks pages at blank rows instead of fixed offsets, so lines of text and charts are no longer cut or cropped across page boundaries.</li>
+                    <li>Exported gene-info CSV now names the specific cell line(s) and adds a brief metadata header (tissue, subtype, executive summary), so the file is self-describing.</li>
+                    <li>Opening a popout screenshot's .correlate.json sidecar now restores the view (Gene Effect / Correlation / Correlation Analysis popout, or the cell line Wiki) instead of saying restore is unsupported.</li>
+                </ul>
                 <p><strong>v.83.95 (2026-06-14)</strong></p>
                 <ul>
                     <li>Fixed: the Gene Effect by-mutation plot was forced to full width (overriding the ~55% used elsewhere), which also pushed the y-axis label off-screen. It now matches the other views and the y-axis label shows.</li>
@@ -3607,7 +3613,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.95</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.96</a>
     </div>
 
     <div class="main-content">
@@ -5906,6 +5912,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_95"></script>
+    <script src="app.js?v=v83_96"></script>
 </body>
 </html>

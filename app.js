@@ -17298,6 +17298,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return;
         }
 
+        // Wiki screenshot → reopen the cell line wiki for that line.
+        if (meta.graphType === 'wiki' && meta.wikiCellLine != null) {
+            this.openCellLineWiki(meta.wikiCellLine);
+            return;
+        }
+
         // UMAP/PCA, show info (requires computation that can't be serialized)
         if (meta.graphType === 'umap' || meta.graphType === 'pca') {
             const method = meta.graphType.toUpperCase();
@@ -20789,10 +20795,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // visible-area choice and the usual .correlate.json sidecar. Pure-chart
     // popouts keep their own vector (SVG/PDF) export; this captures the whole
     // popout (chart + surrounding context) as one figure.
+    // Derive the restore payload (network + popout, or wiki cell line) for a
+    // popout screenshot from its file stem, so the .correlate.json sidecar can
+    // recreate the exact view. Mirrors the new-tab duplicate metadata.
+    _popoutMetaForStem(fileStem) {
+        const kindByStem = {
+            'correlate_correlation': 'scatter',
+            'correlate_gene_effect': 'gene_effect',
+            'correlate_correlation_analysis': 'correlation_analysis'
+        };
+        const kind = kindByStem[fileStem];
+        if (kind) {
+            try {
+                const m = this._buildPopoutMeta(kind);
+                return { network: m.network, popout: m.popout };
+            } catch (e) { return {}; }
+        }
+        if (fileStem === 'correlate_wiki' && this._wikiCellLineId != null) {
+            return { graphType: 'wiki', wikiCellLine: this._wikiCellLineId };
+        }
+        return {};
+    }
+
     async screenshotPopout(elOrId, fileStem, metaExtra = {}) {
         const root = (typeof elOrId === 'string') ? document.getElementById(elOrId) : elOrId;
         if (!root) { alert('Nothing to capture.'); return; }
         if (typeof html2canvas === 'undefined') { alert('Screenshot library not loaded.'); return; }
+        // If the caller didn't supply restore metadata, derive it from the stem
+        // so the sidecar .correlate.json can reopen this exact popout.
+        if (!metaExtra || Object.keys(metaExtra).length === 0) {
+            metaExtra = this._popoutMetaForStem(fileStem);
+        }
         const dlg = await this._showExportDialog({
             format: 'png', plotW: root.offsetWidth || 600, plotH: root.offsetHeight || 400,
             allowScope: true, rasterOnly: true
@@ -31999,9 +32032,28 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     const contentW = pageW - margin * 2;
                     const ptPerPx = contentW / canvas.width;               // source px -> pt
                     const pageSlicePx = Math.floor((pageH - margin * 2) / ptPerPx); // source px per page
+                    // To avoid cutting a line of text or a chart across a page break,
+                    // back the cut up to the nearest all-white row within a window.
+                    let blankRow = null;
+                    try {
+                        const fctx = canvas.getContext('2d');
+                        const px = fctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                        const W = canvas.width;
+                        blankRow = (yy) => {
+                            const base = yy * W * 4;
+                            for (let x = 0; x < W; x++) { const i = base + x * 4; if (px[i] < 248 || px[i + 1] < 248 || px[i + 2] < 248) return false; }
+                            return true;
+                        };
+                    } catch (e) { blankRow = null; }  // tainted canvas → fall back to fixed slicing
                     let y = 0, page = 0;
                     while (y < canvas.height) {
-                        const sliceH = Math.min(pageSlicePx, canvas.height - y);
+                        let sliceH = Math.min(pageSlicePx, canvas.height - y);
+                        if (blankRow && y + sliceH < canvas.height) {
+                            const minH = Math.floor(pageSlicePx * 0.55);
+                            for (let yy = y + sliceH; yy > y + minH; yy--) {
+                                if (blankRow(yy)) { sliceH = yy - y; break; }
+                            }
+                        }
                         const pageCanvas = document.createElement('canvas');
                         pageCanvas.width = canvas.width;
                         pageCanvas.height = sliceH;
@@ -32875,12 +32927,25 @@ ${clone.innerHTML}
         }
         const lines = [
             `# Full per-gene profile for ${clNames.length} cell line${clNames.length === 1 ? '' : 's'}`,
+        ];
+        // Identify each cell line and add a brief metadata summary (so the file is
+        // self-describing about which cell line(s) it covers).
+        for (let c = 0; c < clIndices.length; c++) {
+            const clId = this.metadata.cellLines[clIndices[c]];
+            const tissue = this.getCellLineLineage(clId) || '';
+            const subtype = this.getCellLineSublineage(clId) || '';
+            let summary = '';
+            try { summary = (this._cellLineExecutiveSummary(clId) || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); } catch (e) {}
+            lines.push(`# Cell line: ${clNames[c]} (${clId})${tissue ? ' | tissue: ' + tissue : ''}${subtype ? ' | subtype: ' + subtype : ''}`);
+            if (summary) lines.push(`# Summary (${clNames[c]}): ${summary}`);
+        }
+        lines.push(
             `# Columns per cell line: GE (CRISPR gene effect), Expr (log2 TPM+1), Hotspot (0/1/2), Damaging (0/1), Fusion (0/1/2), FocalCN (curated amp/deep-del, blank if none)`,
             `# Data source: DepMap ${DEPMAP_VERSION} (https://depmap.org/) - please acknowledge DepMap if you use this data`,
             `# Tsherniak A et al. Defining a Cancer Dependency Map. Cell. 2017.`,
             `# Date: ${new Date().toISOString().slice(0, 10)}`,
             headerParts.join(',')
-        ];
+        );
         for (let g = 0; g < this.nGenes; g++) {
             const geneName = this.geneNames[g];
             const row = [geneName];
