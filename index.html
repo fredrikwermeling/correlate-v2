@@ -168,12 +168,12 @@
             transition: opacity 0.2s ease;
         }
         /* Draw attention to the Options card on load (until Analysis is clicked)
-           with a crisp black outline. Outline (not border) so layout doesn't
-           shift when it's removed. */
+           with a prominent brand-green outline + glow. Outline (not border) so
+           layout doesn't shift when it's removed. */
         #optionsCard.options-highlight {
-            outline: 2px solid #111;
-            outline-offset: 2px;
-            box-shadow: 0 0 0 4px rgba(0,0,0,0.05), 0 3px 10px rgba(0,0,0,0.16);
+            outline: 3px solid var(--green-500, #5a9f4a);
+            outline-offset: 3px;
+            box-shadow: 0 0 0 5px rgba(90,159,74,0.18), 0 6px 18px rgba(90,159,74,0.28);
         }
 
         .sidebar-row {
@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.89 (2026-06-14)</strong></p>
+                <ul>
+                    <li>Homepage: the Analysis button is no longer emphasised (now a normal outline button like the other tools), and the Options box itself gets a stronger green outline + glow on load to draw the eye.</li>
+                </ul>
                 <p><strong>v.83.88 (2026-06-14)</strong></p>
                 <ul>
                     <li>Gene Effect by-mutation header rebuilt as two separate text blocks (title + stats), each with its own line spacing, so a two-row title no longer overlaps itself and the stats stay tight. The whole block is anchored above the plot and the top margin grows to fit it, so it never overlaps the graph, on screen or in exports.</li>
@@ -3577,7 +3581,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.88</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.89</a>
     </div>
 
     <div class="main-content">
@@ -3923,9 +3927,9 @@
             <div class="card" id="optionsCard">
                 <div class="card-title">Options</div>
                 <div class="card-content" style="padding: 12px 16px;">
-                    <div id="optionsBannerHint" style="font-size:11px; color:#6b7280; margin-bottom:8px;">Click <b>Analysis</b> to set parameters and build a network, or jump straight to a tool.</div>
+                    <div id="optionsBannerHint" style="font-size:11px; color:#6b7280; margin-bottom:8px;">Pick a tool to get started, or click Analysis to set parameters and build a correlation network.</div>
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <button class="btn btn-success btn-sm" id="startAnalysisBtn" title="Enable boxes 1 / 2 / 3 to set parameters, enter genes and build a correlation network">Analysis</button>
+                        <button class="btn btn-outline btn-sm" id="startAnalysisBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Enable boxes 1 / 2 / 3 to set parameters, enter genes and build a correlation network">Analysis</button>
                         <button class="btn btn-outline btn-sm" id="showGeneEffectDirect" style="color:var(--green-700); border-color:var(--green-400);">Gene Effect</button>
                         <button class="btn btn-outline btn-sm" id="showCorrelationDirect" style="color:var(--green-700); border-color:var(--green-400);">Correlation</button>
                         <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="color:var(--green-700); border-color:var(--green-400);">Cell Line Browser</button>
@@ -5876,6 +5880,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_88"></script>
+    <script src="app.js?v=v83_89"></script>
 </body>
 </html>
