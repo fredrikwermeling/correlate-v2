@@ -462,6 +462,36 @@ class CorrelationExplorer {
         document.getElementById('loadingOverlay').classList.add('hidden');
     }
 
+    // Spinner shown only when an analysis run takes longer than ~2s, so the user
+    // knows it's still working (not crashed). The correlation computation runs
+    // synchronously and blocks the main thread, so a JS timer can't fire mid-run;
+    // instead the overlay's reveal is a CSS opacity animation with a 2s delay,
+    // which advances on the compositor thread even while the main thread is busy.
+    // Fast runs remove the overlay before the 2s delay elapses, so it never shows.
+    _showAnalysisSpinner(message = 'Analyzing gene set...') {
+        this._hideAnalysisSpinner();
+        if (!document.getElementById('analysisSpinnerStyle')) {
+            const st = document.createElement('style');
+            st.id = 'analysisSpinnerStyle';
+            st.textContent = `
+@keyframes geSpin { to { transform: rotate(360deg); } }
+@keyframes geSpinReveal { from { opacity: 0; } to { opacity: 1; } }
+#analysisSpinnerOverlay { position: fixed; inset: 0; z-index: 12000; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.5); opacity: 0; animation: geSpinReveal 0.25s ease 2s forwards; }
+#analysisSpinnerOverlay .ge-spin-card { display: flex; flex-direction: column; align-items: center; gap: 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px 30px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); }
+#analysisSpinnerOverlay .ge-spin-ring { width: 38px; height: 38px; border: 4px solid #d1fae5; border-top-color: #16a34a; border-radius: 50%; animation: geSpin 0.8s linear infinite; }
+#analysisSpinnerOverlay .ge-spin-text { font-size: 13px; color: #374151; font-weight: 500; }`;
+            document.head.appendChild(st);
+        }
+        const ov = document.createElement('div');
+        ov.id = 'analysisSpinnerOverlay';
+        ov.innerHTML = `<div class="ge-spin-card"><div class="ge-spin-ring"></div><div class="ge-spin-text">${message}</div></div>`;
+        document.body.appendChild(ov);
+    }
+
+    _hideAnalysisSpinner() {
+        document.getElementById('analysisSpinnerOverlay')?.remove();
+    }
+
     async loadData() {
         this.updateLoadingText('Loading metadata...');
 
@@ -5663,6 +5693,8 @@ class CorrelationExplorer {
         const expandNetwork = mode === 'design' && document.getElementById('designExpandNetwork')?.checked;
         const includeGrowthRate = document.getElementById('includeGrowthRate')?.checked && !!this.growthRateData;
         this.showStatus('info', expandNetwork ? 'Running correlation analysis (expanded network)...' : 'Running correlation analysis...');
+        // Reveals a "still working" spinner if the run exceeds ~2s (see helper).
+        this._showAnalysisSpinner('Analyzing gene set...');
 
         // Use setTimeout to allow UI to update
         setTimeout(() => {
@@ -5680,6 +5712,8 @@ class CorrelationExplorer {
             } catch (error) {
                 console.error('Analysis error:', error);
                 this.showStatus('error', 'Analysis failed: ' + error.message);
+            } finally {
+                this._hideAnalysisSpinner();
             }
         }, 50);
     }
