@@ -7344,12 +7344,13 @@ class CorrelationExplorer {
         // span size so Plotly reserves the right line height, otherwise the bold
         // rows overlap. Desktop was 25 (too tall a block, overlapping the graph) —
         // 18 keeps it readable but compact.
-        const geTitleBaseFont = _gePhone ? Math.round(25 * _geFS) : 14;
-        // Keep the stats subtitle close in size to the title and use a small
-        // line-height so the rows pack tightly (a big line-height left the stats
-        // lines far apart). Desktop: title 14 / subtitle 12 / line-height 12.
-        const geSubFont = _gePhone ? Math.round(geTitleBaseFont * 0.6) : 12;
-        const geTitleLineFont = _gePhone ? geTitleBaseFont : 12;
+        const geTitleBaseFont = _gePhone ? Math.round(25 * _geFS) : 18;
+        // Subtitle (stats) sits below the title. Use a small line-height so the
+        // stats rows pack tightly, while the embedded title font stays large so
+        // the heading reads at a similar size to the axis label. Desktop:
+        // title 18 / subtitle 11 / line-height 14.
+        const geSubFont = _gePhone ? Math.round(geTitleBaseFont * 0.6) : 11;
+        const geTitleLineFont = _gePhone ? geTitleBaseFont : 14;
         const geTitleAnn = {
             text: this._computeGETitleText(titleText, subtitleText, geTitleBaseFont, 'geneEffectPlot', geTitleMaxW, geSubFont),
             xref: 'paper', yref: 'paper',
@@ -7418,11 +7419,14 @@ class CorrelationExplorer {
         // Populate tissue filter dropdown with ALL lineages (inspect can override analysis filters)
         const tissueFilterEl = document.getElementById('geTissueFilter');
         if (tissueFilterEl) {
-            const allLineages = [...new Set(cellLines.map(cl => this.cellLineMetadata?.lineage?.[cl]).filter(Boolean))].sort();
-            let tHtml = '<option value="">All tissues</option>';
+            // Count cells per lineage and list most-abundant first, with the count.
+            const tCounts = {};
+            for (const cl of cellLines) { const lin = this.cellLineMetadata?.lineage?.[cl]; if (lin) tCounts[lin] = (tCounts[lin] || 0) + 1; }
+            const allLineages = Object.keys(tCounts).sort((a, b) => tCounts[b] - tCounts[a] || a.localeCompare(b));
+            let tHtml = `<option value="">All tissues (n=${cellLines.length})</option>`;
             for (const l of allLineages) {
                 const sel = l === inspectTissueFilter ? ' selected' : '';
-                tHtml += `<option value="${l}"${sel}>${l}</option>`;
+                tHtml += `<option value="${l}"${sel}>${l} (n=${tCounts[l]})</option>`;
             }
             tissueFilterEl.innerHTML = tHtml;
 
@@ -7661,8 +7665,8 @@ class CorrelationExplorer {
             const prev = tissueFilter.value;
             const linCounts = {};
             this.currentGeneEffect.data.forEach(d => { if (d.lineage) linCounts[d.lineage] = (linCounts[d.lineage] || 0) + 1; });
-            const linsSorted = Object.keys(linCounts).sort((a, b) => linCounts[b] - linCounts[a]);
-            tissueFilter.innerHTML = '<option value="">All tissues</option>';
+            const linsSorted = Object.keys(linCounts).sort((a, b) => linCounts[b] - linCounts[a] || a.localeCompare(b));
+            tissueFilter.innerHTML = `<option value="">All tissues (n=${this.currentGeneEffect.data.length})</option>`;
             linsSorted.forEach(l => {
                 const opt = document.createElement('option');
                 opt.value = l;
@@ -17736,11 +17740,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Populate tissue filter
         const tissueFilter = document.getElementById('caTissueFilter');
         if (tissueFilter) {
-            const lineages = [...new Set(plotData.map(d => d.lineage).filter(Boolean))].sort();
-            tissueFilter.innerHTML = '<option value="">All tissues</option>';
-            lineages.forEach(l => {
-                tissueFilter.innerHTML += `<option value="${l}">${l}</option>`;
-            });
+            const tc = {};
+            plotData.forEach(d => { if (d.lineage) tc[d.lineage] = (tc[d.lineage] || 0) + 1; });
+            const lineages = Object.keys(tc).sort((a, b) => tc[b] - tc[a] || a.localeCompare(b));
+            tissueFilter.innerHTML = `<option value="">All tissues (n=${plotData.length})</option>` +
+                lineages.map(l => `<option value="${l}">${l} (n=${tc[l]})</option>`).join('');
             tissueFilter.value = '';
         }
 
@@ -18752,8 +18756,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const currentValue = tissueFilter.value;
             const geLinCounts = {};
             this.currentGeneEffect.data.forEach(d => { if (d.lineage) geLinCounts[d.lineage] = (geLinCounts[d.lineage] || 0) + 1; });
-            const lineages = Object.keys(geLinCounts).sort((a, b) => geLinCounts[b] - geLinCounts[a]);
-            tissueFilter.innerHTML = '<option value="">All tissues</option>';
+            const lineages = Object.keys(geLinCounts).sort((a, b) => geLinCounts[b] - geLinCounts[a] || a.localeCompare(b));
+            tissueFilter.innerHTML = `<option value="">All tissues (n=${this.currentGeneEffect.data.length})</option>`;
             lineages.forEach(l => {
                 const opt = document.createElement('option');
                 opt.value = l;
