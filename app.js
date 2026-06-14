@@ -7486,7 +7486,7 @@ class CorrelationExplorer {
             // flip the axis mode). Curated fusions + focal amp / deep-del added.
             const groups = [
                 { type: 'hotspot', label: 'Hotspot mutation', src: this.mutations, innerKey: 'mutations', suffix: 'mut' },
-                { type: 'fusion', label: 'Curated fusion', src: this._fusionAxisData, innerKey: 'translocations', suffix: 'fused' },
+                { type: 'fusion', label: 'Fusion', src: this._fusionAxisData, innerKey: 'translocations', suffix: 'fused' },
                 { type: 'amp', label: 'Amplification', src: this.cnAmpData, innerKey: 'mutations', suffix: 'amp' },
                 { type: 'del', label: 'Deep deletion', src: this.cnDelData, innerKey: 'mutations', suffix: 'del' },
             ];
@@ -13709,8 +13709,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('scatterPlot').style.display = 'none';
         document.getElementById('compareTable').style.display = 'block';
         this._renderSubsetCorrComparison(filteredData, gene1, gene2, filterDesc, this._curatedFusionSubsets(), {
-            carrierWord: 'Fused', tableId: 'compareTranslocationsTable', subsetCol: 'Curated fusion',
-            heading: `Curated fusions affecting ${gene1} vs ${gene2}`, csvStem: 'fusion_comparison',
+            carrierWord: 'Fused', tableId: 'compareTranslocationsTable', subsetCol: 'Fusion',
+            heading: `Fusions affecting ${gene1} vs ${gene2}`, csvStem: 'fusion_comparison',
             clickNote: 'Click a fusion-gene row to color the scatter by that fusion',
             biasNote: 'This analysis may be biased as fusions select for cancer types.'
         });
@@ -23058,24 +23058,47 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             baseCells.push({ cellLine, idx, ge, mainMut: mainLevel });
         });
 
-        // For each hotspot-mutated gene, compare the target gene's effect in cells
-        // mutated in that gene (carriers) vs the rest of the cohort (WT).
         const rows = [];
+        const mutLabel = isTranslocation ? 'Fused' : isDamaging ? this._mutAxisLabels(mr).carrier : 'Mut';
+        const noneWT = baseCells.filter(c => c.mainMut === 0).map(c => c.ge);
+        const noneMut = baseCells.filter(c => c.mainMut >= 1).map(c => c.ge);
+        if (noneWT.length > 0 && noneMut.length > 0) {
+            const meanWT = noneWT.reduce((a, b) => a + b, 0) / noneWT.length;
+            const meanMut = noneMut.reduce((a, b) => a + b, 0) / noneMut.length;
+            rows.push({ label: 'None (no extra filter)', nSubset: noneWT.length + noneMut.length, nWT: noneWT.length, meanWT, nMut: noneMut.length, meanMut, delta: meanMut - meanWT, isRef: true, hotspot: '' });
+        }
+
+        // Iterate over hotspot mutation genes only (fusions handled by showInlineCompareByTranslocation)
         this.mutations?.genes?.forEach(hGene => {
+            if (hGene === mainHotspot && !isTranslocation) return;
             const hMutData = this.mutations.geneData[hGene];
             if (!hMutData) return;
-            const row = this._geCompareRow(baseCells, c => (hMutData.mutations[c.cellLine] || 0) >= 1, hGene, { hotspot: hGene });
-            if (row) rows.push(row);
+            const filtered = baseCells.filter(c => (hMutData.mutations[c.cellLine] || 0) >= 1);
+            const wtGE = filtered.filter(c => c.mainMut === 0).map(c => c.ge);
+            const mutGE = filtered.filter(c => c.mainMut >= 1).map(c => c.ge);
+            if (wtGE.length > 0 && mutGE.length > 0) {
+                const meanWT = wtGE.reduce((a, b) => a + b, 0) / wtGE.length;
+                const meanMut = mutGE.reduce((a, b) => a + b, 0) / mutGE.length;
+                rows.push({ label: hGene, nSubset: wtGE.length + mutGE.length, nWT: wtGE.length, meanWT, nMut: mutGE.length, meanMut, delta: meanMut - meanWT, hotspot: hGene });
+            }
         });
-        const otherRows = rows.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+        // 'None' row already has nWT+nMut totals, record nSubset for consistency
+        const refIdx = rows.findIndex(r => r.isRef);
+        if (refIdx >= 0) rows[refIdx].nSubset = rows[refIdx].nWT + rows[refIdx].nMut;
 
+        const refRow = rows.filter(r => r.isRef);
+        const otherRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+        const typeLabel = isTranslocation ? 'Fusion' : isDamaging ? this._mutAxisLabels(mr).noun : 'Hotspot';
         this._inlineCompareData = {
-            title: `${gene} gene effect: cells mutated in each gene vs the rest (WT)`,
-            subsetLabel: 'Hotspot gene',
-            refRows: [],
+            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs WT, repeated within each additional-${typeLabel.toLowerCase()} subset`,
+            subsetLabel: `Additional ${typeLabel}`,
+            subsetCountHeader: `N (with ${typeLabel.toLowerCase()})`,
+            mainGene: mainHotspot,
+            mutLabel,
+            refRows: refRow,
             sortableRows: otherRows,
-            mode: 'hotspot',
-            carrierMode: true
+            mode: 'hotspot'
         };
         this._renderInlineCompareTable();
     }
@@ -23243,59 +23266,67 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return { mr, gene, mainHotspot, mutLabel, baseCells };
     }
 
-    // Helper: compare the target gene's GE between cells matching the predicate
-    // (the feature CARRIERS) and ALL other cells in the cohort (the WT reference).
-    // For a rare event this gives a large WT group, e.g. 5 carriers vs ~995 WT.
+    // Helper: given a base-cell list and a subset predicate, build a Δ-compare
+    // row (main-stratifier mutated vs WT, within that subset).
     _geCompareRow(baseCells, predicate, label, extra) {
-        const carrier = [], rest = [];
-        for (const c of baseCells) { (predicate(c) ? carrier : rest).push(c.ge); }
-        if (carrier.length === 0 || rest.length === 0) return null;
-        const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
-        const meanWT = mean(rest), meanMut = mean(carrier);
-        return { label, nSubset: carrier.length, nWT: rest.length, meanWT, nMut: carrier.length, meanMut, delta: meanMut - meanWT, ...extra };
+        const filtered = baseCells.filter(predicate);
+        const wtGE = filtered.filter(c => c.mainMut === 0).map(c => c.ge);
+        const mutGE = filtered.filter(c => c.mainMut >= 1).map(c => c.ge);
+        if (wtGE.length === 0 || mutGE.length === 0) return null;
+        const meanWT = wtGE.reduce((a, b) => a + b, 0) / wtGE.length;
+        const meanMut = mutGE.reduce((a, b) => a + b, 0) / mutGE.length;
+        return { label, nSubset: wtGE.length + mutGE.length, nWT: wtGE.length, meanWT, nMut: mutGE.length, meanMut, delta: meanMut - meanWT, ...extra };
     }
 
-    // Δ Curated Fusion: for each curated (clinical) driver fusion, compare the
-    // target gene's effect in cells that carry the fusion vs the rest (WT).
+    // Δ Curated Fusion: repeat the main stratifier's mutated-vs-WT Δ GE within
+    // the cells carrying each curated (clinical) driver fusion.
     showInlineCompareByCuratedFusion() {
         if (!this.clinicalFusions?.fusionData) { alert('No curated fusion data loaded.'); return; }
         const ctx = this._geCompareBaseCells();
         if (!ctx) return;
         this._inlineSortCol = null; this._inlineSortAsc = true;
-        const { gene, baseCells } = ctx;
+        const { gene, mainHotspot, mutLabel, baseCells } = ctx;
         const rows = [];
+        const ref = this._geCompareRow(baseCells, () => true, 'None (no extra filter)', { isRef: true, fusion: '' });
+        if (ref) rows.push(ref);
         for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
             const cells = fd.cellLines || {};
             const row = this._geCompareRow(baseCells, c => c.cellLine in cells, `★ ${fname}`, { fusion: fname });
             if (row) rows.push(row);
         }
-        const sortableRows = rows.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+        const refRows = rows.filter(r => r.isRef);
+        const sortableRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
         this._inlineCompareData = {
-            title: `${gene} gene effect: cells carrying each curated fusion vs the rest (WT)`,
-            subsetLabel: 'Curated fusion', refRows: [], sortableRows, mode: 'fusion', carrierMode: true
+            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs WT, repeated within each fusion`,
+            subsetLabel: 'Fusion', subsetCountHeader: 'N (with fusion)', mainGene: mainHotspot, mutLabel,
+            refRows, sortableRows, mode: 'fusion'
         };
         this._renderInlineCompareTable();
     }
 
-    // Δ Amp/Del: for each focal amplification / deep deletion in the curated CN
-    // panel, compare the target gene's effect in cells with the event vs the rest.
+    // Δ Amp/Del: repeat the main stratifier's mutated-vs-WT Δ GE within the cells
+    // carrying each focal amplification / deep deletion in the curated CN panel.
     showInlineCompareByCn() {
         if (!this.clinicalCn?.byCellLine) { alert('No focal copy-number data loaded.'); return; }
         const ctx = this._geCompareBaseCells();
         if (!ctx) return;
         this._inlineSortCol = null; this._inlineSortAsc = true;
-        const { gene, baseCells } = ctx;
+        const { gene, mainHotspot, mutLabel, baseCells } = ctx;
         const rows = [];
+        const ref = this._geCompareRow(baseCells, () => true, 'None (no extra filter)', { isRef: true, cn: '' });
+        if (ref) rows.push(ref);
         const items = this._ensureGlobalFilterItems().cn || [];
         for (const it of items) {
             const label = `${it.kind === 'amp' ? '▲' : '▼'} ${it.gene} ${it.kind === 'amp' ? 'amp' : 'del'}`;
             const row = this._geCompareRow(baseCells, c => this._cellLinePassesCnFilter(c.cellLine, it.value), label, { cn: it.value });
             if (row) rows.push(row);
         }
-        const sortableRows = rows.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+        const refRows = rows.filter(r => r.isRef);
+        const sortableRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
         this._inlineCompareData = {
-            title: `${gene} gene effect: cells with each focal CN event vs the rest (WT)`,
-            subsetLabel: 'Focal CN event', refRows: [], sortableRows, mode: 'cn', carrierMode: true
+            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs WT, repeated within each focal CN event`,
+            subsetLabel: 'Focal CN event', subsetCountHeader: 'N (with event)', mainGene: mainHotspot, mutLabel,
+            refRows, sortableRows, mode: 'cn'
         };
         this._renderInlineCompareTable();
     }
@@ -23309,11 +23340,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this._inlineSortAsc = true;
         }
         const d = this._inlineCompareData;
-        // carrier mode: 0 feature · 1 N(with) · 2 GE(with) · 3 N(WT) · 4 GE(WT) · 5 Δ
-        // stratified:   0 subset · 1 nSubset · 2 nWT · 3 GE(WT) · 4 nMut · 5 GE(Mut) · 6 Δ
-        const keyMap = d.carrierMode
-            ? ['label', 'nMut', 'meanMut', 'nWT', 'meanWT', 'delta']
-            : ['label', 'nSubset', 'nWT', 'meanWT', 'nMut', 'meanMut', 'delta'];
+        // 0 subset label · 1 nSubset · 2 nWT · 3 meanWT · 4 nMut · 5 meanMut · 6 delta
+        const keyMap = ['label', 'nSubset', 'nWT', 'meanWT', 'nMut', 'meanMut', 'delta'];
         const key = keyMap[colIndex] || 'delta';
         const asc = this._inlineSortAsc;
         d.sortableRows.sort((a, b) => {
@@ -23347,56 +23375,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let maxAbs = 0;
         allRows.forEach(r => { const abs = Math.abs(r.delta); if (abs > maxAbs) maxAbs = abs; });
         if (maxAbs === 0) maxAbs = 1;
-
-        // Carrier-mode table (Δ Hotspot / Amp-Del / Curated Fusion): each row is a
-        // feature; compare the cells WITH it against all OTHER cells (WT). For a
-        // rare event this is e.g. 5 carriers vs ~995 WT, which is what users expect.
-        if (d.carrierMode) {
-            const sc = (i) => this._inlineSortCol === i ? (this._inlineSortAsc ? ' ▲' : ' ▼') : '';
-            let h = `<div style="font-size:11px; color:#374151; margin-bottom:4px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <label>Hide rows with N(with) &lt; <input type="number" id="inlineCompareMinN" value="${minN}" min="0" max="500" step="1" style="width:50px; padding:1px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;" onchange="app.setInlineCompareMinN(this.value)"></label>
-                ${hiddenByMinN > 0 ? `<span style="color:#9ca3af;">${hiddenByMinN} row${hiddenByMinN === 1 ? '' : 's'} hidden</span>` : ''}
-                <span style="color:#9ca3af; font-size:10px;">Each row compares the cells <b>with</b> that ${(subsetLabel || 'feature').toLowerCase()} against <b>all other</b> cell lines (WT). Δ GE = GE(with) − GE(WT).</span>
-            </div>`;
-            h += '<table style="border-collapse:collapse; font-size:11px;"><thead><tr>';
-            const heads = [
-                { label: subsetLabel || 'Feature', i: 0, align: 'left' },
-                { label: 'N (with)', i: 1, align: 'right' },
-                { label: 'GE (with)', i: 2, align: 'right' },
-                { label: 'N (WT)', i: 3, align: 'right' },
-                { label: 'GE (WT)', i: 4, align: 'right' },
-                { label: 'Δ GE', i: 5, align: 'right' },
-            ];
-            heads.forEach(hd => {
-                h += `<th onclick="app.sortInlineCompare(${hd.i})" style="text-align:${hd.align}; padding:4px 8px; border-bottom:2px solid #6366f1; font-size:10px; cursor:pointer; white-space:nowrap;">${hd.label}${sc(hd.i)}</th>`;
-            });
-            h += '</tr></thead><tbody>';
-            allRows.forEach(row => {
-                const intensity = Math.min(Math.abs(row.delta) / maxAbs, 1);
-                let r, g, b;
-                if (row.delta < 0) { r = 255; g = Math.round(255 - 140 * intensity); b = Math.round(255 - 140 * intensity); }
-                else { r = Math.round(255 - 140 * intensity); g = Math.round(255 - 50 * intensity); b = Math.round(255 - 140 * intensity); }
-                const bg = `rgb(${r},${g},${b})`;
-                const clickVal = mode === 'fusion' ? (row.fusion ?? '') : mode === 'cn' ? (row.cn ?? '') : (row.hotspot ?? '');
-                const clickFn = !clickVal ? '' : mode === 'fusion'
-                    ? `app.onInlineCompareFusionClick('${clickVal.replace(/'/g, "\\'")}')`
-                    : mode === 'cn'
-                    ? `app.onInlineCompareCnClick('${clickVal.replace(/'/g, "\\'")}')`
-                    : `app.onInlineCompareHotspotClick('${clickVal.replace(/'/g, "\\'")}')`;
-                h += `<tr ${clickFn ? `onclick="${clickFn}" style="cursor:pointer;"` : ''} title="Click to apply this filter">`;
-                h += `<td style="padding:2px 8px; border-bottom:1px solid #e5e7eb;">${row.label}</td>`;
-                h += `<td style="padding:2px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${row.nMut}</td>`;
-                h += `<td style="padding:2px 8px; border-bottom:1px solid #e5e7eb; text-align:right; color:#6b7280;">${row.meanMut.toFixed(2)}</td>`;
-                h += `<td style="padding:2px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${row.nWT}</td>`;
-                h += `<td style="padding:2px 8px; border-bottom:1px solid #e5e7eb; text-align:right; color:#6b7280;">${row.meanWT.toFixed(2)}</td>`;
-                h += `<td style="padding:2px 8px; border-bottom:1px solid #e5e7eb; text-align:right; background:${bg};">${row.delta.toFixed(2)}</td>`;
-                h += '</tr>';
-            });
-            h += '</tbody></table>';
-            bodyEl.innerHTML = h;
-            container.style.display = '';
-            return;
-        }
 
         // Filter / control bar above the table.
         let html = `<div style="font-size:11px; color:#374151; margin-bottom:4px; display:flex; align-items:center; gap:10px;">
@@ -26777,13 +26755,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const clbHotspotInput = document.getElementById('clbHotspotFilter');
         clbHotspotInput.addEventListener('change', () => this.renderCellLineList());
         clbHotspotInput.addEventListener('input', () => {
-            this._renderHotspotFilterDropdown(clbHotspotInput.value);
+            this._renderHotspotFilterDropdown(clbHotspotInput.value, { items: this._buildFilterItems('hotspot', this._clbCohortExcluding('hotspot')) });
             const dd = document.getElementById('clbHotspotDropdown');
             if (dd) dd.style.display = '';
             if (!clbHotspotInput.value) this.renderCellLineList();
         });
         clbHotspotInput.addEventListener('focus', () => {
-            this._renderHotspotFilterDropdown(clbHotspotInput.value);
+            this._renderHotspotFilterDropdown(clbHotspotInput.value, { items: this._buildFilterItems('hotspot', this._clbCohortExcluding('hotspot')) });
             const dd = document.getElementById('clbHotspotDropdown');
             if (dd) dd.style.display = '';
         });
@@ -26798,13 +26776,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         clbTransInput.addEventListener('input', () => {
             // Re-render dropdown with current typed text as filter, and apply
             // the cell-line filter when the input is cleared.
-            this._renderFusionFilterDropdown(clbTransInput.value);
+            this._renderFusionFilterDropdown(clbTransInput.value, { items: this._buildFilterItems('fusion', this._clbCohortExcluding('fusion')) });
             const dd = document.getElementById('clbTranslocationDropdown');
             if (dd) dd.style.display = '';
             if (!clbTransInput.value) this.renderCellLineList();
         });
         clbTransInput.addEventListener('focus', () => {
-            this._renderFusionFilterDropdown(clbTransInput.value);
+            this._renderFusionFilterDropdown(clbTransInput.value, { items: this._buildFilterItems('fusion', this._clbCohortExcluding('fusion')) });
             const dd = document.getElementById('clbTranslocationDropdown');
             if (dd) dd.style.display = '';
         });
@@ -26822,13 +26800,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (clbCnInput) {
             clbCnInput.addEventListener('change', () => this.renderCellLineList());
             clbCnInput.addEventListener('input', () => {
-                this._renderCnFilterDropdown(clbCnInput.value);
+                this._renderCnFilterDropdown(clbCnInput.value, { items: this._buildFilterItems('cn', this._clbCohortExcluding('cn')) });
                 const dd = document.getElementById('clbCnDropdown');
                 if (dd) dd.style.display = '';
                 if (!clbCnInput.value) this.renderCellLineList();
             });
             clbCnInput.addEventListener('focus', () => {
-                this._renderCnFilterDropdown(clbCnInput.value);
+                this._renderCnFilterDropdown(clbCnInput.value, { items: this._buildFilterItems('cn', this._clbCohortExcluding('cn')) });
                 const dd = document.getElementById('clbCnDropdown');
                 if (dd) dd.style.display = '';
             });
@@ -27357,6 +27335,53 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // states. Shared by renderCellLineList (which then applies collections) and
     // by _renderCollectionPanel (so each quick filter's count reflects the other
     // active filters, e.g. with a Lung filter on, BCR-ABL1 shows 0 and is hidden).
+    // Set of cell lines passing all active CLB filters EXCEPT the named kind, so
+    // the hotspot / fusion / CN dropdowns only list options present in that cohort
+    // (e.g. with a tissue or hotspot filter on, fusions show only those in scope).
+    _clbCohortExcluding(kind) {
+        const search = document.getElementById('clbSearch').value.trim().toLowerCase();
+        const tissue = document.getElementById('clbTissueFilter').value;
+        const subtype = document.getElementById('clbSubtypeFilter').value;
+        const sexFilter = document.getElementById('clbSexFilter').value;
+        const hotspotGene = kind === 'hotspot' ? '' : document.getElementById('clbHotspotFilter').value;
+        const transGene = kind === 'fusion' ? '' : document.getElementById('clbTranslocationFilter').value;
+        const cnFilterValue = kind === 'cn' ? '' : (document.getElementById('clbCnFilter')?.value || '');
+        const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
+        const transKey = this._stripFusionFilterDecoration(transGene);
+        const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
+        const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
+        const collectionStates = this._clbCollectionStates;
+        const collectionMem = this._collectionMembership || {};
+        const set = new Set();
+        for (const cl of this.metadata.cellLines) {
+            if (tissue && this.getCellLineLineage(cl) !== tissue) continue;
+            if (subtype && this.getCellLineSublineage(cl) !== subtype) continue;
+            if (sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) continue;
+            if (hotspotMuts && !(hotspotMuts[cl] >= 1)) continue;
+            if (clinicalPairCells && !(cl in clinicalPairCells)) continue;
+            if (transMuts && !(transMuts[cl] >= 1)) continue;
+            if (cnFilterValue && !this._cellLinePassesCnFilter(cl, cnFilterValue)) continue;
+            if (!this._cellLinePassesOncoprintFilters(cl)) continue;
+            if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) continue;
+            if (search) {
+                const name = this.getCellLineName(cl).toLowerCase();
+                const lin = this.getCellLineLineage(cl).toLowerCase();
+                if (!name.includes(search) && !lin.includes(search) && !cl.toLowerCase().includes(search)) continue;
+            }
+            if (collectionStates && collectionStates.size > 0) {
+                let ok = true;
+                for (const [id, state] of collectionStates) {
+                    const inSet = collectionMem[id]?.has(cl);
+                    if (state === 'include' && !inSet) { ok = false; break; }
+                    if (state === 'exclude' && inSet) { ok = false; break; }
+                }
+                if (!ok) continue;
+            }
+            set.add(cl);
+        }
+        return set;
+    }
+
     _clbBaseFilteredLines() {
         const search = document.getElementById('clbSearch').value.trim().toLowerCase();
         const tissue = document.getElementById('clbTissueFilter').value;

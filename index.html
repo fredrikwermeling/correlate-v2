@@ -1485,9 +1485,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.83.76 (2026-06-14)</strong></p>
+                <p><strong>v.83.77 (2026-06-14)</strong></p>
                 <ul>
-                    <li>Gene Effect compare tables (Δ Hotspot / Amp-Del / Curated Fusion) reworked to the intuitive comparison: each row now compares the cells <b>with</b> that feature against <b>all other</b> cell lines (WT). So a fusion in 5 lines shows ~5 with vs ~995 WT, instead of the old within-subset split that gave tiny WT groups. Columns: feature, N(with), GE(with), N(WT), GE(WT), Δ GE. (Δ Tissue is unchanged.)</li>
+                    <li>Δ compare tables (Δ Hotspot / Amp-Del / Fusion) keep the within-subset comparison: within the cells carrying each feature, WT vs mutated for the stratifier gene (the WT count is the in-subset count, not the whole dataset).</li>
+                    <li>Renamed "Curated Fusion" to "Fusion" throughout (button, filters, stratifier).</li>
+                    <li>Cell Line Browser filters now scale to the other active filters: the hotspot / fusion / CN dropdowns only list options present in the cells passing the current tissue / subtype / mutation / collection filters (matching the popouts).</li>
                 </ul>
                 <p><strong>v.83.75 (2026-06-14)</strong></p>
                 <ul>
@@ -3518,7 +3520,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.76</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.77</a>
     </div>
 
     <div class="main-content">
@@ -3749,7 +3751,7 @@
                     </div>
 
                     <div class="form-group" id="paramTranslocationFilterGroup" style="display: none;">
-                        <label class="form-label">Fusion Filter (curated):</label>
+                        <label class="form-label">Fusion Filter:</label>
                         <select id="paramTranslocationGene" class="form-control" style="margin-bottom: 4px;">
                             <option value="">No filter</option>
                         </select>
@@ -4333,7 +4335,7 @@
                             <div class="control-box-compact" id="translocationFilterBox" style="flex:1; display:none; overflow:visible;">
                                 <span class="control-label" style="font-size:9px;">Fusion Filter</span>
                                 <div style="position:relative;">
-                                    <input type="text" id="translocationFilterGene" class="form-control" placeholder="Curated fusion / gene..." autocomplete="off" style="font-size: 10px; padding: 2px 4px;">
+                                    <input type="text" id="translocationFilterGene" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="font-size: 10px; padding: 2px 4px;">
                                     <datalist id="translocationFilterGeneList"></datalist>
                                     <div id="translocationFilterDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                                 </div>
@@ -4347,7 +4349,7 @@
                                     <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size:10px; padding:2px 5px;">Tissue</button>
                                     <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size:10px; padding:2px 5px;">Hotspot</button>
                                     <button class="btn btn-secondary btn-sm" id="compareAllCnBtn" style="font-size:10px; padding:2px 5px; display:none;">Amp/Del</button>
-                                    <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size:10px; padding:2px 5px; display:none;">Curated Fusion</button>
+                                    <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size:10px; padding:2px 5px; display:none;">Fusion</button>
                                     <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size:10px; padding:2px 5px;">Reset</button>
                                 </div>
                             </div>
@@ -4535,7 +4537,7 @@
                         </div>
                         <span id="geHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
                         <div id="geFusionFilterWrap" style="position:relative; display:none;">
-                            <input type="text" id="geFusionFilter" class="form-control" placeholder="Curated fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, curated driver pairs (★) and validated fusion genes">
+                            <input type="text" id="geFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
                             <div id="geFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
                         <div id="geCnFilterWrap" style="position:relative; display:none;">
@@ -4556,7 +4558,7 @@
                         <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">View:</label>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;" title="Box plot of gene effect grouped by tissue / lineage">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan table: how each mutation-prone gene's hotspot (WT vs mutated) shifts this gene's effect">By Hotspot</button>
-                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Stratify this gene's effect by another gene's status, pick a hotspot mutation, a curated fusion, or a focal amplification / deep deletion in the selector above the plot.">Mutation Inspect</button>
+                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Stratify this gene's effect by another gene's status, pick a hotspot mutation, a fusion, or a focal amplification / deep deletion in the selector above the plot.">Mutation Inspect</button>
                         <span id="geGatesGroup" class="mobile-hide" style="display: none; gap: 4px; align-items: center; border-left: 1px solid #d1d5db; padding-left: 8px; margin-left: 2px;">
                             <label style="font-size: 12px; font-weight: 600; color: #374151; white-space: nowrap;">Gates:</label>
                             <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle on the scatter plot to define Gate A">Gate A</button>
@@ -4570,7 +4572,7 @@
                             <button class="btn btn-secondary btn-sm" id="geCompareByTissueBtn" title="Show Δ GE per tissue for this gene">Δ Tissue</button>
                             <button class="btn btn-secondary btn-sm" id="geCompareByHotspotBtn" title="Show Δ GE per additional hotspot for this gene">Δ Hotspot</button>
                             <button class="btn btn-secondary btn-sm" id="geCompareByCnBtn" title="Show Δ GE within each focal amplification / deep deletion" style="display: none;">Δ Amp/Del</button>
-                            <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE within each curated driver fusion" style="display: none;">Δ Curated Fusion</button>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE for each fusion" style="display: none;">Δ Fusion</button>
                         </span>
                     </div>
                     <!-- Row 3: Custom Cell Line Filter (hidden on phones) -->
@@ -4857,7 +4859,7 @@
                         </div>
                         <span id="caHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
                         <div id="caFusionFilterWrap" style="position:relative; display:none;">
-                            <input type="text" id="caFusionFilter" class="form-control" placeholder="Curated fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, curated driver pairs (★) and validated fusion genes">
+                            <input type="text" id="caFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
                             <div id="caFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
                         <div id="caCnFilterWrap" style="position:relative; display:none;">
@@ -5797,6 +5799,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_76"></script>
+    <script src="app.js?v=v83_77"></script>
 </body>
 </html>
