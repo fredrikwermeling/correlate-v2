@@ -302,7 +302,7 @@ class CorrelationExplorer {
 
     // Filter/setting controls captured for "Open in new tab" so the new tab
     // reproduces the same view (not just the gene/pair).
-    _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geMutGeneFilter', 'geMutLevelFilter', 'geFusionFilter', 'geCnFilter', 'geMinGroupSize', 'geCellLineSearch']; }
+    _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geFusionFilter', 'geCnFilter', 'geMinGroupSize', 'geCellLineSearch']; }
     _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
     _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCnFilter', 'caCellLineSearch']; }
 
@@ -3644,8 +3644,6 @@ class CorrelationExplorer {
         const tissue = document.getElementById('geTissueFilter')?.value || '';
         const subtype = document.getElementById('geSubtypeFilter')?.value || '';
         const hotspot = document.getElementById('geHotspotFilter')?.value || '';
-        const mutGene = document.getElementById('geMutGeneFilter')?.value?.trim() || '';
-        const mutLevel = document.getElementById('geMutLevelFilter')?.value || 'all';
         const fus = document.getElementById('geFusionFilter')?.value || '';
         const cn = document.getElementById('geCnFilter')?.value || '';
         const set = new Set();
@@ -3655,11 +3653,7 @@ class CorrelationExplorer {
                 if (tissue && d.lineage !== tissue) continue;
                 if (subtype && this.cellLineMetadata?.primaryDisease?.[cl] !== subtype) continue;
             }
-            if (hotspot) { const hs = this.mutations?.geneData?.[hotspot] || this.damagingMutations?.geneData?.[hotspot]; if (hs && (hs.mutations[cl] || 0) < 1) continue; }
-            if (mutGene && mutLevel !== 'all') {
-                const mm = (this.mutations?.geneData?.[mutGene] || this.damagingMutations?.geneData?.[mutGene])?.mutations;
-                if (mm) { const l = mm[cl] || 0; if (mutLevel === 'wt' && l !== 0) continue; if (mutLevel === 'mut' && l < 1) continue; }
-            }
+            if (kind !== 'hotspot' && hotspot) { const hs = this.mutations?.geneData?.[hotspot] || this.damagingMutations?.geneData?.[hotspot]; if (hs && (hs.mutations[cl] || 0) < 1) continue; }
             if (kind !== 'fusion' && fus && !this._geFusionPasses(cl, fus)) continue;
             if (kind !== 'cn' && cn && !this._cellLinePassesCnFilter(cl, cn)) continue;
             set.add(cl);
@@ -4445,15 +4439,6 @@ class CorrelationExplorer {
             const defaultGene = hasTP53 ? 'TP53' : (this.mutations?.genes?.[0] || '');
             this._enterMutationInspectFromStandalone(defaultGene);
         });
-        // Mutation filter (gene + WT/Mut selector)
-        const geMutGeneInput = document.getElementById('geMutGeneFilter');
-        const geMutLevelSelect = document.getElementById('geMutLevelFilter');
-        const _applyMutFilter = () => {
-            this.switchGeneEffectView(this.currentGEView || 'tissue');
-        };
-        geMutGeneInput?.addEventListener('change', _applyMutFilter);
-        geMutLevelSelect?.addEventListener('change', _applyMutFilter);
-
         const _refreshGEView = () => this.switchGeneEffectView(this.currentGEView || 'tissue');
 
         document.getElementById('geTissueFilter')?.addEventListener('change', () => {
@@ -4472,24 +4457,18 @@ class CorrelationExplorer {
                 _refreshGEView();
             }
         });
-        // Inspect-level hotspot filter
-        document.getElementById('geHotspotFilter')?.addEventListener('change', () => {
-            const warn = document.getElementById('geHotspotBiasWarning');
-            if (warn) warn.style.display = document.getElementById('geHotspotFilter').value ? 'inline' : 'none';
-            if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
-                this.showGeneEffectDistribution(this.currentGeneEffectGene);
-            } else if (this.geneEffectViewMode === 'geneEffect') {
-                _refreshGEView();
-            }
-        });
-        // Inspect-level fusion + focal-CN filters (searchable, curated, context-aware)
+        // Inspect-level hotspot / fusion / focal-CN filters (searchable, curated,
+        // context-aware), same widget as the Cell Line Browser + scatter + CA.
         const _geFilterReRender = () => {
+            const warn = document.getElementById('geHotspotBiasWarning');
+            if (warn) warn.style.display = document.getElementById('geHotspotFilter')?.value ? 'inline' : 'none';
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             } else if (this.geneEffectViewMode === 'geneEffect') {
                 _refreshGEView();
             }
         };
+        this._setupMutFilterWidget('hotspot', 'geHotspotFilter', 'geHotspotDropdown', _geFilterReRender, () => this._geCohortExcluding('hotspot'));
         this._setupMutFilterWidget('fusion', 'geFusionFilter', 'geFusionDropdown', _geFilterReRender, () => this._geCohortExcluding('fusion'));
         this._setupMutFilterWidget('cn', 'geCnFilter', 'geCnDropdown', _geFilterReRender, () => this._geCohortExcluding('cn'));
         // p-value filter toggle, applies to both tissue and hotspot views
@@ -7474,32 +7453,8 @@ class CorrelationExplorer {
             }
         }
 
-        // Populate inspect-level hotspot filter dropdown
-        const hotspotFilterEl = document.getElementById('geHotspotFilter');
-        if (hotspotFilterEl) {
-            let hHtml = '<option value="">No hotspot mutation</option>';
-            if (this.mutations?.genes) {
-                hHtml += '<optgroup label="Hotspot">';
-                for (const g of this.mutations.genes) {
-                    if (g === hotspotGene) continue;
-                    const sel = g === inspectHotspot ? ' selected' : '';
-                    hHtml += `<option value="${g}"${sel}>${g}</option>`;
-                }
-                hHtml += '</optgroup>';
-            }
-            if (this.damagingMutations?.genes) {
-                hHtml += '<optgroup label="Damaging (top 100)">';
-                let count = 0;
-                for (const g of this.damagingMutations.genes) {
-                    if (g === hotspotGene) continue;
-                    const sel = g === inspectHotspot ? ' selected' : '';
-                    hHtml += `<option value="${g}"${sel}>${g} (${this.damagingMutations.geneCounts[g]})</option>`;
-                    if (++count >= 100) break;
-                }
-                hHtml += '</optgroup>';
-            }
-            hotspotFilterEl.innerHTML = hHtml;
-        }
+        // Inspect-level hotspot filter is a searchable widget (same as the CLB);
+        // it builds its own context-aware options on focus.
 
         // Inspect-level fusion filter is now a searchable widget (curated ★ pairs +
         // validated fusion genes); it builds its own context-aware options on focus.
@@ -7585,7 +7540,8 @@ class CorrelationExplorer {
         document.getElementById('geZeroLineControl').style.display = '';
 
         // Show mutation inspect controls, hide non-mutation view buttons
-        document.getElementById('geHotspotFilter').style.display = '';
+        const geHotWrap = document.getElementById('geHotspotFilterWrap');
+        if (geHotWrap) geHotWrap.style.display = this.mutations?.genes?.length > 0 ? 'inline-block' : 'none';
         const geFusWrap = document.getElementById('geFusionFilterWrap');
         if (geFusWrap) geFusWrap.style.display =
             (this.clinicalFusions?.fusionData || this.translocations?.genes?.length > 0) ? 'inline-block' : 'none';
@@ -18836,29 +18792,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('geInlineCompareTable').style.display = 'none';
         document.getElementById('geHotspotGeneGroup').style.display = 'none';
 
-        // Populate and show hotspot filter
-        const hotspotFilterEl = document.getElementById('geHotspotFilter');
-        if (hotspotFilterEl) {
-            let hHtml = '<option value="">No hotspot mutation</option>';
-            if (this.mutations?.genes) {
-                hHtml += '<optgroup label="Hotspot">';
-                for (const g of this.mutations.genes) {
-                    hHtml += `<option value="${g}">${g}</option>`;
-                }
-                hHtml += '</optgroup>';
-            }
-            if (this.damagingMutations?.genes) {
-                hHtml += '<optgroup label="Damaging (top 100)">';
-                let cnt = 0;
-                for (const g of this.damagingMutations.genes) {
-                    hHtml += `<option value="${g}">${g} (${this.damagingMutations.geneCounts[g]})</option>`;
-                    if (++cnt >= 100) break;
-                }
-                hHtml += '</optgroup>';
-            }
-            hotspotFilterEl.innerHTML = hHtml;
-            hotspotFilterEl.value = '';
-            hotspotFilterEl.style.display = '';
+        // Show hotspot filter (searchable widget, builds its own options on focus)
+        const geHotWrapS = document.getElementById('geHotspotFilterWrap');
+        if (geHotWrapS) {
+            geHotWrapS.style.display = this.mutations?.genes?.length > 0 ? 'inline-block' : 'none';
+            const hIn = document.getElementById('geHotspotFilter'); if (hIn) hIn.value = '';
         }
         const warn = document.getElementById('geHotspotBiasWarning');
         if (warn) warn.style.display = 'none';
@@ -19148,22 +19086,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 lineages.map(l => `<option value="${l}">${l} (n=${lineageCounts[l]})</option>`).join('');
         }
 
-        // Populate hotspot filter
-        const hsFilterEl = document.getElementById('geHotspotFilter');
-        if (hsFilterEl && this.mutations?.genes) {
-            hsFilterEl.innerHTML = '<option value="">No hotspot mutation</option>';
-            this.mutations.genes.slice(0, 50).forEach(g => {
-                hsFilterEl.innerHTML += `<option value="${g}">${g}</option>`;
-            });
-            hsFilterEl.style.display = '';
-        }
-        // Populate mutation gene datalist
-        const mutDl = document.getElementById('geMutGeneFilterList');
-        if (mutDl && this.mutations?.genes && mutDl.children.length === 0) {
-            this.mutations.genes.forEach(g => {
-                mutDl.innerHTML += `<option value="${g}">`;
-            });
-        }
+        // Hotspot filter is a searchable widget (builds its own options on focus)
+        const geHotWrapT = document.getElementById('geHotspotFilterWrap');
+        if (geHotWrapT) geHotWrapT.style.display = this.mutations?.genes?.length > 0 ? 'inline-block' : 'none';
 
         // Show modal if not already open
         document.getElementById('geneEffectModal').style.display = 'flex';
@@ -19417,8 +19342,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('geHotspotFilter').value = '';
         document.getElementById('geFusionFilter').value = '';
         const geCnClear = document.getElementById('geCnFilter'); if (geCnClear) geCnClear.value = '';
-        document.getElementById('geMutGeneFilter').value = '';
-        document.getElementById('geMutLevelFilter').value = 'all';
         document.getElementById('gePvalueFilter').checked = false;
         this.clearGEGates();
         this._indivGeneOrder = null;
@@ -19434,14 +19357,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hotspot = document.getElementById('geHotspotFilter')?.value;
         const fusion = document.getElementById('geFusionFilter')?.value;
         const cn = document.getElementById('geCnFilter')?.value;
-        const mutGene = document.getElementById('geMutGeneFilter')?.value?.trim();
-        const mutLevel = document.getElementById('geMutLevelFilter')?.value;
         if (tissue) parts.push(tissue);
         if (subtype) parts.push(subtype);
         if (hotspot) parts.push(`${hotspot} mutated`);
         if (fusion) parts.push(`${this._stripFusionFilterDecoration(fusion)} fused`);
         if (cn) parts.push(this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del'));
-        if (mutGene && mutLevel !== 'all') parts.push(`${mutGene} ${mutLevel === 'wt' ? 'WT' : 'Mut'}`);
         if (this._activeOncoprintFilters?.length > 0) {
             this._activeOncoprintFilters.forEach(f => parts.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`));
         }
@@ -19480,20 +19400,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Oncoprint multi-gene filters
         if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
             data = data.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId));
-        }
-        // Inline mutation gene filter (WT/Mut selector)
-        const mutGeneFilter = document.getElementById('geMutGeneFilter')?.value?.trim();
-        const mutLevelFilter = document.getElementById('geMutLevelFilter')?.value;
-        if (mutGeneFilter && mutLevelFilter !== 'all') {
-            const mutSrc = this.mutations?.geneData?.[mutGeneFilter] || this.damagingMutations?.geneData?.[mutGeneFilter];
-            if (mutSrc) {
-                const md = mutSrc.mutations || {};
-                if (mutLevelFilter === 'wt') {
-                    data = data.filter(d => (md[d.cellLineId] || 0) === 0);
-                } else if (mutLevelFilter === 'mut') {
-                    data = data.filter(d => (md[d.cellLineId] || 0) >= 1);
-                }
-            }
         }
         return data;
     }
@@ -21394,13 +21300,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const tissueF = document.getElementById('geTissueFilter')?.value || '';
             const subtypeF = document.getElementById('geSubtypeFilter')?.value || '';
             const hotspotF = document.getElementById('geHotspotFilter')?.value || '';
-            const mutGeneF = document.getElementById('geMutGeneFilter')?.value || '';
-            const mutLevelF = document.getElementById('geMutLevelFilter')?.value || '';
             context = {
                 type: 'gene_effect_analysis', gene, plotType: this.currentGEView || 'tissue',
                 stratification: hotspotF || (this.geneEffectViewMode === 'mutation' && mr?.hotspotGene) || 'tissue',
-                tissueFilter: tissueF, subtypeFilter: subtypeF, hotspotFilter: hotspotF,
-                mutGeneFilter: mutGeneF, mutLevelFilter: mutLevelF
+                tissueFilter: tissueF, subtypeFilter: subtypeF, hotspotFilter: hotspotF
             };
             // Cell line groups (#1)
             if (this.geneEffectViewMode === 'mutation' && mr?.hotspotGene) {
@@ -21408,7 +21311,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const mData = (mr.isTranslocation ? this._fusionAxisData?.geneData?.[hg]?.translocations : mr.isDamaging ? this._lossAxisData?.geneData?.[hg]?.mutations : this.mutations?.geneData?.[hg]?.mutations) || {};
                 cellLineGroups = { WT: [], mut1: [], mut2: [] };
                 cellLines.forEach(cl => { const ml = mData[cl] || 0; if (ml === 0) cellLineGroups.WT.push(cl); else if (ml === 1) cellLineGroups.mut1.push(cl); else cellLineGroups.mut2.push(cl); });
-                const filterParts = [tissueF, subtypeF, mutGeneF && mutLevelF !== 'all' ? `${mutGeneF} ${mutLevelF}` : ''].filter(Boolean).join(', ');
+                const filterParts = [tissueF, subtypeF].filter(Boolean).join(', ');
                 description = `${gene} gene effect stratified by ${hg} ${mr.isTranslocation ? 'fusion' : mr.isDamaging ? 'functional loss' : 'hotspot mutation'} count${filterParts ? ' in ' + filterParts : ''} cell lines.`;
             } else {
                 description = `${gene} gene effect across ${tissueF || 'all'} cell lines${subtypeF ? ' (' + subtypeF + ')' : ''}.`;
