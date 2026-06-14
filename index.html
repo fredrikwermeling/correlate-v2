@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.0 (2026-06-14)</strong></p>
+                <ul>
+                    <li>Results "Correlations" table: simplified the actions column to just the <strong>Scatter</strong> button and renamed the column to "Correlation" (By Tissue / By Hotspot are reachable from inside the scatter view).</li>
+                </ul>
                 <p><strong>v.83.99 (2026-06-14)</strong></p>
                 <ul>
                     <li>Running an analysis that takes longer than ~2s now shows a "Analyzing gene set..." spinner so it's clear the app is still working, not crashed. Fast runs finish before the spinner appears, so there's no flicker.</li>
@@ -3625,7 +3629,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.99</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.0</a>
     </div>
 
     <div class="main-content">
@@ -4169,7 +4173,7 @@
                 <!-- Correlations Tab -->
                 <div class="tab-content" id="tab-correlations">
                     <div class="tip-box">
-                        <strong>Tip:</strong> Click <strong>Correlate</strong> to view a scatter plot, or <strong>By Tissue</strong> for tissue breakdown. Ctrl/Cmd+click a column header to copy that column. Use <strong>Filters</strong> to set numeric cutoffs on columns.
+                        <strong>Tip:</strong> Click <strong>Scatter</strong> to view the correlation plot (drill into By Tissue / By Hotspot from there). Ctrl/Cmd+click a column header to copy that column. Use <strong>Filters</strong> to set numeric cutoffs on columns.
                     </div>
                     <div class="table-controls">
                         <input type="text" class="table-search" id="correlationsSearch" placeholder="Search...">
@@ -5924,6 +5928,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_99"></script>
+    <script src="app.js?v=v84_0"></script>
 </body>
 </html>

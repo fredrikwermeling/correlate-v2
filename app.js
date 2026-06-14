@@ -9040,19 +9040,11 @@ class CorrelationExplorer {
                     <td>${c.cluster}</td>
                     <td style="white-space: nowrap;">
                         <button class="btn btn-sm inspect-btn" style="padding: 2px 6px; font-size: 10px; background: #5a9f4a; color: white;" data-gene1="${c.gene1}" data-gene2="${c.gene2}">Scatter</button>
-                        <button class="btn btn-sm ca-tissue-btn" style="padding: 2px 6px; font-size: 10px; margin-left: 4px; background: #6b7280; color: white;">By Tissue</button>
-                        <button class="btn btn-sm ca-hotspot-btn" style="padding: 2px 6px; font-size: 10px; margin-left: 4px; background: #6b7280; color: white;">By Hotspot</button>
                     </td>
                 `;
                 // Add click handlers
                 tr.querySelector('.inspect-btn').addEventListener('click', () => {
                     this.openInspectByGenes(c.gene1, c.gene2);
-                });
-                tr.querySelector('.ca-tissue-btn').addEventListener('click', () => {
-                    this.openCorrelationAnalysisModal(c.gene1, c.gene2, 'tissue');
-                });
-                tr.querySelector('.ca-hotspot-btn').addEventListener('click', () => {
-                    this.openCorrelationAnalysisModal(c.gene1, c.gene2, 'hotspot');
                 });
                 tbody.appendChild(tr);
             });
@@ -9153,7 +9145,7 @@ class CorrelationExplorer {
         }
 
         // Add actions column
-        headerCells += `<th style="text-align: center;">Analyze</th>`;
+        headerCells += `<th style="text-align: center;">Correlation</th>`;
 
         thead.innerHTML = `<tr>${headerCells}</tr>`;
 
