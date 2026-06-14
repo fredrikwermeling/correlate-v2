@@ -7375,15 +7375,23 @@ class CorrelationExplorer {
         const _gePlotW = Math.max(1, geContainerW - yFit.marginL - geRightMargin);
         const geTitleX = _gePhone ? ((geContainerW / 2 - yFit.marginL) / _gePlotW) : 0.5;
 
+        // Title base font. The annotation font.size must MATCH the embedded title
+        // span size so Plotly reserves the right line height, otherwise the bold
+        // rows overlap. Desktop was 25 (too tall a block, overlapping the graph) —
+        // 18 keeps it readable but compact.
+        const geTitleBaseFont = _gePhone ? Math.round(25 * _geFS) : 18;
         const geTitleAnn = {
-            text: this._computeGETitleText(titleText, subtitleText, Math.round(25 * _geFS), 'geneEffectPlot', geTitleMaxW),
+            text: this._computeGETitleText(titleText, subtitleText, geTitleBaseFont, 'geneEffectPlot', geTitleMaxW),
             xref: 'paper', yref: 'paper',
             x: this._geUserTitlePos ? this._geUserTitlePos.x : geTitleX,
-            y: this._geUserTitlePos ? this._geUserTitlePos.y : (_gePhone ? 1.4 : 1.65),
+            // Desktop: anchor the block's BOTTOM just above the plot and grow up
+            // into the top margin (like the scatter title), so the heading never
+            // overlaps the graph however many rows it has.
+            y: this._geUserTitlePos ? this._geUserTitlePos.y : (_gePhone ? 1.4 : 1.06),
             xanchor: this._geUserTitlePos ? 'auto' : 'center',
-            yanchor: this._geUserTitlePos ? 'auto' : 'top',
+            yanchor: this._geUserTitlePos ? 'auto' : (_gePhone ? 'top' : 'bottom'),
             showarrow: false,
-            font: { size: Math.round(15 * 0.85 * (_gePhone ? 0.85 : 1)) },
+            font: { size: geTitleBaseFont },
             _tsRole: 'title'
         };
         const geXLabelAnn = {
