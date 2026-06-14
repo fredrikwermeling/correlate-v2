@@ -21008,6 +21008,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     async _svgToPdfVector(svgStr, widthCm, heightCm) {
         const JS = window.jspdf?.jsPDF || window.jsPDF;
         if (!JS) throw new Error('jsPDF unavailable');
+        // Plotly writes negative axis ticks with the Unicode minus (− U+2212),
+        // which the PDF base font renders as a stray glyph (showed up as "). Use a
+        // plain hyphen-minus, which the standard PDF fonts have.
+        svgStr = String(svgStr).replace(/−/g, '-');
         const ptW = (widthCm || 10) / 2.54 * 72;
         const ptH = (heightCm || 10) / 2.54 * 72;
         const pdf = new JS({

@@ -1485,6 +1485,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.84 (2026-06-14)</strong></p>
+                <ul>
+                    <li>Export dialog: Width and Height each keep their cm input right next to their label (grouped), and the dialog is a bit wider so nothing wraps.</li>
+                    <li>Fixed: PDF chart exports showed a stray quote instead of the minus sign on negative axis ticks (Plotly's Unicode minus is now written as a plain hyphen for the PDF font).</li>
+                    <li>Gene Effect: the Reset Filters button moved to the far end of the filters row.</li>
+                    <li>Gene Effect: pressing Enter after typing a gene now runs the analysis (the Analyze button still works too).</li>
+                </ul>
                 <p><strong>v.83.83 (2026-06-14)</strong></p>
                 <ul>
                     <li>Gene Effect by-mutation header: reverted to the original look.</li>
@@ -3554,7 +3561,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.83</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.84</a>
     </div>
 
     <div class="main-content">
@@ -4565,7 +4572,6 @@
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Filters:</label>
                         <button class="btn btn-sm btn-outline" id="geShowAllBtn" style="display: none;">← Show All</button>
-                        <button class="btn btn-sm btn-secondary" id="geResetFiltersBtn" style="display: none; font-size: 11px; padding: 3px 8px;" title="Reset tissue and hotspot filters">Reset Filters</button>
                         <select id="geTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
                             <option value="">All tissues</option>
                         </select>
@@ -4593,6 +4599,7 @@
                         </span>
                         <input type="text" id="geCellLineSearch" class="form-control mobile-hide" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span id="geOncoprintLabel" style="display:none; font-size:10px; gap:3px; align-items:center; flex-wrap:wrap;"></span>
+                        <button class="btn btn-sm btn-secondary" id="geResetFiltersBtn" style="display: none; font-size: 11px; padding: 3px 8px; margin-left:auto;" title="Reset the tissue / hotspot / fusion / CN filters">Reset Filters</button>
                     </div>
                     <!-- Row 3: Gates + Compare -->
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px;">
@@ -5044,7 +5051,7 @@
 
     <!-- Publication-quality export options -->
     <div class="modal-overlay" id="exportOptionsModal" style="display:none; z-index:1300;">
-        <div class="modal" style="max-width:500px;">
+        <div class="modal" style="max-width:560px;">
             <div class="modal-header">
                 <h3 id="exportOptionsTitle" style="margin:0;">Export chart</h3>
                 <button class="modal-close" id="exportOptionsClose" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">&times;</button>
@@ -5077,15 +5084,15 @@
                          input next to "Height (cm)" doesn't wrap below. Tight
                          gaps, no wrap; if the user shrinks the window the
                          labels will compact before anything overflows. -->
-                    <div style="display:flex; flex-wrap:nowrap; align-items:center; gap:8px;">
-                        <label style="font-weight:600;">Width (cm)</label>
-                        <span style="display:inline-flex; gap:3px; align-items:center;">
+                    <div style="display:flex; flex-wrap:nowrap; align-items:center; gap:20px;">
+                        <span style="display:inline-flex; gap:5px; align-items:center;">
+                            <label style="font-weight:600; white-space:nowrap;">Width (cm)</label>
                             <button onclick="app.adjustExportSize('exportOptWidth', -0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
                             <input type="number" id="exportOptWidth" value="5" min="2" max="30" step="0.5" style="width:54px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
                             <button onclick="app.adjustExportSize('exportOptWidth', 0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                         </span>
-                        <label style="font-weight:600;">Height (cm)</label>
-                        <span style="display:inline-flex; gap:3px; align-items:center;">
+                        <span style="display:inline-flex; gap:5px; align-items:center;">
+                            <label style="font-weight:600; white-space:nowrap;">Height (cm)</label>
                             <button onclick="app.adjustExportSize('exportOptHeight', -0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
                             <input type="number" id="exportOptHeight" value="5" min="2" max="30" step="0.5" style="width:54px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
                             <button onclick="app.adjustExportSize('exportOptHeight', 0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
@@ -5846,6 +5853,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_83"></script>
+    <script src="app.js?v=v83_84"></script>
 </body>
 </html>
