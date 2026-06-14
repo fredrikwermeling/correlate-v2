@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.76 (2026-06-14)</strong></p>
+                <ul>
+                    <li>Gene Effect compare tables (Δ Hotspot / Amp-Del / Curated Fusion) reworked to the intuitive comparison: each row now compares the cells <b>with</b> that feature against <b>all other</b> cell lines (WT). So a fusion in 5 lines shows ~5 with vs ~995 WT, instead of the old within-subset split that gave tiny WT groups. Columns: feature, N(with), GE(with), N(WT), GE(WT), Δ GE. (Δ Tissue is unchanged.)</li>
+                </ul>
                 <p><strong>v.83.75 (2026-06-14)</strong></p>
                 <ul>
                     <li>Gene Effect popout: the hotspot mutation filter is now the same searchable, context-aware widget used in the Cell Line Browser and the other popouts (type a gene, counts reflect the other active filters).</li>
@@ -3514,7 +3518,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.75</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.76</a>
     </div>
 
     <div class="main-content">
@@ -5793,6 +5797,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_75"></script>
+    <script src="app.js?v=v83_76"></script>
 </body>
 </html>
