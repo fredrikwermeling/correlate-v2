@@ -7358,7 +7358,11 @@ class CorrelationExplorer {
         // span size so Plotly reserves the right line height, otherwise the bold
         // rows overlap. Desktop was 25 (too tall a block, overlapping the graph) —
         // 18 keeps it readable but compact.
-        const geTitleBaseFont = _gePhone ? Math.round(25 * _geFS) : 18;
+        const geTitleBaseFont = _gePhone ? Math.round(25 * _geFS) : 16;
+        // Line spacing for the title block. On desktop keep it tighter than the
+        // title size so the stats lines pack closely (a big line-height made the
+        // header look too spread out / take too much vertical room).
+        const geTitleLineFont = _gePhone ? geTitleBaseFont : 14;
         const geTitleAnn = {
             text: this._computeGETitleText(titleText, subtitleText, geTitleBaseFont, 'geneEffectPlot', geTitleMaxW),
             xref: 'paper', yref: 'paper',
@@ -7370,7 +7374,7 @@ class CorrelationExplorer {
             xanchor: this._geUserTitlePos ? 'auto' : 'center',
             yanchor: this._geUserTitlePos ? 'auto' : (_gePhone ? 'top' : 'bottom'),
             showarrow: false,
-            font: { size: geTitleBaseFont },
+            font: { size: geTitleLineFont },
             _tsRole: 'title'
         };
         const geXLabelAnn = {
@@ -7416,7 +7420,7 @@ class CorrelationExplorer {
                 tickfont: { size: yTickFontSize }
             },
             showlegend: false,
-            margin: { t: _gePhone ? 120 : 180, r: 30, b: _gePhone ? 64 : 75, l: yFit.marginL },
+            margin: { t: _gePhone ? 120 : 148, r: 30, b: _gePhone ? 64 : 75, l: yFit.marginL },
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
@@ -7536,8 +7540,8 @@ class CorrelationExplorer {
         this.geneEffectViewMode = 'mutation';
         this._updateGEPlaceholderVisibility();
 
-        // Show zero line control
-        document.getElementById('geZeroLineControl').style.display = '';
+        // Width / Height / Zero-line now live in the Settings panel (keep the
+        // toolbar control hidden; its checkbox stays the source of truth).
 
         // Show mutation inspect controls, hide non-mutation view buttons
         const geHotWrap = document.getElementById('geHotspotFilterWrap');
@@ -18775,7 +18779,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Restore visibility of UI elements (in case hidden by mutation analysis inspect)
         document.getElementById('geSearchBar').style.display = '';
         document.getElementById('geTableContainer').style.display = '';
-        document.getElementById('geChartContainer').style.flex = '0 0 55%';
+        // Chart takes a bit less than half so the wide statistics table (Gene,
+        // N/GE WT, N/GE Mut, Δ, p) fits without horizontal scrolling.
+        document.getElementById('geChartContainer').style.flex = '0 0 46%';
 
         // Mark this as regular gene effect view
         this.geneEffectViewMode = 'geneEffect';
@@ -20289,8 +20295,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             btn.style.display = this.geDetailedView ? 'inline-block' : 'none';
         }
         if (ratioControl) {
-            // Show controls for detailed views AND mutation inspect views
-            const showRatio = !!(this.geDetailedView || isInspect);
+            // Width/Height moved to the Settings panel, keep the toolbar copy hidden.
+            const showRatio = false;
             ratioControl.style.display = showRatio ? 'flex' : 'none';
             // Height control only relevant for inspect plot (not tissue/hotspot overview)
             const heightControl = document.getElementById('geHeightControl');
@@ -35917,6 +35923,17 @@ ${clone.innerHTML}
     }
 
     // ===== Text Settings Panel =====
+    // Width/Height/Zero-line for the Gene Effect plot now live in the Settings
+    // panel; drive the (hidden) toolbar controls so the existing handlers run.
+    _geSizeFromSettings(which, v) {
+        const el = document.getElementById(which === 'width' ? 'geAspectRatio' : 'geHeightRatio');
+        if (el) { el.value = v; el.dispatchEvent(new Event('input')); }
+    }
+    _geZeroFromSettings(checked) {
+        const cb = document.getElementById('geShowZeroLine');
+        if (cb) { cb.checked = checked; cb.dispatchEvent(new Event('change')); }
+    }
+
     openTextSettings(plotDivId) {
         const panel = document.getElementById('textSettingsPanel');
         const body = document.getElementById('textSettingsBody');
@@ -36063,6 +36080,21 @@ ${clone.innerHTML}
                 <button onclick="app._tsColorScheme('viridis')" class="ts-color-btn" title="Viridis continuous" style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:linear-gradient(90deg,#440154,#31688e,#35b779,#fde725);">Viridis</button>
                 <button onclick="app._tsColorScheme('steelblue')" class="ts-color-btn" title="Uniform steelblue" style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#4682b4;color:white;">Uniform</button>
             </div>
+            ` : ''}
+            ${plotDivId === 'geneEffectPlot' ? `
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Plot Size</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px;">
+                <span style="flex:0 0 42px;color:#374151;">Width</span>
+                <input type="range" min="0.3" max="1.8" step="0.05" value="${this.geChartWidthRatio || 1}" oninput="app._geSizeFromSettings('width', this.value)" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px;">
+                <span style="flex:0 0 42px;color:#374151;">Height</span>
+                <input type="range" min="0.5" max="2" step="0.1" value="${this.geChartHeightRatio || 1}" oninput="app._geSizeFromSettings('height', this.value)" style="flex:1;">
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;cursor:pointer;">
+                <input type="checkbox" ${document.getElementById('geShowZeroLine')?.checked !== false ? 'checked' : ''} onchange="app._geZeroFromSettings(this.checked)"> Zero line
+            </label>
             ` : ''}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-size:10px;color:#9ca3af;">Drag title, axis labels, and annotations on plot to reposition.<br>Click an annotation, then use arrow keys to nudge (Shift = larger steps).</div>

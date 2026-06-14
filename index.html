@@ -1485,6 +1485,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.78 (2026-06-14)</strong></p>
+                <ul>
+                    <li>Gene Effect "By Hotspot" view: the plot is a bit narrower so the statistics table (Gene, N/GE WT, N/GE Mut, Δ, p) fits without horizontal scrolling.</li>
+                    <li>Gene Effect Mutation Inspect: the Width / Height / Zero-line controls moved into the Settings panel, decluttering the toolbar.</li>
+                    <li>Renamed the "Aa" buttons to "Settings" across the app.</li>
+                    <li>Gene Effect by-mutation header: tighter line spacing and a smaller title so it no longer takes too much vertical space or looks too spread out (while still clearing the plot).</li>
+                </ul>
                 <p><strong>v.83.77 (2026-06-14)</strong></p>
                 <ul>
                     <li>Δ compare tables (Δ Hotspot / Amp-Del / Fusion) keep the within-subset comparison: within the cells carrying each feature, WT vs mutated for the stratifier gene (the WT count is the in-subset count, not the whole dataset).</li>
@@ -3520,7 +3527,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.77</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.78</a>
     </div>
 
     <div class="main-content">
@@ -3997,7 +4004,7 @@
                                 <button class="btn btn-secondary" id="togglePhysics">Lock</button>
                             </div>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
-                                <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;">Aa</button>
+                                <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;">Settings</button>
                                 <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network, font / node / edge size, colours, label options and node border, back to defaults">Reset</button>
                                 <label style="font-size: 10px; display: flex; align-items: center; gap: 3px; cursor: pointer;">
                                     <input type="checkbox" id="networkNodeBorder" checked> Node border
@@ -4456,7 +4463,7 @@
                 <div id="byTissueContainer" style="display: none;"></div>
             </div>
             <div class="modal-footer" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button class="btn btn-outline btn-sm mobile-hide" id="scatterTextSettingsBtn" style="font-weight:700;" title="Text & Font Settings">Aa</button>
+                <button class="btn btn-outline btn-sm mobile-hide" id="scatterTextSettingsBtn" style="font-weight:700;" title="Settings">Settings</button>
                 <button class="btn btn-outline btn-sm" id="resetScatterAll" style="font-size:10px;" title="Reset all filters, gates, fonts, and overlays, keep selected genes">Reset</button>
                 <span class="mobile-hide" style="font-size:10px; color:#9ca3af;">Export:</span>
                 <button class="btn btn-outline btn-sm mobile-hide" id="downloadScatterPNG" title="Export the scatter plot, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
@@ -4705,7 +4712,7 @@
 
                 <!-- Download buttons (whole row hidden on phones, the phone app is for viewing, not exporting / advanced analysis) -->
                 <div class="mobile-hide" style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
-                    <button class="btn btn-outline btn-sm mobile-hide" id="geTextSettingsBtn" style="font-weight:700;" title="Text & Font Settings">Aa</button>
+                    <button class="btn btn-outline btn-sm mobile-hide" id="geTextSettingsBtn" style="font-weight:700;" title="Settings">Settings</button>
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
                     <button class="btn btn-outline btn-sm mobile-hide" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
                     <button class="btn btn-outline btn-sm" id="downloadGeneEffectSVG">SVG</button>
@@ -5532,7 +5539,7 @@
                 <span class="clb-umap-spacer"></span>
                 <button id="clbUmapPngBtn" class="clb-umap-btn" title="Export as PNG">PNG</button>
                 <button id="clbUmapSvgBtn" class="clb-umap-btn" title="Export as SVG">SVG</button>
-                <button id="clbUmapAaBtn" class="clb-umap-btn" title="Text & layout settings">Aa</button>
+                <button id="clbUmapAaBtn" class="clb-umap-btn" title="Settings">Settings</button>
                 <span class="clb-umap-sep"></span>
                 <button id="clbUmapRunBtn" class="clb-umap-btn" style="background:#16a34a; color:white; border-color:#16a34a;">Run Analysis</button>
                 <button id="clbUmapResetBtn" class="clb-umap-btn" style="background:#ef4444; color:white; border-color:#ef4444;" title="Clear everything and start fresh">Reset</button>
@@ -5799,6 +5806,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_77"></script>
+    <script src="app.js?v=v83_78"></script>
 </body>
 </html>
