@@ -23550,11 +23550,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         titleEl.textContent = title;
 
         // Sticky min-N filter (applies to non-ref rows; "None" / "All"
-        // reference rows are always shown).
-        if (this._inlineMinN === undefined) this._inlineMinN = 5;
+        // reference rows are always shown). Default 3: a row is only kept when
+        // BOTH groups (WT and the stratified Mut/altered group) have at least N
+        // cells, so a subset with too few in either group is dropped.
+        if (this._inlineMinN === undefined) this._inlineMinN = 3;
         const minN = this._inlineMinN;
 
-        const filteredSortable = sortableRows.filter(r => (r.nSubset ?? (r.nWT + r.nMut)) >= minN);
+        const filteredSortable = sortableRows.filter(r => r.nWT >= minN && r.nMut >= minN);
         const allRows = [...refRows, ...filteredSortable];
         const hiddenByMinN = sortableRows.length - filteredSortable.length;
 
@@ -23564,7 +23566,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Filter / control bar above the table.
         let html = `<div style="font-size:11px; color:#374151; margin-bottom:4px; display:flex; align-items:center; gap:10px;">
-            <label>Hide rows with N &lt; <input type="number" id="inlineCompareMinN" value="${minN}" min="0" max="500" step="1" style="width:50px; padding:1px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;" onchange="app.setInlineCompareMinN(this.value)"></label>
+            <label style="display:inline-flex; align-items:center; gap:4px;">Hide rows with &lt;
+                <span style="display:inline-flex; align-items:center; gap:2px;">
+                    <button type="button" onclick="app.adjustNumber('inlineCompareMinN', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
+                    <input type="number" id="inlineCompareMinN" value="${minN}" min="0" max="500" step="1" style="width:46px; padding:1px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;" onchange="app.setInlineCompareMinN(this.value)">
+                    <button type="button" onclick="app.adjustNumber('inlineCompareMinN', 1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
+                </span>
+                cells in either group</label>
             ${hiddenByMinN > 0 ? `<span style="color:#9ca3af;">${hiddenByMinN} row${hiddenByMinN === 1 ? '' : 's'} hidden</span>` : ''}
             <span style="color:#9ca3af; font-size:10px;">N column = how many cells share this ${(subsetLabel || 'subset').toLowerCase()}; the WT / ${mutLabel || 'Mut'} columns are <b>${mainGene || 'main gene'}</b> stratification <em>within</em> that subset.</span>
         </div>`;
