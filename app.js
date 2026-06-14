@@ -19363,8 +19363,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._resetGEFilters();
         const search = document.getElementById('geneEffectSearch'); if (search) search.value = '';
         const cur = document.getElementById('geneEffectCurrentGene'); if (cur) cur.textContent = '';
-        this._geScanTypes = { hotspot: true, fusion: true, cn: true };
-        ['geScanHotspot', 'geScanFusion', 'geScanCn'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = true; });
+        this._geScanTypes = { hotspot: true, fusion: false, cn: false };
+        const _scH = document.getElementById('geScanHotspot'); if (_scH) _scH.checked = true;
+        const _scF = document.getElementById('geScanFusion'); if (_scF) _scF.checked = false;
+        const _scC = document.getElementById('geScanCn'); if (_scC) _scC.checked = false;
         this.geChartWidthRatio = 1; this.geChartHeightRatio = 1;
         const zl = document.getElementById('geShowZeroLine'); if (zl) zl.checked = true;
         this._geUserTitlePos = null; this._geUserXLabelPos = null; this._geUserYLabelPos = null;
@@ -19696,7 +19698,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     // Toggle which feature types the "By genetic change" scan includes.
     setGEScanType(type, on) {
-        this._geScanTypes = this._geScanTypes || { hotspot: true, fusion: true, cn: true };
+        this._geScanTypes = this._geScanTypes || { hotspot: true, fusion: false, cn: false };
         this._geScanTypes[type] = !!on;
         // Keep at least one type on.
         if (!this._geScanTypes.hotspot && !this._geScanTypes.fusion && !this._geScanTypes.cn) {
@@ -19729,7 +19731,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // curated fusion, or focal amp / deep-del) and compares the target gene's
         // effect in cells WITH that feature vs WITHOUT (WT). Hotspot rows keep the
         // 0 / 1 / 2 dose levels; fusion / CN rows are binary (carriers go in level 1).
-        const inc = this._geScanTypes || (this._geScanTypes = { hotspot: true, fusion: true, cn: true });
+        const inc = this._geScanTypes || (this._geScanTypes = { hotspot: true, fusion: false, cn: false });
         const hotspotStats = [];
         const mkInfo = (d) => ({ geneEffect: d.geneEffect, cellLineName: d.cellLineName || d.cellLineId, cellLineId: d.cellLineId });
         const pushFeature = (group, type, clickVal, cellData0, cellData1, cellData2) => {
