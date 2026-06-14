@@ -7358,13 +7358,14 @@ class CorrelationExplorer {
         // span size so Plotly reserves the right line height, otherwise the bold
         // rows overlap. Desktop was 25 (too tall a block, overlapping the graph) —
         // 18 keeps it readable but compact.
-        const geTitleBaseFont = _gePhone ? Math.round(25 * _geFS) : 16;
-        // Line spacing for the title block. On desktop keep it tighter than the
-        // title size so the stats lines pack closely (a big line-height made the
-        // header look too spread out / take too much vertical room).
-        const geTitleLineFont = _gePhone ? geTitleBaseFont : 14;
+        const geTitleBaseFont = _gePhone ? Math.round(25 * _geFS) : 14;
+        // Keep the stats subtitle close in size to the title and use a small
+        // line-height so the rows pack tightly (a big line-height left the stats
+        // lines far apart). Desktop: title 14 / subtitle 12 / line-height 12.
+        const geSubFont = _gePhone ? Math.round(geTitleBaseFont * 0.6) : 12;
+        const geTitleLineFont = _gePhone ? geTitleBaseFont : 12;
         const geTitleAnn = {
-            text: this._computeGETitleText(titleText, subtitleText, geTitleBaseFont, 'geneEffectPlot', geTitleMaxW),
+            text: this._computeGETitleText(titleText, subtitleText, geTitleBaseFont, 'geneEffectPlot', geTitleMaxW, geSubFont),
             xref: 'paper', yref: 'paper',
             x: this._geUserTitlePos ? this._geUserTitlePos.x : geTitleX,
             // Desktop: anchor the block's BOTTOM just above the plot and grow up
@@ -19154,7 +19155,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
     }
 
-    _computeGETitleText(titleText, subtitleText, baseFontSize, plotDivId, maxWidthOverride) {
+    _computeGETitleText(titleText, subtitleText, baseFontSize, plotDivId, maxWidthOverride, subFontSizeOverride) {
         const container = plotDivId ? document.getElementById(plotDivId) : null;
         const containerWidth = container?.clientWidth || 600;
         // The title/subtitle are centered on the plot area (paper x=0.5), which is
@@ -19194,7 +19195,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (subtitleText) {
             // Scale the subtitle with the title's base font, so on phones (smaller
             // base) the stats line shrinks too and wraps into far fewer rows.
-            const subFontSize = Math.round(baseFontSize * 0.6);
+            const subFontSize = subFontSizeOverride || Math.round(baseFontSize * 0.6);
             const segs = String(subtitleText).split('<br>');
             const wrapped = [];
             for (const seg of segs) {
