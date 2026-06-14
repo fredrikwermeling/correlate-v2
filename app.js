@@ -7390,7 +7390,7 @@ class CorrelationExplorer {
             text: xLabelText,
             xref: 'paper', yref: 'paper',
             x: this._geUserXLabelPos ? this._geUserXLabelPos.x : 0.5,
-            y: this._geUserXLabelPos ? this._geUserXLabelPos.y : -0.20,
+            y: this._geUserXLabelPos ? this._geUserXLabelPos.y : (_gePhone ? -0.11 : -0.20),
             xanchor: this._geUserXLabelPos ? 'auto' : 'center',
             yanchor: this._geUserXLabelPos ? 'auto' : 'top',
             showarrow: false,
@@ -7429,7 +7429,7 @@ class CorrelationExplorer {
                 tickfont: { size: yTickFontSize }
             },
             showlegend: false,
-            margin: { t: _gePhone ? 120 : 180, r: 30, b: _gePhone ? 52 : 75, l: yFit.marginL },
+            margin: { t: _gePhone ? 120 : 180, r: 30, b: _gePhone ? 64 : 75, l: yFit.marginL },
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
