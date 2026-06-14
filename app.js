@@ -19640,6 +19640,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.renderGETable(tableStats, 'tissue');
     }
 
+    // Toggle which feature types the "By genetic change" scan includes.
+    setGEScanType(type, on) {
+        this._geScanTypes = this._geScanTypes || { hotspot: true, fusion: true, cn: true };
+        this._geScanTypes[type] = !!on;
+        // Keep at least one type on.
+        if (!this._geScanTypes.hotspot && !this._geScanTypes.fusion && !this._geScanTypes.cn) {
+            this._geScanTypes[type] = true;
+            const cb = document.getElementById(type === 'hotspot' ? 'geScanHotspot' : type === 'fusion' ? 'geScanFusion' : 'geScanCn');
+            if (cb) cb.checked = true;
+            return;
+        }
+        this.renderGeneEffectByHotspot();
+    }
+
     renderGeneEffectByHotspot() {
         if (!this.currentGeneEffect) {
             document.getElementById('geneEffectHotspotPlot').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">No gene selected</div>';
@@ -19657,77 +19671,70 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const isGrowthHS = gene === 'Growth Rate';
         const isGeneSetHS = !isGrowthHS && !this.geneIndex.has(gene?.toUpperCase?.());
 
-        // Calculate stats for each hotspot gene, keeping cell-level data for box plots
-        // Now showing 3 levels: 0 (WT), 1, and 2 mutations
+        // "By genetic change" scan: each row is a genetic feature (hotspot gene,
+        // curated fusion, or focal amp / deep-del) and compares the target gene's
+        // effect in cells WITH that feature vs WITHOUT (WT). Hotspot rows keep the
+        // 0 / 1 / 2 dose levels; fusion / CN rows are binary (carriers go in level 1).
+        const inc = this._geScanTypes || (this._geScanTypes = { hotspot: true, fusion: true, cn: true });
         const hotspotStats = [];
-
-        this.mutations.genes.forEach(hotspotGene => {
-            const mutData = this.mutations.geneData?.[hotspotGene]?.mutations || {};
-
-            const cellData0 = []; // WT (0 mutations)
-            const cellData1 = []; // 1 mutation
-            const cellData2 = []; // 2 mutations
-
-            data.forEach(d => {
-                const mutLevel = mutData[d.cellLineId] || 0;
-                const cellInfo = {
-                    geneEffect: d.geneEffect,
-                    cellLineName: d.cellLineName || d.cellLineId,
-                    cellLineId: d.cellLineId
-                };
-                if (mutLevel === 0) {
-                    cellData0.push(cellInfo);
-                } else if (mutLevel === 1) {
-                    cellData1.push(cellInfo);
-                } else {
-                    cellData2.push(cellInfo);
-                }
-            });
-
-            // Require at least 3 in WT and at least 1 mutant cell (combine 1+2 for significance)
+        const mkInfo = (d) => ({ geneEffect: d.geneEffect, cellLineName: d.cellLineName || d.cellLineId, cellLineId: d.cellLineId });
+        const pushFeature = (group, type, clickVal, cellData0, cellData1, cellData2) => {
             const mutCellData = [...cellData1, ...cellData2];
-            if (mutCellData.length >= 1 && cellData0.length >= 3) {
-                const effects0 = cellData0.map(c => c.geneEffect);
-                const effects1 = cellData1.map(c => c.geneEffect);
-                const effects2 = cellData2.map(c => c.geneEffect);
-                const effectsMut = mutCellData.map(c => c.geneEffect);
+            if (mutCellData.length < 1 || cellData0.length < 3) return;
+            const eff = arr => arr.map(c => c.geneEffect);
+            const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+            const sd = (a, m) => Math.sqrt(a.reduce((x, y) => x + Math.pow(y - m, 2), 0) / a.length);
+            const e0 = eff(cellData0), e1 = eff(cellData1), e2 = eff(cellData2), eMut = eff(mutCellData);
+            const mean0 = mean(e0), sd0 = sd(e0, mean0);
+            const mean1 = e1.length ? mean(e1) : NaN, sd1 = e1.length > 1 ? sd(e1, mean1) : NaN;
+            const mean2 = e2.length ? mean(e2) : NaN, sd2 = e2.length > 1 ? sd(e2, mean2) : NaN;
+            const tTest = eMut.length >= 3 ? this.welchTTest(e0, eMut) : { p: 1 };
+            hotspotStats.push({
+                group, type, clickVal,
+                n0: cellData0.length, n1: cellData1.length, n2: cellData2.length, nMut: mutCellData.length,
+                mean0, mean1, mean2, sd0, sd1, sd2, diff: mean(eMut) - mean0, pValue: tTest.p,
+                cellData0, cellData1, cellData2
+            });
+        };
 
-                const mean0 = effects0.reduce((a, b) => a + b, 0) / effects0.length;
-                const sd0 = Math.sqrt(effects0.reduce((a, b) => a + Math.pow(b - mean0, 2), 0) / effects0.length);
-
-                const mean1 = effects1.length > 0 ? effects1.reduce((a, b) => a + b, 0) / effects1.length : NaN;
-                const sd1 = effects1.length > 1 ? Math.sqrt(effects1.reduce((a, b) => a + Math.pow(b - mean1, 2), 0) / effects1.length) : NaN;
-
-                const mean2 = effects2.length > 0 ? effects2.reduce((a, b) => a + b, 0) / effects2.length : NaN;
-                const sd2 = effects2.length > 1 ? Math.sqrt(effects2.reduce((a, b) => a + Math.pow(b - mean2, 2), 0) / effects2.length) : NaN;
-
-                // p-value comparing WT vs 1+2 combined (for ranking)
-                const tTest = effectsMut.length >= 3 ? this.welchTTest(effects0, effectsMut) : { p: 1 };
-                const diff = effectsMut.length > 0 ? effectsMut.reduce((a, b) => a + b, 0) / effectsMut.length - mean0 : 0;
-
-                hotspotStats.push({
-                    group: hotspotGene,
-                    n0: cellData0.length,
-                    n1: cellData1.length,
-                    n2: cellData2.length,
-                    nMut: mutCellData.length,
-                    mean0,
-                    mean1,
-                    mean2,
-                    sd0,
-                    sd1,
-                    sd2,
-                    diff,
-                    pValue: tTest.p,
-                    cellData0,
-                    cellData1,
-                    cellData2
-                });
-            }
+        // Hotspot mutations (0 / 1 / 2 levels)
+        if (inc.hotspot) this.mutations.genes.forEach(hotspotGene => {
+            const mutData = this.mutations.geneData?.[hotspotGene]?.mutations || {};
+            const c0 = [], c1 = [], c2 = [];
+            data.forEach(d => { const l = mutData[d.cellLineId] || 0; (l === 0 ? c0 : l === 1 ? c1 : c2).push(mkInfo(d)); });
+            pushFeature(hotspotGene, 'hotspot', hotspotGene, c0, c1, c2);
         });
 
+        // Curated fusions (★ clinical driver pairs + validated fusion genes), binary
+        if (inc.fusion) {
+            const fus = [];
+            if (this.clinicalFusions?.fusionData) for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
+                const cells = fd.cellLines || {};
+                fus.push({ label: `★ ${fname}`, clickVal: fname, has: (cl) => cl in cells });
+            }
+            if (Array.isArray(this._fusionGeneCounts)) for (const { gene: fg } of this._fusionGeneCounts) {
+                const td = this.translocations?.geneData?.[fg]?.translocations; if (!td) continue;
+                fus.push({ label: fg, clickVal: fg, has: (cl) => (td[cl] || 0) >= 1 });
+            }
+            for (const f of fus) {
+                const c0 = [], c1 = [];
+                data.forEach(d => { (f.has(d.cellLineId) ? c1 : c0).push(mkInfo(d)); });
+                pushFeature(f.label, 'fusion', f.clickVal, c0, c1, []);
+            }
+        }
+
+        // Focal CN events (▲ amplification / ▼ deep deletion), binary
+        if (inc.cn) {
+            for (const it of (this._ensureGlobalFilterItems().cn || [])) {
+                const label = `${it.kind === 'amp' ? '▲' : '▼'} ${it.gene} ${it.kind === 'amp' ? 'amp' : 'del'}`;
+                const c0 = [], c1 = [];
+                data.forEach(d => { (this._cellLinePassesCnFilter(d.cellLineId, it.value) ? c1 : c0).push(mkInfo(d)); });
+                pushFeature(label, 'cn', it.value, c0, c1, []);
+            }
+        }
+
         if (hotspotStats.length === 0) {
-            document.getElementById('geneEffectHotspotPlot').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">No hotspots with sufficient data (need ≥3 mutant and ≥3 WT cells)</div>';
+            document.getElementById('geneEffectHotspotPlot').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">No genetic changes with sufficient data (need ≥3 with the change and ≥3 without)</div>';
             document.getElementById('geneEffectTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #6b7280;">Insufficient data</td></tr>';
             return;
         }
@@ -19757,7 +19764,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (s.cellData2.length > 0) {
                 traces.push({
                     type: 'box',
-                    name: '2 mutations',
+                    name: '2 hits',
                     legendgroup: '2',
                     showlegend: show2Legend,
                     y: Array(s.cellData2.length).fill(yLabel),
@@ -19777,7 +19784,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (s.cellData1.length > 0) {
                 traces.push({
                     type: 'box',
-                    name: '1 mutation',
+                    name: 'Altered',
                     legendgroup: '1',
                     showlegend: show1Legend,
                     y: Array(s.cellData1.length).fill(yLabel),
@@ -19796,7 +19803,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // WT trace (blue) - 0 mutations - added last, appears at top
             traces.push({
                 type: 'box',
-                name: '0 (WT)',
+                name: 'WT',
                 legendgroup: '0',
                 showlegend: show0Legend,
                 y: Array(s.cellData0.length).fill(yLabel),
@@ -19820,7 +19827,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const layout = {
             annotations: [
-                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : this._geMetric().full} by Hotspot Mutation</b><br><span style="font-size:10px;color:#6b7280;">n=${data.length}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''}${pFilter ? ' | p<0.05' : ''}</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
+                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : this._geMetric().full} by genetic change</b><br><span style="font-size:10px;color:#6b7280;">n=${data.length}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''}${pFilter ? ' | p<0.05' : ''}</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
                 { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} ${this._geMetric().full}`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
@@ -19857,6 +19864,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const tableSource = topStats;
         const tableStats = tableSource.map(s => ({
             group: s.group,
+            type: s.type,
+            clickVal: s.clickVal,
             n0: s.n0,
             n1: s.n1,
             n2: s.n2,
@@ -19907,22 +19916,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             </tr>`;
             this.renderGETableBody(stats, mode);
         } else {
-            const hg = this.mutationResults?.hotspotGene || 'Hotspot';
-            const isT = this.mutationResults?.isTranslocation;
-            const wtLbl = isT ? 'No Fusion' : `${hg} WT`;
-            const mutLbl = isT ? 'Fused' : `${hg} Mut`;
+            // "By genetic change" scan: each row is its own feature, so WT / Altered
+            // are relative to that row's change (not one fixed gene).
             const gene = this.currentGeneEffect?.gene || '';
             const _isGr2 = gene === 'Growth Rate';
             const _isGs2 = !_isGr2 && !this.geneIndex.has(gene?.toUpperCase?.());
             const vLbl = _isGr2 ? 'Growth' : _isGs2 ? 'Score' : this._geMetric().short;
             thead.innerHTML = `<tr>
-                <th style="${headerStyle}" data-sort="group" data-type="string">Gene${sortIcon}</th>
-                <th style="${headerStyle}; border-left: 2px solid #2563eb;" data-sort="n0" data-type="number">N (${wtLbl})${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean0" data-type="number">${vLbl} (${wtLbl})${sortIcon}</th>
-                <th style="${headerStyle}; border-left: 2px solid #f97316;" data-sort="n1" data-type="number">N (${mutLbl} 1)${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean1" data-type="number">${vLbl} (${mutLbl} 1)${sortIcon}</th>
-                <th style="${headerStyle}; border-left: 2px solid #dc2626;" data-sort="n2" data-type="number">N (${mutLbl} 2${isT ? '+' : ''})${sortIcon}</th>
-                <th style="${headerStyle}" data-sort="mean2" data-type="number">${vLbl} (${mutLbl} 2${isT ? '+' : ''})${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="group" data-type="string">Genetic change${sortIcon}</th>
+                <th style="${headerStyle}; border-left: 2px solid #2563eb;" data-sort="n0" data-type="number">N (WT)${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="mean0" data-type="number">${vLbl} (WT)${sortIcon}</th>
+                <th style="${headerStyle}; border-left: 2px solid #f97316;" data-sort="n1" data-type="number">N (Altered)${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="mean1" data-type="number">${vLbl} (Altered)${sortIcon}</th>
+                <th style="${headerStyle}; border-left: 2px solid #dc2626;" data-sort="n2" data-type="number">N (2 hits)${sortIcon}</th>
+                <th style="${headerStyle}" data-sort="mean2" data-type="number">${vLbl} (2 hits)${sortIcon}</th>
                 <th style="${headerStyle}; border-left: 2px solid #6b7280;" data-sort="diff" data-type="number">Δ ${vLbl}${sortIcon}</th>
                 <th style="${headerStyle}" data-sort="pValue" data-type="number">p-value${sortIcon}</th>
             </tr>`;
@@ -19983,7 +19990,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const mean2Str = isNaN(s.mean2) ? '-' : s.mean2.toFixed(2);
                 const diffStr = s.diff !== undefined ? s.diff.toFixed(2) : '-';
                 const diffColor = s.diff > 0 ? '#16a34a' : s.diff < 0 ? '#dc2626' : '#374151';
-                tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" style="cursor: pointer;">
+                tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" data-ftype="${s.type || 'hotspot'}" data-clickval="${(s.clickVal || s.group).replace(/"/g, '&quot;')}" style="cursor: pointer;">
                     <td>${s.group}</td>
                     <td style="text-align: center; color: #2563eb; border-left: 2px solid #2563eb;">${s.n0}</td>
                     <td style="text-align: center; color: #2563eb;">${s.mean0.toFixed(2)}</td>
@@ -20012,7 +20019,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
                 const group = row.dataset.group;
                 if (mode === 'hotspot') {
-                    this._enterMutationInspectFromStandalone(group);
+                    // Row click drills into that genetic change: hotspot genes open
+                    // Mutation Inspect; fusions / CN apply that filter on the By Tissue plot.
+                    const ftype = row.dataset.ftype || 'hotspot';
+                    const cv = row.dataset.clickval || group;
+                    if (ftype === 'fusion') {
+                        const el = document.getElementById('geFusionFilter');
+                        if (el) { el.value = cv; this.switchGeneEffectView('tissue'); }
+                    } else if (ftype === 'cn') {
+                        const el = document.getElementById('geCnFilter');
+                        if (el) { el.value = cv; this.switchGeneEffectView('tissue'); }
+                    } else {
+                        this._enterMutationInspectFromStandalone(cv);
+                    }
                 } else {
                     this.showGEDetailedView(group, mode);
                 }
