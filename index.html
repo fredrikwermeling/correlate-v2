@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.1 (2026-06-14)</strong></p>
+                <ul>
+                    <li>Set Parameters (correlation): the Hotspot filter is now a searchable, curated, context-aware picker like Gene Effect, keeping the WT / 1 / 2 / 1+2 level selector (defaults to 1+2 when you pick a gene). Added a new Copy Number filter (focal amp &#9650; / deep deletion &#9660;) with "with event" vs WT, which restricts the correlation cohort. (Fusion picker and the other popouts follow in the next updates.)</li>
+                </ul>
                 <p><strong>v.84.0 (2026-06-14)</strong></p>
                 <ul>
                     <li>Results "Correlations" table: simplified the actions column to just the <strong>Scatter</strong> button and renamed the column to "Correlation" (By Tissue / By Hotspot are reachable from inside the scatter view).</li>
@@ -3629,7 +3633,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.0</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.1</a>
     </div>
 
     <div class="main-content">
@@ -3845,9 +3849,10 @@
                             <button id="oncoprintBtn" type="button" style="padding: 2px 8px; font-size: 10px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show oncoprint of top hotspot mutations">Oncoprint</button>
                         </div>
                         <div id="paramHotspotControls">
-                            <select id="paramHotspotGene" class="form-control" style="margin-bottom: 4px;">
-                                <option value="">No filter</option>
-                            </select>
+                            <div style="position:relative;">
+                                <input type="text" id="paramHotspotGene" class="form-control" placeholder="Search hotspot gene..." autocomplete="off" style="margin-bottom: 4px;">
+                                <div id="paramHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                            </div>
                             <select id="paramHotspotLevel" class="form-control">
                                 <option value="all">All cells</option>
                                 <option value="0">Only WT (0 mutations)</option>
@@ -3857,6 +3862,18 @@
                             </select>
                         </div>
                         <div id="oncoprintFilterLabel" style="display:none; font-size:11px; color:#5a9f4a; margin-top:4px; cursor:pointer;" title="Click to clear oncoprint filters"></div>
+                    </div>
+
+                    <div class="form-group" id="paramCnFilterGroup" style="display: none;">
+                        <label class="form-label">Copy Number Filter:</label>
+                        <div style="position:relative;">
+                            <input type="text" id="paramCnFilter" class="form-control" placeholder="Amp &#9650; / deep-del &#9660;..." autocomplete="off" style="margin-bottom: 4px;">
+                            <div id="paramCnDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                        </div>
+                        <select id="paramCnLevel" class="form-control">
+                            <option value="altered">Only with this CN event</option>
+                            <option value="wt">Only without (WT)</option>
+                        </select>
                     </div>
 
                     <div class="form-group" id="paramTranslocationFilterGroup" style="display: none;">
@@ -5928,6 +5945,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_0"></script>
+    <script src="app.js?v=v84_1"></script>
 </body>
 </html>
