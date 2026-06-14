@@ -18923,7 +18923,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         } else {
             document.getElementById('geByTissueView').style.display = 'none';
             document.getElementById('geByHotspotView').style.display = 'block';
-            if (statsExplanation) statsExplanation.textContent = "Scan: 3 mutation levels 0 (WT) / 1 / 2 per hotspot gene. p-value: Welch's t-test comparing 1+2 combined vs WT.";
+            if (statsExplanation) statsExplanation.textContent = "Scan: each genetic change (mutation / fusion / amp-del) — cells with it (Altered) vs without (WT). p-value: Welch's t-test.";
+            // Default the p < 0.05 filter on the first visit to this scan.
+            if (!this._geScanPDefaulted) {
+                this._geScanPDefaulted = true;
+                const pf = document.getElementById('gePvalueFilter');
+                if (pf) pf.checked = true;
+            }
             this.renderGeneEffectByHotspot();
         }
         this._updateGEPlaceholderVisibility();
@@ -19902,14 +19908,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Calculate dynamic sizing
         const numEntries = topStats.length;
-        const tickFontSize = numEntries > 15 ? 8 : 9;
+        const tickFontSize = numEntries > 15 ? 10 : 12;
         const boxHeight = numEntries > 15 ? 35 : 45;
         const chartHeight = Math.max(400, numEntries * boxHeight + 100);
 
         const layout = {
             annotations: [
-                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : this._geMetric().full} by genetic change</b><br><span style="font-size:10px;color:#6b7280;">n=${data.length}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''}${pFilter ? ' | p<0.05' : ''}</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.12, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 13 }, _tsRole: 'title' },
-                { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} ${this._geMetric().full}`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.04, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 12 }, _tsRole: 'xlabel' }
+                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : this._geMetric().full} by genetic change</b><br><span style="font-size:11px;color:#6b7280;">n=${data.length}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''}${pFilter ? ' | p<0.05' : ''}</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.24, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 15 }, _tsRole: 'title' },
+                { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} ${this._geMetric().full}`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.16, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 15 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
                 zeroline: true,
@@ -19925,10 +19931,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             boxmode: 'group',
             boxgap: 0.1,
             boxgroupgap: 0.05,
-            margin: { t: 90, b: 50, l: 10, r: 30 },
+            margin: { t: 130, b: 78, l: 10, r: 30 },
             height: chartHeight,
             showlegend: true,
-            legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 10 }, bgcolor: 'white', traceorder: 'reversed' },
+            legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 11 }, bgcolor: 'white', traceorder: 'reversed' },
             paper_bgcolor: 'white',
             plot_bgcolor: 'white'
         };

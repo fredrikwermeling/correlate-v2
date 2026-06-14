@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.83.92 (2026-06-14)</strong></p>
+                <ul>
+                    <li>By genetic change: defaults to the p &lt; 0.05 filter on first open; fixed the legend overlapping the n=… line and the x-axis label sitting on the tick numbers; bigger axis-label and row-label fonts.</li>
+                </ul>
                 <p><strong>v.83.91 (2026-06-14)</strong></p>
                 <ul>
                     <li>Fixed: on the Gene Effect by-mutation plot the rotated y-axis label could be missing on screen (it showed in exports). Its position was measured before the chart was sized to its width, pushing it off-screen; the chart is now sized first.</li>
@@ -3589,7 +3593,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.91</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.83.92</a>
     </div>
 
     <div class="main-content">
@@ -5888,6 +5892,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v83_91"></script>
+    <script src="app.js?v=v83_92"></script>
 </body>
 </html>
