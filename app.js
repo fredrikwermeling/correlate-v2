@@ -7620,8 +7620,9 @@ class CorrelationExplorer {
                 this._handleGEGateShapeRelayout(relayoutData);
             });
         });
-        // Click a cell-line point to open it in the Cell Line Browser.
-        this._attachDotShiftOpen('geneEffectPlot');
+        // Hover a dot for the cell line's executive summary; single-click toggles
+        // its name label, double-click opens its Wiki, Shift-click opens the browser.
+        this._attachGECellInteractivity('geneEffectPlot');
 
         // Show GE gate controls in mutation inspect mode
         const geGateCtrl = document.getElementById('geGateControls');
@@ -17104,19 +17105,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Highlight the Options card while the workspace is locked, so it's the
         // obvious place to start; drop the highlight once Analysis is clicked.
         document.getElementById('optionsCard')?.classList.toggle('options-highlight', locked);
-        // While locked, "Analysis" is the emphasized (filled green) action;
-        // once unlocked it drops to the same green-outline style as its peers.
+        // "Analysis" looks the same as the other tool buttons (green outline) at
+        // all times, the Options box itself is what's emphasised on load.
         const startBtn = document.getElementById('startAnalysisBtn');
         if (startBtn) {
-            startBtn.classList.toggle('btn-success', locked);
-            startBtn.classList.toggle('btn-outline', !locked);
-            startBtn.style.color = locked ? '' : 'var(--green-700)';
-            startBtn.style.borderColor = locked ? '' : 'var(--green-400)';
+            startBtn.classList.remove('btn-success');
+            startBtn.classList.add('btn-outline');
+            startBtn.style.color = 'var(--green-700)';
+            startBtn.style.borderColor = 'var(--green-400)';
         }
         const hint = document.getElementById('optionsBannerHint');
         if (hint) {
             hint.innerHTML = locked
-                ? 'Click <b>Analysis</b> to set parameters and build a network, or jump straight to a tool.'
+                ? 'Pick a tool to get started, or click Analysis to set parameters and build a correlation network.'
                 : 'Set parameters and enter a gene set in boxes 1 and 2, then build a network.';
         }
     }
@@ -19670,7 +19671,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true, edits: { annotationPosition: true }, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'] });
         this._attachGEGateHandler('geneEffectPlot');
-        this._attachDotShiftOpen('geneEffectPlot');
+        this._attachGECellInteractivity('geneEffectPlot');
 
         // Highlight cell line if requested (from CLB gene link or cell line search)
         const highlightCl = this._geHighlightCellLine;
@@ -23001,6 +23002,54 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             hoverTimer = setTimeout(() => this.showCellLineTooltip(ev, id), 180);
         });
         el.on('plotly_unhover', () => { clearTimeout(hoverTimer); this.hideCellLineTooltip(); });
+    }
+
+    // Click behaviour for a cell-line dot plot: single click toggles a name label
+    // on the dot, double click opens that cell line's Wiki on top (closing it
+    // returns to the plot), and Shift-click opens the Cell Line Browser.
+    _attachDotClickLabelWiki(plotId) {
+        const el = document.getElementById(plotId);
+        if (!el || !el.on) return;
+        const extract = (pt) => Array.isArray(pt.customdata) ? pt.customdata[pt.customdata.length - 1] : pt.customdata;
+        el.removeAllListeners?.('plotly_click');
+        let clickTimer = null;
+        el.on('plotly_click', (eventData) => {
+            const pt = eventData.points?.[0];
+            if (!pt || !Number.isInteger(pt.pointNumber)) return;
+            const id = extract(pt);
+            if (typeof id !== 'string' || !id) return;
+            if (eventData.event?.shiftKey) { clearTimeout(clickTimer); clickTimer = null; this._openCellLineInBrowser(id); return; }
+            if (clickTimer) {                    // second click within the window = double-click
+                clearTimeout(clickTimer); clickTimer = null;
+                this.hideCellLineTooltip?.();
+                this.openCellLineWiki(id);
+                return;
+            }
+            clickTimer = setTimeout(() => { clickTimer = null; this._toggleDotLabel(plotId, pt, id); }, 260);
+        });
+    }
+
+    // Toggle a small name label (with a leader line) on a clicked dot.
+    _toggleDotLabel(plotId, pt, id) {
+        const el = document.getElementById(plotId);
+        if (!el?.layout) return;
+        const name = this.getCellLineName(id) || id;
+        const anns = (el.layout.annotations || []).slice();
+        const idx = anns.findIndex(a => a._dotLabel === id);
+        if (idx >= 0) anns.splice(idx, 1);
+        else anns.push({
+            x: pt.x, y: pt.y, xref: 'x', yref: 'y', text: name,
+            showarrow: true, arrowhead: 0, arrowwidth: 1, arrowcolor: '#6b7280', ax: 0, ay: -18,
+            font: { size: 10, color: '#111' }, bgcolor: 'rgba(255,255,255,0.88)',
+            bordercolor: '#d1d5db', borderwidth: 1, borderpad: 2, _dotLabel: id
+        });
+        Plotly.relayout(plotId, { annotations: anns });
+    }
+
+    // Wire hover (exec summary) + click (label / double-click Wiki) on a GE dot plot.
+    _attachGECellInteractivity(plotId) {
+        this._attachDotHoverSummary(plotId);
+        this._attachDotClickLabelWiki(plotId);
     }
 
     // ===== Inline Compare by Tissue/Hotspot (in inspect modal) =====
