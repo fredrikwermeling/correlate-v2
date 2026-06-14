@@ -7323,6 +7323,14 @@ class CorrelationExplorer {
                 `${tick1Label} (n=${data.mut1.length})`,
                 `${tick2Label} (n=${data.mut2.length})`
             ];
+        // Size the chart container to its width ratio BEFORE measuring, so the
+        // y-axis label is positioned against the real plot width (it was computed
+        // against a stale width, which pushed the rotated label off-screen on the
+        // live plot while the export re-rendered it correctly).
+        {
+            const _gec = document.getElementById('geChartContainer');
+            if (_gec) _gec.style.flex = `0 0 ${Math.round((this.geChartWidthRatio || 1.0) * 55)}%`;
+        }
         const yFit = this._computeGEYAxisLayout(yTickTexts, yTickFontSize, yLabelFontSize, 'geneEffectPlot');
 
         // The title is centered on the plot area, which is offset right by the
@@ -7591,12 +7599,7 @@ class CorrelationExplorer {
         // Update target gene label in the expression correlates panel
         document.getElementById('exprCorrelatesTargetGene').textContent = gene.toUpperCase();
 
-        // Apply current width ratio to container
-        const container = document.getElementById('geChartContainer');
-        const ratio = this.geChartWidthRatio || 1.0;
-        if (container) {
-            container.style.flex = `0 0 ${Math.round(ratio * 55)}%`;
-        }
+        // (Chart container width is set above, before the y-axis label is measured.)
 
         Plotly.newPlot('geneEffectPlot', traces, layout, {
             responsive: true,
