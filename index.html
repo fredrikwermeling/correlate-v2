@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.2 (2026-06-14)</strong></p>
+                <ul>
+                    <li>Set Parameters (correlation): the Fusion filter is now the searchable, curated &#9733; clinical-driver-pair picker (matching Gene Effect), with WT vs with-fusion (defaults to with-fusion on pick). All cohort consumers (network, oncoprint, mutation-analysis additional filter) updated to the curated-pair model. Picking any hotspot / fusion / CN now defaults its level to "altered" every time.</li>
+                </ul>
                 <p><strong>v.84.1 (2026-06-14)</strong></p>
                 <ul>
                     <li>Set Parameters (correlation): the Hotspot filter is now a searchable, curated, context-aware picker like Gene Effect, keeping the WT / 1 / 2 / 1+2 level selector (defaults to 1+2 when you pick a gene). Added a new Copy Number filter (focal amp &#9650; / deep deletion &#9660;) with "with event" vs WT, which restricts the correlation cohort. (Fusion picker and the other popouts follow in the next updates.)</li>
@@ -3633,7 +3637,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.1</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.2</a>
     </div>
 
     <div class="main-content">
@@ -3878,9 +3882,10 @@
 
                     <div class="form-group" id="paramTranslocationFilterGroup" style="display: none;">
                         <label class="form-label">Fusion Filter:</label>
-                        <select id="paramTranslocationGene" class="form-control" style="margin-bottom: 4px;">
-                            <option value="">No filter</option>
-                        </select>
+                        <div style="position:relative;">
+                            <input type="text" id="paramTranslocationGene" class="form-control" placeholder="Search fusion (&#9733; driver pairs)..." autocomplete="off" style="margin-bottom: 4px;">
+                            <div id="paramTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                        </div>
                         <select id="paramTranslocationLevel" class="form-control">
                             <option value="all">All cells</option>
                             <option value="0">Only WT (no fusion)</option>
@@ -5945,6 +5950,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_1"></script>
+    <script src="app.js?v=v84_2"></script>
 </body>
 </html>
