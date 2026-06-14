@@ -4514,9 +4514,7 @@ class CorrelationExplorer {
                 this.mutationResults.additionalHotspot = '';
                 this.mutationResults.additionalHotspotLevel = 'all';
             }
-            if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
-                this.showGeneEffectDistribution(this.currentGeneEffectGene);
-            }
+            this._rerenderCurrentGEView();
         });
         // GE Gate controls
         document.getElementById('geSetGateABtn')?.addEventListener('click', () => this.startGEGateSelection('A'));
@@ -18810,7 +18808,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Show hotspot/fusion filters in standalone mode (hide mutation-inspect-only controls)
         document.getElementById('geCompareButtons').style.display = 'none';
-        document.getElementById('geResetFiltersBtn').style.display = 'none';
+        // Reset Filters stays available in the standalone (By Tissue / By genetic
+        // change) views too, since those have the same tissue / hotspot / fusion / CN filters.
+        document.getElementById('geResetFiltersBtn').style.display = '';
         document.getElementById('geInlineCompareTable').style.display = 'none';
         document.getElementById('geHotspotGeneGroup').style.display = 'none';
 
