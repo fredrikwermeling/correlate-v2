@@ -9023,7 +9023,7 @@ class CorrelationExplorer {
                     <td>${c.n}</td>
                     <td>${c.cluster}</td>
                     <td style="white-space: nowrap;">
-                        <button class="btn btn-sm inspect-btn" style="padding: 2px 6px; font-size: 10px; background: #5a9f4a; color: white;" data-gene1="${c.gene1}" data-gene2="${c.gene2}">Scatter</button>
+                        <button class="btn btn-sm inspect-btn" style="padding: 2px 6px; font-size: 10px; background: #5a9f4a; color: white;" data-gene1="${c.gene1}" data-gene2="${c.gene2}">Correlation</button>
                     </td>
                 `;
                 // Add click handlers
@@ -9129,7 +9129,7 @@ class CorrelationExplorer {
         }
 
         // Add actions column
-        headerCells += `<th style="text-align: center;">Correlation</th>`;
+        headerCells += `<th style="text-align: center;">Analyze</th>`;
 
         thead.innerHTML = `<tr>${headerCells}</tr>`;
 
@@ -27039,7 +27039,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbSexFilter').addEventListener('change', () => this.renderCellLineList());
         // Hotspot filter, custom multi-line dropdown (same pattern as fusion/CN).
         const clbHotspotInput = document.getElementById('clbHotspotFilter');
-        clbHotspotInput.addEventListener('change', () => this.renderCellLineList());
+        clbHotspotInput.addEventListener('change', () => { if (clbHotspotInput.value) { const lv = document.getElementById('clbHotspotLevel'); if (lv) lv.value = '1+2'; } this.renderCellLineList(); });
+        document.getElementById('clbHotspotLevel')?.addEventListener('change', () => this.renderCellLineList());
         clbHotspotInput.addEventListener('input', () => {
             this._renderHotspotFilterDropdown(clbHotspotInput.value, { items: this._buildFilterItems('hotspot', this._clbCohortExcluding('hotspot')) });
             const dd = document.getElementById('clbHotspotDropdown');
@@ -27058,7 +27059,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!wrap.contains(e.target)) dd.style.display = 'none';
         });
         const clbTransInput = document.getElementById('clbTranslocationFilter');
-        clbTransInput.addEventListener('change', () => this.renderCellLineList());
+        clbTransInput.addEventListener('change', () => { if (clbTransInput.value) { const lv = document.getElementById('clbFusionLevel'); if (lv) lv.value = '1+2'; } this.renderCellLineList(); });
+        document.getElementById('clbFusionLevel')?.addEventListener('change', () => this.renderCellLineList());
         clbTransInput.addEventListener('input', () => {
             // Re-render dropdown with current typed text as filter, and apply
             // the cell-line filter when the input is cleared.
@@ -27084,7 +27086,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Focal CN filter, same dropdown pattern as fusion filter.
         const clbCnInput = document.getElementById('clbCnFilter');
         if (clbCnInput) {
-            clbCnInput.addEventListener('change', () => this.renderCellLineList());
+            clbCnInput.addEventListener('change', () => { if (clbCnInput.value) { const lv = document.getElementById('clbCnLevel'); if (lv) lv.value = 'altered'; } this.renderCellLineList(); });
+            document.getElementById('clbCnLevel')?.addEventListener('change', () => this.renderCellLineList());
             clbCnInput.addEventListener('input', () => {
                 this._renderCnFilterDropdown(clbCnInput.value, { items: this._buildFilterItems('cn', this._clbCohortExcluding('cn')) });
                 const dd = document.getElementById('clbCnDropdown');
@@ -27248,6 +27251,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('clbHotspotFilter').value = '';
             document.getElementById('clbTranslocationFilter').value = '';
         const _clbCn = document.getElementById('clbCnFilter'); if (_clbCn) _clbCn.value = '';
+            const _chl = document.getElementById('clbHotspotLevel'); if (_chl) _chl.value = '1+2';
+            const _cfl = document.getElementById('clbFusionLevel'); if (_cfl) _cfl.value = '1+2';
+            const _ccl = document.getElementById('clbCnLevel'); if (_ccl) _ccl.value = 'altered';
             document.getElementById('clbSortBy').value = 'name';
             document.getElementById('clbSortGene').value = '';
             // The sort-gene input lives inside clbSortGeneWrap (added in
@@ -27584,6 +27590,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbHotspotFilter').value = '';
         document.getElementById('clbTranslocationFilter').value = '';
         const _clbCn = document.getElementById('clbCnFilter'); if (_clbCn) _clbCn.value = '';
+        const _chl2 = document.getElementById('clbHotspotLevel'); if (_chl2) _chl2.value = '1+2';
+        const _cfl2 = document.getElementById('clbFusionLevel'); if (_cfl2) _cfl2.value = '1+2';
+        const _ccl2 = document.getElementById('clbCnLevel'); if (_ccl2) _ccl2.value = 'altered';
         this._clbCollectionStates.clear();
         this._renderCollectionPanel();
         document.getElementById('clbDetailPanel').classList.remove('active');
@@ -27632,10 +27641,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hotspotGene = kind === 'hotspot' ? '' : document.getElementById('clbHotspotFilter').value;
         const transGene = kind === 'fusion' ? '' : document.getElementById('clbTranslocationFilter').value;
         const cnFilterValue = kind === 'cn' ? '' : (document.getElementById('clbCnFilter')?.value || '');
+        const hotspotLvl = document.getElementById('clbHotspotLevel')?.value || '1+2';
+        const fusionLvl = document.getElementById('clbFusionLevel')?.value || '1+2';
+        const cnLvl = document.getElementById('clbCnLevel')?.value || 'altered';
         const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
-        const transKey = this._stripFusionFilterDecoration(transGene);
-        const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
-        const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
         const collectionStates = this._clbCollectionStates;
         const collectionMem = this._collectionMembership || {};
         const set = new Set();
@@ -27643,10 +27652,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (tissue && this.getCellLineLineage(cl) !== tissue) continue;
             if (subtype && this.getCellLineSublineage(cl) !== subtype) continue;
             if (sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) continue;
-            if (hotspotMuts && !(hotspotMuts[cl] >= 1)) continue;
-            if (clinicalPairCells && !(cl in clinicalPairCells)) continue;
-            if (transMuts && !(transMuts[cl] >= 1)) continue;
-            if (cnFilterValue && !this._cellLinePassesCnFilter(cl, cnFilterValue)) continue;
+            if (hotspotMuts) { const l = hotspotMuts[cl] || 0; if (hotspotLvl === '0' ? l !== 0 : hotspotLvl === '1' ? l !== 1 : hotspotLvl === '2' ? l < 2 : l < 1) continue; }
+            if (transGene) { const has = this._geFusionPasses(cl, transGene); if (fusionLvl === '0' ? has : !has) continue; }
+            if (cnFilterValue) { const has = this._cellLinePassesCnFilter(cl, cnFilterValue); if (cnLvl === 'wt' ? has : !has) continue; }
             if (!this._cellLinePassesOncoprintFilters(cl)) continue;
             if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) continue;
             if (search) {
@@ -27675,19 +27683,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const sexFilter = document.getElementById('clbSexFilter').value;
         const hotspotGene = document.getElementById('clbHotspotFilter').value;
         const transGene = document.getElementById('clbTranslocationFilter').value;
+        const hotspotLvl = document.getElementById('clbHotspotLevel')?.value || '1+2';
+        const fusionLvl = document.getElementById('clbFusionLevel')?.value || '1+2';
+        const cnLvl = document.getElementById('clbCnLevel')?.value || 'altered';
         const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
-        const transKey = this._stripFusionFilterDecoration(transGene);
-        const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
-        const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
         const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
         return this.metadata.cellLines.filter(cl => {
             if (tissue && this.getCellLineLineage(cl) !== tissue) return false;
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
             if (sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
-            if (hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
-            if (clinicalPairCells && !(cl in clinicalPairCells)) return false;
-            if (transMuts && !(transMuts[cl] >= 1)) return false;
-            if (cnFilterValue && !this._cellLinePassesCnFilter(cl, cnFilterValue)) return false;
+            if (hotspotMuts) { const l = hotspotMuts[cl] || 0; if (hotspotLvl === '0' ? l !== 0 : hotspotLvl === '1' ? l !== 1 : hotspotLvl === '2' ? l < 2 : l < 1) return false; }
+            if (transGene) { const has = this._geFusionPasses(cl, transGene); if (fusionLvl === '0' ? has : !has) return false; }
+            if (cnFilterValue) { const has = this._cellLinePassesCnFilter(cl, cnFilterValue); if (cnLvl === 'wt' ? has : !has) return false; }
             if (!this._cellLinePassesOncoprintFilters(cl)) return false;
             if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) return false;
             if (search) {
@@ -28173,12 +28180,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const transGene = document.getElementById('clbTranslocationFilter').value;
 
         const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
-        // Same dual lookup as in the main filter, strip dropdown decoration
-        // ("★ BCR-ABL1 (n=11)" / "ABL1 (n=14)") to the underlying name.
-        const transKey = this._stripFusionFilterDecoration(transGene);
-        const clinicalPairCells = transKey && this.clinicalFusions?.fusionData?.[transKey]?.cellLines;
-        const transMuts = transKey && !clinicalPairCells && this.translocations?.geneData?.[transKey]?.translocations;
         const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
+        const hotspotLvl = document.getElementById('clbHotspotLevel')?.value || '1+2';
+        const fusionLvl = document.getElementById('clbFusionLevel')?.value || '1+2';
+        const cnLvl = document.getElementById('clbCnLevel')?.value || 'altered';
+        // Level-aware predicates shared with the main filter.
+        const hotspotPass = (cl) => { const l = hotspotMuts[cl] || 0; return hotspotLvl === '0' ? l === 0 : hotspotLvl === '1' ? l === 1 : hotspotLvl === '2' ? l >= 2 : l >= 1; };
+        const fusionPass = (cl) => { const has = this._geFusionPasses(cl, transGene); return fusionLvl === '0' ? !has : has; };
+        const cnPass = (cl) => { const has = this._cellLinePassesCnFilter(cl, cnFilterValue); return cnLvl === 'wt' ? !has : has; };
         const collectionStates = this._clbCollectionStates;
         const collectionMem = this._collectionMembership || {};
         const passesCollections = (cl) => {
@@ -28201,10 +28210,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (excludeFilter !== 'subtype' && subtype && this.getCellLineSublineage(cl) !== subtype) return false;
                 if (excludeFilter !== 'collection' && collectionStates.size > 0 && !passesCollections(cl)) return false;
                 if (excludeFilter !== 'sex' && sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
-                if (excludeFilter !== 'hotspot' && hotspotMuts && !(hotspotMuts[cl] >= 1)) return false;
-                if (excludeFilter !== 'translocation' && clinicalPairCells && !(cl in clinicalPairCells)) return false;
-                if (excludeFilter !== 'translocation' && transMuts && !(transMuts[cl] >= 1)) return false;
-                if (excludeFilter !== 'cnFilter' && cnFilterValue && !this._cellLinePassesCnFilter(cl, cnFilterValue)) return false;
+                if (excludeFilter !== 'hotspot' && hotspotMuts && !hotspotPass(cl)) return false;
+                if (excludeFilter !== 'translocation' && transGene && !fusionPass(cl)) return false;
+                if (excludeFilter !== 'cnFilter' && cnFilterValue && !cnPass(cl)) return false;
                 if (excludeFilter !== 'oncoprint' && !this._cellLinePassesOncoprintFilters(cl)) return false;
                 if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) return false;
                 return true;

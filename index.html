@@ -1485,6 +1485,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.7 (2026-06-15)</strong></p>
+                <ul>
+                    <li>Cell Line Browser filters: the hotspot / fusion / CN filters now have WT vs altered level selectors (default mutated 1+2 / fused / with-event), so you can list cells that are WT for a gene, not just carriers.</li>
+                    <li>Results Correlations tab: the action button is now labelled <strong>Correlation</strong> (was "Scatter").</li>
+                    <li>Results Clusters tab: the action column is now labelled <strong>Analyze</strong> (was mislabelled "Correlation"; it holds the Gene Effect button).</li>
+                </ul>
                 <p><strong>v.84.6 (2026-06-15)</strong></p>
                 <ul>
                     <li>Correlation Analysis popout: the hotspot / fusion / CN filters now have WT vs altered level selectors (default mutated 1+2 / fused / with-event), the active filters are listed under the plot title, and Reset no longer leaves a stale "All tissues (n=…)" count.</li>
@@ -3661,7 +3667,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.6</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.7</a>
     </div>
 
     <div class="main-content">
@@ -5572,26 +5578,41 @@
                fusion / CN filters (lists genes with live n= mutated counts;
                native datalist truncated options in Safari). Oncoprint button
                kept inline. -->
-          <div id="clbHotspotFilterWrap" style="position:relative; display:inline-flex; align-items:center; gap:4px;">
-            <input type="text" id="clbHotspotFilter" placeholder="Hotspot filter" autocomplete="off" style="width:140px;">
-            <button id="clbOncoprintBtn" type="button" style="padding:3px 6px; font-size:9px; background:#5a9f4a; color:white; border:none; border-radius:3px; cursor:pointer; white-space:nowrap;" title="Show oncoprint of hotspot mutations for filtered cell lines">Oncoprint</button>
-            <div id="clbHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+          <div id="clbHotspotFilterWrap" style="display:inline-flex; flex-direction:column; gap:2px; vertical-align:top;">
+            <div style="position:relative; display:inline-flex; align-items:center; gap:4px;">
+              <input type="text" id="clbHotspotFilter" placeholder="Hotspot filter" autocomplete="off" style="width:140px;">
+              <button id="clbOncoprintBtn" type="button" style="padding:3px 6px; font-size:9px; background:#5a9f4a; color:white; border:none; border-radius:3px; cursor:pointer; white-space:nowrap;" title="Show oncoprint of hotspot mutations for filtered cell lines">Oncoprint</button>
+              <div id="clbHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+            </div>
+            <select id="clbHotspotLevel" style="width:140px; font-size:10px; padding:1px 3px;">
+              <option value="1+2" selected>Mutated (1+2)</option><option value="1">Only 1 mut</option><option value="2">Only 2 mut</option><option value="0">Only WT</option>
+            </select>
           </div>
           <!-- Fusion filter, custom two-line dropdown (clinically relevant
                pairs at top with name + n + disease context, then gene-based
                long tail). Replaces a native datalist that Safari truncated to
                the input width and rendered unreadably. -->
-          <div id="clbFusionFilterWrap" style="position:relative; display:inline-block;">
-            <input type="text" id="clbTranslocationFilter" placeholder="Fusion filter" autocomplete="off" style="width:140px;">
-            <div id="clbTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+          <div id="clbFusionFilterWrap" style="display:inline-flex; flex-direction:column; gap:2px; vertical-align:top;">
+            <div style="position:relative;">
+              <input type="text" id="clbTranslocationFilter" placeholder="Fusion filter" autocomplete="off" style="width:140px;">
+              <div id="clbTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+            </div>
+            <select id="clbFusionLevel" style="width:140px; font-size:10px; padding:1px 3px;">
+              <option value="1+2" selected>Fused</option><option value="0">Only WT</option>
+            </select>
           </div>
           <!-- Focal CN filter, same multi-line dropdown pattern as fusion
                filter. Lists curated amplifications (▲) and TSG deletions
                (▼) with live n=. Selecting an entry filters the cell-line
                list to lines carrying that focal CN event. -->
-          <div id="clbCnFilterWrap" style="position:relative; display:inline-block;">
-            <input type="text" id="clbCnFilter" placeholder="CN amp/del filter" autocomplete="off" style="width:140px;">
-            <div id="clbCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:300px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+          <div id="clbCnFilterWrap" style="display:inline-flex; flex-direction:column; gap:2px; vertical-align:top;">
+            <div style="position:relative;">
+              <input type="text" id="clbCnFilter" placeholder="CN amp/del filter" autocomplete="off" style="width:140px;">
+              <div id="clbCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:300px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+            </div>
+            <select id="clbCnLevel" style="width:140px; font-size:10px; padding:1px 3px;">
+              <option value="altered" selected>With event</option><option value="wt">Only WT</option>
+            </select>
           </div>
           <select id="clbSortBy" style="font-size:12px;" title="Sort the cell line list">
             <option value="name">Sort: Name</option>
@@ -5991,6 +6012,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_6"></script>
+    <script src="app.js?v=v84_7"></script>
 </body>
 </html>
