@@ -3418,7 +3418,7 @@ class CorrelationExplorer {
             }
         }
         const cn = Object.entries(cnMap).map(([k, v]) => ({ value: k, gene: v.gene, kind: v.kind, count: v.n, context: v.context }));
-        cn.sort((a, b) => (a.kind !== b.kind) ? (a.kind === 'amp' ? -1 : 1) : b.count - a.count);
+        cn.sort((a, b) => b.count - a.count);
         this._globalFilterItems = { hotspot, fusion, cn };
         return this._globalFilterItems;
     }
@@ -3482,7 +3482,7 @@ class CorrelationExplorer {
                 for (const d of (entry.deletions || [])) { const k = `${d.gene}_del`; (cnMap[k] = cnMap[k] || { gene: d.gene, kind: 'del', n: 0, context: d.context }).n++; }
             }
             const items = Object.entries(cnMap).map(([k, v]) => ({ value: k, gene: v.gene, kind: v.kind, count: v.n, context: v.context }));
-            items.sort((a, b) => a.kind !== b.kind ? (a.kind === 'amp' ? -1 : 1) : b.count - a.count);
+            items.sort((a, b) => b.count - a.count);
             return items;
         }
         return [];
@@ -3589,12 +3589,13 @@ class CorrelationExplorer {
         const mutActive = !!document.getElementById('caHotspotFilter')?.value
             || !!document.getElementById('caFusionFilter')?.value
             || !!document.getElementById('caCnFilter')?.value;
-        if (!mutActive) return;
         const cur = sel.value;
-        const cohort = this._caCohortExcluding('tissue');
+        // Count within the active cohort when a filter is on, else the full data
+        // (also restores correct counts after Reset).
+        const cohort = mutActive ? this._caCohortExcluding('tissue') : null;
         const counts = {}; let total = 0;
         for (const p of this._corrAnalysisData.data) {
-            if (!cohort.has(p.cellLineId)) continue;
+            if (cohort && !cohort.has(p.cellLineId)) continue;
             total++;
             if (p.lineage) counts[p.lineage] = (counts[p.lineage] || 0) + 1;
         }
@@ -3609,20 +3610,18 @@ class CorrelationExplorer {
         const data = this._corrAnalysisData?.data || [];
         const tissue = document.getElementById('caTissueFilter')?.value || '';
         const hot = document.getElementById('caHotspotFilter')?.value || '';
+        const hotLvl = document.getElementById('caHotspotLevel')?.value || '1+2';
         const fus = document.getElementById('caFusionFilter')?.value || '';
+        const fusLvl = document.getElementById('caFusionLevel')?.value || '1+2';
         const cn = document.getElementById('caCnFilter')?.value || '';
+        const cnLvl = document.getElementById('caCnLevel')?.value || 'altered';
         const set = new Set();
         for (const p of data) {
             const cl = p.cellLineId;
             if (kind !== 'tissue' && tissue && p.lineage !== tissue) continue;
-            if (kind !== 'hotspot' && hot) { const mm = this.mutations?.geneData?.[hot]?.mutations || this.damagingMutations?.geneData?.[hot]?.mutations; if (!mm || !(mm[cl] >= 1)) continue; }
-            if (kind !== 'fusion' && fus) {
-                const fk = this._stripFusionFilterDecoration(fus);
-                const pair = this.clinicalFusions?.fusionData?.[fk]?.cellLines;
-                if (pair) { if (!(cl in pair)) continue; }
-                else { const td = this.translocations?.geneData?.[fk]?.translocations; if (!td || !(td[cl] >= 1)) continue; }
-            }
-            if (kind !== 'cn' && cn && !this._cellLinePassesCnFilter(cl, cn)) continue;
+            if (kind !== 'hotspot' && hot) { const mm = this.mutations?.geneData?.[hot]?.mutations || this.damagingMutations?.geneData?.[hot]?.mutations; const l = mm ? (mm[cl] || 0) : 0; if (hotLvl === '0' ? l !== 0 : hotLvl === '1' ? l !== 1 : hotLvl === '2' ? l < 2 : l < 1) continue; }
+            if (kind !== 'fusion' && fus) { const has = this._geFusionPasses(cl, fus); if (fusLvl === '0' ? has : !has) continue; }
+            if (kind !== 'cn' && cn) { const has = this._cellLinePassesCnFilter(cl, cn); if (cnLvl === 'wt' ? has : !has) continue; }
             set.add(cl);
         }
         return set;
@@ -4602,14 +4601,25 @@ class CorrelationExplorer {
             this._showCAResetBtn();
             this.switchCorrAnalysisView(this._caView || 'tissue');
         });
+        document.getElementById('caCnFilter')?.addEventListener('change', () => {
+            this._showCAResetBtn();
+            this.switchCorrAnalysisView(this._caView || 'tissue');
+        });
         document.getElementById('caResetFiltersBtn')?.addEventListener('click', () => {
             document.getElementById('caTissueFilter').value = '';
             document.getElementById('caHotspotFilter').value = '';
             document.getElementById('caFusionFilter').value = '';
             const caCnR = document.getElementById('caCnFilter'); if (caCnR) caCnR.value = '';
+            const hl = document.getElementById('caHotspotLevel'); if (hl) hl.value = '1+2';
+            const fl = document.getElementById('caFusionLevel'); if (fl) fl.value = '1+2';
+            const cl = document.getElementById('caCnLevel'); if (cl) cl.value = 'altered';
             document.getElementById('caHotspotBiasWarning').style.display = 'none';
             document.getElementById('caResetFiltersBtn').style.display = 'none';
             this.switchCorrAnalysisView(this._caView || 'tissue');
+        });
+        // Re-render when a filter level changes.
+        ['caHotspotLevel', 'caFusionLevel', 'caCnLevel'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', () => this.switchCorrAnalysisView(this._caView || 'tissue'));
         });
         document.getElementById('caShowAllBtn')?.addEventListener('click', () => {
             this._caDetailedView = null;
@@ -8966,11 +8976,13 @@ class CorrelationExplorer {
         this.edgeLegendValues = { minCorr, midCorr, maxCorr, widthMin, widthMid, widthMax };
 
         // Scale the on-screen legend by the current canvas zoom so its line
-        // widths match what vis-network actually paints. Clamped to [0.5, 3]
-        // so the legend block doesn't overflow or vanish.
+        // widths match what vis-network actually paints. Track the real zoom down
+        // to 0.15x (the old 0.5x floor made the legend ~2-3x too thick when zoomed
+        // far out); keep a 0.5px-per-line floor so the lines stay visible, and
+        // allow fractional heights so the three lines stay distinguishable.
         const rawScale = (this.network && typeof this.network.getScale === 'function') ? this.network.getScale() : 1;
-        const scale = Math.max(0.5, Math.min(rawScale, 3));
-        const scaled = (w) => Math.max(1, Math.round(w * scale));
+        const scale = Math.max(0.15, Math.min(rawScale, 3));
+        const scaled = (w) => Math.max(0.5, Math.round(w * scale * 10) / 10);
         const zoomHint = Math.abs(rawScale - 1) > 0.05
             ? ` <span style="color:#9ca3af; font-weight:400; font-size:10px;">(at current zoom ${rawScale.toFixed(2)}×)</span>`
             : '';
@@ -17831,9 +17843,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // filters, matching the Cell Line Browser. Reset on open; each re-renders.
         const caReRender = () => this.switchCorrAnalysisView(this._caView || 'tissue');
         ['caHotspotFilter', 'caFusionFilter', 'caCnFilter'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-        this._setupMutFilterWidget('hotspot', 'caHotspotFilter', 'caHotspotDropdown', caReRender, () => this._caCohortExcluding('hotspot'));
-        this._setupMutFilterWidget('fusion', 'caFusionFilter', 'caFusionDropdown', caReRender, () => this._caCohortExcluding('fusion'));
-        this._setupMutFilterWidget('cn', 'caCnFilter', 'caCnDropdown', caReRender, () => this._caCohortExcluding('cn'));
+        this._setupMutFilterWidget('hotspot', 'caHotspotFilter', 'caHotspotDropdown', () => { if (document.getElementById('caHotspotFilter').value) document.getElementById('caHotspotLevel').value = '1+2'; caReRender(); }, () => this._caCohortExcluding('hotspot'));
+        this._setupMutFilterWidget('fusion', 'caFusionFilter', 'caFusionDropdown', () => { if (document.getElementById('caFusionFilter').value) document.getElementById('caFusionLevel').value = '1+2'; caReRender(); }, () => this._caCohortExcluding('fusion'));
+        this._setupMutFilterWidget('cn', 'caCnFilter', 'caCnDropdown', () => { if (document.getElementById('caCnFilter').value) document.getElementById('caCnLevel').value = 'altered'; caReRender(); }, () => this._caCohortExcluding('cn'));
         const caHotWrap = document.getElementById('caHotspotFilterWrap');
         if (caHotWrap) caHotWrap.style.display = 'inline-block';
         const caFusWrap = document.getElementById('caFusionFilterWrap');
@@ -17857,31 +17869,41 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             filtered = filtered.filter(p => p.lineage === tissueVal);
         }
 
-        // Hotspot filter, only keep cell lines that have mutation in selected gene
-        // Check hotspot, then damaging mutations
+        // Hotspot filter (mutated 1+2 by default), with WT / 1 / 2 / 1+2 levels.
         const hotspotVal = document.getElementById('caHotspotFilter')?.value;
         if (hotspotVal) {
             const mutData = this.mutations?.geneData?.[hotspotVal]?.mutations
                 || this.damagingMutations?.geneData?.[hotspotVal]?.mutations
                 || {};
-            filtered = filtered.filter(p => (mutData[p.cellLineId] || 0) > 0);
+            const lvl = document.getElementById('caHotspotLevel')?.value || '1+2';
+            filtered = filtered.filter(p => {
+                const l = mutData[p.cellLineId] || 0;
+                if (lvl === '0') return l === 0;
+                if (lvl === '1') return l === 1;
+                if (lvl === '2') return l >= 2;
+                return l >= 1;
+            });
         }
 
-        // Fusion filter: curated clinical pair (★) by presence, else fusion gene.
+        // Fusion filter (curated pairs / validated genes), WT or fused.
         const fusionVal = document.getElementById('caFusionFilter')?.value;
         if (fusionVal) {
-            const fKey = this._stripFusionFilterDecoration(fusionVal);
-            const pair = this.clinicalFusions?.fusionData?.[fKey]?.cellLines;
-            if (pair) filtered = filtered.filter(p => p.cellLineId in pair);
-            else if (this.translocations?.geneData?.[fKey]) {
-                const fusionData = this.translocations.geneData[fKey].translocations || {};
-                filtered = filtered.filter(p => (fusionData[p.cellLineId] || 0) > 0);
-            }
+            const lvl = document.getElementById('caFusionLevel')?.value || '1+2';
+            filtered = filtered.filter(p => {
+                const has = this._geFusionPasses(p.cellLineId, fusionVal);
+                return lvl === '0' ? !has : has;
+            });
         }
 
-        // Focal CN (amp / deep-del) filter.
+        // Focal CN (amp / deep-del) filter, with event or WT.
         const caCnVal = document.getElementById('caCnFilter')?.value;
-        if (caCnVal) filtered = filtered.filter(p => this._cellLinePassesCnFilter(p.cellLineId, caCnVal));
+        if (caCnVal) {
+            const lvl = document.getElementById('caCnLevel')?.value || 'altered';
+            filtered = filtered.filter(p => {
+                const has = this._cellLinePassesCnFilter(p.cellLineId, caCnVal);
+                return lvl === 'wt' ? !has : has;
+            });
+        }
 
         return filtered;
     }
@@ -17932,6 +17954,31 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (explanation) explanation.textContent = "Shows WT (blue) vs mutated (red) correlation. p-value: Fisher z-test comparing the two correlations.";
             this.renderCorrAnalysisByHotspot();
         }
+    }
+
+    // Short text describing the active Correlation-Analysis filters (tissue +
+    // hotspot / fusion / CN with their level), shown under the plot title.
+    _getCAFilterDescription() {
+        const parts = [];
+        const tissue = document.getElementById('caTissueFilter')?.value;
+        if (tissue) parts.push(tissue);
+        const hot = document.getElementById('caHotspotFilter')?.value;
+        if (hot) {
+            const lvl = document.getElementById('caHotspotLevel')?.value || '1+2';
+            parts.push(`${hot}: ${lvl === '0' ? 'WT' : lvl === '1' ? '1 mut' : lvl === '2' ? '2 mut' : '1+2 mut'}`);
+        }
+        const fus = document.getElementById('caFusionFilter')?.value;
+        if (fus) {
+            const lvl = document.getElementById('caFusionLevel')?.value || '1+2';
+            parts.push(`${this._stripFusionFilterDecoration(fus)}: ${lvl === '0' ? 'no fusion' : 'fused'}`);
+        }
+        const cn = document.getElementById('caCnFilter')?.value;
+        if (cn) {
+            const lvl = document.getElementById('caCnLevel')?.value || 'altered';
+            const label = this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del');
+            parts.push(`${label}${lvl === 'wt' ? ' (WT)' : ''}`);
+        }
+        return parts.join(' | ');
     }
 
     renderCorrAnalysisByTissue() {
@@ -18019,7 +18066,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const chartHeight = Math.max(350, numEntries * rowHeight + 90);
 
         const layout = {
-            title: { text: `${d.gene1} vs ${d.gene2} Correlation by Cancer Type`, font: { size: 13 } },
+            title: { text: `${d.gene1} vs ${d.gene2} Correlation by Cancer Type${this._getCAFilterDescription() ? '<br><span style="font-size:11px;color:#6b7280;">' + this._getCAFilterDescription() + '</span>' : ''}`, font: { size: 13 } },
             xaxis: {
                 title: 'Correlation (r)',
                 range: [-1, 1],

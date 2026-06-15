@@ -1485,6 +1485,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.6 (2026-06-15)</strong></p>
+                <ul>
+                    <li>Correlation Analysis popout: the hotspot / fusion / CN filters now have WT vs altered level selectors (default mutated 1+2 / fused / with-event), the active filters are listed under the plot title, and Reset no longer leaves a stale "All tissues (n=…)" count.</li>
+                    <li>CN amp/del filter lists are now sorted purely by count (high to low), instead of all amplifications first then all deletions.</li>
+                    <li>Network edge-thickness legend now tracks the real zoom when zoomed far out (it was clamped and drew ~2-3x too thick at low zoom).</li>
+                </ul>
                 <p><strong>v.84.5 (2026-06-15)</strong></p>
                 <ul>
                     <li>Cell line CSV exports (full profile / gene info): the comment header lines no longer contain commas, so they stay in one column and the gene table parses cleanly in Excel / text-to-columns instead of opening misaligned.</li>
@@ -3655,7 +3661,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.5</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.6</a>
     </div>
 
     <div class="main-content">
@@ -5024,18 +5030,33 @@
                         <select id="caTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
                             <option value="">All tissues</option>
                         </select>
-                        <div id="caHotspotFilterWrap" style="position:relative; display:none;">
-                            <input type="text" id="caHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
-                            <div id="caHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                        <div id="caHotspotFilterWrap" style="display:none;">
+                            <div style="position:relative;">
+                                <input type="text" id="caHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
+                                <div id="caHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                            </div>
+                            <select id="caHotspotLevel" class="form-control" style="width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
+                                <option value="1+2" selected>Mutated (1+2)</option><option value="1">Only 1 mut</option><option value="2">Only 2 mut</option><option value="0">Only WT</option>
+                            </select>
                         </div>
                         <span id="caHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
-                        <div id="caFusionFilterWrap" style="position:relative; display:none;">
-                            <input type="text" id="caFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
-                            <div id="caFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                        <div id="caFusionFilterWrap" style="display:none;">
+                            <div style="position:relative;">
+                                <input type="text" id="caFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
+                                <div id="caFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                            </div>
+                            <select id="caFusionLevel" class="form-control" style="width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
+                                <option value="1+2" selected>Fused</option><option value="0">Only WT</option>
+                            </select>
                         </div>
-                        <div id="caCnFilterWrap" style="position:relative; display:none;">
-                            <input type="text" id="caCnFilter" class="form-control" placeholder="Amp / deep-del..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal CN filter, amplifications (▲) and deep deletions (▼)">
-                            <div id="caCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                        <div id="caCnFilterWrap" style="display:none;">
+                            <div style="position:relative;">
+                                <input type="text" id="caCnFilter" class="form-control" placeholder="Amp / deep-del..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal CN filter, amplifications (▲) and deep deletions (▼)">
+                                <div id="caCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                            </div>
+                            <select id="caCnLevel" class="form-control" style="width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
+                                <option value="altered" selected>With event</option><option value="wt">Only WT</option>
+                            </select>
                         </div>
                         <input type="text" id="caCellLineSearch" class="form-control mobile-hide" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
@@ -5970,6 +5991,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_5"></script>
+    <script src="app.js?v=v84_6"></script>
 </body>
 </html>
