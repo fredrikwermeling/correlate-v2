@@ -18917,12 +18917,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const statsExplanation = document.getElementById('geStatsExplanationText');
 
+        const chartCol = document.getElementById('geChartContainer');
         if (view === 'tissue') {
+            if (chartCol) chartCol.style.flex = '0 0 55%';
             document.getElementById('geByTissueView').style.display = 'block';
             document.getElementById('geByHotspotView').style.display = 'none';
             if (statsExplanation) statsExplanation.textContent = "p-values: Welch's t-test comparing each cancer type vs all other cell lines.";
             this.renderGeneEffectByTissue();
         } else {
+            // The by-genetic-change dot plot reads fine narrower, so give the
+            // statistics table more width (more genes / columns visible).
+            if (chartCol) chartCol.style.flex = '0 0 42%';
             document.getElementById('geByTissueView').style.display = 'none';
             document.getElementById('geByHotspotView').style.display = 'block';
             if (statsExplanation) statsExplanation.textContent = "Scan: each genetic change (mutation / fusion / amp-del) — cells with it (Altered) vs without (WT). p-value: Welch's t-test.";
@@ -19891,30 +19896,42 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Calculate dynamic sizing
         const numEntries = topStats.length;
         const tickFontSize = numEntries > 15 ? 10 : 12;
-        const boxHeight = numEntries > 15 ? 35 : 45;
-        const chartHeight = Math.max(400, numEntries * boxHeight + 100);
+        const boxHeight = numEntries > 15 ? 36 : 46;
+        const chartHeight = Math.max(360, numEntries * boxHeight + 120);
+
+        // Header / legend / x-label are placed a FIXED number of pixels from the
+        // edges. Plotly annotation y is relative to the plot-area height, so a
+        // hardcoded paper-y (e.g. 1.24) drifts far above the canvas on tall charts
+        // and the title gets clipped — compute it from the actual plot height.
+        const mt = 104, mb = 76;
+        const plotAreaH = Math.max(140, chartHeight - mt - mb);
+        const titleY = 1 + (mt - 50) / plotAreaH;   // title block ~50px from top
+        const legendY = 1 + (mt - 80) / plotAreaH;  // legend just under the title
+        const xlabelY = -(mb - 34) / plotAreaH;     // x-axis label ~34px below plot
 
         const layout = {
             annotations: [
-                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : this._geMetric().full} by genetic change</b><br><span style="font-size:11px;color:#6b7280;">n=${data.length}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''}${pFilter ? ' | p<0.05' : ''}</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: 1.24, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 15 }, _tsRole: 'title' },
-                { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} ${this._geMetric().full}`}`, xref: 'paper', yref: 'paper', x: 0.5, y: -0.16, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 15 }, _tsRole: 'xlabel' }
+                { text: `<b>${gene} ${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? 'Score' : this._geMetric().full} by genetic change</b><br><span style="font-size:11px;color:#6b7280;">n=${data.length}${this._getGEFilterDescription() ? ' | ' + this._getGEFilterDescription() : ''}${pFilter ? ' | p<0.05' : ''}</span>`, xref: 'paper', yref: 'paper', x: 0.5, y: titleY, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 15 }, _tsRole: 'title' },
+                { text: `${isGrowthHS ? 'Growth Rate' : isGeneSetHS ? `${gene} Score` : `${gene} ${this._geMetric().full}`}`, xref: 'paper', yref: 'paper', x: 0.5, y: xlabelY, xanchor: 'center', yanchor: 'top', showarrow: false, font: { size: 15 }, _tsRole: 'xlabel' }
             ],
             xaxis: {
                 zeroline: true,
-                zerolinecolor: '#374151',
-                zerolinewidth: 2
+                zerolinecolor: '#9ca3af',
+                zerolinewidth: 1,
+                showline: false
             },
             yaxis: {
                 automargin: true,
                 tickfont: { size: tickFontSize },
                 tickvals: yTickVals,
                 ticktext: yCategories,
-                range: [numEntries - 0.5, -0.5]
+                range: [numEntries - 0.5, -0.5],
+                showline: false
             },
-            margin: { t: 130, b: 78, l: 10, r: 30 },
+            margin: { t: mt, b: mb, l: 10, r: 30 },
             height: chartHeight,
             showlegend: true,
-            legend: { x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 11 }, bgcolor: 'white' },
+            legend: { x: 0.5, y: legendY, xanchor: 'center', yanchor: 'bottom', orientation: 'h', font: { size: 11 }, bgcolor: 'rgba(255,255,255,0)' },
             hovermode: 'closest',
             paper_bgcolor: 'white',
             plot_bgcolor: 'white'
@@ -32007,6 +32024,26 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     // pages) keeps the file a few MB instead of ~25 MB while
                     // staying crisp for text + the embedded chart images.
                     const canvas = await window.html2canvas(holder, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+                    // Collect real hyperlinks with their position in canvas pixels so
+                    // we can overlay clickable PDF link annotations on the (otherwise
+                    // flat) rasterised pages. Skip in-page #anchors and javascript:.
+                    const holderRect = holder.getBoundingClientRect();
+                    const pxScale = canvas.width / (holder.offsetWidth || canvas.width);
+                    const links = [];
+                    holder.querySelectorAll('a[href]').forEach(a => {
+                        const rawHref = a.getAttribute('href') || '';
+                        const url = a.href;
+                        if (!url || rawHref.startsWith('#') || /^javascript:/i.test(rawHref)) return;
+                        const r = a.getBoundingClientRect();
+                        if (r.width < 1 || r.height < 1) return;
+                        links.push({
+                            url,
+                            cx: (r.left - holderRect.left) * pxScale,
+                            cy: (r.top - holderRect.top) * pxScale,
+                            cw: r.width * pxScale,
+                            ch: r.height * pxScale
+                        });
+                    });
                     const pdf = new JS({ unit: 'pt', format: 'a4', compress: true });
                     const margin = 24;
                     const pageW = pdf.internal.pageSize.getWidth();
@@ -32046,6 +32083,13 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                         const jpeg = pageCanvas.toDataURL('image/jpeg', 0.82);
                         if (page > 0) pdf.addPage();
                         pdf.addImage(jpeg, 'JPEG', margin, margin, contentW, sliceH * ptPerPx);
+                        // Overlay clickable link rectangles for any hyperlink whose
+                        // top falls on this page slice (current page after addImage).
+                        for (const lk of links) {
+                            if (lk.cy >= y && lk.cy < y + sliceH) {
+                                pdf.link(margin + lk.cx * ptPerPx, margin + (lk.cy - y) * ptPerPx, lk.cw * ptPerPx, lk.ch * ptPerPx, { url: lk.url });
+                            }
+                        }
                         y += sliceH;
                         page++;
                     }
