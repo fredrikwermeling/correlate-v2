@@ -1485,6 +1485,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.5 (2026-06-15)</strong></p>
+                <ul>
+                    <li>Cell line CSV exports (full profile / gene info): the comment header lines no longer contain commas, so they stay in one column and the gene table parses cleanly in Excel / text-to-columns instead of opening misaligned.</li>
+                    <li>Cell Line Browser card: moved the Wiki button to just below the executive summary, above the Tissue row.</li>
+                </ul>
                 <p><strong>v.84.4 (2026-06-15)</strong></p>
                 <ul>
                     <li>Correlation scatter filters: picking a hotspot / fusion / CN event now defaults to the altered side (mutated 1+2 / fused / with-event); dropped the "All cells" option (clear the gene to turn a filter off); and the CN amp/del filter now has a with-event vs WT selector like the others.</li>
@@ -3650,7 +3655,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.4</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.5</a>
     </div>
 
     <div class="main-content">
@@ -5965,6 +5970,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_4"></script>
+    <script src="app.js?v=v84_5"></script>
 </body>
 </html>

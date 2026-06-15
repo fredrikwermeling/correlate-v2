@@ -28571,6 +28571,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         top += `<div class="clb-detail-id">${cellLineId}</div>`;
         // Executive summary, plain-language overview at the very top of the card.
         top += `<div class="clb-detail-section clb-keep-mobile" style="background:#f7fbf8; border:1px solid #e5e7eb; border-left:3px solid #15803d; border-radius:6px; padding:8px 10px; margin-bottom:10px;">${this._cellLineExecutiveSummary(cellLineId, { showId: false })}</div>`;
+        // Wiki entry-point sits just under the executive summary so the deep-dive
+        // is the first action, before the tissue / classification rows.
+        top += `<div class="clb-detail-section clb-keep-mobile" style="margin-bottom:12px;">`;
+        top += `<button id="clbWikiBtn" class="btn btn-outline btn-sm" style="width:100%; font-size:11px; padding:5px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open the cell line Wiki (patient origin, classification, mutation profile, fusions, signatures, STR authentication)">Wiki, deep dive on this cell line</button>`;
+        top += `</div>`;
         top += `<div class="clb-detail-section">`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Tissue</span><span class="clb-stat-value">${lineage || '-'}</span></div>`;
         // Subtype row, plus Lehmann TNBC subtype tag for breast lines
@@ -28677,12 +28682,6 @@ These are properties of the cell line itself, not its tumour microenvironment. M
             }
             immunologyHtml += `</div>`;
         }
-
-        // Wiki entry-point sits at the top so the user lands on the deep-dive
-        // before scrolling through the summary lists.
-        top += `<div class="clb-detail-section clb-keep-mobile" style="margin-bottom:12px;">`;
-        top += `<button id="clbWikiBtn" class="btn btn-outline btn-sm" style="width:100%; font-size:11px; padding:5px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open the cell line Wiki (patient origin, classification, mutation profile, fusions, signatures, STR authentication)">Wiki, deep dive on this cell line</button>`;
-        top += `</div>`;
 
         top += `<div class="clb-detail-section"><strong>Hotspot Mutations (${mutGenes.length})</strong>`;
         // Polymorphic loci (HLA / MIC / KIR) are excluded from mutGenes above,
@@ -32985,7 +32984,7 @@ ${clone.innerHTML}
             const n = name.replace(/,/g, '');
             headerParts.push(`${n}_GE`, `${n}_Expr`, `${n}_Hotspot`, `${n}_Damaging`, `${n}_Fusion`, `${n}_FocalCN`);
         }
-        const lines = [
+        const comments = [
             `# Full per-gene profile for ${clNames.length} cell line${clNames.length === 1 ? '' : 's'}`,
         ];
         // Identify each cell line and add a brief metadata summary (so the file is
@@ -32996,16 +32995,21 @@ ${clone.innerHTML}
             const subtype = this.getCellLineSublineage(clId) || '';
             let summary = '';
             try { summary = (this._cellLineExecutiveSummary(clId) || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); } catch (e) {}
-            lines.push(`# Cell line: ${clNames[c]} (${clId})${tissue ? ' | tissue: ' + tissue : ''}${subtype ? ' | subtype: ' + subtype : ''}`);
-            if (summary) lines.push(`# Summary (${clNames[c]}): ${summary}`);
+            comments.push(`# Cell line: ${clNames[c]} (${clId})${tissue ? ' | tissue: ' + tissue : ''}${subtype ? ' | subtype: ' + subtype : ''}`);
+            if (summary) comments.push(`# Summary (${clNames[c]}): ${summary}`);
         }
-        lines.push(
-            `# Columns per cell line: GE (CRISPR gene effect), Expr (log2 TPM+1), Hotspot (0/1/2), Damaging (0/1), Fusion (0/1/2), FocalCN (curated amp/deep-del, blank if none)`,
+        comments.push(
+            `# Columns per cell line: GE (CRISPR gene effect); Expr (log2 TPM+1); Hotspot (0/1/2); Damaging (0/1); Fusion (0/1/2); FocalCN (curated amp/deep-del; blank if none)`,
             `# Data source: DepMap ${DEPMAP_VERSION} (https://depmap.org/) - please acknowledge DepMap if you use this data`,
             `# Tsherniak A et al. Defining a Cancer Dependency Map. Cell. 2017.`,
-            `# Date: ${new Date().toISOString().slice(0, 10)}`,
-            headerParts.join(',')
+            `# Date: ${new Date().toISOString().slice(0, 10)}`
         );
+        // Comment lines must not contain the comma delimiter, or Excel/text-to-
+        // columns splits them across cells and the file opens misaligned. Strip any
+        // stray commas (e.g. in the executive summary) to ';' so each comment stays
+        // in a single column above the proper CSV table.
+        const lines = comments.map(c => c.replace(/,/g, ';'));
+        lines.push(headerParts.join(','));
         for (let g = 0; g < this.nGenes; g++) {
             const geneName = this.geneNames[g];
             const row = [geneName];
@@ -33071,12 +33075,14 @@ ${clone.innerHTML}
             header.push(`GE_${r.gene}`, `Expr_${r.gene}`, `Hotspot_${r.gene}`, `Damaging_${r.gene}`, `Fusion_${r.gene}`, `FocalCN_${r.gene}`);
         });
 
+        // Comment lines must stay comma-free so Excel / text-to-columns keeps them
+        // in a single column above the proper CSV table.
         const rows = [
             `# Per-gene profile for ${genes.length} gene${genes.length === 1 ? '' : 's'} across ${ids.length} ${source} cell line${ids.length === 1 ? '' : 's'}`,
-            `# Columns per gene: GE (CRISPR gene effect), Expr (log2 TPM+1), Hotspot (0/1/2), Damaging (0/1), Fusion (0/1/2), FocalCN (curated amp/deep-del, blank if none)`,
+            `# Columns per gene: GE (CRISPR gene effect); Expr (log2 TPM+1); Hotspot (0/1/2); Damaging (0/1); Fusion (0/1/2); FocalCN (curated amp/deep-del; blank if none)`,
             `# Data source: DepMap ${DEPMAP_VERSION} (https://depmap.org/) - please acknowledge DepMap if you use this data`,
-            header.join(',')
-        ];
+        ].map(c => c.replace(/,/g, ';'));
+        rows.push(header.join(','));
         for (const cl of ids) {
             const ci = clIndexOf.get(cl);
             const cnMap = this._cnEventMapForCellLine(cl);
