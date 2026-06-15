@@ -303,7 +303,7 @@ class CorrelationExplorer {
     // Filter/setting controls captured for "Open in new tab" so the new tab
     // reproduces the same view (not just the gene/pair).
     _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geFusionFilter', 'geCnFilter', 'geMinGroupSize', 'geCellLineSearch']; }
-    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
+    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterCnLevel', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
     _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCnFilter', 'caCellLineSearch']; }
 
     // Snapshot the underlying analysis/network so a new tab can rebuild the
@@ -3520,10 +3520,11 @@ class CorrelationExplorer {
         const cancer = document.getElementById('scatterCancerFilter')?.value || '';
         const subtype = document.getElementById('scatterSubtypeFilter')?.value || '';
         const mfg = document.getElementById('mutationFilterGene')?.value || '';
-        const mfl = document.getElementById('mutationFilterLevel')?.value || 'all';
+        const mfl = document.getElementById('mutationFilterLevel')?.value || '1+2';
         const tfg = document.getElementById('translocationFilterGene')?.value || '';
-        const tfl = document.getElementById('translocationFilterLevel')?.value || 'all';
+        const tfl = document.getElementById('translocationFilterLevel')?.value || '1+2';
         const cnv = document.getElementById('scatterCnFilter')?.value || '';
+        const cnl = document.getElementById('scatterCnLevel')?.value || 'altered';
         const set = new Set();
         for (const d of data) {
             const cl = d.cellLineId;
@@ -3532,17 +3533,18 @@ class CorrelationExplorer {
                 if (cancer && d.lineage !== cancer) continue;
                 if (subtype && this.cellLineMetadata?.primaryDisease?.[cl] !== subtype) continue;
             }
-            if (kind !== 'hotspot' && mfg && mfl !== 'all') {
+            if (kind !== 'hotspot' && mfg) {
                 const mm = (this.mutations?.geneData?.[mfg] || this.damagingMutations?.geneData?.[mfg])?.mutations;
-                if (mm) { const l = mm[cl] || 0; if (mfl === '0' && l !== 0) continue; if (mfl === '1' && l !== 1) continue; if (mfl === '2' && l < 2) continue; if (mfl === '1+2' && l < 1) continue; }
+                if (mm) { const l = mm[cl] || 0; if (mfl === '0' && l !== 0) continue; if (mfl === '1' && l !== 1) continue; if (mfl === '2' && l < 2) continue; if ((mfl === '1+2' || !mfl) && l < 1) continue; }
             }
             if (kind !== 'fusion' && tfg) {
-                const fk = this._stripFusionFilterDecoration(tfg);
-                const pair = this.clinicalFusions?.fusionData?.[fk]?.cellLines;
-                if (pair) { if (!(cl in pair)) continue; }
-                else if (this.translocations?.geneData?.[fk] && tfl !== 'all') { const t = this.translocations.geneData[fk].translocations; const l = t[cl] || 0; if (tfl === '0' && l !== 0) continue; if (tfl === '1' && l !== 1) continue; if (tfl === '2' && l < 2) continue; if (tfl === '1+2' && l < 1) continue; }
+                const has = this._geFusionPasses(cl, tfg);
+                if (tfl === '0' ? has : !has) continue;
             }
-            if (kind !== 'cn' && cnv && !this._cellLinePassesCnFilter(cl, cnv)) continue;
+            if (kind !== 'cn' && cnv) {
+                const has = this._cellLinePassesCnFilter(cl, cnv);
+                if (cnl === 'wt' ? has : !has) continue;
+            }
             set.add(cl);
         }
         return set;
@@ -3556,15 +3558,18 @@ class CorrelationExplorer {
     _updateScatterTissueOptions() {
         const sel = document.getElementById('scatterCancerFilter');
         if (!sel || !Array.isArray(this.currentInspect?.data)) return;
-        const mutActive = (document.getElementById('mutationFilterGene')?.value && document.getElementById('mutationFilterLevel')?.value !== 'all')
+        const mutActive = !!document.getElementById('mutationFilterGene')?.value
             || !!document.getElementById('translocationFilterGene')?.value
             || !!document.getElementById('scatterCnFilter')?.value;
-        if (!mutActive) return;
         const cur = sel.value;
-        const cohort = this._inspectCohortExcluding('tissue');
+        // With a hotspot/fusion/CN filter active, count within that cohort so the
+        // tissue list (and the "All tissues (n=…)" total) reflect it; with no
+        // filter use the full scatter cohort. Always rebuilding also fixes the
+        // stale count left over after Reset.
+        const cohort = mutActive ? this._inspectCohortExcluding('tissue') : null;
         const counts = {}; let total = 0;
         for (const d of this.currentInspect.data) {
-            if (!cohort.has(d.cellLineId)) continue;
+            if (cohort && !cohort.has(d.cellLineId)) continue;
             total++;
             if (d.lineage) counts[d.lineage] = (counts[d.lineage] || 0) + 1;
         }
@@ -4149,9 +4154,9 @@ class CorrelationExplorer {
             const subF = document.getElementById('scatterSubtypeFilter');
             if (subF) { subF.value = ''; subF.style.display = 'none'; }
             document.getElementById('mutationFilterGene').value = '';
-            document.getElementById('mutationFilterLevel').value = 'all';
+            document.getElementById('mutationFilterLevel').value = '1+2';
             document.getElementById('translocationFilterGene').value = '';
-            document.getElementById('translocationFilterLevel').value = 'all';
+            document.getElementById('translocationFilterLevel').value = '1+2';
             // Clear overlays
             document.getElementById('hotspotGene').value = '';
             document.getElementById('hotspotMode').value = 'color';
@@ -4221,6 +4226,7 @@ class CorrelationExplorer {
             if (val === '' || this.translocations?.geneData?.[val]) this.updateInspectPlot();
         });
         document.getElementById('translocationFilterLevel')?.addEventListener('change', () => this.updateInspectPlot());
+        document.getElementById('scatterCnLevel')?.addEventListener('change', () => this.updateInspectPlot());
 
         // Axis data type selectors (GE / Expression / Growth / Gene Set)
         const handleAxisTypeChange = (e, inputId, defaultPlaceholder) => {
@@ -11654,8 +11660,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const transGeneDatalist = document.getElementById('translocationGeneList');
             const transFilterGeneDatalist = document.getElementById('translocationFilterGeneList');
             if (transGeneDatalist && transFilterGeneDatalist) {
+                // Only curated / validated fusion genes (drop the noisy all-genes
+                // list). Fall back to the full list only if no curated genes map
+                // into the translocation data the overlay colours from.
+                const curated = this._fusionFilterData?.geneData
+                    ? Object.keys(this._fusionFilterData.geneData).filter(g => this.translocations.geneData?.[g])
+                    : null;
+                const overlayGenes = (curated && curated.length) ? curated : this.translocations.genes;
                 const geneCounts = [];
-                for (const g of this.translocations.genes) {
+                for (const g of overlayGenes) {
                     const d = this.translocations.geneData?.[g]?.translocations || {};
                     let count = 0;
                     for (const cl of cells) if (d[cl] && d[cl] > 0) count++;
@@ -11892,9 +11905,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Reset on open (the old <select>s rebuilt to "No filter" each time).
         const mfg = document.getElementById('mutationFilterGene'); if (mfg) mfg.value = '';
         const scf = document.getElementById('scatterCnFilter'); if (scf) scf.value = '';
-        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('hotspot'));
-        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('fusion'));
-        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('cn'));
+        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this._onInspectFilterPick('mutationFilterGene', 'mutationFilterLevel', '1+2'), () => this._inspectCohortExcluding('hotspot'));
+        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this._onInspectFilterPick('translocationFilterGene', 'translocationFilterLevel', '1+2'), () => this._inspectCohortExcluding('fusion'));
+        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this._onInspectFilterPick('scatterCnFilter', 'scatterCnLevel', 'altered'), () => this._inspectCohortExcluding('cn'));
         const scatterCnBox = document.getElementById('scatterCnFilterBox');
         if (scatterCnBox) scatterCnBox.style.display = this.clinicalCn?.byCellLine ? 'block' : 'none';
         // Compare row: Tissue / Hotspot always; Curated Fusion when clinical
@@ -12090,15 +12103,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.renderCellLineList();
     }
 
+    // When a scatter filter gene/event is picked, default its level to the
+    // "altered" option (mutated 1+2 / fused / with-event) so picking a feature
+    // immediately filters to the altered cells; then re-render.
+    _onInspectFilterPick(geneId, levelId, defLevel) {
+        const g = document.getElementById(geneId);
+        const lv = document.getElementById(levelId);
+        if (g && g.value && lv) lv.value = defLevel;
+        this.updateInspectPlot();
+    }
+
     resetAllInspectFilters() {
         // Reset cancer type and subtype filters
         document.getElementById('scatterCancerFilter').value = '';
         document.getElementById('scatterSubtypeFilter').value = '';
         document.getElementById('scatterSubtypeFilter').style.display = 'none';
 
-        // Reset mutation filters
+        // Reset mutation filters (gene cleared = filter off; level back to default)
         document.getElementById('mutationFilterGene').value = '';
-        document.getElementById('mutationFilterLevel').value = 'all';
+        document.getElementById('mutationFilterLevel').value = '1+2';
 
         // Reset hotspot overlay
         document.getElementById('hotspotGene').value = '';
@@ -12107,13 +12130,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Reset translocation filters
         document.getElementById('translocationFilterGene').value = '';
-        document.getElementById('translocationFilterLevel').value = 'all';
+        document.getElementById('translocationFilterLevel').value = '1+2';
         document.getElementById('translocationGene').value = '';
         document.getElementById('translocationMode').value = 'color';
 
         // Reset focal CN filter
         const cnReset = document.getElementById('scatterCnFilter');
         if (cnReset) cnReset.value = '';
+        const cnLevelReset = document.getElementById('scatterCnLevel');
+        if (cnLevelReset) cnLevelReset.value = 'altered';
 
         // Reset color-by
         document.getElementById('colorByCategory').value = '';
@@ -12174,43 +12199,38 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             );
         }
 
-        // Apply mutation filter (separate from overlay)
-        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
+        // Apply mutation filter (separate from overlay). Selecting a gene always
+        // filters (default level = mutated 1+2); clear the gene to turn it off.
+        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])) {
             const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
+            const lvl = mutFilterLevel || '1+2';
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
-                if (mutFilterLevel === '0') return mutLevel === 0;
-                if (mutFilterLevel === '1') return mutLevel === 1;
-                if (mutFilterLevel === '2') return mutLevel >= 2;
-                if (mutFilterLevel === '1+2') return mutLevel >= 1;
-                return true;
+                if (lvl === '0') return mutLevel === 0;
+                if (lvl === '1') return mutLevel === 1;
+                if (lvl === '2') return mutLevel >= 2;
+                return mutLevel >= 1; // 1+2
             });
         }
 
-        // Apply fusion filter: a curated clinical pair (★) filters by presence;
-        // a fusion gene honours the 0/1/2 level selector as before.
+        // Apply fusion filter (curated ★ driver pairs / validated genes), WT or
+        // fused. Uses _geFusionPasses so pairs and genes are handled the same way.
         if (transFilterGene) {
-            const fKey = this._stripFusionFilterDecoration(transFilterGene);
-            const pairCells = this.clinicalFusions?.fusionData?.[fKey]?.cellLines;
-            if (pairCells) {
-                filteredData = filteredData.filter(d => d.cellLineId in pairCells);
-            } else if (this.translocations?.geneData?.[fKey] && transFilterLevel !== 'all') {
-                const filterTrans = this.translocations.geneData[fKey].translocations;
-                filteredData = filteredData.filter(d => {
-                    const tLevel = filterTrans[d.cellLineId] || 0;
-                    if (transFilterLevel === '0') return tLevel === 0;
-                    if (transFilterLevel === '1') return tLevel === 1;
-                    if (transFilterLevel === '2') return tLevel >= 2;
-                    if (transFilterLevel === '1+2') return tLevel >= 1;
-                    return true;
-                });
-            }
+            const lvl = transFilterLevel || '1+2';
+            filteredData = filteredData.filter(d => {
+                const has = this._geFusionPasses(d.cellLineId, transFilterGene);
+                return lvl === '0' ? !has : has;
+            });
         }
 
-        // Apply focal CN (amp / deep-del) filter.
+        // Apply focal CN (amp / deep-del) filter, with event or WT.
         const cnFilterVal = document.getElementById('scatterCnFilter')?.value || '';
         if (cnFilterVal) {
-            filteredData = filteredData.filter(d => this._cellLinePassesCnFilter(d.cellLineId, cnFilterVal));
+            const cnLvl = document.getElementById('scatterCnLevel')?.value || 'altered';
+            filteredData = filteredData.filter(d => {
+                const has = this._cellLinePassesCnFilter(d.cellLineId, cnFilterVal);
+                return cnLvl === 'wt' ? !has : has;
+            });
         }
 
         // Apply custom cell line filter
@@ -12257,17 +12277,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (subtypeFilter) cancerText += ` / ${subtypeFilter}`;
             filterParts.push(`Cancer: ${cancerText}`);
         }
-        if (mutFilterGene && mutFilterLevel !== 'all') {
-            const levelText = mutFilterLevel === '0' ? 'WT' :
-                              mutFilterLevel === '1' ? '1 mut' :
-                              mutFilterLevel === '2' ? '2 mut' : '1+2 mut';
+        if (mutFilterGene) {
+            const lvl = mutFilterLevel || '1+2';
+            const levelText = lvl === '0' ? 'WT' : lvl === '1' ? '1 mut' : lvl === '2' ? '2 mut' : '1+2 mut';
             filterParts.push(`${mutFilterGene}: ${levelText}`);
         }
-        if (transFilterGene && transFilterLevel !== 'all') {
-            const levelText = transFilterLevel === '0' ? 'No fusion' :
-                              transFilterLevel === '1' ? '1 partner' :
-                              transFilterLevel === '2' ? '2+ partners' : '1+2 fused';
-            filterParts.push(`${transFilterGene}: ${levelText}`);
+        if (transFilterGene) {
+            const lvl = transFilterLevel || '1+2';
+            filterParts.push(`${this._stripFusionFilterDecoration(transFilterGene)}: ${lvl === '0' ? 'no fusion' : 'fused'}`);
+        }
+        if (cnFilterVal) {
+            const cnLvl = document.getElementById('scatterCnLevel')?.value || 'altered';
+            const cnLabel = this._stripCnFilterDecoration(cnFilterVal).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del');
+            filterParts.push(`${cnLabel}${cnLvl === 'wt' ? ' (WT)' : ''}`);
         }
         const filterDesc = filterParts.length > 0 ? filterParts.join(' | ') : '';
 
@@ -13534,7 +13556,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             <p style="font-size: 10px; color: #0c4a6e; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; margin-bottom: 8px;">
                 <b>Statistics:</b> p(Δr) uses Fisher z-transformation to test if correlations differ significantly between WT and mutant cells.
             </p>
-            <p style="font-size: 11px; color: #059669; margin-bottom: 8px;">Click any row to color scatter plot by that mutation</p>
+            <p style="font-size: 11px; color: #059669; margin-bottom: 8px;">Click any row to filter the scatter to that mutation (mutated 1+2)</p>
             <div class="table-container" style="max-height: 380px; overflow-y: auto;">
             <table id="compareMutationsTable" class="data-table" style="width: 100%; font-size: 11px;">
                 <thead>
@@ -13594,15 +13616,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.downloadFile(csv, csvName(`${gene1}_vs_${gene2}_all_mutations_comparison`), 'text/csv');
         });
 
-        // Add row click handlers to filter by mutation
+        // Add row click handlers: apply that mutation as a hotspot FILTER
+        // (mutated 1+2), so the scatter narrows to those cells.
         document.querySelectorAll('#compareMutationsTable .clickable-mut-row').forEach(row => {
             row.addEventListener('click', () => {
                 const mutGene = row.dataset.mutGene;
-                // Set the hotspot overlay and go back to scatter plot
-                document.getElementById('hotspotGene').value = mutGene;
-                document.getElementById('hotspotMode').value = 'color';
+                document.getElementById('mutationFilterGene').value = mutGene;
+                document.getElementById('mutationFilterLevel').value = '1+2';
                 document.getElementById('compareTable').style.display = 'none';
                 document.getElementById('scatterPlot').style.display = 'block';
+                this._styleActiveFilters?.();
                 this.updateInspectPlot();
             });
         });
@@ -13656,7 +13679,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (this.clinicalFusions?.fusionData) {
             for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
                 const cells = fd.cellLines || {};
-                subsets.push({ label: `★ ${fname}`, isCarrier: (cl) => cl in cells, colorGene: '' });
+                subsets.push({ label: `★ ${fname}`, isCarrier: (cl) => cl in cells, colorGene: '', filterKind: 'fusion', filterValue: fname });
             }
         }
         const vf = this.validatedFusions;
@@ -13664,7 +13687,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             for (const g of vf.genes) {
                 const td = vf.geneData?.[g]?.translocations || this.translocations?.geneData?.[g]?.translocations;
                 if (!td) continue;
-                subsets.push({ label: g, isCarrier: (cl) => (td[cl] || 0) >= 1, colorGene: g });
+                subsets.push({ label: g, isCarrier: (cl) => (td[cl] || 0) >= 1, colorGene: g, filterKind: 'fusion', filterValue: g });
             }
         }
         return subsets;
@@ -13676,7 +13699,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return items.map(it => ({
             label: `${it.kind === 'amp' ? '▲' : '▼'} ${it.gene} ${it.kind === 'amp' ? 'amp' : 'del'}`,
             isCarrier: (cl) => this._cellLinePassesCnFilter(cl, it.value),
-            colorGene: ''
+            colorGene: '', filterKind: 'cn', filterValue: it.value
         }));
     }
 
@@ -13699,7 +13722,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const z2 = 0.5 * Math.log((1 + cS.correlation) / (1 - cS.correlation));
             const se = Math.sqrt(1 / (wt.length - 3) + 1 / (carr.length - 3));
             const pR = 2 * (1 - this.normalCDF(Math.abs((z2 - z1) / se)));
-            rows.push({ label: sub.label, colorGene: sub.colorGene || '', nWT: wt.length, rWT: wtS.correlation, slopeWT: wtS.slope, nC: carr.length, rC: cS.correlation, slopeC: cS.slope, deltaR: cS.correlation - wtS.correlation, deltaSlope: cS.slope - wtS.slope, pR });
+            rows.push({ label: sub.label, colorGene: sub.colorGene || '', filterKind: sub.filterKind || '', filterValue: sub.filterValue || '', nWT: wt.length, rWT: wtS.correlation, slopeWT: wtS.slope, nC: carr.length, rC: cS.correlation, slopeC: cS.slope, deltaR: cS.correlation - wtS.correlation, deltaSlope: cS.slope - wtS.slope, pR });
         }
         rows.sort((a, b) => a.pR - b.pR);
         const filterInfo = filterDesc ? `<p style="font-size:11px;color:#333;margin-bottom:8px;background:#f0f9ff;padding:4px 8px;border-radius:4px;"><b>Filter:</b> ${filterDesc}</p>` : '';
@@ -13707,7 +13730,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         rows.forEach(row => {
             const dc = row.deltaR < 0 ? '#dc2626' : '#5a9f4a';
             const hl = row.pR < 0.05 ? 'background:#fef3c7;' : '';
-            html += `<tr class="${row.colorGene ? 'clickable-subset-row' : ''}" data-color-gene="${row.colorGene}" style="${hl}${row.colorGene ? 'cursor:pointer;' : ''}"><td><b>${row.label}</b></td><td style="text-align:center;border-left:2px solid #2563eb;">${row.nWT}</td><td style="text-align:center;">${row.rWT.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #dc2626;">${row.nC}</td><td style="text-align:center;">${row.rC.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #6b7280;color:${dc};font-weight:600;">${row.deltaR.toFixed(3)}</td><td style="text-align:center;">${row.pR.toExponential(1)}</td></tr>`;
+            const fv = String(row.filterValue || '').replace(/"/g, '&quot;');
+            html += `<tr class="clickable-subset-row" data-filter-kind="${row.filterKind}" data-filter-value="${fv}" style="${hl}cursor:pointer;"><td><b>${row.label}</b></td><td style="text-align:center;border-left:2px solid #2563eb;">${row.nWT}</td><td style="text-align:center;">${row.rWT.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #dc2626;">${row.nC}</td><td style="text-align:center;">${row.rC.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #6b7280;color:${dc};font-weight:600;">${row.deltaR.toFixed(3)}</td><td style="text-align:center;">${row.pR.toExponential(1)}</td></tr>`;
         });
         html += `</tbody></table></div><p style="font-size:11px;color:#666;margin-top:8px;">Yellow = p &lt; 0.05. ${o.biasNote || 'This analysis may be biased as these events select for cancer types.'}</p>`;
         document.getElementById('compareTable').innerHTML = html;
@@ -13722,12 +13746,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
         document.querySelectorAll(`#${tableId} .clickable-subset-row`).forEach(row => {
             row.addEventListener('click', () => {
-                const cg = row.dataset.colorGene;
-                if (!cg) return;
-                document.getElementById('translocationGene').value = cg;
-                document.getElementById('translocationMode').value = 'color';
+                const kind = row.dataset.filterKind;
+                const val = row.dataset.filterValue;
+                if (!kind || !val) return;
+                // Apply the specific filter for that row (fusion or CN event),
+                // defaulting to the altered side, then return to the scatter.
+                if (kind === 'fusion') {
+                    document.getElementById('translocationFilterGene').value = val;
+                    const lv = document.getElementById('translocationFilterLevel'); if (lv) lv.value = '1+2';
+                } else if (kind === 'cn') {
+                    document.getElementById('scatterCnFilter').value = val;
+                    const lv = document.getElementById('scatterCnLevel'); if (lv) lv.value = 'altered';
+                }
                 document.getElementById('compareTable').style.display = 'none';
                 document.getElementById('scatterPlot').style.display = 'block';
+                this._styleActiveFilters?.();
                 this.updateInspectPlot();
             });
         });
@@ -13743,7 +13776,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._renderSubsetCorrComparison(filteredData, gene1, gene2, filterDesc, this._curatedFusionSubsets(), {
             carrierWord: 'Fused', tableId: 'compareTranslocationsTable', subsetCol: 'Fusion',
             heading: `Fusions affecting ${gene1} vs ${gene2}`, csvStem: 'fusion_comparison',
-            clickNote: 'Click a fusion-gene row to color the scatter by that fusion',
+            clickNote: 'Click any row to filter the scatter to that curated fusion',
             biasNote: 'This analysis may be biased as fusions select for cancer types.'
         });
     }
@@ -13758,6 +13791,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._renderSubsetCorrComparison(filteredData, gene1, gene2, filterDesc, this._cnSubsets(), {
             carrierWord: 'CN+', tableId: 'compareCnTable', subsetCol: 'Focal CN event',
             heading: `Focal amp / deep-del affecting ${gene1} vs ${gene2}`, csvStem: 'cn_comparison',
+            clickNote: 'Click any row to filter the scatter to that CN event',
             biasNote: 'This analysis may be biased as CN events select for cancer types.'
         });
     }
@@ -18522,9 +18556,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Mirror the searchable filter widgets + compare-row visibility from the
         // primary populate (wiring is idempotent; no value reset here).
-        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('hotspot'));
-        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('fusion'));
-        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this.updateInspectPlot(), () => this._inspectCohortExcluding('cn'));
+        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this._onInspectFilterPick('mutationFilterGene', 'mutationFilterLevel', '1+2'), () => this._inspectCohortExcluding('hotspot'));
+        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this._onInspectFilterPick('translocationFilterGene', 'translocationFilterLevel', '1+2'), () => this._inspectCohortExcluding('fusion'));
+        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this._onInspectFilterPick('scatterCnFilter', 'scatterCnLevel', 'altered'), () => this._inspectCohortExcluding('cn'));
         const scatterCnBox2 = document.getElementById('scatterCnFilterBox');
         if (scatterCnBox2) scatterCnBox2.style.display = this.clinicalCn?.byCellLine ? 'block' : 'none';
         const cmpFusBtn2 = document.getElementById('compareAllTranslocationsBtn');
