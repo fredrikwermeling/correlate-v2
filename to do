@@ -1,3 +1,28 @@
+The app looks good on the functionality and UI. Here are a few things I found.
+
+1.	In the Analysis mode (building a network), view controls settings are not getting incorporated properly
+2.	In the Mutational analysis mode, once inside "inspect" changes in filters do not work properly/inconsistent
+3.	In the export settings (everywhere), scaling of Title and Subtitle is not consistent. Add option to change text beyond the title and subtitle
+4.	In screenshot option, the full content option captures only the .json file not the image. Add text saying a .json file will be downloaded alongside the image. 
+5.	In the correlation mode, when using find correlate button add number of cell line along with the |r| value for each gene. 
+
+Descriptive notes for the points above:
+1.	Changes made in Filter banner are not visible real time but getting incorporated in exported images, changes in Legend are changing real time but not getting incorporated in exported images)
+2.	Inspecting gene effects through the mutational analysis mode sometimes makes the app conserve filters applied during analysis. Resulting in inconsistent results when changing filters in the inspect mode specifically (Is not visible while using Gene effect option directly)
+3.	App seems to be having problems with remembering what the Title and the Subtitle is, thus having problems with any change in text/font size. Not a big issue. No option to change text about the stats on number of cells analysed etc. 
+4.	Visible area screenshot works fine. Full content is having issues
+5.	The top hits almost always seem to be based on 1-3 cells line which makes them more or less irrelevant. Having a cell line number count will help identifying which ones are worth looking into.
+
+In general, the new export functions (image, screenshot, etc) have bugs otherwise the app is working well. The phone app works fine but I see that it is having problem with the UI placement. 
+
+
+
+
+
+
+
+
+
 - Look at the correlation_network-2.pdf in download folder. the edge thickness needs to scale to the zoom. tsc1-tsc2 should be around 0.9, but it looks much smaller in the exported (while the on screen image seems to scale correctly).
 - I find HLA in several of the hotspot mutations filters. 
 
