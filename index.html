@@ -1485,6 +1485,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.8 (2026-06-16)</strong></p>
+                <ul>
+                    <li>Set Parameters: the Hotspot and Fusion filter dropdowns dropped the "All cells" option, so all three filters (hotspot / fusion / copy number) now consistently default to the altered side (clear the gene to turn a filter off).</li>
+                    <li>Condensed the bias note to "Selecting for genetic alterations can introduce unintended bias in analysis" with a "?" you can click for the fuller explanation.</li>
+                </ul>
                 <p><strong>v.84.7 (2026-06-15)</strong></p>
                 <ul>
                     <li>Cell Line Browser filters: the hotspot / fusion / CN filters now have WT vs altered level selectors (default mutated 1+2 / fused / with-event), so you can list cells that are WT for a gene, not just carriers.</li>
@@ -3667,7 +3672,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.7</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.8</a>
     </div>
 
     <div class="main-content">
@@ -3888,11 +3893,10 @@
                                 <div id="paramHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
                             <select id="paramHotspotLevel" class="form-control">
-                                <option value="all">All cells</option>
-                                <option value="0">Only WT (0 mutations)</option>
+                                <option value="1+2" selected>Only mutated (1+2)</option>
                                 <option value="1">Only 1 mutation</option>
                                 <option value="2">Only 2 mutations</option>
-                                <option value="1+2">Only mutated (1+2)</option>
+                                <option value="0">Only WT (0 mutations)</option>
                             </select>
                         </div>
                         <div id="oncoprintFilterLabel" style="display:none; font-size:11px; color:#5a9f4a; margin-top:4px; cursor:pointer;" title="Click to clear oncoprint filters"></div>
@@ -3917,12 +3921,13 @@
                             <div id="paramTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
                         <select id="paramTranslocationLevel" class="form-control">
-                            <option value="all">All cells</option>
+                            <option value="1+2" selected>Only with fusion</option>
                             <option value="0">Only WT (no fusion)</option>
-                            <option value="1+2">Only with fusion</option>
                         </select>
                         <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 4px; font-size: 9px; color: #92400e;">
-                            Selecting for mutations or fusions may introduce bias; they are often enriched in specific cancer types.
+                            Selecting for genetic alterations can introduce unintended bias in analysis.
+                            <span onclick="const d=this.nextElementSibling; d.style.display = d.style.display==='none'?'block':'none';" style="display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; background:#f59e0b; color:#fff; font-weight:700; font-size:9px; cursor:pointer; vertical-align:middle;" title="More about this bias">?</span>
+                            <span style="display:none; margin-top:4px;">Comparing cells that carry a genetic alteration to cells without it can mean comparing very different cancer types, which may bias the analysis. Narrow the cohort (tissue / subtype) so both groups come from the same context.</span>
                         </div>
                     </div>
                     </div> <!-- end card-content -->
@@ -6012,6 +6017,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_7"></script>
+    <script src="app.js?v=v84_8"></script>
 </body>
 </html>

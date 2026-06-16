@@ -1020,11 +1020,10 @@ class CorrelationExplorer {
 
         if (!gene || !this.mutations?.geneData?.[gene]) {
             levelSelect.innerHTML = `
-                <option value="all">All cells</option>
-                <option value="0">Only WT (0 mutations)</option>
+                <option value="1+2" selected>Only mutated (1+2)</option>
                 <option value="1">Only 1 mutation</option>
                 <option value="2">Only 2 mutations</option>
-                <option value="1+2">Only mutated (1+2)</option>
+                <option value="0">Only WT (0 mutations)</option>
             `;
             return;
         }
@@ -1055,15 +1054,12 @@ class CorrelationExplorer {
 
         const prev = levelSelect.value;
         levelSelect.innerHTML = `
-            <option value="all">All cells (n=${total})</option>
-            <option value="0">Only WT (n=${n0})</option>
+            <option value="1+2">Only mutated 1+2 (n=${nMut})</option>
             <option value="1">Only 1 mutation (n=${n1})</option>
             <option value="2">Only 2 mutations (n=${n2})</option>
-            <option value="1+2">Only mutated 1+2 (n=${nMut})</option>
+            <option value="0">Only WT (n=${n0})</option>
         `;
-        // Picking a gene implies you want the mutated cells, default to "Only
-        // mutated" rather than "All cells". Keep an explicit prior non-default
-        // pick (e.g. WT) if the user already chose one.
+        // Default to "mutated 1+2"; keep an explicit prior non-default pick.
         levelSelect.value = (prev && prev !== 'all') ? prev : '1+2';
     }
 
@@ -1098,9 +1094,8 @@ class CorrelationExplorer {
         if (!raw) {
             // Curated fusions are binary (a line carries the driver fusion or not).
             levelSelect.innerHTML = `
-                <option value="all">All cells</option>
+                <option value="1+2" selected>Only with fusion</option>
                 <option value="0">Only WT (no fusion)</option>
-                <option value="1+2">Only with fusion</option>
             `;
             return;
         }
@@ -1117,9 +1112,8 @@ class CorrelationExplorer {
 
         const prev = levelSelect.value;
         levelSelect.innerHTML = `
-            <option value="all">All cells (n=${total})</option>
-            <option value="0">Only WT (n=${n0})</option>
             <option value="1+2">Only with fusion (n=${nFused})</option>
+            <option value="0">Only WT (n=${n0})</option>
         `;
         // Default to the fused cells when a fusion is picked (see hotspot note).
         levelSelect.value = (prev && prev !== 'all') ? prev : '1+2';
@@ -17167,9 +17161,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         resetEl('lineageFilter', '');
         resetEl('subLineageFilter', '');
         resetEl('paramHotspotGene', '');
-        resetEl('paramHotspotLevel', 'all');
+        resetEl('paramHotspotLevel', '1+2');
         resetEl('paramTranslocationGene', '');
-        resetEl('paramTranslocationLevel', 'all');
+        resetEl('paramTranslocationLevel', '1+2');
         resetEl('paramCnFilter', '');
         resetEl('paramCnLevel', 'altered');
         resetEl('scatterCancerFilter', '');
