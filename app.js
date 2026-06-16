@@ -949,6 +949,8 @@ class CorrelationExplorer {
     populateParamHotspotFilter() {
         if (this.mutations && this.mutations.geneData) {
             document.getElementById('paramHotspotFilterGroup').style.display = 'block';
+            const gah = document.getElementById('geneticAlterationsHeading');
+            if (gah) gah.style.display = 'block';
             // Searchable, curated, context-aware hotspot picker (same widget as the
             // Gene Effect / scatter filters). The chosen gene is the input's value,
             // so all existing consumers that read paramHotspotGene.value still work.
@@ -1141,6 +1143,8 @@ class CorrelationExplorer {
             document.getElementById('paramHotspotFilterGroup').style.display = 'none';
             document.getElementById('paramTranslocationFilterGroup').style.display = 'none';
             document.getElementById('paramCnFilterGroup').style.display = 'none';
+            const gahHide = document.getElementById('geneticAlterationsHeading');
+            if (gahHide) gahHide.style.display = 'none';
         } else {
             // Restore filters if data is loaded
             if (this.cellLineMetadata && this.cellLineMetadata.lineage) {
@@ -1150,6 +1154,8 @@ class CorrelationExplorer {
             }
             if (this.mutations && this.mutations.geneData) {
                 document.getElementById('paramHotspotFilterGroup').style.display = 'block';
+                const gahShow = document.getElementById('geneticAlterationsHeading');
+                if (gahShow) gahShow.style.display = 'block';
             }
             if (this.translocations && this.translocations.geneData) {
                 document.getElementById('paramTranslocationFilterGroup').style.display = 'block';
