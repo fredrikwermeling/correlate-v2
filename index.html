@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.19 (2026-06-17)</strong></p>
+                <ul>
+                    <li>Correlation scatter: added <b>CN</b> (relative copy number) as an X/Y axis type alongside GE and Expression, so you can plot copy number vs gene effect / expression / copy number for any gene. The CN matrix loads on demand the first time.</li>
+                </ul>
                 <p><strong>v.84.18 (2026-06-17)</strong></p>
                 <ul>
                     <li>Wiki: new "Major copy-number regions" block in the genome section. From the full DepMap gene CN matrix + gene cytoband locations, it surfaces focal amplifications and deep deletions per cell line, naming the driver cancer genes (e.g. THP-1 shows the 1p34 amplification with MYCL at &gt;20 copies). Loads the CN matrix on demand.</li>
@@ -3714,7 +3718,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.18</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.19</a>
     </div>
 
     <div class="main-content">
@@ -4479,12 +4483,14 @@
                                 <select id="xAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;">
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
+                                    <option value="cn">CN</option>
                                 </select>
                                 <button class="btn btn-outline btn-sm" id="inspectSwapAxes" style="font-size: 11px; padding: 2px 6px; min-width: 26px;" title="Swap X and Y axes (gene names + data types)">&#8644;</button>
                                 <input type="text" id="inspectGeneY" class="form-control" style="flex: 1 1 70px; min-width: 60px; font-size: 12px; padding: 3px 8px;" placeholder="Y gene">
                                 <select id="yAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;">
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
+                                    <option value="cn">CN</option>
                                 </select>
                                 <button class="btn btn-primary btn-sm" id="updateInspectGenes" style="font-size: 11px; padding: 3px 12px; min-width: 92px; font-weight: 600;">Update</button>
                                 <button class="btn btn-outline btn-sm" id="inspectFindCorrelatesBtn" style="font-size: 11px; padding: 3px 12px; min-width: 92px; color:#5a9f4a; border-color:#5a9f4a;" title="Find top GE and Expression correlates of the X-axis gene across the currently-filtered cell lines. Click a result to put it on the Y axis.">Find correlates</button>
@@ -6065,6 +6071,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_18"></script>
+    <script src="app.js?v=v84_19"></script>
 </body>
 </html>

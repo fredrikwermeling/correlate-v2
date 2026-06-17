@@ -421,8 +421,12 @@ class CorrelationExplorer {
         const popoutDataType = meta.popout?.dataType || meta.dataType;
         const pc = meta.popout?.controls || {};
         const needsExpr = popoutDataType === 'expr' || pc.xAxisDataType === 'expr' || pc.yAxisDataType === 'expr' || meta.graphType === 'expr_correlate';
+        const needsCn = pc.xAxisDataType === 'cn' || pc.yAxisDataType === 'cn';
         const run = () => this._doApplyRestoreMeta(meta);
-        if (needsExpr && !this.expressionLoaded) this.loadExpressionData().then(run).catch(run);
+        const pre = [];
+        if (needsExpr && !this.expressionLoaded) pre.push(this.loadExpressionData());
+        if (needsCn && !this.cnLoaded) pre.push(this.loadCnData());
+        if (pre.length) Promise.all(pre.map(p => p.catch(() => {}))).then(run).catch(run);
         else run();
     }
 
@@ -3680,6 +3684,7 @@ class CorrelationExplorer {
         if (type === 'geneset') return this.getGeneSetScoreByGEIndex(geCellLineIndex);
         if (type === 'growth') return this.getGrowthRateByGEIndex(geCellLineIndex);
         if (type === 'expr') return this.getExpressionValueByGEIndex(gene, geCellLineIndex);
+        if (type === 'cn') return this.getCnValue(gene, this.metadata.cellLines[geCellLineIndex]);
         return geData ? geData[geCellLineIndex] : NaN;
     }
 
@@ -3690,6 +3695,7 @@ class CorrelationExplorer {
         if (type === 'geneset') return this._geneSetLabel ? `${this._geneSetLabel}` : 'Gene Set Score';
         if (type === 'growth') return 'Growth Rate';
         if (type === 'expr') return `${gene} Expression (log2 TPM+1)`;
+        if (type === 'cn') return `${gene} Copy Number (relative, 1.0 = baseline)`;
         return `${gene} Gene Effect`;
     }
 
@@ -3700,6 +3706,7 @@ class CorrelationExplorer {
         if (type === 'geneset') return 'Set';
         if (type === 'growth') return 'Growth';
         if (type === 'expr') return 'Expr';
+        if (type === 'cn') return 'CN';
         return 'Effect';
     }
 
@@ -14327,12 +14334,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return;
         }
 
-        // Validate genes exist in GE data (not needed for growth/geneset axis)
-        if (!noGeneAxis(xType) && !this.geneIndex.has(gene1)) {
+        // Validate genes exist in GE data (not needed for growth/geneset axis;
+        // CN-axis genes are validated against the CN matrix after it loads below).
+        if (!noGeneAxis(xType) && xType !== 'cn' && !this.geneIndex.has(gene1)) {
             alert(`Gene "${gene1}" not found in the gene effect dataset.`);
             return;
         }
-        if (!noGeneAxis(yType) && !this.geneIndex.has(gene2)) {
+        if (!noGeneAxis(yType) && yType !== 'cn' && !this.geneIndex.has(gene2)) {
             alert(`Gene "${gene2}" not found in the gene effect dataset.`);
             return;
         }
@@ -14392,6 +14400,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 alert(`Gene "${gene2}" not found in expression data.`);
                 return;
             }
+        }
+
+        // If a copy-number axis is chosen, load the CN matrix on demand and check
+        // the gene is covered.
+        if (xType === 'cn' || yType === 'cn') {
+            const plotEl0 = document.getElementById('scatterPlot');
+            let ov = document.getElementById('scatterLoadingOverlay');
+            if (!ov && plotEl0) { ov = document.createElement('div'); ov.id = 'scatterLoadingOverlay'; ov.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;z-index:10;font-size:13px;color:#374151;'; plotEl0.style.position = 'relative'; plotEl0.appendChild(ov); }
+            if (ov) { ov.innerHTML = '<div>Loading copy-number matrix…</div>'; ov.style.display = 'flex'; }
+            try { await this.loadCnData(); } catch (e) { if (ov) ov.style.display = 'none'; alert('Failed to load copy-number data.'); return; }
+            if (ov) ov.style.display = 'none';
+            if (xType === 'cn' && !this.cnGeneIndex?.has(gene1.toUpperCase())) { alert(`Gene "${gene1}" not in the copy-number matrix.`); return; }
+            if (yType === 'cn' && !this.cnGeneIndex?.has(gene2.toUpperCase())) { alert(`Gene "${gene2}" not in the copy-number matrix.`); return; }
         }
 
         // Save current text settings before re-opening
