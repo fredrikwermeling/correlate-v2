@@ -8939,13 +8939,16 @@ class CorrelationExplorer {
         this._netBannerFontSize = bannerFontSize;
         this._netBannerColor = bannerColor;
 
-        const banner = document.querySelector('.network-filter-banner');
+        // The banner is the #networkHeader strip above the canvas (it used to be a
+        // .network-filter-banner overlay, which no longer exists), so style THAT,
+        // otherwise banner font/colour/text changes only showed up in exports.
+        const banner = document.getElementById('networkHeader');
         if (banner) {
             banner.style.fontSize = bannerFontSize + 'px';
             banner.style.color = bannerColor;
             banner.style.fontFamily = fontFamily;
             const bannerText = document.getElementById('net_ts_bannerText')?.value;
-            if (bannerText !== undefined) banner.textContent = bannerText;
+            if (bannerText !== undefined && bannerText !== '') banner.textContent = bannerText;
         }
     }
 
@@ -9602,11 +9605,14 @@ Results:
             ctx.strokeRect(15, legendTop + 10, totalWidth - 30, legendHeight - 10);
         }
 
-        // Draw legend
+        // Draw legend. Font sizes derive from the user's legend text-setting so
+        // changes to it are reflected in the export (previously hardcoded, so
+        // legend tweaks showed live but not in exported images).
         const legendY = legendTop + padding + 10;
-        const titleFont = 'bold 16px Arial';
-        const textFont = '14px Arial';
-        const smallFont = '13px Arial';
+        const _legFs = this._netLegendFontSize || 15;
+        const titleFont = `bold ${_legFs + 1}px Arial`;
+        const textFont = `${_legFs}px Arial`;
+        const smallFont = `${Math.max(9, _legFs - 2)}px Arial`;
 
         // Calculate total legend width to center it
         let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
@@ -10966,11 +10972,13 @@ Results:
         ctx.fillRect(15, networkHeight + 10, totalWidth - 30, legendHeight - 10);
         ctx.strokeRect(15, networkHeight + 10, totalWidth - 30, legendHeight - 10);
 
-        // Draw legend - LARGER fonts for publication
+        // Draw legend - LARGER fonts for publication. Derive from the user's
+        // legend text-setting so changes are reflected here too.
         const legendY = networkHeight + padding + 10;
-        const titleFont = 'bold 16px Arial';
-        const textFont = '14px Arial';
-        const smallFont = '13px Arial';
+        const _legFs2 = this._netLegendFontSize || 15;
+        const titleFont = `bold ${_legFs2 + 1}px Arial`;
+        const textFont = `${_legFs2}px Arial`;
+        const smallFont = `${Math.max(9, _legFs2 - 2)}px Arial`;
 
         // Calculate total legend width to center it
         let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
