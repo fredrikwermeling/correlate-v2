@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.16 (2026-06-17)</strong></p>
+                <ul>
+                    <li>Text settings (Aa) on charts: the Gene Effect plots draw the stats line (n cells, means, p-value) as a separate subtitle annotation, which the panel couldn't see, so it looked like the app "forgot" the subtitle and title/subtitle scaling was off. The panel now reads and edits that subtitle directly, so you can change the stats text and size the title / subtitle independently.</li>
+                </ul>
                 <p><strong>v.84.15 (2026-06-17)</strong></p>
                 <ul>
                     <li>Gene-effect inspect opened from Mutational Analysis: the inspect-level subtype / hotspot / fusion filters now <em>override</em> the conserved analysis-level filters instead of stacking with them, so changing a filter in inspect mode no longer silently intersects with the analysis cohort and collapses to zero cells. (Reset Filters still clears all conserved analysis filters.)</li>
@@ -3702,7 +3706,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.15</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.16</a>
     </div>
 
     <div class="main-content">
@@ -6053,6 +6057,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_15"></script>
+    <script src="app.js?v=v84_16"></script>
 </body>
 </html>

@@ -36403,6 +36403,18 @@ ${clone.innerHTML}
             titleText = typeof layout.title === 'string' ? layout.title : (layout.title?.text || '');
         }
 
+        // Some plots (the Gene Effect headers) carry the stats subtitle as a
+        // SEPARATE annotation (_tsRole:'subtitle') rather than inline in the title.
+        // Read it from there so the panel actually shows + lets you edit the stats
+        // text/size (previously it looked like the app "forgot" the subtitle).
+        const subtitleAnn = anns.find(a => a._tsRole === 'subtitle');
+        if (subtitleAnn) {
+            const rawSub = subtitleAnn.text || '';
+            subtitleText = stripHtml(rawSub);
+            const sm = rawSub.match(/font-size:\s*(\d+)px/);
+            subtitleSize = sm ? parseInt(sm[1]) : (subtitleAnn.font?.size || subtitleSize);
+        }
+
         const xLabel = xLabelAnn ? (xLabelAnn.text || '') : (typeof layout.xaxis?.title === 'string' ? layout.xaxis.title : (layout.xaxis?.title?.text || ''));
         const yLabel = yLabelAnn ? (yLabelAnn.text || '') : (typeof layout.yaxis?.title === 'string' ? layout.yaxis.title : (layout.yaxis?.title?.text || ''));
         const xLabelSize = xLabelAnn ? (xLabelAnn.font?.size || 20) : (layout.xaxis?.title?.font?.size || 12);
@@ -36787,8 +36799,21 @@ ${clone.innerHTML}
 
         // Title, wrap in inline font-size span; annotation font.size controls line spacing
         const titleIdx = this._tsFindAnn(plotEl, 'title');
+        const subIdx = this._tsFindAnn(plotEl, 'subtitle');
         const titleSizeVal = parseInt(document.getElementById('ts_title')?.value) || 14;
-        if (titleIdx >= 0) {
+        if (titleIdx >= 0 && subIdx >= 0) {
+            // Separate title + subtitle annotations (Gene Effect header): write each
+            // to its own annotation so editing the stats text/size actually sticks.
+            const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 11;
+            updates[`annotations[${titleIdx}].text`] = `<span style="font-size:${titleSizeVal}px">${wrapBI(titleText, titleBold, titleItalic)}</span>`;
+            updates[`annotations[${titleIdx}].font.size`] = titleSizeVal;
+            if (subtitleEl) {
+                const lines = subtitleEl.value.split('\n').filter(l => l.trim());
+                const subHtml = lines.map(line => `<span style="font-size:${subSize}px;color:#6b7280">${wrapBI(line, subBold, subItalic)}</span>`).join('<br>');
+                updates[`annotations[${subIdx}].text`] = subHtml;
+                updates[`annotations[${subIdx}].font.size`] = subSize;
+            }
+        } else if (titleIdx >= 0) {
             const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
             let html = `<span style="font-size:${titleSizeVal}px">${wrapBI(titleText, titleBold, titleItalic)}</span>`;
             if (subtitleEl) {
@@ -36796,9 +36821,8 @@ ${clone.innerHTML}
                 lines.forEach(line => { html += `<br><span style="font-size:${subSize}px;color:#666">${wrapBI(line, subBold, subItalic)}</span>`; });
                 updates[`annotations[${titleIdx}].font.size`] = Math.round(subSize * 0.85);
             } else {
-                // Title-only annotation (e.g. the Gene Effect header where the stats
-                // are a separate annotation): keep its font.size = the title size so
-                // a multi-row title keeps the right line spacing and doesn't overlap.
+                // Title-only annotation: keep its font.size = the title size so a
+                // multi-row title keeps the right line spacing and doesn't overlap.
                 updates[`annotations[${titleIdx}].font.size`] = titleSizeVal;
             }
             updates[`annotations[${titleIdx}].text`] = html;
@@ -36854,7 +36878,18 @@ ${clone.innerHTML}
 
         const titleSize = getVal('ts_title');
         const subtitleSize = getVal('ts_subtitle');
-        if (titleIdx >= 0) {
+        const subAnnIdx = anns.findIndex(a => a._tsRole === 'subtitle');
+        if (titleIdx >= 0 && subAnnIdx >= 0) {
+            // Separate title + subtitle annotations: size each independently.
+            if (titleSize) {
+                updates[`annotations[${titleIdx}].font.size`] = titleSize;
+                updates[`annotations[${titleIdx}].text`] = (anns[titleIdx].text || '').replace(/font-size:\s*\d+px/, `font-size:${titleSize}px`);
+            }
+            if (subtitleSize) {
+                updates[`annotations[${subAnnIdx}].font.size`] = subtitleSize;
+                updates[`annotations[${subAnnIdx}].text`] = (anns[subAnnIdx].text || '').replace(/font-size:\s*\d+px/g, `font-size:${subtitleSize}px`);
+            }
+        } else if (titleIdx >= 0) {
             // Annotation font.size controls <br> line spacing, set to subtitle-based
             if (subtitleSize) updates[`annotations[${titleIdx}].font.size`] = Math.round(subtitleSize * 0.85);
             // Update inline font sizes: first match = title, rest = subtitle
