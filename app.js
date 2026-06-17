@@ -7022,8 +7022,11 @@ class CorrelationExplorer {
                 }
             }
 
-            // Check sublineage filter (analysis-level)
-            if (!inspectTissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) {
+            // Check sublineage filter (analysis-level). The inspect-level subtype
+            // OVERRIDES it (like the tissue filter overrides the analysis lineage),
+            // so changing the subtype in inspect mode doesn't silently intersect
+            // with the conserved analysis subtype and collapse to zero cells.
+            if (!inspectTissueFilter && !inspectSubtype && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) {
                 return;
             }
 
@@ -7032,8 +7035,10 @@ class CorrelationExplorer {
                 if (this.cellLineMetadata.primaryDisease[cellLine] !== inspectSubtype) return;
             }
 
-            // Check additional hotspot filter
-            if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
+            // Check additional hotspot filter (analysis-level). The inspect-level
+            // hotspot filter overrides it, so setting one in inspect mode replaces
+            // the conserved analysis filter instead of stacking with it.
+            if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all' && !inspectHotspot) {
                 const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
@@ -7044,8 +7049,9 @@ class CorrelationExplorer {
                 }
             }
 
-            // Check additional translocation filter
-            if (mr.additionalTransGene && mr.additionalTransLevel !== 'all') {
+            // Check additional translocation filter (analysis-level). Overridden
+            // by the inspect-level fusion filter when set.
+            if (mr.additionalTransGene && mr.additionalTransLevel !== 'all' && !inspectFusion) {
                 const addTransData = this.translocations?.geneData?.[mr.additionalTransGene]?.translocations;
                 if (addTransData) {
                     const tLevel = addTransData[cellLine] || 0;
