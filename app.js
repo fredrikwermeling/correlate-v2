@@ -8379,6 +8379,16 @@ class CorrelationExplorer {
             }
         });
 
+        // Zooming in then out could leave a stale "ghost" of the zoomed-in frame
+        // in part of the canvas (vis-network doesn't always clear the full canvas
+        // when the view shrinks, especially with autoResize:false). Force a clean
+        // resize + full redraw shortly after zooming settles. This also fixes the
+        // ghost appearing in exported network images (which copy the live canvas).
+        this.network.on('zoom', () => {
+            clearTimeout(this._netZoomRedrawTimer);
+            this._netZoomRedrawTimer = setTimeout(() => this._cleanNetworkCanvas(), 140);
+        });
+
         // Render the filter banner into the header strip ABOVE the network
         // canvas, not as an overlay. Overlaying was always at risk of
         // covering top nodes whatever pan we tried; a strip outside the
@@ -9483,8 +9493,23 @@ Results:
         return `Filters: ${parts.join('  \u00b7  ')}  \u00b7  n=${this.results.nCellLines}`;
     }
 
+    // Resize the network canvas to its container and force a full redraw, which
+    // clears any leftover "ghost" pixels from a previous zoom/pan frame. Safe to
+    // call repeatedly; no-op if the container has no size yet.
+    _cleanNetworkCanvas() {
+        if (!this.network) return;
+        const c = document.getElementById('networkPlot');
+        if (!c || !c.clientWidth || !c.clientHeight) return;
+        try {
+            this.network.setSize(c.clientWidth + 'px', c.clientHeight + 'px');
+            this.network.redraw();
+        } catch (e) { /* non-fatal */ }
+    }
+
     async downloadNetworkPNG() {
         if (!this.network) return;
+        // Clear any zoom ghost before copying the live canvas into the export.
+        this._cleanNetworkCanvas();
 
         const networkCanvas = document.querySelector('#networkPlot canvas');
         if (!networkCanvas) {
@@ -10914,6 +10939,7 @@ Results:
 
     // Helper to get network PNG data for ZIP
     async getNetworkPNGData() {
+        this._cleanNetworkCanvas();
         const networkCanvas = document.querySelector('#networkPlot canvas');
         if (!networkCanvas) return null;
 
