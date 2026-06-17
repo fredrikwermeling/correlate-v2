@@ -9630,7 +9630,7 @@ Results:
         const eX = legendX + 15; // offset to center lines under title
 
         // Min correlation
-        ctx.lineWidth = Math.max(1, 1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        ctx.lineWidth = Math.max(0.75, (1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match copied edges
         ctx.beginPath();
         ctx.moveTo(eX, legendY + 22);
         ctx.lineTo(eX + 35, legendY + 22);
@@ -9639,7 +9639,7 @@ Results:
         ctx.fillText(`r = ${legendVals.minCorr.toFixed(2)}`, eX + 42, legendY + 27);
 
         // Mid correlation
-        ctx.lineWidth = Math.max(1, 1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        ctx.lineWidth = Math.max(0.75, (1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match copied edges
         ctx.beginPath();
         ctx.moveTo(eX, legendY + 48);
         ctx.lineTo(eX + 35, legendY + 48);
@@ -9647,7 +9647,7 @@ Results:
         ctx.fillText(`r = ${legendVals.midCorr.toFixed(2)}`, eX + 42, legendY + 53);
 
         // Max correlation
-        ctx.lineWidth = Math.max(1, 1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        ctx.lineWidth = Math.max(0.75, (1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match copied edges
         ctx.beginPath();
         ctx.moveTo(eX, legendY + 74);
         ctx.lineTo(eX + 35, legendY + 74);
@@ -9986,9 +9986,9 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
 
         svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Edge Thickness:</text>\n`;
 
-        const width1 = Math.max(1, 1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
-        const width2 = Math.max(1, 1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
-        const width3 = Math.max(1, 1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        const width1 = Math.max(0.75, (1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match edges
+        const width2 = Math.max(0.75, (1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match edges
+        const width3 = Math.max(0.75, (1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match edges
 
         svg += `  <line x1="${legendX}" y1="${legendY + 22}" x2="${legendX + 35}" y2="${legendY + 22}" stroke="#666" stroke-width="${width1}"/>\n`;
         svg += `  <text x="${legendX + 42}" y="${legendY + 27}" class="legend-text">r = ${legendVals.minCorr.toFixed(2)}</text>\n`;
@@ -10993,7 +10993,7 @@ Results:
         const eX = legendX + 15; // offset to center lines under title
 
         // Min correlation
-        ctx.lineWidth = Math.max(1, 1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        ctx.lineWidth = Math.max(0.75, (1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match copied edges
         ctx.beginPath();
         ctx.moveTo(eX, legendY + 22);
         ctx.lineTo(eX + 35, legendY + 22);
@@ -11002,7 +11002,7 @@ Results:
         ctx.fillText(`r = ${legendVals.minCorr.toFixed(2)}`, eX + 42, legendY + 27);
 
         // Mid correlation
-        ctx.lineWidth = Math.max(1, 1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        ctx.lineWidth = Math.max(0.75, (1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match copied edges
         ctx.beginPath();
         ctx.moveTo(eX, legendY + 48);
         ctx.lineTo(eX + 35, legendY + 48);
@@ -11010,7 +11010,7 @@ Results:
         ctx.fillText(`r = ${legendVals.midCorr.toFixed(2)}`, eX + 42, legendY + 53);
 
         // Max correlation
-        ctx.lineWidth = Math.max(1, 1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        ctx.lineWidth = Math.max(0.75, (1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match copied edges
         ctx.beginPath();
         ctx.moveTo(eX, legendY + 74);
         ctx.lineTo(eX + 35, legendY + 74);
@@ -11319,9 +11319,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Edge Thickness:</text>\n`;
 
-        const width1 = Math.max(1, 1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
-        const width2 = Math.max(1, 1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
-        const width3 = Math.max(1, 1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3));
+        const width1 = Math.max(0.75, (1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match edges
+        const width2 = Math.max(0.75, (1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match edges
+        const width3 = Math.max(0.75, (1 + (legendVals.maxCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match edges
 
         svg += `  <line x1="${legendX}" y1="${legendY + 22}" x2="${legendX + 35}" y2="${legendY + 22}" stroke="#666" stroke-width="${width1}"/>\n`;
         svg += `  <text x="${legendX + 42}" y="${legendY + 27}" class="legend-text">r = ${legendVals.minCorr.toFixed(2)}</text>\n`;
