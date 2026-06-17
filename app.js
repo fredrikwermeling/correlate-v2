@@ -13509,7 +13509,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         const tableData = [];
-        const mutationGenes = Object.keys(this.mutations.geneData).sort();
+        const mutationGenes = Object.keys(this.mutations.geneData).filter(g => !this._isPolymorphicLocus(g)).sort();
 
         mutationGenes.forEach(mutGene => {
             const mutations = this.mutations.geneData[mutGene].mutations;
@@ -20917,8 +20917,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const fmt = dlg.format || 'png';
         const rootId = (typeof elOrId === 'string') ? elOrId : root.id;
         // html2canvas scale maps CSS px (96 dpi) to the target density; cap so
-        // a large popout doesn't blow up into an unrenderable canvas.
-        const scale = Math.min(8, Math.max(1, dpi / 96));
+        // a large popout doesn't blow up into an unrenderable canvas. Full-content
+        // captures of tall popouts otherwise exceed the browser's max canvas size
+        // (~16k px/side or ~256M px total), and toBlob/toDataURL then fails
+        // SILENTLY, so only the .json sidecar downloaded and the image didn't.
+        let scale = Math.min(8, Math.max(1, dpi / 96));
+        const capW = scope === 'full' ? Math.max(root.scrollWidth, root.offsetWidth) : root.offsetWidth;
+        const capH = scope === 'full' ? Math.max(root.scrollHeight, root.offsetHeight) : root.offsetHeight;
+        if (capW > 0 && capH > 0) {
+            scale = Math.min(scale, 16000 / Math.max(capW, capH), Math.sqrt(2.2e8 / (capW * capH)));
+            scale = Math.max(0.5, scale);
+        }
 
         // Pre-render each Plotly chart to a crisp PNG with Plotly's own renderer
         // (loaded into an Image), so we can composite it over the screenshot.
@@ -21087,7 +21096,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             console.warn(`${fmt} export failed, falling back to PNG:`, e);
         }
         // PNG (default / fallback).
-        let buf = await (await fetch(canvas.toDataURL('image/png'))).arrayBuffer();
+        const durl = canvas.toDataURL('image/png');
+        // An oversized canvas (toDataURL caps out) returns an empty "data:," URL;
+        // bail with a clear message instead of saving a 0-byte image.
+        if (!durl || durl.length < 100) {
+            alert('The image is too large to export at this size/DPI. Try "Visible area only", a lower DPI, or a smaller width/height.');
+            return;
+        }
+        let buf = await (await fetch(durl)).arrayBuffer();
         buf = this._setPngDpi(buf, dpi);
         if (metaJson && typeof this._addPngTextChunk === 'function') buf = this._addPngTextChunk(buf, 'correlate-meta', metaJson);
         save(new Blob([buf], { type: 'image/png' }), 'png');
@@ -28324,6 +28340,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const hotspotBaseSet = new Set(hotspotBase);
             const items = [];
             for (const gene of Object.keys(this.mutations.geneData)) {
+                if (this._isPolymorphicLocus(gene)) continue; // HLA/MIC/KIR aren't somatic hotspots
                 const muts = this.mutations.geneData[gene].mutations;
                 let n = 0;
                 for (const [cl, v] of Object.entries(muts)) {
@@ -30351,6 +30368,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const hotspotsMutated = [];
         if (this.mutations?.geneData) {
             for (const g of Object.keys(this.mutations.geneData)) {
+                if (this._isPolymorphicLocus(g)) continue; // HLA/MIC/KIR aren't somatic hotspots
                 const lvl = this.mutations.geneData[g].mutations?.[cellLineId];
                 if (lvl >= 1) hotspotsMutated.push({ gene: g, level: lvl });
             }
@@ -33253,6 +33271,7 @@ ${clone.innerHTML}
                 // Hotspot mutations
                 if (this.mutations?.geneData) {
                     for (const gene of Object.keys(this.mutations.geneData)) {
+                        if (this._isPolymorphicLocus(gene)) continue; // HLA/MIC/KIR aren't somatic hotspots
                         if (this.mutations.geneData[gene].mutations?.[clId] >= 1) {
                             lines.push(`${clName},${clId},${tissue},${subtype},Hotspot Mutation,,${gene},,`);
                         }
