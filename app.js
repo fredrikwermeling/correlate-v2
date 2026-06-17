@@ -3358,15 +3358,30 @@ class CorrelationExplorer {
     // Apply the CN filter to a single cell line. Decoded value is e.g.
     // "MYC_amp" or "BAP1_del", see _populateCnFilterItems for the encoding.
     _cellLinePassesCnFilter(cl, rawValue) {
-        if (!rawValue || !this.clinicalCn?.byCellLine) return true;
+        if (!rawValue) return true;
         const stripped = this._stripCnFilterDecoration(rawValue);
         const m = stripped.match(/^(.+)_(amp|del)$/);
         if (!m) return true;
         const [, gene, kind] = m;
-        const entry = this.clinicalCn.byCellLine[cl];
-        if (!entry) return false;
-        const list = kind === 'amp' ? (entry.amplifications || []) : (entry.deletions || []);
-        return list.some(e => e.gene.toUpperCase() === gene.toUpperCase());
+        const geneU = gene.toUpperCase();
+        // Curated clinical panel (unchanged behaviour for curated genes).
+        if (!this._cnPanelSet) {
+            const panel = [].concat(this.clinicalCn?.amplificationPanel || [], this.clinicalCn?.deletionPanel || []);
+            this._cnPanelSet = new Set(panel.map(g => (typeof g === 'string' ? g : g.gene || '').toUpperCase()).filter(Boolean));
+        }
+        if (this._cnPanelSet.has(geneU)) {
+            const entry = this.clinicalCn?.byCellLine?.[cl];
+            if (!entry) return false;
+            const list = kind === 'amp' ? (entry.amplifications || []) : (entry.deletions || []);
+            return list.some(e => e.gene.toUpperCase() === geneU);
+        }
+        // Non-curated gene: fall back to the full CN matrix (amp >= 3, del < 0.3)
+        // when it's loaded. Used by the "CN amp, all genes" scan rows.
+        if (this.cnLoaded) {
+            const v = this.getCnValue(geneU, cl);
+            if (!isNaN(v)) return kind === 'amp' ? v >= 3.0 : v < 0.3;
+        }
+        return false;
     }
 
     // Gene-effect fusion filter predicate. Mirrors the scatter applier: a curated
@@ -19553,10 +19568,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._resetGEFilters();
         const search = document.getElementById('geneEffectSearch'); if (search) search.value = '';
         const cur = document.getElementById('geneEffectCurrentGene'); if (cur) cur.textContent = '';
-        this._geScanTypes = { hotspot: true, fusion: false, cn: false };
+        this._geScanTypes = { hotspot: true, fusion: false, cn: false, cnAll: false };
         const _scH = document.getElementById('geScanHotspot'); if (_scH) _scH.checked = true;
         const _scF = document.getElementById('geScanFusion'); if (_scF) _scF.checked = false;
         const _scC = document.getElementById('geScanCn'); if (_scC) _scC.checked = false;
+        const _scCA = document.getElementById('geScanCnAll'); if (_scCA) _scCA.checked = false;
         this.geChartWidthRatio = 1; this.geChartHeightRatio = 1;
         const zl = document.getElementById('geShowZeroLine'); if (zl) zl.checked = true;
         this._geUserTitlePos = null; this._geUserXLabelPos = null; this._geUserYLabelPos = null;
@@ -19888,13 +19904,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     // Toggle which feature types the "By genetic change" scan includes.
     setGEScanType(type, on) {
-        this._geScanTypes = this._geScanTypes || { hotspot: true, fusion: false, cn: false };
+        this._geScanTypes = this._geScanTypes || { hotspot: true, fusion: false, cn: false, cnAll: false };
         this._geScanTypes[type] = !!on;
         // Keep at least one type on.
-        if (!this._geScanTypes.hotspot && !this._geScanTypes.fusion && !this._geScanTypes.cn) {
+        if (!this._geScanTypes.hotspot && !this._geScanTypes.fusion && !this._geScanTypes.cn && !this._geScanTypes.cnAll) {
             this._geScanTypes[type] = true;
-            const cb = document.getElementById(type === 'hotspot' ? 'geScanHotspot' : type === 'fusion' ? 'geScanFusion' : 'geScanCn');
+            const cb = document.getElementById(type === 'hotspot' ? 'geScanHotspot' : type === 'fusion' ? 'geScanFusion' : type === 'cnAll' ? 'geScanCnAll' : 'geScanCn');
             if (cb) cb.checked = true;
+            return;
+        }
+        // The all-genes CN scan needs the matrix; load it then render.
+        if (type === 'cnAll' && on && !this.cnLoaded) {
+            const plot = document.getElementById('geneEffectHotspotPlot');
+            if (plot) plot.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:200px; color:#6b7280;">Loading copy-number matrix…</div>';
+            this.loadCnData().then(() => this.renderGeneEffectByHotspot()).catch(() => this.renderGeneEffectByHotspot());
             return;
         }
         this.renderGeneEffectByHotspot();
@@ -19922,7 +19945,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // effect in cells WITH that feature (Altered) vs WITHOUT (WT). Every type is
         // binary here so the rows are consistent, the 0/1/2 hotspot dose detail
         // lives in Mutation Inspect for a single gene.
-        const inc = this._geScanTypes || (this._geScanTypes = { hotspot: true, fusion: false, cn: false });
+        const inc = this._geScanTypes || (this._geScanTypes = { hotspot: true, fusion: false, cn: false, cnAll: false });
         const hotspotStats = [];
         const mkInfo = (d) => ({ geneEffect: d.geneEffect, cellLineName: d.cellLineName || d.cellLineId, cellLineId: d.cellLineId });
         const pushFeature = (group, type, clickVal, cellData0, cellData1, cellData2) => {
@@ -19975,6 +19998,31 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const c0 = [], c1 = [];
                 data.forEach(d => { (this._cellLinePassesCnFilter(d.cellLineId, it.value) ? c1 : c0).push(mkInfo(d)); });
                 pushFeature(label, 'cn', it.value, c0, c1, []);
+            }
+        }
+
+        // Non-curated CN amplifications (full DepMap gene-level matrix): for every
+        // gene recurrently amplified (rel-CN >= 3) in the cohort, compare the
+        // target gene's effect in amplified vs neutral cells. Counting first (no
+        // allocation) skips the long tail cheaply so the 20k-gene scan stays
+        // responsive; only recurrently-amplified genes are split + tested.
+        if (inc.cnAll && this.cnLoaded && this.cnData) {
+            const nCL = this.cnMetadata.nCellLines;
+            const cohort = [];
+            for (const d of data) {
+                const cc = this.cnCellLineIndex.get(d.cellLineId);
+                if (cc !== undefined) cohort.push({ cc, info: mkInfo(d) });
+            }
+            const need = Math.max(3, Number.isFinite(this._geScanMinN) ? this._geScanMinN : 3);
+            const nCoh = cohort.length;
+            for (const [geneU, gi] of this.cnGeneIndex) {
+                const off = gi * nCL;
+                let nAmp = 0;
+                for (let k = 0; k < nCoh; k++) { if (this.cnData[off + cohort[k].cc] >= 3.0) nAmp++; }
+                if (nAmp < need) continue;
+                const c0 = [], c1 = [];
+                for (let k = 0; k < nCoh; k++) { const v = this.cnData[off + cohort[k].cc]; if (isNaN(v)) continue; (v >= 3.0 ? c1 : c0).push(cohort[k].info); }
+                pushFeature(`▲ ${geneU} amp`, 'cn', `${geneU}_amp`, c0, c1, []);
             }
         }
 
