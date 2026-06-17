@@ -23912,6 +23912,124 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return this.cnLoading;
     }
 
+    // Lazy-load gene genomic locations (chr / cytoband / start / end, GRCh38)
+    // for the CN-matrix genes. Used by the wiki copy-number region summary.
+    async loadGeneLocations() {
+        if (this.geneLocations) return;
+        if (this._geneLocLoading) return this._geneLocLoading;
+        this._geneLocLoading = (async () => {
+            try {
+                const res = await fetch('web_data/gene_locations.json');
+                const d = await res.json();
+                const map = {};
+                for (const [g, loc] of Object.entries(d.genes || {})) map[g.toUpperCase()] = loc;
+                this.geneLocations = map;
+            } catch (e) { this.geneLocations = {}; }
+        })();
+        return this._geneLocLoading;
+    }
+
+    // Bucket a relative CN value into a labelled tier (matches Greenlisted v2):
+    // deep del <0.3, het loss 0.3-0.7, WT 0.7-1.3, low gain 1.3-2.0, gain 2-3,
+    // amp 3-5, strong amp >=5. 1.0 = the line's modal baseline.
+    _cnTier(v) {
+        if (v == null || isNaN(v)) return { label: 'no data', amp: false };
+        if (v < 0.3) return { label: 'deep del', amp: false };
+        if (v < 0.7) return { label: 'het loss', amp: false };
+        if (v < 1.3) return { label: 'WT', amp: false };
+        if (v < 2.0) return { label: 'low gain', amp: false };
+        if (v < 3.0) return { label: 'gain', amp: false };
+        if (v < 5.0) return { label: 'amp', amp: true };
+        return { label: 'strong amp', amp: true };
+    }
+
+    // Detect notable copy-number regions for a cell line from the full CN matrix
+    // + gene locations. Amplifications are usually FOCAL (e.g. MYCL at 1p34.2 in
+    // THP-1 sits in an otherwise-neutral cytoband), so we group AMPLIFIED genes
+    // (rel-CN >= 3, "amp" tier) by cytoband and report bands that contain a
+    // curated cancer gene or a focal cluster (>= 3 amplified genes). Deeply
+    // deleted regions (< 0.3) are handled the same way. Each region names the
+    // driver cancer genes from the curated amp/del panels. Needs loadCnData() +
+    // loadGeneLocations() first.
+    _cellLineCnRegions(cellLineId) {
+        if (!this.cnLoaded || !this.geneLocations || !this.cnData) return null;
+        const ci = this.cnCellLineIndex.get(cellLineId);
+        if (ci === undefined) return null;
+        const nCL = this.cnMetadata.nCellLines;
+        const locs = this.geneLocations;
+        const panelGenes = (arr) => new Set((arr || []).map(x => (typeof x === 'string' ? x : x.gene || '').toUpperCase()).filter(Boolean));
+        const ampPanel = panelGenes(this.clinicalCn?.amplificationPanel);
+        const delPanel = panelGenes(this.clinicalCn?.deletionPanel);
+        const ampBands = new Map(), delBands = new Map();
+        for (const [geneU, gi] of this.cnGeneIndex) {
+            const loc = locs[geneU];
+            if (!loc || !loc.band) continue;
+            const v = this.cnData[gi * nCL + ci];
+            if (isNaN(v)) continue;
+            const major = String(loc.band).replace(/\.\d.*$/, ''); // 1p34.2 -> 1p34
+            if (v >= 3.0) {
+                let b = ampBands.get(major);
+                if (!b) { b = { band: major, chr: loc.chr, genes: [] }; ampBands.set(major, b); }
+                b.genes.push({ gene: geneU, v });
+            } else if (v < 0.3) {
+                let b = delBands.get(major);
+                if (!b) { b = { band: major, chr: loc.chr, genes: [] }; delBands.set(major, b); }
+                b.genes.push({ gene: geneU, v });
+            }
+        }
+        const capCopies = (v) => (v >= 10.9 ? '>20' : String(Math.round(v * 2)));
+        const amps = [];
+        for (const b of ampBands.values()) {
+            const drv = b.genes.filter(g => ampPanel.has(g.gene)).sort((a, c) => c.v - a.v);
+            if (!drv.length && b.genes.length < 3) continue; // not a cancer gene and not a cluster
+            const maxCN = Math.max(...b.genes.map(g => g.v));
+            const top = (drv.length ? drv : b.genes.slice().sort((a, c) => c.v - a.v)).slice(0, 4);
+            amps.push({ band: b.band, chr: b.chr, nAmp: b.genes.length, maxCN, hasDriver: drv.length > 0, drivers: top.map(g => ({ gene: g.gene, cn: g.v, copies: capCopies(g.v), known: ampPanel.has(g.gene) })) });
+        }
+        const dels = [];
+        for (const b of delBands.values()) {
+            const drv = b.genes.filter(g => delPanel.has(g.gene)).sort((a, c) => a.v - c.v);
+            if (!drv.length && b.genes.length < 3) continue;
+            const minCN = Math.min(...b.genes.map(g => g.v));
+            const top = (drv.length ? drv : b.genes.slice().sort((a, c) => a.v - c.v)).slice(0, 4);
+            dels.push({ band: b.band, chr: b.chr, nDel: b.genes.length, minCN, hasDriver: drv.length > 0, drivers: top.map(g => ({ gene: g.gene, cn: g.v, known: delPanel.has(g.gene) })) });
+        }
+        // Cancer-gene regions first, then by strength.
+        amps.sort((a, c) => (c.hasDriver - a.hasDriver) || (c.maxCN - a.maxCN));
+        dels.sort((a, c) => (c.hasDriver - a.hasDriver) || (a.minCN - c.minCN));
+        return { amps: amps.slice(0, 8), dels: dels.slice(0, 8) };
+    }
+
+    // Load the CN matrix + gene locations on demand, then render the major
+    // amplified / deleted cytoband regions into the wiki's #clbWikiCnRegions slot.
+    async _fillWikiCnRegions(cellLineId) {
+        const el = () => document.getElementById('clbWikiCnRegions');
+        if (!el()) return;
+        el().innerHTML = '<div style="font-size:11px; color:#9ca3af;">Loading copy-number regions…</div>';
+        try { await this.loadCnData(); await this.loadGeneLocations(); } catch (e) { /* leave placeholder */ }
+        if (this._wikiCellLineId !== cellLineId) return; // user opened another wiki
+        const target = el();
+        if (!target) return;
+        const reg = this._cellLineCnRegions(cellLineId);
+        const head = `<div style="font-weight:600; color:#374151; font-size:12px; margin-bottom:6px;">Major copy-number regions <span style="font-size:10px; color:#6b7280; font-weight:400;">, whole-cytoband level from the full DepMap gene CN matrix; curated cancer genes highlighted</span></div>`;
+        if (!reg || (!reg.amps.length && !reg.dels.length)) {
+            target.innerHTML = head + `<div style="font-size:11px; color:#6b7280;">No broad amplified or deeply-deleted cytobands detected (region = a whole cytoband with median relative CN &ge; 3 amplified / &lt; 0.5 deleted across &ge; 4 genes).</div>`;
+            return;
+        }
+        const chip = (d, isAmp) => {
+            const known = d.known ? 'border:1px solid #1e40af; color:#1e3a8a; background:#dbeafe;' : 'border:1px solid #d1d5db; color:#374151; background:#f9fafb;';
+            const cop = isAmp ? (d.copies === '>20' ? ' >20c' : ` ~${d.copies}c`) : '';
+            return `<span class="gene-hover" data-gene="${d.gene}" style="cursor:help; font-size:10px; font-weight:600; border-radius:8px; padding:1px 7px; margin:0 4px 4px 0; display:inline-block; ${known}" title="relative CN ${d.cn.toFixed(2)}${d.known ? ' · curated cancer gene' : ''}">${d.gene}${cop}</span>`;
+        };
+        const ampRow = (a) => `<div style="margin-bottom:6px;"><b style="color:#1e3a8a;">${a.band} amplification</b> <span style="font-size:10px; color:#6b7280;">(up to ${a.maxCN >= 10.9 ? '>20' : '~' + Math.round(a.maxCN * 2)} copies; ${a.nAmp} amplified gene${a.nAmp === 1 ? '' : 's'} in the band)</span><br>${a.drivers.map(d => chip(d, true)).join('')}</div>`;
+        const delRow = (a) => `<div style="margin-bottom:6px;"><b style="color:#991b1b;">${a.band} deep loss</b> <span style="font-size:10px; color:#6b7280;">(min rel-CN ${a.minCN.toFixed(2)}; ${a.nDel} deeply-deleted gene${a.nDel === 1 ? '' : 's'} in the band)</span><br>${a.drivers.map(d => chip(d, false)).join('')}</div>`;
+        let html = head;
+        if (reg.amps.length) html += `<div style="margin-bottom:8px;"><div style="font-size:11px; color:#1e40af; font-weight:600; margin-bottom:3px;">Amplified regions</div>${reg.amps.map(ampRow).join('')}</div>`;
+        if (reg.dels.length) html += `<div><div style="font-size:11px; color:#991b1b; font-weight:600; margin-bottom:3px;">Deeply deleted regions</div>${reg.dels.map(delRow).join('')}</div>`;
+        target.innerHTML = html;
+        this.attachGeneTooltips(target);
+    }
+
     // Relative copy number (1.0 = the line's modal baseline; >1 gain, <1 loss)
     // for a gene in a cell line, from the full DepMap gene-level CN matrix.
     // Returns NaN if the matrix isn't loaded or the gene/line isn't covered.
@@ -30699,9 +30817,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                         <div id="clbWikiHistCin" style="height:170px;"></div>
                         <div id="clbWikiHistWgd" style="height:170px;"></div>
                     </div>
-                </div>` : ''}`;
+                </div>` : ''}
+                <div id="clbWikiCnRegions" style="margin-top:16px;"></div>`;
         } else {
-            genomeSigHtml = '<em style="color:#6b7280;">No genome signatures available for this cell line.</em>';
+            genomeSigHtml = '<em style="color:#6b7280;">No genome signatures available for this cell line.</em><div id="clbWikiCnRegions" style="margin-top:16px;"></div>';
         }
 
         // --- Functional loss (integrated CN + mutation + expression) ---
@@ -31754,6 +31873,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         ].join('');
 
         document.getElementById('clbWikiModal').style.display = 'flex';
+        // Fill the major copy-number regions block (loads the CN matrix + gene
+        // locations on demand, then injects amplified / deleted cytobands).
+        this._fillWikiCnRegions(cellLineId);
         // Wire MyGene.info hover tooltips on every `.gene-hover` element in the
         // freshly-rendered Wiki body. The CSS already gives these elements a
         // `cursor: help`, so without this call the user sees the help cursor

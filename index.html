@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.18 (2026-06-17)</strong></p>
+                <ul>
+                    <li>Wiki: new "Major copy-number regions" block in the genome section. From the full DepMap gene CN matrix + gene cytoband locations, it surfaces focal amplifications and deep deletions per cell line, naming the driver cancer genes (e.g. THP-1 shows the 1p34 amplification with MYCL at &gt;20 copies). Loads the CN matrix on demand.</li>
+                </ul>
                 <p><strong>v.84.17 (2026-06-17)</strong></p>
                 <ul>
                     <li>Cell-line CSV exports now include a relative copy-number column per gene from the full DepMap gene-level CN matrix (all genes, not just the curated focal amp/del panel). 1.0 = the line's modal baseline, &gt;1 gain, &lt;1 loss. Added to the full-profile, comprehensive and per-gene exports (the matrix loads on demand the first time).</li>
@@ -3710,7 +3714,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.17</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.18</a>
     </div>
 
     <div class="main-content">
@@ -6061,6 +6065,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_17"></script>
+    <script src="app.js?v=v84_18"></script>
 </body>
 </html>
