@@ -14014,7 +14014,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const denY = nn * sYY - sY * sY;
             if (denX < 1e-18 || denY < 1e-18) return null;
             const r = num / Math.sqrt(denX * denY);
-            return isFinite(r) ? r : null;
+            return isFinite(r) ? { r, n: nn } : null;
         };
 
         // Pass 1: GE correlates.
@@ -14025,8 +14025,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (g === (xType === 'ge' ? xIdx : -1)) continue;
             const off = g * this.nCellLines;
             for (let k = 0; k < n; k++) yBuf[k] = this.geneEffects[off + clIdxs[k]];
-            const r = pairedPearson(yBuf, -999);
-            if (r !== null) geHits.push({ gene: this.geneNames[g], r });
+            const res = pairedPearson(yBuf, -999);
+            if (res) geHits.push({ gene: this.geneNames[g], r: res.r, n: res.n });
         }
 
         // Pass 2: Expression correlates (skip if expression not loaded).
@@ -14039,8 +14039,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (eg === undefined) continue;
                 const off = eg * this.nCellLines;
                 for (let k = 0; k < n; k++) yBuf[k] = this.expressionData[off + clIdxs[k]];
-                const r = pairedPearson(yBuf);
-                if (r !== null) exprHits.push({ gene, r });
+                const res = pairedPearson(yBuf);
+                if (res) exprHits.push({ gene, r: res.r, n: res.n });
             }
         }
 
@@ -14087,6 +14087,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                             <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
                                 <th id="icGeHeadGene" style="${thStyle} text-align:left;">Gene<span id="icGeArrowGene"></span></th>
                                 <th id="icGeHeadR" style="${thStyle} text-align:center;">r<span id="icGeArrowR"></span></th>
+                                <th id="icGeHeadN" style="${thStyle} text-align:center;" title="Cell lines with both genes valid (low n = unreliable r)">n<span id="icGeArrowN"></span></th>
                             </tr></thead>
                             <tbody id="icGeBody"></tbody>
                         </table>
@@ -14103,6 +14104,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                             <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
                                 <th id="icExprHeadGene" style="${thStyle} text-align:left;">Gene<span id="icExprArrowGene"></span></th>
                                 <th id="icExprHeadR" style="${thStyle} text-align:center;">r<span id="icExprArrowR"></span></th>
+                                <th id="icExprHeadN" style="${thStyle} text-align:center;" title="Cell lines with both genes valid (low n = unreliable r)">n<span id="icExprArrowN"></span></th>
                             </tr></thead>
                             <tbody id="icExprBody"></tbody>
                         </table>
@@ -14115,6 +14117,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             <tr class="ic-row" data-gene="${r.gene}" data-kind="${kind}" style="cursor:pointer;">
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#15803d;">${r.gene}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; font-weight:600; color:${r.r < 0 ? '#dc2626' : '#2563eb'};">${r.r.toFixed(3)}</td>
+                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; color:${r.n < 10 ? '#dc2626' : '#6b7280'};">${r.n}</td>
             </tr>`;
 
         const filterByThreshold = (arr, t) => arr.filter(h => Math.abs(h.r) >= t);
@@ -14123,6 +14126,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const copy = arr.slice();
             if (s.col === 'gene') copy.sort((a, b) => s.asc ? a.gene.localeCompare(b.gene) : b.gene.localeCompare(a.gene));
             else if (s.col === 'r') copy.sort((a, b) => s.asc ? a.r - b.r : b.r - a.r);
+            else if (s.col === 'n') copy.sort((a, b) => s.asc ? a.n - b.n : b.n - a.n);
             else copy.sort((a, b) => s.asc ? Math.abs(a.r) - Math.abs(b.r) : Math.abs(b.r) - Math.abs(a.r));
             return copy;
         };
@@ -14150,8 +14154,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
             document.getElementById('icGeArrowGene').textContent = arrow(sortState.ge, 'gene');
             document.getElementById('icGeArrowR').textContent = sortState.ge.col === 'r' ? arrow(sortState.ge, 'r') : arrow(sortState.ge, 'absR');
+            document.getElementById('icGeArrowN').textContent = arrow(sortState.ge, 'n');
             document.getElementById('icExprArrowGene').textContent = arrow(sortState.expr, 'gene');
             document.getElementById('icExprArrowR').textContent = sortState.expr.col === 'r' ? arrow(sortState.expr, 'r') : arrow(sortState.expr, 'absR');
+            document.getElementById('icExprArrowN').textContent = arrow(sortState.expr, 'n');
 
             document.querySelectorAll('#icGeBody .ic-row, #icExprBody .ic-row').forEach(tr => {
                 tr.addEventListener('click', async () => {
@@ -14227,14 +14233,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const toggleSort = (s, col) => {
             if (col === 'gene') {
                 if (s.col === 'gene') s.asc = !s.asc; else { s.col = 'gene'; s.asc = true; }
+            } else if (col === 'n') {
+                if (s.col === 'n') s.asc = !s.asc; else { s.col = 'n'; s.asc = false; }
             } else {
                 if (s.col === 'r') s.asc = !s.asc; else { s.col = 'r'; s.asc = false; }
             }
         };
         document.getElementById('icGeHeadGene').addEventListener('click', () => { toggleSort(sortState.ge, 'gene'); renderLists(); });
         document.getElementById('icGeHeadR').addEventListener('click', () => { toggleSort(sortState.ge, 'r'); renderLists(); });
+        document.getElementById('icGeHeadN').addEventListener('click', () => { toggleSort(sortState.ge, 'n'); renderLists(); });
         document.getElementById('icExprHeadGene').addEventListener('click', () => { toggleSort(sortState.expr, 'gene'); renderLists(); });
         document.getElementById('icExprHeadR').addEventListener('click', () => { toggleSort(sortState.expr, 'r'); renderLists(); });
+        document.getElementById('icExprHeadN').addEventListener('click', () => { toggleSort(sortState.expr, 'n'); renderLists(); });
 
         renderLists();
     }
