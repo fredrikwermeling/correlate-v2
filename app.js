@@ -11761,6 +11761,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 document.getElementById('translocationFilterBox').style.display = 'block';
             }
         }
+
+        // Wire the searchable hotspot / fusion / CN filter widgets and reveal the
+        // CN filter box + the Amp/Del and Fusion compare buttons, so the compare
+        // row and filters match what's shown once genes are entered (otherwise the
+        // direct-opened scatter showed only Tissue + Hotspot until the first Update).
+        this._setupMutFilterWidget('hotspot', 'mutationFilterGene', 'mutationFilterDropdown', () => this._onInspectFilterPick('mutationFilterGene', 'mutationFilterLevel', '1+2'), () => this._inspectCohortExcluding('hotspot'));
+        this._setupMutFilterWidget('fusion', 'translocationFilterGene', 'translocationFilterDropdown', () => this._onInspectFilterPick('translocationFilterGene', 'translocationFilterLevel', '1+2'), () => this._inspectCohortExcluding('fusion'));
+        this._setupMutFilterWidget('cn', 'scatterCnFilter', 'scatterCnDropdown', () => this._onInspectFilterPick('scatterCnFilter', 'scatterCnLevel', 'altered'), () => this._inspectCohortExcluding('cn'));
+        const scatterCnBox = document.getElementById('scatterCnFilterBox');
+        if (scatterCnBox) scatterCnBox.style.display = this.clinicalCn?.byCellLine ? 'block' : 'none';
+        const cmpFusBtn = document.getElementById('compareAllTranslocationsBtn');
+        if (cmpFusBtn) cmpFusBtn.style.display = this.clinicalFusions?.fusionData ? '' : 'none';
+        const cmpCnBtn = document.getElementById('compareAllCnBtn');
+        if (cmpCnBtn) cmpCnBtn.style.display = this.clinicalCn?.byCellLine ? '' : 'none';
     }
 
     openInspect(c) {
@@ -16777,7 +16791,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!md) return;
             const ev = { clientX: eventData.event?.clientX, clientY: eventData.event?.clientY };
             clearTimeout(scatterHoverTimer);
-            scatterHoverTimer = setTimeout(() => this.showCellLineTooltip(ev, md.cellLineId), 180);
+            scatterHoverTimer = setTimeout(() => this.showCellLineTooltip(ev, md.cellLineId, 'Click to mark · Shift-click to open in Cell Line Browser'), 180);
         });
         hoverEl.on('plotly_unhover', () => { clearTimeout(scatterHoverTimer); this.hideCellLineTooltip(); });
 
