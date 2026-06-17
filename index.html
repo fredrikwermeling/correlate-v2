@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.22 (2026-06-17)</strong></p>
+                <ul>
+                    <li>Cell-line CSV exports: the header is now a compact aligned 2-column (Field, Value) block instead of long single-cell comment lines, so it opens tidily with text-to-columns. Added per-gene <b>Chr</b> and <b>Cytoband</b> (GRCh38) columns to the full-profile export (and a gene-location listing in the per-gene export).</li>
+                </ul>
                 <p><strong>v.84.21 (2026-06-17)</strong></p>
                 <ul>
                     <li>Correlation scatter: opening the scatter directly (the Correlation button) now shows the Amp/Del and Fusion compare buttons and the CN filter from the start, instead of only after the first Update. The dot hover now spells out "Shift-click to open in Cell Line Browser".</li>
@@ -3726,7 +3730,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.21</a>
+        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.22</a>
     </div>
 
     <div class="main-content">
@@ -6080,6 +6084,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_21"></script>
+    <script src="app.js?v=v84_22"></script>
 </body>
 </html>

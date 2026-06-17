@@ -32233,6 +32233,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 try { await this.loadExpressionData(); } catch (e) { /* expr cols blank */ }
             }
             try { await this.loadCnData(); } catch (e) { /* CN column blank */ }
+            try { await this.loadGeneLocations(); } catch (e) { /* location cols blank */ }
             const name = (this.getCellLineName(clId) || clId).replace(/[^A-Za-z0-9]/g, '');
             const csv = this._buildCellLineFullProfileCsv([ci], [this.getCellLineName(clId) || clId]);
             this.downloadFile(csv, csvName(`correlate_full_profile_${name}`), 'text/csv');
@@ -33321,46 +33322,42 @@ ${clone.innerHTML}
     // per-cell-line "Export gene info" button. Assumes expression is loaded.
     _buildCellLineFullProfileCsv(clIndices, clNames) {
         const cnMaps = clIndices.map(ci => this._cnEventMapForCellLine(this.metadata.cellLines[ci]));
-        const headerParts = ['Gene'];
+        // Per-gene location (Chr / Cytoband) columns, then the per-cell-line cols.
+        const headerParts = ['Gene', 'Chr', 'Cytoband'];
         for (const name of clNames) {
             const n = name.replace(/,/g, '');
             headerParts.push(`${n}_GE`, `${n}_Expr`, `${n}_Hotspot`, `${n}_Damaging`, `${n}_Fusion`, `${n}_FocalCN`, `${n}_CN`);
         }
-        // Per-cell-line column into the all-genes CN matrix (gene-major). Blank
-        // when the matrix isn't loaded or the line isn't covered.
         const cnNCL = this.cnLoaded ? this.cnMetadata.nCellLines : 0;
         const cnCi = clIndices.map(ci => this.cnLoaded ? this.cnCellLineIndex.get(this.metadata.cellLines[ci]) : undefined);
-        const comments = [
-            `# Full per-gene profile for ${clNames.length} cell line${clNames.length === 1 ? '' : 's'}`,
-        ];
-        // Identify each cell line and add a brief metadata summary (so the file is
-        // self-describing about which cell line(s) it covers).
+        const locs = this.geneLocations || null;
+        // Metadata as a compact, aligned 2-column (Field,Value) block so it opens
+        // tidily in Excel / text-to-columns instead of long single comment cells.
+        // Values are stripped of commas (-> ';') so each row stays exactly Field|Value.
+        const sani = (s) => String(s == null ? '' : s).replace(/,/g, ';').replace(/\s+/g, ' ').trim();
+        const lines = ['# Correlate full per-gene profile'];
         for (let c = 0; c < clIndices.length; c++) {
             const clId = this.metadata.cellLines[clIndices[c]];
             const tissue = this.getCellLineLineage(clId) || '';
             const subtype = this.getCellLineSublineage(clId) || '';
             let summary = '';
-            try { summary = (this._cellLineExecutiveSummary(clId) || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); } catch (e) {}
-            comments.push(`# Cell line: ${clNames[c]} (${clId})${tissue ? ' | tissue: ' + tissue : ''}${subtype ? ' | subtype: ' + subtype : ''}`);
-            if (summary) comments.push(`# Summary (${clNames[c]}): ${summary}`);
+            try { summary = (this._cellLineExecutiveSummary(clId) || '').replace(/<[^>]*>/g, ' '); } catch (e) {}
+            lines.push(`Cell line,${sani(`${clNames[c]} (${clId})`)}`);
+            if (tissue) lines.push(`Tissue,${sani(tissue)}`);
+            if (subtype) lines.push(`Subtype,${sani(subtype)}`);
+            if (summary) lines.push(`Summary,${sani(summary)}`);
         }
-        comments.push(
-            `# Columns per cell line: GE (CRISPR gene effect); Expr (log2 TPM+1); Hotspot (0/1/2); Damaging (0/1); Fusion (0/1/2); FocalCN (curated amp/deep-del; blank if none); CN (relative copy number from the full DepMap gene-level matrix; 1.0 = the line's modal baseline; >1 gain; <1 loss)`,
-            `# Data source: DepMap ${DEPMAP_VERSION} (https://depmap.org/) - please acknowledge DepMap if you use this data`,
-            `# Tsherniak A et al. Defining a Cancer Dependency Map. Cell. 2017.`,
-            `# Date: ${new Date().toISOString().slice(0, 10)}`
-        );
-        // Comment lines must not contain the comma delimiter, or Excel/text-to-
-        // columns splits them across cells and the file opens misaligned. Strip any
-        // stray commas (e.g. in the executive summary) to ';' so each comment stays
-        // in a single column above the proper CSV table.
-        const lines = comments.map(c => c.replace(/,/g, ';'));
+        lines.push(`Column key,${sani('GE = CRISPR gene effect; Expr = log2 TPM+1; Hotspot = 0/1/2; Damaging = 0/1; Fusion = 0/1/2; FocalCN = curated amp/deep-del; CN = relative copy number (1.0 = baseline, >1 gain, <1 loss); Chr/Cytoband = GRCh38 gene location')}`);
+        lines.push(`Data source,${sani(`DepMap ${DEPMAP_VERSION} (depmap.org); please cite Tsherniak et al. Cell 2017`)}`);
+        lines.push(`Date,${new Date().toISOString().slice(0, 10)}`);
+        lines.push('');
         lines.push(headerParts.join(','));
         for (let g = 0; g < this.nGenes; g++) {
             const geneName = this.geneNames[g];
             const cnGi = this.cnLoaded ? this.cnGeneIndex.get(geneName.toUpperCase()) : undefined;
             const cnOff = cnGi !== undefined ? cnGi * cnNCL : -1;
-            const row = [geneName];
+            const loc = locs ? locs[geneName.toUpperCase()] : null;
+            const row = [geneName, loc?.chr || '', loc?.band || ''];
             for (let c = 0; c < clIndices.length; c++) {
                 const ci = clIndices[c];
                 const clId = this.metadata.cellLines[ci];
@@ -33408,6 +33405,7 @@ ${clone.innerHTML}
             catch (e) { /* expression columns will be blank */ }
         }
         try { await this.loadCnData(); } catch (e) { /* CN column blank */ }
+        try { await this.loadGeneLocations(); } catch (e) { /* location info blank */ }
 
         const resolved = genes.map(g => ({ gene: g, geIdx: this.geneIndex.get(g) }));
         const missing = resolved.filter(r => r.geIdx === undefined && (this.expressionGeneIndex?.get(r.gene) === undefined));
@@ -33427,13 +33425,22 @@ ${clone.innerHTML}
             header.push(`GE_${r.gene}`, `Expr_${r.gene}`, `Hotspot_${r.gene}`, `Damaging_${r.gene}`, `Fusion_${r.gene}`, `FocalCN_${r.gene}`, `CN_${r.gene}`);
         });
 
-        // Comment lines must stay comma-free so Excel / text-to-columns keeps them
-        // in a single column above the proper CSV table.
+        // Compact 2-column (Field,Value) metadata block so it opens tidily in
+        // Excel / text-to-columns. Each gene's Chr / Cytoband (GRCh38) is listed
+        // here since the genes are columns in this layout. Values comma-stripped.
+        const sani = (s) => String(s == null ? '' : s).replace(/,/g, ';').replace(/\s+/g, ' ').trim();
+        const locs = this.geneLocations || null;
+        const locList = resolved.map(r => { const l = locs ? locs[r.gene.toUpperCase()] : null; return `${r.gene} = ${l?.chr || '?'} / ${l?.band || '?'}`; }).join('; ');
         const rows = [
-            `# Per-gene profile for ${genes.length} gene${genes.length === 1 ? '' : 's'} across ${ids.length} ${source} cell line${ids.length === 1 ? '' : 's'}`,
-            `# Columns per gene: GE (CRISPR gene effect); Expr (log2 TPM+1); Hotspot (0/1/2); Damaging (0/1); Fusion (0/1/2); FocalCN (curated amp/deep-del; blank if none); CN (relative copy number from the full DepMap gene-level matrix; 1.0 = modal baseline; >1 gain; <1 loss)`,
-            `# Data source: DepMap ${DEPMAP_VERSION} (https://depmap.org/) - please acknowledge DepMap if you use this data`,
-        ].map(c => c.replace(/,/g, ';'));
+            '# Correlate per-gene profile',
+            `Genes,${sani(resolved.map(r => r.gene).join('; '))}`,
+            `Gene location (Chr / Cytoband),${sani(locList)}`,
+            `Cell lines,${ids.length} (${source})`,
+            `Column key,${sani('GE = CRISPR gene effect; Expr = log2 TPM+1; Hotspot = 0/1/2; Damaging = 0/1; Fusion = 0/1/2; FocalCN = curated amp/deep-del; CN = relative copy number (1.0 = baseline, >1 gain, <1 loss)')}`,
+            `Data source,${sani(`DepMap ${DEPMAP_VERSION} (depmap.org); please cite Tsherniak et al. Cell 2017`)}`,
+            `Date,${new Date().toISOString().slice(0, 10)}`,
+            ''
+        ];
         rows.push(header.join(','));
         for (const cl of ids) {
             const ci = clIndexOf.get(cl);
@@ -33616,6 +33623,7 @@ ${clone.innerHTML}
                 catch (e) { alert('Failed to load expression data: ' + e.message); return; }
             }
             try { await this.loadCnData(); } catch (e) { /* CN column blank */ }
+            try { await this.loadGeneLocations(); } catch (e) { /* location cols blank */ }
             const csv = this._buildCellLineFullProfileCsv(clIndices, clNames);
             this.downloadFile(csv, csvName(`correlate_full_profile${namePart}`), 'text/csv');
         }
