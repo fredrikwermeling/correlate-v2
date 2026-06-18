@@ -8428,11 +8428,17 @@ class CorrelationExplorer {
         const oldBanner = container.querySelector('.network-filter-banner');
         if (oldBanner) oldBanner.remove();
         if (headerEl) {
-            if (filterText) {
-                const fs = this._netBannerFontSize || 12;
+            // Custom banner text from the text-settings panel wins over the auto
+            // filter text, and survives re-renders (zoom etc.). All banner styling
+            // (size / colour / font) is re-applied so a re-render keeps the user's
+            // text-settings choices in sync with the live banner and the export.
+            const text = (this._netBannerCustomText != null && this._netBannerCustomText !== '') ? this._netBannerCustomText : filterText;
+            if (text) {
                 headerEl.style.display = 'block';
-                headerEl.style.fontSize = fs + 'px';
-                headerEl.textContent = filterText;
+                headerEl.style.fontSize = (this._netBannerFontSize || 20) + 'px';
+                if (this._netBannerColor) headerEl.style.color = this._netBannerColor;
+                if (this._netFontFamily) headerEl.style.fontFamily = this._netFontFamily;
+                headerEl.textContent = text;
             } else {
                 headerEl.style.display = 'none';
                 headerEl.textContent = '';
@@ -8749,6 +8755,7 @@ class CorrelationExplorer {
         this._netLegendColor = '#374151';
         this._netBannerFontSize = 20;
         this._netBannerColor = '#374151';
+        this._netBannerCustomText = null;
 
         // Node border back on
         const nb = document.getElementById('networkNodeBorder'); if (nb) nb.checked = true;
@@ -8866,9 +8873,12 @@ class CorrelationExplorer {
             if (strong) legendTexts.push(strong.textContent.replace(/:$/, ''));
         });
 
-        // Read filter banner text
-        const banner = document.querySelector('.network-filter-banner');
-        const bannerText = banner?.textContent || '';
+        // Read the live filter banner (#networkHeader strip) for its current text,
+        // so the panel reflects and edits the actual banner (it used to read a
+        // removed .network-filter-banner, so the text field never appeared).
+        const banner = document.getElementById('networkHeader');
+        const bannerVisible = !!banner && banner.style.display !== 'none';
+        const bannerText = banner ? banner.textContent.trim() : '';
 
         body.innerHTML = `
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
@@ -8888,12 +8898,13 @@ class CorrelationExplorer {
             ${colorRow('Text Color', 'net_ts_legendColor', legendColor)}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Filter Banner</div>
-            ${sizeRow('Font Size', 'net_ts_bannerSize', bannerFontSize, 6, 24)}
+            ${(bannerVisible || bannerText) ? `
+            ${sizeRow('Font Size', 'net_ts_bannerSize', bannerFontSize, 6, 30)}
             ${colorRow('Text Color', 'net_ts_bannerColor', bannerColor)}
-            ${bannerText ? `<div style="margin-bottom:5px;">
+            <div style="margin-bottom:5px;">
                 <label style="font-size:10px;color:#6b7280;">Banner Text</label>
                 <input type="text" id="net_ts_bannerText" value="${this._escapeAttr(bannerText)}" style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:3px 6px;font-size:11px;margin-top:1px;box-sizing:border-box;" oninput="app._netTsApply()">
-            </div>` : ''}
+            </div>` : '<div style="font-size:10px;color:#9ca3af;margin-bottom:4px;">No filter banner on this network (no parameter filters active).</div>'}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Colors</div>
             ${colorRow('Node Label', 'net_ts_labelColor', labelColor)}
@@ -8976,7 +8987,12 @@ class CorrelationExplorer {
             banner.style.color = bannerColor;
             banner.style.fontFamily = fontFamily;
             const bannerText = document.getElementById('net_ts_bannerText')?.value;
-            if (bannerText !== undefined && bannerText !== '') banner.textContent = bannerText;
+            if (bannerText !== undefined) {
+                // Remember the custom text so it survives network re-renders (zoom
+                // etc.), which otherwise reset the banner to the auto filter text.
+                this._netBannerCustomText = bannerText;
+                if (bannerText !== '') { banner.textContent = bannerText; banner.style.display = 'block'; }
+            }
         }
     }
 
@@ -9476,6 +9492,9 @@ Results:
     }
 
     _getNetworkFilterText() {
+        // A custom banner text from the text-settings panel overrides the auto
+        // filter text everywhere (live banner + all exports).
+        if (this._netBannerCustomText != null && this._netBannerCustomText !== '') return this._netBannerCustomText;
         const parts = [];
         // When the analysis was launched from a CLB selection (via "Inspect
         // gene effects" / "Inspect correlations" → Network), surface that
@@ -14036,6 +14055,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const xGene = (document.getElementById('inspectGeneX')?.value || '').trim().toUpperCase();
         if (!xGene) { alert('Enter an X-axis gene first.'); return; }
         const xType = document.getElementById('xAxisDataType')?.value || 'ge';
+        // Load expression up front so the "Top Expression correlates" panel always
+        // populates. Without this it came out empty whenever expression had never
+        // been loaded (e.g. X is a gene-effect gene), which read as "0 outputs".
+        if (!this.expressionLoaded) { try { await this.loadExpressionData(); } catch (e) { /* expr panel stays empty */ } }
         // Compute the filter set directly from DOM every time. This matches
         // the scatter's eventual cell-line set exactly, cells passing all
         // inspect-modal filters, with no gene-validity pre-filter baked in.

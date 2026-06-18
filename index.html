@@ -1485,6 +1485,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.24 (2026-06-18)</strong></p>
+                <ul>
+                    <li>Find correlates: expression data now loads automatically when you run it, so the "Top Expression correlates" panel populates even when the X gene is a gene-effect gene (it was coming out empty / 0 outputs).</li>
+                    <li>Network filter banner: the text-settings panel now reads and edits the live banner (#networkHeader) properly, the Font Size / Text / Colour controls stay in sync, and a custom banner text now survives re-renders (zoom etc.) and is used in exports. (The panel previously read a removed element, so the banner text field never appeared and edits didn't stick.)</li>
+                </ul>
                 <p><strong>v.84.23 (2026-06-17)</strong></p>
                 <ul>
                     <li>Cell-line CSV exports: renamed the <code>FocalCN</code> column to <code>CancerCN</code> and clarified the key, so it's clear it's the curated cancer-driver focal call (only the ~30 driver genes get a value), distinct from the <code>CN</code> column which is the relative copy number for every gene (so a whole amplicon shows many neighbouring genes with high CN, with only the driver flagged in CancerCN).</li>
