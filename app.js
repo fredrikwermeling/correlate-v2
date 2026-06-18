@@ -33326,7 +33326,7 @@ ${clone.innerHTML}
         const headerParts = ['Gene', 'Chr', 'Cytoband'];
         for (const name of clNames) {
             const n = name.replace(/,/g, '');
-            headerParts.push(`${n}_GE`, `${n}_Expr`, `${n}_Hotspot`, `${n}_Damaging`, `${n}_Fusion`, `${n}_FocalCN`, `${n}_CN`);
+            headerParts.push(`${n}_GE`, `${n}_Expr`, `${n}_Hotspot`, `${n}_Damaging`, `${n}_Fusion`, `${n}_CancerCN`, `${n}_CN`);
         }
         const cnNCL = this.cnLoaded ? this.cnMetadata.nCellLines : 0;
         const cnCi = clIndices.map(ci => this.cnLoaded ? this.cnCellLineIndex.get(this.metadata.cellLines[ci]) : undefined);
@@ -33347,7 +33347,7 @@ ${clone.innerHTML}
             if (subtype) lines.push(`Subtype,${sani(subtype)}`);
             if (summary) lines.push(`Summary,${sani(summary)}`);
         }
-        lines.push(`Column key,${sani('GE = CRISPR gene effect; Expr = log2 TPM+1; Hotspot = 0/1/2; Damaging = 0/1; Fusion = 0/1/2; FocalCN = curated amp/deep-del; CN = relative copy number (1.0 = baseline, >1 gain, <1 loss); Chr/Cytoband = GRCh38 gene location')}`);
+        lines.push(`Column key,${sani('GE = CRISPR gene effect; Expr = log2 TPM+1; Hotspot = 0/1/2; Damaging = 0/1; Fusion = 0/1/2; CancerCN = curated cancer-driver focal call (tier:relativeCN) only for the ~30 driver genes in the curated panel; blank otherwise; CN = relative copy number for EVERY gene (1.0 = baseline; >1 gain; <1 loss) so an amplicon shows many neighbouring genes with high CN; Chr/Cytoband = GRCh38 gene location')}`);
         lines.push(`Data source,${sani(`DepMap ${DEPMAP_VERSION} (depmap.org); please cite Tsherniak et al. Cell 2017`)}`);
         lines.push(`Date,${new Date().toISOString().slice(0, 10)}`);
         lines.push('');
@@ -33422,7 +33422,7 @@ ${clone.innerHTML}
 
         const header = ['CellLineID', 'CellLineName', 'Tissue', 'Subtype', 'Sex'];
         resolved.forEach(r => {
-            header.push(`GE_${r.gene}`, `Expr_${r.gene}`, `Hotspot_${r.gene}`, `Damaging_${r.gene}`, `Fusion_${r.gene}`, `FocalCN_${r.gene}`, `CN_${r.gene}`);
+            header.push(`GE_${r.gene}`, `Expr_${r.gene}`, `Hotspot_${r.gene}`, `Damaging_${r.gene}`, `Fusion_${r.gene}`, `CancerCN_${r.gene}`, `CN_${r.gene}`);
         });
 
         // Compact 2-column (Field,Value) metadata block so it opens tidily in
@@ -33436,7 +33436,7 @@ ${clone.innerHTML}
             `Genes,${sani(resolved.map(r => r.gene).join('; '))}`,
             `Gene location (Chr / Cytoband),${sani(locList)}`,
             `Cell lines,${ids.length} (${source})`,
-            `Column key,${sani('GE = CRISPR gene effect; Expr = log2 TPM+1; Hotspot = 0/1/2; Damaging = 0/1; Fusion = 0/1/2; FocalCN = curated amp/deep-del; CN = relative copy number (1.0 = baseline, >1 gain, <1 loss)')}`,
+            `Column key,${sani('GE = CRISPR gene effect; Expr = log2 TPM+1; Hotspot = 0/1/2; Damaging = 0/1; Fusion = 0/1/2; CancerCN = curated cancer-driver focal call (tier:relativeCN) only for the ~30 curated driver genes; blank otherwise; CN = relative copy number for EVERY gene (1.0 = baseline; >1 gain; <1 loss)')}`,
             `Data source,${sani(`DepMap ${DEPMAP_VERSION} (depmap.org); please cite Tsherniak et al. Cell 2017`)}`,
             `Date,${new Date().toISOString().slice(0, 10)}`,
             ''

@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.23 (2026-06-17)</strong></p>
+                <ul>
+                    <li>Cell-line CSV exports: renamed the <code>FocalCN</code> column to <code>CancerCN</code> and clarified the key, so it's clear it's the curated cancer-driver focal call (only the ~30 driver genes get a value), distinct from the <code>CN</code> column which is the relative copy number for every gene (so a whole amplicon shows many neighbouring genes with high CN, with only the driver flagged in CancerCN).</li>
+                </ul>
                 <p><strong>v.84.22 (2026-06-17)</strong></p>
                 <ul>
                     <li>Cell-line CSV exports: the header is now a compact aligned 2-column (Field, Value) block instead of long single-cell comment lines, so it opens tidily with text-to-columns. Added per-gene <b>Chr</b> and <b>Cytoband</b> (GRCh38) columns to the full-profile export (and a gene-location listing in the per-gene export).</li>
