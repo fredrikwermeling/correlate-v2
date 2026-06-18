@@ -14197,7 +14197,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         <div style="font-weight:600; color:#374151;">Top Expression correlates <span id="icExprCount" style="font-weight:400; color:#6b7280; font-size:11px;"></span></div>
                         <button class="btn btn-secondary btn-sm" id="icEnrichrExpr" style="font-size:10px; padding:2px 8px;" ${this.expressionLoaded ? '' : 'disabled'} title="Send the filtered Expression-correlate list to Enrichr for pathway enrichment">Enrichr</button>
                     </div>
-                    <div style="font-size:10px; color:#9ca3af; margin-bottom:6px;">${this.expressionLoaded ? 'Click a gene to set it as the Y axis (Expression).' : 'Expression data not loaded.'}</div>
+                    <div style="font-size:10px; color:#9ca3af; margin-bottom:6px;">${this.expressionLoaded ? 'Click a gene to set it as the Y axis (Expression).' : 'Expression data still loading or unavailable, reopen Find correlates once it finishes to populate this list.'}</div>
                     <div style="max-height:60vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;">
                         <table style="width:100%; border-collapse:collapse; font-size:11px;">
                             <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
@@ -14244,8 +14244,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const exprSorted = sortRows(exprFiltered, sortState.expr);
             const geShown = geSorted.slice(0, DISPLAY_CAP);
             const exprShown = exprSorted.slice(0, DISPLAY_CAP);
-            document.getElementById('icGeBody').innerHTML = geShown.map(r => rowHtml(r, 'ge')).join('');
-            document.getElementById('icExprBody').innerHTML = exprShown.map(r => rowHtml(r, 'expr')).join('');
+            document.getElementById('icGeBody').innerHTML = geShown.map(r => rowHtml(r, 'ge')).join('')
+                || (geFiltered.length === 0 ? '<tr><td colspan="3" style="padding:10px 8px; color:#9ca3af; font-size:11px;">No gene-effect correlates pass the current |r| cutoff. Lower the cutoff.</td></tr>' : '');
+            // When the expression list is empty, explain WHY (not loaded vs cutoff)
+            // and how to fix it, rather than just showing a blank panel.
+            document.getElementById('icExprBody').innerHTML = exprShown.map(r => rowHtml(r, 'expr')).join('')
+                || (!this.expressionLoaded
+                    ? '<tr><td colspan="3" style="padding:10px 8px; color:#92400e; background:#fffbeb; font-size:11px;">Expression data isn\'t loaded, so expression correlates couldn\'t be computed. It loads automatically when you open Find correlates; if this stays empty the load is still in progress or failed. Close and reopen Find correlates (or open any Expression view once) to retry.</td></tr>'
+                    : '<tr><td colspan="3" style="padding:10px 8px; color:#9ca3af; font-size:11px;">No expression correlates pass the current |r| cutoff. Lower the cutoff.</td></tr>');
             document.getElementById('icGeCount').textContent =
                 `(${geFiltered.length}${geFiltered.length > DISPLAY_CAP ? `, showing top ${DISPLAY_CAP}` : ''})`;
             document.getElementById('icExprCount').textContent =
