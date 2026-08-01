@@ -24017,9 +24017,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const int16Data = new Int16Array(decompressed.buffer);
             const sf = meta.scaleFactor;
             const na = meta.naValue;
+            // Rescale in chunks, yielding to the event loop between them, so the
+            // CN matrix decode doesn't freeze the page. Same arithmetic and order
+            // as a single pass, so the values are identical.
             const out = new Float32Array(int16Data.length);
-            for (let i = 0; i < int16Data.length; i++) {
-                out[i] = (int16Data[i] === na) ? NaN : int16Data[i] / sf;
+            const _cnLen = int16Data.length, _CN_CHUNK = 4000000;
+            for (let base = 0; base < _cnLen; base += _CN_CHUNK) {
+                const end = Math.min(base + _CN_CHUNK, _cnLen);
+                for (let i = base; i < end; i++) {
+                    out[i] = (int16Data[i] === na) ? NaN : int16Data[i] / sf;
+                }
+                if (end < _cnLen) await new Promise(resolve => setTimeout(resolve, 0));
             }
             this.cnData = out;
             this.cnMetadata = meta;
@@ -24197,12 +24205,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const scaleFactor = this.expressionMetadata.scaleFactor;
             const naValue = this.expressionMetadata.naValue;
 
+            // Rescale the ~22M-element expression matrix in chunks, yielding
+            // between them so the page stays responsive while it decodes and the
+            // percentage below can actually paint. Same arithmetic and order as a
+            // single pass, so the values are identical.
             this.expressionData = new Float32Array(int16Data.length);
-            for (let i = 0; i < int16Data.length; i++) {
-                if (int16Data[i] === naValue) {
-                    this.expressionData[i] = NaN;
-                } else {
-                    this.expressionData[i] = int16Data[i] / scaleFactor;
+            const _exprLen = int16Data.length, _EXPR_CHUNK = 4000000;
+            for (let base = 0; base < _exprLen; base += _EXPR_CHUNK) {
+                const end = Math.min(base + _EXPR_CHUNK, _exprLen);
+                for (let i = base; i < end; i++) {
+                    this.expressionData[i] = (int16Data[i] === naValue) ? NaN : int16Data[i] / scaleFactor;
+                }
+                if (end < _exprLen) {
+                    loadingTextEl.textContent = `Decompressing expression data... ${Math.round(end / _exprLen * 100)}%`;
+                    await new Promise(resolve => setTimeout(resolve, 0));
                 }
             }
 

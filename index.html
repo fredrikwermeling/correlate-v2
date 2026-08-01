@@ -1485,6 +1485,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.28 (2026-08-01)</strong></p>
+                <ul>
+                    <li>The page no longer freezes while the copy-number and expression data are being unpacked. Both are now decoded in smaller pieces so the browser stays responsive, and expression decoding shows a percentage as it goes.</li>
+                </ul>
                 <p><strong>v.84.27 (2026-08-01)</strong></p>
                 <ul>
                     <li>Correlation scatter redraws are faster. The chart is now updated in place instead of being torn down and rebuilt every time, so changing a filter or typing a gene name feels quicker.</li>
@@ -3753,7 +3757,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.27</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.28</a>
     </div>
 
     <div class="main-content">
@@ -6107,6 +6111,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_27"></script>
+    <script src="app.js?v=v84_28"></script>
 </body>
 </html>
