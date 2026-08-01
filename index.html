@@ -1620,6 +1620,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.36 (2026-08-01)</strong></p>
+                <ul>
+                    <li><b>Deep deletion removed.</b> Mutation analysis now has four sub-types: Hotspot mutation, Fusion, Functional loss, Amplification. Functional loss already treats deep deletion as one of its three mechanisms, on genes that have the cell lines to support it. Of the 14 genes Deep deletion offered, 4 had none at all and 8 more had under 10, and its one well-powered gene (CDKN2B) sits beside CDKN2A on 9p21 and is almost always co-deleted with it, which Functional loss covers better.</li>
+                    <li><b>Genes with too few cell lines are no longer offered.</b> A stratifier needs at least 10 carriers among the cell lines currently in scope, counted after your tissue and subtype filters, so the list shortens as you narrow the cohort. Amplification now lists MYC, CCND1, KRAS, MYCN, ERBB2, CDK4, MDM2, CCNE1, EGFR and MET. Fusions are exempt, since driver fusions are rare by nature and the rule would leave only two.</li>
+                </ul>
                 <p><strong>v.84.35 (2026-08-01)</strong></p>
                 <ul>
                     <li><b>Fix, affects results: cell lines with no copy-number data are no longer counted as unaltered.</b> Copy number comes from whole-genome sequencing, which covers 830 of the 1,186 lines. The other 356 were being placed in the wild-type group, so every Amplification and Deep deletion comparison was diluted with cell lines that had never been measured. They are now excluded. Group sizes for these two sub-types now add up to 830, and p-values will differ from before.</li>
@@ -3933,7 +3938,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.35</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.36</a>
     </div>
 
     <div class="main-content">
@@ -4084,10 +4089,14 @@
                                     <input type="radio" name="mutAnalysisType" value="cn_amp"> Amplification
                                     <span class="mut-subtype-help" data-subtype="cn_amp" title="What is this?">?</span>
                                 </label>
-                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                    <input type="radio" name="mutAnalysisType" value="cn_del"> Deep deletion
-                                    <span class="mut-subtype-help" data-subtype="cn_del" title="What is this?">?</span>
-                                </label>
+                                <!-- "Deep deletion" (value cn_del) removed in v.84.36. It
+                                     duplicated Functional loss, which already treats deep
+                                     deletion as one of its three mechanisms on genes that
+                                     have the numbers. Of its 14 genes, 4 had no cell lines
+                                     at all and 8 more had under 10; the only well-powered
+                                     one, CDKN2B, is a 9p21 co-deletion proxy for CDKN2A,
+                                     which Functional loss covers better. The cn_del code
+                                     paths remain so saved figures still restore. -->
                             </div>
                             <div id="mutSubTypeInfo" style="display:none; margin-top:6px; padding:8px; background:#fff; border:1px solid #86efac; border-radius:5px; font-size:10px; line-height:1.5; color:#374151; max-height:260px; overflow-y:auto;"></div>
                         </div>
@@ -6334,6 +6343,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_35"></script>
+    <script src="app.js?v=v84_36"></script>
 </body>
 </html>

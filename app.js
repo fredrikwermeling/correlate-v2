@@ -1387,6 +1387,14 @@ class CorrelationExplorer {
         }
     }
 
+    // Fewest carrier cell lines a stratifier gene must have to be worth offering.
+    // The scan runs a Welch t-test over ~18,400 genes with no multiple-testing
+    // correction, so a split with a handful of carriers returns noise. Counted
+    // after the tissue / subtype filters, so the list tightens as the cohort
+    // narrows. Not applied to fusions: driver fusions are intrinsically rare and
+    // the bar would leave only two of them.
+    _MIN_STRATIFIER_N() { return 10; }
+
     _populateDamagingMutationList() {
         // Functional-loss gene picker, a <select> dropdown (like the hotspot one),
         // listing the TSGs with their functional-loss counts under the active filters.
@@ -1417,7 +1425,7 @@ class CorrelationExplorer {
             for (const cl of filteredCLs) {
                 if (mutations[cl] && mutations[cl] > 0) nMut++;
             }
-            if (nMut > 0) geneCounts.push({ gene, count: nMut });
+            if (nMut >= this._MIN_STRATIFIER_N()) geneCounts.push({ gene, count: nMut });
         }
         geneCounts.sort((a, b) => b.count - a.count);
 
@@ -1465,7 +1473,7 @@ class CorrelationExplorer {
             for (const cl of filteredCLs) {
                 if (mutations[cl] && mutations[cl] > 0) nMut++;
             }
-            if (nMut > 0) geneCounts.push({ gene, count: nMut });
+            if (nMut >= this._MIN_STRATIFIER_N()) geneCounts.push({ gene, count: nMut });
         }
         geneCounts.sort((a, b) => b.count - a.count);
 
@@ -17456,7 +17464,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return {
             hotspot: `<b>Hotspot mutation</b><br>
                 Cell lines carrying a recurrent hotspot mutation in the gene you pick.<br><br>
-                <b>Source:</b> DepMap hotspot somatic mutation matrix, covering 49 genes.<br>
+                <b>Source:</b> DepMap hotspot somatic mutation matrix, covering 49 genes. Only
+                those mutated in at least 10 of the cell lines currently in scope are listed,
+                since smaller groups cannot support the scan.<br>
                 <b>Levels:</b> 1 = one mutated allele, 2 = both alleles or multiple hits. The main
                 comparison is wild-type (0) against altered (1+2). Where the groups are large
                 enough, 0 vs 2 and 1 vs 2 are tested as well.<br>
@@ -17469,8 +17479,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 clinical driver fusions, then checked in each cell line and kept only at high or
                 medium confidence. Supporting evidence is overexpression of the partner gene and
                 increased dependency on it.<br>
-                <b>Scope:</b> 23 fusions. Several occur in only one or two cell lines, so they will
-                not reach the minimum group size.<br>
+                <b>Scope:</b> 23 fusions. Unlike the other sub-types these are not hidden when few
+                cell lines carry them, because driver fusions are rare by nature and the list
+                would otherwise hold only two. Most carry under 10 cell lines, so treat their
+                results as a lead to follow up rather than a result on their own.<br>
                 <b>Split:</b> fused vs not fused.`,
             damaging: `<b>Functional loss</b><br>
                 Cell lines where the gene has been inactivated, by whichever mechanism.<br><br>
@@ -17486,10 +17498,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 <b>Threshold:</b> relative copy number at or above 3x. That is 3x the cell line's
                 own ploidy baseline rather than 3x two copies, so in a genome-doubled line it means
                 roughly 12 copies.<br>
-                <b>Scope:</b> a curated panel of 33 oncogenes (MYC, CCND1, KRAS, MYCN, ERBB2, CDK4,
-                MDM2 and others). 30 of them reach the threshold in at least one cell line.<br>
+                <b>Scope:</b> a curated panel of 33 oncogenes. The list shows those amplified in
+                at least 10 of the cell lines currently in scope, which is normally MYC, CCND1,
+                KRAS, MYCN, ERBB2, CDK4, MDM2, CCNE1, EGFR and MET. Narrowing by tissue shortens
+                it further.<br>
                 <b>Source:</b> DepMap 25Q3 WGS gene-level copy number.<br>
                 ${cnCoverage}`,
+            // Retained for saved figures that still carry cnMode 'del'; no longer
+            // offered as a sub-type (see the note in index.html).
             cn_del: `<b>Deep deletion</b><br>
                 Cell lines that have lost essentially both copies of the tumour suppressor you pick.<br><br>
                 <b>Threshold:</b> relative copy number at or below 0.3 of the cell line's own
