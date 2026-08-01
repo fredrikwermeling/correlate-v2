@@ -523,6 +523,69 @@
             flex-shrink: 0;
         }
 
+        /* The two gene-set alternatives used to read as one run-on block of text.
+           Box each so they are visibly two separate choices, and mark the active
+           one. */
+        #geneSetModeOptions > label {
+            align-items: flex-start;
+            padding: 6px 8px;
+            margin-right: 2px;
+            border: 1px solid var(--gray-200);
+            border-radius: 5px;
+        }
+
+        #geneSetModeOptions > label:hover {
+            background: var(--green-50);
+        }
+
+        #geneSetModeOptions > label:has(input:checked) {
+            border-color: var(--green-500);
+            background: var(--green-50);
+        }
+
+        /* Section headings that give box 1 its structure ("Lineage filter",
+           "Genetic alterations"). */
+        .param-section-heading {
+            border-top: 1px solid #e5e7eb;
+            margin: 12px 0 6px;
+            padding-top: 10px;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #374151;
+        }
+
+        /* The filter inputs in box 1 were set at the same weight and size as the
+           headings, so the eye landed on "Search hotspot gene..." rather than on
+           the sections themselves. Shrink the controls so the headings lead. */
+        #lineageFilterGroup .form-control,
+        #subLineageFilterGroup .form-control,
+        #paramHotspotFilterGroup .form-control,
+        #paramCnFilterGroup .form-control,
+        #paramTranslocationFilterGroup .form-control {
+            font-size: 0.8em;
+            padding: 5px 8px;
+        }
+
+        #subLineageFilterGroup .form-label,
+        #tissueExcludeGroup .form-label,
+        #paramHotspotFilterGroup .form-label,
+        #paramCnFilterGroup .form-label,
+        #paramTranslocationFilterGroup .form-label {
+            font-size: 0.8em;
+            font-weight: 400;
+            color: var(--gray-600);
+            margin-bottom: 3px;
+        }
+
+        #lineageFilterGroup,
+        #subLineageFilterGroup,
+        #tissueExcludeGroup,
+        #paramHotspotFilterGroup,
+        #paramCnFilterGroup,
+        #paramTranslocationFilterGroup {
+            margin-bottom: 10px;
+        }
+
         /* Sliders - Shiny IRS style */
         .slider-container {
             padding: 8px 0;
@@ -1520,6 +1583,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.32 (2026-08-01)</strong></p>
+                <ul>
+                    <li>The two gene set alternatives are now separate boxed choices instead of two lines of running text, and the one in use is highlighted.</li>
+                    <li><b>Lineage filter</b> is now a bold section heading matching <b>Genetic alterations</b>, so box 1 reads as two clear groups of settings.</li>
+                    <li>The filter inputs and dropdowns in box 1 are smaller and their labels lighter. They were competing with the headings for attention, which made the box look busier than it is.</li>
+                </ul>
                 <p><strong>v.84.31 (2026-08-01)</strong></p>
                 <ul>
                     <li><b>Gene set analysis and Mutation analysis are now separate buttons</b> in Options, instead of one Analysis button plus a mode choice inside box 1. Options now reads: Gene set analysis, Mutation analysis, Cell Line Browser, Other, Reset.</li>
@@ -3809,7 +3878,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.31</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.32</a>
     </div>
 
     <div class="main-content">
@@ -4005,14 +4074,15 @@
                     <div style="border-top:1px solid #e5e7eb; margin:10px 0;"></div>
 
                     <div class="form-group" id="lineageFilterGroup" style="display: none;">
-                        <label class="form-label">Lineage Filter:</label>
+                        <!-- Section heading, peer to "Genetic alterations" below. The
+                             subtype and exclude-tissue controls sit under it. -->
+                        <div class="param-section-heading">Lineage filter</div>
                         <div style="display: flex; gap: 6px; align-items: center;">
                             <select id="lineageFilter" class="form-control" style="flex: 1;">
                                 <option value="">All lineages</option>
                             </select>
-                            <button id="generalTissueBreakdownBtn" type="button" style="padding: 4px 10px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show cell line counts per tissue">Tissues</button>
+                            <button id="generalTissueBreakdownBtn" type="button" style="padding: 3px 8px; font-size: 11px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show cell line counts per tissue">Tissues</button>
                         </div>
-                        <div style="border-top:1px solid #e5e7eb; margin:10px 0 0;"></div>
                     </div>
 
                     <div class="form-group" id="subLineageFilterGroup" style="display: none;">
@@ -4031,9 +4101,7 @@
                     </div>
 
                     <!-- Section heading for the hotspot / CN / fusion filters below. -->
-                    <div id="geneticAlterationsHeading" style="display: none; border-top: 1px solid #e5e7eb; margin: 12px 0 6px; padding-top: 10px;">
-                        <span class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 0;">Genetic alterations</span>
-                    </div>
+                    <div id="geneticAlterationsHeading" class="param-section-heading" style="display: none;">Genetic alterations</div>
 
                     <div class="form-group" id="paramHotspotFilterGroup" style="display: none;">
                         <div style="display:flex; align-items:center; gap:6px;">
@@ -6181,6 +6249,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_31"></script>
+    <script src="app.js?v=v84_32"></script>
 </body>
 </html>
