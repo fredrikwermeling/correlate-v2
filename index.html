@@ -566,6 +566,39 @@
             padding: 5px 8px;
         }
 
+        /* Small "?" badge next to each mutation analysis sub-type. */
+        .mut-subtype-help {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 13px;
+            height: 13px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: #86efac;
+            color: #14532d;
+            font-size: 9px;
+            font-weight: 700;
+            cursor: help;
+        }
+
+        .mut-subtype-help:hover {
+            background: #5a9f4a;
+            color: #fff;
+        }
+
+        /* Sub-type box in mutation analysis: the gene dropdowns inherited the full
+           0.95em control size, which cropped "Select hotspot gene..." against the
+           Tissues button. Match the other box 1 controls. */
+        #mutationHotspotGroup .form-control {
+            font-size: 0.68em;
+            padding: 5px 8px;
+        }
+
+        #mutationHotspotGroup .form-label {
+            font-size: 0.8em;
+        }
+
         #subLineageFilterGroup .form-label,
         #tissueExcludeGroup .form-label,
         #paramHotspotFilterGroup .form-label,
@@ -1583,6 +1616,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.34 (2026-08-01)</strong></p>
+                <ul>
+                    <li><b>Every mutation analysis sub-type now has a <span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#86efac;color:#14532d;font-size:9px;font-weight:700;">?</span> explaining what it is</b>, which cell lines count as altered, the exact thresholds used and where the data comes from.</li>
+                    <li><b>CN amplification</b> and <b>CN deep deletion</b> renamed to <b>Amplification</b> and <b>Deep deletion</b>.</li>
+                    <li><b>Correction:</b> the old Deep deletion tooltip named CDKN2A/B, PTEN, SMAD4 and STK11 as examples. Only STK11 is actually in that panel. CDKN2A and PTEN are covered by Functional loss instead, and SMAD4 is not in it at all. The new help text lists the real 14 genes.</li>
+                    <li>The gene dropdowns in the sub-type box no longer crop their text.</li>
+                    <li><b>Enrichr</b> in mutation analysis now asks which genes to send when you press it, instead of a separate unlabelled dropdown sitting next to the button. The link to the Enrichr site moved into the same menu.</li>
+                </ul>
                 <p><strong>v.84.33 (2026-08-01)</strong></p>
                 <ul>
                     <li>Mutation analysis: <b>Compare by Hotspot</b> and <b>Compare by Fusion</b> removed. Compare by Tissue stays.</li>
@@ -3883,7 +3924,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.33</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.34</a>
     </div>
 
     <div class="main-content">
@@ -4014,23 +4055,32 @@
                     <div class="form-group" id="mutationHotspotGroup" style="display: none; border: 1.5px solid #86efac; border-radius: 6px; padding: 8px; background: #f0fdf4;">
                         <div id="mutAnalysisTypeSelector" style="margin-bottom: 8px;">
                             <label class="form-label" style="color: #5a9f4a; font-weight: 600; margin-bottom: 4px;">Analysis Sub-type:</label>
+                            <!-- Each row carries a "?" that opens an explanation of what
+                                 the sub-type is and how the cell lines were selected.
+                                 Text lives in _MUT_SUBTYPE_INFO in app.js. -->
                             <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                    <input type="radio" name="mutAnalysisType" value="hotspot" checked> Hotspot Mutation
+                                    <input type="radio" name="mutAnalysisType" value="hotspot" checked> Hotspot mutation
+                                    <span class="mut-subtype-help" data-subtype="hotspot" title="What is this?">?</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
                                     <input type="radio" name="mutAnalysisType" value="translocation"> Fusion
+                                    <span class="mut-subtype-help" data-subtype="translocation" title="What is this?">?</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
                                     <input type="radio" name="mutAnalysisType" value="damaging"> Functional loss
+                                    <span class="mut-subtype-help" data-subtype="damaging" title="What is this?">?</span>
                                 </label>
-                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;" title="Stratify by focal copy-number amplification (≥ 3× diploid) of a curated oncogene panel, e.g. MYC, ERBB2, MDM2, CDK4.">
-                                    <input type="radio" name="mutAnalysisType" value="cn_amp"> CN amplification
+                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="radio" name="mutAnalysisType" value="cn_amp"> Amplification
+                                    <span class="mut-subtype-help" data-subtype="cn_amp" title="What is this?">?</span>
                                 </label>
-                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;" title="Stratify by focal deep (near-homozygous) deletion of a curated tumour-suppressor panel, e.g. CDKN2A/B, PTEN, SMAD4, STK11.">
-                                    <input type="radio" name="mutAnalysisType" value="cn_del"> CN deep deletion
+                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="radio" name="mutAnalysisType" value="cn_del"> Deep deletion
+                                    <span class="mut-subtype-help" data-subtype="cn_del" title="What is this?">?</span>
                                 </label>
                             </div>
+                            <div id="mutSubTypeInfo" style="display:none; margin-top:6px; padding:8px; background:#fff; border:1px solid #86efac; border-radius:5px; font-size:10px; line-height:1.5; color:#374151; max-height:260px; overflow-y:auto;"></div>
                         </div>
                         <div id="hotspotAnalysisControls">
                             <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Hotspot Mutation (required):</label>
@@ -4038,7 +4088,7 @@
                                 <select id="mutationHotspotSelect" class="form-control" style="flex: 1;">
                                     <option value="">Select hotspot gene...</option>
                                 </select>
-                                <button id="tissueBreakdownBtn" type="button" style="display: none; padding: 4px 10px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this mutation">Tissues</button>
+                                <button id="tissueBreakdownBtn" type="button" style="display: none; padding: 3px 8px; font-size: 11px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this mutation">Tissues</button>
                             </div>
                         </div>
                         <div id="translocationAnalysisControls" style="display: none;">
@@ -4047,7 +4097,7 @@
                                 <select id="translocationHotspotSelect" class="form-control" style="flex: 1;">
                                     <option value="">Select fusion...</option>
                                 </select>
-                                <button id="translocationTissueBreakdownBtn" type="button" style="display: none; padding: 4px 10px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this fusion">Tissues</button>
+                                <button id="translocationTissueBreakdownBtn" type="button" style="display: none; padding: 3px 8px; font-size: 11px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this fusion">Tissues</button>
                             </div>
                         </div>
                         <div id="damagingAnalysisControls" style="display: none;">
@@ -4056,7 +4106,7 @@
                                 <select id="damagingHotspotSelect" class="form-control" style="flex: 1;">
                                     <option value="">Select gene...</option>
                                 </select>
-                                <button id="damagingTissueBreakdownBtn" type="button" style="display: none; padding: 4px 10px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this functional loss">Tissues</button>
+                                <button id="damagingTissueBreakdownBtn" type="button" style="display: none; padding: 3px 8px; font-size: 11px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this functional loss">Tissues</button>
                             </div>
                         </div>
                     </div>
@@ -4547,7 +4597,27 @@
                              and showMutationCompareByFusion() are kept in app.js so they
                              can be restored. -->
                         <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
-                        <select id="mutEnrichrFilter" style="font-size:10px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px;" title="Filter genes for Enrichr">
+                        <!-- The gene-scope choice used to sit in a bare dropdown next to
+                             the button, with no indication it belonged to Enrichr. It is
+                             now asked for when you press Enrichr. The select is kept
+                             (hidden) because _getFilteredMutationGenes() reads it. -->
+                        <div style="position:relative; display:inline-block;">
+                            <button class="btn btn-secondary btn-sm" id="mutEnrichrBtn" aria-haspopup="true" aria-expanded="false" title="Pathway enrichment analysis via Enrichr">Enrichr &#9662;</button>
+                            <div id="mutEnrichrMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1500; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.14); min-width:190px; padding:4px;">
+                                <div style="font-size:10px; color:#9ca3af; padding:3px 10px 4px;">Which genes to send?</div>
+                                <button class="options-menu-item" data-enrichr-scope="all">All significant</button>
+                                <button class="options-menu-item" data-enrichr-scope="top10">Top 10</button>
+                                <button class="options-menu-item" data-enrichr-scope="top20">Top 20</button>
+                                <button class="options-menu-item" data-enrichr-scope="top50">Top 50</button>
+                                <button class="options-menu-item" data-enrichr-scope="diff_neg">&Delta; GE &lt; 0</button>
+                                <button class="options-menu-item" data-enrichr-scope="diff_pos">&Delta; GE &gt; 0</button>
+                                <button class="options-menu-item" data-enrichr-scope="filtered">Visible rows</button>
+                                <div style="border-top:1px solid #e5e7eb; margin:4px 0 0; padding-top:4px;">
+                                    <a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" class="options-menu-item" style="color:#9ca3af; font-size:10px; text-decoration:none;">About Enrichr (Ma'ayan Lab) &#8599;</a>
+                                </div>
+                            </div>
+                        </div>
+                        <select id="mutEnrichrFilter" style="display:none;">
                             <option value="all">All sig.</option>
                             <option value="top10">Top 10</option>
                             <option value="top20">Top 20</option>
@@ -4556,7 +4626,6 @@
                             <option value="diff_pos">Δ GE &gt; 0</option>
                             <option value="filtered">Visible</option>
                         </select>
-                        <button class="btn btn-secondary btn-sm" id="mutEnrichrBtn" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
                     </div>
                     <!-- Row 2: Export -->
                     <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
@@ -6256,6 +6325,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_33"></script>
+    <script src="app.js?v=v84_34"></script>
 </body>
 </html>

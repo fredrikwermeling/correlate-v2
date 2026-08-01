@@ -3992,6 +3992,26 @@ class CorrelationExplorer {
             radio.addEventListener('change', () => this.updateMutAnalysisTypeUI());
         });
 
+        // "?" next to each sub-type toggles its explanation. Clicking the same one
+        // again closes it; the badges sit inside <label>s, so stop the click from
+        // also selecting that radio.
+        document.querySelectorAll('.mut-subtype-help').forEach(badge => {
+            badge.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const panel = document.getElementById('mutSubTypeInfo');
+                if (!panel) return;
+                const key = badge.dataset.subtype;
+                if (panel.style.display === 'block' && panel.dataset.shown === key) {
+                    panel.style.display = 'none';
+                    return;
+                }
+                panel.innerHTML = this._MUT_SUBTYPE_INFO()[key] || '';
+                panel.dataset.shown = key;
+                panel.style.display = 'block';
+            });
+        });
+
         // Parameter translocation filter
         document.getElementById('paramTranslocationGene')?.addEventListener('change', () => {
             this.updateParamTranslocationLevelCounts();
@@ -4452,9 +4472,36 @@ class CorrelationExplorer {
         document.querySelectorAll('.enrichrBtn').forEach(btn => {
             btn.addEventListener('click', () => this.openEnrichr(btn.dataset.source));
         });
-        document.getElementById('mutEnrichrBtn')?.addEventListener('click', () => {
-            this.openEnrichr('mutations');
-        });
+        // Enrichr in mutation analysis: the button asks which genes to send rather
+        // than relying on a separate dropdown beside it. Picking a scope writes the
+        // hidden mutEnrichrFilter select that _getFilteredMutationGenes() reads,
+        // then runs Enrichr.
+        const enrBtn = document.getElementById('mutEnrichrBtn');
+        const enrMenu = document.getElementById('mutEnrichrMenu');
+        if (enrBtn && enrMenu) {
+            const closeEnr = () => {
+                enrMenu.style.display = 'none';
+                enrBtn.setAttribute('aria-expanded', 'false');
+            };
+            enrBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const willOpen = enrMenu.style.display !== 'block';
+                enrMenu.style.display = willOpen ? 'block' : 'none';
+                enrBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            });
+            enrMenu.querySelectorAll('[data-enrichr-scope]').forEach(item => {
+                item.addEventListener('click', () => {
+                    const sel = document.getElementById('mutEnrichrFilter');
+                    if (sel) sel.value = item.dataset.enrichrScope;
+                    closeEnr();
+                    this.openEnrichr('mutations');
+                });
+            });
+            document.addEventListener('click', (e) => {
+                if (!enrMenu.contains(e.target) && e.target !== enrBtn) closeEnr();
+            });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeEnr(); });
+        }
         document.getElementById('enrichrCloseBtn')?.addEventListener('click', () => {
             document.getElementById('enrichrModal').style.display = 'none';
         });
@@ -17364,6 +17411,63 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return this._handleExportMeta(meta);
         }
         alert('No Correlate data found in this file.');
+    }
+
+    // Explanations behind the "?" on each mutation analysis sub-type: what the
+    // group is and how its cell lines were selected. Figures here were checked
+    // against the build scripts in scripts/ and the web_data files, not against
+    // the older inline tooltips (one of which listed the wrong gene panel).
+    _MUT_SUBTYPE_INFO() {
+        const cnCoverage = '<b>Coverage:</b> 356 of the 1,186 cell lines have no WGS data. They are counted as unaltered, which dilutes the comparison.';
+        return {
+            hotspot: `<b>Hotspot mutation</b><br>
+                Cell lines carrying a recurrent hotspot mutation in the gene you pick.<br><br>
+                <b>Source:</b> DepMap hotspot somatic mutation matrix, covering 49 genes.<br>
+                <b>Levels:</b> 1 = one mutated allele, 2 = both alleles or multiple hits. The main
+                comparison is wild-type (0) against altered (1+2). Where the groups are large
+                enough, 0 vs 2 and 1 vs 2 are tested as well.<br>
+                <b>Not in the list:</b> HLA, MICA/MICB and KIR genes are hidden, because calls
+                there mostly reflect normal population variation rather than somatic driver
+                mutations.`,
+            translocation: `<b>Fusion</b><br>
+                Cell lines carrying one specific validated driver fusion, for example BCR-ABL1.<br><br>
+                <b>Source:</b> DepMap filtered fusion calls, narrowed to a curated list of known
+                clinical driver fusions, then checked in each cell line and kept only at high or
+                medium confidence. Supporting evidence is overexpression of the partner gene and
+                increased dependency on it.<br>
+                <b>Scope:</b> 23 fusions. Several occur in only one or two cell lines, so they will
+                not reach the minimum group size.<br>
+                <b>Split:</b> fused vs not fused.`,
+            damaging: `<b>Functional loss</b><br>
+                Cell lines where the gene has been inactivated, by whichever mechanism.<br><br>
+                <b>Counts as lost if any one of these holds:</b> copy number at or below 0.3 of the
+                cell line's own baseline, a likely loss-of-function mutation present in more than
+                half the reads, or expression below 0.1 log-TPM.<br>
+                <b>Scope:</b> 8 tumour suppressors: TP53, CDKN2A, MTAP, PTEN, RB1, APC, NF1, VHL.<br>
+                <b>Why not just mutations:</b> a gene can be deleted or silenced with no mutation
+                call at all, and those cell lines are caught here.<br>
+                <b>Source:</b> DepMap inferred molecular subtypes.`,
+            cn_amp: `<b>Amplification</b><br>
+                Cell lines with high-level copy-number gain of the oncogene you pick.<br><br>
+                <b>Threshold:</b> relative copy number at or above 3x. That is 3x the cell line's
+                own ploidy baseline rather than 3x two copies, so in a genome-doubled line it means
+                roughly 12 copies.<br>
+                <b>Scope:</b> a curated panel of 33 oncogenes (MYC, CCND1, KRAS, MYCN, ERBB2, CDK4,
+                MDM2 and others). 30 of them reach the threshold in at least one cell line.<br>
+                <b>Source:</b> DepMap 25Q3 WGS gene-level copy number.<br>
+                ${cnCoverage}`,
+            cn_del: `<b>Deep deletion</b><br>
+                Cell lines that have lost essentially both copies of the tumour suppressor you pick.<br><br>
+                <b>Threshold:</b> relative copy number at or below 0.3 of the cell line's own
+                baseline. Single-copy (shallow) loss is not included.<br>
+                <b>Scope:</b> a curated panel of 14 tumour suppressors: ARID1A, ATM, BAP1, BRCA1,
+                BRCA2, CDKN2B, FAT1, FBXW7, KEAP1, SETD2, SMARCA4, SMARCB1, STK11, TET2. 10 reach
+                the threshold in at least one cell line, and CDKN2B accounts for most of them.<br>
+                <b>Handled elsewhere:</b> TP53, CDKN2A, PTEN, RB1, NF1, VHL, MTAP and APC are
+                covered by Functional loss instead, so they are not offered here.<br>
+                <b>Source:</b> DepMap 25Q3 WGS gene-level copy number.<br>
+                ${cnCoverage}`
+        };
     }
 
     // Switch top-level analysis mode from the Options buttons. Drives the same
