@@ -1485,6 +1485,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.27 (2026-08-01)</strong></p>
+                <ul>
+                    <li>Correlation scatter redraws are faster. The chart is now updated in place instead of being torn down and rebuilt every time, so changing a filter or typing a gene name feels quicker.</li>
+                    <li>Fixed chart click and drag handlers piling up. Each redraw added another copy without removing the old one, so a long session got progressively slower and a single click could end up handled several times over. Affects the correlation scatter, the gene effect plot and the cell line browser UMAP.</li>
+                </ul>
                 <p><strong>v.84.26 (2026-08-01)</strong></p>
                 <ul>
                     <li>The version badge in the top bar was stuck at v.84.22 and did not follow the last three releases. Exported figures read their version stamp from this badge, so anything exported since v.84.23 carried the wrong version in its metadata.</li>
@@ -3748,7 +3753,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.26</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.27</a>
     </div>
 
     <div class="main-content">
@@ -6102,6 +6107,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_26"></script>
+    <script src="app.js?v=v84_27"></script>
 </body>
 </html>

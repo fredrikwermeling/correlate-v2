@@ -7650,6 +7650,7 @@ class CorrelationExplorer {
             responsive: true,
             edits: { annotationPosition: true, legendPosition: true, shapePosition: true }
         }).then(plotEl => {
+            plotEl.removeAllListeners?.('plotly_relayout');
             plotEl.on('plotly_relayout', (relayoutData) => {
                 // Save dragged annotation positions by role
                 const plotAnns = plotEl.layout.annotations || [];
@@ -12893,12 +12894,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             traces.forEach(t => { if (t.marker && t.mode?.includes('markers')) t.marker.size = sts.markerSize; });
         }
 
-        Plotly.newPlot('scatterPlot', traces, layout, {
+        // react (not newPlot) diffs against the existing plot instead of tearing it
+        // down and rebuilding, so repeated filter / keystroke re-renders are far
+        // cheaper. The div persists across renders either way, so listeners must be
+        // removed before re-binding or every render stacks another one.
+        Plotly.react('scatterPlot', traces, layout, {
             responsive: false,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true, shapePosition: true }
         }).then(plotEl => {
             // Listen for legend and title drag events
             let isProgrammaticRelayout = false;
+            plotEl.removeAllListeners?.('plotly_relayout');
             plotEl.on('plotly_relayout', (relayoutData) => {
                 if (isProgrammaticRelayout) return;
                 if (relayoutData['legend.x'] !== undefined && relayoutData['legend.y'] !== undefined) {
@@ -13237,10 +13243,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         plotContainer3.style.width = layout.width + 'px';
         plotContainer3.style.height = layout.height + 'px';
 
-        Plotly.newPlot('scatterPlot', traces, layout, {
+        Plotly.react('scatterPlot', traces, layout, {
             responsive: false,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true, shapePosition: true }
         }).then(plotEl => {
+            plotEl.removeAllListeners?.('plotly_relayout');
             plotEl.on('plotly_relayout', (relayoutData) => {
                 if (relayoutData['legend.x'] !== undefined && relayoutData['legend.y'] !== undefined) {
                     this._userLegendPosition = {
@@ -16824,7 +16831,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
         hoverEl.on('plotly_unhover', () => { clearTimeout(scatterHoverTimer); this.hideCellLineTooltip(); });
 
-        document.getElementById('scatterPlot').on('plotly_click', (eventData) => {
+        const clickEl = document.getElementById('scatterPlot');
+        clickEl.removeAllListeners?.('plotly_click');
+        clickEl.on('plotly_click', (eventData) => {
             // The plot re-renders on click (label toggle); drop any open hover
             // card so it doesn't linger with stale state over the new render.
             this.hideCellLineTooltip();
@@ -36289,6 +36298,8 @@ ${clone.innerHTML}
                 this._clbUmapSelectedPoints = new Set();
                 document.getElementById('clbUmapSelectedCount').textContent = '';
             });
+            plotDiv.removeAllListeners?.('plotly_click');
+            plotDiv.removeAllListeners?.('plotly_relayout');
             plotDiv.on('plotly_click', (eventData) => this._handleUmapPointClick(eventData));
             plotDiv.on('plotly_relayout', (data) => this._handleUmapGateShapeRelayout(data));
         }
@@ -36454,6 +36465,8 @@ ${clone.innerHTML}
             if (eventData?.points) eventData.points.forEach(pt => { if (pt.customdata) this._clbUmapSelectedPoints.add(pt.customdata); });
             document.getElementById('clbUmapSelectedCount').textContent = this._clbUmapSelectedPoints.size > 0 ? `${this._clbUmapSelectedPoints.size} selected` : '';
         });
+        plotDiv.removeAllListeners?.('plotly_click');
+        plotDiv.removeAllListeners?.('plotly_relayout');
         plotDiv.on('plotly_click', (eventData) => this._handleUmapPointClick(eventData));
         plotDiv.on('plotly_relayout', (data) => this._handleUmapGateShapeRelayout(data));
 
