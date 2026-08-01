@@ -1485,6 +1485,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.26 (2026-08-01)</strong></p>
+                <ul>
+                    <li>The version badge in the top bar was stuck at v.84.22 and did not follow the last three releases. Exported figures read their version stamp from this badge, so anything exported since v.84.23 carried the wrong version in its metadata.</li>
+                    <li>The badge also had a duplicate style attribute, which meant its monospace pill styling was silently dropped and it rendered as a plain link. Merged into one attribute so the intended styling applies.</li>
+                </ul>
                 <p><strong>v.84.25 (2026-06-18)</strong></p>
                 <ul>
                     <li>Find correlates: if the Expression panel is blank because expression data hasn't loaded, it now says so explicitly and how to fix it (reopen Find correlates once it finishes), instead of just showing an empty list. Empty lists from the |r| cutoff also get a short note.</li>
@@ -3743,7 +3748,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" style="margin-left:auto;" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.22</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.26</a>
     </div>
 
     <div class="main-content">
@@ -6097,6 +6102,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_22"></script>
+    <script src="app.js?v=v84_26"></script>
 </body>
 </html>
