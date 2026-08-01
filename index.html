@@ -182,6 +182,12 @@
             border-top-right-radius: 8px;
         }
 
+        /* Tighter than the default btn-sm so all five controls fit one row at the
+           normal sidebar width. They still wrap on narrow screens. */
+        #optionsCard .btn-sm {
+            padding: 6px 8px;
+        }
+
         /* Rows in the Options card's "Other" dropdown. Plain rows rather than
            buttons-in-a-box so the menu reads as a menu, not a second toolbar. */
         .options-menu-item {
@@ -1514,6 +1520,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.31 (2026-08-01)</strong></p>
+                <ul>
+                    <li><b>Gene set analysis and Mutation analysis are now separate buttons</b> in Options, instead of one Analysis button plus a mode choice inside box 1. Options now reads: Gene set analysis, Mutation analysis, Cell Line Browser, Other, Reset.</li>
+                    <li><b>Box 1 only shows the options for the mode you picked.</b> In Gene set analysis you choose between correlating within your set or expanding it; in Mutation analysis you go straight to the alteration type and gene. The two sets of choices are no longer stacked on top of each other.</li>
+                    <li>Gene set analysis stays the default on opening.</li>
+                </ul>
                 <p><strong>v.84.30 (2026-08-01)</strong></p>
                 <ul>
                     <li><b>Options simplified.</b> The box is now a single row: <b>Analysis</b>, <b>Cell Line Browser</b>, <b>Other</b> and <b>Reset</b>. Gene Effect, Correlation and opening a saved figure moved into the <b>Other</b> menu, and the instruction line above the buttons is gone, so the box takes up much less room.</li>
@@ -3797,7 +3809,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.30</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.31</a>
     </div>
 
     <div class="main-content">
@@ -3860,27 +3872,38 @@
                     <div class="card-content">
                     <div class="form-group">
                         <label class="form-label">Analysis Mode:</label>
+                        <!-- Gene set analysis and Mutation analysis are picked with the
+                             two buttons in the Options card; only the active mode's
+                             sub-options are shown here. The radios stay in the DOM
+                             because everything downstream reads analysisMode. -->
                         <div class="radio-group">
-                            <div style="font-weight:600; font-size:12px; color:#374151; margin-bottom:3px;">Gene set analysis<span style="display:block; font-weight:400; color:#9ca3af; font-size:10px; text-wrap:balance;">correlate gene-effect profiles</span></div>
-                            <label style="margin-left:14px;" title="Correlate the genes you entered against each other only. Best when you already have a focused gene set and want the relationships within it.">
-                                <input type="radio" name="analysisMode" value="analysis" checked>
-                                Correlate genes within my set
-                            </label>
-                            <label style="margin-left:14px;" title="Take your genes as seeds and search ALL ~18,000 genes for ones whose gene-effect profile correlates with them, grows the network beyond your input.">
-                                <input type="radio" name="analysisMode" value="design">
-                                Expand my set to find correlated genes
-                            </label>
-                            <div id="designExpandOption" style="display: none; margin-top: 2px; margin-bottom: 4px; margin-left: 32px;">
-                                <label style="font-size: 11px; color: #4b5563;" title="By default only correlations TO your seed genes are drawn. Tick this to also compute correlations among the newly discovered genes, filling in the rest of the network.">
-                                    <input type="checkbox" id="designExpandNetwork">
-                                    also correlate the discovered genes with each other
+                            <div id="geneSetModeOptions">
+                                <div style="font-weight:600; font-size:12px; color:#374151; margin-bottom:3px;">Gene set analysis<span style="display:block; font-weight:400; color:#9ca3af; font-size:10px; text-wrap:balance;">correlate gene-effect profiles</span></div>
+                                <label style="margin-left:14px;" title="Correlate the genes you entered against each other only. Best when you already have a focused gene set and want the relationships within it.">
+                                    <input type="radio" name="analysisMode" value="analysis" checked>
+                                    Correlate genes within my set
                                 </label>
+                                <label style="margin-left:14px;" title="Take your genes as seeds and search ALL ~18,000 genes for ones whose gene-effect profile correlates with them, grows the network beyond your input.">
+                                    <input type="radio" name="analysisMode" value="design">
+                                    Expand my set to find correlated genes
+                                </label>
+                                <div id="designExpandOption" style="display: none; margin-top: 2px; margin-bottom: 4px; margin-left: 32px;">
+                                    <label style="font-size: 11px; color: #4b5563;" title="By default only correlations TO your seed genes are drawn. Tick this to also compute correlations among the newly discovered genes, filling in the rest of the network.">
+                                        <input type="checkbox" id="designExpandNetwork">
+                                        also correlate the discovered genes with each other
+                                    </label>
+                                </div>
                             </div>
-                            <div style="font-weight:600; font-size:12px; color:#374151; margin:8px 0 3px;">Mutation analysis<span style="display:block; font-weight:400; color:#9ca3af; font-size:10px; text-wrap:balance;">effect of an alteration</span></div>
-                            <label style="margin-left:14px;" title="Pick a gene that is mutated / fused / CN-altered in some cell lines. The cohort is split into altered vs wild-type lines, and the genes whose CRISPR gene-effect differs most between the two groups are ranked.">
-                                <input type="radio" name="analysisMode" value="mutation">
-                                Genes affected by a mutation (mutant vs wild-type)
-                            </label>
+                            <div id="mutationModeOptions" style="display:none;">
+                                <div style="font-weight:600; font-size:12px; color:#374151; margin-bottom:3px;">Mutation analysis<span style="display:block; font-weight:400; color:#9ca3af; font-size:10px; text-wrap:balance;">effect of an alteration</span></div>
+                                <!-- Radio hidden: the mode is already chosen in Options, and it is
+                                     the only one here. Kept checked so analysisMode reads 'mutation'. -->
+                                <label style="display:none;">
+                                    <input type="radio" name="analysisMode" value="mutation">
+                                    Genes affected by a mutation (mutant vs wild-type)
+                                </label>
+                                <div style="margin-left:14px; font-size:11px; color:#4b5563; text-wrap:balance;">Splits the cohort into altered vs wild-type lines for the gene you pick below, then ranks the genes whose gene effect differs most between the two groups.</div>
+                            </div>
                             <!-- Synonym/Ortholog Lookup removed as a standalone analysis mode (v.82.4),
                                  kept in code so it can be restored. The synonym matching itself still
                                  runs as part of normal analysis via the "Find Synonyms" button.
@@ -4163,8 +4186,9 @@
             <div class="card" id="optionsCard">
                 <div class="card-title">Options</div>
                 <div class="card-content" style="padding: 8px 16px;">
-                    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                        <button class="btn btn-success btn-sm" id="startAnalysisBtn" title="Set parameters, enter genes and build a correlation network in boxes 1 / 2 / 3 below">Analysis</button>
+                    <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+                        <button class="btn btn-success btn-sm" id="modeGeneSetBtn" title="Correlate the gene-effect profiles of a set of genes, and optionally expand it to find correlated genes">Gene set analysis</button>
+                        <button class="btn btn-outline btn-sm" id="modeMutationBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Split the cohort into altered vs wild-type lines for a chosen gene and rank the genes whose gene effect differs most">Mutation analysis</button>
                         <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="color:var(--green-700); border-color:var(--green-400);">Cell Line Browser</button>
                         <div style="position:relative;">
                             <button class="btn btn-outline btn-sm" id="optionsOtherBtn" aria-haspopup="true" aria-expanded="false" style="color:var(--green-700); border-color:var(--green-400);" title="Gene Effect, Correlation and opening a saved figure">Other &#9662;</button>
@@ -6157,6 +6181,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_30"></script>
+    <script src="app.js?v=v84_31"></script>
 </body>
 </html>

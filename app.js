@@ -3904,14 +3904,23 @@ class CorrelationExplorer {
         // Reset App button
         document.getElementById('resetAppBtn')?.addEventListener('click', () => location.reload());
 
-        // Analysis is the default mode: boxes 1/2/3 are live on load so genes can
-        // be typed straight away without first picking a tool. The button now just
-        // returns focus to the gene input.
+        // Gene set analysis is the default mode: boxes 1/2/3 are live on load so
+        // genes can be typed straight away without first picking a tool.
         this._setAnalysisLocked(false);
-        document.getElementById('startAnalysisBtn')?.addEventListener('click', () => {
+        document.getElementById('modeGeneSetBtn')?.addEventListener('click', () => {
             this._setAnalysisLocked(false);
+            // 'analysis' and 'design' are both gene-set modes, so only switch when
+            // coming from somewhere else; don't clobber a chosen sub-mode.
+            const cur = document.querySelector('input[name="analysisMode"]:checked')?.value;
+            if (cur !== 'analysis' && cur !== 'design') this._setAnalysisMode('analysis');
+            else this._syncAnalysisModeButtons();
             document.getElementById('geneTextarea')?.focus();
         });
+        document.getElementById('modeMutationBtn')?.addEventListener('click', () => {
+            this._setAnalysisLocked(false);
+            this._setAnalysisMode('mutation');
+        });
+        this._syncAnalysisModeButtons();
 
         // Options card "Other" dropdown: Gene Effect / Correlation / Open saved
         // figure. Their own click handlers are registered elsewhere, so this only
@@ -3945,7 +3954,10 @@ class CorrelationExplorer {
 
         // Analysis mode change
         document.querySelectorAll('input[name="analysisMode"]').forEach(radio => {
-            radio.addEventListener('change', () => this.updateAnalysisModeUI());
+            radio.addEventListener('change', () => {
+                this.updateAnalysisModeUI();
+                this._syncAnalysisModeButtons();
+            });
         });
 
         // Tissue breakdown button (mutations)
@@ -17360,6 +17372,42 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         alert('No Correlate data found in this file.');
     }
 
+    // Switch top-level analysis mode from the Options buttons. Drives the same
+    // analysisMode radios the rest of the app reads, and fires change so
+    // updateAnalysisModeUI() runs exactly as if the radio had been clicked.
+    _setAnalysisMode(mode) {
+        const radio = document.querySelector(`input[name="analysisMode"][value="${mode}"]`);
+        if (radio && !radio.checked) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        this._syncAnalysisModeButtons();
+    }
+
+    // Reflect the current analysisMode in the Options buttons and show only that
+    // mode's sub-options in box 1. Called on load, from the mode buttons, and
+    // from the radios themselves so the two stay in sync either way round.
+    _syncAnalysisModeButtons() {
+        const mode = document.querySelector('input[name="analysisMode"]:checked')?.value;
+        const isMutation = mode === 'mutation';
+        const show = (id, on) => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = on ? 'block' : 'none';
+        };
+        show('geneSetModeOptions', !isMutation);
+        show('mutationModeOptions', isMutation);
+        const setActive = (id, on) => {
+            const b = document.getElementById(id);
+            if (!b) return;
+            b.classList.toggle('btn-success', on);
+            b.classList.toggle('btn-outline', !on);
+            b.style.color = on ? '' : 'var(--green-700)';
+            b.style.borderColor = on ? '' : 'var(--green-400)';
+        };
+        setActive('modeGeneSetBtn', !isMutation);
+        setActive('modeMutationBtn', isMutation);
+    }
+
     // Gray out / enable boxes 1 (Set Parameters), 2 (Input Gene Set) and
     // 3 (Results). Analysis is now the default mode so nothing locks them on
     // load; kept because the restore flows call it to force them enabled.
@@ -17418,6 +17466,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (meta.mode) {
                 const radio = document.querySelector(`input[name="analysisMode"][value="${meta.mode}"]`);
                 if (radio) radio.checked = true;
+                // Setting .checked fires no change event, so bring the Options
+                // buttons and box 1 in line with the restored mode by hand.
+                this._syncAnalysisModeButtons();
             }
             if (meta.cutoff != null) {
                 document.getElementById('correlationCutoff').value = meta.cutoff;
@@ -17476,6 +17527,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Set mutation analysis mode
             const mutRadio = document.querySelector('input[name="analysisMode"][value="mutation"]');
             if (mutRadio) mutRadio.checked = true;
+            this._syncAnalysisModeButtons();
             // Switch to mutation tab so UI is visible
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
