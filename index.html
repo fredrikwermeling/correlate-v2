@@ -562,7 +562,7 @@
         #paramHotspotFilterGroup .form-control,
         #paramCnFilterGroup .form-control,
         #paramTranslocationFilterGroup .form-control {
-            font-size: 0.8em;
+            font-size: 0.68em;
             padding: 5px 8px;
         }
 
@@ -1583,6 +1583,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.33 (2026-08-01)</strong></p>
+                <ul>
+                    <li>Mutation analysis: <b>Compare by Hotspot</b> and <b>Compare by Fusion</b> removed. Compare by Tissue stays.</li>
+                    <li>The filter inputs in box 1 are another 15% smaller, so the section headings carry the eye.</li>
+                </ul>
                 <p><strong>v.84.32 (2026-08-01)</strong></p>
                 <ul>
                     <li>The two gene set alternatives are now separate boxed choices instead of two lines of running text, and the one in use is highlighted.</li>
@@ -3878,7 +3883,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.32</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.33</a>
     </div>
 
     <div class="main-content">
@@ -4537,8 +4542,10 @@
                     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;">
                         <input type="text" id="mutationSearch" class="form-control" placeholder="Search genes..." style="width: 160px; font-size: 12px; padding: 4px 8px;">
                         <button class="btn btn-secondary btn-sm" id="mutCompareByTissueBtn" title="Compare mutation effect across cancer types">Compare by Tissue</button>
-                        <button class="btn btn-secondary btn-sm" id="mutCompareByHotspotBtn" title="Compare with other hotspot mutations">Compare by Hotspot</button>
-                        <button class="btn btn-secondary btn-sm" id="mutCompareByFusionBtn" title="Compare with fusion genes" style="display: none;">Compare by Fusion</button>
+                        <!-- Compare by Hotspot / Compare by Fusion removed in v.84.33 to
+                             simplify the mutation analysis. showMutationCompareByHotspot()
+                             and showMutationCompareByFusion() are kept in app.js so they
+                             can be restored. -->
                         <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
                         <select id="mutEnrichrFilter" style="font-size:10px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px;" title="Filter genes for Enrichr">
                             <option value="all">All sig.</option>
@@ -6249,6 +6256,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_32"></script>
+    <script src="app.js?v=v84_33"></script>
 </body>
 </html>

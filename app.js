@@ -4655,8 +4655,6 @@ class CorrelationExplorer {
 
         // Full-screen compare modal buttons
         document.getElementById('mutCompareByTissueBtn')?.addEventListener('click', () => this.showMutationCompareByTissue());
-        document.getElementById('mutCompareByHotspotBtn')?.addEventListener('click', () => this.showMutationCompareByHotspot());
-        document.getElementById('mutCompareByFusionBtn')?.addEventListener('click', () => this.showMutationCompareByFusion());
         document.getElementById('mutCompareModalClose')?.addEventListener('click', () => {
             document.getElementById('mutCompareModal').style.display = 'none';
         });
@@ -6705,10 +6703,6 @@ class CorrelationExplorer {
         }
         headerHTML += '</tr>';
         thead.innerHTML = headerHTML;
-
-        // Show/hide Compare by Fusion button
-        const hasTranslocations = this.translocations?.genes?.length > 0;
-        document.getElementById('mutCompareByFusionBtn').style.display = hasTranslocations ? '' : 'none';
 
         const polymorphicCaveat = this._polymorphicCaveatText();
         results.forEach(r => {
@@ -25072,6 +25066,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('mutCompareModal').style.display = '';
     }
 
+    // Unreachable since v.84.33: the "Compare by Hotspot" / "Compare by Fusion"
+    // buttons were removed from the mutation analysis to simplify it. Kept so the
+    // feature can be restored by putting the buttons and their listeners back.
     showMutationCompareByHotspot() {
         if (!this.mutationResults) return;
         const mr = this.mutationResults;
