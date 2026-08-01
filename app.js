@@ -673,10 +673,14 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading gene effect matrix...');
         await this.loadGeneEffects();
 
-        // Update reference status
-        document.getElementById('referenceStatus').className = 'status-box status-success';
-        document.getElementById('referenceStatus').innerHTML =
-            `&#10003; ${this.nGenes.toLocaleString()} genes, ${this.nCellLines.toLocaleString()} cell lines loaded`;
+        // Update reference status. There are two: the quiet line in the Options
+        // card and the status box in the Reference Data modal, so update both.
+        document.querySelectorAll('.reference-status').forEach(el => {
+            el.classList.remove('is-loading', 'status-warning');
+            if (el.classList.contains('status-box')) el.classList.add('status-success');
+            el.innerHTML =
+                `&#10003; ${this.nGenes.toLocaleString()} genes, ${this.nCellLines.toLocaleString()} cell lines loaded`;
+        });
 
         // Enable run button
         document.getElementById('runAnalysis').disabled = false;
@@ -37652,20 +37656,19 @@ ${clone.innerHTML}
 const app = new CorrelationExplorer();
 window.app = app;
 
-// Reference Data card, collapsible "show files & details" toggle.
-// Lives outside the class because the card markup is rendered statically by
-// index.html before the app instance does anything DOM-related.
+// Reference Data modal, opened from the nav bar. Lives outside the class
+// because the markup is rendered statically by index.html before the app
+// instance does anything DOM-related.
 document.addEventListener('DOMContentLoaded', () => {
-    const tgl = document.getElementById('referenceDetailsToggle');
-    const body = document.getElementById('referenceDetailsBody');
-    if (tgl && body) {
-        tgl.addEventListener('click', (e) => {
-            e.preventDefault();
-            const open = body.style.display !== 'none';
-            body.style.display = open ? 'none' : '';
-            tgl.innerHTML = open ? '▾ details' : '▴ hide';
-        });
-    }
+    const modal = document.getElementById('referenceDataModal');
+    if (!modal) return;
+    const close = () => { modal.style.display = 'none'; };
+    document.getElementById('showReferenceData')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        modal.style.display = 'flex';
+    });
+    document.getElementById('closeReferenceData')?.addEventListener('click', close);
+    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
 });
 
 // ============================================================================

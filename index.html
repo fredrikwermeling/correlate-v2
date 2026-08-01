@@ -175,10 +175,6 @@
             overflow: visible;
             position: relative;
             z-index: 20;
-            /* Sits above .container rather than inside it, so it has to repeat
-               the container's own width constraint to stay aligned with it. */
-            max-width: 1350px;
-            margin: 0 auto 16px auto;
         }
 
         #optionsCard > .card-title {
@@ -186,10 +182,41 @@
             border-top-right-radius: 8px;
         }
 
-        /* Tighter than the default btn-sm so all five controls fit one row at the
-           normal sidebar width. They still wrap on narrow screens. */
+        #optionsCard .card-content {
+            padding: 10px 16px 12px 16px;
+        }
+
+        /* One row of equal-width tool buttons. Each label wraps to two lines so
+           the four controls fit the 415px sidebar without shrinking the text. */
+        #optionsRow {
+            display: flex;
+            gap: 6px;
+            align-items: stretch;
+        }
+
+        #optionsRow > * {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
         #optionsCard .btn-sm {
-            padding: 6px 8px;
+            width: 100%;
+            padding: 6px 4px;
+            line-height: 1.2;
+            white-space: normal;
+        }
+
+        /* Load state, sitting under the buttons. Reads as a quiet status line
+           rather than the full status box the Reference Data card used. */
+        #optionsCard .reference-status {
+            margin-top: 8px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 10.5px;
+            color: var(--green-800);
+        }
+
+        #optionsCard .reference-status.is-loading {
+            color: #92400e;
         }
 
         /* Rows in the Options card's "Other" dropdown. Plain rows rather than
@@ -213,18 +240,6 @@
         .options-menu-item:hover {
             background: var(--green-50);
             color: var(--green-700);
-        }
-
-        /* Reference Data is reference material, not a control, so its body is
-           tighter than the working cards. The title bar keeps the standard
-           padding so it lines up with "3. Results" alongside it. */
-        #referenceCard .card-content {
-            padding: 10px 16px 12px 16px;
-        }
-
-        #referenceCard #referenceStatus {
-            margin: 0;
-            padding: 7px 12px;
         }
 
         .sidebar-row {
@@ -1664,6 +1679,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.39 (2026-08-01)</strong></p>
+                <ul>
+                    <li><b>Reference Data moved to the nav bar.</b> The sources are now behind a <b>Reference Data</b> link next to <b>How it works</b>, which opens them in full, no toggle needed. They were taking a card on the homepage for something you read once. The load state ("18,435 genes, 1,186 cell lines loaded") stays on the homepage as a line under the Options buttons, so it's still obvious when the app is ready.</li>
+                    <li><b>Options now sits top-left</b>, where Reference Data used to be, so the sidebar reads Options, then boxes 1 and 2. The button labels wrap to two lines, which makes them narrow enough to share one row in the sidebar at full size.</li>
+                    <li><b>Reset moved to the Results tab row</b>, at the far right beside Summary. It clears the workspace, so it no longer sits among the buttons you click to start work.</li>
+                    <li><b>3. Results is now the whole right column</b> and starts at the top of the page.</li>
+                </ul>
                 <p><strong>v.84.38 (2026-08-01)</strong></p>
                 <ul>
                     <li><b>Options moved above Reference Data.</b> The Options bar now spans the full width at the top of the page instead of sitting in the right column beside Reference Data. The right column is given over entirely to <b>3. Results</b>, which gains the height the bar used to take. The five controls still sit on one row: the 415px sidebar was too narrow for that, which is why the bar spans the page rather than dropping into the column.</li>
@@ -3988,96 +4010,97 @@
         </div>
     </div>
 
+    <!-- Reference Data modal. The sources are reference material you consult
+         once, not something you act on, so they live behind a nav link instead
+         of taking a card on the homepage. Everything is expanded here; the
+         old "show files & details" toggle existed only to keep the homepage
+         card small and has no purpose in a modal. -->
+    <div class="modal-overlay" id="referenceDataModal" style="display:none;">
+        <div class="modal" style="max-width:640px;">
+            <div class="modal-header">
+                <h3 style="margin:0;">Reference Data</h3>
+                <button id="closeReferenceData" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="reference-status status-box status-warning">Loading data...</div>
+                <div style="font-size:12px; color:#4b5563; line-height:1.5;">
+                    <p style="margin: 12px 0 0 0; font-weight:600; color:#374151;">Cell-line data: <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a></p>
+                    <ul style="margin: 4px 0 0 0; padding-left: 18px;">
+                        <li>CRISPRGeneEffect.csv <span style="color:#999;">(gene effects)</span></li>
+                        <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
+                        <li>OmicsSomaticMutationsMatrixHotspot.csv / Damaging.csv <span style="color:#999;">(mutations)</span></li>
+                        <li>OmicsFusionFiltered{Supplementary}.csv <span style="color:#999;">(fusions, Arriba)</span></li>
+                        <li>OmicsInferredMolecularSubtypes.csv <span style="color:#999;">(specific variants, integrated LoF, MSI)</span></li>
+                        <li>OmicsGlobalSignatures.csv <span style="color:#999;">(WGD, ploidy, CIN, aneuploidy)</span></li>
+                        <li>Model.csv <span style="color:#999;">(cell-line metadata)</span></li>
+                        <li>PRISM Repurposing Secondary <span style="color:#999;">(drug response, curated panel of ~90 compounds)</span></li>
+                    </ul>
+                    <p style="margin: 12px 0 0 0; font-weight:600; color:#374151;">Pathway / complex memberships</p>
+                    <ul style="margin: 4px 0 0 0; padding-left: 18px;">
+                        <li><a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" style="color:#0066cc;">CORUM</a> <span style="color:#999;">(manually curated mammalian protein complexes; ~5,000 human genes)</span></li>
+                        <li><a href="https://reactome.org/" target="_blank" style="color:#0066cc;">Reactome</a> <span style="color:#999;">(curated human pathways &amp; signalling cascades; pathways of size 5&ndash;100)</span></li>
+                        <li>Curated cancer-pathway and complex KBs <span style="color:#999;">(in-app)</span></li>
+                    </ul>
+                    <p style="margin: 12px 0 0 0; font-weight:600; color:#374151;">Curated annotations (in this app)</p>
+                    <ul style="margin: 4px 0 0 0; padding-left: 18px;">
+                        <li>Clinically relevant fusions <span style="color:#999;">(51 driver fusions + 7 KMT2A partners; COSMIC; validated per cell line)</span></li>
+                        <li>Subtype hallmarks KB <span style="color:#999;">(WHO 5th ed. 2022, COSMIC, OncoKB, NCCN; ~40 Oncotree subtypes)</span></li>
+                        <li>Lehmann TNBC subtypes <span style="color:#999;">(Lehmann <em>JCI</em> 2011 + 2016 update; BL1/BL2/IM/M/MSL/LAR for ~22 TNBC lines)</span></li>
+                        <li>Focal CN events <span style="color:#999;">(curated panel of ~32 amps + ~14 extended TSG deletions; from <code>OmicsCNGeneWGS.csv</code>)</span></li>
+                        <li>HLA copy number <span style="color:#999;">(extracted from <code>OmicsCNGeneWGS.csv</code>; B2M-normalized to control for HLA-C mapping bias)</span></li>
+                        <li>STR profiles <span style="color:#999;">(Cellosaurus reference panels)</span></li>
+                    </ul>
+                    <p style="margin: 12px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data; CORUM and Reactome have their own attribution requirements.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Navigation Bar -->
     <div class="nav-bar">
         <a href="#" id="showInfoGraphic">How it works</a>
+        <a href="#" id="showReferenceData">Reference Data</a>
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.38</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.39</a>
     </div>
 
     <div class="main-content">
-        <!-- Options bar: workspace actions, one compact row, spanning the full
-             width above Reference Data. It sits outside .container because the
-             415px sidebar is too narrow for the five controls to stay on one
-             row. Gene set analysis is the default mode (boxes 1/2/3 are live on
-             load), so it renders filled to show it's the current mode. The
-             less-used tools sit behind "Other" so the card height never changes. -->
-        <div class="card" id="optionsCard">
-            <div class="card-title">Options</div>
-            <div class="card-content" style="padding: 8px 16px;">
-                <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
-                    <button class="btn btn-success btn-sm" id="modeGeneSetBtn" title="Correlate the gene-effect profiles of a set of genes, and optionally expand it to find correlated genes">Gene set analysis</button>
-                    <button class="btn btn-outline btn-sm" id="modeMutationBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Split the cohort into altered vs wild-type lines for a chosen gene and rank the genes whose gene effect differs most">Mutation analysis</button>
-                    <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="color:var(--green-700); border-color:var(--green-400);">Cell Line Browser</button>
-                    <div style="position:relative;">
-                        <button class="btn btn-outline btn-sm" id="optionsOtherBtn" aria-haspopup="true" aria-expanded="false" style="color:var(--green-700); border-color:var(--green-400);" title="Gene Effect, Correlation and opening a saved figure">Other &#9662;</button>
-                        <div id="optionsOtherMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1200; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.12); min-width:180px; padding:4px;">
-                            <button class="options-menu-item" id="showGeneEffectDirect">Gene Effect</button>
-                            <button class="options-menu-item" id="showCorrelationDirect">Correlation</button>
-                            <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure...</label>
-                        </div>
-                    </div>
-                    <!-- Reset is separated from the tool buttons: it clears the
-                         workspace, so it shouldn't sit next to things you click
-                         to start work. -->
-                    <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid #9ca3af; margin-left:auto;" title="Clear the current genes, parameters and results and start over">Reset</button>
-                </div>
-                <!-- Kept outside the dropdown: hiding an ancestor mid-click can
-                     cancel the file picker in some browsers. -->
-                <input type="file" id="restoreFromExportInput" accept=".json,.svg,.png" style="display:none;">
-            </div>
-        </div>
     <div class="container">
         <!-- Left Sidebar -->
         <div class="sidebar">
-            <!-- Reference Data Card -->
-            <div class="card" id="referenceCard">
-                <div class="card-title">Reference Data</div>
+            <!-- Options card: workspace actions. Sits where Reference Data
+                 used to, so the sidebar reads Options first then boxes 1 and 2.
+                 Button labels wrap to two lines to fit the 415px sidebar on one
+                 row. Gene set analysis is the default mode (boxes 1/2/3 are live
+                 on load), so it renders filled to show it's the current mode.
+                 The less-used tools sit behind "Other" so the height is fixed. -->
+            <div class="card" id="optionsCard">
+                <div class="card-title">Options</div>
                 <div class="card-content">
-                    <div id="referenceStatus" class="status-box status-warning">
-                        Loading data...
-                    </div>
-                    <div style="font-size: 11px; color: #4b5563; margin-top: 6px; line-height: 1.4;">
-                        <!-- Two condensed lines with the details toggle inline on
-                             the second. The full file / KB list stays hidden behind
-                             the toggle so the card doesn't dominate the homepage. -->
-                        <div><span style="color:#374151; font-weight:600;">Cell lines:</span> <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a> &middot; <span style="color:#374151; font-weight:600;">Pathways:</span> <a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" style="color:#0066cc;">CORUM</a> + <a href="https://reactome.org/" target="_blank" style="color:#0066cc;">Reactome</a></div>
-                        <div><span style="color:#374151; font-weight:600;">Curated:</span> in-app KBs (fusions, subtype hallmarks, STR) <a href="#" id="referenceDetailsToggle" style="font-size:10px; color:var(--green-700); text-decoration:none; white-space:nowrap;">&#x25BE; details</a></div>
-                        <div id="referenceDetailsBody" style="display:none; margin-top:6px; font-size:10px; color:#666;">
-                            <p style="margin: 0; font-weight:600; color:#374151;">Cell-line data: <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a></p>
-                            <ul style="margin: 4px 0 0 0; padding-left: 16px;">
-                                <li>CRISPRGeneEffect.csv <span style="color:#999;">(gene effects)</span></li>
-                                <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
-                                <li>OmicsSomaticMutationsMatrixHotspot.csv / Damaging.csv <span style="color:#999;">(mutations)</span></li>
-                                <li>OmicsFusionFiltered{Supplementary}.csv <span style="color:#999;">(fusions, Arriba)</span></li>
-                                <li>OmicsInferredMolecularSubtypes.csv <span style="color:#999;">(specific variants, integrated LoF, MSI)</span></li>
-                                <li>OmicsGlobalSignatures.csv <span style="color:#999;">(WGD, ploidy, CIN, aneuploidy)</span></li>
-                                <li>Model.csv <span style="color:#999;">(cell-line metadata)</span></li>
-                                <li>PRISM Repurposing Secondary <span style="color:#999;">(drug response, curated panel of ~90 compounds)</span></li>
-                            </ul>
-                            <p style="margin: 8px 0 0 0; font-weight:600; color:#374151;">Pathway / complex memberships</p>
-                            <ul style="margin: 4px 0 0 0; padding-left: 16px;">
-                                <li><a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" style="color:#0066cc;">CORUM</a> <span style="color:#999;">(manually curated mammalian protein complexes; ~5,000 human genes)</span></li>
-                                <li><a href="https://reactome.org/" target="_blank" style="color:#0066cc;">Reactome</a> <span style="color:#999;">(curated human pathways &amp; signalling cascades; pathways of size 5&ndash;100)</span></li>
-                                <li>Curated cancer-pathway and complex KBs <span style="color:#999;">(in-app)</span></li>
-                            </ul>
-                            <p style="margin: 8px 0 0 0; font-weight:600; color:#374151;">Curated annotations (in this app)</p>
-                            <ul style="margin: 4px 0 0 0; padding-left: 16px;">
-                                <li>Clinically relevant fusions <span style="color:#999;">(51 driver fusions + 7 KMT2A partners; COSMIC; validated per cell line)</span></li>
-                                <li>Subtype hallmarks KB <span style="color:#999;">(WHO 5th ed. 2022, COSMIC, OncoKB, NCCN; ~40 Oncotree subtypes)</span></li>
-                                <li>Lehmann TNBC subtypes <span style="color:#999;">(Lehmann <em>JCI</em> 2011 + 2016 update; BL1/BL2/IM/M/MSL/LAR for ~22 TNBC lines)</span></li>
-                                <li>Focal CN events <span style="color:#999;">(curated panel of ~32 amps + ~14 extended TSG deletions; from <code>OmicsCNGeneWGS.csv</code>)</span></li>
-                                <li>HLA copy number <span style="color:#999;">(extracted from <code>OmicsCNGeneWGS.csv</code>; B2M-normalized to control for HLA-C mapping bias)</span></li>
-                                <li>STR profiles <span style="color:#999;">(Cellosaurus reference panels)</span></li>
-                            </ul>
-                            <p style="margin: 6px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data; CORUM and Reactome have their own attribution requirements.</p>
+                    <div id="optionsRow">
+                        <button class="btn btn-success btn-sm" id="modeGeneSetBtn" title="Correlate the gene-effect profiles of a set of genes, and optionally expand it to find correlated genes">Gene set<br>analysis</button>
+                        <button class="btn btn-outline btn-sm" id="modeMutationBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Split the cohort into altered vs wild-type lines for a chosen gene and rank the genes whose gene effect differs most">Mutation<br>analysis</button>
+                        <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="color:var(--green-700); border-color:var(--green-400);" title="Browse, filter and compare the cell lines behind the data">Cell Line<br>Browser</button>
+                        <div style="position:relative; display:flex;">
+                            <button class="btn btn-outline btn-sm" id="optionsOtherBtn" aria-haspopup="true" aria-expanded="false" style="color:var(--green-700); border-color:var(--green-400);" title="Gene Effect, Correlation and opening a saved figure">Other &#9662;</button>
+                            <div id="optionsOtherMenu" style="display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:1200; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.12); min-width:180px; padding:4px;">
+                                <button class="options-menu-item" id="showGeneEffectDirect">Gene Effect</button>
+                                <button class="options-menu-item" id="showCorrelationDirect">Correlation</button>
+                                <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure...</label>
+                            </div>
                         </div>
                     </div>
+                    <!-- Load state stays on the homepage even though the sources
+                         moved to the Reference Data modal, so it's still obvious
+                         when the app is ready. -->
+                    <div class="reference-status is-loading" id="optionsLoadStatus">Loading data...</div>
+                    <!-- Kept outside the dropdown: hiding an ancestor mid-click can
+                         cancel the file picker in some browsers. -->
+                    <input type="file" id="restoreFromExportInput" accept=".json,.svg,.png" style="display:none;">
                 </div>
             </div>
-
             <!-- Two-column layout for Parameters and Input Genes -->
             <div class="sidebar-row">
                 <!-- Parameters Card -->
@@ -4422,6 +4445,15 @@
                     <li><button class="nav-link" data-tab="mutation" style="display: none;" id="mutationTab">Mutation Analysis</button></li>
                     <li><button class="nav-link" data-tab="synonyms" style="display: none;" id="synonymsTab">Synonyms/Orthologs</button></li>
                     <li><button class="nav-link" data-tab="summary">Summary</button></li>
+                    <!-- Reset lives at the end of the tab row, away from the
+                         buttons you click to start work, since it clears the
+                         workspace rather than opening anything. Called "Reset
+                         all" because the Network tab below has its own Reset
+                         for the appearance controls, and the two are on screen
+                         together by default. -->
+                    <li style="margin-left:auto; align-self:center;">
+                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid #9ca3af;" title="Clear the current genes, parameters and results and start over">Reset all</button>
+                    </li>
                 </ul>
 
                 <!-- Network Tab -->
@@ -6409,6 +6441,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_38"></script>
+    <script src="app.js?v=v84_39"></script>
 </body>
 </html>
