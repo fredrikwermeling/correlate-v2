@@ -59,6 +59,7 @@ def main():
 
     by_cl = {}  # cl -> { 'amplifications': [...], 'deletions': [...] }
     n_kept = 0
+    profiled = []
 
     print(f"Reading {src} ...")
     with open(src, encoding="utf-8") as f:
@@ -95,6 +96,10 @@ def main():
             if not cl or cl not in valid_cell_lines:
                 continue
             n_kept += 1
+            # Record every line WGS actually covers, not just those with a panel
+            # event. Without this the app cannot tell "WGS says neutral" from
+            # "no WGS at all", and would count unprofiled lines as wild-type.
+            profiled.append(cl)
             amps = []
             dels = []
             for i, g in gene_lookup.items():
@@ -157,6 +162,9 @@ def main():
         "deletionPanel": [
             {"gene": g, "context": del_panel[g]} for g in sorted(del_panel.keys())
         ],
+        # Cell lines with WGS coverage. Lines NOT in here have no copy-number data
+        # and must be excluded from CN comparisons rather than treated as neutral.
+        "profiledCellLines": sorted(set(profiled)),
         "byCellLine": by_cl,
     }
     out_path = os.path.join(web, "clinical_cn.json")

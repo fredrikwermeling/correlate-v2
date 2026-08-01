@@ -566,7 +566,9 @@
             padding: 5px 8px;
         }
 
-        /* Small "?" badge next to each mutation analysis sub-type. */
+        /* Small "?" next to each mutation analysis sub-type. Deliberately quiet:
+           it is an affordance, not something to look at. Opens on hover; click
+           still works, since touch devices have no hover. */
         .mut-subtype-help {
             display: inline-flex;
             align-items: center;
@@ -575,16 +577,18 @@
             height: 13px;
             flex-shrink: 0;
             border-radius: 50%;
-            background: #86efac;
-            color: #14532d;
+            background: transparent;
+            border: 1px solid #d1d5db;
+            color: var(--gray-500);
             font-size: 9px;
-            font-weight: 700;
+            font-weight: 600;
             cursor: help;
         }
 
         .mut-subtype-help:hover {
-            background: #5a9f4a;
-            color: #fff;
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            color: var(--gray-600);
         }
 
         /* Sub-type box in mutation analysis: the gene dropdowns inherited the full
@@ -1616,6 +1620,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.35 (2026-08-01)</strong></p>
+                <ul>
+                    <li><b>Fix, affects results: cell lines with no copy-number data are no longer counted as unaltered.</b> Copy number comes from whole-genome sequencing, which covers 830 of the 1,186 lines. The other 356 were being placed in the wild-type group, so every Amplification and Deep deletion comparison was diluted with cell lines that had never been measured. They are now excluded. Group sizes for these two sub-types now add up to 830, and p-values will differ from before.</li>
+                    <li>The <b>?</b> next to each sub-type is quieter and opens on hover, no click needed. Clicking still works on touch screens.</li>
+                </ul>
                 <p><strong>v.84.34 (2026-08-01)</strong></p>
                 <ul>
                     <li><b>Every mutation analysis sub-type now has a <span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#86efac;color:#14532d;font-size:9px;font-weight:700;">?</span> explaining what it is</b>, which cell lines count as altered, the exact thresholds used and where the data comes from.</li>
@@ -3924,7 +3933,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.34</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.35</a>
     </div>
 
     <div class="main-content">
@@ -6325,6 +6334,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_34"></script>
+    <script src="app.js?v=v84_35"></script>
 </body>
 </html>

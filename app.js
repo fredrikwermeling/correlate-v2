@@ -1291,11 +1291,18 @@ class CorrelationExplorer {
     // (clinical_cn.json): amplification (tier amp/strong_amp, cn ≥ 3.0) and deep
     // deletion (tier deep_del, cn ≤ 0.3, near-homozygous, LoF-equivalent). Both
     // mirror the functional_loss.json schema so every mutational-analysis axis
-    // consumer reads them identically. Lines absent from the curated panel have
-    // no focal event called → treated as copy-number-neutral (WT side of the split).
+    // consumer reads them identically.
+    //
+    // Coverage matters here: only ~830 of the 1,186 cohort lines have WGS. A line
+    // absent from byCellLine is either WGS-neutral or not sequenced at all, and
+    // those are not the same thing. profiledCellLines lists the sequenced ones, and
+    // is attached to every gene so the analysis can drop the unsequenced lines
+    // instead of counting them as copy-number-neutral.
     _buildCnAxisData() {
         const cn = this.clinicalCn?.byCellLine;
         if (!cn) return;
+        const profiled = this.clinicalCn?.profiledCellLines;
+        const coverage = Array.isArray(profiled) && profiled.length ? new Set(profiled) : null;
         const ampGD = {}, delGD = {};
         const add = (gd, gene, cl) => {
             if (!gd[gene]) gd[gene] = { mutations: {}, counts: { 0: 0, 1: 0 }, total_mutated: 0 };
@@ -1308,8 +1315,11 @@ class CorrelationExplorer {
         const pack = (gd) => {
             const genes = Object.keys(gd).sort((a, b) => gd[b].total_mutated - gd[a].total_mutated);
             const geneCounts = {};
-            for (const g of genes) geneCounts[g] = gd[g].total_mutated;
-            return { genes, geneCounts, geneData: gd };
+            for (const g of genes) {
+                geneCounts[g] = gd[g].total_mutated;
+                if (coverage) gd[g].coverage = coverage;
+            }
+            return { genes, geneCounts, geneData: gd, coverage };
         };
         this.cnAmpData = pack(ampGD);
         this.cnDelData = pack(delGD);
@@ -3992,25 +4002,44 @@ class CorrelationExplorer {
             radio.addEventListener('change', () => this.updateMutAnalysisTypeUI());
         });
 
-        // "?" next to each sub-type toggles its explanation. Clicking the same one
-        // again closes it; the badges sit inside <label>s, so stop the click from
-        // also selecting that radio.
-        document.querySelectorAll('.mut-subtype-help').forEach(badge => {
-            badge.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const panel = document.getElementById('mutSubTypeInfo');
-                if (!panel) return;
+        // "?" next to each sub-type shows its explanation on hover. A short close
+        // delay, plus hovering the panel itself keeping it open, means you can move
+        // onto the panel to read or scroll it. Click still toggles, because touch
+        // devices never fire hover.
+        const infoPanel = document.getElementById('mutSubTypeInfo');
+        if (infoPanel) {
+            let hideTimer = null;
+            const cancelHide = () => { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } };
+            const scheduleHide = () => {
+                cancelHide();
+                hideTimer = setTimeout(() => { infoPanel.style.display = 'none'; }, 250);
+            };
+            const show = (key) => {
+                cancelHide();
+                infoPanel.innerHTML = this._MUT_SUBTYPE_INFO()[key] || '';
+                infoPanel.dataset.shown = key;
+                infoPanel.style.display = 'block';
+            };
+            document.querySelectorAll('.mut-subtype-help').forEach(badge => {
                 const key = badge.dataset.subtype;
-                if (panel.style.display === 'block' && panel.dataset.shown === key) {
-                    panel.style.display = 'none';
-                    return;
-                }
-                panel.innerHTML = this._MUT_SUBTYPE_INFO()[key] || '';
-                panel.dataset.shown = key;
-                panel.style.display = 'block';
+                badge.addEventListener('mouseenter', () => show(key));
+                badge.addEventListener('mouseleave', scheduleHide);
+                // The badges sit inside <label>s, so stop the click from also
+                // selecting that radio.
+                badge.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (infoPanel.style.display === 'block' && infoPanel.dataset.shown === key) {
+                        cancelHide();
+                        infoPanel.style.display = 'none';
+                    } else {
+                        show(key);
+                    }
+                });
             });
-        });
+            infoPanel.addEventListener('mouseenter', cancelHide);
+            infoPanel.addEventListener('mouseleave', scheduleHide);
+        }
 
         // Parameter translocation filter
         document.getElementById('paramTranslocationGene')?.addEventListener('change', () => {
@@ -6223,6 +6252,11 @@ class CorrelationExplorer {
         const mut2CellIndices = [];
 
         cellLines.forEach((cellLine, idx) => {
+            // Axes that only cover part of the cohort (copy number: WGS only) carry
+            // a coverage set. Drop the lines they have no data for, otherwise the
+            // `|| 0` below would silently file them as wild-type and dilute the
+            // reference group with cell lines that were never measured.
+            if (mutationData.coverage && !mutationData.coverage.has(cellLine)) return;
             // Check excluded tissues
             if (this.excludedTissues && this.excludedTissues.size > 0) {
                 const lineage = this.cellLineMetadata?.lineage?.[cellLine];
@@ -17418,7 +17452,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // against the build scripts in scripts/ and the web_data files, not against
     // the older inline tooltips (one of which listed the wrong gene panel).
     _MUT_SUBTYPE_INFO() {
-        const cnCoverage = '<b>Coverage:</b> 356 of the 1,186 cell lines have no WGS data. They are counted as unaltered, which dilutes the comparison.';
+        const cnCoverage = '<b>Coverage:</b> copy number comes from whole-genome sequencing, which covers 830 of the 1,186 cell lines. The other 356 are left out of the comparison entirely rather than counted as unaltered, so the group sizes you see add up to 830.';
         return {
             hotspot: `<b>Hotspot mutation</b><br>
                 Cell lines carrying a recurrent hotspot mutation in the gene you pick.<br><br>
