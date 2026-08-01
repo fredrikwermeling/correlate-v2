@@ -167,13 +167,42 @@
             filter: grayscale(0.4);
             transition: opacity 0.2s ease;
         }
-        /* Draw attention to the Options card on load (until Analysis is clicked)
-           with a prominent brand-green outline + glow. Outline (not border) so
-           layout doesn't shift when it's removed. */
-        #optionsCard.options-highlight {
-            outline: 3px solid var(--green-500, #5a9f4a);
-            outline-offset: 3px;
-            box-shadow: 0 0 0 5px rgba(90,159,74,0.18), 0 6px 18px rgba(90,159,74,0.28);
+        /* The "Other" dropdown has to escape the card, but .card is overflow:hidden
+           so its green title bar clips to the rounded corners. Opt this one card
+           out and re-round the title bar by hand, and lift it above the cards below
+           so the open menu paints over them rather than behind. */
+        #optionsCard {
+            overflow: visible;
+            position: relative;
+            z-index: 20;
+        }
+
+        #optionsCard > .card-title {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        /* Rows in the Options card's "Other" dropdown. Plain rows rather than
+           buttons-in-a-box so the menu reads as a menu, not a second toolbar. */
+        .options-menu-item {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: left;
+            background: none;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-family: inherit;
+            font-size: 13px;
+            color: var(--gray-600);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .options-menu-item:hover {
+            background: var(--green-50);
+            color: var(--green-700);
         }
 
         .sidebar-row {
@@ -1485,6 +1514,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.30 (2026-08-01)</strong></p>
+                <ul>
+                    <li><b>Options simplified.</b> The box is now a single row: <b>Analysis</b>, <b>Cell Line Browser</b>, <b>Other</b> and <b>Reset</b>. Gene Effect, Correlation and opening a saved figure moved into the <b>Other</b> menu, and the instruction line above the buttons is gone, so the box takes up much less room.</li>
+                    <li><b>Analysis is now the default.</b> Boxes 1, 2 and 3 are ready as soon as the app opens, so you can type a gene set straight away instead of first clicking a tool. The Analysis button is filled in to show it is the current mode, and now just jumps back to the gene box.</li>
+                </ul>
                 <p><strong>v.84.29 (2026-08-01)</strong></p>
                 <ul>
                     <li><b>New tab now works from a Mutation Inspect view.</b> Opening a mutation analysis gene distribution (for example <i>CDKN1A</i> by <i>TP53</i> mutation) in a new tab used to give a blank app, because that view is driven by the mutation results rather than the ordinary gene effect state. The new tab now rebuilds the analysis and reopens the same distribution, carrying the tissue / subtype / hotspot / fusion / CN filters with it.</li>
@@ -3763,7 +3797,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.29</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.30</a>
     </div>
 
     <div class="main-content">
@@ -4122,23 +4156,29 @@
 
         <!-- Main Panel -->
         <div class="main-panel">
-            <!-- Options card: workspace actions. Its green title bar lines up
-                 with the Reference Data title on the same row; "Analysis"
-                 enables boxes 1/2/3, the other buttons jump straight to a tool. -->
+            <!-- Options card: workspace actions, one compact row. Analysis is the
+                 default mode (boxes 1/2/3 are live on load), so it renders filled
+                 to show it's the current mode. The less-used tools sit behind
+                 "Other" so the card height never changes. -->
             <div class="card" id="optionsCard">
                 <div class="card-title">Options</div>
-                <div class="card-content" style="padding: 12px 16px;">
-                    <div id="optionsBannerHint" style="font-size:11px; color:#6b7280; margin-bottom:8px;">Pick a tool to get started, or click Analysis to set parameters and build a correlation network.</div>
-                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <button class="btn btn-outline btn-sm" id="startAnalysisBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Enable boxes 1 / 2 / 3 to set parameters, enter genes and build a correlation network">Analysis</button>
-                        <button class="btn btn-outline btn-sm" id="showGeneEffectDirect" style="color:var(--green-700); border-color:var(--green-400);">Gene Effect</button>
-                        <button class="btn btn-outline btn-sm" id="showCorrelationDirect" style="color:var(--green-700); border-color:var(--green-400);">Correlation</button>
+                <div class="card-content" style="padding: 8px 16px;">
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                        <button class="btn btn-success btn-sm" id="startAnalysisBtn" title="Set parameters, enter genes and build a correlation network in boxes 1 / 2 / 3 below">Analysis</button>
                         <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="color:var(--green-700); border-color:var(--green-400);">Cell Line Browser</button>
-                        <label class="btn btn-outline btn-sm" style="cursor:pointer; color:var(--green-700); border-color:var(--green-400); display:flex; align-items:center; justify-content:center;" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">
-                            Open <input type="file" id="restoreFromExportInput" accept=".json,.svg,.png" style="display:none;">
-                        </label>
+                        <div style="position:relative;">
+                            <button class="btn btn-outline btn-sm" id="optionsOtherBtn" aria-haspopup="true" aria-expanded="false" style="color:var(--green-700); border-color:var(--green-400);" title="Gene Effect, Correlation and opening a saved figure">Other &#9662;</button>
+                            <div id="optionsOtherMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1200; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.12); min-width:180px; padding:4px;">
+                                <button class="options-menu-item" id="showGeneEffectDirect">Gene Effect</button>
+                                <button class="options-menu-item" id="showCorrelationDirect">Correlation</button>
+                                <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure...</label>
+                            </div>
+                        </div>
                         <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid #9ca3af;">Reset</button>
                     </div>
+                    <!-- Kept outside the dropdown: hiding an ancestor mid-click can
+                         cancel the file picker in some browsers. -->
+                    <input type="file" id="restoreFromExportInput" accept=".json,.svg,.png" style="display:none;">
                 </div>
             </div>
             <div class="card" id="resultsCard" style="padding-bottom: 0;">
@@ -6117,6 +6157,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_29"></script>
+    <script src="app.js?v=v84_30"></script>
 </body>
 </html>

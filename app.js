@@ -3904,15 +3904,38 @@ class CorrelationExplorer {
         // Reset App button
         document.getElementById('resetAppBtn')?.addEventListener('click', () => location.reload());
 
-        // Options banner: boxes 1/2/3 start locked and are enabled by "Analysis".
-        // Locking is done here in JS (not in HTML) so a script failure fails open
-        // and leaves the workspace usable. Reset reloads the page, re-locking.
-        this._setAnalysisLocked(true);
+        // Analysis is the default mode: boxes 1/2/3 are live on load so genes can
+        // be typed straight away without first picking a tool. The button now just
+        // returns focus to the gene input.
+        this._setAnalysisLocked(false);
         document.getElementById('startAnalysisBtn')?.addEventListener('click', () => {
             this._setAnalysisLocked(false);
-            // Drop focus to the gene input so the user can start typing.
             document.getElementById('geneTextarea')?.focus();
         });
+
+        // Options card "Other" dropdown: Gene Effect / Correlation / Open saved
+        // figure. Their own click handlers are registered elsewhere, so this only
+        // manages open/close.
+        const otherBtn = document.getElementById('optionsOtherBtn');
+        const otherMenu = document.getElementById('optionsOtherMenu');
+        if (otherBtn && otherMenu) {
+            const closeOther = () => {
+                otherMenu.style.display = 'none';
+                otherBtn.setAttribute('aria-expanded', 'false');
+            };
+            otherBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const willOpen = otherMenu.style.display !== 'block';
+                otherMenu.style.display = willOpen ? 'block' : 'none';
+                otherBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            });
+            // Picking an item runs that item's own handler; just close behind it.
+            otherMenu.addEventListener('click', () => closeOther());
+            document.addEventListener('click', (e) => {
+                if (!otherMenu.contains(e.target) && e.target !== otherBtn) closeOther();
+            });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOther(); });
+        }
 
         // Reset excluded tissues button
         document.getElementById('resetExcludedTissuesBtn')?.addEventListener('click', () => {
@@ -17338,30 +17361,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     // Gray out / enable boxes 1 (Set Parameters), 2 (Input Gene Set) and
-    // 3 (Results). Locked on load; "Analysis" in the Options banner unlocks.
+    // 3 (Results). Analysis is now the default mode so nothing locks them on
+    // load; kept because the restore flows call it to force them enabled.
     _setAnalysisLocked(locked) {
         ['paramsCard', 'geneInputCard', 'resultsCard'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.toggle('analysis-locked', locked);
         });
-        // Highlight the Options card while the workspace is locked, so it's the
-        // obvious place to start; drop the highlight once Analysis is clicked.
-        document.getElementById('optionsCard')?.classList.toggle('options-highlight', locked);
-        // "Analysis" looks the same as the other tool buttons (green outline) at
-        // all times, the Options box itself is what's emphasised on load.
-        const startBtn = document.getElementById('startAnalysisBtn');
-        if (startBtn) {
-            startBtn.classList.remove('btn-success');
-            startBtn.classList.add('btn-outline');
-            startBtn.style.color = 'var(--green-700)';
-            startBtn.style.borderColor = 'var(--green-400)';
-        }
-        const hint = document.getElementById('optionsBannerHint');
-        if (hint) {
-            hint.innerHTML = locked
-                ? 'Pick a tool to get started, or click Analysis to set parameters and build a correlation network.'
-                : 'Set parameters and enter a gene set in boxes 1 and 2, then build a network.';
-        }
     }
 
     _resetForRestore() {
