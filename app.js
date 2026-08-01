@@ -290,14 +290,34 @@ class CorrelationExplorer {
         return s;
     }
 
+    // Selects whose options are built by another control's change handler.
+    // Assigning .value doesn't fire change, so the child's options must be
+    // rebuilt from the restored parent before the child's value is applied,
+    // otherwise the saved option doesn't exist yet and the value is dropped
+    // (e.g. Lymphoid -> Mature B-Cell silently fell back to all of Lymphoid).
+    _DEPENDENT_CONTROLS() {
+        return {
+            geTissueFilter: () => this.updateGeSubtypeFilter(),
+            scatterCancerFilter: () => this.updateScatterSubtypeFilter()
+        };
+    }
+
     _applyControls(map) {
         if (!map) return;
-        Object.entries(map).forEach(([id, v]) => {
+        const setOne = (id, v) => {
             const el = document.getElementById(id);
             if (!el) return;
             if (el.type === 'checkbox') el.checked = !!v;
             else el.value = v;
+        };
+        // Parents first, so the dependent options exist by the time the main
+        // pass below assigns the child's value.
+        Object.entries(this._DEPENDENT_CONTROLS()).forEach(([parentId, repopulate]) => {
+            if (!(parentId in map)) return;
+            setOne(parentId, map[parentId]);
+            try { repopulate(); } catch (e) { console.warn(`Could not repopulate options for ${parentId}:`, e); }
         });
+        Object.entries(map).forEach(([id, v]) => setOne(id, v));
     }
 
     // Filter/setting controls captured for "Open in new tab" so the new tab
@@ -349,9 +369,42 @@ class CorrelationExplorer {
         };
     }
 
-    openGeneEffectInNewTab() { this.openPopoutInNewTab(this._buildPopoutMeta('gene_effect')); }
+    // The Gene Effect modal is shared by two very different views: the ordinary
+    // gene-effect chart and the Mutation-Inspect distribution (geneEffectViewMode
+    // === 'mutation'). The latter is driven by mutationResults, not by
+    // currentGeneEffect / results, so the gene_effect popout meta would serialize
+    // gene:null, network:null and the new tab would open blank. Detect mutation
+    // mode and serialize the mutation_inspect payload instead, which already has a
+    // full restore path (shared with the image-export "Open" flow).
+    openGeneEffectInNewTab() {
+        if (this.geneEffectViewMode === 'mutation' && this.mutationResults && this.currentGeneEffectGene) {
+            this.openPopoutInNewTab(this._buildMutationInspectMeta());
+        } else {
+            this.openPopoutInNewTab(this._buildPopoutMeta('gene_effect'));
+        }
+    }
     openCorrelationInNewTab() { this.openPopoutInNewTab(this._buildPopoutMeta('scatter')); }
     openCorrAnalysisInNewTab() { this.openPopoutInNewTab(this._buildPopoutMeta('correlation_analysis')); }
+
+    // Recreate-metadata for the Mutation-Inspect distribution. Mirrors what
+    // _exportMutationInspectChart embeds in exported images, plus the inspect-level
+    // filter controls so the new tab reproduces the same cohort. Restored by the
+    // mutation_inspect branch of _handleExportMeta.
+    _buildMutationInspectMeta() {
+        const mr = this.mutationResults || {};
+        return this._buildExportMetadata('mutation_inspect', {
+            gene: this.currentGeneEffectGene,
+            hotspotGene: mr.hotspotGene,
+            isTranslocation: mr.isTranslocation || false,
+            isDamaging: mr.isDamaging || false,
+            lineageFilter: mr.lineageFilter || '',
+            subLineageFilter: mr.subLineageFilter || '',
+            controls: this._captureControls(this._GE_NEWTAB_CONTROLS()),
+            textSettings: this._capturePlotTextSettings('geneEffectPlot'),
+            geChartWidthRatio: this.geChartWidthRatio || 1.0,
+            oncoprintFilters: this._activeOncoprintFilters || null
+        });
+    }
 
     // Open one restored popout (used after the network is rebuilt, or directly
     // when there's no network behind it). Mirrors the live "open" paths and
@@ -11522,6 +11575,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     // Inspect Modal
+    // Is `gene` usable on the axis driven by `axisId`? Each axis type is backed
+    // by a different matrix, so the gene-effect index is the wrong gate for all
+    // of them: a CN axis is covered by the CN matrix (~2,500 genes the GE matrix
+    // doesn't screen), and growth / gene-set axes carry a pseudo-gene label
+    // rather than a real gene. Mirrors the checks in updateInspectGenes().
+    _inspectAxisGeneOk(gene, axisId) {
+        const type = document.getElementById(axisId)?.value || 'ge';
+        if (type === 'growth' || type === 'geneset') return true;
+        if (type === 'cn') return !!this.cnGeneIndex?.has(gene?.toUpperCase?.());
+        return !!this.geneIndex?.has(gene);
+    }
+
     openInspectByGenes(gene1, gene2) {
         // Find the correlation entry by gene names. If it isn't in the current
         // results (e.g. a discovered-gene edge, or after a filtered re-run via
@@ -11533,7 +11598,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             (corr.gene1 === gene2 && corr.gene2 === gene1)
         );
         if (!c) {
-            if (!this.geneIndex?.has(gene1) || !this.geneIndex?.has(gene2)) {
+            if (!this._inspectAxisGeneOk(gene1, 'xAxisDataType') || !this._inspectAxisGeneOk(gene2, 'yAxisDataType')) {
                 console.error('Correlation not found for', gene1, gene2);
                 return;
             }
@@ -17431,17 +17496,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const sel = document.getElementById('mutationHotspotSelect');
                 if (sel) sel.value = meta.hotspotGene;
             }
-            // Restore tissue filter if stored
+            // Restore tissue filter if stored. Populate the sub-lineage options
+            // for the restored lineage BEFORE setting the sub value, else the
+            // option doesn't exist yet and the sub-filter silently fails to stick.
             if (meta.lineageFilter) {
                 document.getElementById('lineageFilter').value = meta.lineageFilter;
+            }
+            if (meta.subLineageFilter) {
+                this.updateSubLineageFilter?.();
+                const subEl = document.getElementById('subLineageFilter');
+                if (subEl) subEl.value = meta.subLineageFilter;
             }
             // Run mutation analysis, then open gene inspect after results load
             this.runAnalysis();
             const waitForResults = () => {
                 if (this.mutationResults && this.mutationResults.hotspotGene === meta.hotspotGene) {
+                    if (meta.geChartWidthRatio) this.geChartWidthRatio = meta.geChartWidthRatio;
+                    // The first render is what populates the inspect-level filter
+                    // dropdowns (tissue etc.) from the cohort, so saved control
+                    // values can only be applied after it. Replay them through the
+                    // same poll-then-apply-then-rerender helper the ordinary
+                    // gene-effect restore uses, otherwise the value is assigned to
+                    // an empty <select> and silently drops.
                     this.showGeneEffectDistribution(meta.gene);
-                    // Apply text settings after plot renders
-                    if (meta.textSettings) {
+                    if (meta.controls) {
+                        this._restorePopoutControls(meta.controls, 'geTissueFilter', () => {
+                            this._savedScatterTextSettings = meta.textSettings || null;
+                            this.showGeneEffectDistribution(meta.gene);
+                        });
+                    } else if (meta.textSettings) {
                         setTimeout(() => {
                             this._savedScatterTextSettings = meta.textSettings;
                             if (meta.geChartWidthRatio) this.geChartWidthRatio = meta.geChartWidthRatio;

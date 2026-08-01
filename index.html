@@ -1485,6 +1485,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.29 (2026-08-01)</strong></p>
+                <ul>
+                    <li><b>New tab now works from a Mutation Inspect view.</b> Opening a mutation analysis gene distribution (for example <i>CDKN1A</i> by <i>TP53</i> mutation) in a new tab used to give a blank app, because that view is driven by the mutation results rather than the ordinary gene effect state. The new tab now rebuilds the analysis and reopens the same distribution, carrying the tissue / subtype / hotspot / fusion / CN filters with it.</li>
+                    <li><b>New tab from a copy-number scatter.</b> A scatter with a CN axis on one of the roughly 2,500 genes that only exist in the CN matrix opened a blank tab. It now restores correctly.</li>
+                    <li><b>Sub-type filters now travel to the new tab.</b> Opening a Gene Effect or Correlation view filtered to a sub-lineage (for example Lymphoid, Mature B-Cell Neoplasms) used to fall back to the whole parent tissue.</li>
+                </ul>
                 <p><strong>v.84.28 (2026-08-01)</strong></p>
                 <ul>
                     <li>The page no longer freezes while the copy-number and expression data are being unpacked. Both are now decoded in smaller pieces so the browser stays responsive, and expression decoding shows a percentage as it goes.</li>
@@ -3757,7 +3763,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.28</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.29</a>
     </div>
 
     <div class="main-content">
@@ -6111,6 +6117,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_28"></script>
+    <script src="app.js?v=v84_29"></script>
 </body>
 </html>
