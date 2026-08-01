@@ -1079,10 +1079,10 @@ class CorrelationExplorer {
 
         if (!gene || !this.mutations?.geneData?.[gene]) {
             levelSelect.innerHTML = `
-                <option value="1+2" selected>Only mutated (1+2)</option>
-                <option value="1">Only 1 mutation</option>
-                <option value="2">Only 2 mutations</option>
-                <option value="0">Only WT (0 mutations)</option>
+                <option value="1+2" selected>Mutated</option>
+                <option value="1">1 mut</option>
+                <option value="2">2 mut</option>
+                <option value="0">WT</option>
             `;
             return;
         }
@@ -1113,10 +1113,10 @@ class CorrelationExplorer {
 
         const prev = levelSelect.value;
         levelSelect.innerHTML = `
-            <option value="1+2">Only mutated 1+2 (n=${nMut})</option>
-            <option value="1">Only 1 mutation (n=${n1})</option>
-            <option value="2">Only 2 mutations (n=${n2})</option>
-            <option value="0">Only WT (n=${n0})</option>
+            <option value="1+2">Mutated (${nMut})</option>
+            <option value="1">1 mut (${n1})</option>
+            <option value="2">2 mut (${n2})</option>
+            <option value="0">WT (${n0})</option>
         `;
         // Default to "mutated 1+2"; keep an explicit prior non-default pick.
         levelSelect.value = (prev && prev !== 'all') ? prev : '1+2';
@@ -1153,8 +1153,8 @@ class CorrelationExplorer {
         if (!raw) {
             // Curated fusions are binary (a line carries the driver fusion or not).
             levelSelect.innerHTML = `
-                <option value="1+2" selected>Only with fusion</option>
-                <option value="0">Only WT (no fusion)</option>
+                <option value="1+2" selected>Fused</option>
+                <option value="0">Not fused</option>
             `;
             return;
         }
@@ -1171,8 +1171,8 @@ class CorrelationExplorer {
 
         const prev = levelSelect.value;
         levelSelect.innerHTML = `
-            <option value="1+2">Only with fusion (n=${nFused})</option>
-            <option value="0">Only WT (n=${n0})</option>
+            <option value="1+2">Fused (${nFused})</option>
+            <option value="0">Not fused (${n0})</option>
         `;
         // Default to the fused cells when a fusion is picked (see hotspot note).
         levelSelect.value = (prev && prev !== 'all') ? prev : '1+2';
@@ -1389,11 +1389,21 @@ class CorrelationExplorer {
 
     // Fewest carrier cell lines a stratifier gene must have to be worth offering.
     // The scan runs a Welch t-test over ~18,400 genes with no multiple-testing
-    // correction, so a split with a handful of carriers returns noise. Counted
-    // after the tissue / subtype filters, so the list tightens as the cohort
-    // narrows. Not applied to fusions: driver fusions are intrinsically rare and
-    // the bar would leave only two of them.
-    _MIN_STRATIFIER_N() { return 10; }
+    // correction, so a split with a handful of carriers returns noise.
+    //
+    // Scaled to the cohort actually in scope, not fixed. Every lineage is smaller
+    // than 200 cell lines (Lung, the largest, is 126), so a flat 10 emptied the
+    // picker completely the moment a tissue filter was applied. 5% of the cohort,
+    // clamped to [3, 10]: 10 on the full 1,186 lines, 3 on a small lineage, never
+    // below the hard minimum the analysis itself enforces.
+    //
+    // Not applied to fusions: driver fusions are intrinsically rare and the bar
+    // would leave only two of them.
+    _MIN_STRATIFIER_N(nInScope) {
+        const n = Number(nInScope) || 0;
+        if (!n) return 3;
+        return Math.max(3, Math.min(10, Math.ceil(n * 0.05)));
+    }
 
     _populateDamagingMutationList() {
         // Functional-loss gene picker, a <select> dropdown (like the hotspot one),
@@ -1425,7 +1435,7 @@ class CorrelationExplorer {
             for (const cl of filteredCLs) {
                 if (mutations[cl] && mutations[cl] > 0) nMut++;
             }
-            if (nMut >= this._MIN_STRATIFIER_N()) geneCounts.push({ gene, count: nMut });
+            if (nMut >= this._MIN_STRATIFIER_N(filteredCLs.length)) geneCounts.push({ gene, count: nMut });
         }
         geneCounts.sort((a, b) => b.count - a.count);
 
@@ -1433,6 +1443,11 @@ class CorrelationExplorer {
         let html = '<option value="">Select gene...</option>';
         for (const { gene, count } of geneCounts) {
             html += `<option value="${gene}">${gene} (${count} ${verb})</option>`;
+        }
+        // Say why the list is empty. On a small tissue selection no gene may reach
+        // the minimum, and a blank dropdown reads as a bug.
+        if (!geneCounts.length) {
+            html += '<option value="" disabled>No gene has enough cell lines in this selection</option>';
         }
         select.innerHTML = html;
         if (currentValue && geneCounts.some(g => g.gene === currentValue)) select.value = currentValue;
@@ -1473,7 +1488,7 @@ class CorrelationExplorer {
             for (const cl of filteredCLs) {
                 if (mutations[cl] && mutations[cl] > 0) nMut++;
             }
-            if (nMut >= this._MIN_STRATIFIER_N()) geneCounts.push({ gene, count: nMut });
+            if (nMut >= this._MIN_STRATIFIER_N(filteredCLs.length)) geneCounts.push({ gene, count: nMut });
         }
         geneCounts.sort((a, b) => b.count - a.count);
 
@@ -1484,6 +1499,14 @@ class CorrelationExplorer {
             option.textContent = `${gene} (${count} mutated)`;
             select.appendChild(option);
         });
+        // Say why the list is empty rather than showing a bare dropdown.
+        if (!geneCounts.length) {
+            const none = document.createElement('option');
+            none.value = '';
+            none.disabled = true;
+            none.textContent = 'No gene has enough cell lines in this selection';
+            select.appendChild(none);
+        }
 
         if (currentValue) select.value = currentValue;
     }
@@ -4016,21 +4039,35 @@ class CorrelationExplorer {
         // devices never fire hover.
         const infoPanel = document.getElementById('mutSubTypeInfo');
         if (infoPanel) {
+            // Reparent to <body>: the popout is position:fixed and must not depend on
+            // the card's stacking or clipping.
+            document.body.appendChild(infoPanel);
             let hideTimer = null;
             const cancelHide = () => { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } };
             const scheduleHide = () => {
                 cancelHide();
                 hideTimer = setTimeout(() => { infoPanel.style.display = 'none'; }, 250);
             };
-            const show = (key) => {
+            const show = (key, badge) => {
                 cancelHide();
                 infoPanel.innerHTML = this._MUT_SUBTYPE_INFO()[key] || '';
                 infoPanel.dataset.shown = key;
                 infoPanel.style.display = 'block';
+                // Place to the right of the badge, flipping left and clamping
+                // vertically if that would run off screen.
+                const b = badge.getBoundingClientRect();
+                const p = infoPanel.getBoundingClientRect();
+                const gap = 8;
+                let left = b.right + gap;
+                if (left + p.width > window.innerWidth - 8) left = Math.max(8, b.left - p.width - gap);
+                let top = b.top - 8;
+                if (top + p.height > window.innerHeight - 8) top = Math.max(8, window.innerHeight - p.height - 8);
+                infoPanel.style.left = `${Math.round(left)}px`;
+                infoPanel.style.top = `${Math.round(top)}px`;
             };
             document.querySelectorAll('.mut-subtype-help').forEach(badge => {
                 const key = badge.dataset.subtype;
-                badge.addEventListener('mouseenter', () => show(key));
+                badge.addEventListener('mouseenter', () => show(key, badge));
                 badge.addEventListener('mouseleave', scheduleHide);
                 // The badges sit inside <label>s, so stop the click from also
                 // selecting that radio.
@@ -4041,7 +4078,7 @@ class CorrelationExplorer {
                         cancelHide();
                         infoPanel.style.display = 'none';
                     } else {
-                        show(key);
+                        show(key, badge);
                     }
                 });
             });

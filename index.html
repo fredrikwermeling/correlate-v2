@@ -566,6 +566,33 @@
             padding: 5px 8px;
         }
 
+        /* A filter's gene box and its level box on one row, so each filter reads as
+           one setting rather than two stacked ones. */
+        .param-filter-row {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        /* Sub-type explanation, floated next to the "?" rather than pushed into the
+           card as a block of text. Positioned in JS and reparented to <body>, so no
+           ancestor can clip it. */
+        #mutSubTypeInfo {
+            position: fixed;
+            z-index: 4000;
+            width: 320px;
+            max-height: 340px;
+            overflow-y: auto;
+            padding: 10px 12px;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            font-size: 11px;
+            line-height: 1.55;
+            color: #374151;
+        }
+
         /* Small "?" next to each mutation analysis sub-type. Deliberately quiet:
            it is an affordance, not something to look at. Opens on hover; click
            still works, since touch devices have no hover. */
@@ -1620,6 +1647,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.37 (2026-08-01)</strong></p>
+                <ul>
+                    <li><b>Fix: picking a tissue no longer empties the gene list.</b> The minimum of 10 cell lines introduced in v.84.36 was counted against whatever cohort you had filtered to, and since every lineage is smaller than 200 cells, choosing for example Kidney cleared the list and silently dropped your gene. The minimum now scales with the cohort in view, from 10 on all cell lines down to 3 on a small lineage, and never below the 3 the analysis itself needs. If nothing qualifies, the list says so instead of appearing blank.</li>
+                    <li><b>Each filter is now one row.</b> The gene box and the mutated / WT box sit side by side rather than stacked, so a filter reads as one setting. Their labels are shortened (Mutated, WT, Altered, Fused) so nothing is cut off in the narrow column; counts still appear once you pick a gene.</li>
+                    <li>The sub-type <b>?</b> text now appears as a popout beside the question mark instead of a block pushed into the box.</li>
+                </ul>
                 <p><strong>v.84.36 (2026-08-01)</strong></p>
                 <ul>
                     <li><b>Deep deletion removed.</b> Mutation analysis now has four sub-types: Hotspot mutation, Fusion, Functional loss, Amplification. Functional loss already treats deep deletion as one of its three mechanisms, on genes that have the cell lines to support it. Of the 14 genes Deep deletion offered, 4 had none at all and 8 more had under 10, and its one well-powered gene (CDKN2B) sits beside CDKN2A on 9p21 and is almost always co-deleted with it, which Functional loss covers better.</li>
@@ -3938,7 +3971,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.36</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.37</a>
     </div>
 
     <div class="main-content">
@@ -4098,7 +4131,8 @@
                                      which Functional loss covers better. The cn_del code
                                      paths remain so saved figures still restore. -->
                             </div>
-                            <div id="mutSubTypeInfo" style="display:none; margin-top:6px; padding:8px; background:#fff; border:1px solid #86efac; border-radius:5px; font-size:10px; line-height:1.5; color:#374151; max-height:260px; overflow-y:auto;"></div>
+                            <!-- Floating popout; JS moves it to <body> and positions it. -->
+                            <div id="mutSubTypeInfo" style="display:none;"></div>
                         </div>
                         <div id="hotspotAnalysisControls">
                             <label class="form-label" style="color: #5a9f4a; font-weight: 600;">Hotspot Mutation (required):</label>
@@ -4181,16 +4215,18 @@
                             <label class="form-label" style="margin-bottom:0;">Hotspot Mutation Filter:</label>
                             <button id="oncoprintBtn" type="button" style="padding: 2px 8px; font-size: 10px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show oncoprint of top hotspot mutations">Oncoprint</button>
                         </div>
-                        <div id="paramHotspotControls">
-                            <div style="position:relative;">
-                                <input type="text" id="paramHotspotGene" class="form-control" placeholder="Search hotspot gene..." autocomplete="off" style="margin-bottom: 4px;">
+                        <!-- Gene box and level box share one row: they are one choice,
+                             and stacking them made each filter look like two settings. -->
+                        <div id="paramHotspotControls" class="param-filter-row">
+                            <div style="position:relative; flex:1 1 56%; min-width:0;">
+                                <input type="text" id="paramHotspotGene" class="form-control" placeholder="Gene..." title="Search a hotspot-mutated gene" autocomplete="off">
                                 <div id="paramHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
-                            <select id="paramHotspotLevel" class="form-control">
-                                <option value="1+2" selected>Only mutated (1+2)</option>
-                                <option value="1">Only 1 mutation</option>
-                                <option value="2">Only 2 mutations</option>
-                                <option value="0">Only WT (0 mutations)</option>
+                            <select id="paramHotspotLevel" class="form-control" style="flex:1 1 44%; min-width:0;">
+                                <option value="1+2" selected>Mutated</option>
+                                <option value="1">1 mut</option>
+                                <option value="2">2 mut</option>
+                                <option value="0">WT</option>
                             </select>
                         </div>
                         <div id="oncoprintFilterLabel" style="display:none; font-size:11px; color:#5a9f4a; margin-top:4px; cursor:pointer;" title="Click to clear oncoprint filters"></div>
@@ -4198,26 +4234,30 @@
 
                     <div class="form-group" id="paramCnFilterGroup" style="display: none;">
                         <label class="form-label">Copy Number Filter:</label>
-                        <div style="position:relative;">
-                            <input type="text" id="paramCnFilter" class="form-control" placeholder="Amp &#9650; / deep-del &#9660;..." autocomplete="off" style="margin-bottom: 4px;">
-                            <div id="paramCnDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                        <div class="param-filter-row">
+                            <div style="position:relative; flex:1 1 56%; min-width:0;">
+                                <input type="text" id="paramCnFilter" class="form-control" placeholder="Gene..." title="Search a gene with a focal amplification (&#9650;) or deep deletion (&#9660;)" autocomplete="off">
+                                <div id="paramCnDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                            </div>
+                            <select id="paramCnLevel" class="form-control" style="flex:1 1 44%; min-width:0;">
+                                <option value="altered">Altered</option>
+                                <option value="wt">WT</option>
+                            </select>
                         </div>
-                        <select id="paramCnLevel" class="form-control">
-                            <option value="altered">Only with this CN event</option>
-                            <option value="wt">Only without (WT)</option>
-                        </select>
                     </div>
 
                     <div class="form-group" id="paramTranslocationFilterGroup" style="display: none;">
                         <label class="form-label">Fusion Filter:</label>
-                        <div style="position:relative;">
-                            <input type="text" id="paramTranslocationGene" class="form-control" placeholder="Search fusion (&#9733; driver pairs)..." autocomplete="off" style="margin-bottom: 4px;">
-                            <div id="paramTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                        <div class="param-filter-row">
+                            <div style="position:relative; flex:1 1 56%; min-width:0;">
+                                <input type="text" id="paramTranslocationGene" class="form-control" placeholder="Fusion..." title="Search a fusion; &#9733; marks curated clinical driver pairs" autocomplete="off">
+                                <div id="paramTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                            </div>
+                            <select id="paramTranslocationLevel" class="form-control" style="flex:1 1 44%; min-width:0;">
+                                <option value="1+2" selected>Fused</option>
+                                <option value="0">Not fused</option>
+                            </select>
                         </div>
-                        <select id="paramTranslocationLevel" class="form-control">
-                            <option value="1+2" selected>Only with fusion</option>
-                            <option value="0">Only WT (no fusion)</option>
-                        </select>
                         <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 4px; font-size: 9px; color: #92400e;">
                             Selecting for genetic alterations can introduce unintended bias in analysis.
                             <span onclick="const d=this.nextElementSibling; d.style.display = d.style.display==='none'?'block':'none';" style="display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; background:#f59e0b; color:#fff; font-weight:700; font-size:9px; cursor:pointer; vertical-align:middle;" title="More about this bias">?</span>
@@ -6343,6 +6383,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_36"></script>
+    <script src="app.js?v=v84_37"></script>
 </body>
 </html>
