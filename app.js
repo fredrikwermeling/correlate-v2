@@ -37663,7 +37663,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const open = body.style.display !== 'none';
             body.style.display = open ? 'none' : '';
-            tgl.innerHTML = open ? '▾ show files &amp; details' : '▴ hide details';
+            tgl.innerHTML = open ? '▾ details' : '▴ hide';
         });
     }
 });

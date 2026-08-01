@@ -175,6 +175,10 @@
             overflow: visible;
             position: relative;
             z-index: 20;
+            /* Sits above .container rather than inside it, so it has to repeat
+               the container's own width constraint to stay aligned with it. */
+            max-width: 1350px;
+            margin: 0 auto 16px auto;
         }
 
         #optionsCard > .card-title {
@@ -209,6 +213,18 @@
         .options-menu-item:hover {
             background: var(--green-50);
             color: var(--green-700);
+        }
+
+        /* Reference Data is reference material, not a control, so its body is
+           tighter than the working cards. The title bar keeps the standard
+           padding so it lines up with "3. Results" alongside it. */
+        #referenceCard .card-content {
+            padding: 10px 16px 12px 16px;
+        }
+
+        #referenceCard #referenceStatus {
+            margin: 0;
+            padding: 7px 12px;
         }
 
         .sidebar-row {
@@ -1524,9 +1540,10 @@
            the body scroll so the chart and key text stay reachable. The homepage
            keeps its two-column layout per the note above. */
         @media (max-width: 640px) {
-            /* Homepage: stack the two columns so the Options card (in the right
-               panel) is visible instead of pushed off-screen by the fixed-width
-               sidebar. Options surfaces first since it's the entry point. */
+            /* Homepage: stack the two columns so the right panel isn't pushed
+               off-screen by the fixed-width sidebar. Options already sits above
+               .container, so the stacked order reads Options, Reference Data,
+               1, 2, 3 without needing to reorder the panels. */
             /* Logo scales down to the same width as the app content (it was
                wider than the page on phones, causing a mismatch / overflow). */
             .logo-header { padding: 5px 10px 0 10px !important; }
@@ -1534,7 +1551,7 @@
             .main-content { padding: 0 10px 16px 10px !important; }
             .container { flex-direction: column !important; max-width: 100% !important; gap: 10px !important; }
             .sidebar { width: 100% !important; min-width: 0 !important; }
-            .main-panel { width: 100% !important; order: -1 !important; }
+            .main-panel { width: 100% !important; }
             .sidebar-row { flex-direction: column !important; }
             .modal-overlay { padding: 0 !important; align-items: stretch !important; }
             .modal {
@@ -1647,6 +1664,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.38 (2026-08-01)</strong></p>
+                <ul>
+                    <li><b>Options moved above Reference Data.</b> The Options bar now spans the full width at the top of the page instead of sitting in the right column beside Reference Data. The right column is given over entirely to <b>3. Results</b>, which gains the height the bar used to take. The five controls still sit on one row: the 415px sidebar was too narrow for that, which is why the bar spans the page rather than dropping into the column.</li>
+                    <li><b>Reset separated from the tool buttons.</b> It now sits at the far right of the Options bar, away from the buttons you click to start work, so it is harder to hit by accident.</li>
+                    <li><b>Reference Data condensed.</b> The three source lines are now two, with shorter labels and the details toggle inline on the second, and the card has tighter padding and a slimmer title bar. The full file and knowledge-base list is unchanged behind <b>&#x25BE; details</b>.</li>
+                </ul>
                 <p><strong>v.84.37 (2026-08-01)</strong></p>
                 <ul>
                     <li><b>Fix: picking a tissue no longer empties the gene list.</b> The minimum of 10 cell lines introduced in v.84.36 was counted against whatever cohort you had filtered to, and since every lineage is smaller than 200 cells, choosing for example Kidney cleared the list and silently dropped your gene. The minimum now scales with the cohort in view, from 10 on all cell lines down to 3 on a small lineage, and never below the 3 the analysis itself needs. If nothing qualifies, the list says so instead of appearing blank.</li>
@@ -3971,28 +3994,57 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.37</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.38</a>
     </div>
 
     <div class="main-content">
+        <!-- Options bar: workspace actions, one compact row, spanning the full
+             width above Reference Data. It sits outside .container because the
+             415px sidebar is too narrow for the five controls to stay on one
+             row. Gene set analysis is the default mode (boxes 1/2/3 are live on
+             load), so it renders filled to show it's the current mode. The
+             less-used tools sit behind "Other" so the card height never changes. -->
+        <div class="card" id="optionsCard">
+            <div class="card-title">Options</div>
+            <div class="card-content" style="padding: 8px 16px;">
+                <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+                    <button class="btn btn-success btn-sm" id="modeGeneSetBtn" title="Correlate the gene-effect profiles of a set of genes, and optionally expand it to find correlated genes">Gene set analysis</button>
+                    <button class="btn btn-outline btn-sm" id="modeMutationBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Split the cohort into altered vs wild-type lines for a chosen gene and rank the genes whose gene effect differs most">Mutation analysis</button>
+                    <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="color:var(--green-700); border-color:var(--green-400);">Cell Line Browser</button>
+                    <div style="position:relative;">
+                        <button class="btn btn-outline btn-sm" id="optionsOtherBtn" aria-haspopup="true" aria-expanded="false" style="color:var(--green-700); border-color:var(--green-400);" title="Gene Effect, Correlation and opening a saved figure">Other &#9662;</button>
+                        <div id="optionsOtherMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1200; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.12); min-width:180px; padding:4px;">
+                            <button class="options-menu-item" id="showGeneEffectDirect">Gene Effect</button>
+                            <button class="options-menu-item" id="showCorrelationDirect">Correlation</button>
+                            <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure...</label>
+                        </div>
+                    </div>
+                    <!-- Reset is separated from the tool buttons: it clears the
+                         workspace, so it shouldn't sit next to things you click
+                         to start work. -->
+                    <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid #9ca3af; margin-left:auto;" title="Clear the current genes, parameters and results and start over">Reset</button>
+                </div>
+                <!-- Kept outside the dropdown: hiding an ancestor mid-click can
+                     cancel the file picker in some browsers. -->
+                <input type="file" id="restoreFromExportInput" accept=".json,.svg,.png" style="display:none;">
+            </div>
+        </div>
     <div class="container">
         <!-- Left Sidebar -->
         <div class="sidebar">
             <!-- Reference Data Card -->
-            <div class="card">
+            <div class="card" id="referenceCard">
                 <div class="card-title">Reference Data</div>
                 <div class="card-content">
                     <div id="referenceStatus" class="status-box status-warning">
                         Loading data...
                     </div>
-                    <div style="font-size: 11px; color: #4b5563; margin-top: 8px; line-height: 1.45;">
-                        <!-- Compact summary, three named sources on one line each.
-                             Full file / KB list is hidden behind a "Show details"
-                             toggle so the card doesn't dominate the homepage. -->
-                        <div><span style="color:#374151; font-weight:600;">Cell-line data:</span> <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a></div>
-                        <div><span style="color:#374151; font-weight:600;">Pathway / complex memberships:</span> <a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" style="color:#0066cc;">CORUM</a> + <a href="https://reactome.org/" target="_blank" style="color:#0066cc;">Reactome</a></div>
-                        <div><span style="color:#374151; font-weight:600;">Curated annotations:</span> in-app KBs (clinical fusions, subtype hallmarks, STR)</div>
-                        <a href="#" id="referenceDetailsToggle" style="display:inline-block; margin-top:6px; font-size:10px; color:var(--green-700); text-decoration:none;">&#x25BE; show files &amp; details</a>
+                    <div style="font-size: 11px; color: #4b5563; margin-top: 6px; line-height: 1.4;">
+                        <!-- Two condensed lines with the details toggle inline on
+                             the second. The full file / KB list stays hidden behind
+                             the toggle so the card doesn't dominate the homepage. -->
+                        <div><span style="color:#374151; font-weight:600;">Cell lines:</span> <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a> &middot; <span style="color:#374151; font-weight:600;">Pathways:</span> <a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" style="color:#0066cc;">CORUM</a> + <a href="https://reactome.org/" target="_blank" style="color:#0066cc;">Reactome</a></div>
+                        <div><span style="color:#374151; font-weight:600;">Curated:</span> in-app KBs (fusions, subtype hallmarks, STR) <a href="#" id="referenceDetailsToggle" style="font-size:10px; color:var(--green-700); text-decoration:none; white-space:nowrap;">&#x25BE; details</a></div>
                         <div id="referenceDetailsBody" style="display:none; margin-top:6px; font-size:10px; color:#666;">
                             <p style="margin: 0; font-weight:600; color:#374151;">Cell-line data: <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a></p>
                             <ul style="margin: 4px 0 0 0; padding-left: 16px;">
@@ -4360,32 +4412,6 @@
 
         <!-- Main Panel -->
         <div class="main-panel">
-            <!-- Options card: workspace actions, one compact row. Analysis is the
-                 default mode (boxes 1/2/3 are live on load), so it renders filled
-                 to show it's the current mode. The less-used tools sit behind
-                 "Other" so the card height never changes. -->
-            <div class="card" id="optionsCard">
-                <div class="card-title">Options</div>
-                <div class="card-content" style="padding: 8px 16px;">
-                    <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
-                        <button class="btn btn-success btn-sm" id="modeGeneSetBtn" title="Correlate the gene-effect profiles of a set of genes, and optionally expand it to find correlated genes">Gene set analysis</button>
-                        <button class="btn btn-outline btn-sm" id="modeMutationBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Split the cohort into altered vs wild-type lines for a chosen gene and rank the genes whose gene effect differs most">Mutation analysis</button>
-                        <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="color:var(--green-700); border-color:var(--green-400);">Cell Line Browser</button>
-                        <div style="position:relative;">
-                            <button class="btn btn-outline btn-sm" id="optionsOtherBtn" aria-haspopup="true" aria-expanded="false" style="color:var(--green-700); border-color:var(--green-400);" title="Gene Effect, Correlation and opening a saved figure">Other &#9662;</button>
-                            <div id="optionsOtherMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1200; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.12); min-width:180px; padding:4px;">
-                                <button class="options-menu-item" id="showGeneEffectDirect">Gene Effect</button>
-                                <button class="options-menu-item" id="showCorrelationDirect">Correlation</button>
-                                <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure...</label>
-                            </div>
-                        </div>
-                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid #9ca3af;">Reset</button>
-                    </div>
-                    <!-- Kept outside the dropdown: hiding an ancestor mid-click can
-                         cancel the file picker in some browsers. -->
-                    <input type="file" id="restoreFromExportInput" accept=".json,.svg,.png" style="display:none;">
-                </div>
-            </div>
             <div class="card" id="resultsCard" style="padding-bottom: 0;">
                 <div class="card-title">3. Results</div>
                 <div class="card-content" style="padding-bottom: 0;">
@@ -6383,6 +6409,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_37"></script>
+    <script src="app.js?v=v84_38"></script>
 </body>
 </html>
