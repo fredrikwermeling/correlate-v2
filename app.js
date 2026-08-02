@@ -4353,7 +4353,6 @@ class CorrelationExplorer {
             this.downloadMutationResults();
         });
         document.getElementById('exportMutTablePNG')?.addEventListener('click', () => this._exportMutationTable('png'));
-        document.getElementById('exportMutTableSVG')?.addEventListener('click', () => this._exportMutationTable('svg'));
 
         // AI export buttons
         document.getElementById('exportMutationAI')?.addEventListener('click', () => this.exportForAI('mutations'));
@@ -4387,7 +4386,6 @@ class CorrelationExplorer {
             }
         });
         document.getElementById('downloadGeneEffectPNG').addEventListener('click', () => this.downloadGeneEffectPNG());
-        document.getElementById('downloadGeneEffectSVG').addEventListener('click', () => this.downloadGeneEffectSVG());
 
         // Expression Correlates panel
         document.getElementById('toggleExprCorrelatesBtn').addEventListener('click', () => this.toggleExpressionCorrelatesPanel());
@@ -4396,7 +4394,6 @@ class CorrelationExplorer {
         document.getElementById('downloadExprCorrelatesCSV').addEventListener('click', () => this.downloadExpressionCorrelatesCSV());
         document.getElementById('backToExprResults').addEventListener('click', () => this.backToExprCorrelatesResults());
         document.getElementById('downloadExprScatterPNG').addEventListener('click', () => this.downloadExprCorrelateScatter('png'));
-        document.getElementById('downloadExprScatterSVG').addEventListener('click', () => this.downloadExprCorrelateScatter('svg'));
         document.getElementById('exprCorrelatesSearch').addEventListener('input', () => this.filterExprCorrelatesTable());
 
         // Expression scatter gene inputs + expand checkboxes
@@ -4716,7 +4713,6 @@ class CorrelationExplorer {
         document.getElementById('yAxisDataType')?.addEventListener('change', (e) => handleAxisTypeChange(e, 'inspectGeneY', 'Y gene'));
 
         document.getElementById('downloadScatterPNG').addEventListener('click', () => this.downloadScatterPNG());
-        document.getElementById('downloadScatterSVG').addEventListener('click', () => this.downloadScatterSVG());
         document.getElementById('scatterTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('scatterPlot'));
         document.getElementById('geTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('geneEffectPlot'));
         this._initTextSettingsDrag();
@@ -4730,7 +4726,6 @@ class CorrelationExplorer {
             e.target.value = '';
         });
         document.getElementById('downloadTissuePNG').addEventListener('click', () => this.downloadTissueChartPNG());
-        document.getElementById('downloadTissueSVG').addEventListener('click', () => this.downloadTissueChartSVG());
         document.getElementById('downloadTissueCSV').addEventListener('click', () => this.downloadTissueTableCSV());
         document.getElementById('scatterFontSize')?.addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('compareAllMutationsBtn')?.addEventListener('click', () => this.showCompareAllMutations());
@@ -5063,7 +5058,6 @@ class CorrelationExplorer {
             this.switchCorrAnalysisView('hotspot');
         });
         document.getElementById('downloadCorrAnalysisPNG')?.addEventListener('click', () => this.downloadCorrAnalysisChart('png'));
-        document.getElementById('downloadCorrAnalysisSVG')?.addEventListener('click', () => this.downloadCorrAnalysisChart('svg'));
         document.getElementById('downloadCorrAnalysisCSV')?.addEventListener('click', () => this.downloadCorrAnalysisCSV());
         document.getElementById('downloadCACellLineCSV')?.addEventListener('click', () => this.downloadCACellLineCSV());
         document.getElementById('caTableSearch')?.addEventListener('input', (e) => {
@@ -5137,7 +5131,6 @@ class CorrelationExplorer {
             this.switchGeneEffectView(this.currentGEView || 'tissue');
         });
         document.getElementById('downloadGeneEffectPNG')?.addEventListener('click', () => this.downloadGeneEffectChartPNG());
-        document.getElementById('downloadGeneEffectSVG')?.addEventListener('click', () => this.downloadGeneEffectChartSVG());
         document.getElementById('downloadGETableCSV')?.addEventListener('click', () => this.downloadGETableCSV());
         document.getElementById('downloadGECellLineCSV')?.addEventListener('click', () => this.downloadGECellLineCSV());
 
@@ -8667,6 +8660,8 @@ class CorrelationExplorer {
         container.innerHTML = '';
 
         const nodes = [];
+        // Gene effect / LFC / FDR per node, rendered by our own hover box.
+        this._nodeFacts = new Map();
         const edges = [];
         const geneSet = new Set();
 
@@ -8729,6 +8724,11 @@ class CorrelationExplorer {
                 titleLines.push(`FDR: ${geneStat.fdr.toExponential(2)}`);
             }
 
+            // Keep the facts for our own hover box. vis-network's built-in
+            // tooltip is deliberately left unset (no `title`): it used to render
+            // a second box that overlapped the gene-info one.
+            this._nodeFacts.set(gene, titleLines.slice(1));
+
             // Add * to label if synonym
             const isGrowthRate = gene === '⚡ Growth Rate';
             const label = isGrowthRate ? 'Growth Rate' : isSynonym ? `${gene}*` : gene;
@@ -8745,7 +8745,6 @@ class CorrelationExplorer {
                     border: '#000000'
                 },
                 borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
-                title: titleLines.join('\n'),
                 isSynonym: isSynonym,
                 originalName: originalName
             });
@@ -8781,6 +8780,7 @@ class CorrelationExplorer {
                         titleLines.push(`FDR: ${uncorrStat.fdr.toExponential(2)}`);
                     }
                     titleLines.push('(no correlations found)');
+                    this._nodeFacts.set(gene, titleLines.slice(1));
 
                     nodes.push({
                         id: gene,
@@ -8790,7 +8790,6 @@ class CorrelationExplorer {
                         color: { background: '#d1d5db', border: '#000000' },
                         borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
                         borderWidthSelected: 3,
-                        title: titleLines.join('\n'),
                         isSynonym: isSynonym,
                         originalName: originalName || null
                     });
@@ -9024,13 +9023,20 @@ class CorrelationExplorer {
                 domEvent.clientY += rect.top;
             }
             clearTimeout(this._networkTooltipTimer);
-            // vis-network's own node tooltip already shows the gene effect (GE
-            // mean / SD) quickly via node.title. This delayed box adds the extended
-            // gene info (name, description, links) only, no gene-effect line, so
-            // it doesn't duplicate the small box above it.
+            // One box, shown straight away. There used to be two: vis-network's
+            // own tooltip with the gene-effect numbers, and this one a second
+            // later with the gene description, and they overlapped. The facts
+            // now go in as the top of this box, and the description fills in
+            // underneath when it arrives.
+            //
+            // Showing it immediately also makes "Hold Shift" dependable: the
+            // box previously existed for so little of the hover that there was
+            // barely a moment in which Shift could reach it.
+            // A short delay only so sweeping the pointer across a dense network
+            // doesn't fire a gene-info request per node passed over.
             this._networkTooltipTimer = setTimeout(() => {
-                this.showGeneTooltip(domEvent, nodeId);
-            }, 1000);
+                this.showGeneTooltip(domEvent, nodeId, undefined, this._nodeFactsHtml(nodeId));
+            }, 150);
         });
         this.network.on('blurNode', () => {
             clearTimeout(this._networkTooltipTimer);
@@ -10139,11 +10145,8 @@ Results:
         const textFont = `${_legFs}px Arial`;
         const smallFont = `${Math.max(9, _legFs - 2)}px Arial`;
 
-        // Calculate total legend width to center it
-        let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
-        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) totalLegendWidth += 140;
-        if (document.getElementById('colorByGeneEffect').checked && this.results?.clusters) totalLegendWidth += 170;
-        if (document.getElementById('colorByStats').checked && this.geneStats && this.geneStats.size > 0) totalLegendWidth += 200;
+        // Measured width of what the legend actually paints, so it centres.
+        const totalLegendWidth = this._exportLegendWidth();
 
         let legendX = Math.max(40, (totalWidth - totalLegendWidth) / 2);
 
@@ -10510,11 +10513,8 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         const legendTop = headerH + networkHeight;
         const legendY = legendTop + 35;
 
-        // Calculate total legend width to center it
-        let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
-        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) totalLegendWidth += 140;
-        if (document.getElementById('colorByGeneEffect').checked && this.results?.clusters) totalLegendWidth += 170;
-        if (document.getElementById('colorByStats').checked && this.geneStats && this.geneStats.size > 0) totalLegendWidth += 200;
+        // Measured width of what the legend actually paints, so it centres.
+        const totalLegendWidth = this._exportLegendWidth();
 
         let legendX = Math.max(40, (width - totalLegendWidth) / 2);
 
@@ -11505,11 +11505,8 @@ Results:
         const textFont = `${_legFs2}px Arial`;
         const smallFont = `${Math.max(9, _legFs2 - 2)}px Arial`;
 
-        // Calculate total legend width to center it
-        let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
-        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) totalLegendWidth += 140;
-        if (document.getElementById('colorByGeneEffect').checked && this.results?.clusters) totalLegendWidth += 170;
-        if (document.getElementById('colorByStats').checked && this.geneStats && this.geneStats.size > 0) totalLegendWidth += 200;
+        // Measured width of what the legend actually paints, so it centres.
+        const totalLegendWidth = this._exportLegendWidth();
 
         let legendX = Math.max(40, (totalWidth - totalLegendWidth) / 2);
 
@@ -11851,11 +11848,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const legendTopZip = filterBannerHeight + networkHeight;
         const legendY = legendTopZip + 35;
 
-        // Calculate total legend width to center it
-        let totalLegendWidth = 160 + 160; // Correlation + Edge Thickness
-        if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) totalLegendWidth += 140;
-        if (document.getElementById('colorByGeneEffect').checked && this.results?.clusters) totalLegendWidth += 170;
-        if (document.getElementById('colorByStats').checked && this.geneStats && this.geneStats.size > 0) totalLegendWidth += 200;
+        // Measured width of what the legend actually paints, so it centres.
+        const totalLegendWidth = this._exportLegendWidth();
 
         let legendX = Math.max(40, (width - totalLegendWidth) / 2);
 
@@ -12139,12 +12133,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Hide scatter-specific download buttons
         document.getElementById('downloadScatterPNG').style.display = 'none';
-        document.getElementById('downloadScatterSVG').style.display = 'none';
         document.getElementById('downloadScatterCSV').style.display = 'none';
 
         // Show tissue-specific download buttons
         document.getElementById('downloadTissuePNG').style.display = '';
-        document.getElementById('downloadTissueSVG').style.display = '';
         document.getElementById('downloadTissueCSV').style.display = '';
 
         this.showByTissueModal();
@@ -12530,12 +12522,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.querySelector('.inspect-layout').style.display = '';
         document.getElementById('byTissueContainer').style.display = 'none';
         document.getElementById('downloadScatterPNG').style.display = '';
-        document.getElementById('downloadScatterSVG').style.display = '';
         document.getElementById('downloadScatterCSV').style.display = '';
 
         // Hide tissue-specific buttons
         document.getElementById('downloadTissuePNG').style.display = 'none';
-        document.getElementById('downloadTissueSVG').style.display = 'none';
         document.getElementById('downloadTissueCSV').style.display = 'none';
 
         this.updateInspectPlot();
@@ -19230,12 +19220,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Show scatter-specific download buttons
         document.getElementById('downloadScatterPNG').style.display = '';
-        document.getElementById('downloadScatterSVG').style.display = '';
         document.getElementById('downloadScatterCSV').style.display = '';
 
         // Hide tissue-specific download buttons
         document.getElementById('downloadTissuePNG').style.display = 'none';
-        document.getElementById('downloadTissueSVG').style.display = 'none';
         document.getElementById('downloadTissueCSV').style.display = 'none';
 
         // Set axis range inputs from defaults
@@ -23655,6 +23643,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return null;
     }
 
+    // The gene-effect / LFC / FDR lines for a node, as the top block of the
+    // hover box. Returns '' when there is nothing recorded.
+    _nodeFactsHtml(nodeId) {
+        const lines = this._nodeFacts?.get(nodeId);
+        if (!lines || !lines.length) return '';
+        const rows = lines.map(l => {
+            const i = l.indexOf(':');
+            if (i === -1) return `<div style="color:#6b7280;">${l}</div>`;
+            return `<div><span style="color:#6b7280;">${l.slice(0, i + 1)}</span> <b>${l.slice(i + 1).trim()}</b></div>`;
+        }).join('');
+        return `<div style="margin:2px 0 6px 0; padding-bottom:6px; border-bottom:1px solid #f3f4f6;">${rows}</div>`;
+    }
+
     showGeneTooltip(event, gene, whyContext, prefixHtml) {
         // If a pinned tooltip for the same gene is already showing, leave it.
         const existing = document.getElementById('geneTooltip');
@@ -27868,6 +27869,45 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         btn.addEventListener('click', (e) => { e.preventDefault(); open(); });
     }
 
+    // True drawn width of the network export legend, used to centre it under the
+    // figure. The old estimate summed fixed column slots, which counted the
+    // trailing slack after the final column and put the stats column at 200
+    // where the drawing code only advances 170. Both errors pushed the legend
+    // left of centre. Measures the real strings instead.
+    _exportLegendWidth(fontSize) {
+        const fs = fontSize || this._netLegendFontSize || 15;
+        const titleFont = `bold ${fs + 1}px Arial`;
+        const textFont = `${fs}px Arial`;
+        const smallFont = `${Math.max(9, fs - 2)}px Arial`;
+        if (!this._legendMeasureCtx) {
+            this._legendMeasureCtx = document.createElement('canvas').getContext('2d');
+        }
+        const c = this._legendMeasureCtx;
+        const meas = (t, f) => { c.font = f; return c.measureText(t).width; };
+
+        const byGE = document.getElementById('colorByGeneEffect')?.checked;
+        const byStats = document.getElementById('colorByStats')?.checked;
+        const cols = [];
+        // slot = how far the drawing code advances; drawn = what it actually paints
+        cols.push({ slot: 160, drawn: Math.max(meas('Correlation:', titleFont), 42 + meas('Negative', textFont)) });
+        cols.push({ slot: 160, drawn: Math.max(meas('Edge Thickness:', titleFont), 78 + meas('r = 1.00', textFont)) });
+        if (this.results?.mode === 'design' && !byGE && !byStats) {
+            cols.push({ slot: 140, drawn: Math.max(meas('Node Type:', titleFont), 28 + meas('Correlated', textFont)) });
+        }
+        if (byGE && this.results?.clusters) {
+            const signed = (document.querySelector('input[name="colorGEType"]:checked')?.value || 'signed') === 'signed';
+            const cap = signed ? 'Gene Effect' : '|Gene Effect|';
+            cols.push({ slot: 170, drawn: Math.max(120, meas('Node Color:', titleFont), meas(cap, smallFont)) });
+        }
+        if (byStats && this.geneStats && this.geneStats.size > 0) {
+            const scaleLabel = (document.querySelector('input[name="colorScale"]:checked')?.value || 'all') === 'network' ? ' (network)' : ' (all genes)';
+            const type = document.querySelector('input[name="colorStatType"]:checked')?.value || 'signed_lfc';
+            const cap = (type === 'signed_lfc' ? 'LFC (+/−)' : type === 'fdr' ? 'FDR' : '|LFC|') + scaleLabel;
+            cols.push({ slot: 170, drawn: Math.max(120, meas('Node Color:', titleFont), meas(cap, smallFont)) });
+        }
+        return cols.reduce((sum, col, i) => sum + (i === cols.length - 1 ? col.drawn : col.slot), 0);
+    }
+
     _makeDraggable(el, handle) {
         if (!el) return;
         handle = handle || el;
@@ -28505,7 +28545,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbUmapShowLoadings').addEventListener('change', () => this._onComponentChange());
         // Export buttons
         document.getElementById('clbUmapPngBtn').addEventListener('click', () => this._exportUmapPlot('png'));
-        document.getElementById('clbUmapSvgBtn').addEventListener('click', () => this._exportUmapPlot('svg'));
         document.getElementById('clbUmapAaBtn').addEventListener('click', () => this.openTextSettings('clbUmapPlot'));
         // Width/Height inputs
         document.getElementById('clbUmapPlotWidth').addEventListener('change', () => this._resizeUmapPlot());

@@ -1762,8 +1762,6 @@
            button, relabelled) that opens the format popout (PNG/SVG/TIFF/PDF/
            PPTX). The old per-format SVG buttons are hidden — !important so the
            JS that show/hides the scatter vs tissue buttons can't re-reveal them. */
-        #downloadScatterSVG, #downloadTissueSVG, #downloadGeneEffectSVG,
-        #downloadExprScatterSVG, #downloadCorrAnalysisSVG { display: none !important; }
         /* Keep the color-by chip legend inside its control box — never let its
            chips widen the inspect control panel and break the layout. */
         .control-box-compact { min-width: 0; }
@@ -1806,6 +1804,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.43 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>One hover box on network genes.</b> There were two: the gene-effect numbers appeared straight away in the browser's own box, then a second box with the gene description arrived a second later and overlapped it. Now a single box shows <b>GE mean, GE SD, LFC and FDR</b> with the gene name and summary underneath.</li>
+                    <li><b>Fix: "Hold Shift for full text" is reliable.</b> It only ever worked in the fraction of a second between the second box appearing and the pointer moving, which is why it seemed to work sometimes. The box now appears at once, so there is a real window, and holding Shift keeps the gene-effect numbers instead of dropping them.</li>
+                    <li><b>Fix: the exported legend sat left of centre.</b> Its width was estimated from fixed column slots, counting empty space after the last column and using the wrong width for the node-colour block. It is now measured from what is actually drawn, so the legend centres under the figure. The network itself still exports exactly as arranged on screen.</li>
+                    <li><b>Every chart exports the same way.</b> The leftover <b>.svg</b> / <b>SVG</b> / <b>PNG</b> buttons next to <b>Export image...</b> are gone from the correlation scatter, tissue chart, Gene Effect chart, expression-correlate scatter, correlation analysis, mutation table and the UMAP / PCA plot. One button everywhere, with format, print size, resolution and background in the dialog.</li>
+                </ul>
                 <p><strong>v.84.42 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Fix: exporting from the UpSet plot did nothing visible.</b> The export dialog opened <em>behind</em> the plot, because it only looked at the declared modals when deciding how high to stack, and the UpSet popup sits above all of them. It now stacks above whatever is actually on screen.</li>
@@ -4221,7 +4226,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.42</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.43</a>
     </div>
 
     <div class="main-content">
@@ -4746,7 +4751,7 @@
                             </div>
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">Export:</label>
                             <div class="button-group-horizontal">
-                                <button class="btn btn-secondary mobile-hide" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                                <button class="btn btn-secondary mobile-hide" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                                 <button class="btn btn-secondary" id="downloadNetworkSVG" style="display:none;">SVG</button>
                                 <button class="btn btn-secondary" id="downloadFullPagePNG" title="Screenshot the full page as high-res PNG for publication">Screenshot PNG</button>
                                 <button class="btn btn-info" id="downloadAllData">All Data (ZIP)</button>
@@ -4915,8 +4920,7 @@
                         <span style="font-size: 10px; color: #9ca3af;">Export:</span>
                         <button class="btn btn-outline btn-sm" id="downloadMutationResults" title="Download table as CSV spreadsheet">.csv</button>
                         <button class="btn btn-sm" id="mutAnalyzeWithAI" style="background:#0369a1;color:white;font-size:10px;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
-                        <button class="btn btn-outline btn-sm" id="exportMutTableSVG" style="display:none;" title="Export visible table as SVG vector image">.svg</button>
-                        <button class="btn btn-outline btn-sm mobile-hide" id="exportMutTablePNG" title="Export the visible table, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
+                        <button class="btn btn-outline btn-sm mobile-hide" id="exportMutTablePNG" title="Export the visible table, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                         <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
                         <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="filterMutationToggle" title="Toggle column value filters">Filters</button>
@@ -5217,12 +5221,10 @@
                 <button class="btn btn-outline btn-sm mobile-hide" id="scatterTextSettingsBtn" style="font-weight:700;" title="Settings">Settings</button>
                 <button class="btn btn-outline btn-sm" id="resetScatterAll" style="font-size:10px;" title="Reset all filters, gates, fonts, and overlays, keep selected genes">Reset</button>
                 <span class="mobile-hide" style="font-size:10px; color:#9ca3af;">Export:</span>
-                <button class="btn btn-outline btn-sm mobile-hide" id="downloadScatterPNG" title="Export the scatter plot, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
-                <button class="btn btn-outline btn-sm" id="downloadScatterSVG" title="Export scatter plot as SVG vector">.svg</button>
+                <button class="btn btn-outline btn-sm mobile-hide" id="downloadScatterPNG" title="Export the scatter plot, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                 <button class="btn btn-outline btn-sm" id="downloadScatterCSV" title="Download data as CSV spreadsheet">.csv</button>
                 <button class="btn btn-sm" id="scatterAnalyzeWithAI" style="background:#0369a1;color:white;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
-                <button class="btn btn-outline btn-sm mobile-hide" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
-                <button class="btn btn-outline btn-sm" id="downloadTissueSVG" style="display:none;" title="Export tissue chart as SVG">.svg</button>
+                <button class="btn btn-outline btn-sm mobile-hide" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                 <button class="btn btn-outline btn-sm" id="downloadTissueCSV" style="display:none;" title="Download tissue table as CSV">.csv</button>
                 <span class="mobile-hide" style="font-size:10px; display:inline-flex; gap:8px; align-items:center; color:#666; margin-left:4px;">
                     <label style="cursor:pointer;"><input type="checkbox" id="exportWhitePlotBg" checked> White bg</label>
@@ -5485,8 +5487,7 @@
                 <div class="mobile-hide" style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                     <button class="btn btn-outline btn-sm mobile-hide" id="geTextSettingsBtn" style="font-weight:700;" title="Settings">Settings</button>
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
-                    <button class="btn btn-outline btn-sm mobile-hide" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
-                    <button class="btn btn-outline btn-sm" id="downloadGeneEffectSVG">SVG</button>
+                    <button class="btn btn-outline btn-sm mobile-hide" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                     <button class="btn btn-sm btn-outline" id="geExpandFullBtn" title="Show the full analysis (filters + statistics table)" style="font-size:11px;">⤢ Full view</button>
                     <span style="font-size: 12px; color: #6b7280; margin-left: 15px; margin-right: 5px;">Export CSV:</span>
                     <button class="btn btn-outline btn-sm" id="downloadGETableCSV">By Group</button>
@@ -5566,8 +5567,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <button class="btn btn-sm btn-outline" id="backToExprResults" style="border-color: #5a9f4a; color: #5a9f4a;">← Back to results</button>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-outline btn-sm mobile-hide" id="downloadExprScatterPNG" style="border-color: #5a9f4a; color: #5a9f4a;" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
-                                    <button class="btn btn-outline btn-sm" id="downloadExprScatterSVG" style="border-color: #5a9f4a; color: #5a9f4a;">SVG</button>
+                                    <button class="btn btn-outline btn-sm mobile-hide" id="downloadExprScatterPNG" style="border-color: #5a9f4a; color: #5a9f4a;" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                                 </div>
                             </div>
                             <div id="exprScatterGeneInputs" style="display:flex; gap:12px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
@@ -5720,8 +5720,7 @@
                 <!-- Download buttons (whole row hidden on phones, no exporting on the phone app) -->
                 <div class="mobile-hide" style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
-                    <button class="btn btn-outline btn-sm mobile-hide" id="downloadCorrAnalysisPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image ▾</button>
-                    <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisSVG">SVG</button>
+                    <button class="btn btn-outline btn-sm mobile-hide" id="downloadCorrAnalysisPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                     <span style="font-size: 12px; color: #6b7280; margin-left: 15px; margin-right: 5px;">Export CSV:</span>
                     <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisCSV">By Group</button>
                     <button class="btn btn-outline btn-sm" id="downloadCACellLineCSV">By Cell Line</button>
@@ -6339,8 +6338,7 @@
                     <option value="subtissue">Color by subtype</option>
                 </select>
                 <span class="clb-umap-spacer"></span>
-                <button id="clbUmapPngBtn" class="clb-umap-btn" title="Export as PNG">PNG</button>
-                <button id="clbUmapSvgBtn" class="clb-umap-btn" title="Export as SVG">SVG</button>
+                <button id="clbUmapPngBtn" class="clb-umap-btn" title="Choose format, print size and resolution">Export image</button>
                 <button id="clbUmapAaBtn" class="clb-umap-btn" title="Settings">Settings</button>
                 <span class="clb-umap-sep"></span>
                 <button id="clbUmapRunBtn" class="clb-umap-btn" style="background:#16a34a; color:white; border-color:#16a34a;">Run Analysis</button>
@@ -6608,6 +6606,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_42"></script>
+    <script src="app.js?v=v84_43"></script>
 </body>
 </html>
