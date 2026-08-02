@@ -13037,6 +13037,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // once is unreadable; picking a handful is the useful case.
             const picked3 = this._colorByPickedSet(colorByCategories);
             if (picked3) {
+                this.renderColorByChips([...picked3], CorrelationExplorer.CATEGORY_COLORS);
                 const restData = [];
                 colorByCategories.filter(c => !picked3.has(c)).forEach(c => restData.push(...categoryMap[c]));
                 colorByCategories = colorByCategories.filter(c => picked3.has(c));
@@ -13102,6 +13103,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 d.cellLineId.toUpperCase().includes(term)
             ) || this.clickedCells.has(d.cellLineName)
         );
+        this.renderHighlightChips(highlightData.map(d => d.cellLineName));
 
         if (highlightData.length > 0) {
             traces.push({
@@ -13794,6 +13796,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 ) || this.clickedCells.has(d.cellLineName)
             )
         );
+        this.renderHighlightChips(allThreePanelHighlightData.map(d => d.cellLineName));
 
         // Apply plot dimensions (wide default for three-panel)
         const plotContainer3 = document.getElementById('scatterPlot');
@@ -19912,7 +19915,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (chartCol) chartCol.style.flex = '0 0 42%';
             document.getElementById('geByTissueView').style.display = 'none';
             document.getElementById('geByHotspotView').style.display = 'block';
-            if (statsExplanation) statsExplanation.textContent = "Scan: each genetic change (mutation / fusion / amp-del) — cells with it (Altered) vs without (WT). p-value: Welch's t-test.";
+            if (statsExplanation) statsExplanation.textContent = "Scan: each hotspot mutation, comparing the cell lines carrying it (Altered) against those without it (WT). p-value: Welch's t-test.";
             // Default the p < 0.05 filter on the first visit to this scan.
             if (!this._geScanPDefaulted) {
                 this._geScanPDefaulted = true;
@@ -28149,6 +28152,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     _colorByPickedSet(available) {
         const raw = (document.getElementById('colorByPicked')?.value || '').trim();
         if (raw === '*') return null;
+        // Explicitly emptied: colour nothing, everything goes to the grey bucket.
+        if (raw === 'none') return new Set();
         if (!raw) {
             // Colouring 30 tissues, let alone 70 subtypes, is unreadable.
             if (available.length <= this.COLOR_BY_DEFAULT_TOP) return null;
@@ -28169,14 +28174,32 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const data = this.currentInspect?.data || [];
         const counts = {};
+        // In subtype mode, remember which tissue each subtype belongs to so the
+        // list can be shown as a tree. A flat list of 70+ subtypes gives no clue
+        // which lineage any of them came from.
+        const parentOf = {};
         data.forEach(d => {
+            const tissue = d.lineage || 'Unknown';
             const cat = mode === 'subtype'
-                ? (this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown')
-                : (d.lineage || 'Unknown');
+                ? (this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || tissue)
+                : tissue;
             counts[cat] = (counts[cat] || 0) + 1;
+            if (mode === 'subtype') parentOf[cat] = tissue;
         });
         const cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
         if (!cats.length) return;
+
+        // Group the categories under their tissue, tissues ordered by size.
+        const tree = [];
+        if (mode === 'subtype') {
+            const byTissue = {};
+            cats.forEach(c => { (byTissue[parentOf[c]] = byTissue[parentOf[c]] || []).push(c); });
+            Object.keys(byTissue)
+                .sort((a, b) => byTissue[b].reduce((n, c) => n + counts[c], 0) - byTissue[a].reduce((n, c) => n + counts[c], 0))
+                .forEach(t => tree.push({ tissue: t, items: byTissue[t] }));
+        } else {
+            tree.push({ tissue: null, items: cats });
+        }
 
         const hidden = document.getElementById('colorByPicked');
         // Show what is actually coloured right now, so the default top-N state
@@ -28193,14 +28216,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             `<div style="font-size:11px; font-weight:600; color:#374151; padding:2px 4px 6px;">Colour only these ${mode === 'subtype' ? 'subtypes' : 'tissues'}</div>` +
             `<input type="text" class="select-proxy-filter" id="colorByGroupFilter" placeholder="Filter...">` +
             `<div class="select-proxy-list" id="colorByGroupList" style="max-height:250px;">` +
-            cats.map(c => `<label class="select-proxy-item" style="display:flex; align-items:center; gap:6px; cursor:pointer;">` +
-                `<input type="checkbox" class="cbg-check" data-cat="${esc(c)}"${picked.has(c) ? ' checked' : ''} style="margin:0;">` +
-                `<span style="flex:1; overflow:hidden; text-overflow:ellipsis;">${esc(c)}</span>` +
-                `<span style="color:#9ca3af;">${counts[c]}</span></label>`).join('') +
+            tree.map(grp => {
+                const rows = grp.items.map(c =>
+                    `<label class="select-proxy-item" style="display:flex; align-items:center; gap:6px; cursor:pointer;${grp.tissue ? ' padding-left:18px;' : ''}">` +
+                    `<input type="checkbox" class="cbg-check" data-cat="${esc(c)}"${picked.has(c) ? ' checked' : ''} style="margin:0;">` +
+                    `<span style="flex:1; overflow:hidden; text-overflow:ellipsis;">${esc(c)}</span>` +
+                    `<span style="color:#9ca3af;">${counts[c]}</span></label>`).join('');
+                if (!grp.tissue) return rows;
+                const total = grp.items.reduce((n, c) => n + counts[c], 0);
+                // The tissue row ticks or unticks everything under it.
+                return `<div style="display:flex; align-items:center; gap:6px; padding:3px 8px 2px; margin-top:2px;` +
+                    ` border-top:1px solid #f3f4f6; font-weight:600; color:#374151;">` +
+                    `<input type="checkbox" class="cbg-tissue" data-tissue="${esc(grp.tissue)}" style="margin:0;">` +
+                    `<span style="flex:1;">${esc(grp.tissue)}</span><span style="color:#9ca3af; font-weight:400;">${total}</span></div>` + rows;
+            }).join('') +
             `</div>` +
             `<div style="display:flex; gap:6px; align-items:center; padding:6px 4px 0;">` +
             `<button id="cbgAll" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">Colour all</button>` +
             `<button id="cbgTop" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">Top ${this.COLOR_BY_DEFAULT_TOP}</button>` +
+            `<button id="cbgNone" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">None</button>` +
             `<span id="cbgCount" style="font-size:10px; color:#6b7280; flex:1; text-align:right;"></span>` +
             `<button id="cbgApply" style="font-size:11px; padding:3px 10px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Apply</button>` +
             `</div>`;
@@ -28219,7 +28253,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             countEl.textContent = n === cats.length ? `all ${n}` : n ? `${n} of ${cats.length}` : 'none selected';
         };
         refresh();
-        panel.addEventListener('change', (e) => { if (e.target.classList.contains('cbg-check')) refresh(); });
+        const rowsFor = (tissue) => checks().filter(c => (tree.find(g => g.tissue === tissue)?.items || []).includes(c.dataset.cat));
+        const syncTissueBoxes = () => {
+            panel.querySelectorAll('.cbg-tissue').forEach(tb => {
+                const kids = rowsFor(tb.dataset.tissue);
+                const on = kids.filter(k => k.checked).length;
+                tb.checked = on > 0 && on === kids.length;
+                tb.indeterminate = on > 0 && on < kids.length;
+            });
+        };
+        panel.addEventListener('change', (e) => {
+            if (e.target.classList.contains('cbg-tissue')) {
+                rowsFor(e.target.dataset.tissue).forEach(k => { k.checked = e.target.checked; });
+            }
+            if (e.target.classList.contains('cbg-check') || e.target.classList.contains('cbg-tissue')) {
+                syncTissueBoxes();
+                refresh();
+            }
+        });
+        syncTissueBoxes();
         panel.querySelector('#colorByGroupFilter').addEventListener('input', (e) => {
             const q = e.target.value.trim().toLowerCase();
             panel.querySelectorAll('.select-proxy-item').forEach(it => {
@@ -28231,18 +28283,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         setTimeout(() => document.addEventListener('mousedown', outside, true), 0);
         panel.querySelector('#cbgAll').addEventListener('click', () => {
             checks().forEach(c => { c.checked = true; });
+            syncTissueBoxes();
             refresh();
         });
         panel.querySelector('#cbgTop').addEventListener('click', () => {
             const top = new Set(cats.slice(0, this.COLOR_BY_DEFAULT_TOP));
             checks().forEach(c => { c.checked = top.has(c.dataset.cat); });
+            syncTissueBoxes();
+            refresh();
+        });
+        panel.querySelector('#cbgNone').addEventListener('click', () => {
+            checks().forEach(c => { c.checked = false; });
+            syncTissueBoxes();
             refresh();
         });
         panel.querySelector('#cbgApply').addEventListener('click', () => {
             const chosen = checks().filter(c => c.checked).map(c => c.dataset.cat);
             // Everything ticked means "colour all", which is different from
             // having made no choice (that falls back to the top few).
-            if (hidden) hidden.value = chosen.length === cats.length ? '*' : chosen.join('|');
+            if (hidden) hidden.value = chosen.length === cats.length ? '*' : (chosen.length ? chosen.join('|') : 'none');
             close();
             this._syncColorByGroupBtn();
             this.updateInspectPlot();
@@ -28259,6 +28318,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         btn.style.display = on ? '' : 'none';
         const raw = (document.getElementById('colorByPicked')?.value || '').trim();
         if (raw === '*') btn.textContent = 'Groups: all';
+        else if (raw === 'none') btn.textContent = 'Groups: none';
         else if (raw) btn.textContent = `Groups: ${raw.split('|').filter(Boolean).length}`;
         else btn.textContent = `Groups: top ${this.COLOR_BY_DEFAULT_TOP}`;
     }
@@ -28275,6 +28335,71 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const single = parseInt(document.getElementById('plotWidth')?.value);
         const wanted = isNaN(single) ? avail : Math.round(single * 2.4);
         return Math.max(480, Math.min(wanted, avail));
+    }
+
+    // Chips for the current highlights and the chosen colour groups. Both were
+    // invisible before: clicking a point left no trace in the Highlight box, and
+    // the only way to drop a group was to reopen the picker and untick it.
+    _chipHtml(label, action, value, colour) {
+        const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        const dot = colour ? `<span style="width:8px;height:8px;border-radius:50%;background:${colour};flex:none;"></span>` : '';
+        return `<span style="display:inline-flex; align-items:center; gap:3px; padding:1px 4px 1px 5px; border-radius:9px;`
+            + ` background:#f3f4f6; border:1px solid #e5e7eb; font-size:9px; color:#374151; max-width:100%;">`
+            + `${dot}<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(label)}</span>`
+            + `<button type="button" data-chip-action="${action}" data-chip-value="${esc(value)}"`
+            + ` title="Remove" style="background:none; border:none; padding:0 1px; cursor:pointer; color:#9ca3af; font-size:11px; line-height:1;">&times;</button>`
+            + `</span>`;
+    }
+
+    // `names` is what the plot actually highlighted, so typed terms and clicked
+    // points show up the same way.
+    renderHighlightChips(names) {
+        const box = document.getElementById('highlightChips');
+        if (!box) return;
+        const list = [...new Set(names || [])];
+        if (!list.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+        box.style.display = 'flex';
+        box.innerHTML = list.map(n => this._chipHtml(n, 'highlight', n, '#f59e0b')).join('');
+        box.onclick = (e) => {
+            const btn = e.target.closest('[data-chip-action="highlight"]');
+            if (!btn) return;
+            this.removeHighlight(btn.dataset.chipValue);
+        };
+    }
+
+    // Drops one highlight whether it came from a click or from the text box.
+    removeHighlight(name) {
+        this.clickedCells.delete(name);
+        const ta = document.getElementById('scatterCellSearch');
+        if (ta && ta.value.trim()) {
+            const kept = ta.value.split(/[,\n]/).map(t => t.trim()).filter(t =>
+                t && t.toUpperCase() !== String(name).toUpperCase());
+            ta.value = kept.join('\n');
+        }
+        this.updateInspectPlot();
+    }
+
+    renderColorByChips(categories, colours) {
+        const box = document.getElementById('colorByChips');
+        if (!box) return;
+        const raw = (document.getElementById('colorByPicked')?.value || '').trim();
+        const list = (categories || []).filter(c => c !== this.OTHER_GROUP_LABEL);
+        if (!list.length || raw === '*') { box.style.display = 'none'; box.innerHTML = ''; return; }
+        box.style.display = 'flex';
+        box.innerHTML = list.map((c, i) =>
+            this._chipHtml(c, 'group', c, colours ? colours[i % colours.length] : null)).join('');
+        box.onclick = (e) => {
+            const btn = e.target.closest('[data-chip-action="group"]');
+            if (!btn) return;
+            const drop = btn.dataset.chipValue;
+            const hidden = document.getElementById('colorByPicked');
+            // An unticked group has to be recorded explicitly, otherwise an empty
+            // value would fall back to the default top-N and put it straight back.
+            const remaining = list.filter(c => c !== drop);
+            if (hidden) hidden.value = remaining.length ? remaining.join('|') : 'none';
+            this._syncColorByGroupBtn();
+            this.updateInspectPlot();
+        };
     }
 
     _makeDraggable(el, handle) {
