@@ -80,6 +80,23 @@ class CorrelationExplorer {
         '#9932cc', '#cd853f', '#008b8b', '#bdb76b', '#c71585'
     ];
 
+    // Second channel for when there are more groups than colours. Repeating the
+    // palette alone gives two groups the same colour with no way to tell them
+    // apart; changing the marker shape on each pass keeps every group distinct
+    // (40 colours x 6 shapes), and the shape carries into the legend.
+    static CATEGORY_SYMBOLS = ['circle', 'square', 'diamond', 'triangle-up', 'cross', 'star'];
+
+    // Colour + shape for the i-th group in a colour-by series.
+    static categoryMarker(i, size, opacity) {
+        const colours = CorrelationExplorer.CATEGORY_COLORS;
+        const symbols = CorrelationExplorer.CATEGORY_SYMBOLS;
+        return {
+            color: colours[i % colours.length],
+            symbol: symbols[Math.floor(i / colours.length) % symbols.length],
+            size, opacity
+        };
+    }
+
     static PRIORITY_FUSION_GENES = new Set([
         'BCR','ABL1','ALK','EML4','EWSR1','FLI1','MYC','KMT2A','PML','RARA',
         'RET','ROS1','NTRK1','NTRK2','NTRK3','ETV6','RUNX1','BRAF','FGFR1',
@@ -10096,7 +10113,7 @@ Results:
         // the old standalone Screenshot button used to live.
         const dlg = await this._showExportDialog({
             format: 'png', plotW: totalWidth, plotH: totalHeight, hasLegendFrame: true,
-            canScreenshot: true, screenshotLabel: 'The whole page, as a screenshot'
+            canScreenshot: true, screenshotLabel: 'The whole page'
         });
         if (dlg && dlg.what === 'popout') {
             const sx = window.scrollX, sy = window.scrollY;
@@ -13075,8 +13092,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // rest into one muted "Other" series. Colouring 30+ subtypes at
             // once is unreadable; picking a handful is the useful case.
             const picked3 = this._colorByPickedSet(colorByCategories);
+            this.renderColorByChips(picked3 ? [...picked3] : [], CorrelationExplorer.CATEGORY_COLORS);
             if (picked3) {
-                this.renderColorByChips([...picked3], CorrelationExplorer.CATEGORY_COLORS);
                 const restData = [];
                 colorByCategories.filter(c => !picked3.has(c)).forEach(c => restData.push(...categoryMap[c]));
                 colorByCategories = colorByCategories.filter(c => picked3.has(c));
@@ -13114,7 +13131,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     type: 'scatter',
                     text: catData.map(d => `${d.cellLineName}<br>${cat}`),
                     hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                    marker: { color: color, size: 10, opacity: 0.8 },
+                    marker: CorrelationExplorer.categoryMarker(i, 10, 0.8),
                     name: `${cat} (${catData.length})`,
                     legendgroup: cat,
                     showlegend: true
@@ -13500,6 +13517,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             } else {
                 const legend = document.getElementById('colorByLegend');
                 if (legend) legend.style.display = 'none';
+                // Nothing is coloured, so the group tags and the picker button
+                // must go too. They used to sit there listing groups that were
+                // not on the plot, which read as if a filter were still active.
+                this.renderColorByChips([]);
+                this._syncColorByGroupBtn();
             }
 
             // Keep saved text settings persistent, cleared when inspect modal closes
@@ -13563,6 +13585,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Same picked-groups narrowing as the single-panel view.
             const pickedSet = this._colorByPickedSet(categoryOrder);
             if (pickedSet) categoryOrder = categoryOrder.filter(c => pickedSet.has(c));
+            this.renderColorByChips(pickedSet ? [...pickedSet] : [], CorrelationExplorer.CATEGORY_COLORS);
             this._colorByPickedActive = !!pickedSet;
         }
 
@@ -13605,7 +13628,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                         marker: cat === this.OTHER_GROUP_LABEL
                             ? { color: '#d1d5db', size: Math.max(6, cfg.size - 1), opacity: 0.55 }
-                            : { color: colors[ci % colors.length], size: cfg.size, opacity: 0.8 },
+                            : CorrelationExplorer.categoryMarker(ci, cfg.size, 0.8),
                         name: `${cat} (${catData.length})`,
                         showlegend: i === 0,
                         legendgroup: cat
@@ -13917,6 +13940,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             } else {
                 const legend = document.getElementById('colorByLegend');
                 if (legend) legend.style.display = 'none';
+                this.renderColorByChips([]);
+                this._syncColorByGroupBtn();
             }
         });
     }
@@ -21705,7 +21730,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // to every format except SVG (which is pure vector).
             const syncFormatUI = () => {
                 const f = (fmtEl?.value || context.format || 'png');
-                if (titleEl) titleEl.textContent = `Export chart / ${f.toUpperCase()}`;
+                // Just "Export image": the format is chosen in the list below, so
+                // repeating it in the title only made it look fixed. "Chart" was
+                // wrong too, this same dialog exports networks and oncoprints.
+                if (titleEl) titleEl.textContent = 'Export image';
                 if (dpiRow) dpiRow.style.display = f === 'svg' ? 'none' : '';
             };
             // Scope (full content vs visible area), shown for DOM popout
@@ -21723,6 +21751,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const svgOpt2 = document.getElementById('exportOptFormatSvg');
                 if (svgOpt2) svgOpt2.style.display = raster ? 'none' : '';
                 if (fmtEl && raster && fmtEl.value === 'svg') fmtEl.value = 'png';
+                // Say where the format choice is actually constrained, rather
+                // than calling the chart "vector" when PNG is selected.
+                const whatNote = document.getElementById('exportOptWhatNote');
+                if (whatNote) {
+                    whatNote.textContent = asPopout
+                        ? 'Captured as a picture, so every format is a fixed-resolution image.'
+                        : 'The chart alone. Available as SVG or PDF if you want to edit it afterwards.';
+                }
                 syncFormatUI();
             };
             // Say plainly when this particular view can't be reopened, rather
@@ -21741,7 +21777,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (whatRow) whatRow.style.display = context.canScreenshot ? '' : 'none';
             const whatOpt = whatEl?.querySelector('option[value="popout"]');
             if (whatOpt && context.screenshotLabel) whatOpt.textContent = context.screenshotLabel;
-            else if (whatOpt) whatOpt.textContent = 'The whole panel, as a screenshot (chart plus its settings)';
+            else if (whatOpt) whatOpt.textContent = 'The whole panel, chart plus the settings around it';
             if (whatEl) {
                 whatEl.value = 'chart';
                 whatEl.onchange = syncWhatUI;
@@ -28317,25 +28353,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return usable.size ? usable : null;
     }
 
-    // Groups whose own correlation departs most from the cohort's, i.e. the ones
-    // where the relationship actually differs. Same per-group statistic the
-    // Compare by tissue view reports.
+    // The groups with the strongest correlation of their own, which is what the
+    // button name implies. Same per-group statistic the Compare by tissue view
+    // reports. Groups under 10 cell lines are skipped: an r from 4 points is
+    // noise and would crowd out anything real.
     _suggestColorByGroups(cats, howMany = 5) {
         const data = this.currentInspect?.data || [];
         const mode = document.getElementById('colorByCategory')?.value;
         const of = (d) => mode === 'subtype'
             ? (this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown')
             : (d.lineage || 'Unknown');
-        const overall = this.pearsonWithSlope(data.map(d => d.x), data.map(d => d.y));
         const scored = [];
         cats.forEach(c => {
             const pts = data.filter(d => of(d) === c);
-            if (pts.length < 10) return;   // too few to say anything
+            if (pts.length < 10) return;   // too few for r to mean anything
             const st = this.pearsonWithSlope(pts.map(d => d.x), pts.map(d => d.y));
             if (isNaN(st.correlation)) return;
-            scored.push({ cat: c, delta: Math.abs(st.correlation - (overall.correlation || 0)) });
+            scored.push({ cat: c, score: Math.abs(st.correlation) });
         });
-        scored.sort((a, b) => b.delta - a.delta);
+        scored.sort((a, b) => b.score - a.score);
         return scored.slice(0, howMany).map(x => x.cat);
     }
 
@@ -28408,8 +28444,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             `</div>` +
             `<div style="display:flex; gap:6px; align-items:center; padding:6px 4px 0;">` +
             `<button id="cbgAll" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">Colour all</button>` +
-            `<button id="cbgTop" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;" title="The ${this.COLOR_BY_DEFAULT_TOP} groups with the most cell lines">Top ${this.COLOR_BY_DEFAULT_TOP}</button>` +
-            `<button id="cbgSuggest" style="font-size:10px; padding:2px 6px; border:1px solid #bbf7d0; border-radius:4px; background:#f0fdf4; color:#15803d; cursor:pointer;" title="Groups of at least 10 cell lines whose own correlation differs most from the cohort as a whole">Suggest</button>` +
+            `<button id="cbgTop" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;" title="The ${this.COLOR_BY_DEFAULT_TOP} groups holding the most cell lines">${this.COLOR_BY_DEFAULT_TOP} largest</button>` +
+            `<button id="cbgSuggest" style="font-size:10px; padding:2px 6px; border:1px solid #bbf7d0; border-radius:4px; background:#f0fdf4; color:#15803d; cursor:pointer;" title="The 5 groups with the strongest correlation of their own, counting only groups of at least 10 cell lines">Strongest r</button>` +
             `<button id="cbgNone" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">None</button>` +
             `<span id="cbgCount" style="font-size:10px; color:#6b7280; flex:1; text-align:right;"></span>` +
             `<button id="cbgApply" style="font-size:11px; padding:3px 10px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Apply</button>` +
@@ -28523,9 +28559,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Chips for the current highlights and the chosen colour groups. Both were
     // invisible before: clicking a point left no trace in the Highlight box, and
     // the only way to drop a group was to reopen the picker and untick it.
-    _chipHtml(label, action, value, colour) {
+    _chipHtml(label, action, value, colour, shape) {
         const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-        const dot = colour ? `<span style="width:8px;height:8px;border-radius:50%;background:${colour};flex:none;"></span>` : '';
+        // Mirror the marker: round for the first pass through the palette, then
+        // square / diamond as the plot starts reusing colours.
+        const radius = shape === 'square' ? '1px' : shape === 'diamond' ? '1px' : '50%';
+        const rot = shape === 'diamond' ? ' transform:rotate(45deg);' : '';
+        const dot = colour
+            ? `<span style="width:8px;height:8px;border-radius:${radius};background:${colour};flex:none;${rot}"></span>`
+            : '';
         return `<span style="display:inline-flex; align-items:center; gap:3px; padding:1px 4px 1px 5px; border-radius:9px;`
             + ` background:#f3f4f6; border:1px solid #e5e7eb; font-size:9px; color:#374151; max-width:100%;">`
             + `${dot}<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(label)}</span>`
@@ -28569,8 +28611,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const list = (categories || []).filter(c => c !== this.OTHER_GROUP_LABEL);
         if (!list.length || raw === '*') { box.style.display = 'none'; box.innerHTML = ''; return; }
         box.style.display = 'flex';
-        box.innerHTML = list.map((c, i) =>
-            this._chipHtml(c, 'group', c, colours ? colours[i % colours.length] : null)).join('');
+        box.innerHTML = list.map((c, i) => {
+            const m = CorrelationExplorer.categoryMarker(i, 8, 1);
+            return this._chipHtml(c, 'group', c, colours ? m.color : null, m.symbol);
+        }).join('');
         box.onclick = (e) => {
             const btn = e.target.closest('[data-chip-action="group"]');
             if (!btn) return;

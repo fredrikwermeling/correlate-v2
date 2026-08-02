@@ -1820,6 +1820,17 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.54 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>The export dialog is titled "Export image".</b> It read <em>Export chart / PNG</em>, which named a format you had not chosen yet and were about to pick two lines below, and called everything a chart when the same dialog exports networks and oncoprints.</li>
+                    <li><b>Dropped the "vector" claim from the export choice.</b> It said <em>the chart on its own (vector, best for figures)</em> even when PNG was selected, which is not vector. The options now simply say what they capture, with a line underneath explaining where the format is actually limited: the chart alone can be SVG or PDF if you want to edit it, a whole-panel capture is a picture in every format.</li>
+                </ul>
+                <p><strong>v.84.53 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Fix: group tags lingered after the colouring was switched off.</b> Turning <b>Color by</b> back to nothing left the tags and the picker button sitting there naming groups that were not on the plot, which read as though a filter were still in force. Both now clear whenever nothing is coloured.</li>
+                    <li><b>The two shortcuts now say what they select.</b> <b>Top 8</b> is now <b>8 largest</b>, since it picks the groups holding the most cell lines, nothing to do with correlation. <b>Suggest</b> is now <b>Strongest r</b> and does what that says: the 5 groups with the strongest correlation of their own, counting only groups of at least 10 cell lines so a value from a handful of points cannot crowd out a real one.</li>
+                    <li><b>More groups than colours no longer means repeated colours.</b> With 74 subtypes against a 40-colour palette, two groups used to share a colour with nothing to tell them apart. The marker shape now changes on each pass through the palette, so every group is distinct, and the shape shows in both the plot legend and the group tags.</li>
+                </ul>
                 <p><strong>v.84.52 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Gene Effect filters gained a with-event / only-WT choice.</b> The hotspot, fusion and copy-number filters there always kept the carriers, unlike the same filters everywhere else in the app. Each now has its own selector, appearing once a gene is chosen, and the figure caption says which side you are looking at.</li>
@@ -4308,7 +4319,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.52</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.54</a>
     </div>
 
     <div class="main-content">
@@ -5889,7 +5900,7 @@
     <div class="modal-overlay" id="exportOptionsModal" style="display:none; z-index:1300;">
         <div class="modal" style="max-width:560px;">
             <div class="modal-header">
-                <h3 id="exportOptionsTitle" style="margin:0;">Export chart</h3>
+                <h3 id="exportOptionsTitle" style="margin:0;">Export image</h3>
                 <button class="modal-close" id="exportOptionsClose" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">&times;</button>
             </div>
             <div class="modal-body" style="padding:14px 18px; font-size:13px; color:#374151;">
@@ -5899,9 +5910,10 @@
                 <div id="exportOptWhatRow" style="margin-bottom:10px; display:none;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">What to export</label>
                     <select id="exportOptWhat" style="padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:13px;">
-                        <option value="chart">The chart on its own (vector, best for figures)</option>
-                        <option value="popout">The whole panel, as a screenshot (chart plus its settings)</option>
+                        <option value="chart">Just the chart</option>
+                        <option value="popout">The whole panel, chart plus the settings around it</option>
                     </select>
+                    <div id="exportOptWhatNote" style="font-size:10px; color:#6b7280; margin-top:4px;"></div>
                 </div>
                 <div id="exportOptScopeRow" style="margin-bottom:10px; display:none;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">Capture</label>
@@ -6728,6 +6740,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_52"></script>
+    <script src="app.js?v=v84_54"></script>
 </body>
 </html>
