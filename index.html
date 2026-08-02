@@ -207,12 +207,32 @@
         }
 
         /* Load state, sitting under the buttons. Reads as a quiet status line
-           rather than the full status box the Reference Data card used. */
-        #optionsCard .reference-status {
+           rather than the full status box the Reference Data card used. The
+           "sources" link sits inline after it. */
+        #optionsLoadRow {
             margin-top: 8px;
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+
+        #optionsCard .reference-status {
             font-family: 'Roboto Mono', monospace;
             font-size: 10.5px;
             color: var(--green-800);
+        }
+
+        #optionsRefDataLink {
+            font-size: 10px;
+            color: var(--green-700);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--green-400);
+            margin-left: 6px;
+        }
+
+        #optionsRefDataLink:hover {
+            color: var(--green-800);
+            border-bottom-style: solid;
         }
 
         #optionsCard .reference-status.is-loading {
@@ -1679,6 +1699,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.40 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Oncoprint shows every cell line.</b> It used to cap at 200, which made the per-gene counts misleading: "RAC1 2" meant 2 of the first 200 cell lines, not 2 of the cohort. The counts are now true counts, the grid scrolls sideways, and the gene names and counts stay frozen in place while you scroll.</li>
+                    <li><b>Oncoprint exports are publication quality.</b> PNG is redrawn at up to 6&times; instead of being upscaled from the on-screen copy, so text and boxes are sharp rather than soft. SVG covers the whole cohort. The on-screen oncoprint is also drawn at your display's pixel density now.</li>
+                    <li><b>UpSet asks what to compare.</b> The unlabelled 3/5/7/10 dropdown is gone. <b>UpSet...</b> opens a picker where you choose <em>which</em> genes, not just how many, with a "Top N by mutation count" shortcut and the 5 most-mutated ticked by default.</li>
+                    <li><b>The page no longer scrolls behind an open dialog.</b> Scrolling while Reference Data, Gene Effect, the Cell Line Browser or any other full-screen dialog is open used to move the app underneath. Small popouts that sit beside the page while you work (oncoprint, UpSet, the "?" popouts) are unaffected on purpose.</li>
+                    <li><b>Dialogs can be dragged</b> by their title bar, so you can move one aside to read what's behind it.</li>
+                    <li>A <b>sources</b> link next to the loaded-data line opens Reference Data without going to the nav bar.</li>
+                    <li><b>Fix:</b> hovering the oncoprint grid threw an error and never showed the cell-line tooltip. Hovering a cell now names the gene, the cell line and whether it's mutated.</li>
+                </ul>
                 <p><strong>v.84.39 (2026-08-01)</strong></p>
                 <ul>
                     <li><b>Reference Data moved to the nav bar.</b> The sources are now behind a <b>Reference Data</b> link next to <b>How it works</b>, which opens them in full, no toggle needed. They were taking a card on the homepage for something you read once. The load state ("18,435 genes, 1,186 cell lines loaded") stays on the homepage as a line under the Options buttons, so it's still obvious when the app is ready.</li>
@@ -4063,7 +4093,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.39</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.40</a>
     </div>
 
     <div class="main-content">
@@ -4095,7 +4125,10 @@
                     <!-- Load state stays on the homepage even though the sources
                          moved to the Reference Data modal, so it's still obvious
                          when the app is ready. -->
-                    <div class="reference-status is-loading" id="optionsLoadStatus">Loading data...</div>
+                    <div id="optionsLoadRow">
+                        <span class="reference-status is-loading" id="optionsLoadStatus">Loading data...</span>
+                        <a href="#" id="optionsRefDataLink" title="Which data this is built on: DepMap release, pathway sources and curated annotations">sources</a>
+                    </div>
                     <!-- Kept outside the dropdown: hiding an ancestor mid-click can
                          cancel the file picker in some browsers. -->
                     <input type="file" id="restoreFromExportInput" accept=".json,.svg,.png" style="display:none;">
@@ -6441,6 +6474,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_39"></script>
+    <script src="app.js?v=v84_40"></script>
 </body>
 </html>

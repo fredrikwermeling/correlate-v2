@@ -1567,16 +1567,116 @@ class CorrelationExplorer {
         if (currentValue && geneCounts.some(g => g.gene === currentValue)) select.value = currentValue;
     }
 
+    // Asks which genes to compare before drawing the UpSet plot. This used to
+    // be a bare 3/5/7/10 dropdown sitting in the oncoprint footer with no
+    // label, which gave no way to say WHICH genes, only how many.
+    _showUpsetSetup() {
+        const data = this._oncoprintData;
+        if (!data || !data.topGenes || data.topGenes.length < 2) return;
+        document.getElementById('upsetSetupPopup')?.remove();
+
+        const genes = data.topGenes;
+        const total = data.sortedCLs.length;
+        const hotspotGene = document.getElementById('mutationHotspotSelect')?.value || '';
+
+        // Default selection: the gene being analysed (if it is in the list)
+        // plus the most-mutated genes, up to 5.
+        const preset = new Set();
+        if (hotspotGene && genes.some(g => g.gene === hotspotGene)) preset.add(hotspotGene);
+        for (const g of genes) {
+            if (preset.size >= 5) break;
+            preset.add(g.gene);
+        }
+
+        const popup = document.createElement('div');
+        popup.id = 'upsetSetupPopup';
+        popup.style.cssText = `position:fixed; z-index:10002; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.18); display:flex; flex-direction:column; width:300px; max-height:70vh;`;
+        popup.style.left = Math.max(20, Math.round(window.innerWidth / 2 - 150)) + 'px';
+        popup.style.top = '90px';
+
+        let html = `<div id="upsetSetupDragHandle" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
+        html += `<span style="font-weight:600; font-size:12px;">UpSet plot</span>`;
+        html += `<button id="upsetSetupCancel" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
+        html += `</div>`;
+        html += `<div style="padding:8px 10px; font-size:11px; color:#4b5563; border-bottom:1px solid #f3f4f6;">`;
+        html += `Which genes should the plot compare? It shows how many of the ${total} cell lines carry each combination of mutations.`;
+        html += `<div style="margin-top:6px; display:flex; align-items:center; gap:6px;">`;
+        html += `<label for="upsetTopN" style="color:#374151;">Top</label>`;
+        html += `<input type="number" id="upsetTopN" min="2" max="${genes.length}" value="${preset.size}" style="width:52px; font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px;">`;
+        html += `<span>by mutation count</span>`;
+        html += `</div></div>`;
+        html += `<div id="upsetGeneList" style="overflow-y:auto; flex:1; padding:6px 10px;">`;
+        genes.forEach(g => {
+            const checked = preset.has(g.gene) ? ' checked' : '';
+            html += `<label style="display:flex; align-items:center; gap:6px; font-size:11px; padding:2px 0; cursor:pointer;">`;
+            html += `<input type="checkbox" class="upset-gene-check" data-gene="${g.gene}"${checked} style="margin:0;">`;
+            html += `<span style="flex:1; color:#374151;">${g.gene}</span>`;
+            html += `<span style="color:#9ca3af;">${g.n}</span>`;
+            html += `</label>`;
+        });
+        html += `</div>`;
+        html += `<div style="display:flex; gap:6px; align-items:center; padding:6px 10px; border-top:1px solid #e5e7eb;">`;
+        html += `<span id="upsetSetupCount" style="font-size:10px; color:#6b7280; flex:1;"></span>`;
+        html += `<button id="upsetSetupGo" style="font-size:11px; padding:3px 10px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Show UpSet</button>`;
+        html += `</div>`;
+        popup.innerHTML = html;
+        document.body.appendChild(popup);
+
+        this._makeDraggable(popup, document.getElementById('upsetSetupDragHandle'));
+
+        const checks = () => [...popup.querySelectorAll('.upset-gene-check')];
+        const countEl = document.getElementById('upsetSetupCount');
+        const goBtn = document.getElementById('upsetSetupGo');
+        const topN = document.getElementById('upsetTopN');
+
+        const refresh = () => {
+            const n = checks().filter(c => c.checked).length;
+            countEl.textContent = n < 2 ? 'Pick at least 2 genes' : `${n} genes selected`;
+            countEl.style.color = n < 2 ? '#dc2626' : '#6b7280';
+            goBtn.disabled = n < 2;
+            goBtn.style.opacity = n < 2 ? '0.5' : '1';
+            goBtn.style.cursor = n < 2 ? 'not-allowed' : 'pointer';
+        };
+
+        // "Top N" is a shortcut that ticks the N most-mutated genes; ticking
+        // boxes by hand afterwards is what actually decides the selection.
+        topN.addEventListener('input', () => {
+            const n = Math.max(0, Math.min(genes.length, parseInt(topN.value) || 0));
+            const keep = new Set(genes.slice(0, n).map(g => g.gene));
+            checks().forEach(c => { c.checked = keep.has(c.dataset.gene); });
+            refresh();
+        });
+        popup.addEventListener('change', (e) => {
+            if (e.target.classList.contains('upset-gene-check')) refresh();
+        });
+        document.getElementById('upsetSetupCancel').addEventListener('click', () => popup.remove());
+        goBtn.addEventListener('click', () => {
+            const chosen = checks().filter(c => c.checked).map(c => c.dataset.gene);
+            if (chosen.length < 2) return;
+            this._upsetSelectedGenes = chosen;
+            popup.remove();
+            this._showUpsetPlot();
+        });
+        refresh();
+    }
+
     _showUpsetPlot() {
         const data = this._oncoprintData;
         if (!data || !data.topGenes) return;
 
-        // Use genes that have active filters, or top 5 by count
-        // Always include the selected hotspot mutation gene if set
+        // Genes come from the setup dialog when the user picked them there.
+        // Otherwise fall back to the active oncoprint filters, then to the top
+        // genes by count.
         const activeFilters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
         const hotspotGene = document.getElementById('mutationHotspotSelect')?.value;
+        const chosenGenes = this._upsetSelectedGenes;
         let upsetGenes, upsetLabel;
-        if (activeFilters.length >= 2) {
+        if (chosenGenes && chosenGenes.length >= 2) {
+            upsetGenes = chosenGenes.map(name => data.topGenes.find(g => g.gene === name)).filter(Boolean);
+            upsetLabel = upsetGenes.length <= 4
+                ? upsetGenes.map(g => g.gene).join(', ')
+                : `${upsetGenes.length} genes`;
+        } else if (activeFilters.length >= 2) {
             upsetGenes = activeFilters.map(([gene]) => data.topGenes.find(g => g.gene === gene)).filter(Boolean);
             // Ensure hotspot gene is included
             if (hotspotGene && !upsetGenes.find(g => g.gene === hotspotGene)) {
@@ -1592,7 +1692,7 @@ class CorrelationExplorer {
                 const hg = data.topGenes.find(g => g.gene === hotspotGene);
                 if (hg) { upsetGenes.push(hg); used.add(hotspotGene); }
             }
-            const nGenesSel = parseInt(document.getElementById('upsetGeneCount')?.value) || 5;
+            const nGenesSel = 5;
             for (const g of data.topGenes) {
                 if (upsetGenes.length >= nGenesSel) break;
                 if (!used.has(g.gene)) { upsetGenes.push(g); used.add(g.gene); }
@@ -1600,7 +1700,7 @@ class CorrelationExplorer {
             upsetLabel = hotspotGene ? `${hotspotGene} + Top ${upsetGenes.length - 1}` : `Top ${upsetGenes.length} most mutated`;
         }
         if (upsetGenes.length < 2) {
-            alert('Select at least 2 genes in the oncoprint (include or exclude) to generate an UpSet plot, or use top 5 by default.');
+            this._showUpsetSetup();
             return;
         }
 
@@ -2134,6 +2234,9 @@ class CorrelationExplorer {
     showOncoprint(context) {
         // Remove any existing oncoprint popup
         document.getElementById('oncoprintPopup')?.remove();
+        document.getElementById('upsetSetupPopup')?.remove();
+        // The gene picks belong to the cohort they were chosen from.
+        this._upsetSelectedGenes = null;
 
         if (!this.mutations?.geneData) return;
 
@@ -2186,9 +2289,11 @@ class CorrelationExplorer {
             if (!filterLabel && this.excludedTissues && this.excludedTissues.size > 0) filterLabel = 'filtered tissues';
         }
 
-        // Cap cell lines for performance
-        const maxCLs = 200;
-        const clsToShow = filteredCLs.slice(0, maxCLs);
+        // Show every filtered cell line. There used to be a 200-line cap here,
+        // which made the per-gene counts lie: "RAC1 2" meant 2 of the first 200
+        // cell lines, not 2 of the cohort. The grid now scrolls horizontally
+        // instead, with the gene labels and counts frozen in their own pane.
+        const clsToShow = filteredCLs;
 
         // Get top N hotspot genes by mutation count in filtered cell lines.
         // Polymorphic loci (HLA / MIC / KIR) are excluded, their calls reflect
@@ -2223,23 +2328,25 @@ class CorrelationExplorer {
         }
         const sortedCLs = [...clsToShow].sort((a, b) => clMutCounts.get(b) - clMutCounts.get(a));
 
-        // Build the oncoprint grid
+        // Build the oncoprint grid. The grid is drawn at its natural width and
+        // scrolls; it is no longer squeezed to fit a fixed 500px budget.
         const cellW = Math.max(3, Math.min(8, Math.floor(500 / sortedCLs.length)));
         const cellH = 14;
         const labelW = 72;
         const boxW = 10;
         const boxGap = 1;
         const boxAreaW = boxW * 2 + boxGap + 4; // include + exclude boxes
+        const countW = 38;
+        const leftW = boxAreaW + labelW + countW; // frozen pane: boxes, gene, count
         const gridW = sortedCLs.length * cellW;
         const gridH = topGenes.length * cellH;
-        const countW = 30;
-        const totalW = boxAreaW + labelW + gridW + countW;
-        const footerH = 50;
-        const totalH = gridH + footerH;
 
         const popup = document.createElement('div');
         popup.id = 'oncoprintPopup';
         popup.style.cssText = `position:fixed; z-index:10000; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15); display:flex; flex-direction:column; max-width:90vw; max-height:85vh;`;
+        // A definite width is what lets the grid pane shrink and scroll rather
+        // than pushing the popup wider than the screen.
+        popup.style.width = Math.min(window.innerWidth * 0.9, leftW + gridW + 44) + 'px';
 
         // Position: top-right area, high up
         popup.style.right = '20px';
@@ -2248,14 +2355,18 @@ class CorrelationExplorer {
         const currentHotspot = document.getElementById('mutationHotspotSelect').value;
 
         // Draggable header
-        let html = `<div id="oncoprintDragHandle" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
-        html += `<span style="font-weight:600; font-size:12px;">Oncoprint, Top ${topGenes.length} hotspot genes</span>`;
-        html += `<span style="font-size:10px; color:#6b7280;">${sortedCLs.length} cell lines${filterLabel ? ' · ' + filterLabel : ''}${filteredCLs.length > maxCLs ? ` (showing ${maxCLs} of ${filteredCLs.length})` : ''}</span>`;
+        let html = `<div id="oncoprintDragHandle" style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
+        html += `<span style="font-weight:600; font-size:12px; white-space:nowrap;">Oncoprint, Top ${topGenes.length} hotspot genes</span>`;
+        html += `<span style="font-size:10px; color:#6b7280; white-space:nowrap;">${sortedCLs.length} cell lines${filterLabel ? ' · ' + filterLabel : ''}</span>`;
         html += `<button onclick="document.getElementById('oncoprintPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
-        html += `<div style="padding:6px 10px; overflow:auto; flex:1;">`;
+        html += `<div style="padding:6px 10px; overflow-y:auto; overflow-x:hidden; flex:1;">`;
         html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#16a34a;">■</span> include · <span style="color:#dc2626;">■</span> exclude · <span style="display:inline-block;width:8px;height:8px;background:#3b82f6;vertical-align:middle;"></span> 1 mut · <span style="display:inline-block;width:8px;height:8px;background:#1e40af;vertical-align:middle;"></span> 2 mut · <span style="display:inline-block;width:8px;height:8px;background:#f3f4f6;border:1px solid #d1d5db;vertical-align:middle;"></span> WT</div>`;
-        html += `<canvas id="oncoprintCanvas" width="${totalW}" height="${totalH}" style="cursor:pointer;"></canvas>`;
+        html += `<div style="display:flex; align-items:flex-start; width:100%;">`;
+        html += `<canvas id="oncoprintLabelCanvas" style="flex:none; cursor:pointer;"></canvas>`;
+        html += `<div id="oncoprintGridScroll" style="flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden;"><canvas id="oncoprintGridCanvas" style="display:block;"></canvas></div>`;
+        html += `</div>`;
+        html += `<div id="oncoprintScrollHint" style="font-size:9px; color:#9ca3af; margin-top:3px;"></div>`;
         html += `<div id="oncoprintStatus" style="font-size:10px; margin-top:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"></div>`;
         html += `</div>`; // close inner padding div
         html += `<div style="display:flex; gap:4px; padding:6px 10px; border-top:1px solid #e5e7eb;">`;
@@ -2263,8 +2374,7 @@ class CorrelationExplorer {
         html += `<button onclick="app._oncoprintExport('png')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">PNG</button>`;
         html += `<button onclick="app._oncoprintExport('csv')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">CSV</button>`;
         html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
-        html += `<select id="upsetGeneCount" style="font-size:10px;padding:1px 2px;border:1px solid #d1d5db;border-radius:4px;width:36px;" title="Number of top genes for UpSet"><option value="3">3</option><option value="5" selected>5</option><option value="7">7</option><option value="10">10</option></select>`;
-        html += `<button onclick="app._showUpsetPlot()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f0fdf4;color:#16a34a;font-weight:500;">UpSet</button>`;
+        html += `<button onclick="app._showUpsetSetup()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f0fdf4;color:#16a34a;font-weight:500;" title="Pick which genes to compare, then draw the UpSet plot">UpSet...</button>`;
         html += `</div>`;
         popup.innerHTML = html;
         document.body.appendChild(popup);
@@ -2289,25 +2399,34 @@ class CorrelationExplorer {
             document.addEventListener('mouseup', onUp);
         });
 
-        // Store data and context for export and live updates
-        this._oncoprintData = { topGenes, sortedCLs, allFilteredCLs: filteredCLs, cellW, cellH, boxAreaW, labelW, boxW, boxGap };
-        this._oncoprintContext = context;
-
         const self = this;
-        const canvas = document.getElementById('oncoprintCanvas');
-        const ctx = canvas.getContext('2d');
+        const labelCanvas = document.getElementById('oncoprintLabelCanvas');
+        const gridCanvas = document.getElementById('oncoprintGridCanvas');
+        const scroller = document.getElementById('oncoprintGridScroll');
 
-        const drawOncoprint = () => {
-            ctx.clearRect(0, 0, totalW, totalH);
+        // Back the canvases at device resolution so the on-screen oncoprint is
+        // not a blurry upscale on retina displays.
+        const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+        const sizeCanvas = (cv, w, h) => {
+            cv.width = Math.round(w * dpr);
+            cv.height = Math.round(h * dpr);
+            cv.style.width = w + 'px';
+            cv.style.height = h + 'px';
+        };
+        sizeCanvas(labelCanvas, leftW, gridH);
+        sizeCanvas(gridCanvas, gridW, gridH);
+
+        // Both painters work in logical (unscaled) coordinates so the same code
+        // draws the screen copy, the retina copy and the high-resolution export.
+        const paintLabels = (ctx) => {
             ctx.fillStyle = '#f9fafb';
-            ctx.fillRect(0, 0, totalW, totalH);
-
+            ctx.fillRect(0, 0, leftW, gridH);
             topGenes.forEach((g, rowIdx) => {
                 const y = rowIdx * cellH;
                 const isSelected = g.gene === currentHotspot;
                 const filterState = self._oncoprintFilters[g.gene] || 'none';
-                const bx1 = 2; // include box
-                const bx2 = 2 + boxW + boxGap; // exclude box
+                const bx1 = 2;
+                const bx2 = 2 + boxW + boxGap;
                 const by = y + 2;
                 const bh = cellH - 4;
 
@@ -2345,28 +2464,36 @@ class CorrelationExplorer {
                 ctx.textBaseline = 'middle';
                 ctx.fillText(g.gene, boxAreaW + labelW - 4, y + cellH / 2);
 
-                // Count
+                // Count, now next to the gene name so it stays readable while
+                // the grid scrolls.
                 ctx.fillStyle = '#9ca3af';
                 ctx.font = '8px Arial';
                 ctx.textAlign = 'left';
-                ctx.fillText(`${g.n}`, boxAreaW + labelW + gridW + 2, y + cellH / 2);
+                ctx.fillText(`${g.n}`, boxAreaW + labelW + 3, y + cellH / 2);
+            });
+        };
 
-                // Grid cells
+        const paintGrid = (ctx) => {
+            ctx.fillStyle = '#f9fafb';
+            ctx.fillRect(0, 0, gridW, gridH);
+            topGenes.forEach((g, rowIdx) => {
+                const y = rowIdx * cellH;
                 sortedCLs.forEach((cl, colIdx) => {
-                    const x = boxAreaW + labelW + colIdx * cellW;
                     const mutLevel = g.muts[cl] || 0;
-                    if (mutLevel > 0) {
-                        ctx.fillStyle = mutLevel >= 2 ? '#1e40af' : '#3b82f6';
-                    } else {
-                        ctx.fillStyle = '#f3f4f6';
-                    }
-                    ctx.fillRect(x, y + 1, cellW - 1, cellH - 2);
+                    ctx.fillStyle = mutLevel >= 2 ? '#1e40af' : mutLevel > 0 ? '#3b82f6' : '#f3f4f6';
+                    ctx.fillRect(colIdx * cellW, y + 1, cellW - 1, cellH - 2);
                 });
             });
+        };
 
-            // Update status bar
+        // Store data and painters for export and live updates
+        this._oncoprintData = { topGenes, sortedCLs, allFilteredCLs: filteredCLs, cellW, cellH, boxAreaW, labelW, boxW, boxGap, countW, leftW, gridW, gridH };
+        this._oncoprintPaint = { paintLabels, paintGrid, leftW, gridW, gridH };
+
+        const updateStatus = () => {
             const activeFilters = Object.entries(self._oncoprintFilters).filter(([, v]) => v !== 'none');
             const statusEl = document.getElementById('oncoprintStatus');
+            if (!statusEl) return;
             if (activeFilters.length === 0) {
                 statusEl.innerHTML = '<span style="color:#9ca3af;">Click <span style="color:#16a34a;">■</span> to include or <span style="color:#dc2626;">■</span> to exclude mutated cells.</span>';
             } else {
@@ -2388,11 +2515,36 @@ class CorrelationExplorer {
             }
         };
 
+        const drawOncoprint = () => {
+            const lc = labelCanvas.getContext('2d');
+            lc.setTransform(dpr, 0, 0, dpr, 0, 0);
+            lc.clearRect(0, 0, leftW, gridH);
+            paintLabels(lc);
+            const gc = gridCanvas.getContext('2d');
+            gc.setTransform(dpr, 0, 0, dpr, 0, 0);
+            gc.clearRect(0, 0, gridW, gridH);
+            paintGrid(gc);
+            updateStatus();
+        };
+
         drawOncoprint();
 
-        // Click handler
-        canvas.addEventListener('click', (e) => {
-            const rect = canvas.getBoundingClientRect();
+        // Tell the user the grid runs wider than the pane, and keep it current
+        // as they scroll.
+        const hint = document.getElementById('oncoprintScrollHint');
+        const updateHint = () => {
+            if (!hint) return;
+            if (scroller.scrollWidth <= scroller.clientWidth + 1) { hint.textContent = ''; return; }
+            const first = Math.floor(scroller.scrollLeft / cellW) + 1;
+            const last = Math.min(sortedCLs.length, Math.ceil((scroller.scrollLeft + scroller.clientWidth) / cellW));
+            hint.textContent = `Scroll sideways to see all cell lines, showing ${first}-${last} of ${sortedCLs.length}. Counts beside each gene cover all ${sortedCLs.length}.`;
+        };
+        updateHint();
+        scroller.addEventListener('scroll', updateHint);
+
+        // Click handler, on the frozen pane where the include/exclude boxes live
+        labelCanvas.addEventListener('click', (e) => {
+            const rect = labelCanvas.getBoundingClientRect();
             const y = e.clientY - rect.top;
             const x = e.clientX - rect.left;
             const rowIdx = Math.floor(y / cellH);
@@ -2402,48 +2554,49 @@ class CorrelationExplorer {
             const bx1 = 2, bx2 = 2 + boxW + boxGap;
 
             if (x >= bx1 && x <= bx1 + boxW) {
-                // Clicked include box, toggle mut
                 if (this._oncoprintFilters[gene] === 'mut') delete this._oncoprintFilters[gene];
                 else this._oncoprintFilters[gene] = 'mut';
                 this._oncoprintSyncFilters();
                 drawOncoprint();
             } else if (x >= bx2 && x <= bx2 + boxW) {
-                // Clicked exclude box, toggle wt
                 if (this._oncoprintFilters[gene] === 'wt') delete this._oncoprintFilters[gene];
                 else this._oncoprintFilters[gene] = 'wt';
                 this._oncoprintSyncFilters();
                 drawOncoprint();
-            } else if (x < boxAreaW + labelW) {
-                // Clicked gene label, no action (don't change required hotspot)
             }
         });
 
-        // Hover
-        canvas.addEventListener('mousemove', (e) => {
-            const canvasRect = canvas.getBoundingClientRect();
-            const y = e.clientY - canvasRect.top;
-            const x = e.clientX - canvasRect.left;
+        labelCanvas.addEventListener('mousemove', (e) => {
+            const rect = labelCanvas.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const x = e.clientX - rect.left;
             const rowIdx = Math.floor(y / cellH);
-            if (rowIdx >= 0 && rowIdx < topGenes.length) {
-                canvas.style.cursor = 'pointer';
-                const bx1 = 2, bx2 = 2 + boxW + boxGap;
-                if (x >= bx1 && x <= bx1 + boxW) {
-                    const isMut = this._oncoprintFilters[topGenes[rowIdx].gene] === 'mut';
-                    canvas.title = `${topGenes[rowIdx].gene}, ${isMut ? 'remove include filter' : 'require mutated'}`;
-                } else if (x >= bx2 && x <= bx2 + boxW) {
-                    const isWt = this._oncoprintFilters[topGenes[rowIdx].gene] === 'wt';
-                    canvas.title = `${topGenes[rowIdx].gene}, ${isWt ? 'remove exclude filter' : 'exclude mutated'}`;
-                } else if (x < boxAreaW + labelW) {
-                    canvas.title = `${topGenes[rowIdx].gene} (${topGenes[rowIdx].n} mut), click to set as hotspot`;
-                } else if (colIdx >= 0 && colIdx < sortedCLs.length) {
-                    canvas.title = `${topGenes[rowIdx].gene} · ${this.getCellLineName(sortedCLs[colIdx])} · ${topGenes[rowIdx].muts[sortedCLs[colIdx]] > 0 ? 'Mutated' : 'WT'}`;
-                } else {
-                    canvas.title = '';
-                }
+            if (rowIdx < 0 || rowIdx >= topGenes.length) { labelCanvas.title = ''; return; }
+            const g = topGenes[rowIdx];
+            const bx1 = 2, bx2 = 2 + boxW + boxGap;
+            if (x >= bx1 && x <= bx1 + boxW) {
+                labelCanvas.title = `${g.gene}, ${this._oncoprintFilters[g.gene] === 'mut' ? 'remove include filter' : 'require mutated'}`;
+            } else if (x >= bx2 && x <= bx2 + boxW) {
+                labelCanvas.title = `${g.gene}, ${this._oncoprintFilters[g.gene] === 'wt' ? 'remove exclude filter' : 'exclude mutated'}`;
             } else {
-                canvas.style.cursor = 'default';
-                canvas.title = '';
+                labelCanvas.title = `${g.gene}, mutated in ${g.n} of ${sortedCLs.length} cell lines`;
             }
+        });
+
+        // Hover on the grid names the cell line under the cursor
+        gridCanvas.addEventListener('mousemove', (e) => {
+            const rect = gridCanvas.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const x = e.clientX - rect.left;
+            const rowIdx = Math.floor(y / cellH);
+            const colIdx = Math.floor(x / cellW);
+            if (rowIdx < 0 || rowIdx >= topGenes.length || colIdx < 0 || colIdx >= sortedCLs.length) {
+                gridCanvas.title = '';
+                return;
+            }
+            const g = topGenes[rowIdx];
+            const cl = sortedCLs[colIdx];
+            gridCanvas.title = `${g.gene} · ${this.getCellLineName(cl)} · ${g.muts[cl] > 0 ? 'Mutated' : 'WT'}`;
         });
 
         // Close on Escape
@@ -2454,7 +2607,10 @@ class CorrelationExplorer {
         setTimeout(() => {
             const outsideHandler = (e) => {
                 const upsetPopup = document.getElementById('upsetPopup');
-                if (!popup.contains(e.target) && e.target.id !== 'oncoprintBtn' && (!upsetPopup || !upsetPopup.contains(e.target))) {
+                const upsetSetup = document.getElementById('upsetSetupPopup');
+                if (!popup.contains(e.target) && e.target.id !== 'oncoprintBtn'
+                    && (!upsetPopup || !upsetPopup.contains(e.target))
+                    && (!upsetSetup || !upsetSetup.contains(e.target))) {
                     popup.remove();
                     document.removeEventListener('mousedown', outsideHandler);
                 }
@@ -2563,13 +2719,12 @@ class CorrelationExplorer {
     }
 
     _oncoprintExport(format) {
-        const canvas = document.getElementById('oncoprintCanvas');
-        if (!canvas) return;
+        const data = this._oncoprintData;
+        const paint = this._oncoprintPaint;
+        if (!data) return;
 
         if (format === 'csv') {
             // Export as CSV: genes × cell lines mutation matrix
-            const data = this._oncoprintData;
-            if (!data) return;
             let csv = 'Gene,' + data.sortedCLs.map(cl => this.getCellLineName(cl)).join(',') + '\n';
             data.topGenes.forEach(g => {
                 csv += g.gene + ',' + data.sortedCLs.map(cl => g.muts[cl] || 0).join(',') + '\n';
@@ -2580,57 +2735,79 @@ class CorrelationExplorer {
             a.download = csvName('oncoprint');
             a.click();
             URL.revokeObjectURL(a.href);
-        } else if (format === 'png') {
-            const scale = 4;
-            const exportCanvas = document.createElement('canvas');
-            exportCanvas.width = canvas.width * scale;
-            exportCanvas.height = canvas.height * scale;
-            const ctx = exportCanvas.getContext('2d');
-            ctx.scale(scale, scale);
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(canvas, 0, 0);
-            const a = document.createElement('a');
-            a.href = exportCanvas.toDataURL('image/png');
-            a.download = 'oncoprint.png';
-            a.click();
-        } else {
-            // SVG export, redraw to SVG
-            const w = canvas.width, h = canvas.height;
-            let svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n`;
-            svg += `<rect width="${w}" height="${h}" fill="white"/>\n`;
-            // Re-render as SVG elements from stored data
-            const data = this._oncoprintData;
-            if (data) {
-                const { topGenes: tg, sortedCLs: cls, cellW, cellH: cH, boxAreaW: baw, labelW: lw, boxW: bw, boxGap: bg } = data;
-                tg.forEach((g, rowIdx) => {
-                    const y = rowIdx * cH;
-                    const fs = this._oncoprintFilters[g.gene] || 'none';
-                    // Include box
-                    svg += `<rect x="2" y="${y + 2}" width="${bw}" height="${cH - 4}" fill="${fs === 'mut' ? '#16a34a' : '#e5e7eb'}" stroke="#9ca3af" stroke-width="0.5"/>\n`;
-                    // Exclude box
-                    svg += `<rect x="${2 + bw + bg}" y="${y + 2}" width="${bw}" height="${cH - 4}" fill="${fs === 'wt' ? '#dc2626' : '#e5e7eb'}" stroke="#9ca3af" stroke-width="0.5"/>\n`;
-                    // Gene label
-                    const labelColor = fs === 'mut' ? '#16a34a' : fs === 'wt' ? '#dc2626' : '#374151';
-                    svg += `<text x="${baw + lw - 4}" y="${y + cH / 2}" text-anchor="end" dominant-baseline="central" font-family="Arial" font-size="10" fill="${labelColor}" ${fs !== 'none' ? 'font-weight="bold"' : ''}>${g.gene}</text>\n`;
-                    // Count
-                    svg += `<text x="${baw + lw + cls.length * cellW + 2}" y="${y + cH / 2}" font-family="Arial" font-size="8" fill="#9ca3af" dominant-baseline="central">${g.n}</text>\n`;
-                    // Grid
-                    cls.forEach((cl, colIdx) => {
-                        const x = baw + lw + colIdx * cellW;
-                        const mutLevel = g.muts[cl] || 0;
-                        svg += `<rect x="${x}" y="${y + 1}" width="${cellW - 1}" height="${cH - 2}" fill="${mutLevel >= 2 ? '#1e40af' : mutLevel > 0 ? '#3b82f6' : '#f3f4f6'}"/>\n`;
-                    });
-                });
-            }
-            svg += '</svg>';
-            const blob = new Blob([svg], { type: 'image/svg+xml' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'oncoprint.svg';
-            a.click();
-            URL.revokeObjectURL(a.href);
+            return;
         }
+
+        const { leftW, gridW, gridH } = data;
+        const totalW = leftW + gridW;
+
+        if (format === 'png') {
+            if (!paint) return;
+            // Re-render at high resolution rather than upscaling the on-screen
+            // canvas. Upscaling a raster gave soft, fuzzy text; drawing through
+            // a scaled transform renders the text and boxes natively at the
+            // export size, which is what makes it usable in a figure.
+            // Canvases have a hard pixel limit, so back the scale off on very
+            // wide grids instead of silently producing a blank image.
+            const maxPx = 16000;
+            const scale = Math.max(1, Math.min(6, Math.floor(maxPx / Math.max(totalW, gridH))));
+            const cv = document.createElement('canvas');
+            cv.width = Math.round(totalW * scale);
+            cv.height = Math.round(gridH * scale);
+            const ctx = cv.getContext('2d');
+            ctx.setTransform(scale, 0, 0, scale, 0, 0);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, totalW, gridH);
+            paint.paintLabels(ctx);
+            ctx.save();
+            ctx.translate(leftW, 0);
+            paint.paintGrid(ctx);
+            ctx.restore();
+            cv.toBlob((blob) => {
+                if (!blob) return;
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'oncoprint.png';
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }, 'image/png');
+            return;
+        }
+
+        // SVG export, rebuilt from the stored data so it stays vector (and so
+        // it covers every cell line, not just the ones currently scrolled into
+        // view).
+        const { topGenes: tg, sortedCLs: cls, cellW, cellH: cH, boxAreaW: baw, labelW: lw, boxW: bw, boxGap: bg } = data;
+        const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const parts = [];
+        parts.push(`<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${gridH}" viewBox="0 0 ${totalW} ${gridH}">\n`);
+        parts.push(`<rect width="${totalW}" height="${gridH}" fill="white"/>\n`);
+        tg.forEach((g, rowIdx) => {
+            const y = rowIdx * cH;
+            const fs = this._oncoprintFilters[g.gene] || 'none';
+            // Include box
+            parts.push(`<rect x="2" y="${y + 2}" width="${bw}" height="${cH - 4}" fill="${fs === 'mut' ? '#16a34a' : '#e5e7eb'}" stroke="#9ca3af" stroke-width="0.5"/>\n`);
+            // Exclude box
+            parts.push(`<rect x="${2 + bw + bg}" y="${y + 2}" width="${bw}" height="${cH - 4}" fill="${fs === 'wt' ? '#dc2626' : '#e5e7eb'}" stroke="#9ca3af" stroke-width="0.5"/>\n`);
+            // Gene label
+            const labelColor = fs === 'mut' ? '#16a34a' : fs === 'wt' ? '#dc2626' : '#374151';
+            parts.push(`<text x="${baw + lw - 4}" y="${y + cH / 2}" text-anchor="end" dominant-baseline="central" font-family="Arial" font-size="10" fill="${labelColor}" ${fs !== 'none' ? 'font-weight="bold"' : ''}>${esc(g.gene)}</text>\n`);
+            // Count
+            parts.push(`<text x="${baw + lw + 3}" y="${y + cH / 2}" font-family="Arial" font-size="8" fill="#9ca3af" dominant-baseline="central">${g.n}</text>\n`);
+            // Grid
+            cls.forEach((cl, colIdx) => {
+                const x = leftW + colIdx * cellW;
+                const mutLevel = g.muts[cl] || 0;
+                parts.push(`<rect x="${x}" y="${y + 1}" width="${cellW - 1}" height="${cH - 2}" fill="${mutLevel >= 2 ? '#1e40af' : mutLevel > 0 ? '#3b82f6' : '#f3f4f6'}"/>\n`);
+            });
+        });
+        parts.push('</svg>');
+        const blob = new Blob(parts, { type: 'image/svg+xml' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'oncoprint.svg';
+        a.click();
+        URL.revokeObjectURL(a.href);
     }
 
     updateTBSelectionCount() {
@@ -27487,6 +27664,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             el.style.bottom = 'auto';
             el.style.left = rect.left + 'px';
             el.style.top = rect.top + 'px';
+            // Pin the current size too. Elements sized by their layout parent
+            // (a .modal is width:100% of a centred flex overlay) would otherwise
+            // resnap to the viewport the moment they go position:fixed.
+            el.style.width = rect.width + 'px';
+            el.style.maxWidth = 'none';
             const dx = e.clientX - rect.left, dy = e.clientY - rect.top;
             const onMove = (e2) => {
                 const w = el.offsetWidth, h = el.offsetHeight;
@@ -37663,12 +37845,94 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('referenceDataModal');
     if (!modal) return;
     const close = () => { modal.style.display = 'none'; };
-    document.getElementById('showReferenceData')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        modal.style.display = 'flex';
-    });
+    const open = (e) => { e.preventDefault(); modal.style.display = 'flex'; };
+    document.getElementById('showReferenceData')?.addEventListener('click', open);
+    document.getElementById('optionsRefDataLink')?.addEventListener('click', open);
     document.getElementById('closeReferenceData')?.addEventListener('click', close);
     modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+});
+
+// ============================================================================
+// Shared behaviour for the full-screen dialogs: freeze the page behind them,
+// and let them be dragged by their header.
+//
+// Every dialog is opened by its own handler setting style.display or toggling
+// .active, and there is no central open/close function to hook, so this
+// watches the dialogs themselves for visibility changes instead of touching
+// ~17 call sites.
+//
+// Only full-screen dialogs are listed. The small floating popouts (oncoprint,
+// UpSet, tissue breakdown, the UMAP panels, the "?" hover popouts, the text
+// settings panel) are deliberately excluded: they are meant to sit beside the
+// page while you keep working with what is behind them, and they do their own
+// dragging already.
+const MODAL_IDS = [
+    'referenceDataModal', 'inspectModal', 'geneEffectModal', 'corrAnalysisModal',
+    'exportOptionsModal', 'infographicModal', 'changelogModal', 'inspectCorrelatesModal',
+    'collectionsInfoModal', 'selectionInspectModal', 'mutCompareModal', 'enrichrModal',
+    'clbWikiModal', 'clbInfoModal', 'cellLineBrowserModal', 'exportPreviewModal'
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+    const modals = MODAL_IDS.map(id => document.getElementById(id)).filter(Boolean);
+    if (!modals.length) return;
+
+    const isOpen = (el) => {
+        if (el.classList.contains('active')) return true;
+        const d = el.style.display;
+        return d !== '' && d !== 'none';
+    };
+
+    // Scroll lock. Padding compensates for the scrollbar the lock removes, so
+    // the page behind doesn't jump sideways when a dialog opens.
+    let locked = false;
+    const applyLock = () => {
+        const anyOpen = modals.some(isOpen);
+        if (anyOpen === locked) return;
+        locked = anyOpen;
+        if (anyOpen) {
+            const gap = window.innerWidth - document.documentElement.clientWidth;
+            document.body.dataset.prevOverflow = document.body.style.overflow || '';
+            document.body.dataset.prevPadRight = document.body.style.paddingRight || '';
+            document.body.style.overflow = 'hidden';
+            if (gap > 0) document.body.style.paddingRight = gap + 'px';
+        } else {
+            document.body.style.overflow = document.body.dataset.prevOverflow || '';
+            document.body.style.paddingRight = document.body.dataset.prevPadRight || '';
+        }
+    };
+
+    const observer = new MutationObserver(applyLock);
+    modals.forEach(el => observer.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }));
+    applyLock();
+
+    // Dragging, by the title bar. The element that moves is the inner card, so
+    // the backdrop stays covering the page.
+    const app = window.app;
+    if (!app?._makeDraggable) return;
+
+    // The hand-built overlays have no .modal-header, but they all share the
+    // same shape: overlay > card > title row. Listed by name rather than
+    // detected, so a layout change can't silently turn some content block into
+    // a drag handle. The genuinely full-screen ones (Cell Line Browser,
+    // Enrichr, export preview, the compare table) are left out: there is
+    // nowhere to drag them to.
+    const CUSTOM_DRAGGABLE = [
+        'changelogModal', 'inspectCorrelatesModal', 'collectionsInfoModal',
+        'selectionInspectModal', 'clbWikiModal', 'clbInfoModal'
+    ];
+
+    modals.forEach(el => {
+        let card = el.querySelector(':scope > .modal');
+        let handle = card?.querySelector(':scope > .modal-header');
+        if (!card && CUSTOM_DRAGGABLE.includes(el.id)) {
+            card = el.firstElementChild;
+            handle = card?.firstElementChild;
+            // A handle that fills the card is the content, not a title bar.
+            if (handle && handle.childElementCount > 4) handle = null;
+        }
+        if (card && handle) app._makeDraggable(card, handle);
+    });
 });
 
 // ============================================================================
