@@ -1968,7 +1968,8 @@ class CorrelationExplorer {
         if (!plotEl?.data) return;
         const w = plotEl._fullLayout?.width || plotEl.layout?.width || plotEl.offsetWidth || 500;
         const h = plotEl._fullLayout?.height || plotEl.layout?.height || plotEl.offsetHeight || 400;
-        await this._exportPlotly(plotEl, { w, h, format, filename: 'upset_plot' });
+        await this._exportPlotly(plotEl, { w, h, format, filename: 'upset_plot',
+            meta: this._buildOncoprintMeta('upset') });
     }
 
     getTissueBreakdownForHotspot(gene) {
@@ -2825,7 +2826,8 @@ class CorrelationExplorer {
             const dlg = await this._showExportDialog({ format: 'svg', plotW: totalW, plotH: gridH });
             if (!dlg) return;
             await this._exportSvgString(this._oncoprintSvgString(), dlg,
-                { filename: 'oncoprint', widthPx: totalW, heightPx: gridH });
+                { filename: 'oncoprint', widthPx: totalW, heightPx: gridH,
+                  meta: this._buildOncoprintMeta('oncoprint') });
             return;
         }
 
@@ -7270,7 +7272,7 @@ class CorrelationExplorer {
         // One "Export image" entry point: ask the format (PNG / SVG / TIFF / PDF
         // / PowerPoint). SVG uses the hand-built vector table below; the raster
         // formats come from an html2canvas capture via _downloadCanvasAs.
-        const dlg = await this._showExportDialog({ format, plotW: tableContainer?.offsetWidth || 600, plotH: tableContainer?.offsetHeight || 400 });
+        const dlg = await this._showExportDialog({ format, plotW: tableContainer?.offsetWidth || 600, plotH: tableContainer?.offsetHeight || 400, restorable: false });
         if (!dlg) return;
         const fmt = dlg.format;
 
@@ -10422,7 +10424,7 @@ Results:
         // PNG / TIFF / PDF / PPTX all come from this composed canvas; SVG uses
         // the dedicated vector reconstruction (reusing the dialog we just shew).
         await this._downloadCanvasAs(canvas, dlg.format, 'correlation_network', {
-            dpi, widthCm, heightCm, metaJson: JSON.stringify(meta)
+            dpi, widthCm, heightCm, metaJson: dlg.sidecar === false ? null : JSON.stringify(meta)
         });
     }
 
@@ -10691,7 +10693,9 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         // Sanitize for Illustrator compatibility + optional text outlining
         svg = await this._finalizeSvgForExport(svg);
 
-        // Download
+        // Download. The settings also travel inside the SVG, but write the
+        // companion file too so every format behaves the way the dialog says.
+        this._downloadMetaSidecar('correlation_network', dlg.sidecar === false ? null : JSON.stringify(meta));
         const blob = new Blob([svg], { type: 'image/svg+xml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -18080,6 +18084,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         this._resetForRestore();
 
+        if (meta.graphType === 'oncoprint' || meta.graphType === 'upset') {
+            return this._restoreOncoprintMeta(meta);
+        }
+
         // Scatter-like exports with gene pair → restore inspect view
         if (meta.gene1 && meta.gene2) {
             return this._restoreFromState(meta);
@@ -18478,6 +18486,64 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             plotWidth: lay.width,
             plotHeight: lay.height
         };
+    }
+
+    // The cohort controls the oncoprint and UpSet are built from. Captured so an
+    // exported figure from either can be reopened; previously neither wrote a
+    // settings file at all, so those two exports were dead ends.
+    _oncoprintCohortState() {
+        const val = (id) => document.getElementById(id)?.value || '';
+        return {
+            lineageFilter: val('lineageFilter'),
+            subLineageFilter: val('subLineageFilter'),
+            paramHotspotGene: val('paramHotspotGene'),
+            paramHotspotLevel: val('paramHotspotLevel'),
+            paramTranslocationGene: val('paramTranslocationGene'),
+            paramTranslocationLevel: val('paramTranslocationLevel'),
+            paramCnFilter: val('paramCnFilter'),
+            paramCnLevel: val('paramCnLevel'),
+            mutationHotspotSelect: val('mutationHotspotSelect'),
+            excludedTissues: this.excludedTissues ? [...this.excludedTissues] : [],
+            extraGenes: this._oncoprintExtraGenes ? [...this._oncoprintExtraGenes] : [],
+            oncoprintFilters: { ...(this._oncoprintFilters || {}) },
+            context: this._oncoprintContext || null
+        };
+    }
+
+    _buildOncoprintMeta(kind) {
+        return this._buildExportMetadata(kind, { cohort: this._oncoprintCohortState(),
+            upsetGenes: kind === 'upset' ? (this._upsetSelectedGenes || null) : undefined });
+    }
+
+    // Rebuilds the oncoprint (and the UpSet on top of it) from a saved file.
+    async _restoreOncoprintMeta(meta) {
+        const c = meta.cohort || {};
+        const set = (id, v) => {
+            const el = document.getElementById(id);
+            if (el && v != null) el.value = v;
+        };
+        set('lineageFilter', c.lineageFilter);
+        this.updateSubLineageFilter?.();
+        set('subLineageFilter', c.subLineageFilter);
+        set('paramHotspotGene', c.paramHotspotGene);
+        set('paramHotspotLevel', c.paramHotspotLevel);
+        set('paramTranslocationGene', c.paramTranslocationGene);
+        set('paramTranslocationLevel', c.paramTranslocationLevel);
+        set('paramCnFilter', c.paramCnFilter);
+        set('paramCnLevel', c.paramCnLevel);
+        set('mutationHotspotSelect', c.mutationHotspotSelect);
+        this.excludedTissues = new Set(c.excludedTissues || []);
+        this._oncoprintFilters = { ...(c.oncoprintFilters || {}) };
+        this.showOncoprint(c.context || undefined);
+        // showOncoprint clears the added genes, so put them back and redraw.
+        if (c.extraGenes && c.extraGenes.length) {
+            this._oncoprintExtraGenes = new Set(c.extraGenes);
+            this.showOncoprint(c.context || undefined);
+        }
+        if (meta.graphType === 'upset' && meta.upsetGenes && meta.upsetGenes.length >= 2) {
+            this._upsetSelectedGenes = meta.upsetGenes;
+            this._showUpsetPlot();
+        }
     }
 
     _buildExportMetadata(graphType, extra = {}) {
@@ -21609,6 +21675,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (fmtEl && raster && fmtEl.value === 'svg') fmtEl.value = 'png';
                 syncFormatUI();
             };
+            // Say plainly when this particular view can't be reopened, rather
+            // than offering a file that would do nothing.
+            const sidecarBox = document.getElementById('exportOptSidecar');
+            const sidecarNote = document.getElementById('exportOptSidecarNote');
+            if (sidecarBox) {
+                const restorable = context.restorable !== false;
+                sidecarBox.checked = restorable;
+                sidecarBox.disabled = !restorable;
+                if (sidecarNote) {
+                    sidecarNote.style.display = restorable ? 'none' : '';
+                    sidecarNote.textContent = 'This view can\'t be reopened from a file yet, so no settings file is saved.';
+                }
+            }
             if (whatRow) whatRow.style.display = context.canScreenshot ? '' : 'none';
             const whatOpt = whatEl?.querySelector('option[value="popout"]');
             if (whatOpt && context.screenshotLabel) whatOpt.textContent = context.screenshotLabel;
@@ -21677,7 +21756,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     legendFrame: !!frameEl?.checked,
                     lockAspect: !!(lockEl ? lockEl.checked : true),
                     scope: document.querySelector('input[name="exportOptScope"]:checked')?.value || 'full',
-                    what: (context.canScreenshot && whatEl) ? whatEl.value : 'chart'
+                    what: (context.canScreenshot && whatEl) ? whatEl.value : 'chart',
+                    sidecar: !!(document.getElementById('exportOptSidecar')?.checked)
                 };
                 this._lastExportOpts = opts;
                 cleanup();
@@ -21767,7 +21847,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const fmt = dlg.format || 'png';
         const CM_TO_IN = 1 / 2.54;
         let outSvg = svgIn;
-        const metaJson = meta ? JSON.stringify(meta) : null;
+        // The dialog's settings-file checkbox.
+        const metaJson = (meta && dlg.sidecar !== false) ? JSON.stringify(meta) : null;
 
         // White background for vector outputs (PDF / PPTX embed the SVG directly,
         // so they need the rect baked in, the raster path paints white on canvas
@@ -22012,7 +22093,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const meta = (typeof this._buildExportMetadata === 'function')
             ? this._buildExportMetadata('popout_screenshot', { scope, ...metaExtra })
             : null;
-        const metaJson = meta ? JSON.stringify(meta) : null;
+        const metaJson = (meta && dlg.sidecar !== false) ? JSON.stringify(meta) : null;
         await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson });
     }
 
@@ -37026,7 +37107,7 @@ ${clone.innerHTML}
         const colorBy = document.getElementById('clbUmapColorBy')?.value || '';
         const filename = `${method}_plot`;
         const meta = this._buildExportMetadata(method.toLowerCase(), { dataType, colorBy });
-        const metaJson = JSON.stringify(meta);
+        let metaJson = JSON.stringify(meta);
         const w = plotDiv.layout.width || plotDiv.offsetWidth;
         const h = plotDiv.layout.height || plotDiv.offsetHeight;
 
@@ -37040,6 +37121,7 @@ ${clone.innerHTML}
 
         const dlg = await this._showExportDialog({ format, plotW: composedW, plotH: composedH });
         if (!dlg) return;
+        if (dlg.sidecar === false) metaJson = null;
         const { widthCm, heightCm, dpi, background } = dlg;
         const fmt = dlg.format || format;
         const CM_TO_IN = 1 / 2.54;
@@ -37059,7 +37141,7 @@ ${clone.innerHTML}
         }
 
         if (fmt === 'svg') {
-            const withMeta = composed.replace(/<\/svg>\s*$/, `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
+            const withMeta = metaJson ? composed.replace(/<\/svg>\s*$/, `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`) : composed;
             const blob = new Blob([withMeta], { type: 'image/svg+xml;charset=utf-8' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
