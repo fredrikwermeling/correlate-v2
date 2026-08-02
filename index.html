@@ -1820,6 +1820,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.59 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Fix: the cell line Wiki could not be scrolled.</b> Its text area could not shrink inside the panel, so it never became a scrolling area and everything past the first screen was unreachable.</li>
+                    <li><b>The Wiki has an Export for AI button</b>, so a single cell line can be discussed. The file states plainly that the Wiki's written summary is the app's own reading of the same numbers, and asks that claims in it be checked against the underlying values rather than taken as given.</li>
+                    <li><b>Cell Line Browser filter row tidied.</b> The status dropdowns sat underneath their filter boxes; they now sit beside them. The copy-number filter uses the same wording as the rest of the app, and the two bare <b>?</b> buttons say what they explain.</li>
+                    <li><b>Exported files carry the date and time.</b> Two exports made minutes apart from different settings no longer share a name, and the settings file matches its image.</li>
+                    <li><b>More buttons explain themselves on hover</b>, including every popout's close button and the CSV downloads.</li>
+                </ul>
                 <p><strong>v.84.58 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>The data exports look like the image export.</b> <b>Export for AI</b> and <b>All Data (ZIP)</b> were blue and drew the eye first; all three now share the same neutral button.</li>
@@ -4348,7 +4356,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.58</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.59</a>
     </div>
 
     <div class="main-content">
@@ -4930,7 +4938,7 @@
                         <button class="btn btn-outline btn-sm" id="filterCorrelationsToggle" title="Toggle column filters">Filters</button>
                         <label id="showBelowCutoffWrap" style="display:none; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Also list the pairs that fell just short of the correlation cutoff, so a borderline result is still visible. They appear greyed below a divider and are not part of the network or the clusters."><input type="checkbox" id="showBelowCutoff"> below cutoff</label>
                         <button class="btn btn-outline btn-sm" id="copyCorrelationGenes" title="Copy gene names to clipboard">Copy Genes</button>
-                        <button class="btn btn-outline btn-sm" id="downloadCorrelations">Download CSV</button>
+                        <button class="btn btn-outline btn-sm" id="downloadCorrelations" title="Download the correlation table as a CSV file">Download CSV</button>
                         <button class="btn btn-secondary btn-sm enrichrBtn" data-source="correlations" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
                         <!-- AI button removed, Full Export supersedes it -->
                     </div>
@@ -4964,7 +4972,7 @@
                         <input type="text" class="table-search" id="clustersSearch" placeholder="Search...">
                         <button class="btn btn-outline btn-sm" id="filterClustersToggle" title="Toggle column filters">Filters</button>
                         <button class="btn btn-outline btn-sm" id="copyClustersGenes" title="Copy gene names to clipboard">Copy Genes</button>
-                        <button class="btn btn-outline btn-sm" id="downloadClusters">Download CSV</button>
+                        <button class="btn btn-outline btn-sm" id="downloadClusters" title="Download the cluster table as a CSV file">Download CSV</button>
                         <button class="btn btn-secondary btn-sm enrichrBtn" data-source="clusters" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
                         <!-- AI button removed, Full Export supersedes it -->
                     </div>
@@ -5388,7 +5396,7 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="geneEffectTitle" style="flex:1; margin:0;">Gene Effect Analysis</h3>
                 <button onclick="app.openGeneEffectInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same gene, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button class="modal-close" id="closeGeneEffect">&times;</button>
+                <button class="modal-close" id="closeGeneEffect" title="Close the Gene Effect view">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
                 <!-- Gene search bar -->
@@ -5606,7 +5614,7 @@
                             <span style="font-size:10px;color:rgba(255,255,255,0.8);margin-right:2px;">Export:</span>
                             <button id="exportGEGateReportPNG" class="btn btn-sm" style="font-size: 10px; padding: 2px 8px; background: #374151; color: white;" title="Export GE gate comparison as PNG">PNG</button>
                             <button id="exportGEGateReportSVG" class="btn btn-sm" style="font-size: 10px; padding: 2px 8px; background: #374151; color: white;" title="Export GE gate comparison as SVG">SVG</button>
-                            <button id="closeGEGateCompare" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+                            <button id="closeGEGateCompare" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0; line-height: 1;" title="Close the gate comparison">&times;</button>
                         </div>
                     </div>
                     <div style="padding: 15px;">
@@ -5631,8 +5639,8 @@
                     <button class="btn btn-outline btn-sm mobile-hide" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                     <button class="btn btn-sm btn-outline" id="geExpandFullBtn" title="Show the full analysis (filters + statistics table)" style="font-size:11px;">⤢ Full view</button>
                     <span style="font-size: 12px; color: #6b7280; margin-left: 15px; margin-right: 5px;">Export CSV:</span>
-                    <button class="btn btn-outline btn-sm" id="downloadGETableCSV">By Group</button>
-                    <button class="btn btn-outline btn-sm" id="downloadGECellLineCSV">By Cell Line</button>
+                    <button class="btn btn-outline btn-sm" id="downloadGETableCSV" title="Download the table above as a CSV file">By Group</button>
+                    <button class="btn btn-outline btn-sm" id="downloadGECellLineCSV" title="Download the per-cell-line values behind this view as a CSV file">By Cell Line</button>
                     <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
                     <button class="btn btn-outline btn-sm" id="geAnalyzeWithAI" style="font-size:11px;" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                     <button class="btn btn-sm" id="toggleExprCorrelatesBtn" style="background: #5a9f4a; color: white; display: none;">Expression Correlates</button>
@@ -5649,7 +5657,7 @@
                 <div id="exprCorrelatesPanel" style="display: none; margin-top: 15px; border: 2px solid #5a9f4a; border-radius: 8px; overflow: hidden;">
                     <div style="background: #5a9f4a; color: white; padding: 10px 15px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
                         <span>Expression Correlates</span>
-                        <button id="closeExprCorrelatesPanel" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+                        <button id="closeExprCorrelatesPanel" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0; line-height: 1;" title="Close the expression correlates panel">&times;</button>
                     </div>
                     <div style="padding: 15px;">
                         <div style="background: #f0f9ef; border: 1px solid #a8d89a; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; color: #2d5a27;">
@@ -5668,7 +5676,7 @@
                             </div>
                             <button class="btn btn-sm" id="runExprCorrelatesBtn" style="background: #5a9f4a; color: white;">Run</button>
                             <span id="exprCorrelatesStatus" style="font-size: 12px; color: #6b7280;"></span>
-                            <button class="btn btn-outline btn-sm" id="downloadExprCorrelatesCSV" style="display: none; margin-left: auto; border-color: #5a9f4a; color: #5a9f4a;">Export CSV</button>
+                            <button class="btn btn-outline btn-sm" id="downloadExprCorrelatesCSV" style="display: none; margin-left: auto; border-color: #5a9f4a; color: #5a9f4a;" title="Download the correlate list as a CSV file">Export CSV</button>
                         </div>
 
                         <!-- Loading indicator -->
@@ -5746,7 +5754,7 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="corrAnalysisTitle" style="flex:1; margin:0;">Correlation Analysis</h3>
                 <button onclick="app.openCorrAnalysisInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same genes, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button class="modal-close" id="closeCorrAnalysis">&times;</button>
+                <button class="modal-close" id="closeCorrAnalysis" title="Close the Correlation Analysis view">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
                 <!-- Search bar (mirrors gene effect search bar) -->
@@ -5862,8 +5870,8 @@
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
                     <button class="btn btn-outline btn-sm mobile-hide" id="downloadCorrAnalysisPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                     <span style="font-size: 12px; color: #6b7280; margin-left: 15px; margin-right: 5px;">Export CSV:</span>
-                    <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisCSV">By Group</button>
-                    <button class="btn btn-outline btn-sm" id="downloadCACellLineCSV">By Cell Line</button>
+                    <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisCSV" title="Download the table above as a CSV file">By Group</button>
+                    <button class="btn btn-outline btn-sm" id="downloadCACellLineCSV" title="Download the per-cell-line values behind this view as a CSV file">By Cell Line</button>
                 </div>
             </div>
         </div>
@@ -6224,11 +6232,12 @@
           <div style="display:flex; align-items:center; gap:8px;">
             <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN amplifications / deletions) as a CSV">Export gene info (.csv)</button>
             <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Save the wiki as an image, choosing format, resolution and whether to capture the whole page or just what is on screen">Export image...</button>
+            <button id="clbWikiAnalyzeWithAI" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px;" title="Package this cell line as one compressed file for a language model, so you can ask questions about it">Export for AI</button>
             <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Download this Wiki as a multi-page PDF (charts embedded as images, white background)">Download PDF</button>
-            <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+            <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;" title="Close the wiki">&times;</button>
           </div>
         </div>
-        <div id="clbWikiBody" style="padding:16px 20px; overflow-y:auto; font-size:12px; line-height:1.55; color:#374151; background:#f9fafb;"></div>
+        <div id="clbWikiBody" style="flex:1 1 auto; min-height:0; padding:16px 20px; overflow-y:auto; overscroll-behavior:contain; font-size:12px; line-height:1.55; color:#374151; background:#f9fafb;"></div>
       </div>
     </div>
 
@@ -6314,7 +6323,7 @@
         <!-- Header -->
         <div class="modal-header">
           <h3>Cell Line Browser</h3>
-          <button id="clbCloseBtn" class="modal-close">&times;</button>
+          <button id="clbCloseBtn" class="modal-close" title="Close the Cell Line Browser">&times;</button>
         </div>
         <!-- Toolbar -->
         <div class="clb-toolbar">
@@ -6338,13 +6347,13 @@
                fusion / CN filters (lists genes with live n= mutated counts;
                native datalist truncated options in Safari). Oncoprint button
                kept inline. -->
-          <div id="clbHotspotFilterWrap" style="display:inline-flex; flex-direction:column; gap:2px; vertical-align:top;">
+          <div id="clbHotspotFilterWrap" style="display:inline-flex; align-items:center; gap:4px; vertical-align:top;">
             <div style="position:relative; display:inline-flex; align-items:center; gap:4px;">
-              <input type="text" id="clbHotspotFilter" placeholder="Hotspot filter" autocomplete="off" style="width:140px;">
+              <input type="text" id="clbHotspotFilter" placeholder="Hotspot gene..." title="Keep only cell lines with the chosen status for this gene" autocomplete="off" style="width:140px;">
               <button id="clbOncoprintBtn" type="button" style="padding:3px 6px; font-size:9px; background:#5a9f4a; color:white; border:none; border-radius:3px; cursor:pointer; white-space:nowrap;" title="Show oncoprint of hotspot mutations for filtered cell lines">Oncoprint</button>
               <div id="clbHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
             </div>
-            <select id="clbHotspotLevel" style="width:140px; font-size:10px; padding:1px 3px;">
+            <select id="clbHotspotLevel" style="width:104px; font-size:10px; padding:2px 3px;">
               <option value="1+2" selected>Mutated (1+2)</option><option value="1">Only 1 mut</option><option value="2">Only 2 mut</option><option value="0">Only WT</option>
             </select>
           </div>
@@ -6352,12 +6361,12 @@
                pairs at top with name + n + disease context, then gene-based
                long tail). Replaces a native datalist that Safari truncated to
                the input width and rendered unreadably. -->
-          <div id="clbFusionFilterWrap" style="display:inline-flex; flex-direction:column; gap:2px; vertical-align:top;">
+          <div id="clbFusionFilterWrap" style="display:inline-flex; align-items:center; gap:4px; vertical-align:top;">
             <div style="position:relative;">
-              <input type="text" id="clbTranslocationFilter" placeholder="Fusion filter" autocomplete="off" style="width:140px;">
+              <input type="text" id="clbTranslocationFilter" placeholder="Fusion / gene..." title="Keep only cell lines with the chosen status for this fusion" autocomplete="off" style="width:140px;">
               <div id="clbTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
             </div>
-            <select id="clbFusionLevel" style="width:140px; font-size:10px; padding:1px 3px;">
+            <select id="clbFusionLevel" style="width:104px; font-size:10px; padding:2px 3px;">
               <option value="1+2" selected>Fused</option><option value="0">Only WT</option>
             </select>
           </div>
@@ -6365,12 +6374,12 @@
                filter. Lists curated amplifications (▲) and TSG deletions
                (▼) with live n=. Selecting an entry filters the cell-line
                list to lines carrying that focal CN event. -->
-          <div id="clbCnFilterWrap" style="display:inline-flex; flex-direction:column; gap:2px; vertical-align:top;">
+          <div id="clbCnFilterWrap" style="display:inline-flex; align-items:center; gap:4px; vertical-align:top;">
             <div style="position:relative;">
-              <input type="text" id="clbCnFilter" placeholder="CN amp/del filter" autocomplete="off" style="width:140px;">
+              <input type="text" id="clbCnFilter" placeholder="Amp / deletion..." title="Focal copy-number filter: amplifications (▲) and deletions (▼) from the curated panel. Deletions include single-copy loss, not only homozygous." autocomplete="off" style="width:140px;">
               <div id="clbCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:300px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
             </div>
-            <select id="clbCnLevel" style="width:140px; font-size:10px; padding:1px 3px;">
+            <select id="clbCnLevel" style="width:104px; font-size:10px; padding:2px 3px;">
               <option value="altered" selected>With event</option><option value="wt">Only WT</option>
             </select>
           </div>
@@ -6391,7 +6400,7 @@
           </div>
           <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="padding:4px 6px; font-size:10px; display:none;">&#x25BC;</button>
           <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Reset all filters">Reset</button>
-          <button id="clbInfoBtn" class="btn btn-outline btn-sm" title="What do these filters and sorts mean?" style="padding:4px 8px; font-weight:700;">?</button>
+          <button id="clbInfoBtn" class="btn btn-outline btn-sm" title="What the filters, sorts and symbols above mean, and where the data behind them comes from" style="padding:3px 8px;">? Filters</button>
           <span id="clbSelectionCount" class="clb-selection-count mobile-hide">0 selected</span>
           <div id="clbActiveFilters" style="display:none; font-size:10px; color:#374151; padding:2px 0; gap:4px; flex-wrap:wrap; align-items:center; width:100%;"></div>
           <!-- Action buttons grouped by intent: selection · inspect · export.
@@ -6400,8 +6409,8 @@
           <div class="mobile-hide" style="margin-left:auto; display:flex; gap:6px; align-items:center;">
             <!-- Selection group — bulk-select helpers, hidden on phones to declutter -->
             <span class="mobile-hide" style="display:contents;">
-            <button id="clbSelectVisible" class="btn btn-outline btn-sm">Select Visible</button>
-            <button id="clbDeselectAll" class="btn btn-outline btn-sm">Deselect All</button>
+            <button id="clbSelectVisible" class="btn btn-outline btn-sm" title="Select every cell line currently passing the filters">Select Visible</button>
+            <button id="clbDeselectAll" class="btn btn-outline btn-sm" title="Clear the current selection">Deselect All</button>
             <button id="clbShowSelectedOnly" class="btn btn-outline btn-sm" title="Show only the cell lines you've selected (toggle)">Show Selected</button>
             <button id="clbCopyNamesBtn" class="btn btn-outline btn-sm" title="Copy the names of the selected cell lines (one per line) to the clipboard, ready to paste into Custom CLs">Copy Names</button>
             </span>
@@ -6439,7 +6448,7 @@
                  it grows to ~1100 px and shows 3 columns of entries. -->
             <div id="clbCollectionPanel" style="display:none; position:absolute; top:100%; left:0; min-width:340px; width:max-content; max-width:min(1100px, calc(100vw - 80px)); max-height:min(640px, calc(100vh - 160px)); overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.12); z-index:1200; font-size:11px; padding:8px 10px;"></div>
           </div>
-          <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm" title="Show inclusion criteria for each quick filter" style="padding:2px 8px; font-size:10px; font-weight:700;">?</button>
+          <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm" title="What each quick filter includes, and the rule used to decide membership" style="padding:2px 8px; font-size:10px;">? Quick filters</button>
         </div>
         <!-- Custom Cell Line Filter for CLB (hidden on phones) -->
         <div class="mobile-hide" style="padding: 4px 12px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
@@ -6771,6 +6780,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_58"></script>
+    <script src="app.js?v=v84_59"></script>
 </body>
 </html>

@@ -60,8 +60,15 @@ const DEPMAP_VERSION = '25Q3';
 // Build a CSV filename with DepMap release + today's date suffix.
 // csvName('correlations') -> 'correlations_DepMap25Q3_2026-04-18.csv'
 function csvName(stem) {
-    const date = new Date().toISOString().slice(0, 10);
-    return `${stem}_DepMap${DEPMAP_VERSION}_${date}.csv`;
+    return `${stem}_DepMap${DEPMAP_VERSION}_${exportStamp()}.csv`;
+}
+
+// Date and time of the export, so two files made minutes apart from different
+// settings don't share a name and can be told apart later.
+function exportStamp() {
+    const d = new Date();
+    const p2 = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
 }
 
 class CorrelationExplorer {
@@ -5197,7 +5204,8 @@ class CorrelationExplorer {
             gates: 'Gate compare, two-population scatter',
             correlations: 'Correlation analysis, input gene set',
             clusters: 'Cluster network, correlation network',
-            exprCorrelates: 'Expression correlates, target gene'
+            exprCorrelates: 'Expression correlates, target gene',
+            wiki: 'Cell line wiki, one cell line'
         };
         const aiShowDialog = (source) => {
             this._aiExportSource = source;
@@ -5248,6 +5256,7 @@ class CorrelationExplorer {
         document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('scatter'));
         document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('mutation'));
         document.getElementById('networkAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('clusters'));
+        document.getElementById('clbWikiAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('wiki'));
         // Stash the helper so exportForAI (gates / correlations / clusters /
         // exprCorrelates menu entries) can reach the same dialog.
         this._aiShowDialog = aiShowDialog;
@@ -10828,7 +10837,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'correlation_network.svg';
+        a.download = `correlation_network_${exportStamp()}.svg`;
         a.click();
         URL.revokeObjectURL(url);
     }
@@ -22307,7 +22316,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         } catch (e) { /* keep html2canvas's own chart render if compositing fails */ }
         saved.forEach(s => { for (const p in s.prev) s.el.style[p] = s.prev[p]; });
         const date = new Date().toISOString().slice(0, 10);
-        const filename = `${fileStem || 'correlate_figure'}_${date}`;
+        const filename = `${fileStem || 'correlate_figure'}_${exportStamp()}`;
         const meta = (typeof this._buildExportMetadata === 'function')
             ? this._buildExportMetadata('popout_screenshot', { scope, ...metaExtra })
             : null;
@@ -22336,6 +22345,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // genes, cohort), independent of whether the image itself is re-imported.
     _downloadMetaSidecar(filename, metaJson) {
         if (!metaJson) return;
+        if (!/_\d{4}-\d{2}-\d{2}_\d{4}$/.test(filename)) filename = `${filename}_${exportStamp()}`;
         try {
             const blob = new Blob([metaJson], { type: 'application/json' });
             const a = document.createElement('a');
@@ -22348,6 +22358,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     async _downloadCanvasAs(canvas, fmt, filename, opts = {}) {
         const { dpi = 300, widthCm, heightCm, metaJson, svg, skipSidecar } = opts;
+        // Date and time on every exported file, so a folder of them can be told
+        // apart later. Added here rather than at each call site.
+        if (filename && !/_\d{4}-\d{2}-\d{2}_\d{4}$/.test(filename)) filename = `${filename}_${exportStamp()}`;
         const save = (blob, ext) => {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -22693,6 +22706,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Normalize source aliases.
         if (source === 'mutations') source = 'mutation';
         if (source === 'gate') source = 'gates';
+
+        if (source === 'wiki') {
+            return this._wikiCellLineId ? [this._wikiCellLineId] : [];
+        }
 
         if (source === 'ge') {
             // Mutation inspect mode, currentGeneEffectData is already filter-aware
@@ -23105,6 +23122,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 annotations.sort((a, b) => a.cluster - b.cluster);
                 if (annotations.length) extras.clusterAnnotations = annotations;
             }
+        } else if (source === 'wiki') {
+            const cl = this._wikiCellLineId;
+            const name = cl ? (this.getCellLineName(cl) || cl) : '?';
+            context = {
+                type: 'cell_line_wiki',
+                cellLineId: cl,
+                cellLineName: name,
+                plotType: 'cell_line_profile', stratification: 'none'
+            };
+            description = `Everything the app holds on the single cell line ${name}.`;
+            extras = {
+                cellLine: { id: cl, name },
+                // The wiki's prose is generated from these same fields; it is a
+                // reading of the data, not a separate source, so it is included
+                // as text to discuss rather than as evidence in its own right.
+                generatedSummary: cl && typeof this._cellLineExecutiveSummary === 'function'
+                    ? String(this._cellLineExecutiveSummary(cl) || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+                    : null,
+                summaryCaveat: 'generatedSummary is written by the app from the structured fields in this file. Treat it as a starting point, not a source: check any claim in it against the underlying values, and say so if they disagree. Where a statement cannot be checked from this file, say that rather than assuming it holds.'
+            };
         } else if (source === 'exprCorrelates') {
             const ctx = this._exprCorrelateContext || {};
             context = {
