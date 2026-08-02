@@ -4803,6 +4803,9 @@ class CorrelationExplorer {
         });
 
         // Copy genes buttons
+        document.getElementById('showBelowCutoff')?.addEventListener('change', () => {
+            if (this.results) this.displayCorrelationsTable();
+        });
         document.getElementById('copyCorrelationGenes')?.addEventListener('click', () => this.copyGeneColumn('correlationsTable'));
         document.getElementById('copyClustersGenes')?.addEventListener('click', () => this.copyGeneColumn('clustersTable'));
         document.getElementById('copyMutationGenes')?.addEventListener('click', () => this.copyGeneColumn('mutationTable'));
@@ -5242,6 +5245,7 @@ class CorrelationExplorer {
         document.getElementById('geAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('ge'));
         document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('scatter'));
         document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('mutation'));
+        document.getElementById('networkAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('clusters'));
         // Stash the helper so exportForAI (gates / correlations / clusters /
         // exprCorrelates menu entries) can reach the same dialog.
         this._aiShowDialog = aiShowDialog;
@@ -8319,6 +8323,11 @@ class CorrelationExplorer {
 
     calculateCorrelations(geneList, mode, cutoff, minN, minSlope, cellLineIndices, expandNetwork = false, includeGrowthRate = false) {
         const correlations = [];
+        // Pairs that fall just short of the cutoff, for the optional
+        // "below cutoff" rows in the Correlations table.
+        const NEAR_MISS_KEEP = 300;
+        const nearFloor = Math.max(0.15, cutoff - 0.2);
+        const nearMisses = [];
         let targetGenes;
 
         if (mode === 'analysis') {
@@ -8371,7 +8380,8 @@ class CorrelationExplorer {
                 }
 
                 const result = this.pearsonWithSlope(data1, data2);
-                if (result.n >= minN && Math.abs(result.correlation) >= cutoff && Math.abs(result.slope) >= minSlope) {
+                const absR = Math.abs(result.correlation);
+                if (result.n >= minN && absR >= cutoff && Math.abs(result.slope) >= minSlope) {
                     correlations.push({
                         gene1: gene1,
                         gene2: gene2,
@@ -8380,6 +8390,23 @@ class CorrelationExplorer {
                         n: result.n,
                         cluster: 0
                     });
+                } else if (result.n >= minN && absR >= nearFloor && Math.abs(result.slope) >= minSlope) {
+                    // Just below the line. Kept so a borderline pair can still be
+                    // seen; bounded, because in expand mode this could otherwise
+                    // grow to millions of pairs.
+                    nearMisses.push({
+                        gene1: gene1,
+                        gene2: gene2,
+                        correlation: Math.round(result.correlation * 1000) / 1000,
+                        slope: Math.round(result.slope * 1000) / 1000,
+                        n: result.n,
+                        cluster: 0,
+                        belowCutoff: true
+                    });
+                    if (nearMisses.length > 4000) {
+                        nearMisses.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
+                        nearMisses.length = NEAR_MISS_KEEP;
+                    }
                 }
             }
         }
@@ -8524,6 +8551,11 @@ class CorrelationExplorer {
         return {
             success: true,
             correlations: correlations,
+            // Kept separate so nothing downstream (network, clusters, exports)
+            // silently starts including pairs the user filtered out.
+            belowCutoff: nearMisses
+                .sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation))
+                .slice(0, NEAR_MISS_KEEP),
             clusters: clusterData,
             geneList: geneList,
             mode: mode,
@@ -8636,6 +8668,20 @@ class CorrelationExplorer {
         this.displayCorrelationsTable();
         this.displayClustersTable();
         this.displaySummary();
+
+        // A restored figure has its display toggles ticked but nothing has run
+        // their handlers, so apply them now that the network exists.
+        if (this._pendingNetworkSettings) {
+            const ns = this._pendingNetworkSettings;
+            this._pendingNetworkSettings = null;
+            setTimeout(() => {
+                if (ns.colorByGeneEffect || ns.colorByStats) this.updateNetworkColors?.();
+                if (ns.showGeneEffect || ns.statsLabelDisplay !== 'none') {
+                    this.updateNetworkLabels?.();
+                    this.updateNetworkLabelsWithStats?.();
+                }
+            }, 150);
+        }
     }
 
     resetNetworkSettings() {
@@ -9591,41 +9637,58 @@ class CorrelationExplorer {
         const tbody = document.getElementById('correlationsBody');
         tbody.innerHTML = '';
 
-        // Deduplicate correlations (A-B is same as B-A)
+        // A-B and B-A are the same pair.
         const seenPairs = new Set();
-        const uniqueCorrelations = this.results.correlations.filter(c => {
+        const dedupe = (list) => (list || []).filter(c => {
             const pairKey = [c.gene1, c.gene2].sort().join('|');
-            if (seenPairs.has(pairKey)) {
-                return false;
-            }
+            if (seenPairs.has(pairKey)) return false;
             seenPairs.add(pairKey);
             return true;
         });
+        const byStrength = (a, b) => Math.abs(b.correlation) - Math.abs(a.correlation);
 
-        uniqueCorrelations
-            .sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation))
-            .forEach((c) => {
-                const tr = document.createElement('tr');
-                const corrClass = c.correlation > 0 ? 'corr-positive' : 'corr-negative';
-                tr.innerHTML = `
-                    <td class="gene-hover" data-gene="${c.gene1}" style="cursor: help;">${c.gene1}</td>
-                    <td class="gene-hover" data-gene="${c.gene2}" style="cursor: help;">${c.gene2}</td>
-                    <td class="${corrClass}">${c.correlation.toFixed(3)}</td>
-                    <td>${c.slope.toFixed(3)}</td>
-                    <td>${c.n}</td>
-                    <td>${c.cluster}</td>
-                    <td style="white-space: nowrap;">
-                        <button class="btn btn-sm inspect-btn" style="padding: 2px 6px; font-size: 10px; background: #5a9f4a; color: white;" data-gene1="${c.gene1}" data-gene2="${c.gene2}">Correlation</button>
-                    </td>
-                `;
-                // Add click handlers
-                tr.querySelector('.inspect-btn').addEventListener('click', () => {
-                    this.openInspectByGenes(c.gene1, c.gene2);
-                });
-                tbody.appendChild(tr);
+        const passing = dedupe(this.results.correlations).sort(byStrength);
+        const below = dedupe(this.results.belowCutoff).sort(byStrength);
+
+        // The toggle is only meaningful when there is something under the line.
+        const wrap = document.getElementById('showBelowCutoffWrap');
+        const toggle = document.getElementById('showBelowCutoff');
+        if (wrap) wrap.style.display = below.length ? 'inline-flex' : 'none';
+        const showBelow = !!(toggle && toggle.checked) && below.length > 0;
+
+        const addRow = (c, muted) => {
+            const tr = document.createElement('tr');
+            const corrClass = c.correlation > 0 ? 'corr-positive' : 'corr-negative';
+            if (muted) tr.style.opacity = '0.55';
+            tr.innerHTML = `
+                <td class="gene-hover" data-gene="${c.gene1}" style="cursor: help;">${c.gene1}</td>
+                <td class="gene-hover" data-gene="${c.gene2}" style="cursor: help;">${c.gene2}</td>
+                <td class="${muted ? '' : corrClass}" ${muted ? 'style="color:#6b7280;"' : ''}>${c.correlation.toFixed(3)}</td>
+                <td>${c.slope.toFixed(3)}</td>
+                <td>${c.n}</td>
+                <td>${muted ? '&ndash;' : c.cluster}</td>
+                <td style="white-space: nowrap;">
+                    <button class="btn btn-sm inspect-btn" style="padding: 2px 6px; font-size: 10px; background: ${muted ? '#9ca3af' : '#5a9f4a'}; color: white;" data-gene1="${c.gene1}" data-gene2="${c.gene2}">Correlation</button>
+                </td>
+            `;
+            tr.querySelector('.inspect-btn').addEventListener('click', () => {
+                this.openInspectByGenes(c.gene1, c.gene2);
             });
+            tbody.appendChild(tr);
+        };
 
-        // Attach gene tooltip handlers
+        passing.forEach(c => addRow(c, false));
+
+        if (showBelow) {
+            const cutoff = this.results.cutoff;
+            const sep = document.createElement('tr');
+            sep.innerHTML = `<td colspan="7" style="background:#f9fafb; border-top:2px solid #9ca3af; border-bottom:1px solid #e5e7eb; padding:6px 8px; font-size:11px; color:#6b7280;">`
+                + `Below the ${typeof cutoff === 'number' ? cutoff.toFixed(2) : cutoff} cutoff &mdash; shown for context only. `
+                + `These pairs are not in the network and have no cluster.</td>`;
+            tbody.appendChild(sep);
+            below.forEach(c => addRow(c, true));
+        }
+
         this.attachGeneTooltips(tbody);
     }
 
@@ -9702,14 +9765,14 @@ class CorrelationExplorer {
             headerCells += `<th data-sort="hasCorrelation">Corr</th>`;
         }
         headerCells += `
-            <th data-sort="meanEffect">Mean (All)</th>
-            <th data-sort="sdEffect">SD (All)</th>
+            <th data-sort="meanEffect" title="Mean gene effect across all cell lines. Negative means knocking the gene out slows growth.">GE mean (all)</th>
+            <th data-sort="sdEffect" title="Spread of the gene effect across all cell lines. A high value means the dependency varies a lot between lines.">GE SD (all)</th>
         `;
 
         if (isFiltered) {
             headerCells += `
-            <th data-sort="meanEffectFiltered">Mean (Filt)</th>
-            <th data-sort="sdEffectFiltered">SD (Filt)</th>
+            <th data-sort="meanEffectFiltered" title="Mean gene effect across the filtered cell lines only">GE mean (filtered)</th>
+            <th data-sort="sdEffectFiltered" title="Spread of the gene effect across the filtered cell lines only">GE SD (filtered)</th>
             `;
         }
 
@@ -18220,6 +18283,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
                 const tbg = document.getElementById('exportNetworkTransparentBg');
                 if (tbg) tbg.checked = ns.transparentBg || false;
+                const showUncorr = document.getElementById('showUncorrelatedGenes');
+                if (showUncorr) showUncorr.checked = !!ns.showUncorrelatedGenes;
+                const showGE = document.getElementById('showGeneEffect');
+                if (showGE) showGE.checked = !!ns.showGeneEffect;
+                const showSD = document.getElementById('showGeneEffectSD');
+                if (showSD) showSD.checked = !!ns.showGeneEffectSD;
+                if (ns.statsLabelDisplay) {
+                    const r = document.querySelector(`input[name="statsLabelDisplay"][value="${ns.statsLabelDisplay}"]`);
+                    if (r) r.checked = true;
+                }
+                const nb = document.getElementById('networkNodeBorder');
+                if (nb) nb.checked = ns.nodeBorder !== false;
+                // Ticking the boxes is not enough: the colouring and the labels
+                // are applied by their handlers, which nothing fires here. Do it
+                // once the rerun below has drawn the network.
+                this._pendingNetworkSettings = ns;
             }
             // Restore oncoprint filters
             if (meta.oncoprintFilters && meta.oncoprintFilters.length > 0) {
@@ -18531,6 +18610,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             colorByStats: document.getElementById('colorByStats')?.checked || false,
             colorStatType: document.querySelector('input[name="colorStatType"]:checked')?.value || 'signed_lfc',
             colorScale: document.querySelector('input[name="colorScale"]:checked')?.value || 'all',
+            showUncorrelatedGenes: document.getElementById('showUncorrelatedGenes')?.checked || false,
+            showGeneEffect: document.getElementById('showGeneEffect')?.checked || false,
+            showGeneEffectSD: document.getElementById('showGeneEffectSD')?.checked || false,
+            statsLabelDisplay: document.querySelector('input[name="statsLabelDisplay"]:checked')?.value || 'none',
+            nodeBorder: document.getElementById('networkNodeBorder')?.checked !== false,
             lineageFilter: document.getElementById('lineageFilter')?.value || '',
             subLineageFilter: document.getElementById('subLineageFilter')?.value || '',
             minSlope: document.getElementById('minSlope')?.value || '0.1',
@@ -22005,7 +22089,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 URL.revokeObjectURL(svgUrl);
                 // PNG / TIFF use this rasterised canvas; PDF / PPTX prefer the
                 // vector SVG (passed through) and fall back to the canvas.
-                await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson, svg: outSvg, widthPx: w, heightPx: h });
+                // Charts reserve a top margin for the title, which leaves a blank
+                // band above the figure once exported. Crop it, and recompute the
+                // print height so the proportions survive.
+                const trimmed = this._trimCanvasWhitespace(canvas);
+                const outH = (trimmed !== canvas && trimmed.width)
+                    ? Math.round(widthCm * (trimmed.height / trimmed.width) * 100) / 100
+                    : heightCm;
+                await this._downloadCanvasAs(trimmed, fmt, filename, { dpi, widthCm, heightCm: outH, metaJson, svg: outSvg, widthPx: w, heightPx: h });
                 resolve();
             };
             img.onerror = () => { URL.revokeObjectURL(svgUrl); resolve(); };
@@ -28453,14 +28544,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     `<span style="flex:1;">${esc(grp.tissue)}</span><span style="color:#9ca3af; font-weight:400;">${total}</span></div>` + rows;
             }).join('') +
             `</div>` +
-            `<div style="display:flex; gap:6px; align-items:center; padding:6px 4px 0;">` +
-            `<button id="cbgAll" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">Colour all</button>` +
-            `<button id="cbgTop" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;" title="The ${this.COLOR_BY_DEFAULT_TOP} groups holding the most cell lines">${this.COLOR_BY_DEFAULT_TOP} largest</button>` +
-            `<button id="cbgSuggest" style="font-size:10px; padding:2px 6px; border:1px solid #bbf7d0; border-radius:4px; background:#f0fdf4; color:#15803d; cursor:pointer;" title="The 5 groups with the strongest correlation of their own, counting only groups of at least 10 cell lines">Strongest r</button>` +
-            `<button id="cbgNone" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">None</button>` +
-            `<span id="cbgCount" style="font-size:10px; color:#6b7280; flex:1; text-align:right;"></span>` +
-            `<button id="cbgApply" style="font-size:11px; padding:3px 10px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Apply</button>` +
-            `</div>`;
+            // Two rows: the presets, then the count and Apply. On one row the
+            // four presets pushed Apply into the corner and squeezed the count
+            // between them.
+            `<div style="padding:8px 4px 0; border-top:1px solid #f3f4f6; margin-top:6px;">` +
+            `<div style="display:flex; gap:4px; flex-wrap:wrap;">` +
+            `<button id="cbgAll" style="font-size:10px; padding:3px 8px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer; white-space:nowrap;">Colour all</button>` +
+            `<button id="cbgTop" style="font-size:10px; padding:3px 8px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer; white-space:nowrap;" title="The ${this.COLOR_BY_DEFAULT_TOP} groups holding the most cell lines">${this.COLOR_BY_DEFAULT_TOP} largest</button>` +
+            `<button id="cbgSuggest" style="font-size:10px; padding:3px 8px; border:1px solid #bbf7d0; border-radius:4px; background:#f0fdf4; color:#15803d; cursor:pointer; white-space:nowrap;" title="The 5 groups with the strongest correlation of their own, counting only groups of at least 10 cell lines">Strongest r</button>` +
+            `<button id="cbgNone" style="font-size:10px; padding:3px 8px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer; white-space:nowrap;">None</button>` +
+            `</div>` +
+            `<div style="display:flex; gap:8px; align-items:center; margin-top:8px;">` +
+            `<span id="cbgCount" style="font-size:10px; color:#6b7280; flex:1;"></span>` +
+            `<button id="cbgApply" style="font-size:11px; padding:4px 14px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Apply</button>` +
+            `</div></div>`;
         document.body.appendChild(panel);
 
         const btn = document.getElementById('colorByGroupBtn');

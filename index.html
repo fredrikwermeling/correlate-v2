@@ -1820,6 +1820,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.56 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>See the pairs that just missed the cutoff.</b> A <b>below cutoff</b> tick box above the Correlations table lists them under a divider, greyed, so a borderline result is not simply invisible. They are context only: not in the network, no cluster.</li>
+                    <li><b>Fix: reopening a saved figure lost some network settings.</b> <em>Colour by GE</em> was recorded but never re-applied after the analysis re-ran, and <em>Show all input genes</em> was not recorded at all. Both now come back, along with the GE label, its SD, the statistics label and the node border.</li>
+                    <li><b>Fix: the tip above the Correlations table named a button that does not exist.</b> It said to click <em>Scatter</em>; the button is <b>Correlation</b>.</li>
+                    <li><b>The AI exports are all called Export for AI</b>, instead of <code>.json.gz</code>, and the network has one now too.</li>
+                    <li><b>Cluster columns say what they measure.</b> <em>Mean (All)</em> and <em>SD (All)</em> are now <b>GE mean</b> and <b>GE SD</b>, with the caption explaining that gene effect is how much the cell lines depend on that gene.</li>
+                    <li><b>Chart exports are trimmed like the network ones.</b> Charts reserve space above for the title, which left a blank band across the top of the picture.</li>
+                    <li>The group picker's buttons no longer crowd <b>Apply</b> into the corner.</li>
+                </ul>
                 <p><strong>v.84.55 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Gene names no longer land on top of other nodes.</b> The layout spaced nodes by a fixed distance that took no account of the label, which is drawn below the circle, so a name could sit squarely over its neighbour. Spacing is now worked out from the node and font sizes, so it keeps working when either slider is moved, and each node is treated as an area to keep clear rather than a point. The same applies to the other layouts under Settings.</li>
@@ -4323,7 +4333,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.55</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.56</a>
     </div>
 
     <div class="main-content">
@@ -4850,6 +4860,7 @@
                             <div class="button-group-horizontal">
                                 <button class="btn btn-secondary mobile-hide" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                                 <button class="btn btn-secondary" id="downloadNetworkSVG" style="display:none;">SVG</button>
+                                <button class="btn btn-sm" id="networkAnalyzeWithAI" style="background:#0369a1;color:white;" title="Package this network as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                                 <button class="btn btn-info" id="downloadAllData" title="Download everything behind this run as one zip: the correlation table, the clusters, the gene-effect values for the genes in the network, and the settings used, as CSV files you can open in Excel or R">All Data (ZIP)</button>
                             </div>
                         </div>
@@ -4897,11 +4908,12 @@
                 <!-- Correlations Tab -->
                 <div class="tab-content" id="tab-correlations">
                     <div class="tip-box">
-                        <strong>Tip:</strong> Click <strong>Scatter</strong> to view the correlation plot (drill into By Tissue / By Hotspot from there). Ctrl/Cmd+click a column header to copy that column. Use <strong>Filters</strong> to set numeric cutoffs on columns.
+                        <strong>Tip:</strong> Click <strong>Correlation</strong> to open the plot for a pair (By Tissue and By genetic change are reachable from there). Ctrl/Cmd+click a column header to copy that column. Use <strong>Filters</strong> to set numeric cutoffs on columns.
                     </div>
                     <div class="table-controls">
                         <input type="text" class="table-search" id="correlationsSearch" placeholder="Search...">
                         <button class="btn btn-outline btn-sm" id="filterCorrelationsToggle" title="Toggle column filters">Filters</button>
+                        <label id="showBelowCutoffWrap" style="display:none; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Also list the pairs that fell just short of the correlation cutoff, so a borderline result is still visible. They appear greyed below a divider and are not part of the network or the clusters."><input type="checkbox" id="showBelowCutoff"> below cutoff</label>
                         <button class="btn btn-outline btn-sm" id="copyCorrelationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadCorrelations">Download CSV</button>
                         <button class="btn btn-secondary btn-sm enrichrBtn" data-source="correlations" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
@@ -4932,7 +4944,7 @@
                     <div id="clustersFilterInfo" style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; display: none;">
                         <strong>Filters:</strong> <span id="clustersFilterText"></span>
                     </div>
-                    <p class="help-text" style="margin-bottom: 15px;">Mean (All) = all cells, Mean (Filt) = filtered cells. * indicates genes from your input list (when expanding your set). All input genes are shown; "Corr" column indicates if correlations were found.</p>
+                    <p class="help-text" style="margin-bottom: 15px;">The <b>GE</b> columns are gene effect: how much the cell lines depend on that gene, averaged across all cell lines, or across the filtered ones where a filter is set. * marks genes from your own list when expanding a set. All input genes are listed; <b>Corr</b> says whether any correlation was found.</p>
                     <div class="table-controls">
                         <input type="text" class="table-search" id="clustersSearch" placeholder="Search...">
                         <button class="btn btn-outline btn-sm" id="filterClustersToggle" title="Toggle column filters">Filters</button>
@@ -5015,7 +5027,7 @@
                     <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
                         <span style="font-size: 10px; color: #9ca3af;">Export:</span>
                         <button class="btn btn-outline btn-sm" id="downloadMutationResults" title="Download table as CSV spreadsheet">.csv</button>
-                        <button class="btn btn-sm" id="mutAnalyzeWithAI" style="background:#0369a1;color:white;font-size:10px;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
+                        <button class="btn btn-sm" id="mutAnalyzeWithAI" style="background:#0369a1;color:white;font-size:10px;" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                         <button class="btn btn-outline btn-sm mobile-hide" id="exportMutTablePNG" title="Export the visible table, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                         <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
                         <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
@@ -5330,7 +5342,7 @@
                 <span class="mobile-hide" style="font-size:10px; color:#9ca3af;">Export:</span>
                 <button class="btn btn-outline btn-sm mobile-hide" id="downloadScatterPNG" title="Export the scatter plot, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                 <button class="btn btn-outline btn-sm" id="downloadScatterCSV" title="Download data as CSV spreadsheet">.csv</button>
-                <button class="btn btn-sm" id="scatterAnalyzeWithAI" style="background:#0369a1;color:white;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
+                <button class="btn btn-sm" id="scatterAnalyzeWithAI" style="background:#0369a1;color:white;" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                 <button class="btn btn-outline btn-sm mobile-hide" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                 <button class="btn btn-outline btn-sm" id="downloadTissueCSV" style="display:none;" title="Download tissue table as CSV">.csv</button>
                 <span class="mobile-hide" style="font-size:10px; display:inline-flex; gap:8px; align-items:center; color:#666; margin-left:4px;">
@@ -5607,7 +5619,7 @@
                     <button class="btn btn-outline btn-sm" id="downloadGETableCSV">By Group</button>
                     <button class="btn btn-outline btn-sm" id="downloadGECellLineCSV">By Cell Line</button>
                     <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
-                    <button class="btn btn-sm" id="geAnalyzeWithAI" style="background: #0369a1; color: white; font-size: 11px;" title="Full compressed export (GE + expression + mutations) for external analysis">.json.gz</button>
+                    <button class="btn btn-sm" id="geAnalyzeWithAI" style="background: #0369a1; color: white; font-size: 11px;" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                     <button class="btn btn-sm" id="toggleExprCorrelatesBtn" style="background: #5a9f4a; color: white; display: none;">Expression Correlates</button>
                 </div>
 
@@ -6744,6 +6756,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_55"></script>
+    <script src="app.js?v=v84_56"></script>
 </body>
 </html>
