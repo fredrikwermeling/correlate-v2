@@ -28065,15 +28065,32 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return cols.reduce((sum, col, i) => sum + (i === cols.length - 1 ? col.drawn : col.slot), 0);
     }
 
-    // Label for everything outside the picked groups.
-    get OTHER_GROUP_LABEL() { return 'Other'; }
+    // Label for everything outside the picked groups. Not "Other": that is a
+    // real lineage in the DepMap data, so the grey bucket would have collided
+    // with an actual tissue of the same name.
+    get OTHER_GROUP_LABEL() { return 'Not selected'; }
 
-    // The groups the user picked, as a Set, or null when nothing is picked (in
-    // which case every group is coloured as before). Picks that are not present
-    // in the current data are ignored rather than emptying the plot.
+    // How many groups get a colour before the rest are greyed, when the user
+    // hasn't picked any explicitly.
+    get COLOR_BY_DEFAULT_TOP() { return 8; }
+
+    // The groups to colour, as a Set, or null to colour every group.
+    //
+    // Three states, because "nothing picked yet" and "deliberately show
+    // everything" need to mean different things:
+    //   ''   nothing chosen, colour the top few and grey the rest
+    //   '*'  the user asked for all groups
+    //   a|b  exactly these
+    // `available` arrives sorted by descending count. Picks that are not in the
+    // current data are ignored rather than emptying the plot.
     _colorByPickedSet(available) {
         const raw = (document.getElementById('colorByPicked')?.value || '').trim();
-        if (!raw) return null;
+        if (raw === '*') return null;
+        if (!raw) {
+            // Colouring 30 tissues, let alone 70 subtypes, is unreadable.
+            if (available.length <= this.COLOR_BY_DEFAULT_TOP) return null;
+            return new Set(available.slice(0, this.COLOR_BY_DEFAULT_TOP));
+        }
         const want = new Set(raw.split('|').filter(Boolean));
         const usable = new Set(available.filter(c => want.has(c)));
         return usable.size ? usable : null;
@@ -28099,7 +28116,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (!cats.length) return;
 
         const hidden = document.getElementById('colorByPicked');
-        const picked = new Set((hidden?.value || '').split('|').filter(Boolean));
+        // Show what is actually coloured right now, so the default top-N state
+        // isn't presented as an empty list.
+        const effective = this._colorByPickedSet(cats);
+        const picked = effective ? new Set(effective) : new Set(cats);
         const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
         const panel = document.createElement('div');
@@ -28116,7 +28136,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 `<span style="color:#9ca3af;">${counts[c]}</span></label>`).join('') +
             `</div>` +
             `<div style="display:flex; gap:6px; align-items:center; padding:6px 4px 0;">` +
-            `<button id="cbgClear" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">Colour all</button>` +
+            `<button id="cbgAll" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">Colour all</button>` +
+            `<button id="cbgTop" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">Top ${this.COLOR_BY_DEFAULT_TOP}</button>` +
             `<span id="cbgCount" style="font-size:10px; color:#6b7280; flex:1; text-align:right;"></span>` +
             `<button id="cbgApply" style="font-size:11px; padding:3px 10px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Apply</button>` +
             `</div>`;
@@ -28132,7 +28153,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const countEl = panel.querySelector('#cbgCount');
         const refresh = () => {
             const n = checks().filter(c => c.checked).length;
-            countEl.textContent = n ? `${n} selected` : 'none, all coloured';
+            countEl.textContent = n === cats.length ? `all ${n}` : n ? `${n} of ${cats.length}` : 'none selected';
         };
         refresh();
         panel.addEventListener('change', (e) => { if (e.target.classList.contains('cbg-check')) refresh(); });
@@ -28145,13 +28166,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const close = () => { panel.remove(); document.removeEventListener('mousedown', outside, true); };
         const outside = (e) => { if (!panel.contains(e.target) && !btn.contains(e.target)) close(); };
         setTimeout(() => document.addEventListener('mousedown', outside, true), 0);
-        panel.querySelector('#cbgClear').addEventListener('click', () => {
-            checks().forEach(c => { c.checked = false; });
+        panel.querySelector('#cbgAll').addEventListener('click', () => {
+            checks().forEach(c => { c.checked = true; });
+            refresh();
+        });
+        panel.querySelector('#cbgTop').addEventListener('click', () => {
+            const top = new Set(cats.slice(0, this.COLOR_BY_DEFAULT_TOP));
+            checks().forEach(c => { c.checked = top.has(c.dataset.cat); });
             refresh();
         });
         panel.querySelector('#cbgApply').addEventListener('click', () => {
             const chosen = checks().filter(c => c.checked).map(c => c.dataset.cat);
-            if (hidden) hidden.value = chosen.join('|');
+            // Everything ticked means "colour all", which is different from
+            // having made no choice (that falls back to the top few).
+            if (hidden) hidden.value = chosen.length === cats.length ? '*' : chosen.join('|');
             close();
             this._syncColorByGroupBtn();
             this.updateInspectPlot();
@@ -28166,8 +28194,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const mode = document.getElementById('colorByCategory')?.value;
         const on = mode === 'tissue' || mode === 'subtype';
         btn.style.display = on ? '' : 'none';
-        const n = ((document.getElementById('colorByPicked')?.value || '').split('|').filter(Boolean)).length;
-        btn.textContent = n ? `Groups: ${n}` : 'Pick groups...';
+        const raw = (document.getElementById('colorByPicked')?.value || '').trim();
+        if (raw === '*') btn.textContent = 'Groups: all';
+        else if (raw) btn.textContent = `Groups: ${raw.split('|').filter(Boolean).length}`;
+        else btn.textContent = `Groups: top ${this.COLOR_BY_DEFAULT_TOP}`;
     }
 
     // Total plot width for the three-panel view. #plotWidth is sized for a

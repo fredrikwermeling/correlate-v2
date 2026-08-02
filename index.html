@@ -1804,6 +1804,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.46 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Colour by tissue or subtype now starts with the 8 largest groups</b> and greys the rest as <b>Not selected</b>, instead of giving 30 tissues (or 70 subtypes) a colour each and leaving the plot unreadable. The <b>Pick groups</b> button opens pre-ticked with those 8, so you can see what you are changing; <b>Top 8</b> and <b>Colour all</b> are one click each, and the plot only greys anything when there are more than 8 groups to begin with.</li>
+                    <li>The grey bucket is called <b>Not selected</b> rather than <b>Other</b>, because <em>Other</em> is a real lineage in the data and the two would have been indistinguishable.</li>
+                </ul>
                 <p><strong>v.84.45 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Highlight chosen tissues or subtypes.</b> <b>Color by...</b> now has a <b>Pick groups</b> button: tick the tissues or subtypes you care about and only those are coloured, with everything else folded into one grey <b>Other</b> series. <b>By subtype</b> is available without first choosing a tissue, since picking a handful out of 70+ is now practical. Works in the single and three-panel views, and the choice is kept in exports and new tabs.</li>
@@ -4239,7 +4244,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.45</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.46</a>
     </div>
 
     <div class="main-content">
@@ -6625,6 +6630,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_45"></script>
+    <script src="app.js?v=v84_46"></script>
 </body>
 </html>
