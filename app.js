@@ -4453,7 +4453,7 @@ class CorrelationExplorer {
 
         document.getElementById('downloadNetworkPNG').addEventListener('click', () => this.downloadNetworkPNG());
         document.getElementById('downloadNetworkSVG').addEventListener('click', () => this.downloadNetworkSVG());
-        document.getElementById('downloadFullPagePNG')?.addEventListener('click', () => this.downloadFullPagePNG());
+        document.getElementById('screenshotWholePage')?.addEventListener('click', () => this.downloadFullPagePNG());
         document.getElementById('downloadAllData').addEventListener('click', () => this.downloadAllData());
 
         // Color by stats controls (mutually exclusive with GE)
@@ -10692,41 +10692,21 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         URL.revokeObjectURL(url);
     }
 
+    // Whole-page screenshot, for explaining the app rather than for figures.
+    // Goes through the shared export dialog like everything else, so the format
+    // and resolution are chosen there instead of being fixed at PNG.
     async downloadFullPagePNG() {
-        if (typeof html2canvas === 'undefined') {
-            alert('html2canvas library not loaded. Please refresh the page.');
-            return;
-        }
-
-        const btn = document.getElementById('downloadFullPagePNG');
-        const origText = btn?.textContent;
-        if (btn) btn.textContent = 'Capturing...';
-
+        // html2canvas renders from the top of the document; capturing while the
+        // page is scrolled left a tall white band above the content.
+        const sx = window.scrollX, sy = window.scrollY;
+        window.scrollTo(0, 0);
+        // setTimeout, not requestAnimationFrame: rAF is paused while the tab
+        // is in the background, which would hang the capture indefinitely.
+        await new Promise(r => setTimeout(r, 60));
         try {
-            const target = document.body;
-            const canvas = await html2canvas(target, {
-                scale: 3,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff',
-                logging: false,
-                windowWidth: target.scrollWidth,
-                windowHeight: target.scrollHeight
-            });
-
-            canvas.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'correlate_screenshot.png';
-                a.click();
-                URL.revokeObjectURL(url);
-                if (btn) btn.textContent = origText;
-            }, 'image/png');
-        } catch (err) {
-            console.error('Screenshot failed:', err);
-            alert('Screenshot capture failed. See console for details.');
-            if (btn) btn.textContent = origText;
+            await this.screenshotPopout(document.body, 'correlate_screenshot');
+        } finally {
+            window.scrollTo(sx, sy);
         }
     }
 
@@ -23889,12 +23869,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const el = document.getElementById('geneTooltip');
             if (!el || el.dataset.gene !== gene) return;
 
-            const links = info && info.entrezgene
-                ? `<a href="https://www.ncbi.nlm.nih.gov/gene/${info.entrezgene}" target="_blank" rel="noopener" style="color:#15803d; text-decoration:none;">NCBI Gene &nbsp;&#8599;</a>`
-                : `<a href="https://www.ncbi.nlm.nih.gov/gene/?term=${encodeURIComponent(gene)}" target="_blank" rel="noopener" style="color:#15803d; text-decoration:none;">NCBI Gene &nbsp;&#8599;</a>`;
-            const hgncLink = info && info.hgnc
-                ? ` &nbsp;|&nbsp; <a href="https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${info.hgnc}" target="_blank" rel="noopener" style="color:#15803d; text-decoration:none;">HGNC &#8599;</a>`
-                : '';
+            // Outbound references. The symbol is what every one of these
+            // resolves on, so they work whether or not mygene.info answered.
+            const sym = (info && info.symbol) || gene;
+            const q = encodeURIComponent(sym);
+            const linkStyle = 'color:#15803d; text-decoration:none; white-space:nowrap;';
+            const mkLink = (href, label) => `<a href="${href}" target="_blank" rel="noopener" style="${linkStyle}">${label}&nbsp;&#8599;</a>`;
+            const refs = [
+                mkLink(info && info.entrezgene
+                    ? `https://www.ncbi.nlm.nih.gov/gene/${info.entrezgene}`
+                    : `https://www.ncbi.nlm.nih.gov/gene/?term=${q}`, 'NCBI'),
+                mkLink(`https://www.proteinatlas.org/search/${q}`, 'Protein Atlas'),
+                mkLink(`https://www.genecards.org/cgi-bin/carddisp.pl?gene=${q}`, 'GeneCards'),
+                mkLink(`https://www.uniprot.org/uniprotkb?query=gene:${q}+AND+organism_id:9606`, 'UniProt'),
+                mkLink(`https://depmap.org/portal/gene/${q}?tab=overview`, 'DepMap')
+            ];
+            if (info && info.hgnc) {
+                refs.push(mkLink(`https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${info.hgnc}`, 'HGNC'));
+            }
+            const links = refs.join(' &nbsp;&middot;&nbsp; ');
 
             const closeBtn = el.dataset.pinned === '1'
                 ? `<button title="Close (Esc)" style="position:absolute; top:4px; right:6px; background:none; border:none; font-size:18px; line-height:1; color:#9ca3af; cursor:pointer;" onclick="app.hideGeneTooltip(true)">&times;</button>`
@@ -23927,9 +23920,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 html += `<div style="color:#9ca3af;">No info available.</div>`;
             }
 
-            html += `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #f3f4f6; font-size:10px; color:#6b7280; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">`;
-            html += `<span>${links}${hgncLink}</span>`;
-            html += `<span style="color:#9ca3af;">${el.dataset.pinned === '1' ? 'Esc to close' : 'Hold Shift for full text'}</span>`;
+            // Links wrap onto their own line so adding more of them doesn't
+            // squeeze the hint next to them.
+            html += `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #f3f4f6; font-size:10px; color:#6b7280;">`;
+            html += `<div style="display:flex; flex-wrap:wrap; gap:2px 4px;">${links}</div>`;
+            html += `<div style="color:#9ca3af; margin-top:4px;">${el.dataset.pinned === '1' ? 'Esc to close' : 'Hold Shift for full text'}</div>`;
             html += `</div>`;
 
             el.style.position = 'fixed';
@@ -38436,6 +38431,80 @@ const MODAL_IDS = [
     'collectionsInfoModal', 'selectionInspectModal', 'mutCompareModal', 'enrichrModal',
     'clbWikiModal', 'clbInfoModal', 'cellLineBrowserModal', 'exportPreviewModal'
 ];
+
+// Explanation popouts on hover. The browser's own tooltip is slow, tiny, and
+// truncates, so the title text is borrowed and shown in a readable box after a
+// short delay. Scoped to buttons, links and labels: canvases set their `title`
+// dynamically while the pointer moves over them, and hijacking that would fight
+// with the element's own logic.
+const HELP_DELAY_MS = 550;
+const HELP_SELECTOR = 'button[title], label[title], a[title], [data-help]';
+
+document.addEventListener('DOMContentLoaded', () => {
+    let timer = null;
+    let current = null;
+    let box = null;
+
+    const hide = () => {
+        clearTimeout(timer);
+        timer = null;
+        box?.remove();
+        box = null;
+        // Put the native tooltip back so nothing else loses it.
+        if (current && current._helpText != null) {
+            current.setAttribute('title', current._helpText);
+            current._helpText = null;
+        }
+        current = null;
+    };
+
+    const show = (el, text) => {
+        box?.remove();
+        box = document.createElement('div');
+        box.className = 'help-popout';
+        box.textContent = text;
+        document.body.appendChild(box);
+        const r = el.getBoundingClientRect();
+        const b = box.getBoundingClientRect();
+        const margin = 8;
+        let left = r.left + r.width / 2 - b.width / 2;
+        left = Math.max(margin, Math.min(left, window.innerWidth - b.width - margin));
+        // Below the control by default, above it when there isn't room.
+        let top = r.bottom + 6;
+        if (top + b.height > window.innerHeight - margin) top = r.top - b.height - 6;
+        top = Math.max(margin, Math.min(top, window.innerHeight - b.height - margin));
+        box.style.left = Math.round(left) + 'px';
+        box.style.top = Math.round(top) + 'px';
+    };
+
+    document.addEventListener('mouseover', (e) => {
+        const el = e.target.closest?.(HELP_SELECTOR);
+        if (!el || el === current) return;
+        if (el.closest('.js-plotly-plot, .help-popout')) return;
+        hide();
+        const text = el.dataset.help || el.getAttribute('title') || '';
+        if (!text.trim()) return;
+        current = el;
+        // Remove the native tooltip so both don't appear at once.
+        if (el.hasAttribute('title')) {
+            el._helpText = el.getAttribute('title');
+            el.removeAttribute('title');
+        }
+        timer = setTimeout(() => { if (current === el && el.isConnected) show(el, text); }, HELP_DELAY_MS);
+    }, true);
+
+    document.addEventListener('mouseout', (e) => {
+        if (!current) return;
+        const to = e.relatedTarget;
+        if (to && current.contains(to)) return;
+        hide();
+    }, true);
+
+    // A click means the user has decided; the explanation is just in the way.
+    document.addEventListener('mousedown', hide, true);
+    window.addEventListener('blur', hide);
+    document.addEventListener('scroll', hide, true);
+});
 
 // Whether Shift is being held right now. The gene tooltip needs this because
 // it is created on a timer, long after the keydown that would have told it.
