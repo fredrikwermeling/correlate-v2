@@ -7330,7 +7330,11 @@ class CorrelationExplorer {
             try {
                 // Don't expand, keep current scroll state so it captures what's on screen
                 const canvas = await html2canvas(tableContainer, { scale: 2, backgroundColor: '#ffffff', scrollY: -window.scrollY });
-                await this._downloadCanvasAs(canvas, fmt, filename, { dpi: dlg.dpi, widthCm: dlg.widthCm, heightCm: dlg.heightCm });
+                const trimmedTbl = this._trimCanvasWhitespace(canvas);
+                const hTbl = (trimmedTbl !== canvas && trimmedTbl.width)
+                    ? Math.round(dlg.widthCm * (trimmedTbl.height / trimmedTbl.width) * 100) / 100
+                    : dlg.heightCm;
+                await this._downloadCanvasAs(trimmedTbl, fmt, filename, { dpi: dlg.dpi, widthCm: dlg.widthCm, heightCm: hTbl });
             } catch (e) {
                 console.error('Table image export failed:', e);
                 alert('Image export failed. Try SVG instead.');
@@ -18179,7 +18183,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const runBtn = document.getElementById('runAnalysis');
         if (runBtn) {
             runBtn.title = isMutation
-                ? 'Split the cell lines into altered and wild-type for the gene chosen in box 1, then rank every gene in the screen by how much its gene effect differs between the two groups. The gene list in box 2 is not used in this mode.'
+                ? 'Split the cell lines into altered and wild-type for the gene chosen in box 1, then rank every gene in the screen by how much its gene effect differs between the two groups.'
                 : 'Correlate the gene-effect profiles of the genes in box 2, using the parameters in box 1. Results appear in box 3.';
         }
         const setActive = (id, on) => {
@@ -19416,7 +19420,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (mode === 'tissue') {
             stats.forEach(s => {
                 const color = s.pValue < 0.05 ? (s.correlation > 0.3 ? '#16a34a' : s.correlation < -0.3 ? '#dc2626' : '#374151') : '#6b7280';
-                const pStr = s.pValue < 0.001 ? '<0.001' : s.pValue.toFixed(3);
+                const pStr = this.formatPValue(s.pValue);
                 tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" style="cursor: pointer;">
                     <td>${s.group}</td>
                     <td style="text-align: center;">${s.n}</td>
@@ -19427,7 +19431,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         } else {
             stats.forEach(s => {
-                const pStr = s.pValue < 0.001 ? '<0.001' : s.pValue.toFixed(3);
+                const pStr = this.formatPValue(s.pValue);
                 const diffColor = s.diff > 0.15 ? '#16a34a' : s.diff < -0.15 ? '#dc2626' : '#374151';
                 tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" style="cursor: pointer;">
                     <td>${s.group}</td>
@@ -19548,7 +19552,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 yaxis: { title: `${d.gene2} (${this.currentInspect?.yType === 'geneset' ? 'Gene Set Score' : this.currentInspect?.yType === 'growth' ? 'Growth Rate' : this.currentInspect?.yType === 'expr' ? 'Expression' : 'Gene Effect'})` },
                 margin: { t: 60, b: 50, l: 60, r: 30 },
                 showlegend: true,
-                legend: { x: 0.02, y: 0.98, bgcolor: 'white', font: { size: 10 } },
+                legend: (() => {
+                    const all = [...wtPts, ...mutPts];
+                    const xs = all.map(p => p.x).filter(v => !isNaN(v));
+                    const ys = all.map(p => p.y).filter(v => !isNaN(v));
+                    const c = this._bestLegendCorner(all,
+                        [Math.min(...xs), Math.max(...xs)], [Math.min(...ys), Math.max(...ys)], 2);
+                    return { x: c.x, y: c.y, xanchor: c.xanchor, yanchor: c.yanchor, bgcolor: 'white', font: { size: 10 } };
+                })(),
                 paper_bgcolor: 'white',
                 plot_bgcolor: 'white'
             };
@@ -21329,7 +21340,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             stats.forEach(s => {
                 const color = s.pValue < 0.05 ? (s.mean < -0.5 ? '#dc2626' : s.mean > 0.5 ? '#16a34a' : '#374151') : '#6b7280';
-                const pStr = s.pValue < 0.001 ? '<0.001' : s.pValue.toFixed(3);
+                const pStr = this.formatPValue(s.pValue);
                 tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" style="cursor: pointer;">
                     <td>${s.group}</td>
                     <td style="text-align: center;">${s.n}</td>
@@ -21340,7 +21351,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         } else {
             stats.forEach(s => {
-                const pStr = s.pValue < 0.001 ? '<0.001' : s.pValue.toFixed(3);
+                const pStr = this.formatPValue(s.pValue);
                 const mean1Str = isNaN(s.mean1) ? '-' : s.mean1.toFixed(2);
                 const mean2Str = isNaN(s.mean2) ? '-' : s.mean2.toFixed(2);
                 const diffStr = s.diff !== undefined ? s.diff.toFixed(2) : '-';
@@ -22161,7 +22172,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (typeof html2canvas === 'undefined') { alert('Screenshot library not loaded.'); return; }
         const dlg = await this._showExportDialog({
             format: 'png', plotW: root.offsetWidth || 600, plotH: root.offsetHeight || 400,
-            allowScope: true, rasterOnly: true
+            allowScope: true, rasterOnly: true,
+            // Only the popouts with a restore path can be reopened from a file.
+            restorable: Object.keys(this._popoutMetaForStem(fileStem) || {}).length > 0
         });
         if (!dlg) return;
         return this.screenshotPopoutWith(elOrId, fileStem, dlg, metaExtra);
@@ -23038,7 +23051,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         inInputList: c.inGeneList || false,
                         meanEffect: parseFloat((c.meanEffect ?? 0).toFixed(3)),
                         sdEffect: parseFloat((c.sdEffect ?? 0).toFixed(3))
-                    }))
+                    })),
+                    // Pairs that fell short of the cutoff, so questions can be
+                    // asked about relationships the network doesn't draw. The
+                    // cutoff is a display threshold, not a statement that
+                    // everything below it is unrelated.
+                    correlationsBelowCutoff: (this.results.belowCutoff || []).map(c => ({
+                        gene1: c.gene1,
+                        gene2: c.gene2,
+                        r: c.correlation,
+                        slope: c.slope,
+                        n: c.n
+                    })),
+                    correlationCutoff: this.results.cutoff,
+                    correlationsBelowCutoffNote: 'These pairs are below the cutoff used to draw the network, so they are absent from clusterGenes and from the figure. They are included so weaker or borderline relationships can still be discussed. The list is capped and does not cover every untested pair.'
                 };
                 // Per-cluster pathway annotation. For each cluster, list the
                 // wiki cancer pathways and CORUM / Reactome complexes whose
@@ -25875,7 +25901,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             xaxis: { title: `${ctx.targetGene} Gene Effect` },
             yaxis: { title: `${expressionGene} Expression (log TPM+1)` },
             showlegend: true,
-            legend: { x: 0, y: 1, bgcolor: 'white' },
+            legend: (() => {
+                // Same corner-avoidance as the other scatters: pinned top-left,
+                // this legend covered the densest part of the cloud.
+                const all = [...allCorePoints, ...allExtraPoints];
+                const xs = all.map(p => p.x).filter(v => !isNaN(v));
+                const ys = all.map(p => p.y).filter(v => !isNaN(v));
+                if (!xs.length) return { x: 0, y: 1, bgcolor: 'white' };
+                const c = this._bestLegendCorner(all,
+                    [Math.min(...xs), Math.max(...xs)], [Math.min(...ys), Math.max(...ys)], 3);
+                return { x: c.x, y: c.y, xanchor: c.xanchor, yanchor: c.yanchor, bgcolor: 'white' };
+            })(),
             margin: { t: 80, r: 30, b: 60, l: 70 }
         };
 
@@ -26633,8 +26669,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             html += `<tr style="border-bottom:1px solid #333;">`;
             html += `<td style="padding:5px 8px; color:#888;">${row.rank}</td>`;
             html += `<td style="padding:5px 8px; max-width:350px; overflow:hidden; text-overflow:ellipsis;" title="${row.term}">${row.term}</td>`;
-            html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px;">${row.pValue.toExponential(2)}</td>`;
-            html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px; color:#5a9f4a; font-weight:bold;">${row.adjPValue.toExponential(2)}</td>`;
+            html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px;">${this.formatPValue(row.pValue)}</td>`;
+            html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px; color:#5a9f4a; font-weight:bold;">${this.formatPValue(row.adjPValue)}</td>`;
             html += `<td style="padding:5px 8px;">${row.zScore.toFixed(2)}</td>`;
             html += `<td style="padding:5px 8px;">${row.combinedScore.toFixed(1)}</td>`;
             if (isLong) {
@@ -30162,9 +30198,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const subtype = document.getElementById('clbSubtypeFilter')?.value;
         const hotspot = document.getElementById('clbHotspotFilter')?.value;
         const trans = this._stripFusionFilterDecoration(document.getElementById('clbTranslocationFilter')?.value);
+        const cn = document.getElementById('clbCnFilter')?.value;
+        // Each of these filters can be inverted to the wild-type side, so the
+        // chip has to name the side actually in view, and go neutral when it is
+        // the wild-type one.
+        const wtHot = document.getElementById('clbHotspotLevel')?.value === '0';
+        const wtFus = document.getElementById('clbFusionLevel')?.value === 'wt';
+        const wtCn = document.getElementById('clbCnLevel')?.value === 'wt';
+        const greyChip = 'background:#f3f4f6;color:#4b5563;';
         if (tissue) parts.push(`<span style="background:var(--earth-50);color:var(--earth-700);padding:1px 6px;border-radius:10px;">${tissue}${subtype ? ' · ' + subtype : ''}</span>`);
-        if (hotspot) parts.push(`<span style="background:#e6efde;color:#5a7d35;padding:1px 6px;border-radius:10px;">${hotspot} mutated</span>`);
-        if (trans) parts.push(`<span style="background:#efe7ec;color:#7d5a66;padding:1px 6px;border-radius:10px;">${trans} fused</span>`);
+        if (hotspot) parts.push(`<span style="${wtHot ? greyChip : 'background:#e6efde;color:#5a7d35;'}padding:1px 6px;border-radius:10px;">${hotspot} ${wtHot ? 'WT' : 'mutated'}</span>`);
+        if (trans) parts.push(`<span style="${wtFus ? greyChip : 'background:#efe7ec;color:#7d5a66;'}padding:1px 6px;border-radius:10px;">${trans} ${wtFus ? 'not fused' : 'fused'}</span>`);
+        if (cn) {
+            const label = this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del');
+            parts.push(`<span style="${wtCn ? greyChip : 'background:#fef3c7;color:#92400e;'}padding:1px 6px;border-radius:10px;">${label}${wtCn ? ' absent' : ''}</span>`);
+        }
         // Collection include/exclude chips. Green = "must be in"; red = "must
         // not be in". Each chip has an inline × that clears that one state.
         for (const [id, state] of this._clbCollectionStates) {
@@ -35696,7 +35744,9 @@ ${clone.innerHTML}
         });
         // PNG / TIFF / PDF / PPTX from the composed canvas.
         const wCm = canvas.width / 150 * 2.54, hCm = canvas.height / 150 * 2.54;
-        await this._downloadCanvasAs(canvas, fmt, filenameBase, { dpi: 150, widthCm: wCm, heightCm: hCm, metaJson: JSON.stringify(meta) });
+        // No settings file: the gate report has no path back into the app, so
+        // one would sit in the download folder doing nothing.
+        await this._downloadCanvasAs(canvas, fmt, filenameBase, { dpi: 150, widthCm: wCm, heightCm: hCm, skipSidecar: true });
     }
 
     async _composeGateReportSVG(mainSvgStr, mainW, mainH, genePlotSvgStr, genePlotW, genePlotH, filterLines, filenameBase) {
@@ -37517,7 +37567,12 @@ ${clone.innerHTML}
             }
             ctx.drawImage(img, 0, 0, targetPxW, targetPxH);
             URL.revokeObjectURL(svgUrl);
-            await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson, svg: composed });
+            // Trim the blank frame, as the other image exports do.
+        const trimmedUmap = this._trimCanvasWhitespace(canvas);
+        const hUmap = (trimmedUmap !== canvas && trimmedUmap.width)
+            ? Math.round(widthCm * (trimmedUmap.height / trimmedUmap.width) * 100) / 100
+            : heightCm;
+        await this._downloadCanvasAs(trimmedUmap, fmt, filename, { dpi, widthCm, heightCm: hUmap, metaJson, svg: composed });
         };
         img.onerror = () => URL.revokeObjectURL(svgUrl);
         img.src = svgUrl;

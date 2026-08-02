@@ -1820,6 +1820,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.58 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>The data exports look like the image export.</b> <b>Export for AI</b> and <b>All Data (ZIP)</b> were blue and drew the eye first; all three now share the same neutral button.</li>
+                    <li><b>The network's AI export includes the weaker pairs.</b> Correlations below the cutoff travel with the file, with a note that the cutoff is a drawing threshold rather than a verdict, so questions can be asked about relationships the picture leaves out.</li>
+                    <li><b>Cell Line Browser tags now match the filters.</b> They claimed "mutated" and "fused" whatever the selector said, and copy number had no tag at all. All three now name the side in view and turn grey on the wild-type side.</li>
+                    <li><b>Legends move out of the way on two more plots</b>, the correlation-analysis detail view and the expression-correlate scatter, which both pinned theirs to the top-left over the data.</li>
+                    <li><b>Blank margins are trimmed from the UMAP / PCA and mutation-table images too.</b></li>
+                    <li><b>p-values read the same everywhere.</b> The correlation-analysis, Gene Effect and pathway-enrichment tables formatted theirs separately and showed things like <code>1.2e-15</code>.</li>
+                    <li><b>No settings file is written for views that cannot be reopened</b>, rather than leaving one in your downloads that does nothing. The gate report is one; the export dialog says so for the others.</li>
+                </ul>
                 <p><strong>v.84.57 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Fix: the Active filter tag said "mut" when wild-type was selected.</b> The chart caption had it right but the tag above it always claimed the mutated side, so the two contradicted each other. The tags for the hotspot, fusion and copy-number filters now follow the selector and go grey when showing the wild-type side.</li>
@@ -4338,7 +4348,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.57</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.58</a>
     </div>
 
     <div class="main-content">
@@ -4865,8 +4875,8 @@
                             <div class="button-group-horizontal">
                                 <button class="btn btn-secondary mobile-hide" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                                 <button class="btn btn-secondary" id="downloadNetworkSVG" style="display:none;">SVG</button>
-                                <button class="btn btn-sm" id="networkAnalyzeWithAI" style="background:#0369a1;color:white;" title="Package this network as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
-                                <button class="btn btn-info" id="downloadAllData" title="Download everything behind this run as one zip: the correlation table, the clusters, the gene-effect values for the genes in the network, and the settings used, as CSV files you can open in Excel or R">All Data (ZIP)</button>
+                                <button class="btn btn-secondary" id="networkAnalyzeWithAI" title="Package this network as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
+                                <button class="btn btn-secondary" id="downloadAllData" title="Download everything behind this run as one zip: the correlation table, the clusters, the gene-effect values for the genes in the network, and the settings used, as CSV files you can open in Excel or R">All Data (ZIP)</button>
                             </div>
                         </div>
                     </div>
@@ -5032,7 +5042,7 @@
                     <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
                         <span style="font-size: 10px; color: #9ca3af;">Export:</span>
                         <button class="btn btn-outline btn-sm" id="downloadMutationResults" title="Download table as CSV spreadsheet">.csv</button>
-                        <button class="btn btn-sm" id="mutAnalyzeWithAI" style="background:#0369a1;color:white;font-size:10px;" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
+                        <button class="btn btn-outline btn-sm" id="mutAnalyzeWithAI" style="font-size:10px;" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                         <button class="btn btn-outline btn-sm mobile-hide" id="exportMutTablePNG" title="Export the visible table, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                         <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
                         <button class="btn btn-outline btn-sm" id="copyMutationGenes" title="Copy gene names to clipboard">Copy Genes</button>
@@ -5347,7 +5357,7 @@
                 <span class="mobile-hide" style="font-size:10px; color:#9ca3af;">Export:</span>
                 <button class="btn btn-outline btn-sm mobile-hide" id="downloadScatterPNG" title="Export the scatter plot, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                 <button class="btn btn-outline btn-sm" id="downloadScatterCSV" title="Download data as CSV spreadsheet">.csv</button>
-                <button class="btn btn-sm" id="scatterAnalyzeWithAI" style="background:#0369a1;color:white;" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
+                <button class="btn btn-outline btn-sm" id="scatterAnalyzeWithAI" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                 <button class="btn btn-outline btn-sm mobile-hide" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                 <button class="btn btn-outline btn-sm" id="downloadTissueCSV" style="display:none;" title="Download tissue table as CSV">.csv</button>
                 <span class="mobile-hide" style="font-size:10px; display:inline-flex; gap:8px; align-items:center; color:#666; margin-left:4px;">
@@ -5624,7 +5634,7 @@
                     <button class="btn btn-outline btn-sm" id="downloadGETableCSV">By Group</button>
                     <button class="btn btn-outline btn-sm" id="downloadGECellLineCSV">By Cell Line</button>
                     <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
-                    <button class="btn btn-sm" id="geAnalyzeWithAI" style="background: #0369a1; color: white; font-size: 11px;" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
+                    <button class="btn btn-outline btn-sm" id="geAnalyzeWithAI" style="font-size:11px;" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                     <button class="btn btn-sm" id="toggleExprCorrelatesBtn" style="background: #5a9f4a; color: white; display: none;">Expression Correlates</button>
                 </div>
 
@@ -6733,12 +6743,12 @@
     <div id="aiAnalysisDialog" style="display:none; position:fixed; inset:0; z-index:2500; background:rgba(0,0,0,0.5); justify-content:center; align-items:flex-start; padding:60px 20px; overflow-y:auto;">
       <div style="background:#fff; max-width:560px; width:100%; border-radius:8px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid #e5e7eb;">
-          <span style="font-weight:600; color:#0369a1; font-size:14px;">Export <code>.json.gz</code> for LLM analysis</span>
+          <span style="font-weight:600; color:#374151; font-size:14px;">Export for AI</span>
           <button id="aiAnalysisDialogClose" style="background:none; border:none; font-size:22px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
         </div>
         <div style="padding:14px 18px;">
           <!-- Source + cohort summary -->
-          <div id="aiDialogSource" style="font-size:12px; color:#0369a1; font-weight:600; margin-bottom:6px;"></div>
+          <div id="aiDialogSource" style="font-size:12px; color:#4b5563; font-weight:600; margin-bottom:6px;"></div>
           <!-- Tier / scope info, what's actually getting exported -->
           <div id="aiDataTierInfo" style="font-size:11px; color:#374151; margin:0 0 10px; padding:8px 10px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:4px; line-height:1.5;"></div>
 
@@ -6754,13 +6764,13 @@
           </div>
 
           <div style="display:flex; gap:8px; align-items:center; margin-top:12px;">
-            <button class="btn btn-sm" id="aiExportBtn" style="background:#0369a1; color:white;">Export <code>.json.gz</code></button>
+            <button class="btn btn-success btn-sm" id="aiExportBtn">Export</button>
             <span id="aiExportStatus" style="font-size:10px; color:#6b7280;"></span>
           </div>
         </div>
       </div>
     </div>
 
-    <script src="app.js?v=v84_57"></script>
+    <script src="app.js?v=v84_58"></script>
 </body>
 </html>
