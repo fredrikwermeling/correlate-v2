@@ -1804,6 +1804,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.44 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Fix: strong results reported "p = 0.0e+0".</b> That was not a real number. The normal-distribution approximation behind every p-value was only accurate to about 1 in 10 million, so anything stronger than that rounded to certainty and the p-value collapsed to exactly zero. The CDKN1A / TP53 comparison that showed <code>0.0e+0</code> is in fact <b>p = 2.3 &times; 10<sup>&minus;26</sup></b>. Replaced with a method that stays accurate down to about 10<sup>&minus;300</sup>.</li>
+                    <li><b>p-values now read as numbers, not code.</b> Above 0.001 they are plain decimals (<code>p = 0.032</code>); below that they use proper scientific notation (<code>p = 2.3 &times; 10<sup>&minus;26</sup></code>) instead of <code>2.3e-26</code>. If a value is genuinely beyond what can be computed it says <b>p &lt; 10<sup>&minus;300</sup></b> rather than pretending to be zero.</li>
+                    <li>Applied everywhere: the gene-effect and mutation charts, the by-tissue and by-genetic-change tables, the correlation-analysis and comparison views. CSV exports keep full machine-readable precision, and now carry real values where they previously wrote 0.</li>
+                </ul>
                 <p><strong>v.84.43 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>One hover box on network genes.</b> There were two: the gene-effect numbers appeared straight away in the browser's own box, then a second box with the gene description arrived a second later and overlapped it. Now a single box shows <b>GE mean, GE SD, LFC and FDR</b> with the gene name and summary underneath.</li>
@@ -4226,7 +4232,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.43</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.44</a>
     </div>
 
     <div class="main-content">
@@ -6606,6 +6612,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_43"></script>
+    <script src="app.js?v=v84_44"></script>
 </body>
 </html>

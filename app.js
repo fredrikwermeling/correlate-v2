@@ -6892,7 +6892,7 @@ class CorrelationExplorer {
 
         // For large df, approximate with normal distribution
         if (df > 100) {
-            return 2 * (1 - this.normalCDF(t));
+            return 2 * this.normalUpperTail(t);
         }
 
         // Beta function approximation for t-distribution CDF
@@ -7779,7 +7779,7 @@ class CorrelationExplorer {
         const lineageText = filterInfo.length > 0 ? filterInfo.join(' | ') : 'All lineages';
 
         // Build stats text for subtitle - split into two lines to avoid cropping
-        const formatP = (p) => isNaN(p) ? '-' : (p < 0.001 ? p.toExponential(1) : p.toFixed(3));
+        const formatP = (p) => this.formatPValue(p);
         const fusedLabel = L.carrier;
         const wtRefLabel = L.ref;
         // WT and mutant stats on their own rows so the header doesn't crowd/wrap.
@@ -13876,7 +13876,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const z2 = 0.5 * Math.log((1 + mutStats.correlation) / (1 - mutStats.correlation));
                 const se = Math.sqrt(1/(groups.wt.length - 3) + 1/(groups.mut.length - 3));
                 const zDiff = (z2 - z1) / se;
-                const pR = 2 * (1 - this.normalCDF(Math.abs(zDiff)));
+                const pR = 2 * this.normalUpperTail(Math.abs(zDiff));
 
                 // Approximate p-value for slope difference (simplified)
                 const pSlope = pR * 2; // Rough approximation
@@ -13952,9 +13952,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <td>${row.rMut.toFixed(3)}</td>
                     <td>${row.slopeMut.toFixed(3)}</td>
                     <td style="border-left: 2px solid #6b7280; color: ${deltaRColor}; font-weight: 600;">${row.deltaR.toFixed(3)}</td>
-                    <td>${row.pR.toExponential(1)}</td>
+                    <td>${this.formatPValue(row.pR)}</td>
                     <td style="color: ${deltaSlopeColor}; font-weight: 600;">${row.deltaSlope.toFixed(3)}</td>
-                    <td>${row.pSlope.toExponential(1)}</td>
+                    <td>${this.formatPValue(row.pSlope)}</td>
                 </tr>
             `;
         });
@@ -14112,7 +14112,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const z2 = 0.5 * Math.log((1 + mutStats.correlation) / (1 - mutStats.correlation));
                 const se = Math.sqrt(1/(wt.length - 3) + 1/(mut2.length - 3));
                 const zDiff = (z2 - z1) / se;
-                const pR = 2 * (1 - this.normalCDF(Math.abs(zDiff)));
+                const pR = 2 * this.normalUpperTail(Math.abs(zDiff));
 
                 tableData.push({
                     mutGene,
@@ -14178,7 +14178,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <td style="text-align: center; border-left: 2px solid #dc2626;">${row.nMut}</td>
                     <td style="text-align: center;">${row.rMut.toFixed(3)}</td>
                     <td style="text-align: center; border-left: 2px solid #6b7280; color: ${deltaRColor}; font-weight: 600;">${row.deltaR.toFixed(3)}</td>
-                    <td style="text-align: center;">${row.pR.toExponential(1)}</td>
+                    <td style="text-align: center;">${this.formatPValue(row.pR)}</td>
                 </tr>
             `;
         });
@@ -14314,7 +14314,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const z1 = 0.5 * Math.log((1 + wtS.correlation) / (1 - wtS.correlation));
             const z2 = 0.5 * Math.log((1 + cS.correlation) / (1 - cS.correlation));
             const se = Math.sqrt(1 / (wt.length - 3) + 1 / (carr.length - 3));
-            const pR = 2 * (1 - this.normalCDF(Math.abs((z2 - z1) / se)));
+            const pR = 2 * this.normalUpperTail(Math.abs((z2 - z1) / se));
             rows.push({ label: sub.label, colorGene: sub.colorGene || '', filterKind: sub.filterKind || '', filterValue: sub.filterValue || '', nWT: wt.length, rWT: wtS.correlation, slopeWT: wtS.slope, nC: carr.length, rC: cS.correlation, slopeC: cS.slope, deltaR: cS.correlation - wtS.correlation, deltaSlope: cS.slope - wtS.slope, pR });
         }
         rows.sort((a, b) => a.pR - b.pR);
@@ -14324,7 +14324,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const dc = row.deltaR < 0 ? '#dc2626' : '#5a9f4a';
             const hl = row.pR < 0.05 ? 'background:#fef3c7;' : '';
             const fv = String(row.filterValue || '').replace(/"/g, '&quot;');
-            html += `<tr class="clickable-subset-row" data-filter-kind="${row.filterKind}" data-filter-value="${fv}" style="${hl}cursor:pointer;"><td><b>${row.label}</b></td><td style="text-align:center;border-left:2px solid #2563eb;">${row.nWT}</td><td style="text-align:center;">${row.rWT.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #dc2626;">${row.nC}</td><td style="text-align:center;">${row.rC.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #6b7280;color:${dc};font-weight:600;">${row.deltaR.toFixed(3)}</td><td style="text-align:center;">${row.pR.toExponential(1)}</td></tr>`;
+            html += `<tr class="clickable-subset-row" data-filter-kind="${row.filterKind}" data-filter-value="${fv}" style="${hl}cursor:pointer;"><td><b>${row.label}</b></td><td style="text-align:center;border-left:2px solid #2563eb;">${row.nWT}</td><td style="text-align:center;">${row.rWT.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #dc2626;">${row.nC}</td><td style="text-align:center;">${row.rC.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #6b7280;color:${dc};font-weight:600;">${row.deltaR.toFixed(3)}</td><td style="text-align:center;">${this.formatPValue(row.pR)}</td></tr>`;
         });
         html += `</tbody></table></div><p style="font-size:11px;color:#666;margin-top:8px;">Yellow = p &lt; 0.05. ${o.biasNote || 'This analysis may be biased as these events select for cancer types.'}</p>`;
         document.getElementById('compareTable').innerHTML = html;
@@ -14427,7 +14427,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const z2 = 0.5 * Math.log((1 + fusedStats.correlation) / (1 - fusedStats.correlation));
                 const se = Math.sqrt(1/(wt.length - 3) + 1/(fused.length - 3));
                 const zDiff = (z2 - z1) / se;
-                const pR = 2 * (1 - this.normalCDF(Math.abs(zDiff)));
+                const pR = 2 * this.normalUpperTail(Math.abs(zDiff));
 
                 tableData.push({
                     tGene,
@@ -14491,7 +14491,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <td style="text-align: center; border-left: 2px solid #dc2626;">${row.nFused}</td>
                     <td style="text-align: center;">${row.rFused.toFixed(3)}</td>
                     <td style="text-align: center; border-left: 2px solid #6b7280; color: ${deltaRColor}; font-weight: 600;">${row.deltaR.toFixed(3)}</td>
-                    <td style="text-align: center;">${row.pR.toExponential(1)}</td>
+                    <td style="text-align: center;">${this.formatPValue(row.pR)}</td>
                 </tr>
             `;
         });
@@ -15164,15 +15164,74 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.setupSortableTable('compareCancerTypesTable');
     }
 
+    // Upper tail of the standard normal, P(Z > z), computed directly.
+    //
+    // This replaces `1 - normalCDF(z)`, which could not express a small p-value
+    // at all. normalCDF used the Abramowitz & Stegun 7.1.26 approximation,
+    // accurate to about 1e-7 in absolute terms, so for z beyond ~5.5 it rounded
+    // to exactly 1 and the subtraction gave exactly 0. Every strongly
+    // significant comparison therefore reported "p = 0.0e+0" rather than its
+    // real value (at z = 10 the true two-tailed p is 1.5e-23, well within
+    // double precision).
+    //
+    // Hart's rational approximation, in the arrangement given by West (2005),
+    // "Better approximations to cumulative normal functions". Relative accuracy
+    // is ~1e-8 or better over the whole range, and it stays meaningful down to
+    // about 1e-300 instead of bottoming out at 1e-7.
+    normalUpperTail(z) {
+        if (isNaN(z)) return NaN;
+        const x = Math.abs(z);
+        let q;
+        if (x > 37) {
+            q = 0;   // below what a double can represent for the tail
+        } else {
+            const e = Math.exp(-x * x / 2);
+            if (x < 7.07106781186547) {
+                let n = 3.52624965998911e-02 * x + 0.700383064443688;
+                n = n * x + 6.37396220353165;
+                n = n * x + 33.912866078383;
+                n = n * x + 112.079291497871;
+                n = n * x + 221.213596169931;
+                n = n * x + 220.206867912376;
+                let d = 8.83883476483184e-02 * x + 1.75566716318264;
+                d = d * x + 16.064177579207;
+                d = d * x + 86.7807322029461;
+                d = d * x + 296.564248779674;
+                d = d * x + 637.333633378831;
+                d = d * x + 793.826512519948;
+                d = d * x + 440.413735824752;
+                q = e * n / d;
+            } else {
+                let b = x + 0.65;
+                b = x + 4 / b;
+                b = x + 3 / b;
+                b = x + 2 / b;
+                b = x + 1 / b;
+                q = e / (b * 2.506628274631);
+            }
+        }
+        return z >= 0 ? q : 1 - q;
+    }
+
     normalCDF(x) {
-        // Approximation of standard normal CDF
-        const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
-        const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
-        const sign = x < 0 ? -1 : 1;
-        x = Math.abs(x) / Math.sqrt(2);
-        const t = 1 / (1 + p * x);
-        const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
-        return 0.5 * (1 + sign * y);
+        return 1 - this.normalUpperTail(x);
+    }
+
+    // A p-value as a reader can actually use it. Small values were printed with
+    // toExponential, which gave "0.0e+0" whenever the value underflowed and
+    // "1.2e-15" otherwise; this gives 0.032 down to three decimals and proper
+    // scientific notation below that.
+    formatPValue(p) {
+        if (p === null || p === undefined || isNaN(p)) return 'n/a';
+        if (p >= 0.001) return p.toFixed(3);
+        const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+        const sup = (n) => String(n).split('').map(c => SUP[c] || c).join('');
+        // 0 here means the tail underflowed, not that the difference is certain.
+        if (p <= 0) return `< 10${sup(-300)}`;
+        const exp = Math.floor(Math.log10(p));
+        let mant = p / Math.pow(10, exp);
+        if (mant >= 9.95) return `1.0 × 10${sup(exp + 1)}`;
+        return `${mant.toFixed(1)} × 10${sup(exp)}`;
     }
 
     // ── Gating Feature ─────────────────────────────────────────────
@@ -15512,7 +15571,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const n = a + b + c + d2;
             const chi2 = n > 0 ? Math.pow(a * d2 - b * c, 2) * n / ((a + b) * (c + d2) * (a + c) * (b + d2) || 1) : 0;
             // Approximate p-value from chi-squared (1 df)
-            const pValue = 1 - this.normalCDF(Math.sqrt(chi2)) * 2 + 1;
+            const pValue = 2 * this.normalUpperTail(Math.sqrt(chi2));
             const pApprox = Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
 
             if (mutA > 0 || mutB > 0) {
@@ -15754,7 +15813,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             filteredMut.slice(0, 100).forEach(m => {
                 const delta = m.pctA - m.pctB;
                 const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
-                const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
+                const pStr = this.formatPValue(m.pValue);
                 const typeBadge = m.type === 'hotspot'
                     ? '<span style="background:#b58a3c;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
                     : '<span style="background:#a8553a;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
@@ -15808,7 +15867,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const filteredDiffGE = pFilterDGE ? data.filter(d => d.pValue < parseFloat(pFilterDGE)) : data;
             filteredDiffGE.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
-                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showGateGenePlot('${d.gene}','ge')">
                     <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
@@ -15867,7 +15926,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const filteredExpr = pFilterExpr ? data.filter(d => d.pValue < parseFloat(pFilterExpr)) : data;
             filteredExpr.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
-                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showGateGenePlot('${d.gene}','expression')">
                     <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
@@ -15911,7 +15970,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const gateA = this._gateA;
         const gateB = this._gateB;
-        const fmtP = (p) => !isFinite(p) ? 'n/a' : p < 0.001 ? p.toExponential(1) : p.toFixed(3);
+        const fmtP = (p) => this.formatPValue(p);
         // Chi² p-value used in the gate-compare mutation table; re-used here
         // so the plot title matches what the user saw in the row.
         const chi2P = (a, b, c, d) => {
@@ -16648,7 +16707,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             geFilteredMut.slice(0, 100).forEach(m => {
                 const delta = m.pctA - m.pctB;
                 const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
-                const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
+                const pStr = this.formatPValue(m.pValue);
                 const typeBadge = m.type === 'hotspot'
                     ? '<span style="background:#b58a3c;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
                     : '<span style="background:#a8553a;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
@@ -16702,7 +16761,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const geFilteredDiffGE = geGatePFilterDGE ? data.filter(d => d.pValue < parseFloat(geGatePFilterDGE)) : data;
             geFilteredDiffGE.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
-                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showGEGateGenePlot('${d.gene}','ge')">
                     <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
@@ -16761,7 +16820,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const geFilteredExpr = geGatePFilterExpr ? data.filter(d => d.pValue < parseFloat(geGatePFilterExpr)) : data;
             geFilteredExpr.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
-                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showGEGateGenePlot('${d.gene}','expression')">
                     <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
@@ -16805,7 +16864,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const gateA = this._geGateA;
         const gateB = this._geGateB;
-        const fmtP = (p) => !isFinite(p) ? 'n/a' : p < 0.001 ? p.toExponential(1) : p.toFixed(3);
+        const fmtP = (p) => this.formatPValue(p);
         const chi2P = (a, b, c, d) => {
             const n = a + b + c + d;
             if (n <= 0) return 1;
@@ -18734,7 +18793,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     const fz1 = fisherZ(s.correlation, pts.length);
                     const fz2 = fisherZ(otherR.correlation, otherPts.length);
                     const zDiff = (fz1.z - fz2.z) / Math.sqrt(fz1.se * fz1.se + fz2.se * fz2.se);
-                    pValue = 2 * (1 - this.normalCDF(Math.abs(zDiff)));
+                    pValue = 2 * this.normalUpperTail(Math.abs(zDiff));
                 }
 
                 stats.push({
@@ -18777,7 +18836,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 size: 11,
                 line: { color: stats.map(s => s.pValue < 0.05 ? '#1f2937' : '#9ca3af'), width: stats.map(s => s.pValue < 0.05 ? 1.5 : 1) }
             },
-            text: stats.map(s => `r=${s.correlation.toFixed(2)}, n=${s.n}, p=${s.pValue < 0.001 ? s.pValue.toExponential(1) : s.pValue.toFixed(3)}`),
+            text: stats.map(s => `r=${s.correlation.toFixed(2)}, n=${s.n}, p=${this.formatPValue(s.pValue)}`),
             hovertemplate: '%{y}<br>%{text}<extra></extra>',
             showlegend: false
         });
@@ -18853,7 +18912,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const wt_fz = fisherZ(wtCorr.correlation, wtPts.length);
                 const mut_fz = fisherZ(mutCorr.correlation, mutPts.length);
                 const zDiff = (wt_fz.z - mut_fz.z) / Math.sqrt(wt_fz.se * wt_fz.se + mut_fz.se * mut_fz.se);
-                const pValue = 2 * (1 - this.normalCDF(Math.abs(zDiff)));
+                const pValue = 2 * this.normalUpperTail(Math.abs(zDiff));
 
                 hotspotStats.push({
                     group: hotspotGene,
@@ -21077,7 +21136,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
             // Build stats as separate annotations for each row to ensure they display properly
             const statsAnnotations = [];
-            const pStr = !isNaN(pValue) ? (pValue < 0.001 ? pValue.toExponential(2) : pValue.toFixed(4)) : null;
+            const pStr = !isNaN(pValue) ? this.formatPValue(pValue) : null;
 
             // Row 1: 0 (WT) stats
             const statsParts = [`WT: n=${stats0.n}, mean=${stats0.mean.toFixed(2)}`];
@@ -21183,7 +21242,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         statsAnnotations.push(`All cells: n=${allStats.n}, GE=${allStats.mean.toFixed(2)}, SD=${allStats.sd.toFixed(2)}`);
         statsAnnotations.push(`${group}: n=${groupStats.n}, GE=${groupStats.mean.toFixed(2)}, SD=${groupStats.sd.toFixed(2)}`);
         if (!isNaN(pValue)) {
-            statsAnnotations.push(`p-value: ${pValue < 0.001 ? pValue.toExponential(2) : pValue.toFixed(4)}`);
+            statsAnnotations.push(`p-value: ${this.formatPValue(pValue)}`);
         }
         const statsText = statsAnnotations.join('<br>');
 
@@ -25101,11 +25160,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             data = data.filter(r => r.gene.toUpperCase().includes(searchTerm));
         }
 
-        const formatP = (p) => {
-            if (isNaN(p) || p === null) return '-';
-            if (p < 0.001) return p.toExponential(1);
-            return p.toFixed(3);
-        };
+        const formatP = (p) => this.formatPValue(p);
 
         tbody.innerHTML = data.map(r => {
             const rColor = r.r > 0 ? '#059669' : '#dc2626';
@@ -35434,7 +35489,7 @@ ${clone.innerHTML}
                 nB: d => d.nB, pctB: d => d.pctB, delta: d => d.pctA - d.pctB, absDelta: d => Math.abs(d.pctA - d.pctB),
                 pValue: d => d.pValue ?? 1
             });
-            const fmtP = (p) => p == null || !isFinite(p) ? 'n/a' : p < 0.001 ? p.toExponential(1) : p.toFixed(3);
+            const fmtP = (p) => this.formatPValue(p);
             let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
                 <thead><tr style="background:#f3f4f6;">
                     <th style="${thStyle}text-align:left;" onclick="${sortFn('tissue')}">Tissue${sortIcon('tissue')}</th>
@@ -35514,7 +35569,7 @@ ${clone.innerHTML}
             filtered.slice(0, 100).forEach(m => {
                 const delta = m.pctA - m.pctB;
                 const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
-                const pStr = m.pValue < 0.001 ? m.pValue.toExponential(1) : m.pValue.toFixed(3);
+                const pStr = this.formatPValue(m.pValue);
                 const badge = m.type === 'hotspot'
                     ? '<span style="background:#b58a3c;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
                     : '<span style="background:#a8553a;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
@@ -35561,7 +35616,7 @@ ${clone.innerHTML}
             const filtered = pf ? data.filter(d => d.pValue < parseFloat(pf)) : data;
             filtered.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
-                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showUmapGateGenePlot('${d.gene}','ge')"><td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(3)}</td>
@@ -35603,7 +35658,7 @@ ${clone.innerHTML}
             const filtered = pf ? data.filter(d => d.pValue < parseFloat(pf)) : data;
             filtered.slice(0, 100).forEach(d => {
                 const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
-                const pStr = d.pValue < 0.001 ? d.pValue.toExponential(1) : d.pValue.toFixed(3);
+                const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showUmapGateGenePlot('${d.gene}','expression')"><td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(2)}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(2)}</td>
@@ -35671,7 +35726,7 @@ ${clone.innerHTML}
 
         // Compact p-value formatter: scientific for very small, 3-decimal
         // otherwise. Non-finite → 'n/a'.
-        const fmtP = (p) => !isFinite(p) ? 'n/a' : p < 0.001 ? p.toExponential(1) : p.toFixed(3);
+        const fmtP = (p) => this.formatPValue(p);
 
         if (type === 'mutation') {
             let mutData = this.mutations?.geneData?.[gene]?.mutations || this.damagingMutations?.geneData?.[gene]?.mutations;
