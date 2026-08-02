@@ -1820,6 +1820,17 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.51 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Colour by tissue shows every tissue again</b>, which is the quick way to see whether a pattern is there at all, busy as it is. You can still narrow to chosen tissues.</li>
+                    <li><b>Colour by subtype starts empty</b> and waits for you to pick, rather than choosing subtypes for you.</li>
+                    <li><b>New Suggest button</b> in the group picker: it ticks the groups of at least 10 cell lines whose own correlation departs most from the cohort as a whole, using the same statistic as Compare by tissue, so the ones worth labelling are one click away.</li>
+                    <li><b>Fix: three Cell Line Browser quick filters could never match anything.</b> <em>CDKN2A deletion</em>, <em>RB1 deletion</em> and <em>PTEN deletion</em> were built from genes the curated deletion panel deliberately leaves out, because functional loss already covers them. Removed, and the "Any focal deletion" description corrected: it listed CDKN2A as being in the panel when it is not.</li>
+                    <li><b>Fix: copy-number filters said "deep deletion" but did not mean it.</b> They match the curated deletion panel, which includes single-copy loss as well as homozygous. They now say <em>deletion</em> and spell out what is included. Only the mutation-analysis sub-type used the strict &le;0.3 definition, and it still does.</li>
+                    <li><b>Fix: Mutation Inspect still offered "Deep deletion"</b> as something to stratify by, months after it was removed as an analysis sub-type. Gone, along with the same claim in the "How it works" panel.</li>
+                    <li><b>Fix: the wiki copy-number caption stated the wrong thresholds</b> for what counts as an amplified or deleted region.</li>
+                    <li>The Gene Effect scan button now reads <b>By hotspot mutation</b>, which is what it does. The copy-number filter on the main page now uses the same wording as everywhere else.</li>
+                </ul>
                 <p><strong>v.84.50 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>The extra file that downloads with an image is now explained.</b> The export dialog states plainly that a small <b>settings file</b> (<code>.correlate.json</code>) is saved beside the picture, what it holds, and exactly how to use it: <b>Options &rarr; Other &rarr; Open saved figure</b> returns the app to that view so you can change something and export again. There is a tick box if you would rather not have it.</li>
@@ -2447,7 +2458,7 @@
                 </ul>
                 <p><strong>v.83.22 (2026-06-12)</strong></p>
                 <ul>
-                    <li><b>Cell line browser exports renamed and expanded.</b> Three clearer exports: <b>Cell line: GE + expression</b> (selected lines, every gene), <b>Cell line: full profile</b> (selected lines, every gene with GE + Expression + Hotspot + Damaging + Fusion + focal CN / deep deletions), and <b>Genes: full profile</b> (one or a few genes, all that info across the selected/visible lines). All include the DepMap version and citation.</li>
+                    <li><b>Cell line browser exports renamed and expanded.</b> Three clearer exports: <b>Cell line: GE + expression</b> (selected lines, every gene), <b>Cell line: full profile</b> (selected lines, every gene with GE + Expression + Hotspot + Damaging + Fusion + focal CN amplifications / deletions), and <b>Genes: full profile</b> (one or a few genes, all that info across the selected/visible lines). All include the DepMap version and citation.</li>
                     <li><b>Export gene info (.csv)</b> button added to the cell line Wiki, next to Download PDF, exporting the full per-gene profile for that one cell line.</li>
                 </ul>
                 <p><strong>v.83.21 (2026-06-12)</strong></p>
@@ -4290,7 +4301,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.50</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.51</a>
     </div>
 
     <div class="main-content">
@@ -4541,12 +4552,12 @@
                         <label class="form-label">Copy Number Filter:</label>
                         <div class="param-filter-row">
                             <div style="position:relative; flex:1 1 56%; min-width:0;">
-                                <input type="text" id="paramCnFilter" class="form-control" placeholder="Gene..." title="Search a gene with a focal amplification (&#9650;) or deep deletion (&#9660;)" autocomplete="off">
+                                <input type="text" id="paramCnFilter" class="form-control" placeholder="Gene..." title="Search a gene with a focal amplification (&#9650;) or deletion (&#9660;) from the curated panel. Deletions include single-copy loss, not only homozygous." autocomplete="off">
                                 <div id="paramCnDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
                             <select id="paramCnLevel" class="form-control" style="flex:1 1 44%; min-width:0;">
-                                <option value="altered">Altered</option>
-                                <option value="wt">WT</option>
+                                <option value="altered" selected>With event</option>
+                                <option value="wt">Only WT</option>
                             </select>
                         </div>
                     </div>
@@ -5147,7 +5158,7 @@
                         <div class="control-box-compact" id="scatterCnFilterBox" style="display: none; overflow: visible;">
                             <span class="control-label" style="font-size:9px;">CN amp/del Filter</span>
                             <div style="position:relative;">
-                                <input type="text" id="scatterCnFilter" class="form-control" placeholder="Amp / deep-del..." autocomplete="off" style="font-size: 10px; padding: 2px 4px;">
+                                <input type="text" id="scatterCnFilter" class="form-control" placeholder="Amp / deletion..." autocomplete="off" style="font-size: 10px; padding: 2px 4px;">
                                 <div id="scatterCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
                             <select id="scatterCnLevel" class="form-control" style="margin-top: 2px; font-size: 10px; padding: 2px 4px;">
@@ -5354,8 +5365,8 @@
                         <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
                         <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">View:</label>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #5a9f4a; color: white;" title="Box plot of gene effect grouped by tissue / lineage">By Tissue</button>
-                        <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan how each hotspot mutation shifts this gene's effect, comparing the cell lines carrying it against those without it">By genetic change</button>
-                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Stratify this gene's effect by another gene's status, pick a hotspot mutation, a fusion, or a focal amplification / deep deletion in the selector above the plot.">Mutation Inspect</button>
+                        <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan how each hotspot mutation shifts this gene's effect, comparing the cell lines carrying it against those without it">By hotspot mutation</button>
+                        <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Stratify this gene's effect by another gene's status: pick a hotspot mutation, a fusion or a focal amplification in the selector above the plot.">Mutation Inspect</button>
                         <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
                         <button class="btn btn-sm btn-outline" id="geRestartBtn" title="Reset the Gene Effect analysis: clear the gene, filters and view and start over">&#8634; Reset</button>
                     </div>
@@ -5379,7 +5390,7 @@
                             <div id="geFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
                         <div id="geCnFilterWrap" style="position:relative; display:none;">
-                            <input type="text" id="geCnFilter" class="form-control" placeholder="Amp / deep-del..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal CN filter, amplifications (▲) and deep deletions (▼)">
+                            <input type="text" id="geCnFilter" class="form-control" placeholder="Amp / deletion..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal copy-number filter: amplifications (▲) and deletions (▼) from the curated panel. Deletions include single-copy loss, not only homozygous.">
                             <div id="geCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
                         <span class="mobile-hide" style="display:inline-flex; align-items:center; gap:8px;">
@@ -5406,7 +5417,7 @@
                             <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
                             <button class="btn btn-secondary btn-sm" id="geCompareByTissueBtn" title="Show Δ GE per tissue for this gene">Δ Tissue</button>
                             <button class="btn btn-secondary btn-sm" id="geCompareByHotspotBtn" title="Show Δ GE per additional hotspot for this gene">Δ Hotspot</button>
-                            <button class="btn btn-secondary btn-sm" id="geCompareByCnBtn" title="Show Δ GE within each focal amplification / deep deletion" style="display: none;">Δ Amp/Del</button>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByCnBtn" title="Show the difference in gene effect within each focal amplification or deletion from the curated panel" style="display: none;">Δ Amp/Del</button>
                             <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE for each fusion" style="display: none;">Δ Fusion</button>
                         </span>
                     </div>
@@ -5729,7 +5740,7 @@
                         </div>
                         <div id="caCnFilterWrap" style="display:none;">
                             <div style="position:relative;">
-                                <input type="text" id="caCnFilter" class="form-control" placeholder="Amp / deep-del..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal CN filter, amplifications (▲) and deep deletions (▼)">
+                                <input type="text" id="caCnFilter" class="form-control" placeholder="Amp / deletion..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal copy-number filter: amplifications (▲) and deletions (▼) from the curated panel. Deletions include single-copy loss, not only homozygous.">
                                 <div id="caCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
                             <select id="caCnLevel" class="form-control" style="width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
@@ -6082,7 +6093,7 @@
                         <div style="background: white; border: 1px solid #c5e8bc; border-radius: 10px; padding: 14px;">
                             <div style="font-weight: 700; color: #3a7333; font-size: 14px; margin-bottom: 6px;">🧬 Mutation Analysis</div>
                             <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
-                                Compare gene effect in cells with specific <em>hotspot mutations</em>, <em>validated driver fusions</em>, <em>functional loss</em>, or <em>copy-number amplification / deep deletion</em> vs wild-type. Identify genes with differential dependency in altered backgrounds.
+                                Compare gene effect in cells with specific <em>hotspot mutations</em>, <em>validated driver fusions</em>, <em>functional loss</em>, or <em>focal copy-number amplification</em> vs wild-type. Identify genes with differential dependency in altered backgrounds.
                             </p>
                         </div>
                         <!-- Cell Line Browser -->
@@ -6158,7 +6169,7 @@
             <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN / deep deletions) as a CSV">Export gene info (.csv)</button>
+            <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN amplifications / deletions) as a CSV">Export gene info (.csv)</button>
             <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Save the wiki as an image, choosing format, resolution and whether to capture the whole page or just what is on screen">Export image...</button>
             <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Download this Wiki as a multi-page PDF (charts embedded as images, white background)">Download PDF</button>
             <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
@@ -6353,7 +6364,7 @@
             <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
             <span style="font-size:10px; font-weight:600; color:var(--earth-700); white-space:nowrap;">Export CSV:</span>
             <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="One or a few selected cell lines: Gene Effect + Expression for every gene (CSV). Includes DepMap version and citation.">Cell line:<br><span style="font-size:9px;font-weight:normal;">GE + expression</span></button>
-            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="Selected cell line(s): full profile for every gene, GE + Expression + Hotspot + Damaging + Fusion + focal CN / deep deletions (CSV).">Cell line:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
+            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="Selected cell line(s): full profile for every gene, GE + Expression + Hotspot + Damaging + Fusion + focal CN amplifications / deletions (CSV).">Cell line:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
             <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="One or a few genes: full profile (GE, Expression, Hotspot, Damaging, Fusion, focal CN) across the selected / visible cell lines (CSV).">Genes:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
             </span>
           </div>
@@ -6707,6 +6718,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_50"></script>
+    <script src="app.js?v=v84_51"></script>
 </body>
 </html>

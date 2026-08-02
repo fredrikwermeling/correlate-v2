@@ -3773,7 +3773,9 @@ class CorrelationExplorer {
             pairs.sort((a, b) => b.count - a.count);
             fusion.push(...pairs);
         }
-        // Focal CN events: amplifications (▲) then deep deletions (▼).
+        // Focal CN events: amplifications (▲) then deletions (▼). The deletion
+        // panel carries both single-copy and homozygous loss, so these are not
+        // labelled "deep" here; only the mutation-analysis sub-type was.
         const cnMap = {};
         if (this.clinicalCn?.byCellLine) {
             for (const entry of Object.values(this.clinicalCn.byCellLine)) {
@@ -7763,7 +7765,7 @@ class CorrelationExplorer {
             filterInfo.push(`Also ${this._stripFusionFilterDecoration(inspectFusion)}-fused`);
         }
         if (inspectCn) {
-            filterInfo.push(this._stripCnFilterDecoration(inspectCn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del'));
+            filterInfo.push(this._stripCnFilterDecoration(inspectCn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del'));
         }
         const lineageText = filterInfo.length > 0 ? filterInfo.join(' | ') : 'All lineages';
 
@@ -7997,7 +7999,9 @@ class CorrelationExplorer {
                 { type: 'hotspot', label: 'Hotspot mutation', src: this.mutations, innerKey: 'mutations', suffix: 'mut' },
                 { type: 'fusion', label: 'Fusion', src: this._fusionAxisData, innerKey: 'translocations', suffix: 'fused' },
                 { type: 'amp', label: 'Amplification', src: this.cnAmpData, innerKey: 'mutations', suffix: 'amp' },
-                { type: 'del', label: 'Deep deletion', src: this.cnDelData, innerKey: 'mutations', suffix: 'del' },
+                // "Deep deletion" was dropped here too, to match the analysis
+                // sub-types: it duplicated Functional loss, which already covers
+                // homozygous loss on the genes that have the cell lines for it.
             ];
             // Keep a Functional-loss group when the analysis started there.
             if (curType === 'damaging') {
@@ -25065,7 +25069,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const reg = this._cellLineCnRegions(cellLineId);
         const head = `<div style="font-weight:600; color:#374151; font-size:12px; margin-bottom:6px;">Major copy-number regions <span style="font-size:10px; color:#6b7280; font-weight:400;">, whole-cytoband level from the full DepMap gene CN matrix; curated cancer genes highlighted</span></div>`;
         if (!reg || (!reg.amps.length && !reg.dels.length)) {
-            target.innerHTML = head + `<div style="font-size:11px; color:#6b7280;">No broad amplified or deeply-deleted cytobands detected (region = a whole cytoband with median relative CN &ge; 3 amplified / &lt; 0.5 deleted across &ge; 4 genes).</div>`;
+            target.innerHTML = head + `<div style="font-size:11px; color:#6b7280;">No broad amplified or deeply-deleted cytobands detected (region = a cytoband holding at least 3 genes at relative CN &ge; 3 amplified, or &lt; 0.3 deleted).</div>`;
             return;
         }
         const chip = (d, isAmp) => {
@@ -26847,7 +26851,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             any_focal_del: {
                 label: 'Any focal deletion',
                 category: 'Focal deletions',
-                description: '<b>Inclusion:</b> at least one focal CN deletion on the curated clinical CN panel (ARID1A, ATM, BAP1, BRCA1/2, CDKN2A/B, FAT1, FBXW7, KEAP1, SETD2, SMARCA4, SMARCB1, STK11, TET2). Catch-all set, useful when contrasting against lines without any curated focal-deletion event.'
+                description: '<b>Inclusion:</b> at least one focal CN deletion on the curated clinical CN panel (ARID1A, ATM, BAP1, BRCA1/2, CDKN2B, FAT1, FBXW7, KEAP1, SETD2, SMARCA4, SMARCB1, STK11, TET2). Catch-all set, useful when contrasting against lines without any curated focal-deletion event.'
             },
 
             // High loss-of-heterozygosity, added to the existing
@@ -27128,7 +27132,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Immunology
             'pdl1_high', 'likely_immunogenic',
             // Key focal copy-number events
-            'myc_family_amp', 'erbb2_amp', 'mdm2_amp', 'g1s_amp', 'cdkn2a_del', 'rb1_del', 'pten_del',
+            // cdkn2a_del / rb1_del / pten_del removed: the curated deletion panel
+            // deliberately excludes CDKN2A, RB1 and PTEN (functional loss already
+            // covers them), so these three could never match a single cell line.
+            'myc_family_amp', 'erbb2_amp', 'mdm2_amp', 'g1s_amp',
             // Patient age at diagnosis
             'age_infant', 'age_pediatric', 'age_aya', 'age_adult', 'age_elderly',
         ]);
@@ -28236,13 +28243,38 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Explicitly emptied: colour nothing, everything goes to the grey bucket.
         if (raw === 'none') return new Set();
         if (!raw) {
-            // Colouring 30 tissues, let alone 70 subtypes, is unreadable.
-            if (available.length <= this.COLOR_BY_DEFAULT_TOP) return null;
-            return new Set(available.slice(0, this.COLOR_BY_DEFAULT_TOP));
+            // Nothing chosen yet. Tissues are few enough that colouring them all
+            // is a fast, if busy, way to see whether there's any pattern, so that
+            // is the default. Subtypes run to 70+ and mean nothing all at once,
+            // so those start empty and wait to be picked.
+            const mode = document.getElementById('colorByCategory')?.value;
+            return mode === 'subtype' ? new Set() : null;
         }
         const want = new Set(raw.split('|').filter(Boolean));
         const usable = new Set(available.filter(c => want.has(c)));
         return usable.size ? usable : null;
+    }
+
+    // Groups whose own correlation departs most from the cohort's, i.e. the ones
+    // where the relationship actually differs. Same per-group statistic the
+    // Compare by tissue view reports.
+    _suggestColorByGroups(cats, howMany = 5) {
+        const data = this.currentInspect?.data || [];
+        const mode = document.getElementById('colorByCategory')?.value;
+        const of = (d) => mode === 'subtype'
+            ? (this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown')
+            : (d.lineage || 'Unknown');
+        const overall = this.pearsonWithSlope(data.map(d => d.x), data.map(d => d.y));
+        const scored = [];
+        cats.forEach(c => {
+            const pts = data.filter(d => of(d) === c);
+            if (pts.length < 10) return;   // too few to say anything
+            const st = this.pearsonWithSlope(pts.map(d => d.x), pts.map(d => d.y));
+            if (isNaN(st.correlation)) return;
+            scored.push({ cat: c, delta: Math.abs(st.correlation - (overall.correlation || 0)) });
+        });
+        scored.sort((a, b) => b.delta - a.delta);
+        return scored.slice(0, howMany).map(x => x.cat);
     }
 
     // Panel for choosing which tissues / subtypes to colour. Everything else on
@@ -28314,7 +28346,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             `</div>` +
             `<div style="display:flex; gap:6px; align-items:center; padding:6px 4px 0;">` +
             `<button id="cbgAll" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">Colour all</button>` +
-            `<button id="cbgTop" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">Top ${this.COLOR_BY_DEFAULT_TOP}</button>` +
+            `<button id="cbgTop" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;" title="The ${this.COLOR_BY_DEFAULT_TOP} groups with the most cell lines">Top ${this.COLOR_BY_DEFAULT_TOP}</button>` +
+            `<button id="cbgSuggest" style="font-size:10px; padding:2px 6px; border:1px solid #bbf7d0; border-radius:4px; background:#f0fdf4; color:#15803d; cursor:pointer;" title="Groups of at least 10 cell lines whose own correlation differs most from the cohort as a whole">Suggest</button>` +
             `<button id="cbgNone" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">None</button>` +
             `<span id="cbgCount" style="font-size:10px; color:#6b7280; flex:1; text-align:right;"></span>` +
             `<button id="cbgApply" style="font-size:11px; padding:3px 10px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Apply</button>` +
@@ -28373,6 +28406,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             syncTissueBoxes();
             refresh();
         });
+        panel.querySelector('#cbgSuggest').addEventListener('click', () => {
+            const pick = new Set(this._suggestColorByGroups(cats));
+            if (!pick.size) { countEl.textContent = 'no group has enough cell lines'; return; }
+            checks().forEach(c => { c.checked = pick.has(c.dataset.cat); });
+            syncTissueBoxes();
+            refresh();
+        });
         panel.querySelector('#cbgNone').addEventListener('click', () => {
             checks().forEach(c => { c.checked = false; });
             syncTissueBoxes();
@@ -28401,7 +28441,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (raw === '*') btn.textContent = 'Groups: all';
         else if (raw === 'none') btn.textContent = 'Groups: none';
         else if (raw) btn.textContent = `Groups: ${raw.split('|').filter(Boolean).length}`;
-        else btn.textContent = `Groups: top ${this.COLOR_BY_DEFAULT_TOP}`;
+        else btn.textContent = mode === 'subtype' ? 'Pick subtypes to colour...' : 'Groups: all';
     }
 
     // Total plot width for the three-panel view. #plotWidth is sized for a
