@@ -323,7 +323,7 @@ class CorrelationExplorer {
     // Filter/setting controls captured for "Open in new tab" so the new tab
     // reproduces the same view (not just the gene/pair).
     _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geFusionFilter', 'geCnFilter', 'geMinGroupSize', 'geCellLineSearch']; }
-    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterCnLevel', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory']; }
+    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterCnLevel', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory', 'colorByPicked']; }
     _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCnFilter', 'caCellLineSearch']; }
 
     // Snapshot the underlying analysis/network so a new tab can rebuild the
@@ -4642,20 +4642,21 @@ class CorrelationExplorer {
         });
         document.getElementById('scatterCellSearch').addEventListener('input', () => this.updateInspectPlot());
         document.getElementById('colorByCategory').addEventListener('change', () => {
+            // Picks belong to the mode they were made in: tissue names and
+            // subtype names are different lists.
+            const picked = document.getElementById('colorByPicked');
+            if (picked) picked.value = '';
+            this._syncColorByGroupBtn();
             this._styleActiveFilters();
             this.updateInspectPlot();
         });
         document.getElementById('scatterCancerFilter').addEventListener('change', () => {
             this.updateScatterSubtypeFilter();
-            // Show/hide "Color by subtype" option based on whether a tissue is selected
-            const subtypeOpt = document.getElementById('colorBySubtypeOption');
-            if (subtypeOpt) {
-                subtypeOpt.style.display = document.getElementById('scatterCancerFilter').value ? '' : 'none';
-                // Reset color-by if subtype was selected but tissue filter cleared
-                if (!document.getElementById('scatterCancerFilter').value && document.getElementById('colorByCategory').value === 'subtype') {
-                    document.getElementById('colorByCategory').value = '';
-                }
-            }
+            // Changing the cohort changes which groups exist, so any picks made
+            // against the old one no longer mean anything.
+            const pickedT = document.getElementById('colorByPicked');
+            if (pickedT) pickedT.value = '';
+            this._syncColorByGroupBtn();
             this._styleActiveFilters();
             this.updateScatterHotspotFilterCounts();
             this.updateInspectPlot();
@@ -12415,11 +12416,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('scatterSubtypeFilter').style.display = 'none';
         }
 
-        // Reset color-by dropdown
+        // Reset color-by dropdown. "By subtype" is always offered now: it was
+        // hidden unless a tissue was selected because 70+ colours is unreadable,
+        // which the group picker solves instead.
         document.getElementById('colorByCategory').value = '';
-        // Show/hide subtype option based on initial cancer filter
-        const subtypeOpt = document.getElementById('colorBySubtypeOption');
-        if (subtypeOpt) subtypeOpt.style.display = (paramLineageFilter && lineages.includes(paramLineageFilter)) ? '' : 'none';
+        const pickedReset = document.getElementById('colorByPicked');
+        if (pickedReset) pickedReset.value = '';
+        this._syncColorByGroupBtn();
         this._styleActiveFilters();
 
         // Populate hotspot genes
@@ -13040,6 +13043,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
             // Sort categories by count descending
             colorByCategories = Object.keys(categoryMap).sort((a, b) => categoryMap[b].length - categoryMap[a].length);
+            // If specific groups were picked, colour only those and fold the
+            // rest into one muted "Other" series. Colouring 30+ subtypes at
+            // once is unreadable; picking a handful is the useful case.
+            const picked3 = this._colorByPickedSet(colorByCategories);
+            if (picked3) {
+                const restData = [];
+                colorByCategories.filter(c => !picked3.has(c)).forEach(c => restData.push(...categoryMap[c]));
+                colorByCategories = colorByCategories.filter(c => picked3.has(c));
+                if (restData.length) {
+                    colorByTraceIndices[this.OTHER_GROUP_LABEL] = [traces.length];
+                    traces.push({
+                        x: restData.map(d => d.x),
+                        y: restData.map(d => d.y),
+                        mode: 'markers', type: 'scatter',
+                        text: restData.map(d => `${d.cellLineName}<br>${this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown'}`),
+                        hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
+                        marker: { color: '#d1d5db', size: 8, opacity: 0.55 },
+                        name: `${this.OTHER_GROUP_LABEL} (${restData.length})`,
+                        legendgroup: this.OTHER_GROUP_LABEL,
+                        showlegend: true
+                    });
+                }
+            }
             colorByColors = CorrelationExplorer.CATEGORY_COLORS;
             // Reserve enough width per legend entry for its full label (name +
             // count) so entries never overlap; long subtype names end up ~1 per
@@ -13498,12 +13524,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 catCounts[cat] = (catCounts[cat] || 0) + 1;
             });
             categoryOrder = Object.keys(catCounts).sort((a, b) => catCounts[b] - catCounts[a]);
+            // Same picked-groups narrowing as the single-panel view.
+            const pickedSet = this._colorByPickedSet(categoryOrder);
+            if (pickedSet) categoryOrder = categoryOrder.filter(c => pickedSet.has(c));
+            this._colorByPickedActive = !!pickedSet;
         }
 
+        const rawCategory = (d) => (colorByCategory === 'subtype'
+            ? (this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown')
+            : (d.lineage || 'Unknown'));
+        // Anything outside the picked groups is folded into one muted series.
         const getCategory = (d) => {
-            if (colorByCategory === 'subtype') return this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown';
-            return d.lineage || 'Unknown';
+            const c = rawCategory(d);
+            if (this._colorByPickedActive && categoryOrder && !categoryOrder.includes(c)) return this.OTHER_GROUP_LABEL;
+            return c;
         };
+        if (this._colorByPickedActive && categoryOrder && !categoryOrder.includes(this.OTHER_GROUP_LABEL)) {
+            categoryOrder = [...categoryOrder, this.OTHER_GROUP_LABEL];
+        }
 
         // Build panel traces with optional category coloring
         const panelConfigs = [
@@ -13529,7 +13567,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         mode: 'markers', type: 'scatter',
                         text: catData.map(d => `${d.cellLineName}<br>${cat}`),
                         hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
-                        marker: { color: colors[ci % colors.length], size: cfg.size, opacity: 0.8 },
+                        marker: cat === this.OTHER_GROUP_LABEL
+                            ? { color: '#d1d5db', size: Math.max(6, cfg.size - 1), opacity: 0.55 }
+                            : { color: colors[ci % colors.length], size: cfg.size, opacity: 0.8 },
                         name: `${cat} (${catData.length})`,
                         showlegend: i === 0,
                         legendgroup: cat
@@ -13649,31 +13689,75 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             font: { size: 14 }
         };
 
-        const xTypeLbl3 = this.getAxisLabelShort(this.currentInspect?.xType || 'ge');
-        const yTypeLbl3 = this.getAxisLabelShort(this.currentInspect?.yType || 'ge');
+        // Panel side length in pixels, needed before the layout so the header
+        // and title offsets can be expressed in pixels rather than fractions.
+        this._threePanelSidePx = Math.round(this._threePanelWidth() * 0.2933);
+
+        // Axis labels: the same full labels the single-panel view uses. This
+        // used to read the short form on y only ("TP53 Effect"), and the x
+        // label was computed and then never applied, so x had no title at all.
+        const xLabelText3 = this.getAxisLabel(gene1, this.currentInspect?.xType || 'ge');
+        const yLabelText3 = this.getAxisLabel(gene2, this.currentInspect?.yType || 'ge');
+
+        // Panels are square by construction: three equal columns with even
+        // gutters, and the plot height is derived from the column width below.
+        const COL_W = 0.2933, GUT = 0.06;
+        const colStart = [0, COL_W + GUT, 2 * (COL_W + GUT)];
+        const colMid = colStart.map(x0 => x0 + COL_W / 2);
+
+        // Header and title offsets in pixels, converted to paper units, so the
+        // spacing holds at any plot size instead of drifting with it.
+        const panelPx3 = this._threePanelSidePx || 260;
+        const yHeader = 1 + 10 / panelPx3;
+        const yTitle = 1 + 40 / panelPx3;
+
+        titleAnnotation.y = this._userTitlePosition ? this._userTitlePosition.y : yTitle;
+        titleAnnotation._tsRole = 'title';
 
         const layout = {
             grid: { rows: 1, columns: 3, pattern: 'independent' },
-            xaxis: { range: xRange, domain: [0, 0.30], tickfont: { size: 10 } },
-            yaxis: { title: `${gene2} ${yTypeLbl3}`, titlefont: { size: 11 }, range: yRange, tickfont: { size: 10 } },
-            xaxis2: { range: xRange, domain: [0.35, 0.65], tickfont: { size: 10 } },
+            xaxis: { range: xRange, domain: [colStart[0], colStart[0] + COL_W], tickfont: { size: 10 } },
+            yaxis: { range: yRange, tickfont: { size: 10 } },
+            xaxis2: { range: xRange, domain: [colStart[1], colStart[1] + COL_W], tickfont: { size: 10 } },
             yaxis2: { range: yRange, anchor: 'x2', tickfont: { size: 10 } },
-            xaxis3: { range: xRange, domain: [0.70, 1], tickfont: { size: 10 } },
+            xaxis3: { range: xRange, domain: [colStart[2], colStart[2] + COL_W], tickfont: { size: 10 } },
             yaxis3: { range: yRange, anchor: 'x3', tickfont: { size: 10 } },
             annotations: [
                 titleAnnotation,
-                { x: 0.14, y: 1.02, xref: 'paper', yref: 'paper',
-                  text: `<b>${annotLabels[0]}</b> n=${wt.length}, r=${wtStats.correlation.toFixed(3)}`,
-                  showarrow: false, font: { size: 10 } },
-                { x: 0.5, y: 1.02, xref: 'paper', yref: 'paper',
-                  text: `<b>${annotLabels[1]}</b> n=${mut1.length}, r=${mut1Stats.correlation.toFixed(3)}`,
-                  showarrow: false, font: { size: 10 } },
-                { x: 0.86, y: 1.02, xref: 'paper', yref: 'paper',
-                  text: `<b>${annotLabels[2]}</b> n=${mut2.length}, r=${mut2Stats.correlation.toFixed(3)}`,
-                  showarrow: false, font: { size: 10 } },
+                { x: this._userPanelHeaderPos?.panel0?.x ?? colMid[0],
+                  y: this._userPanelHeaderPos?.panel0?.y ?? yHeader,
+                  xref: 'paper', yref: 'paper',
+                  xanchor: this._userPanelHeaderPos?.panel0 ? 'auto' : 'center',
+                  yanchor: this._userPanelHeaderPos?.panel0 ? 'auto' : 'bottom',
+                  text: `${annotLabels[0]} n=${wt.length}, r=${wtStats.correlation.toFixed(3)}`,
+                  showarrow: false, font: { size: 11 }, _tsRole: 'panel0' },
+                { x: this._userPanelHeaderPos?.panel1?.x ?? colMid[1],
+                  y: this._userPanelHeaderPos?.panel1?.y ?? yHeader,
+                  xref: 'paper', yref: 'paper',
+                  xanchor: this._userPanelHeaderPos?.panel1 ? 'auto' : 'center',
+                  yanchor: this._userPanelHeaderPos?.panel1 ? 'auto' : 'bottom',
+                  text: `${annotLabels[1]} n=${mut1.length}, r=${mut1Stats.correlation.toFixed(3)}`,
+                  showarrow: false, font: { size: 11 }, _tsRole: 'panel1' },
+                { x: this._userPanelHeaderPos?.panel2?.x ?? colMid[2],
+                  y: this._userPanelHeaderPos?.panel2?.y ?? yHeader,
+                  xref: 'paper', yref: 'paper',
+                  xanchor: this._userPanelHeaderPos?.panel2 ? 'auto' : 'center',
+                  yanchor: this._userPanelHeaderPos?.panel2 ? 'auto' : 'bottom',
+                  text: `${annotLabels[2]} n=${mut2.length}, r=${mut2Stats.correlation.toFixed(3)}`,
+                  showarrow: false, font: { size: 11 }, _tsRole: 'panel2' },
+                // One x label under the row and one y label beside it, rather
+                // than repeating them on every panel.
+                { x: this._userXLabelPos3 ? this._userXLabelPos3.x : 0.5,
+                  y: this._userXLabelPos3 ? this._userXLabelPos3.y : -0.13,
+                  xref: 'paper', yref: 'paper', xanchor: 'center', yanchor: 'top',
+                  text: xLabelText3, showarrow: false, font: { size: 13 }, _tsRole: 'xlabel' },
+                { x: this._userYLabelPos3 ? this._userYLabelPos3.x : -0.075,
+                  y: this._userYLabelPos3 ? this._userYLabelPos3.y : 0.5,
+                  xref: 'paper', yref: 'paper', xanchor: 'center', yanchor: 'middle',
+                  text: yLabelText3, showarrow: false, font: { size: 13 }, textangle: -90, _tsRole: 'ylabel' },
                 ...threePanelHighlightAnnotations
             ],
-            margin: { t: 110, r: 30, b: categoryOrder ? 100 : 50, l: 60 },
+            margin: { t: 76, r: 30, b: categoryOrder ? 110 : 66, l: 76 },
             showlegend: !!categoryOrder,
             legend: {
                 orientation: 'h',
@@ -13713,10 +13797,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Apply plot dimensions (wide default for three-panel)
         const plotContainer3 = document.getElementById('scatterPlot');
         const m3 = layout.margin;
-        let plotAreaW3 = parseInt(document.getElementById('plotWidth')?.value);
-        let plotAreaH3 = parseInt(document.getElementById('plotHeight')?.value);
-        if (isNaN(plotAreaW3)) plotAreaW3 = Math.max(700, Math.min(1100, window.innerWidth - 400));
-        if (isNaN(plotAreaH3)) plotAreaH3 = Math.round(plotAreaW3 / 3 * 0.9); // ~square per panel
+        const plotAreaW3 = this._threePanelWidth();
+        // Height follows the column width so each panel is square. It used to
+        // take #plotHeight verbatim, but that box is sized for the single-panel
+        // view, so a panel a third as wide came out several times taller than
+        // it was wide and had to be shrunk by hand every time.
+        const plotAreaH3 = Math.round(plotAreaW3 * COL_W);
         layout.width = plotAreaW3 + m3.l + m3.r;
         layout.height = plotAreaH3 + m3.t + m3.b;
         plotContainer3.style.width = layout.width + 'px';
@@ -13734,14 +13820,30 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         y: relayoutData['legend.y']
                     };
                 }
-                if (relayoutData['annotations[0].x'] !== undefined && relayoutData['annotations[0].y'] !== undefined) {
-                    this._userTitlePosition = {
-                        x: relayoutData['annotations[0].x'],
-                        y: relayoutData['annotations[0].y']
+                // Remember dragged chrome by its role. Previously only the
+                // title was captured and the offset below was hard-coded to 4,
+                // so moving a panel header did nothing: it snapped back on the
+                // next redraw.
+                const plotAnns3 = plotEl.layout?.annotations || [];
+                for (let ai = 0; ai < plotAnns3.length; ai++) {
+                    const role = plotAnns3[ai]._tsRole;
+                    if (!role) continue;
+                    const xKey = `annotations[${ai}].x`, yKey = `annotations[${ai}].y`;
+                    if (relayoutData[xKey] === undefined && relayoutData[yKey] === undefined) continue;
+                    const pos = {
+                        x: relayoutData[xKey] !== undefined ? relayoutData[xKey] : plotAnns3[ai].x,
+                        y: relayoutData[yKey] !== undefined ? relayoutData[yKey] : plotAnns3[ai].y
                     };
+                    if (role === 'title') this._userTitlePosition = pos;
+                    else if (role === 'xlabel') this._userXLabelPos3 = pos;
+                    else if (role === 'ylabel') this._userYLabelPos3 = pos;
+                    else if (role.startsWith('panel')) {
+                        if (!this._userPanelHeaderPos) this._userPanelHeaderPos = {};
+                        this._userPanelHeaderPos[role] = pos;
+                    }
                 }
-                // Capture dragged cell label positions (annotations[4+] in three-panel: title + 3 panel stats)
-                const labelOffset = 4;
+                // Cell labels follow all the tagged chrome above.
+                const labelOffset = plotAnns3.filter(a => a._tsRole).length;
                 for (let i = 0; i < allThreePanelHighlightData.length; i++) {
                     const idx = i + labelOffset;
                     const axKey = `annotations[${idx}].ax`;
@@ -27961,6 +28063,125 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             cols.push({ slot: 170, drawn: Math.max(120, meas('Node Color:', titleFont), meas(cap, smallFont)) });
         }
         return cols.reduce((sum, col, i) => sum + (i === cols.length - 1 ? col.drawn : col.slot), 0);
+    }
+
+    // Label for everything outside the picked groups.
+    get OTHER_GROUP_LABEL() { return 'Other'; }
+
+    // The groups the user picked, as a Set, or null when nothing is picked (in
+    // which case every group is coloured as before). Picks that are not present
+    // in the current data are ignored rather than emptying the plot.
+    _colorByPickedSet(available) {
+        const raw = (document.getElementById('colorByPicked')?.value || '').trim();
+        if (!raw) return null;
+        const want = new Set(raw.split('|').filter(Boolean));
+        const usable = new Set(available.filter(c => want.has(c)));
+        return usable.size ? usable : null;
+    }
+
+    // Panel for choosing which tissues / subtypes to colour. Everything else on
+    // the plot goes grey, so a couple of groups can be picked out of a list far
+    // too long to colour all at once.
+    showColorByGroupPicker() {
+        document.getElementById('colorByGroupPanel')?.remove();
+        const mode = document.getElementById('colorByCategory')?.value;
+        if (mode !== 'tissue' && mode !== 'subtype') return;
+
+        const data = this.currentInspect?.data || [];
+        const counts = {};
+        data.forEach(d => {
+            const cat = mode === 'subtype'
+                ? (this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown')
+                : (d.lineage || 'Unknown');
+            counts[cat] = (counts[cat] || 0) + 1;
+        });
+        const cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        if (!cats.length) return;
+
+        const hidden = document.getElementById('colorByPicked');
+        const picked = new Set((hidden?.value || '').split('|').filter(Boolean));
+        const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+        const panel = document.createElement('div');
+        panel.id = 'colorByGroupPanel';
+        panel.className = 'select-proxy-panel';
+        panel.style.width = '270px';
+        panel.innerHTML =
+            `<div style="font-size:11px; font-weight:600; color:#374151; padding:2px 4px 6px;">Colour only these ${mode === 'subtype' ? 'subtypes' : 'tissues'}</div>` +
+            `<input type="text" class="select-proxy-filter" id="colorByGroupFilter" placeholder="Filter...">` +
+            `<div class="select-proxy-list" id="colorByGroupList" style="max-height:250px;">` +
+            cats.map(c => `<label class="select-proxy-item" style="display:flex; align-items:center; gap:6px; cursor:pointer;">` +
+                `<input type="checkbox" class="cbg-check" data-cat="${esc(c)}"${picked.has(c) ? ' checked' : ''} style="margin:0;">` +
+                `<span style="flex:1; overflow:hidden; text-overflow:ellipsis;">${esc(c)}</span>` +
+                `<span style="color:#9ca3af;">${counts[c]}</span></label>`).join('') +
+            `</div>` +
+            `<div style="display:flex; gap:6px; align-items:center; padding:6px 4px 0;">` +
+            `<button id="cbgClear" style="font-size:10px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer;">Colour all</button>` +
+            `<span id="cbgCount" style="font-size:10px; color:#6b7280; flex:1; text-align:right;"></span>` +
+            `<button id="cbgApply" style="font-size:11px; padding:3px 10px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Apply</button>` +
+            `</div>`;
+        document.body.appendChild(panel);
+
+        const btn = document.getElementById('colorByGroupBtn');
+        const r = btn.getBoundingClientRect();
+        panel.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 278)) + 'px';
+        const ph = panel.getBoundingClientRect().height;
+        panel.style.top = Math.max(8, Math.min(r.bottom + 4, window.innerHeight - ph - 8)) + 'px';
+
+        const checks = () => [...panel.querySelectorAll('.cbg-check')];
+        const countEl = panel.querySelector('#cbgCount');
+        const refresh = () => {
+            const n = checks().filter(c => c.checked).length;
+            countEl.textContent = n ? `${n} selected` : 'none, all coloured';
+        };
+        refresh();
+        panel.addEventListener('change', (e) => { if (e.target.classList.contains('cbg-check')) refresh(); });
+        panel.querySelector('#colorByGroupFilter').addEventListener('input', (e) => {
+            const q = e.target.value.trim().toLowerCase();
+            panel.querySelectorAll('.select-proxy-item').forEach(it => {
+                it.style.display = !q || it.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+            });
+        });
+        const close = () => { panel.remove(); document.removeEventListener('mousedown', outside, true); };
+        const outside = (e) => { if (!panel.contains(e.target) && !btn.contains(e.target)) close(); };
+        setTimeout(() => document.addEventListener('mousedown', outside, true), 0);
+        panel.querySelector('#cbgClear').addEventListener('click', () => {
+            checks().forEach(c => { c.checked = false; });
+            refresh();
+        });
+        panel.querySelector('#cbgApply').addEventListener('click', () => {
+            const chosen = checks().filter(c => c.checked).map(c => c.dataset.cat);
+            if (hidden) hidden.value = chosen.join('|');
+            close();
+            this._syncColorByGroupBtn();
+            this.updateInspectPlot();
+        });
+    }
+
+    // Keeps the picker button visible only in colour-by mode, and showing how
+    // many groups are currently picked.
+    _syncColorByGroupBtn() {
+        const btn = document.getElementById('colorByGroupBtn');
+        if (!btn) return;
+        const mode = document.getElementById('colorByCategory')?.value;
+        const on = mode === 'tissue' || mode === 'subtype';
+        btn.style.display = on ? '' : 'none';
+        const n = ((document.getElementById('colorByPicked')?.value || '').split('|').filter(Boolean)).length;
+        btn.textContent = n ? `Groups: ${n}` : 'Pick groups...';
+    }
+
+    // Total plot width for the three-panel view. #plotWidth is sized for a
+    // single plot, so using it directly left each of the three panels about a
+    // third of the intended size. Scale it up, within sensible bounds.
+    _threePanelWidth() {
+        // Cap at what the plot column can actually show, or the third panel and
+        // the y label end up outside the popout.
+        const host = document.getElementById('scatterPlot')?.parentElement;
+        const MARGINS = 76 + 30;
+        const avail = host?.clientWidth ? host.clientWidth - MARGINS - 12 : (window.innerWidth - 420);
+        const single = parseInt(document.getElementById('plotWidth')?.value);
+        const wanted = isNaN(single) ? avail : Math.round(single * 2.4);
+        return Math.max(480, Math.min(wanted, avail));
     }
 
     _makeDraggable(el, handle) {

@@ -1804,6 +1804,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.45 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Highlight chosen tissues or subtypes.</b> <b>Color by...</b> now has a <b>Pick groups</b> button: tick the tissues or subtypes you care about and only those are coloured, with everything else folded into one grey <b>Other</b> series. <b>By subtype</b> is available without first choosing a tissue, since picking a handful out of 70+ is now practical. Works in the single and three-panel views, and the choice is kept in exports and new tabs.</li>
+                    <li><b>The hotspot three-panel view is usable as it comes.</b> The panels are square by construction instead of taking their height from the single-plot size box, which made each panel a third as wide as it was tall and had to be shrunk by hand every time.</li>
+                    <li><b>Fix: the axis labels were wrong.</b> The y axis used a shortened form (&ldquo;TP53 Effect&rdquo;) and the x axis had no label at all, because its label was worked out and then never applied. Both now read the same as the single-panel view, e.g. <em>TP53 Expression (log2 TPM+1)</em> and <em>MDM2 Gene Effect</em>, shown once for the row rather than repeated on each panel.</li>
+                    <li><b>Panel headings sit clear of the title</b> and stay put if you move them. Dragging one used to be undone by the next redraw.</li>
+                </ul>
                 <p><strong>v.84.44 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Fix: strong results reported "p = 0.0e+0".</b> That was not a real number. The normal-distribution approximation behind every p-value was only accurate to about 1 in 10 million, so anything stronger than that rounded to certainty and the p-value collapsed to exactly zero. The CDKN1A / TP53 comparison that showed <code>0.0e+0</code> is in fact <b>p = 2.3 &times; 10<sup>&minus;26</sup></b>. Replaced with a method that stays accurate down to about 10<sup>&minus;300</sup>.</li>
@@ -4232,7 +4239,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.44</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.45</a>
     </div>
 
     <div class="main-content">
@@ -5139,8 +5146,14 @@
                                 <select id="colorByCategory" class="form-control" style="font-size:10px; padding:1px 3px; margin-top:2px;">
                                     <option value="">Color by...</option>
                                     <option value="tissue">By tissue</option>
-                                    <option value="subtype" id="colorBySubtypeOption" style="display:none;">By subtype</option>
+                                    <!-- Available without a tissue filter now: the group picker below
+                                         makes a long subtype list workable, which is what previously
+                                         made colouring by subtype unusable. -->
+                                    <option value="subtype" id="colorBySubtypeOption">By subtype</option>
                                 </select>
+                                <!-- Colour only the chosen tissues / subtypes; everything else greys out. -->
+                                <button type="button" id="colorByGroupBtn" class="btn btn-sm btn-outline" style="display:none; font-size:9px; padding:1px 4px; margin-top:2px; width:100%;" onclick="app.showColorByGroupPicker()">Pick groups...</button>
+                                <input type="hidden" id="colorByPicked" value="">
                                 <div id="colorByLegend" style="display:none; margin-top:2px; max-height:20vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:3px; padding:2px;"></div>
                             </div>
                             <div class="control-box-compact mobile-hide" id="customCellLineFilterBox" style="flex:1;">
@@ -6612,6 +6625,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_44"></script>
+    <script src="app.js?v=v84_45"></script>
 </body>
 </html>
