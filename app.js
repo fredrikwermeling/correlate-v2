@@ -4453,7 +4453,6 @@ class CorrelationExplorer {
 
         document.getElementById('downloadNetworkPNG').addEventListener('click', () => this.downloadNetworkPNG());
         document.getElementById('downloadNetworkSVG').addEventListener('click', () => this.downloadNetworkSVG());
-        document.getElementById('screenshotWholePage')?.addEventListener('click', () => this.downloadFullPagePNG());
         document.getElementById('downloadAllData').addEventListener('click', () => this.downloadAllData());
 
         // Color by stats controls (mutually exclusive with GE)
@@ -6993,19 +6992,6 @@ class CorrelationExplorer {
         return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
     }
 
-    formatPValue(p) {
-        // Format p-value with 1 decimal in exponent
-        if (p >= 1 || isNaN(p)) return '-';
-        if (p === 0 || p < 1e-300) return '1.0e-300';
-        if (p < 0.001) {
-            // Format as exponential with 1 decimal (e.g., 2.2e-10)
-            const exp = Math.floor(Math.log10(p));
-            const mantissa = p / Math.pow(10, exp);
-            return `${mantissa.toFixed(1)}e${exp}`;
-        }
-        return p.toFixed(4);
-    }
-
     displayMutationResults(resetSortIndicator = false) {
         if (!this.mutationResults) return;
 
@@ -8525,7 +8511,15 @@ class CorrelationExplorer {
         const correlation = denomX * denomY === 0 ? NaN : numerator / (denomX * denomY);
         const slope = (sumX2 - n * meanX * meanX) === 0 ? NaN : numerator / (sumX2 - n * meanX * meanX);
 
-        return { correlation, slope, n };
+        // Two-tailed p for r, from t = r * sqrt((n-2) / (1 - r^2)) on n-2 df.
+        let pValue = NaN;
+        if (!isNaN(correlation) && n > 2) {
+            const r2 = correlation * correlation;
+            pValue = r2 >= 1 ? 0 : this.tDistributionPValue(
+                Math.abs(correlation) * Math.sqrt((n - 2) / (1 - r2)), n - 2);
+        }
+
+        return { correlation, slope, n, pValue, meanX, meanY };
     }
 
     median(arr) {
@@ -9024,6 +9018,7 @@ class CorrelationExplorer {
                 domEvent.clientY += rect.top;
             }
             clearTimeout(this._networkTooltipTimer);
+            clearTimeout(this._networkTooltipHideTimer);
             // One box, shown straight away. There used to be two: vis-network's
             // own tooltip with the gene-effect numbers, and this one a second
             // later with the gene description, and they overlapped. The facts
@@ -9042,7 +9037,8 @@ class CorrelationExplorer {
         this.network.on('blurNode', () => {
             clearTimeout(this._networkTooltipTimer);
             clearTimeout(this._networkQuickTooltipTimer);
-            this.hideGeneTooltip();
+            clearTimeout(this._networkTooltipHideTimer);
+            this._networkTooltipHideTimer = setTimeout(() => this.hideGeneTooltip(), 400);
         });
 
         // Double-click to open Gene Effect (node) or Inspect (edge)
@@ -10066,7 +10062,20 @@ Results:
         const totalWidth = cssWidth;
         const totalHeight = headerH + cssHeight + legendHeight + padding;
 
-        const dlg = await this._showExportDialog({ format: 'png', plotW: totalWidth, plotH: totalHeight, hasLegendFrame: true });
+        // The same dialog also offers capturing the whole page, which is where
+        // the old standalone Screenshot button used to live.
+        const dlg = await this._showExportDialog({
+            format: 'png', plotW: totalWidth, plotH: totalHeight, hasLegendFrame: true,
+            canScreenshot: true, screenshotLabel: 'The whole page, as a screenshot'
+        });
+        if (dlg && dlg.what === 'popout') {
+            const sx = window.scrollX, sy = window.scrollY;
+            window.scrollTo(0, 0);
+            await new Promise(r => setTimeout(r, 60));
+            try { await this.screenshotPopoutWith(document.body, 'correlate_screenshot', dlg); }
+            finally { window.scrollTo(sx, sy); }
+            return;
+        }
         if (!dlg) return;
         // SVG = vector reconstruction; hand off (reusing this dialog so the user
         // isn't asked twice). PNG/TIFF/PDF/PPTX build the raster canvas below.
@@ -13192,7 +13201,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (filterDesc) {
             titleLines.push(`<span style="font-size:${subSize}px;color:#666;">${filterDesc}</span>`);
         }
-        titleLines.push(`<span style="font-size:${subSize}px;">n=${filteredData.length}, r=${allStats.correlation.toFixed(3)}, slope=${allStats.slope.toFixed(3)}</span>`);
+        titleLines.push(`<span style="font-size:${subSize}px;">n=${filteredData.length}, r=${allStats.correlation.toFixed(3)}, ${this.formatPClause(allStats.pValue)}, slope=${allStats.slope.toFixed(3)}</span>`);
         titleLines.push(`<span style="font-size:${subSize}px;">mean (X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)}) median (X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})</span>`);
         if (this.currentInspect?.sparseNote) {
             titleLines.push(`<span style="font-size:${Math.round(subSize * 0.85)}px; color:#b45309;">&#9888; ${this.currentInspect.sparseNote}</span>`);
@@ -13694,6 +13703,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         titleAnnotation.y = this._userTitlePosition ? this._userTitlePosition.y : yTitle;
         titleAnnotation._tsRole = 'title';
 
+        // Panel headers carry n, r with its p-value, and the medians, so each
+        // panel can be read without going back to the table.
+        const panelHeader = (label, rows, st) => {
+            const mx = this.median(rows.map(d => d.x));
+            const my = this.median(rows.map(d => d.y));
+            const rTxt = isNaN(st.correlation) ? 'n/a' : st.correlation.toFixed(3);
+            const pTxt = isNaN(st.pValue) ? 'p = n/a' : this.formatPClause(st.pValue);
+            const medTxt = `median x=${isNaN(mx) ? 'n/a' : mx.toFixed(2)}, y=${isNaN(my) ? 'n/a' : my.toFixed(2)}`;
+            return `${label} n=${rows.length}, r=${rTxt}, ${pTxt}`
+                + `<br><span style="font-size:10px; color:#6b7280;">${medTxt}</span>`;
+        };
+
         const layout = {
             grid: { rows: 1, columns: 3, pattern: 'independent' },
             xaxis: { range: xRange, domain: [colStart[0], colStart[0] + COL_W], tickfont: { size: 10 } },
@@ -13709,21 +13730,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                   xref: 'paper', yref: 'paper',
                   xanchor: this._userPanelHeaderPos?.panel0 ? 'auto' : 'center',
                   yanchor: this._userPanelHeaderPos?.panel0 ? 'auto' : 'bottom',
-                  text: `${annotLabels[0]} n=${wt.length}, r=${wtStats.correlation.toFixed(3)}`,
+                  text: panelHeader(annotLabels[0], wt, wtStats),
                   showarrow: false, font: { size: 11 }, _tsRole: 'panel0' },
                 { x: this._userPanelHeaderPos?.panel1?.x ?? colMid[1],
                   y: this._userPanelHeaderPos?.panel1?.y ?? yHeader,
                   xref: 'paper', yref: 'paper',
                   xanchor: this._userPanelHeaderPos?.panel1 ? 'auto' : 'center',
                   yanchor: this._userPanelHeaderPos?.panel1 ? 'auto' : 'bottom',
-                  text: `${annotLabels[1]} n=${mut1.length}, r=${mut1Stats.correlation.toFixed(3)}`,
+                  text: panelHeader(annotLabels[1], mut1, mut1Stats),
                   showarrow: false, font: { size: 11 }, _tsRole: 'panel1' },
                 { x: this._userPanelHeaderPos?.panel2?.x ?? colMid[2],
                   y: this._userPanelHeaderPos?.panel2?.y ?? yHeader,
                   xref: 'paper', yref: 'paper',
                   xanchor: this._userPanelHeaderPos?.panel2 ? 'auto' : 'center',
                   yanchor: this._userPanelHeaderPos?.panel2 ? 'auto' : 'bottom',
-                  text: `${annotLabels[2]} n=${mut2.length}, r=${mut2Stats.correlation.toFixed(3)}`,
+                  text: panelHeader(annotLabels[2], mut2, mut2Stats),
                   showarrow: false, font: { size: 11 }, _tsRole: 'panel2' },
                 // One x label under the row and one y label beside it, rather
                 // than repeating them on every panel.
@@ -15303,6 +15324,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // toExponential, which gave "0.0e+0" whenever the value underflowed and
     // "1.2e-15" otherwise; this gives 0.032 down to three decimals and proper
     // scientific notation below that.
+    // The whole "p" clause, so an underflowed value reads "p < 10^-300" rather
+    // than "p = < 10^-300".
+    formatPClause(p) {
+        const t = this.formatPValue(p);
+        return t.startsWith('<') ? `p ${t}` : `p = ${t}`;
+    }
+
     formatPValue(p) {
         if (p === null || p === undefined || isNaN(p)) return 'n/a';
         if (p >= 0.001) return p.toFixed(3);
@@ -17534,6 +17562,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             h: plotEl._fullLayout?.height || plotEl.layout?.height || plotEl.offsetHeight,
             format,
             filename: `scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`,
+            popout: { elId: 'inspectModalInner', fileStem: 'correlate_correlation' },
             meta: this._buildPopoutMeta('scatter'),
             // Plotly's legend has a clipPath that crops long entries (gene
             // symbols can exceed the assumed Open-Sans width). Remove the
@@ -17981,6 +18010,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
         show('geneSetModeOptions', !isMutation);
         show('mutationModeOptions', isMutation);
+        // Run does something different in each mode, so its explanation has to
+        // follow. In mutation analysis it ignores the gene box entirely.
+        const runBtn = document.getElementById('runAnalysis');
+        if (runBtn) {
+            runBtn.title = isMutation
+                ? 'Split the cell lines into altered and wild-type for the gene chosen in box 1, then rank every gene in the screen by how much its gene effect differs between the two groups. The gene list in box 2 is not used in this mode.'
+                : 'Correlate the gene-effect profiles of the genes in box 2, using the parameters in box 1. Results appear in box 3.';
+        }
         const setActive = (id, on) => {
             const b = document.getElementById(id);
             if (!b) return;
@@ -19296,6 +19333,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             h: plotEl._fullLayout?.height || plotEl.offsetHeight,
             format,
             filename: `correlation_${d.gene1}_vs_${d.gene2}_by_${this._caView}`,
+            popout: { elId: 'corrAnalysisModalInner', fileStem: 'correlate_correlation_analysis' },
             meta: this._buildPopoutMeta('correlation_analysis')
         });
     }
@@ -19605,6 +19643,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             h: chartEl._fullLayout?.height || chartEl.offsetHeight || Math.max(400, (this.currentTissueStats?.length || 10) * 25 + 100),
             format,
             filename: `by_tissue_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}`,
+            popout: { elId: 'inspectModalInner', fileStem: 'correlate_correlation' },
             meta: this._buildExportMetadata('tissue_chart', { gene1: this.currentInspect.gene1, gene2: this.currentInspect.gene2 })
         });
     }
@@ -21480,6 +21519,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             h: plotEl?._fullLayout?.height || plotEl?.offsetHeight || 500,
             format: 'png',
             filename: `gene_effect_${this.currentGeneEffect.gene}_by_${this.currentGEView}`,
+            popout: { elId: 'geneEffectModalInner', fileStem: 'correlate_gene_effect' },
             meta: this._buildPopoutMeta('gene_effect', { textSettings: this._capturePlotTextSettings(plotId) })
         });
     }
@@ -21553,15 +21593,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // screenshots only. rasterOnly hides the SVG choice because a DOM
             // capture has no vector source.
             const scopeRow = document.getElementById('exportOptScopeRow');
-            if (scopeRow) scopeRow.style.display = context.allowScope ? '' : 'none';
-            const svgOpt = document.getElementById('exportOptFormatSvg');
-            if (svgOpt) svgOpt.style.display = context.rasterOnly ? 'none' : '';
+            const whatRow = document.getElementById('exportOptWhatRow');
+            const whatEl = document.getElementById('exportOptWhat');
+            // "Whole panel" is a screenshot, so it can't be vector and it gains
+            // the full-content / visible-area choice. Keep the two rows in step.
+            const syncWhatUI = () => {
+                const asPopout = context.canScreenshot && whatEl?.value === 'popout';
+                const raster = context.rasterOnly || asPopout;
+                if (scopeRow) scopeRow.style.display = (context.allowScope || asPopout) ? '' : 'none';
+                const svgOpt2 = document.getElementById('exportOptFormatSvg');
+                if (svgOpt2) svgOpt2.style.display = raster ? 'none' : '';
+                if (fmtEl && raster && fmtEl.value === 'svg') fmtEl.value = 'png';
+                syncFormatUI();
+            };
+            if (whatRow) whatRow.style.display = context.canScreenshot ? '' : 'none';
+            const whatOpt = whatEl?.querySelector('option[value="popout"]');
+            if (whatOpt && context.screenshotLabel) whatOpt.textContent = context.screenshotLabel;
+            else if (whatOpt) whatOpt.textContent = 'The whole panel, as a screenshot (chart plus its settings)';
+            if (whatEl) {
+                whatEl.value = 'chart';
+                whatEl.onchange = syncWhatUI;
+            }
             if (fmtEl) {
                 const allowed = context.rasterOnly ? ['png', 'pdf', 'tiff', 'pptx'] : ['png', 'svg', 'pdf', 'tiff', 'pptx'];
                 fmtEl.value = allowed.includes(context.format) ? context.format : 'png';
                 fmtEl.onchange = syncFormatUI;
             }
-            syncFormatUI();
+            syncWhatUI();
             const widthEl = document.getElementById('exportOptWidth');
             const heightEl = document.getElementById('exportOptHeight');
             const dpiEl = document.getElementById('exportOptDpi');
@@ -21615,7 +21673,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     background: document.querySelector('input[name="exportOptBg"]:checked')?.value || 'white',
                     legendFrame: !!frameEl?.checked,
                     lockAspect: !!(lockEl ? lockEl.checked : true),
-                    scope: document.querySelector('input[name="exportOptScope"]:checked')?.value || 'full'
+                    scope: document.querySelector('input[name="exportOptScope"]:checked')?.value || 'full',
+                    what: (context.canScreenshot && whatEl) ? whatEl.value : 'chart'
                 };
                 this._lastExportOpts = opts;
                 cleanup();
@@ -21663,11 +21722,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // print size and DPI for raster output. Follows feedback_plotly_exports.md:
     // SVG from Plotly → _expandSvgToContent → rasterise at target DPI.
     async _exportPlotly(plotEl, opts) {
-        const { w, h, format, filename, meta, postProcess } = opts || {};
+        const { w, h, format, filename, meta, postProcess, popout } = opts || {};
 
-        // Ask user for publication dimensions + DPI.
-        const dlg = await this._showExportDialog({ format, plotW: w, plotH: h });
+        // Ask user for publication dimensions + DPI. When the chart sits in a
+        // popout, the same dialog also offers capturing the whole panel, which
+        // is what the separate camera buttons used to do.
+        const dlg = await this._showExportDialog({
+            format, plotW: w, plotH: h,
+            canScreenshot: !!popout
+        });
         if (!dlg) return;
+        if (popout && dlg.what === 'popout') {
+            return this.screenshotPopoutWith(popout.elId, popout.fileStem, dlg);
+        }
         const { widthCm, heightCm, dpi, background } = dlg;
         const fmt = dlg.format || format;   // user may switch format in the dialog
         const CM_TO_IN = 1 / 2.54;
@@ -21796,20 +21863,30 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return {};
     }
 
+    // Asks for the export settings, then captures. Split from the capture
+    // itself so the chart export dialog can offer "whole popout" as a choice
+    // and reuse the capture without opening a second dialog.
     async screenshotPopout(elOrId, fileStem, metaExtra = {}) {
         const root = (typeof elOrId === 'string') ? document.getElementById(elOrId) : elOrId;
         if (!root) { alert('Nothing to capture.'); return; }
+        if (typeof html2canvas === 'undefined') { alert('Screenshot library not loaded.'); return; }
+        const dlg = await this._showExportDialog({
+            format: 'png', plotW: root.offsetWidth || 600, plotH: root.offsetHeight || 400,
+            allowScope: true, rasterOnly: true
+        });
+        if (!dlg) return;
+        return this.screenshotPopoutWith(elOrId, fileStem, dlg, metaExtra);
+    }
+
+    async screenshotPopoutWith(elOrId, fileStem, dlg, metaExtra = {}) {
+        const root = (typeof elOrId === 'string') ? document.getElementById(elOrId) : elOrId;
+        if (!root || !dlg) return;
         if (typeof html2canvas === 'undefined') { alert('Screenshot library not loaded.'); return; }
         // If the caller didn't supply restore metadata, derive it from the stem
         // so the sidecar .correlate.json can reopen this exact popout.
         if (!metaExtra || Object.keys(metaExtra).length === 0) {
             metaExtra = this._popoutMetaForStem(fileStem);
         }
-        const dlg = await this._showExportDialog({
-            format: 'png', plotW: root.offsetWidth || 600, plotH: root.offsetHeight || 400,
-            allowScope: true, rasterOnly: true
-        });
-        if (!dlg) return;
         const { widthCm, heightCm, dpi, background, fmt: _f, scope } = dlg;
         const fmt = dlg.format || 'png';
         const rootId = (typeof elOrId === 'string') ? elOrId : root.id;
@@ -22278,6 +22355,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             h: plotEl?._fullLayout?.height || plotEl?.offsetHeight || 500,
             format: 'svg',
             filename: `gene_effect_${this.currentGeneEffect.gene}_by_${this.currentGEView}`,
+            popout: { elId: 'geneEffectModalInner', fileStem: 'correlate_gene_effect' },
             meta: this._buildPopoutMeta('gene_effect', { textSettings: this._capturePlotTextSettings(plotId) })
         });
     }
@@ -23812,6 +23890,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         tooltip.id = 'geneTooltip';
         tooltip.dataset.gene = gene;
         tooltip.dataset.pinned = pinned ? '1' : '0';
+        // Everything needed to rebuild this box pinned. The Shift handler is
+        // global (see below) rather than a closure tied to this element, so it
+        // still works after the element has been replaced or nearly removed.
+        tooltip._ctx = { gene, whyContext, prefixHtml, x: event.clientX, y: event.clientY };
         const maxW = pinned ? 460 : 350;
         tooltip.style.cssText = `position: fixed; z-index: 10001; background: white; border: 1px solid ${pinned ? '#5a9f4a' : '#d1d5db'}; border-radius: 8px; padding: 10px 14px; max-width: ${maxW}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 11px; line-height: 1.45; color: #374151;`;
         // A non-pinned (hover) tooltip must not capture the mouse: if it does, a
@@ -23849,20 +23931,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // listeners (modals register their Esc handlers in bubble phase).
             document.addEventListener('keydown', escDismiss, true);
             tooltip._cleanup = () => { document.removeEventListener('keydown', escDismiss, true); };
-        } else {
-            // Quick-mode: pressing Shift while hovering upgrades to pinned.
-            const upgrade = (ev) => {
-                if (ev.key === 'Shift') {
-                    document.removeEventListener('keydown', upgrade);
-                    // Re-use the original pointer position, not the adjusted box
-                    // position, and keep the gene-effect line the caller passed.
-                    this.showGeneTooltip(
-                        { clientX: event.clientX, clientY: event.clientY, shiftKey: true },
-                        gene, whyContext, prefixHtml);
-                }
-            };
-            document.addEventListener('keydown', upgrade);
-            tooltip._cleanup = () => document.removeEventListener('keydown', upgrade);
         }
 
         this.fetchGeneInfo(gene).then(info => {
@@ -38508,7 +38576,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Whether Shift is being held right now. The gene tooltip needs this because
 // it is created on a timer, long after the keydown that would have told it.
-document.addEventListener('keydown', (e) => { if (e.key === 'Shift' && window.app) window.app._shiftHeld = true; });
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Shift' || !window.app) return;
+    window.app._shiftHeld = true;
+    // Expand whatever gene box is showing. Doing this globally rather than from
+    // a listener owned by the box itself is what makes "Hold Shift" dependable:
+    // the box is removed as soon as the pointer drifts off the node, taking any
+    // listener of its own with it.
+    const tip = document.getElementById('geneTooltip');
+    if (tip && tip.dataset.pinned !== '1' && tip._ctx) {
+        const c = tip._ctx;
+        window.app.showGeneTooltip({ clientX: c.x, clientY: c.y, shiftKey: true }, c.gene, c.whyContext, c.prefixHtml);
+    }
+});
 document.addEventListener('keyup', (e) => { if (e.key === 'Shift' && window.app) window.app._shiftHeld = false; });
 window.addEventListener('blur', () => { if (window.app) window.app._shiftHeld = false; });
 
@@ -38546,6 +38626,66 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.style.paddingRight = document.body.dataset.prevPadRight || '';
         }
     };
+
+    // Scrolling inside an open dialog. Locking the page behind removed the
+    // fallback the wheel used to have, and most of a popout's area is taken up
+    // by a chart that swallows the wheel without scrolling anything, so it felt
+    // like the panel simply could not be scrolled. Anything the pointer is over
+    // that can still scroll keeps its wheel; otherwise it goes to the dialog's
+    // own scroller.
+    const canScroll = (el, dy) => {
+        if (!el || el === document.body || el === document.documentElement) return false;
+        if (el.scrollHeight <= el.clientHeight + 1) return false;
+        const oy = getComputedStyle(el).overflowY;
+        if (oy !== 'auto' && oy !== 'scroll') return false;
+        if (dy < 0) return el.scrollTop > 0;
+        return el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+    };
+
+    const dialogScroller = (overlay) => {
+        const direct = overlay.querySelector(':scope > .modal > .modal-body');
+        if (direct) return direct;
+        // Custom-built overlays: take the tallest thing that actually scrolls.
+        let best = null;
+        overlay.querySelectorAll('*').forEach(el => {
+            if (!canScroll(el, 1) && !canScroll(el, -1)) return;
+            if (!best || el.clientHeight > best.clientHeight) best = el;
+        });
+        return best;
+    };
+
+    document.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) return;   // pinch-zoom
+        const overlay = modals.filter(isOpen).pop();
+        const inOverlay = overlay && overlay.contains(e.target);
+
+        // Plotly takes the wheel for its own zoom and stops it there, so a chart
+        // filling a panel made the panel look unscrollable. Charts sit inside
+        // things that should scroll, so hand the wheel to them instead. Captured
+        // and stopped before Plotly sees it, otherwise it would zoom as well.
+        if (e.target.closest?.('.js-plotly-plot')) {
+            const scroller = inOverlay ? dialogScroller(overlay) : null;
+            if (scroller && canScroll(scroller, e.deltaY)) {
+                scroller.scrollTop += e.deltaY;
+                e.preventDefault();
+                e.stopPropagation();
+            } else if (!overlay) {
+                window.scrollBy(0, e.deltaY);
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            return;
+        }
+
+        if (!locked || !inOverlay) return;
+        for (let n = e.target; n && n !== overlay; n = n.parentElement) {
+            if (canScroll(n, e.deltaY)) return;   // something under the pointer handles it
+        }
+        const scroller = dialogScroller(overlay);
+        if (!scroller || !canScroll(scroller, e.deltaY)) return;
+        scroller.scrollTop += e.deltaY;
+        e.preventDefault();
+    }, { passive: false, capture: true });
 
     const observer = new MutationObserver(applyLock);
     modals.forEach(el => observer.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }));

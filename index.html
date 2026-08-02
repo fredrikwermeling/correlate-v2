@@ -1820,6 +1820,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.48 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Fix: popouts could not be scrolled.</b> A chart fills most of a panel, and Plotly takes the scroll wheel for its own zoom and stops it there, so the panel underneath never moved. Scrolling over a chart now scrolls the panel it sits in (or the page, on the main view). This affected the Correlation and Gene Effect popouts and the Cell Line Browser.</li>
+                    <li><b>Fix: &ldquo;Hold Shift for full text&rdquo; on network genes.</b> The box disappears as soon as the pointer drifts off the node, taking its own key handler with it, so Shift usually arrived too late. Shift is now handled centrally, the box lingers briefly after you move away, and holding Shift before hovering works too.</li>
+                    <li><b>Correlation statistics now include a p-value.</b> The single plot shows <em>n, r, p, slope</em>; each panel of the hotspot three-panel view shows <em>n, r, p</em> with the <b>median x and y</b> underneath.</li>
+                    <li><b>All screenshot buttons are gone, folded into Export image.</b> The dialog now asks <b>what to export</b>: the chart on its own, or the whole panel as a screenshot. The whole-page screenshot lives in the network's Export image as &ldquo;the whole page&rdquo;. Format and resolution are chosen in the one place.</li>
+                    <li><b>Run explains itself correctly in each mode.</b> In mutation analysis it no longer claims to use the gene list in box 2, which it ignores.</li>
+                    <li><b>View Controls explain themselves</b> on hover: Fit, Select Mode, Remove Mode, Lock, Settings and Node border.</li>
+                    <li>Removed a duplicate, shadowed p-value formatter that reported an underflow as the fabricated value <code>1.0e-300</code>.</li>
+                </ul>
                 <p><strong>v.84.47 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>More links when you hover a gene.</b> Alongside NCBI and HGNC there are now <b>Human Protein Atlas</b>, <b>GeneCards</b>, <b>UniProt</b> and <b>DepMap</b>. They resolve on the gene symbol, so they work even when the lookup service is slow or unavailable.</li>
@@ -4267,7 +4277,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.47</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.48</a>
     </div>
 
     <div class="main-content">
@@ -4293,7 +4303,6 @@
                                 <button class="options-menu-item" id="showGeneEffectDirect">Gene Effect</button>
                                 <button class="options-menu-item" id="showCorrelationDirect">Correlation</button>
                                 <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure...</label>
-                                <button class="options-menu-item" id="screenshotWholePage" title="Capture the whole page as an image, for explaining the app rather than for a figure. Format and resolution are chosen in the export dialog.">Screenshot the page...</button>
                             </div>
                         </div>
                     </div>
@@ -4636,7 +4645,7 @@
                         Find Synonyms
                     </button>
 
-                    <button class="btn btn-success" id="runAnalysis" disabled style="width:100%; margin-top:12px; font-size: 15px;" title="Run the analysis on the genes in box 2, using the parameters in box 1. Results appear in box 3.">
+                    <button class="btn btn-success" id="runAnalysis" disabled style="width:100%; margin-top:12px; font-size: 15px;" title="Correlate the gene-effect profiles of the genes in box 2, using the parameters in box 1. Results appear in box 3.">
                         Run ▶
                     </button>
                     <div id="geneCountDisplay" style="margin-top: 8px;"></div>
@@ -4770,16 +4779,16 @@
                         <div class="control-column control-box">
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">View Controls:</label>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
-                                <button class="btn btn-secondary" id="fitNetwork">Fit</button>
-                                <button class="btn btn-secondary" id="toggleSelectMode">Select Mode</button>
-                                <button class="btn btn-secondary" id="toggleRemoveMode">Remove Mode</button>
-                                <button class="btn btn-secondary" id="togglePhysics">Lock</button>
+                                <button class="btn btn-secondary" id="fitNetwork" title="Zoom and centre so the whole network fits in view. Does not change the analysis.">Fit</button>
+                                <button class="btn btn-secondary" id="toggleSelectMode" title="Click nodes to add them to a selection, then open Gene Effect or Correlation Analysis for that group. Click again to leave the mode.">Select Mode</button>
+                                <button class="btn btn-secondary" id="toggleRemoveMode" title="Click nodes to hide them from the picture. Removing a gene only changes what is drawn, not the underlying correlations. Restore All brings them back.">Remove Mode</button>
+                                <button class="btn btn-secondary" id="togglePhysics" title="Freeze the layout so nodes stop drifting and stay where you put them. Click again to let them settle freely.">Lock</button>
                             </div>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
-                                <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;">Settings</button>
+                                <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;" title="Fonts, label and node colours, legend size and other appearance settings for the network and its exports.">Settings</button>
                                 <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network, font / node / edge size, colours, label options and node border, back to defaults">Reset</button>
                                 <label style="font-size: 10px; display: flex; align-items: center; gap: 3px; cursor: pointer;">
-                                    <input type="checkbox" id="networkNodeBorder" checked> Node border
+                                    <input type="checkbox" id="networkNodeBorder" checked title="Draw a black outline around each node. Turn off for a flatter look in figures."> Node border
                                 </label>
                             </div>
                             <p class="help-text" id="networkHelpText" style="font-size: 9px; margin-bottom: 6px;">Double-click node for Gene Effect, edge for Correlation</p>
@@ -4789,7 +4798,7 @@
                             </div>
                             <div id="removedNodesList" style="display: none; font-size: 9px; margin-bottom: 6px; padding: 4px; background: #fef3c7; border-radius: 3px;">
                                 <span style="font-weight: 600;">Removed:</span> <span id="removedNodesText"></span>
-                                <button class="btn btn-sm" id="restoreAllNodes" style="padding: 1px 4px; font-size: 8px; margin-left: 4px;">Restore All</button>
+                                <button class="btn btn-sm" id="restoreAllNodes" title="Bring back every node hidden with Remove Mode" style="padding: 1px 4px; font-size: 8px; margin-left: 4px;">Restore All</button>
                             </div>
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">Export:</label>
                             <div class="button-group-horizontal">
@@ -5050,7 +5059,6 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="inspectTitle" style="flex:1; margin:0;">Correlation: Gene1 vs Gene2</h3>
                 <button onclick="app.openCorrelationInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same genes, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('inspectModalInner','correlate_correlation')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeInspect">&times;</button>
             </div>
             <div class="modal-body">
@@ -5301,7 +5309,6 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="geneEffectTitle" style="flex:1; margin:0;">Gene Effect Analysis</h3>
                 <button onclick="app.openGeneEffectInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same gene, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('geneEffectModalInner','correlate_gene_effect')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area). For a vector chart only, use Export image below.">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeGeneEffect">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
@@ -5652,7 +5659,6 @@
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="corrAnalysisTitle" style="flex:1; margin:0;">Correlation Analysis</h3>
                 <button onclick="app.openCorrAnalysisInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same genes, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
-                <button onclick="app.screenshotPopout('corrAnalysisModalInner','correlate_correlation_analysis')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:3px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot this popout for a figure (PNG / TIFF / PDF, full content or visible area).">&#128247; Screenshot</button>
                 <button class="modal-close" id="closeCorrAnalysis">&times;</button>
             </div>
             <div class="modal-body" style="padding: 15px; overflow-x: hidden;">
@@ -5842,6 +5848,16 @@
                 <button class="modal-close" id="exportOptionsClose" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">&times;</button>
             </div>
             <div class="modal-body" style="padding:14px 18px; font-size:13px; color:#374151;">
+                <!-- Chart, or the whole popout as a screenshot. Replaces the
+                     separate camera buttons that used to sit beside each
+                     export. Only offered where there is a popout to capture. -->
+                <div id="exportOptWhatRow" style="margin-bottom:10px; display:none;">
+                    <label style="display:block; font-weight:600; margin-bottom:4px;">What to export</label>
+                    <select id="exportOptWhat" style="padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:13px;">
+                        <option value="chart">The chart on its own (vector, best for figures)</option>
+                        <option value="popout">The whole panel, as a screenshot (chart plus its settings)</option>
+                    </select>
+                </div>
                 <div id="exportOptScopeRow" style="margin-bottom:10px; display:none;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">Capture</label>
                     <label style="margin-right:14px;"><input type="radio" name="exportOptScope" value="full" checked> Full content</label>
@@ -6104,8 +6120,8 @@
             <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Screenshot the wiki for a figure (PNG / TIFF / PDF, full content or visible area)">&#128247; Screenshot</button>
             <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN / deep deletions) as a CSV">Export gene info (.csv)</button>
+            <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Save the wiki as an image, choosing format, resolution and whether to capture the whole page or just what is on screen">Export image...</button>
             <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Download this Wiki as a multi-page PDF (charts embedded as images, white background)">Download PDF</button>
             <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
           </div>
@@ -6653,6 +6669,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_47"></script>
+    <script src="app.js?v=v84_48"></script>
 </body>
 </html>
