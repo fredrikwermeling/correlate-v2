@@ -1820,6 +1820,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.61 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Cell line wiki corrections.</b> The pathway panels only looked at the mutation tables, so a line could read "CDKN2A functional loss" in one section and "No mutation in RB1 / CDKN2A / CCND1" in the next; they now use the same functional-loss layer as the rest of the page. "BCR-ABL fusion detected" fired whenever BCR or ABL1 turned up anywhere in the raw fusion-caller output, which was wrong for 17 of the 29 lines it flagged, and now uses the validated BCR-ABL1 call. Copy numbers in the amplified-region list assumed every cell line was diploid, but most are genome-doubled, so they are now scaled by each line's own ploidy. A missing measurement is no longer reported as a finding: a line with no copy-number data says so instead of "nothing detected", and an annotated-male line with no expression data no longer reads as "almost certainly loss of the Y chromosome". The XIST row explains that XIST is absent from the protein-coding expression table rather than silently disappearing, and the p53 summary no longer claims an MDM2 dependency that the bullet above it contradicts.</li>
+                    <li><b>The expression-correlate scatter was broken</b> since v.83.11, it threw before drawing. Clicking a row in the expression-correlates table now opens the plot.</li>
+                    <li><b>Reset network settings now resets the font, node and edge-width sliders too.</b> Two methods shared a name and the one that reset the sliders never ran.</li>
+                    <li><b>Saved figures restore the cell-line search box again</b>, and no longer abandon the rest of the restore halfway through when a search term is present.</li>
+                    <li><b>Text from a saved figure, a share link or an uploaded gene table is escaped before display</b>, so it cannot inject markup into the page.</li>
+                    <li><b>No more NaN or Infinity in plot titles, legends and axis boxes</b> for groups too small or too uniform to give a correlation, or for genes with no copy-number or expression record. A very large expanded network no longer fails at the end with "Analysis failed".</li>
+                    <li><b>Escape works again after using the UpSet plot</b>, and the Cell Line Browser no longer runs Split once per time it has been opened.</li>
+                </ul>
                 <p><strong>v.84.60 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>The Cell Line Browser stops moving under the cursor.</b> Choosing a tissue used to make the subtype dropdown appear from nothing and shove the rest of the toolbar along, and the filter summary line did the same to the row beneath it. The subtype dropdown is now always there, greyed until a tissue is chosen, the tissue and sex boxes keep a fixed width instead of resizing with their text, and the summary line keeps its place whether or not anything is in it. Verified: nothing on the toolbar moves when filters are applied or cleared.</li>
@@ -4362,7 +4372,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.60</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.61</a>
     </div>
 
     <div class="main-content">
@@ -6784,6 +6794,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_60"></script>
+    <script src="app.js?v=v84_61"></script>
 </body>
 </html>
