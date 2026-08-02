@@ -1811,8 +1811,7 @@ class CorrelationExplorer {
         html += `<label style="font-size:10px;cursor:pointer;color:#374151;"><input type="checkbox" id="upsetShowPct" ${this._upsetShowPct ? 'checked' : ''} onchange="app._upsetToggle('pct')" style="margin:0 3px 0 0;vertical-align:middle;"> %</label>`;
         html += `<label style="font-size:10px;cursor:pointer;color:#374151;"><input type="checkbox" id="upsetShowNames" ${this._upsetShowNames ? 'checked' : ''} onchange="app._upsetToggle('names')" style="margin:0 3px 0 0;vertical-align:middle;"> Names</label>`;
         html += `<span style="border-left:1px solid #d1d5db;height:14px;"></span>`;
-        html += `<button onclick="app._upsetExport('svg')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">SVG</button>`;
-        html += `<button onclick="app._upsetExport('png')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">PNG</button>`;
+        html += `<button onclick="app._upsetExport()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;" title="Choose format, print size and resolution">Export image...</button>`;
         html += `</div>`;
         popup.innerHTML = html;
         document.body.appendChild(popup);
@@ -1963,7 +1962,8 @@ class CorrelationExplorer {
         this._showUpsetPlot();
     }
 
-    async _upsetExport(format) {
+    async _upsetExport() {
+        const format = 'svg';
         const plotEl = document.getElementById('upsetPlotDiv');
         if (!plotEl?.data) return;
         const w = plotEl._fullLayout?.width || plotEl.layout?.width || plotEl.offsetWidth || 500;
@@ -2089,15 +2089,15 @@ class CorrelationExplorer {
         </div>`;
 
         // Table
-        html += `<div style="overflow-y: auto; flex: 1; padding: 4px 0;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            <thead><tr style="position: sticky; top: 0; z-index: 1;">
-                <th style="background: #f9fafb; padding: 4px 8px; text-align: left; width: 28px;"><input type="checkbox" id="tbSelectAll" title="Select all"></th>
-                <th style="background: #f9fafb; padding: 4px 4px; text-align: left;">Tissue</th>
-                <th style="background: #f9fafb; padding: 4px 6px; text-align: right; color: #dc2626;">${mutLabel}</th>
-                <th style="background: #f9fafb; padding: 4px 6px; text-align: right; color: #6b7280;">WT</th>
-                <th style="background: #f9fafb; padding: 4px 8px; text-align: left; width: 90px;"></th>
-                <th style="background: #f9fafb; padding: 4px 8px; text-align: right; width: 44px;">%</th>
+        html += `<div style="overflow-y: auto; flex: 1; padding: 0 0 4px;">
+            <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px;">
+            <thead><tr>
+                <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 8px; text-align: left; width: 28px;"><input type="checkbox" id="tbSelectAll" title="Select all"></th>
+                <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 4px; text-align: left;">Tissue</th>
+                <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 6px; text-align: right; color: #dc2626;">${mutLabel}</th>
+                <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 6px; text-align: right; color: #6b7280;">WT</th>
+                <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 8px; text-align: left; width: 90px;"></th>
+                <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 8px; text-align: right; width: 44px;">%</th>
             </tr></thead><tbody>`;
 
         // Pre-compute sub-tissue breakdown for each tissue
@@ -2422,9 +2422,8 @@ class CorrelationExplorer {
         html += `<div id="oncoprintStatus" style="font-size:10px; margin-top:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;"></div>`;
         html += `</div>`; // close inner padding div
         html += `<div style="display:flex; gap:4px; padding:6px 10px; border-top:1px solid #e5e7eb;">`;
-        html += `<button onclick="app._oncoprintExport('svg')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">SVG</button>`;
-        html += `<button onclick="app._oncoprintExport('png')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">PNG</button>`;
-        html += `<button onclick="app._oncoprintExport('csv')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">CSV</button>`;
+        html += `<button onclick="app._oncoprintExport('image')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;" title="Choose format, print size and resolution">Export image...</button>`;
+        html += `<button onclick="app._oncoprintExport('csv')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;" title="The gene x cell line matrix as data">Export data (CSV)</button>`;
         html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
         html += `<button onclick="app._showUpsetSetup()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f0fdf4;color:#16a34a;font-weight:500;" title="Pick which genes to compare, then draw the UpSet plot">UpSet...</button>`;
         html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
@@ -2797,7 +2796,7 @@ class CorrelationExplorer {
         return true;
     }
 
-    _oncoprintExport(format) {
+    async _oncoprintExport(format) {
         const data = this._oncoprintData;
         const paint = this._oncoprintPaint;
         if (!data) return;
@@ -2820,42 +2819,26 @@ class CorrelationExplorer {
         const { leftW, gridW, gridH } = data;
         const totalW = leftW + gridW;
 
-        if (format === 'png') {
-            if (!paint) return;
-            // Re-render at high resolution rather than upscaling the on-screen
-            // canvas. Upscaling a raster gave soft, fuzzy text; drawing through
-            // a scaled transform renders the text and boxes natively at the
-            // export size, which is what makes it usable in a figure.
-            // Canvases have a hard pixel limit, so back the scale off on very
-            // wide grids instead of silently producing a blank image.
-            const maxPx = 16000;
-            const scale = Math.max(1, Math.min(6, Math.floor(maxPx / Math.max(totalW, gridH))));
-            const cv = document.createElement('canvas');
-            cv.width = Math.round(totalW * scale);
-            cv.height = Math.round(gridH * scale);
-            const ctx = cv.getContext('2d');
-            ctx.setTransform(scale, 0, 0, scale, 0, 0);
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, totalW, gridH);
-            paint.paintLabels(ctx);
-            ctx.save();
-            ctx.translate(leftW, 0);
-            paint.paintGrid(ctx);
-            ctx.restore();
-            cv.toBlob((blob) => {
-                if (!blob) return;
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = 'oncoprint.png';
-                a.click();
-                URL.revokeObjectURL(a.href);
-            }, 'image/png');
+        if (format === 'image') {
+            // Same dialog every other figure uses: choose format, print size,
+            // DPI and background in one place instead of a bare PNG/SVG button.
+            const dlg = await this._showExportDialog({ format: 'svg', plotW: totalW, plotH: gridH });
+            if (!dlg) return;
+            await this._exportSvgString(this._oncoprintSvgString(), dlg,
+                { filename: 'oncoprint', widthPx: totalW, heightPx: gridH });
             return;
         }
 
-        // SVG export, rebuilt from the stored data so it stays vector (and so
-        // it covers every cell line, not just the ones currently scrolled into
-        // view).
+    }
+
+    // The oncoprint as a standalone SVG string, drawn from the stored data so
+    // it covers every cell line rather than what happens to be scrolled into
+    // view.
+    _oncoprintSvgString() {
+        const data = this._oncoprintData;
+        if (!data) return '';
+        const { leftW, gridW, gridH } = data;
+        const totalW = leftW + gridW;
         //
         // Wild-type cells are the overwhelming majority (25 genes x ~1200 cell
         // lines), and emitting a <rect> for each made a ~1.8 MB file. They are
@@ -2892,12 +2875,7 @@ class CorrelationExplorer {
             });
         });
         parts.push('</svg>');
-        const blob = new Blob(parts, { type: 'image/svg+xml' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'oncoprint.svg';
-        a.click();
-        URL.revokeObjectURL(a.href);
+        return parts.join('');
     }
 
     updateTBSelectionCount() {
@@ -3070,13 +3048,13 @@ class CorrelationExplorer {
             <span style="font-weight: 600; font-size: 13px; color: #1f2937;">Tissue Selection (${cellLines.length} total)</span>
             <button id="tbCloseBtn" style="background: none; border: none; cursor: pointer; font-size: 18px; color: #6b7280; line-height: 1; padding: 0 2px;">&times;</button>
         </div>`;
-        html += `<div style="overflow-y: auto; flex: 1; padding: 4px 0;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            <thead><tr style="position: sticky; top: 0; z-index: 1;">
-                <th style="background: #f9fafb; padding: 4px 8px; text-align: left; width: 28px;"><input type="checkbox" id="tbSelectAll" title="Select all"></th>
-                <th style="background: #f9fafb; padding: 4px 4px; text-align: left;">Tissue</th>
-                <th style="background: #f9fafb; padding: 4px 6px; text-align: right;">N</th>
-                <th style="background: #f9fafb; padding: 4px 8px; text-align: left; width: 90px;"></th>
+        html += `<div style="overflow-y: auto; flex: 1; padding: 0 0 4px;">
+            <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px;">
+            <thead><tr>
+                <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 8px; text-align: left; width: 28px;"><input type="checkbox" id="tbSelectAll" title="Select all"></th>
+                <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 4px; text-align: left;">Tissue</th>
+                <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 6px; text-align: right;">N</th>
+                <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 8px; text-align: left; width: 90px;"></th>
             </tr></thead><tbody>`;
 
         breakdown.forEach(t => {
@@ -21479,13 +21457,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (frameEl) frameEl.checked = !!prev.legendFrame;
             if (lockEl) lockEl.checked = prev.lockAspect !== false;  // default on
 
-            // Stack the dialog above whatever is currently on top. The condensed
-            // gene-effect popout opened over the Cell Line Browser sits at a high
-            // dynamic z-index (~1360); this dialog's default 1300 would open
-            // behind it and look broken. Compute the topmost visible overlay and
-            // sit above it.
+            // Stack the dialog above whatever is currently on top. This has to
+            // include the JS-built popups (the UpSet popup sits at 10001), not
+            // just the declared modals: exporting from one of those opened the
+            // dialog behind the popup, so the export looked broken.
             let topZ = 0;
-            document.querySelectorAll('.modal-overlay, #geneEffectModal, #clbWikiModal, #cellLineBrowserModal').forEach(el => {
+            document.querySelectorAll('.modal-overlay, [id$="Modal"], [id$="Popup"], [id$="Panel"]').forEach(el => {
                 if (el === modal || getComputedStyle(el).display === 'none') return;
                 const z = parseInt(getComputedStyle(el).zIndex) || 0;
                 if (z > topZ) topZ = z;
@@ -21579,7 +21556,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         const expanded = this._expandSvgToContent(svgStr, w, h);
-        let outSvg = expanded.svg;
+        return this._exportSvgString(expanded.svg, dlg, { filename, meta, widthPx: w, heightPx: h });
+    }
+
+    // Takes a finished SVG string and saves it in whatever format the export
+    // dialog returned. Shared so every figure, Plotly chart or hand-drawn
+    // canvas alike, goes out through the same sizing / DPI path.
+    async _exportSvgString(svgIn, dlg, opts) {
+        const { filename, meta, widthPx: w, heightPx: h } = opts || {};
+        const { widthCm, heightCm, dpi, background } = dlg;
+        const fmt = dlg.format || 'png';
+        const CM_TO_IN = 1 / 2.54;
+        let outSvg = svgIn;
         const metaJson = meta ? JSON.stringify(meta) : null;
 
         // White background for vector outputs (PDF / PPTX embed the SVG directly,
@@ -21590,12 +21578,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         if (fmt === 'svg') {
-            // For SVG, set absolute units on the outer tag so downstream tools
-            // (Illustrator etc.) place it at the requested print size. Keep
-            // viewBox in the pixel coords from Plotly so internal geometry is
-            // unchanged.
-            outSvg = outSvg.replace(/<svg([^>]*)\bwidth="[^"]*"/, `<svg$1width="${widthCm}cm"`);
-            outSvg = outSvg.replace(/<svg([^>]*)\bheight="[^"]*"/, `<svg$1height="${heightCm}cm"`);
             if (background === 'white' && !/<rect[^>]*id="correlateExportBg"/.test(outSvg)) {
                 // Inject a white background rect at the top of the SVG body so
                 // pasting into PDF/PPT doesn't reveal composite lines.
@@ -21603,6 +21585,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             if (metaJson) outSvg = outSvg.replace('</svg>', `<metadata><correlate-meta>${metaJson}</correlate-meta></metadata></svg>`);
             if (typeof this._finalizeSvgForExport === 'function') outSvg = await this._finalizeSvgForExport(outSvg);
+            // Absolute units on the outer tag, so the file opens at the print
+            // size that was asked for. This has to come AFTER sanitising: the
+            // sanitiser rewrites width/height into pt derived from the viewBox,
+            // which silently discarded the size chosen in the dialog. viewBox
+            // is left alone so the internal geometry is unchanged.
+            outSvg = outSvg.replace(/<svg\b[^>]*>/, (tag) => tag
+                .replace(/\swidth="[^"]*"/, ` width="${widthCm}cm"`)
+                .replace(/\sheight="[^"]*"/, ` height="${heightCm}cm"`));
             const blob = new Blob([outSvg], { type: 'image/svg+xml;charset=utf-8' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -27766,6 +27756,118 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // the drag; the element is pinned to fixed viewport coordinates on first
     // drag so it moves independently of any scroll container, and is always
     // clamped to stay fully within the viewport.
+    // Presents a long <select> as a scrollable panel instead of the native
+    // menu. A native menu with 30-odd entries opens taller than the screen and
+    // scrolls by growing upward, with no way to bring it back down.
+    //
+    // The <select> stays in the DOM and stays authoritative: everything else in
+    // the app reads and writes its .value and repopulates its options, and none
+    // of that has to change. This only replaces how it is presented.
+    _enhanceSelect(selectId) {
+        const select = document.getElementById(selectId);
+        if (!select || select.dataset.enhanced === '1') return;
+        select.dataset.enhanced = '1';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'select-proxy';
+        wrap.style.flex = select.style.flex || '1';
+        select.parentNode.insertBefore(wrap, select);
+        wrap.appendChild(select);
+        select.style.display = 'none';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'form-control select-proxy-btn';
+        btn.innerHTML = '<span class="select-proxy-label"></span><span class="select-proxy-caret">&#9662;</span>';
+        wrap.appendChild(btn);
+
+        const labelEl = btn.querySelector('.select-proxy-label');
+        const syncLabel = () => {
+            const opt = select.options[select.selectedIndex];
+            labelEl.textContent = opt ? opt.textContent : '';
+            btn.disabled = select.disabled;
+        };
+        syncLabel();
+        select.addEventListener('change', syncLabel);
+        new MutationObserver(syncLabel).observe(select, { childList: true, attributes: true, attributeFilter: ['disabled'] });
+
+        let panel = null;
+        const close = () => {
+            panel?.remove();
+            panel = null;
+            document.removeEventListener('mousedown', onOutside, true);
+            document.removeEventListener('keydown', onKey, true);
+            window.removeEventListener('resize', close);
+        };
+        const onOutside = (e) => { if (!panel?.contains(e.target) && !btn.contains(e.target)) close(); };
+        const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+
+        const open = () => {
+            if (panel) { close(); return; }
+            const opts = [...select.options];
+            panel = document.createElement('div');
+            panel.className = 'select-proxy-panel';
+            const needsFilter = opts.length > 12;
+            if (needsFilter) {
+                const f = document.createElement('input');
+                f.type = 'text';
+                f.className = 'select-proxy-filter';
+                f.placeholder = 'Filter...';
+                panel.appendChild(f);
+                f.addEventListener('input', () => {
+                    const q = f.value.trim().toLowerCase();
+                    panel.querySelectorAll('.select-proxy-item').forEach(it => {
+                        it.style.display = !q || it.textContent.toLowerCase().includes(q) ? '' : 'none';
+                    });
+                });
+                setTimeout(() => f.focus(), 0);
+            }
+            const list = document.createElement('div');
+            list.className = 'select-proxy-list';
+            opts.forEach((o, i) => {
+                const item = document.createElement('div');
+                item.className = 'select-proxy-item' + (i === select.selectedIndex ? ' is-selected' : '');
+                item.textContent = o.textContent;
+                item.addEventListener('click', () => {
+                    select.selectedIndex = i;
+                    syncLabel();
+                    close();
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                list.appendChild(item);
+            });
+            panel.appendChild(list);
+            document.body.appendChild(panel);
+
+            // Fixed positioning so the panel is never clipped by a card, and
+            // flipped above the button when there is more room there.
+            const r = btn.getBoundingClientRect();
+            const margin = 8;
+            const below = window.innerHeight - r.bottom - margin;
+            const above = r.top - margin;
+            const useAbove = below < 200 && above > below;
+            const maxH = Math.min(340, Math.max(160, useAbove ? above : below));
+            const panelW = Math.max(r.width, 220);
+            panel.style.width = panelW + 'px';
+            panel.style.left = Math.max(margin, Math.min(r.left, window.innerWidth - panelW - margin)) + 'px';
+            list.style.maxHeight = (maxH - (needsFilter ? 34 : 0)) + 'px';
+            // Measure once laid out, then clamp into the viewport. Without this
+            // a button near the bottom of a scrolled page opens a panel that
+            // runs off the screen.
+            panel.style.top = '0px';
+            const ph = panel.getBoundingClientRect().height;
+            const wanted = useAbove ? r.top - ph - 4 : r.bottom + 4;
+            panel.style.top = Math.max(margin, Math.min(wanted, window.innerHeight - ph - margin)) + 'px';
+            panel.querySelector('.is-selected')?.scrollIntoView({ block: 'nearest' });
+
+            document.addEventListener('mousedown', onOutside, true);
+            document.addEventListener('keydown', onKey, true);
+            window.addEventListener('resize', close);
+        };
+
+        btn.addEventListener('click', (e) => { e.preventDefault(); open(); });
+    }
+
     _makeDraggable(el, handle) {
         if (!el) return;
         handle = handle || el;
@@ -37995,6 +38097,12 @@ const MODAL_IDS = [
 document.addEventListener('keydown', (e) => { if (e.key === 'Shift' && window.app) window.app._shiftHeld = true; });
 document.addEventListener('keyup', (e) => { if (e.key === 'Shift' && window.app) window.app._shiftHeld = false; });
 window.addEventListener('blur', () => { if (window.app) window.app._shiftHeld = false; });
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Long tissue lists: the native menu runs off-screen and cannot be
+    // scrolled back down.
+    ['lineageFilter', 'subLineageFilter'].forEach(id => window.app?._enhanceSelect(id));
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     const modals = MODAL_IDS.map(id => document.getElementById(id)).filter(Boolean);

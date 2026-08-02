@@ -262,6 +262,89 @@
             color: var(--green-700);
         }
 
+        /* Long <select> presented as a scrollable panel. The native menu opens
+           taller than the screen and scrolls by growing upward with no way
+           back. The <select> itself stays in the DOM, just hidden. */
+        .select-proxy {
+            position: relative;
+            min-width: 0;
+        }
+
+        .select-proxy-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .select-proxy-btn:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .select-proxy-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .select-proxy-caret {
+            color: var(--gray-500);
+            flex: none;
+            font-size: 10px;
+        }
+
+        .select-proxy-panel {
+            position: fixed;
+            z-index: 11000;
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+            padding: 4px;
+            font-size: 12px;
+        }
+
+        .select-proxy-filter {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 4px 6px;
+            margin-bottom: 4px;
+            border: 1px solid var(--gray-200);
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 12px;
+        }
+
+        .select-proxy-list {
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
+        .select-proxy-item {
+            padding: 5px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--gray-600);
+        }
+
+        .select-proxy-item:hover {
+            background: var(--green-50);
+            color: var(--green-700);
+        }
+
+        .select-proxy-item.is-selected {
+            background: var(--green-600);
+            color: #fff;
+        }
+
         /* Sticky table headers inside scrolling popups. The background has to
            be on the cells: a background on a sticky <tr>/<thead> is not
            reliably painted, so the rows scrolling underneath show through it. */
@@ -1723,6 +1806,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.42 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Fix: exporting from the UpSet plot did nothing visible.</b> The export dialog opened <em>behind</em> the plot, because it only looked at the declared modals when deciding how high to stack, and the UpSet popup sits above all of them. It now stacks above whatever is actually on screen.</li>
+                    <li><b>Fix: the print size chosen for an SVG was ignored.</b> Width and height were set in cm and then overwritten in points by the step that cleans the file for drawing programs, so every SVG came out at the same size no matter what you asked for. This affected every chart in the app.</li>
+                    <li><b>One export button everywhere.</b> Separate <b>SVG</b> and <b>PNG</b> buttons are replaced by <b>Export image...</b>, which opens the usual dialog with format, print size, resolution and background. The oncoprint no longer saves straight to disk with no choices; its data export is now labelled <b>Export data (CSV)</b>.</li>
+                    <li><b>Fix: the Tissues heading floated over the list.</b> A 4px strip at the top of the list sat above where the heading pins, so rows scrolled through it and the heading looked like it was hovering in mid-list. Also fixed the heading being see-through, which needed the table's borders separated to work at all.</li>
+                    <li><b>The lineage list is no longer a native menu.</b> With 31 tissues the browser's own menu opened taller than the screen and scrolled by growing upward with no way back down. It is now a panel that fits on screen, with a filter box for typing a tissue name.</li>
+                    <li>The SVG option no longer names a particular drawing program.</li>
+                </ul>
                 <p><strong>v.84.41 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Fix: network colouring survived by "Show all input genes".</b> Turning that on rebuilt the network with default colours and only restored <b>Color by GE</b>, so <b>Color by stats</b> silently reverted to green while its box stayed ticked. Both are restored now, and the newly shown genes are coloured too.</li>
@@ -4129,7 +4221,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.41</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.42</a>
     </div>
 
     <div class="main-content">
@@ -5715,7 +5807,7 @@
                     <label style="display:block; font-weight:600; margin-bottom:4px;">Format</label>
                     <select id="exportOptFormat" style="padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:13px;">
                         <option value="png">PNG / raster image</option>
-                        <option value="svg" id="exportOptFormatSvg">SVG / editable vector (Illustrator)</option>
+                        <option value="svg" id="exportOptFormatSvg">SVG / editable vector</option>
                         <option value="pdf">PDF / vector (scalable, selectable text)</option>
                         <option value="tiff">TIFF / raster, journal submission</option>
                         <option value="pptx">PowerPoint / vector on a 16:9 slide</option>
@@ -6516,6 +6608,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_41"></script>
+    <script src="app.js?v=v84_42"></script>
 </body>
 </html>
