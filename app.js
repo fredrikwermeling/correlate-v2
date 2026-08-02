@@ -29691,7 +29691,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbSortGene').value = '';
         document.getElementById('clbTissueFilter').value = '';
         document.getElementById('clbSubtypeFilter').value = '';
-        document.getElementById('clbSubtypeFilter').style.display = 'none';
+        document.getElementById('clbSubtypeFilter').disabled = true;
         document.getElementById('clbHotspotFilter').value = '';
         document.getElementById('clbTranslocationFilter').value = '';
         const _clbCn = document.getElementById('clbCnFilter'); if (_clbCn) _clbCn.value = '';
@@ -30199,9 +30199,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const tissue = document.getElementById('clbTissueFilter').value;
         const subSelect = document.getElementById('clbSubtypeFilter');
 
+        // Always present, never hidden. Showing it only once a tissue was chosen
+        // made the whole toolbar jump sideways at the moment of clicking.
+        subSelect.style.display = '';
+        subSelect.innerHTML = '<option value="">All subtypes</option>';
+
         if (!tissue) {
-            subSelect.style.display = 'none';
-            subSelect.innerHTML = '<option value="">All subtypes</option>';
+            subSelect.disabled = true;
+            subSelect.title = 'Choose a tissue first to narrow by subtype';
             return;
         }
 
@@ -30212,19 +30217,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             .sort((a, b) => a.name.localeCompare(b.name));
 
         if (subtypes.length === 0) {
-            subSelect.style.display = 'none';
-            subSelect.innerHTML = '<option value="">All subtypes</option>';
+            subSelect.disabled = true;
+            subSelect.title = `No subtypes recorded for ${tissue}`;
             return;
         }
 
-        subSelect.innerHTML = '<option value="">All subtypes</option>';
+        subSelect.disabled = false;
+        subSelect.title = 'Narrow to one subtype within the chosen tissue';
         subtypes.forEach(s => {
             const opt = document.createElement('option');
             opt.value = s.name;
             opt.textContent = `${s.name} (n=${s.count})`;
             subSelect.appendChild(opt);
         });
-        subSelect.style.display = '';
     }
 
     _updateClbActiveFilterLabel() {
@@ -30285,7 +30290,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 });
             });
         } else {
-            el.style.display = 'none';
+            el.innerHTML = '';
         }
     }
 
@@ -30416,9 +30421,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (sub === subVal) opt.selected = true;
                 subSelect.appendChild(opt);
             });
-            subSelect.style.display = Object.keys(subCounts).length > 0 ? '' : 'none';
+            // Kept in place and disabled rather than hidden: showing it only
+            // once a tissue was chosen made the toolbar jump sideways.
+            subSelect.disabled = Object.keys(subCounts).length === 0;
+            subSelect.title = subSelect.disabled
+                ? `No subtypes recorded for ${tissue}`
+                : 'Narrow to one subtype within the chosen tissue';
         } else {
-            subSelect.style.display = 'none';
+            subSelect.disabled = true;
+            subSelect.title = 'Choose a tissue first to narrow by subtype';
             subSelect.innerHTML = '<option value="">All subtypes</option>';
         }
 

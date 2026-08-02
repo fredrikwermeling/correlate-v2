@@ -1820,6 +1820,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.60 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>The Cell Line Browser stops moving under the cursor.</b> Choosing a tissue used to make the subtype dropdown appear from nothing and shove the rest of the toolbar along, and the filter summary line did the same to the row beneath it. The subtype dropdown is now always there, greyed until a tissue is chosen, the tissue and sex boxes keep a fixed width instead of resizing with their text, and the summary line keeps its place whether or not anything is in it. Verified: nothing on the toolbar moves when filters are applied or cleared.</li>
+                    <li><b>Quick filters moved up beside Select Visible</b>, removing a row that was mostly empty.</li>
+                    <li><b>? Filters is now ? Help</b>, since it covers the whole browser rather than the filter boxes alone.</li>
+                </ul>
                 <p><strong>v.84.59 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Fix: the cell line Wiki could not be scrolled.</b> Its text area could not shrink inside the panel, so it never became a scrolling area and everything past the first screen was unreachable.</li>
@@ -4356,7 +4362,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.59</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.60</a>
     </div>
 
     <div class="main-content">
@@ -6328,9 +6334,9 @@
         <!-- Toolbar -->
         <div class="clb-toolbar">
           <input type="text" id="clbSearch" placeholder="Search cell lines...">
-          <select id="clbTissueFilter"><option value="">All tissues</option></select>
-          <select id="clbSubtypeFilter" style="display:none;"><option value="">All subtypes</option></select>
-          <select id="clbSexFilter" style="font-size:12px;" title="Filter by sex. Annotation (from DepMap) and expression-based calls (Y-markers + XIST) are independent axes, they often disagree.">
+          <select id="clbTissueFilter" style="width:190px;"><option value="">All tissues</option></select>
+          <select id="clbSubtypeFilter" disabled title="Choose a tissue first to narrow by subtype" style="width:190px;"><option value="">All subtypes</option></select>
+          <select id="clbSexFilter" style="font-size:12px; width:170px;" title="Filter by sex. Annotation (from DepMap) and expression-based calls (Y-markers + XIST) are independent axes, they often disagree.">
             <option value="">All sexes</option>
             <optgroup label="By annotation">
               <option value="ann_male">Male</option>
@@ -6400,15 +6406,32 @@
           </div>
           <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="padding:4px 6px; font-size:10px; display:none;">&#x25BC;</button>
           <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Reset all filters">Reset</button>
-          <button id="clbInfoBtn" class="btn btn-outline btn-sm" title="What the filters, sorts and symbols above mean, and where the data behind them comes from" style="padding:3px 8px;">? Filters</button>
+          <button id="clbInfoBtn" class="btn btn-outline btn-sm" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols and where each piece of data comes from" style="padding:3px 8px;">? Help</button>
           <span id="clbSelectionCount" class="clb-selection-count mobile-hide">0 selected</span>
-          <div id="clbActiveFilters" style="display:none; font-size:10px; color:#374151; padding:2px 0; gap:4px; flex-wrap:wrap; align-items:center; width:100%;"></div>
+          <div id="clbActiveFilters" style="display:flex; min-height:20px; font-size:10px; color:#374151; padding:2px 0; gap:4px; flex-wrap:wrap; align-items:center; width:100%;"></div>
           <!-- Action buttons grouped by intent: selection · inspect · export.
                Vertical separator bars distinguish the groups so the user can
                find the right action without scanning all 9 buttons. -->
           <div class="mobile-hide" style="margin-left:auto; display:flex; gap:6px; align-items:center;">
             <!-- Selection group — bulk-select helpers, hidden on phones to declutter -->
             <span class="mobile-hide" style="display:contents;">
+          <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Quick filters:</span>
+            <!-- Collections picker. Replaces a single-select dropdown with an
+                 oncoprint-style multi-select panel: each collection has three
+                 states (off / include / exclude). The button label shows the
+                 count of active states; the dropdown panel lets the user toggle
+                 each one independently. Active states are also rendered as
+                 removable chips in the active-filter strip below. -->
+            <div id="clbCollectionFilterWrap" style="position:relative; display:inline-block;">
+              <button id="clbCollectionBtn" class="btn btn-outline btn-sm" type="button" style="font-size:12px; padding:2px 8px;" title="Pick or exclude quick filters (oncoprint-style include/exclude)">Quick filters <span id="clbCollectionCount" style="color:#6b7280; font-weight:400;"></span></button>
+              <!-- Collections panel widens to fit the viewport with extra
+                   columns. min-width keeps it readable on narrow screens;
+                   width is the clamp-with-margin pattern so on a wide window
+                   it grows to ~1100 px and shows 3 columns of entries. -->
+              <div id="clbCollectionPanel" style="display:none; position:absolute; top:100%; left:0; min-width:340px; width:max-content; max-width:min(1100px, calc(100vw - 80px)); max-height:min(640px, calc(100vh - 160px)); overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.12); z-index:1200; font-size:11px; padding:8px 10px;"></div>
+            </div>
+            <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm" title="What each quick filter includes, and the rule used to decide membership" style="padding:2px 8px; font-size:10px;">? Quick filters</button>
+            <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
             <button id="clbSelectVisible" class="btn btn-outline btn-sm" title="Select every cell line currently passing the filters">Select Visible</button>
             <button id="clbDeselectAll" class="btn btn-outline btn-sm" title="Clear the current selection">Deselect All</button>
             <button id="clbShowSelectedOnly" class="btn btn-outline btn-sm" title="Show only the cell lines you've selected (toggle)">Show Selected</button>
@@ -6430,25 +6453,6 @@
             <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="One or a few genes: full profile (GE, Expression, Hotspot, Damaging, Fusion, focal CN) across the selected / visible cell lines (CSV).">Genes:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
             </span>
           </div>
-        </div>
-        <!-- Row 2: Curated collections + help -->
-        <div style="padding: 4px 20px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: var(--gray-50, #f9fafb);">
-          <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Quick filters:</span>
-          <!-- Collections picker. Replaces a single-select dropdown with an
-               oncoprint-style multi-select panel: each collection has three
-               states (off / include / exclude). The button label shows the
-               count of active states; the dropdown panel lets the user toggle
-               each one independently. Active states are also rendered as
-               removable chips in the active-filter strip below. -->
-          <div id="clbCollectionFilterWrap" style="position:relative; display:inline-block;">
-            <button id="clbCollectionBtn" class="btn btn-outline btn-sm" type="button" style="font-size:12px; padding:2px 8px;" title="Pick or exclude quick filters (oncoprint-style include/exclude)">Quick filters <span id="clbCollectionCount" style="color:#6b7280; font-weight:400;"></span></button>
-            <!-- Collections panel widens to fit the viewport with extra
-                 columns. min-width keeps it readable on narrow screens;
-                 width is the clamp-with-margin pattern so on a wide window
-                 it grows to ~1100 px and shows 3 columns of entries. -->
-            <div id="clbCollectionPanel" style="display:none; position:absolute; top:100%; left:0; min-width:340px; width:max-content; max-width:min(1100px, calc(100vw - 80px)); max-height:min(640px, calc(100vh - 160px)); overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.12); z-index:1200; font-size:11px; padding:8px 10px;"></div>
-          </div>
-          <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm" title="What each quick filter includes, and the rule used to decide membership" style="padding:2px 8px; font-size:10px;">? Quick filters</button>
         </div>
         <!-- Custom Cell Line Filter for CLB (hidden on phones) -->
         <div class="mobile-hide" style="padding: 4px 12px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
@@ -6780,6 +6784,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_59"></script>
+    <script src="app.js?v=v84_60"></script>
 </body>
 </html>
