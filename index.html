@@ -1820,6 +1820,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.57 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Fix: the Active filter tag said "mut" when wild-type was selected.</b> The chart caption had it right but the tag above it always claimed the mutated side, so the two contradicted each other. The tags for the hotspot, fusion and copy-number filters now follow the selector and go grey when showing the wild-type side.</li>
+                    <li>The bias warning beside those filters no longer talks only about mutations: filtering to wild-type is just as much a selection, and can skew the comparison by cancer type the same way.</li>
+                </ul>
                 <p><strong>v.84.56 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>See the pairs that just missed the cutoff.</b> A <b>below cutoff</b> tick box above the Correlations table lists them under a divider, greyed, so a borderline result is not simply invisible. They are context only: not in the network, no cluster.</li>
@@ -4333,7 +4338,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.56</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.57</a>
     </div>
 
     <div class="main-content">
@@ -5419,7 +5424,7 @@
                             <div id="geHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
                         <select id="geHotspotLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this mutation, or only those without it"><option value="altered" selected>Mutated</option><option value="wt">Only WT</option></select>
-                        <span id="geHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
+                        <span id="geHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Filtering on a gene&#39;s status, mutated or wild-type, can introduce bias: these alterations are often concentrated in particular cancer types, so the two groups may differ by cancer type as much as by the alteration.">&#9888;</span>
                         <div id="geFusionFilterWrap" style="position:relative; display:none;">
                             <input type="text" id="geFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
                             <div id="geFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
@@ -5765,7 +5770,7 @@
                                 <option value="1+2" selected>Mutated (1+2)</option><option value="1">Only 1 mut</option><option value="2">Only 2 mut</option><option value="0">Only WT</option>
                             </select>
                         </div>
-                        <span id="caHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Selecting for mutations may introduce bias, mutations are often enriched in specific cancer types.">&#9888;</span>
+                        <span id="caHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Filtering on a gene&#39;s status, mutated or wild-type, can introduce bias: these alterations are often concentrated in particular cancer types, so the two groups may differ by cancer type as much as by the alteration.">&#9888;</span>
                         <div id="caFusionFilterWrap" style="display:none;">
                             <div style="position:relative;">
                                 <input type="text" id="caFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
@@ -6756,6 +6761,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_56"></script>
+    <script src="app.js?v=v84_57"></script>
 </body>
 </html>

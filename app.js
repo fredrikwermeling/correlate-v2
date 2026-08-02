@@ -4960,6 +4960,8 @@ class CorrelationExplorer {
         const _geFilterReRender = () => {
             const warn = document.getElementById('geHotspotBiasWarning');
             if (warn) warn.style.display = document.getElementById('geHotspotFilter')?.value ? 'inline' : 'none';
+            // The chips have to follow the carrier-vs-WT selects too.
+            this._updateGEActiveFilters?.();
             if (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene) {
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
             } else if (this.geneEffectViewMode === 'geneEffect') {
@@ -12773,9 +12775,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const chips = [];
         if (tissue) chips.push(mk(tissue, blue));
         if (subtype) chips.push(mk(subtype, blue));
-        if (hotspot) chips.push(mk(`${hotspot} mut`, green));
-        if (fusion) chips.push(mk(`${this._stripFusionFilterDecoration(fusion)} fusion`, green));
-        if (cn) chips.push(mk(this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del'), amber));
+        // Each of these can now be inverted to the wild-type side, so the chip
+        // has to follow the level select rather than always claiming "mut".
+        const isWT = (id) => document.getElementById(id)?.value === 'wt';
+        const grey = ['#f3f4f6', '#4b5563', '#e5e7eb'];
+        if (hotspot) {
+            const wt = isWT('geHotspotLevel');
+            chips.push(mk(`${hotspot} ${wt ? 'WT' : 'mut'}`, wt ? grey : green));
+        }
+        if (fusion) {
+            const wt = isWT('geFusionLevel');
+            const name = this._stripFusionFilterDecoration(fusion);
+            chips.push(mk(wt ? `${name} not fused` : `${name} fusion`, wt ? grey : green));
+        }
+        if (cn) {
+            const wt = isWT('geCnLevel');
+            const name = this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del');
+            chips.push(mk(wt ? `${name} absent` : name, wt ? grey : amber));
+        }
         if (this._customCellLineFilterGE) chips.push(mk(`custom CLs: ${this._customCellLineFilterGE.size}`, blue));
         el.innerHTML = chips.length ? `<span style="font-size:10px; color:#6b7280; font-weight:600;">Active:</span> ${chips.join(' ')}` : '';
     }
