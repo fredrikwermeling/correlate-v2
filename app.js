@@ -1615,6 +1615,13 @@ class CorrelationExplorer {
             html += `</label>`;
         });
         html += `</div>`;
+        // Genes outside the oncoprint's top rows can be pulled in here too.
+        const candidates = this._oncoprintGeneCandidates || genes;
+        html += `<div style="display:flex; gap:4px; align-items:center; padding:6px 10px; border-top:1px solid #f3f4f6;">`;
+        html += `<input id="upsetAddGene" list="upsetGeneOptions" placeholder="add another gene" style="flex:1; min-width:0; font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px;">`;
+        html += `<datalist id="upsetGeneOptions">${candidates.slice(0, 600).map(g => `<option value="${g.gene}">${g.n}</option>`).join('')}</datalist>`;
+        html += `<button id="upsetAddGeneBtn" style="font-size:11px; padding:2px 8px; border:1px solid #d1d5db; border-radius:4px; cursor:pointer; background:#f9fafb;">Add</button>`;
+        html += `</div>`;
         html += `<div style="display:flex; gap:6px; align-items:center; padding:6px 10px; border-top:1px solid #e5e7eb;">`;
         html += `<span id="upsetSetupCount" style="font-size:10px; color:#6b7280; flex:1;"></span>`;
         html += `<button id="upsetSetupGo" style="font-size:11px; padding:3px 10px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Show UpSet</button>`;
@@ -1649,6 +1656,38 @@ class CorrelationExplorer {
         popup.addEventListener('change', (e) => {
             if (e.target.classList.contains('upset-gene-check')) refresh();
         });
+        // Adding a gene here also adds it to the oncoprint, so the two views
+        // keep showing the same set.
+        const addInput = document.getElementById('upsetAddGene');
+        const addGene = () => {
+            const name = (addInput.value || '').trim().toUpperCase();
+            if (!name) return;
+            const entry = candidates.find(g => g.gene === name);
+            if (!entry) {
+                addInput.value = '';
+                addInput.placeholder = 'no mutations in this cohort';
+                setTimeout(() => { addInput.placeholder = 'add another gene'; }, 1800);
+                return;
+            }
+            addInput.value = '';
+            if (!data.topGenes.some(g => g.gene === name)) data.topGenes.push(entry);
+            if (!this._oncoprintExtraGenes) this._oncoprintExtraGenes = new Set();
+            this._oncoprintExtraGenes.add(name);
+            const list = document.getElementById('upsetGeneList');
+            if (!list.querySelector(`.upset-gene-check[data-gene="${name}"]`)) {
+                const row = document.createElement('label');
+                row.style.cssText = 'display:flex; align-items:center; gap:6px; font-size:11px; padding:2px 0; cursor:pointer;';
+                row.innerHTML = `<input type="checkbox" class="upset-gene-check" data-gene="${name}" checked style="margin:0;"><span style="flex:1; color:#374151;">${name}</span><span style="color:#9ca3af;">${entry.n}</span>`;
+                list.appendChild(row);
+                row.scrollIntoView({ block: 'nearest' });
+            } else {
+                list.querySelector(`.upset-gene-check[data-gene="${name}"]`).checked = true;
+            }
+            refresh();
+        };
+        document.getElementById('upsetAddGeneBtn').addEventListener('click', addGene);
+        addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addGene(); } });
+
         document.getElementById('upsetSetupCancel').addEventListener('click', () => popup.remove());
         goBtn.addEventListener('click', () => {
             const chosen = checks().filter(c => c.checked).map(c => c.dataset.gene);
@@ -2052,13 +2091,13 @@ class CorrelationExplorer {
         // Table
         html += `<div style="overflow-y: auto; flex: 1; padding: 4px 0;">
             <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            <thead><tr style="position: sticky; top: 0; background: #f9fafb; z-index: 1;">
-                <th style="padding: 4px 8px; text-align: left; width: 28px;"><input type="checkbox" id="tbSelectAll" title="Select all"></th>
-                <th style="padding: 4px 4px; text-align: left;">Tissue</th>
-                <th style="padding: 4px 6px; text-align: right; color: #dc2626;">${mutLabel}</th>
-                <th style="padding: 4px 6px; text-align: right; color: #6b7280;">WT</th>
-                <th style="padding: 4px 8px; text-align: left; width: 90px;"></th>
-                <th style="padding: 4px 8px; text-align: right; width: 44px;">%</th>
+            <thead><tr style="position: sticky; top: 0; z-index: 1;">
+                <th style="background: #f9fafb; padding: 4px 8px; text-align: left; width: 28px;"><input type="checkbox" id="tbSelectAll" title="Select all"></th>
+                <th style="background: #f9fafb; padding: 4px 4px; text-align: left;">Tissue</th>
+                <th style="background: #f9fafb; padding: 4px 6px; text-align: right; color: #dc2626;">${mutLabel}</th>
+                <th style="background: #f9fafb; padding: 4px 6px; text-align: right; color: #6b7280;">WT</th>
+                <th style="background: #f9fafb; padding: 4px 8px; text-align: left; width: 90px;"></th>
+                <th style="background: #f9fafb; padding: 4px 8px; text-align: right; width: 44px;">%</th>
             </tr></thead><tbody>`;
 
         // Pre-compute sub-tissue breakdown for each tissue
@@ -2314,6 +2353,19 @@ class CorrelationExplorer {
         const topGenes = geneCounts.slice(0, maxGenes);
         if (topGenes.length === 0) return;
 
+        // Genes the user asked for explicitly are shown even when they fall
+        // outside the top 25, so the oncoprint and the UpSet picker are not
+        // limited to the most-mutated genes.
+        if (!this._oncoprintExtraGenes) this._oncoprintExtraGenes = new Set();
+        const shownGenes = new Set(topGenes.map(g => g.gene));
+        for (const name of this._oncoprintExtraGenes) {
+            if (shownGenes.has(name)) continue;
+            const entry = geneCounts.find(g => g.gene === name);
+            if (entry) { topGenes.push(entry); shownGenes.add(name); }
+        }
+        // Candidate list for the "add gene" boxes, most-mutated first.
+        this._oncoprintGeneCandidates = geneCounts;
+
         // Initialize gene filter states: 'none' | 'mut' | 'wt'
         if (!this._oncoprintFilters) this._oncoprintFilters = {};
 
@@ -2375,6 +2427,13 @@ class CorrelationExplorer {
         html += `<button onclick="app._oncoprintExport('csv')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">CSV</button>`;
         html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
         html += `<button onclick="app._showUpsetSetup()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f0fdf4;color:#16a34a;font-weight:500;" title="Pick which genes to compare, then draw the UpSet plot">UpSet...</button>`;
+        html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
+        html += `<input id="oncoprintAddGene" list="oncoprintGeneOptions" placeholder="add gene" style="font-size:10px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;width:88px;" title="Show a gene that isn't in the top ${maxGenes}">`;
+        html += `<datalist id="oncoprintGeneOptions">${geneCounts.slice(0, 600).map(g => `<option value="${g.gene}">${g.n}</option>`).join('')}</datalist>`;
+        html += `<button id="oncoprintAddGeneBtn" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">Add</button>`;
+        if (this._oncoprintExtraGenes.size) {
+            html += `<button id="oncoprintClearAddedBtn" style="font-size:10px;padding:2px 6px;border:none;background:none;color:#6b7280;cursor:pointer;" title="Go back to the top ${maxGenes} alone">clear ${this._oncoprintExtraGenes.size} added</button>`;
+        }
         html += `</div>`;
         popup.innerHTML = html;
         document.body.appendChild(popup);
@@ -2397,6 +2456,26 @@ class CorrelationExplorer {
             const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
             document.addEventListener('mousemove', onMove);
             document.addEventListener('mouseup', onUp);
+        });
+
+        const addInput = document.getElementById('oncoprintAddGene');
+        const addGene = () => {
+            const name = (addInput.value || '').trim().toUpperCase();
+            if (!name) return;
+            if (!geneCounts.some(g => g.gene === name)) {
+                addInput.value = '';
+                addInput.placeholder = 'no mutations';
+                setTimeout(() => { addInput.placeholder = 'add gene'; }, 1600);
+                return;
+            }
+            this._oncoprintExtraGenes.add(name);
+            this.showOncoprint(context);
+        };
+        document.getElementById('oncoprintAddGeneBtn').addEventListener('click', addGene);
+        addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addGene(); });
+        document.getElementById('oncoprintClearAddedBtn')?.addEventListener('click', () => {
+            this._oncoprintExtraGenes.clear();
+            this.showOncoprint(context);
         });
 
         const self = this;
@@ -2777,11 +2856,21 @@ class CorrelationExplorer {
         // SVG export, rebuilt from the stored data so it stays vector (and so
         // it covers every cell line, not just the ones currently scrolled into
         // view).
+        //
+        // Wild-type cells are the overwhelming majority (25 genes x ~1200 cell
+        // lines), and emitting a <rect> for each made a ~1.8 MB file. They are
+        // all identical, so one tiled pattern covers the whole grid and only
+        // the mutated cells are drawn individually, which is visually the same
+        // at a fraction of the size.
         const { topGenes: tg, sortedCLs: cls, cellW, cellH: cH, boxAreaW: baw, labelW: lw, boxW: bw, boxGap: bg } = data;
         const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const parts = [];
         parts.push(`<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${gridH}" viewBox="0 0 ${totalW} ${gridH}">\n`);
+        parts.push(`<defs><pattern id="wtCell" width="${cellW}" height="${cH}" patternUnits="userSpaceOnUse" patternTransform="translate(${leftW},0)">`);
+        parts.push(`<rect x="0" y="1" width="${cellW - 1}" height="${cH - 2}" fill="#f3f4f6"/></pattern></defs>\n`);
         parts.push(`<rect width="${totalW}" height="${gridH}" fill="white"/>\n`);
+        parts.push(`<rect x="${leftW}" y="0" width="${gridW}" height="${gridH}" fill="#f9fafb"/>\n`);
+        parts.push(`<rect x="${leftW}" y="0" width="${gridW}" height="${gridH}" fill="url(#wtCell)"/>\n`);
         tg.forEach((g, rowIdx) => {
             const y = rowIdx * cH;
             const fs = this._oncoprintFilters[g.gene] || 'none';
@@ -2794,11 +2883,12 @@ class CorrelationExplorer {
             parts.push(`<text x="${baw + lw - 4}" y="${y + cH / 2}" text-anchor="end" dominant-baseline="central" font-family="Arial" font-size="10" fill="${labelColor}" ${fs !== 'none' ? 'font-weight="bold"' : ''}>${esc(g.gene)}</text>\n`);
             // Count
             parts.push(`<text x="${baw + lw + 3}" y="${y + cH / 2}" font-family="Arial" font-size="8" fill="#9ca3af" dominant-baseline="central">${g.n}</text>\n`);
-            // Grid
+            // Grid, mutated cells only; wild-type is the pattern underneath.
             cls.forEach((cl, colIdx) => {
-                const x = leftW + colIdx * cellW;
                 const mutLevel = g.muts[cl] || 0;
-                parts.push(`<rect x="${x}" y="${y + 1}" width="${cellW - 1}" height="${cH - 2}" fill="${mutLevel >= 2 ? '#1e40af' : mutLevel > 0 ? '#3b82f6' : '#f3f4f6'}"/>\n`);
+                if (!mutLevel) return;
+                const x = leftW + colIdx * cellW;
+                parts.push(`<rect x="${x}" y="${y + 1}" width="${cellW - 1}" height="${cH - 2}" fill="${mutLevel >= 2 ? '#1e40af' : '#3b82f6'}"/>\n`);
             });
         });
         parts.push('</svg>');
@@ -2982,11 +3072,11 @@ class CorrelationExplorer {
         </div>`;
         html += `<div style="overflow-y: auto; flex: 1; padding: 4px 0;">
             <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            <thead><tr style="position: sticky; top: 0; background: #f9fafb; z-index: 1;">
-                <th style="padding: 4px 8px; text-align: left; width: 28px;"><input type="checkbox" id="tbSelectAll" title="Select all"></th>
-                <th style="padding: 4px 4px; text-align: left;">Tissue</th>
-                <th style="padding: 4px 6px; text-align: right;">N</th>
-                <th style="padding: 4px 8px; text-align: left; width: 90px;"></th>
+            <thead><tr style="position: sticky; top: 0; z-index: 1;">
+                <th style="background: #f9fafb; padding: 4px 8px; text-align: left; width: 28px;"><input type="checkbox" id="tbSelectAll" title="Select all"></th>
+                <th style="background: #f9fafb; padding: 4px 4px; text-align: left;">Tissue</th>
+                <th style="background: #f9fafb; padding: 4px 6px; text-align: right;">N</th>
+                <th style="background: #f9fafb; padding: 4px 8px; text-align: left; width: 90px;"></th>
             </tr></thead><tbody>`;
 
         breakdown.forEach(t => {
@@ -4415,8 +4505,12 @@ class CorrelationExplorer {
         document.getElementById('showUncorrelatedGenes').addEventListener('change', () => {
             if (this.results) {
                 this.displayNetwork();
-                // Re-apply colors after network rebuild if color by GE is active
-                if (document.getElementById('colorByGeneEffect').checked) {
+                // displayNetwork rebuilds every node with its default colour, so
+                // any active colouring has to be re-applied. This used to test
+                // "Color by GE" only, which silently dropped stats colouring
+                // while its checkbox stayed ticked.
+                if (document.getElementById('colorByGeneEffect').checked
+                    || document.getElementById('colorByStats').checked) {
                     setTimeout(() => this.updateNetworkColors(), 100);
                 }
             }
@@ -5636,6 +5730,16 @@ class CorrelationExplorer {
         document.getElementById('statsColumnSelect').style.display = 'block';
     }
 
+    // Confirms a stats load on the line under the textarea instead of in a
+    // modal dialog, so re-loading on every Run is not intrusive.
+    _setStatsStatus(nGenes, hasLfc, hasFdr) {
+        const el = document.getElementById('statsLoadStatus');
+        if (!el) return;
+        const cols = hasLfc && hasFdr ? 'LFC, FDR' : hasLfc ? 'LFC' : hasFdr ? 'FDR' : '';
+        el.textContent = `\u2713 ${nGenes} genes loaded${cols ? ' with ' + cols : ''}`;
+        el.style.color = 'var(--green-700)';
+    }
+
     loadStatsFromFile() {
         if (!this.statsFileData) return;
 
@@ -5673,12 +5777,10 @@ class CorrelationExplorer {
             document.getElementById('statsControls').style.display = 'block';
         }
 
-        // Show stats loaded message
-        let msg = `Loaded ${genes.length} genes`;
-        if (hasLfc || hasFdr) {
-            msg += ` with statistics (${hasLfc ? 'LFC' : ''}${hasLfc && hasFdr ? ', ' : ''}${hasFdr ? 'FDR' : ''})`;
-        }
-        alert(msg);
+        // Report quietly, in place. This used to be an alert(), which fired
+        // once on load and again on every Run (runAnalysis re-reads the manual
+        // textarea), so the same dialog had to be dismissed repeatedly.
+        this._setStatsStatus(genes.length, hasLfc, hasFdr);
     }
 
     loadManualStats() {
@@ -5760,12 +5862,10 @@ class CorrelationExplorer {
             document.getElementById('statsControls').style.display = 'block';
         }
 
-        // Show stats loaded message
-        let msg = `Loaded ${genes.length} genes`;
-        if (hasLfc || hasFdr) {
-            msg += ` with statistics (${hasLfc ? 'LFC' : ''}${hasLfc && hasFdr ? ', ' : ''}${hasFdr ? 'FDR' : ''})`;
-        }
-        alert(msg);
+        // Report quietly, in place. This used to be an alert(), which fired
+        // once on load and again on every Run (runAnalysis re-reads the manual
+        // textarea), so the same dialog had to be dismissed repeatedly.
+        this._setStatsStatus(genes.length, hasLfc, hasFdr);
     }
 
     loadTestGenesWithStats() {
@@ -8692,6 +8792,16 @@ class CorrelationExplorer {
                     if (isSynonym) titleLines.push(`(synonym of ${originalName})`);
                     titleLines.push(`GE mean: ${isNaN(meanEffect) ? 'N/A' : meanEffect.toFixed(2)}`);
                     titleLines.push(`GE SD: ${isNaN(sd) ? 'N/A' : sd.toFixed(2)}`);
+                    // These nodes carry stats like any other input gene; the
+                    // lookup was simply missing here, so hovering an
+                    // uncorrelated gene showed no LFC/FDR.
+                    const uncorrStat = this.geneStats?.get(gene) || (originalName ? this.geneStats?.get(originalName) : null);
+                    if (uncorrStat?.lfc !== undefined && uncorrStat?.lfc !== null) {
+                        titleLines.push(`LFC: ${uncorrStat.lfc.toFixed(3)}`);
+                    }
+                    if (uncorrStat?.fdr !== undefined && uncorrStat?.fdr !== null) {
+                        titleLines.push(`FDR: ${uncorrStat.fdr.toExponential(2)}`);
+                    }
                     titleLines.push('(no correlations found)');
 
                     nodes.push({
@@ -14591,7 +14701,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <div style="font-size:10px; color:#9ca3af; margin-bottom:6px;">Click a gene to set it as the Y axis (GE).</div>
                     <div style="max-height:60vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;">
                         <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                            <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
+                            <thead style="position:sticky; top:0;" class="sticky-head"><tr>
                                 <th id="icGeHeadGene" style="${thStyle} text-align:left;">Gene<span id="icGeArrowGene"></span></th>
                                 <th id="icGeHeadR" style="${thStyle} text-align:center;">r<span id="icGeArrowR"></span></th>
                                 <th id="icGeHeadN" style="${thStyle} text-align:center;" title="Cell lines with both genes valid (low n = unreliable r)">n<span id="icGeArrowN"></span></th>
@@ -14608,7 +14718,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <div style="font-size:10px; color:#9ca3af; margin-bottom:6px;">${this.expressionLoaded ? 'Click a gene to set it as the Y axis (Expression).' : 'Expression data still loading or unavailable, reopen Find correlates once it finishes to populate this list.'}</div>
                     <div style="max-height:60vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;">
                         <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                            <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
+                            <thead style="position:sticky; top:0;" class="sticky-head"><tr>
                                 <th id="icExprHeadGene" style="${thStyle} text-align:left;">Gene<span id="icExprArrowGene"></span></th>
                                 <th id="icExprHeadR" style="${thStyle} text-align:center;">r<span id="icExprArrowR"></span></th>
                                 <th id="icExprHeadN" style="${thStyle} text-align:center;" title="Cell lines with both genes valid (low n = unreliable r)">n<span id="icExprArrowN"></span></th>
@@ -23561,7 +23671,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (existing && existing.dataset.pinned === '1' && existing.dataset.gene === gene) return;
         this.hideGeneTooltip(true);
 
-        const pinned = !!(event && event.shiftKey);
+        // "Hold Shift" has to mean held: the box appears a second after you
+        // start hovering, and the hover handler builds a synthetic event with
+        // only coordinates, so event.shiftKey is never set on that path.
+        const pinned = !!(event && event.shiftKey) || !!this._shiftHeld;
 
         const tooltip = document.createElement('div');
         tooltip.id = 'geneTooltip';
@@ -23609,7 +23722,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const upgrade = (ev) => {
                 if (ev.key === 'Shift') {
                     document.removeEventListener('keydown', upgrade);
-                    this.showGeneTooltip({ clientX: x, clientY: y, shiftKey: true }, gene);
+                    // Re-use the original pointer position, not the adjusted box
+                    // position, and keep the gene-effect line the caller passed.
+                    this.showGeneTooltip(
+                        { clientX: event.clientX, clientY: event.clientY, shiftKey: true },
+                        gene, whyContext, prefixHtml);
                 }
             };
             document.addEventListener('keydown', upgrade);
@@ -33492,7 +33609,7 @@ ${clone.innerHTML}
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; font-weight:600; color:${r.delta < 0 ? '#dc2626' : '#2563eb'};">${fmt(r.delta)}</td>
             </tr>`).join('');
         return `<table style="width:100%; border-collapse:collapse; font-size:11px;">
-            <thead style="background:#f9fafb; position:sticky; top:0;"><tr>
+            <thead style="position:sticky; top:0;" class="sticky-head"><tr>
                 ${th('Gene', 'gene', 'left')}
                 ${th('Mean GE (sel)', 'meanSel')}
                 ${th('Mean GE (rest)', 'meanOther')}
@@ -33776,12 +33893,12 @@ ${clone.innerHTML}
         document.getElementById('siRightHint').textContent = `${rightFiltered.length} pair(s) with |Δ| ≥ ${rightCut.toFixed(2)}.`;
         document.getElementById('siLeftBody').innerHTML =
             `<table style="width:100%; border-collapse:collapse; font-size:11px;">
-                <thead style="background:#f9fafb; position:sticky; top:0;"><tr>${th('Gene pair')}${th('r')}</tr></thead>
+                <thead style="position:sticky; top:0;" class="sticky-head"><tr>${th('Gene pair')}${th('r')}</tr></thead>
                 <tbody>${leftRows}</tbody>
             </table>`;
         document.getElementById('siRightBody').innerHTML =
             `<table style="width:100%; border-collapse:collapse; font-size:11px;">
-                <thead style="background:#f9fafb; position:sticky; top:0;"><tr>${th('Gene pair')}${th('r sel')}${th('r rest')}${th('Δ')}</tr></thead>
+                <thead style="position:sticky; top:0;" class="sticky-head"><tr>${th('Gene pair')}${th('r sel')}${th('r rest')}${th('Δ')}</tr></thead>
                 <tbody>${rightRows}</tbody>
             </table>`;
 
@@ -37872,6 +37989,12 @@ const MODAL_IDS = [
     'collectionsInfoModal', 'selectionInspectModal', 'mutCompareModal', 'enrichrModal',
     'clbWikiModal', 'clbInfoModal', 'cellLineBrowserModal', 'exportPreviewModal'
 ];
+
+// Whether Shift is being held right now. The gene tooltip needs this because
+// it is created on a timer, long after the keydown that would have told it.
+document.addEventListener('keydown', (e) => { if (e.key === 'Shift' && window.app) window.app._shiftHeld = true; });
+document.addEventListener('keyup', (e) => { if (e.key === 'Shift' && window.app) window.app._shiftHeld = false; });
+window.addEventListener('blur', () => { if (window.app) window.app._shiftHeld = false; });
 
 document.addEventListener('DOMContentLoaded', () => {
     const modals = MODAL_IDS.map(id => document.getElementById(id)).filter(Boolean);

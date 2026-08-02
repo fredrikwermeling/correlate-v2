@@ -262,6 +262,30 @@
             color: var(--green-700);
         }
 
+        /* Sticky table headers inside scrolling popups. The background has to
+           be on the cells: a background on a sticky <tr>/<thead> is not
+           reliably painted, so the rows scrolling underneath show through it. */
+        .sticky-head th {
+            background: #f9fafb;
+        }
+
+        /* Scroll chaining. When a list inside a popup hit its end, the rest of
+           the wheel gesture went to the page behind it, sliding the page under
+           panels that are anchored to a button and positioned once. The list
+           then sat away from what opened it, and scrolling back did not undo
+           it. Contain the scroll instead. */
+        .modal-overlay [style*="overflow"],
+        [id$="Dropdown"],
+        [id$="Dropdown"] [style*="overflow"],
+        [id$="Popup"],
+        [id$="Popup"] [style*="overflow"],
+        [id$="Panel"],
+        [id$="Modal"] [style*="overflow"],
+        .table-container,
+        .data-table-wrapper {
+            overscroll-behavior: contain;
+        }
+
         .sidebar-row {
             display: flex;
             gap: 12px;
@@ -1699,6 +1723,18 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.41 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Fix: network colouring survived by "Show all input genes".</b> Turning that on rebuilt the network with default colours and only restored <b>Color by GE</b>, so <b>Color by stats</b> silently reverted to green while its box stayed ticked. Both are restored now, and the newly shown genes are coloured too.</li>
+                    <li><b>Fix: input genes with no correlations now show LFC and FDR on hover.</b> The lookup was simply missing on those nodes, so the genes added by "Show all input genes" had no statistics in their tooltip.</li>
+                    <li><b>Fix: "Hold Shift for full text" now works.</b> The tooltip appears a second after you start hovering and never saw a Shift key that was already held, so only pressing Shift after the box appeared did anything. Holding it works as the text says.</li>
+                    <li><b>Loading stats no longer opens a dialog.</b> "Loaded N genes with statistics" was an alert that appeared on load and again on every Run, since Run re-reads the box. It is now a quiet line under the text area.</li>
+                    <li><b>Lists inside popups no longer drag the page with them.</b> Reaching the end of a scrollable list passed the rest of the scroll to the page behind, which slid the page under panels anchored to a button, so they looked like they had jumped and could not be put back.</li>
+                    <li><b>Fix: the Tissues table heading is opaque.</b> Its background sat on the row rather than the cells, which browsers do not reliably paint on a pinned row, so rows could be seen through it.</li>
+                    <li><b>Oncoprint and UpSet take genes beyond the top 25.</b> Both have an <b>add gene</b> box; adding one in either place shows it in both.</li>
+                    <li><b>Oncoprint SVG is about 15&times; smaller</b> (1.8 MB to ~115 KB) with no loss of quality. Wild-type cells were one rectangle each, roughly 30,000 of them; they are identical, so they are now a single tiled pattern and only mutated cells are drawn individually.</li>
+                    <li>Network: <b>Show all input genes</b> now sits above <b>Show gene effect (GE) in label</b>. The <b>Test Genes</b> button in the With Stats panel no longer overflows its column.</li>
+                </ul>
                 <p><strong>v.84.40 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Oncoprint shows every cell line.</b> It used to cap at 200, which made the per-gene counts misleading: "RAC1 2" meant 2 of the first 200 cell lines, not 2 of the cohort. The counts are now true counts, the grid scrolls sideways, and the gene names and counts stay frozen in place while you scroll.</li>
@@ -4093,7 +4129,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.40</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.41</a>
     </div>
 
     <div class="main-content">
@@ -4414,7 +4450,10 @@
                                 <label class="form-label">Enter Gene, LFC, FDR (tab or comma separated):</label>
                                 <textarea id="manualStatsTextarea" class="form-control" style="min-height: 140px; font-family: 'Roboto Mono', monospace; font-size: 11px;">Gene	LFC	FDR
 </textarea>
-                                <small style="color: #666; font-size: 10px;">Stats auto-loaded when you click Run</small>
+                                <!-- Doubles as the load confirmation. This used
+                                     to be an alert() that fired on load and
+                                     again on every Run. -->
+                                <small id="statsLoadStatus" style="color: #666; font-size: 10px;">Stats auto-loaded when you click Run</small>
                             </div>
                         </div>
 
@@ -4447,7 +4486,10 @@
 
                         <div class="button-row" style="margin-top: 8px;">
                             <button class="btn btn-secondary btn-sm" id="clearStatsGenes">Clear</button>
-                            <button class="btn btn-success btn-sm" id="loadTestStats">Test Genes w/ Stats</button>
+                            <!-- Just "Test Genes": the panel is already labelled
+                                 With Stats, and the longer text overflowed the
+                                 column. -->
+                            <button class="btn btn-success btn-sm" id="loadTestStats">Test Genes</button>
                         </div>
                     </div>
 
@@ -4542,13 +4584,13 @@
                         <div class="control-column control-box">
                             <!-- Gene Effect options (always shown) -->
                             <div class="checkbox-group" style="margin-bottom: 4px;">
+                                <label><input type="checkbox" id="showUncorrelatedGenes"> Show all input genes in network</label>
+                            </div>
+                            <div class="checkbox-group" style="margin-bottom: 4px;">
                                 <label><input type="checkbox" id="showGeneEffect"> Show gene effect (GE) in label</label>
                                 <span id="showGESDGroup" style="margin-left: 8px; display: none;">
                                     <label><input type="checkbox" id="showGeneEffectSD"> ± SD</label>
                                 </span>
-                            </div>
-                            <div class="checkbox-group" style="margin-bottom: 4px;">
-                                <label><input type="checkbox" id="showUncorrelatedGenes"> Show all input genes in network</label>
                             </div>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
                                 <label><input type="checkbox" id="colorByGeneEffect"> Color by GE</label>
@@ -6474,6 +6516,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_40"></script>
+    <script src="app.js?v=v84_41"></script>
 </body>
 </html>
