@@ -322,7 +322,7 @@ class CorrelationExplorer {
 
     // Filter/setting controls captured for "Open in new tab" so the new tab
     // reproduces the same view (not just the gene/pair).
-    _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geFusionFilter', 'geCnFilter', 'geMinGroupSize', 'geCellLineSearch']; }
+    _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geHotspotLevel', 'geFusionFilter', 'geFusionLevel', 'geCnFilter', 'geCnLevel', 'geMinGroupSize', 'geCellLineSearch']; }
     _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterCnLevel', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory', 'colorByPicked']; }
     _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCnFilter', 'caCellLineSearch']; }
 
@@ -4009,9 +4009,13 @@ class CorrelationExplorer {
                 if (tissue && d.lineage !== tissue) continue;
                 if (subtype && this.cellLineMetadata?.primaryDisease?.[cl] !== subtype) continue;
             }
-            if (kind !== 'hotspot' && hotspot) { const hs = this.mutations?.geneData?.[hotspot] || this.damagingMutations?.geneData?.[hotspot]; if (hs && (hs.mutations[cl] || 0) < 1) continue; }
-            if (kind !== 'fusion' && fus && !this._geFusionPasses(cl, fus)) continue;
-            if (kind !== 'cn' && cn && !this._cellLinePassesCnFilter(cl, cn)) continue;
+            const wantWT = (id) => document.getElementById(id)?.value === 'wt';
+            if (kind !== 'hotspot' && hotspot) {
+                const hs = this.mutations?.geneData?.[hotspot] || this.damagingMutations?.geneData?.[hotspot];
+                if (hs && (((hs.mutations[cl] || 0) >= 1) === wantWT('geHotspotLevel'))) continue;
+            }
+            if (kind !== 'fusion' && fus && this._geFusionPasses(cl, fus) === wantWT('geFusionLevel')) continue;
+            if (kind !== 'cn' && cn && this._cellLinePassesCnFilter(cl, cn) === wantWT('geCnLevel')) continue;
             set.add(cl);
         }
         return set;
@@ -4945,6 +4949,26 @@ class CorrelationExplorer {
         this._setupMutFilterWidget('hotspot', 'geHotspotFilter', 'geHotspotDropdown', _geFilterReRender, () => this._geCohortExcluding('hotspot'));
         this._setupMutFilterWidget('fusion', 'geFusionFilter', 'geFusionDropdown', _geFilterReRender, () => this._geCohortExcluding('fusion'));
         this._setupMutFilterWidget('cn', 'geCnFilter', 'geCnDropdown', _geFilterReRender, () => this._geCohortExcluding('cn'));
+        // The carrier-vs-WT choice only means anything once a gene is chosen.
+        [['geHotspotFilter', 'geHotspotLevel'], ['geFusionFilter', 'geFusionLevel'], ['geCnFilter', 'geCnLevel']]
+            .forEach(([inputId, levelId]) => {
+                const input = document.getElementById(inputId);
+                const level = document.getElementById(levelId);
+                if (!input || !level) return;
+                const sync = () => { level.style.display = input.value.trim() ? '' : 'none'; };
+                input.addEventListener('input', sync);
+                input.addEventListener('change', sync);
+                level.addEventListener('change', _geFilterReRender);
+                sync();
+            });
+        this._syncGeFilterLevels = () => {
+            [['geHotspotFilter', 'geHotspotLevel'], ['geFusionFilter', 'geFusionLevel'], ['geCnFilter', 'geCnLevel']]
+                .forEach(([inputId, levelId]) => {
+                    const input = document.getElementById(inputId);
+                    const level = document.getElementById(levelId);
+                    if (input && level) level.style.display = input.value.trim() ? '' : 'none';
+                });
+        };
         // p-value filter toggle, applies to both tissue and hotspot views
         document.getElementById('gePvalueFilter')?.addEventListener('change', () => {
             this.switchGeneEffectView(this.currentGEView || 'tissue');
@@ -10427,8 +10451,15 @@ Results:
         });
         // PNG / TIFF / PDF / PPTX all come from this composed canvas; SVG uses
         // the dedicated vector reconstruction (reusing the dialog we just shew).
-        await this._downloadCanvasAs(canvas, dlg.format, 'correlation_network', {
-            dpi, widthCm, heightCm, metaJson: dlg.sidecar === false ? null : JSON.stringify(meta)
+        // Trim the empty frame, then recompute the height so the figure keeps its
+        // real proportions at the width that was asked for.
+        const trimmed = this._trimCanvasWhitespace(canvas);
+        const outHeightCm = (trimmed !== canvas && trimmed.width)
+            ? Math.round(widthCm * (trimmed.height / trimmed.width) * 100) / 100
+            : heightCm;
+        await this._downloadCanvasAs(trimmed, dlg.format, 'correlation_network', {
+            dpi, widthCm, heightCm: outHeightCm,
+            metaJson: dlg.sidecar === false ? null : JSON.stringify(meta)
         });
     }
 
@@ -13317,17 +13348,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 tracegroupgap: 0,
                 entrywidth: this._colorByLegendEntryW || 120,
                 entrywidthmode: 'pixels'
-            } : {
-                x: 0.02,
-                y: 0.98,
-                xanchor: 'left',
-                yanchor: 'top',
-                bgcolor: 'white',
-                bordercolor: '#ddd',
-                borderwidth: 1,
-                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 14 } },
-                font: { size: 14 }
-            },
+            } : (() => {
+                // Auto-placed unless the user has dragged it somewhere.
+                const corner = this._userLegendPosition
+                    ? { x: this._userLegendPosition.x, y: this._userLegendPosition.y, xanchor: 'auto', yanchor: 'auto' }
+                    : this._bestLegendCorner(filteredData, xRange, yRange, 3);
+                return {
+                    x: corner.x,
+                    y: corner.y,
+                    xanchor: corner.xanchor,
+                    yanchor: corner.yanchor,
+                    bgcolor: 'white',
+                    bordercolor: '#ddd',
+                    borderwidth: 1,
+                    title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 14 } },
+                    font: { size: 14 }
+                };
+            })(),
             annotations: annotations,
             plot_bgcolor: '#fafafa'
         };
@@ -20506,9 +20543,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cn = document.getElementById('geCnFilter')?.value;
         if (tissue) parts.push(tissue);
         if (subtype) parts.push(subtype);
-        if (hotspot) parts.push(`${hotspot} mutated`);
-        if (fusion) parts.push(`${this._stripFusionFilterDecoration(fusion)} fused`);
-        if (cn) parts.push(this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del'));
+        // Say which side of each filter is in view, now that WT can be chosen.
+        const isWT = (id) => document.getElementById(id)?.value === 'wt';
+        if (hotspot) parts.push(`${hotspot} ${isWT('geHotspotLevel') ? 'WT' : 'mutated'}`);
+        if (fusion) parts.push(`${this._stripFusionFilterDecoration(fusion)} ${isWT('geFusionLevel') ? 'not fused' : 'fused'}`);
+        if (cn) {
+            const label = this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del');
+            parts.push(isWT('geCnLevel') ? `${label} absent` : label);
+        }
         if (this._activeOncoprintFilters?.length > 0) {
             this._activeOncoprintFilters.forEach(f => parts.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`));
         }
@@ -20527,22 +20569,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
             data = data.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
         }
-        // Hotspot filter, only show cell lines mutated in this gene
+        // Hotspot / fusion / CN filters, each with its own carrier-vs-WT choice.
+        const wantWT = (id) => document.getElementById(id)?.value === 'wt';
         const hotspotGene = document.getElementById('geHotspotFilter')?.value;
         const geFilterMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
         if (geFilterMutSource) {
             const mutData = geFilterMutSource.mutations || {};
-            data = data.filter(d => (mutData[d.cellLineId] || 0) >= 1);
+            const wt = wantWT('geHotspotLevel');
+            data = data.filter(d => ((mutData[d.cellLineId] || 0) >= 1) !== wt);
         }
         // Fusion filter (curated ★ clinical pair or validated fusion gene)
         const fusionGene = document.getElementById('geFusionFilter')?.value;
         if (fusionGene) {
-            data = data.filter(d => this._geFusionPasses(d.cellLineId, fusionGene));
+            const wt = wantWT('geFusionLevel');
+            data = data.filter(d => this._geFusionPasses(d.cellLineId, fusionGene) !== wt);
         }
-        // Focal-CN filter (amp / deep-del)
+        // Focal-CN filter (amplification / deletion on the curated panel)
         const geCnVal = document.getElementById('geCnFilter')?.value;
         if (geCnVal) {
-            data = data.filter(d => this._cellLinePassesCnFilter(d.cellLineId, geCnVal));
+            const wt = wantWT('geCnLevel');
+            data = data.filter(d => this._cellLinePassesCnFilter(d.cellLineId, geCnVal) !== wt);
         }
         // Oncoprint multi-gene filters
         if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
@@ -26788,25 +26834,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // curated panel); the integrated functional-loss
             // collections higher up combine CN + mutation + expression
             // and may cover overlapping but not identical sets.
-            cdkn2a_del: {
-                label: 'CDKN2A focal deletion',
-                category: 'Focal deletions',
-                description: '<b>Inclusion:</b> focal CN deletion of <b>CDKN2A</b> (relative CN ≤ 0.5). <b>Pathway:</b> G1/S checkpoint released, loss of p16/p14ARF disables CDK4/6 brake and ARF-MDM2-p53 axis. <b>Therapy:</b> CDK4/6 inhibitor (palbociclib / ribociclib / abemaciclib) responder background. Distinct from the integrated TP53 / RB1 functional-loss collections, captures CN-only deep deletions, including lines where the gene is biallelically deleted without a damaging-mutation hit.'
-            },
             cdkn2b_del: {
                 label: 'CDKN2B focal deletion',
                 category: 'Focal deletions',
                 description: '<b>Inclusion:</b> focal CN deletion of <b>CDKN2B</b>. <b>Pathway:</b> often co-deleted with CDKN2A as part of the same 9p21 segment, but tracked separately because some lines have CDKN2B alone. <b>Mechanism:</b> p15-INK4B loss reinforces the CDK4/6 disinhibition.'
-            },
-            rb1_del: {
-                label: 'RB1 focal deletion',
-                category: 'Focal deletions',
-                description: '<b>Inclusion:</b> focal CN deletion of <b>RB1</b>. <b>Pathway:</b> G1/S checkpoint absent, RB-E2F brake is gone, cell can no longer hold itself in G1. <b>Therapy:</b> typically <b>CDK4/6-inhibitor RESISTANT</b> (upstream of RB), often Aurora-A / WEE1 / PLK1-inhibitor sensitive. Disease: retinoblastoma (defining), small-cell lung cancer, triple-negative breast.'
-            },
-            pten_del: {
-                label: 'PTEN focal deletion',
-                category: 'Focal deletions',
-                description: '<b>Inclusion:</b> focal CN deletion of <b>PTEN</b>. <b>Pathway:</b> PI3K/AKT pathway constitutively active. <b>Therapy:</b> PI3Kβ-inhibitor and AKT-inhibitor (capivasertib) sensitivity background.'
             },
             brca1_del: {
                 label: 'BRCA1 focal deletion',
@@ -26842,6 +26873,31 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 label: 'KEAP1 focal deletion',
                 category: 'Focal deletions',
                 description: '<b>Inclusion:</b> focal CN deletion of <b>KEAP1</b>. <b>Pathway:</b> NRF2-pathway hyperactivation (KEAP1 normally targets NRF2 for degradation). <b>Disease:</b> NSCLC (~20 %, often co-mutated with KRAS / STK11; ICB-resistant background). <b>Therapy:</b> glutaminase-inhibitor (telaglenastat) candidate.'
+            },
+            smarcb1_del: {
+                label: 'SMARCB1 focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>SMARCB1</b> (INI1/SNF5). <b>Mechanism:</b> core SWI/SNF subunit; biallelic loss is the defining event of rhabdoid tumours. <b>Disease:</b> malignant rhabdoid tumour, atypical teratoid/rhabdoid tumour, epithelioid sarcoma. <b>Therapy:</b> EZH2 inhibition (tazemetostat) exploits the resulting PRC2 dependency.'
+            },
+            setd2_del: {
+                label: 'SETD2 focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>SETD2</b>. <b>Mechanism:</b> H3K36 trimethyltransferase; loss impairs transcription-coupled repair and splicing fidelity. <b>Disease:</b> clear-cell renal cell carcinoma (3p, alongside VHL / PBRM1 / BAP1), some leukaemias. <b>Therapy:</b> investigational, loss creates replication-stress and WEE1 sensitivity in models.'
+            },
+            fat1_del: {
+                label: 'FAT1 focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>FAT1</b>. <b>Mechanism:</b> atypical cadherin, a brake on WNT and Hippo signalling; loss releases both. <b>Disease:</b> head and neck squamous carcinoma, oesophageal, cervical. <b>Therapy:</b> none direct; associated with resistance to CDK4/6 inhibition.'
+            },
+            fbxw7_del: {
+                label: 'FBXW7 focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>FBXW7</b>. <b>Mechanism:</b> substrate-recognition subunit of an SCF ubiquitin ligase; loss stabilises MYC, cyclin E, NOTCH1 and MCL1. <b>Disease:</b> colorectal, endometrial, T-ALL. <b>Therapy:</b> the stabilised substrates are the point of interest, e.g. MCL1 dependency.'
+            },
+            tet2_del: {
+                label: 'TET2 focal deletion',
+                category: 'Focal deletions',
+                description: '<b>Inclusion:</b> focal CN deletion of <b>TET2</b>. <b>Mechanism:</b> 5-methylcytosine dioxygenase; loss produces a hypermethylated state, mirroring IDH1/2 mutation. <b>Disease:</b> myeloid malignancies (AML, MDS, CMML), angioimmunoblastic T-cell lymphoma. <b>Therapy:</b> hypomethylating agents.'
             },
             bap1_del: {
                 label: 'BAP1 focal deletion',
@@ -27136,6 +27192,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // deliberately excludes CDKN2A, RB1 and PTEN (functional loss already
             // covers them), so these three could never match a single cell line.
             'myc_family_amp', 'erbb2_amp', 'mdm2_amp', 'g1s_amp',
+            'smarcb1_del', 'setd2_del', 'fat1_del', 'fbxw7_del', 'tet2_del',
             // Patient age at diagnosis
             'age_infant', 'age_pediatric', 'age_aya', 'age_adult', 'age_elderly',
         ]);
@@ -27489,8 +27546,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // its own collection. Note these are CN-only deep deletions
         // (different from the integrated functional-loss inference
         // which also requires CN + mutation + expression combined).
-        const DEL_SINGLES = ['CDKN2A', 'CDKN2B', 'RB1', 'PTEN', 'BRCA1', 'BRCA2',
-                             'ATM', 'ARID1A', 'SMARCA4', 'STK11', 'KEAP1', 'BAP1'];
+        // Exactly the curated deletion panel. CDKN2A / RB1 / PTEN are absent from
+        // it by design (functional loss covers them), so filters for those could
+        // never match; SMARCB1 / SETD2 / FAT1 / FBXW7 / TET2 are in the panel and
+        // were simply missing here.
+        const DEL_SINGLES = ['CDKN2B', 'BRCA1', 'BRCA2', 'ATM', 'ARID1A', 'SMARCA4',
+                             'STK11', 'KEAP1', 'BAP1', 'SMARCB1', 'SETD2', 'FAT1',
+                             'FBXW7', 'TET2'];
         for (const g of DEL_SINGLES) mem[g.toLowerCase() + '_del'] = new Set();
         mem.any_focal_del = new Set();
         if (this.clinicalCn?.byCellLine) {
@@ -28521,6 +28583,85 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this._syncColorByGroupBtn();
             this.updateInspectPlot();
         };
+    }
+
+    // Which corner of the plot the genotype legend should sit in. It was pinned
+    // to the top left, which is exactly where the mutated cell lines pile up on
+    // a gene-effect pair, so the legend covered the points it was describing.
+    // Counts how many points fall under the legend box in each corner and takes
+    // the emptiest, preferring the top so the reader meets it first.
+    _bestLegendCorner(points, xRange, yRange, nEntries = 3) {
+        const CORNERS = [
+            { id: 'tl', x: 0.02, y: 0.98, xanchor: 'left', yanchor: 'top' },
+            { id: 'tr', x: 0.98, y: 0.98, xanchor: 'right', yanchor: 'top' },
+            { id: 'bl', x: 0.02, y: 0.02, xanchor: 'left', yanchor: 'bottom' },
+            { id: 'br', x: 0.98, y: 0.02, xanchor: 'right', yanchor: 'bottom' }
+        ];
+        const x0 = xRange?.[0], x1 = xRange?.[1], y0 = yRange?.[0], y1 = yRange?.[1];
+        if (![x0, x1, y0, y1].every(v => typeof v === 'number' && isFinite(v)) || x1 === x0 || y1 === y0) {
+            return CORNERS[0];
+        }
+        // Roughly what the box occupies: a title line plus one row per entry.
+        const w = 0.34;
+        const h = Math.min(0.5, 0.10 + 0.075 * nEntries);
+        const counts = CORNERS.map(() => 0);
+        for (const d of points) {
+            const fx = (d.x - x0) / (x1 - x0);
+            const fy = (d.y - y0) / (y1 - y0);
+            if (fx < 0 || fx > 1 || fy < 0 || fy > 1) continue;
+            const left = fx <= w, right = fx >= 1 - w;
+            const top = fy >= 1 - h, bottom = fy <= h;
+            if (left && top) counts[0]++;
+            if (right && top) counts[1]++;
+            if (left && bottom) counts[2]++;
+            if (right && bottom) counts[3]++;
+        }
+        // Preference order is already the array order, so a plain min keeps the
+        // top corners ahead of the bottom ones on a tie.
+        let best = 0;
+        for (let i = 1; i < counts.length; i++) if (counts[i] < counts[best]) best = i;
+        return CORNERS[best];
+    }
+
+    // Crops blank margin off an exported canvas, keeping a small border. The
+    // network is drawn onto a canvas sized to the on-screen viewport, so a graph
+    // that doesn't fill that viewport exported with a wide empty frame around
+    // it, which then had to be cropped by hand before the figure was usable.
+    // Returns the original canvas untouched if it is blank or already tight.
+    _trimCanvasWhitespace(canvas, padPx) {
+        try {
+            const w = canvas.width, h = canvas.height;
+            if (!w || !h) return canvas;
+            const ctx = canvas.getContext('2d');
+            const d = ctx.getImageData(0, 0, w, h).data;
+            // "Blank" means transparent or near-white; the export background is
+            // white and the plot background a barely-off-white.
+            const blank = (i) => d[i + 3] < 8 || (d[i] > 246 && d[i + 1] > 246 && d[i + 2] > 246);
+            let minX = w, minY = h, maxX = -1, maxY = -1;
+            for (let y = 0; y < h; y++) {
+                const row = y * w * 4;
+                for (let x = 0; x < w; x++) {
+                    if (blank(row + x * 4)) continue;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+            if (maxX < 0 || maxY < 0) return canvas;   // nothing drawn
+            const pad = padPx == null ? Math.round(Math.max(w, h) * 0.015) : padPx;
+            minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+            maxX = Math.min(w - 1, maxX + pad); maxY = Math.min(h - 1, maxY + pad);
+            const cw = maxX - minX + 1, ch = maxY - minY + 1;
+            if (cw >= w - 2 && ch >= h - 2) return canvas;   // already tight
+            const out = document.createElement('canvas');
+            out.width = cw; out.height = ch;
+            const octx = out.getContext('2d');
+            octx.drawImage(canvas, minX, minY, cw, ch, 0, 0, cw, ch);
+            return out;
+        } catch (e) {
+            return canvas;   // cropping is a nicety, never break the export
+        }
     }
 
     _makeDraggable(el, handle) {
