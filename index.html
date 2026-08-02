@@ -1820,6 +1820,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.55 (2026-08-02)</strong></p>
+                <ul>
+                    <li><b>Gene names no longer land on top of other nodes.</b> The layout spaced nodes by a fixed distance that took no account of the label, which is drawn below the circle, so a name could sit squarely over its neighbour. Spacing is now worked out from the node and font sizes, so it keeps working when either slider is moved, and each node is treated as an area to keep clear rather than a point. The same applies to the other layouts under Settings.</li>
+                </ul>
                 <p><strong>v.84.54 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>The export dialog is titled "Export image".</b> It read <em>Export chart / PNG</em>, which named a format you had not chosen yet and were about to pick two lines below, and called everything a chart when the same dialog exports networks and oncoprints.</li>
@@ -4319,7 +4323,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.54</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.55</a>
     </div>
 
     <div class="main-content">
@@ -6740,6 +6744,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_54"></script>
+    <script src="app.js?v=v84_55"></script>
 </body>
 </html>

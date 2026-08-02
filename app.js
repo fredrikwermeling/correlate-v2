@@ -8871,11 +8871,18 @@ class CorrelationExplorer {
                 enabled: true,
                 solver: 'forceAtlas2Based',
                 forceAtlas2Based: {
-                    gravitationalConstant: -50,
-                    centralGravity: 0.01,
-                    springLength: 100,
+                    gravitationalConstant: -60,
+                    centralGravity: 0.008,
+                    // Spacing has to allow for the label as well as the circle:
+                    // labels are drawn below the node, so a fixed 100 let a name
+                    // land on top of whatever node sat beneath it. Derived from
+                    // the node and font sizes so it keeps working when either
+                    // slider is moved.
+                    springLength: (this._netSpringLength = Math.max(140, nodeSize * 3 + fontSize * 2)),
                     springConstant: 0.08,
-                    damping: 0.4
+                    damping: 0.4,
+                    // Treat each node as its own keep-out zone rather than a point.
+                    avoidOverlap: 0.6
                 },
                 stabilization: {
                     enabled: true,
@@ -11329,6 +11336,9 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                 physics: {
                     enabled: true,
                     solver: 'barnesHut',
+                    // Same keep-out zone as the default layout, so switching
+                    // layout doesn't reintroduce labels sitting on nodes.
+                    barnesHut: { avoidOverlap: 0.6, springLength: this._netSpringLength || 140 },
                     stabilization: { iterations: stabilizationIterations }
                 }
             };
@@ -11338,6 +11348,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                 physics: {
                     enabled: true,
                     solver: layoutName,
+                    forceAtlas2Based: { avoidOverlap: 0.6, springLength: this._netSpringLength || 140 },
                     stabilization: { iterations: 150 }
                 }
             };
