@@ -35082,6 +35082,13 @@ ${clone.innerHTML}
         renderSides();
     }
 
+    // Which measurement the selection inspect compares. 'ge' = CRISPR gene
+    // effect, 'expr' = mRNA expression.
+    setSelectionInspectMode(mode) {
+        this._selInspectMode = mode === 'expr' ? 'expr' : 'ge';
+        this.inspectSelectionGE();
+    }
+
     inspectSelectionGE() {
         const selected = [...(this._clbSelectedCellLines || new Set())];
         if (selected.length < 3) {
@@ -35095,24 +35102,58 @@ ${clone.innerHTML}
         const otherIdx = [];
         for (let i = 0; i < this.nCellLines; i++) if (!selSet.has(i)) otherIdx.push(i);
 
+        const mode = this._selInspectMode === 'expr' ? 'expr' : 'ge';
+        const useExpr = mode === 'expr' && this.expressionLoaded && this.expressionData && this.expressionMetadata;
+        if (mode === 'expr' && !useExpr) {
+            // Asked for expression before the matrix finished loading.
+            this.loadExpressionData?.().then(() => this.inspectSelectionGE()).catch(() => {});
+            document.getElementById('selectionInspectBody').innerHTML =
+                '<div style="padding:20px; color:#6b7280; font-size:12px;">Loading expression data…</div>';
+            document.getElementById('selectionInspectModal').style.display = 'flex';
+            return;
+        }
+
         const rows = [];
-        for (let g = 0; g < this.nGenes; g++) {
-            const off = g * this.nCellLines;
-            let sSum = 0, sN = 0;
-            for (const ci of selIdx) {
-                const v = this.geneEffects[off + ci];
-                if (!isNaN(v) && v !== -999) { sSum += v; sN++; }
+        if (useExpr) {
+            // The expression table covers a different, larger set of cell lines
+            // than the CRISPR panel, so map through its own index.
+            const exprIdxOf = new Map(this.expressionMetadata.cellLines.map((cl, i) => [cl, i]));
+            const selE = selected.map(cl => exprIdxOf.get(cl)).filter(i => i !== undefined);
+            const selES = new Set(selE);
+            const othE = [];
+            for (let i = 0; i < this.expressionMetadata.nCellLines; i++) if (!selES.has(i)) othE.push(i);
+            const nC = this.expressionMetadata.nCellLines;
+            const genes = this.expressionMetadata.genes;
+            for (let g = 0; g < genes.length; g++) {
+                const off = g * nC;
+                let sSum = 0, sN = 0;
+                for (const ci of selE) { const v = this.expressionData[off + ci]; if (!isNaN(v)) { sSum += v; sN++; } }
+                if (sN < 3) continue;
+                let oSum = 0, oN = 0;
+                for (const ci of othE) { const v = this.expressionData[off + ci]; if (!isNaN(v)) { oSum += v; oN++; } }
+                if (oN < 3) continue;
+                const mS = sSum / sN, mO = oSum / oN;
+                rows.push({ gene: genes[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN });
             }
-            if (sN < 3) continue;
-            let oSum = 0, oN = 0;
-            for (const ci of otherIdx) {
-                const v = this.geneEffects[off + ci];
-                if (!isNaN(v) && v !== -999) { oSum += v; oN++; }
+        } else {
+            for (let g = 0; g < this.nGenes; g++) {
+                const off = g * this.nCellLines;
+                let sSum = 0, sN = 0;
+                for (const ci of selIdx) {
+                    const v = this.geneEffects[off + ci];
+                    if (!isNaN(v) && v !== -999) { sSum += v; sN++; }
+                }
+                if (sN < 3) continue;
+                let oSum = 0, oN = 0;
+                for (const ci of otherIdx) {
+                    const v = this.geneEffects[off + ci];
+                    if (!isNaN(v) && v !== -999) { oSum += v; oN++; }
+                }
+                if (oN < 3) continue;
+                const mS = sSum / sN;
+                const mO = oSum / oN;
+                rows.push({ gene: this.geneNames[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN });
             }
-            if (oN < 3) continue;
-            const mS = sSum / sN;
-            const mO = oSum / oN;
-            rows.push({ gene: this.geneNames[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN });
         }
 
         // Cache the full per-gene stats on the instance so sort / filter /
@@ -35122,8 +35163,27 @@ ${clone.innerHTML}
         const saveBtn = document.getElementById('selectionInspectSave');
         if (saveBtn) saveBtn.style.display = '';
 
-        document.getElementById('selectionInspectTitle').textContent = `Inspect Gene Effects, ${selected.length} selected cell lines`;
-        document.getElementById('selectionInspectSubtitle').textContent = `Left: most depleted in selection (ranked by Mean GE in the selection). Right: largest &Delta; (selection − rest). Columns are sortable; change the |&Delta;| or row-count filters below. Click any gene to open its GE inspect; use Network to build a correlation network from the displayed genes.`;
+        const nRest = useExpr
+            ? Math.max(0, (this.expressionMetadata.nCellLines || 0) - selected.length)
+            : Math.max(0, this.nCellLines - selected.length);
+        const what = useExpr ? 'mRNA expression' : 'CRISPR gene effect';
+        document.getElementById('selectionInspectTitle').textContent =
+            `${selected.length} selected cell lines vs the other ${nRest.toLocaleString()}`;
+        const sub = document.getElementById('selectionInspectSubtitle');
+        // The entities were being written through textContent, so "&Delta;"
+        // appeared literally on screen.
+        sub.innerHTML = `Every gene's <b>${what}</b> averaged across your <b>${selected.length} selected</b> cell lines, `
+            + `compared with the average across <b>all ${nRest.toLocaleString()} other</b> cell lines in the panel. `
+            + `<b>Δ = selection − rest</b>, so a negative Δ means the selected lines sit lower.`
+            + `<br><b>Left:</b> lowest mean in the selection${useExpr
+                ? ', which for expression is mostly genes switched off in nearly every cell line, so the right-hand list is usually the informative one'
+                : ', i.e. the genes those lines most depend on'}. `
+            + `<b>Right:</b> largest difference from the rest, which is the more selective view. `
+            + `Columns sort; the |Δ| and row-count boxes below trim the lists. Click a gene to open it; Network builds a correlation network from the genes shown.`
+            + `<div style="margin-top:6px;">`
+            + `<button type="button" onclick="app.setSelectionInspectMode('ge')" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; ${mode === 'ge' ? 'background:#f0fdf4; border-color:#5a9f4a; color:#15803d; font-weight:700;' : ''}">CRISPR gene effect</button> `
+            + `<button type="button" onclick="app.setSelectionInspectMode('expr')" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; ${mode === 'expr' ? 'background:#f0fdf4; border-color:#5a9f4a; color:#15803d; font-weight:700;' : ''}">mRNA expression</button>`
+            + `</div>`;
         document.getElementById('selectionInspectBody').innerHTML = `
             <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
                 <div style="flex:1; min-width:0;">
@@ -35293,8 +35353,8 @@ ${clone.innerHTML}
         return `<table style="width:100%; border-collapse:collapse; font-size:11px;">
             <thead style="position:sticky; top:0;" class="sticky-head"><tr>
                 ${th('Gene', 'gene', 'left')}
-                ${th('Mean GE (sel)', 'meanSel')}
-                ${th('Mean GE (rest)', 'meanOther')}
+                ${th(this._selInspectMode === 'expr' ? 'Mean expr (sel)' : 'Mean GE (sel)', 'meanSel')}
+                ${th(this._selInspectMode === 'expr' ? 'Mean expr (rest)' : 'Mean GE (rest)', 'meanOther')}
                 ${th('Δ', 'delta')}
             </tr></thead>
             <tbody>${trows}</tbody>
