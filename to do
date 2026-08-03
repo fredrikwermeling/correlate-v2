@@ -13,7 +13,7 @@ the compare hotspot in the correlation is a bit miss guided in that it compares 
 In correlation tab, the fusion filter should be moved up below the hotspot filter box, and right to the cn amp/del filter. the compare box could be made into a one row filter with everything on the same row (similar to gate. the differnt parts could have a subtle seprating line to make it more intotuive that differnt boxes are differnt. eg plot size and axis ranges are togeheter, tissue/hotspot/CN and fusion and comare are together etc. 
 The gate function should have a dedicated export for AI, essentially asking the question what is explaining the differnce in the cells in the gates, not focusing on what is shown on the actuall plot, but rtying to use the other omics data to explain it. woring with the gates i see that there are png and svg export buttons. i thiought we agred on having a dedicated export button everywhere allowing the user to select how to export. the emnricher A and B for the gates (im in correlation tab, but same should be true everywhere there are gates) doesnt work. 
 The correlation fusion and hotspot overlay needs to scale to the filters, ie only suggesting filters and # of cell lines absed on the filtered cells. in general all over the app it should scale number s to filters. 
-
+When exporting for AI, the popout should define which data that will be expoerted. 
 
 older.
 
