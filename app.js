@@ -1626,7 +1626,8 @@ class CorrelationExplorer {
         popup.style.top = '90px';
 
         let html = `<div id="upsetSetupDragHandle" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
-        html += `<span style="font-weight:600; font-size:12px;">UpSet plot</span>`;
+        const setupKindWord = { fusion: 'curated fusions', cn: 'copy-number events' }[this._oncoprintKind] || 'hotspot mutations';
+        html += `<span style="font-weight:600; font-size:12px;">UpSet plot <span style="font-weight:400; color:#9ca3af;">(${setupKindWord})</span></span>`;
         html += `<button id="upsetSetupCancel" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
         html += `<div style="padding:8px 10px; font-size:11px; color:#4b5563; border-bottom:1px solid #f3f4f6;">`;
@@ -1830,7 +1831,8 @@ class CorrelationExplorer {
         }
 
         let html = `<div id="upsetDragHandle" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
-        html += `<span style="font-weight:600; font-size:12px;">UpSet, ${upsetLabel}</span>`;
+        const upsetKindWord = { fusion: 'curated fusions', cn: 'copy-number events' }[this._oncoprintKind] || 'hotspot mutations';
+        html += `<span style="font-weight:600; font-size:12px;">UpSet, ${upsetLabel} <span style="font-weight:400; color:#9ca3af;">(${upsetKindWord})</span></span>`;
         html += `<span style="font-size:10px; color:#6b7280;">${cls.length} cell lines${filterCtx ? ' · ' + filterCtx : ''}</span>`;
         html += `<button onclick="app._upsetClose()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
@@ -2397,11 +2399,21 @@ class CorrelationExplorer {
         const maxGenes = 25;
         const geneCounts = [];
         if (gridKind === 'fusion') {
-            for (const gene of Object.keys(this.translocations?.geneData || {})) {
-                const muts = this.translocations.geneData[gene].translocations;
+            // Curated driver fusions only. The raw caller output averages more
+            // than 30 partners per line and is mostly passenger and artefact,
+            // so a grid ranked on it would show noise, not drivers.
+            const fd = this.clinicalFusions?.fusionData || {};
+            for (const name of Object.keys(fd)) {
+                const cells = fd[name]?.cellLines || {};
+                const muts = {};
                 let n = 0;
-                for (const cl of clsToShow) if (muts[cl] > 0) n++;
-                if (n > 0) geneCounts.push({ gene, n, muts });
+                for (const cl of clsToShow) {
+                    const call = cells[cl];
+                    if (!call) continue;
+                    muts[cl] = call.tier === 'high' ? 2 : 1;
+                    n++;
+                }
+                if (n > 0) geneCounts.push({ gene: name, n, muts });
             }
         } else if (gridKind === 'cn') {
             // Built from the curated focal panel: one row per gene-and-direction,
@@ -2441,7 +2453,11 @@ class CorrelationExplorer {
         // Genes the user asked for explicitly are shown even when they fall
         // outside the top 25, so the oncoprint and the UpSet picker are not
         // limited to the most-mutated genes.
-        if (!this._oncoprintExtraGenes) this._oncoprintExtraGenes = new Set();
+        // Kept per grid type: a gene added to the mutation grid means nothing
+        // in the fusion or copy-number one.
+        if (!this._oncoprintExtraByKind) this._oncoprintExtraByKind = {};
+        if (!this._oncoprintExtraByKind[gridKind]) this._oncoprintExtraByKind[gridKind] = new Set();
+        this._oncoprintExtraGenes = this._oncoprintExtraByKind[gridKind];
         const shownGenes = new Set(topGenes.map(g => g.gene));
         for (const name of this._oncoprintExtraGenes) {
             if (shownGenes.has(name)) continue;
@@ -2495,7 +2511,7 @@ class CorrelationExplorer {
         let html = `<div id="oncoprintDragHandle" style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
         // "Oncoprint" is the field's word for this chart but says nothing to a
         // reader who has not met it, so the plain description leads.
-        const gridTitle = gridKind === 'fusion' ? `Fusion grid, top ${topGenes.length} partner genes`
+        const gridTitle = gridKind === 'fusion' ? `Fusion grid, ${topGenes.length} curated driver fusions`
                         : gridKind === 'cn' ? `Copy-number grid, top ${topGenes.length} focal events`
                         : `Mutation grid, top ${topGenes.length} hotspot genes`;
         html += `<span style="font-weight:600; font-size:12px; white-space:nowrap;">${gridTitle} <span style="font-weight:400; color:#9ca3af;">(oncoprint)</span></span>`;
@@ -2504,7 +2520,7 @@ class CorrelationExplorer {
         html += `</div>`;
         html += `<div style="padding:6px 10px; overflow-y:auto; overflow-x:hidden; flex:1;">`;
         const legendWords = gridKind === 'fusion'
-            ? ['one partner', 'several partners', 'none called']
+            ? ['called', 'high-confidence call', 'not called']
             : gridKind === 'cn'
                 ? ['single-copy change', 'deep change', 'no event']
                 : ['1 mut', '2 mut', 'WT'];
@@ -2522,7 +2538,8 @@ class CorrelationExplorer {
         html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
         html += `<button onclick="app._showUpsetSetup()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f0fdf4;color:#16a34a;font-weight:500;" title="Pick which genes to compare, then draw the UpSet plot">UpSet...</button>`;
         html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
-        html += `<input id="oncoprintAddGene" list="oncoprintGeneOptions" placeholder="add gene" style="font-size:10px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;width:88px;" title="Show a gene that isn't in the top ${maxGenes}">`;
+        const addWhat = gridKind === 'fusion' ? 'add fusion' : gridKind === 'cn' ? 'add event' : 'add gene';
+        html += `<input id="oncoprintAddGene" list="oncoprintGeneOptions" placeholder="${addWhat}" style="font-size:10px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;width:104px;" title="Show a row that isn't in the top ${maxGenes}, type to search all ${geneCounts.length} with at least one cell line">`;
         html += `<datalist id="oncoprintGeneOptions">${geneCounts.slice(0, 600).map(g => `<option value="${g.gene}">${g.n}</option>`).join('')}</datalist>`;
         html += `<button id="oncoprintAddGeneBtn" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">Add</button>`;
         if (this._oncoprintExtraGenes.size) {
@@ -30471,8 +30488,75 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
     }
 
+    // Small menu anchored under a filter chip. Each entry runs `act`, then the
+    // list is redrawn so the chip reflects the new state.
+    _simpleChipMenu(anchorEl, options, after) {
+        const menu = document.createElement('div');
+        menu.id = 'clbChipMenu';
+        menu.style.cssText = 'position:fixed; z-index:1450; width:210px; padding:4px; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.14); font-size:11px;';
+        const rowCss = 'display:block; width:100%; text-align:left; padding:5px 8px; border:none; background:none; cursor:pointer; border-radius:4px; font-size:11px;';
+        menu.innerHTML = options.map((o, i) =>
+            (o.danger ? '<div style="border-top:1px solid #e5e7eb; margin:4px 0;"></div>' : '')
+            + `<button type="button" data-i="${i}" style="${rowCss}${o.danger ? 'color:#b91c1c;' : o.active ? 'font-weight:700; background:#f0fdf4; color:#15803d;' : 'color:#374151;'}">${o.label}</button>`
+        ).join('');
+        document.body.appendChild(menu);
+        const r = anchorEl.getBoundingClientRect();
+        menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - 218))}px`;
+        menu.style.top = `${Math.min(r.bottom + 4, window.innerHeight - menu.offsetHeight - 8)}px`;
+        menu.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            options[+btn.dataset.i]?.act?.();
+            menu.remove();
+            if (after) after(); else this.renderCellLineList();
+        });
+        setTimeout(() => {
+            const away = (ev) => {
+                if (menu.contains(ev.target)) return;
+                menu.remove();
+                document.removeEventListener('mousedown', away);
+            };
+            document.addEventListener('mousedown', away);
+        }, 0);
+    }
+
     _showClbChipMenu(kind, anchorEl) {
         document.getElementById('clbChipMenu')?.remove();
+        // Chips that are not gene filters get their own small menus.
+        if (kind === 'tissue') return this._simpleChipMenu(anchorEl, [
+            { label: 'Remove this filter', act: () => {
+                const t = document.getElementById('clbTissueFilter'); if (t) t.value = '';
+                this.updateClbSubtypeFilter?.();
+                const sub = document.getElementById('clbSubtypeFilter'); if (sub) sub.value = '';
+            } },
+        ]);
+        if (kind === 'sex') {
+            const el = document.getElementById('clbSexFilter');
+            const opts = [
+                ['ann_male', 'Male (annotation)'], ['ann_female', 'Female (annotation)'],
+                ['exp_male', 'Male (by expression)'], ['exp_female', 'Female (by expression)'],
+            ].map(([v, label]) => ({ label, active: el?.value === v, act: () => { if (el) el.value = v; } }));
+            opts.push({ label: 'Remove this filter', danger: true, act: () => { if (el) el.value = ''; } });
+            return this._simpleChipMenu(anchorEl, opts);
+        }
+        if (kind === 'collection') {
+            const id = anchorEl.dataset.collection;
+            const cur = this._clbCollectionStates.get(id);
+            return this._simpleChipMenu(anchorEl, [
+                { label: 'Include these cell lines', active: cur === 'include', act: () => this._clbCollectionStates.set(id, 'include') },
+                { label: 'Exclude these cell lines', active: cur === 'exclude', act: () => this._clbCollectionStates.set(id, 'exclude') },
+                { label: 'Remove this filter', danger: true, act: () => this._clbCollectionStates.delete(id) },
+            ]);
+        }
+        if (kind === 'grid') {
+            const gene = anchorEl.dataset.gridGene;
+            const cur = this._oncoprintFilters?.[gene];
+            return this._simpleChipMenu(anchorEl, [
+                { label: 'Require altered', active: cur === 'mut', act: () => { this._oncoprintFilters[gene] = 'mut'; } },
+                { label: 'Require wild-type', active: cur === 'wt', act: () => { this._oncoprintFilters[gene] = 'wt'; } },
+                { label: 'Remove this filter', danger: true, act: () => { delete this._oncoprintFilters[gene]; } },
+            ], () => this._oncoprintSyncFilters());
+        }
         const spec = this._CLB_CHIP_SPEC()[kind];
         if (!spec) return;
         const level = document.getElementById(spec.levelId);
@@ -30529,7 +30613,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const wtFus = document.getElementById('clbFusionLevel')?.value === 'wt';
         const wtCn = document.getElementById('clbCnLevel')?.value === 'wt';
         const greyChip = 'background:#f3f4f6;color:#4b5563;';
-        if (tissue) parts.push(`<span style="background:var(--earth-50);color:var(--earth-700);padding:1px 6px;border-radius:10px;">${tissue}${subtype ? ' · ' + subtype : ''}</span>`);
+        if (tissue) parts.push(`<span class="clb-chip" data-chip="tissue" title="Click to remove this filter" style="background:var(--earth-50);color:var(--earth-700);padding:1px 6px;border-radius:10px;">${this.esc(tissue)}${subtype ? ' · ' + this.esc(subtype) : ''} &#9662;</span>`);
+        // Sex was applied but never appeared here, so the strip did not match
+        // the list it was describing.
+        const sexVal = document.getElementById('clbSexFilter')?.value;
+        if (sexVal) {
+            const sexLabel = {
+                ann_male: 'Male (annotation)', ann_female: 'Female (annotation)', ann_unknown: 'Sex unknown (annotation)',
+                exp_male: 'Male (by expression)', exp_female: 'Female (by expression)', exp_unknown: 'Sex unclear (by expression)',
+            }[sexVal] || sexVal;
+            parts.push(`<span class="clb-chip" data-chip="sex" title="Click to change or remove this filter" style="background:#eef2ff;color:#3730a3;padding:1px 6px;border-radius:10px;">${sexLabel} &#9662;</span>`);
+        }
         const hotLvl = document.getElementById('clbHotspotLevel')?.value || '1+2';
         const hotWord = { '1+2': 'mutated', '1': 'one copy mutated', '2': 'both copies mutated', '0': 'WT' }[hotLvl] || 'mutated';
         if (hotspot) parts.push(`<span class="clb-chip" data-chip="hotspot" title="Click to change which cell lines are kept, or to remove this filter" style="${wtHot ? greyChip : 'background:#e6efde;color:#5a7d35;'}padding:1px 6px;border-radius:10px;">${this.esc(hotspot)} ${hotWord} &#9662;</span>`);
@@ -30545,7 +30639,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const bg = state === 'include' ? '#dcfce7' : '#fef2f2';
             const color = state === 'include' ? '#15803d' : '#991b1b';
             const sign = state === 'include' ? '+' : '−';
-            parts.push(`<span style="background:${bg};color:${color};padding:1px 6px;border-radius:10px;">${sign} ${lbl}`
+            parts.push(`<span class="clb-chip" data-chip="collection" data-collection="${id}" title="Click to switch between include and exclude" style="background:${bg};color:${color};padding:1px 6px;border-radius:10px;">${sign} ${lbl}`
                 + ` <a href="#" data-clear-collection="${id}" style="color:${color}; text-decoration:none; margin-left:2px; font-weight:700;" title="Remove this filter">×</a></span>`);
         }
         if (this._activeOncoprintFilters) {
@@ -30554,7 +30648,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (!shown.has(f.gene)) {
                     const bg = f.state === 'mut' ? '#dcfce7' : '#fef2f2';
                     const color = f.state === 'mut' ? '#16a34a' : '#dc2626';
-                    parts.push(`<span style="background:${bg};color:${color};padding:1px 6px;border-radius:10px;">${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}</span>`);
+                    parts.push(`<span class="clb-chip" data-chip="grid" data-grid-gene="${this.esc(f.gene)}" title="Click to switch side or remove" style="background:${bg};color:${color};padding:1px 6px;border-radius:10px;">${this.esc(f.gene)} ${f.state === 'mut' ? 'Mut' : 'WT'} &#9662;</span>`);
                 }
             }
         }
@@ -30565,6 +30659,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             el.style.display = 'flex';
             el.querySelectorAll('[data-chip]').forEach(chip => {
                 chip.addEventListener('click', (e) => {
+                    if (e.target.closest('[data-clear-collection]')) return;  // the × has its own handler
                     e.preventDefault();
                     this._showClbChipMenu(chip.dataset.chip, chip);
                 });

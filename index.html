@@ -1473,9 +1473,6 @@
             box-sizing: border-box; font-size: 12px;
         }
         .modal-header .btn-sm { height: var(--clb-ctl-h); box-sizing: border-box; display: inline-flex; align-items: center; font-size: 11px; }
-        /* The wild-type / mutated choice moved onto the filter's chip, so these
-           keep holding the value without taking a slot in the toolbar. */
-        .clb-hidden-level { display: none !important; }
         /* Filter chips are buttons: click to change side or remove. */
         .clb-chip { cursor: pointer; border: 1px solid transparent; }
         .clb-chip:hover { filter: brightness(0.96); border-color: rgba(0,0,0,0.18); }
@@ -1910,6 +1907,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.71 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>The status dropdowns are back</b> beside each alteration filter. The chip menu still works as a second way to the same setting.</li>
+                    <li><b>Sort moved up after Quick filters</b>, with a separator, and Custom cell lines now sits at the end of that row, just before the Selection row.</li>
+                    <li><b>The fusion grid uses curated driver fusions</b>, not the raw fusion-caller output. Most lines in this panel carry more than 30 raw partners, the great majority of which are passenger or artefactual calls in rearranged genomes, so a grid ranked on them showed noise rather than drivers.</li>
+                    <li><b>Grids can show rows outside the top 25.</b> The add box searches everything with at least one cell line, and remembers what you added separately for the mutation, fusion and copy-number grids.</li>
+                    <li><b>The UpSet plot names which layer it is built from</b>, hotspot mutations, curated fusions or copy-number events.</li>
+                    <li><b>The sex filter now shows as a chip</b> like the others. It was being applied without appearing in the filter strip, so the strip did not describe the list it sat above.</li>
+                    <li><b>Every filter chip is clickable</b>: tissue, sex, hotspot, fusion, copy number, quick filters and the grid-derived gene filters. Click one to change which side is kept, or to remove it.</li>
+                </ul>
                 <p><strong>v.84.70 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Cell Line Browser toolbar reorganised.</b> Reset and ? moved up beside the dialog title. Row 1 is the cohort (search, tissue, subtype, sex), row 2 is alterations (hotspot, fusion, amp/deletion, then quick filters and custom cell lines), row 3 is sort.</li>
@@ -4529,7 +4536,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.70</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.71</a>
     </div>
 
     <div class="main-content">
@@ -6526,35 +6533,34 @@
             </select>
           </div>
 
-          <!-- Row 2, alterations. Each filter has a grid button that opens the
-               matching alteration grid for the cell lines currently shown.
-               The wild-type / mutated choice lives on the filter's chip below,
-               so it does not need a permanent dropdown here. -->
+          <!-- Row 2, alterations, then how the list is ordered and any
+               hand-picked set. Each alteration has its status dropdown and a
+               grid button for the cell lines currently shown. -->
           <div class="clb-row clb-row-alt">
             <span class="clb-row-label">Alteration</span>
             <div id="clbHotspotFilterWrap" class="clb-pair">
               <div class="clb-anchor">
-                <input type="text" id="clbHotspotFilter" placeholder="Hotspot gene..." title="Keep only cell lines with the chosen status for this gene" autocomplete="off" style="width:150px;">
+                <input type="text" id="clbHotspotFilter" placeholder="Hotspot gene..." title="Keep only cell lines with the chosen status for this gene" autocomplete="off" style="width:140px;">
                 <div id="clbHotspotDropdown" class="clb-dropdown" style="min-width:240px;"></div>
               </div>
-              <button id="clbGridHotspotBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Grid of the most-mutated genes across the cell lines currently shown, click a gene to require it mutated or wild-type">&#9638;</button>
-              <select id="clbHotspotLevel" class="clb-hidden-level"><option value="1+2" selected>Mutated (1+2)</option><option value="1">Only 1 mut</option><option value="2">Only 2 mut</option><option value="0">Only WT</option></select>
+              <select id="clbHotspotLevel" style="width:120px;"><option value="1+2" selected>Mutated (1+2)</option><option value="1">Only 1 mut</option><option value="2">Only 2 mut</option><option value="0">Only WT</option></select>
+              <button id="clbGridHotspotBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Mutation grid for the cell lines currently shown, click a gene to require it mutated or wild-type">&#9638;</button>
             </div>
             <div id="clbFusionFilterWrap" class="clb-pair">
               <div class="clb-anchor">
-                <input type="text" id="clbTranslocationFilter" placeholder="Fusion / gene..." title="Keep only cell lines with the chosen status for this fusion" autocomplete="off" style="width:150px;">
+                <input type="text" id="clbTranslocationFilter" placeholder="Fusion / gene..." title="Keep only cell lines with the chosen status for this fusion" autocomplete="off" style="width:140px;">
                 <div id="clbTranslocationDropdown" class="clb-dropdown" style="min-width:280px;"></div>
               </div>
-              <button id="clbGridFusionBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Grid of the most-frequent fusion partners across the cell lines currently shown">&#9638;</button>
-              <select id="clbFusionLevel" class="clb-hidden-level"><option value="1+2" selected>Fused</option><option value="0">Only WT</option></select>
+              <select id="clbFusionLevel" style="width:120px;"><option value="1+2" selected>Fused</option><option value="0">Only WT</option></select>
+              <button id="clbGridFusionBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Fusion grid for the cell lines currently shown, curated driver fusions only">&#9638;</button>
             </div>
             <div id="clbCnFilterWrap" class="clb-pair">
               <div class="clb-anchor">
-                <input type="text" id="clbCnFilter" placeholder="Amp / deletion..." title="Focal copy-number filter: amplifications (&#9650;) and deletions (&#9660;) from the curated panel. Deletions include single-copy loss, not only homozygous." autocomplete="off" style="width:150px;">
+                <input type="text" id="clbCnFilter" placeholder="Amp / deletion..." title="Focal copy-number filter: amplifications (&#9650;) and deletions (&#9660;) from the curated panel. Deletions include single-copy loss, not only homozygous." autocomplete="off" style="width:140px;">
                 <div id="clbCnDropdown" class="clb-dropdown" style="min-width:300px;"></div>
               </div>
-              <button id="clbGridCnBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Grid of the most-frequent focal amplifications and deletions across the cell lines currently shown">&#9638;</button>
-              <select id="clbCnLevel" class="clb-hidden-level"><option value="altered" selected>With event</option><option value="wt">Only WT</option></select>
+              <select id="clbCnLevel" style="width:120px;"><option value="altered" selected>With event</option><option value="wt">Only WT</option></select>
+              <button id="clbGridCnBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Copy-number grid for the cell lines currently shown">&#9638;</button>
             </div>
 
             <span class="clb-sep"></span>
@@ -6567,25 +6573,23 @@
 
             <span class="clb-sep"></span>
 
-            <button id="clbCustomCLBtn" class="btn btn-outline btn-sm" type="button" title="Restrict the list to a specific set of cell lines you paste in">Custom cell lines<span id="customCLFilterCountCLB" style="color:#6b7280; font-weight:400; margin-left:5px;"></span></button>
-
-            <div id="clbActiveFilters" class="clb-active-filters"></div>
-          </div>
-
-          <!-- Row 3, ordering. -->
-          <div class="clb-row clb-row-alt">
-            <span class="clb-row-label">Sort</span>
-            <select id="clbSortBy" style="width:210px;" title="Sort the cell line list">
+            <select id="clbSortBy" style="width:200px;" title="Sort the cell line list">
               <option value="name">Sort: Name</option>
               <option value="ge">Sort: GE for gene(s)</option>
               <option value="expr">Sort: Expression of gene(s)</option>
               <option value="drug">Sort: Drug response (PRISM AUC)</option>
             </select>
             <div id="clbSortGeneWrap" class="clb-anchor" style="visibility:hidden;">
-              <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:180px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
+              <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:160px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
               <div id="clbSortDrugDropdown" class="clb-dropdown" style="min-width:320px;"></div>
             </div>
             <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="width:32px; visibility:hidden;">&#x25BC;</button>
+
+            <span class="clb-sep"></span>
+
+            <button id="clbCustomCLBtn" class="btn btn-outline btn-sm" type="button" title="Restrict the list to a specific set of cell lines you paste in">Custom cell lines<span id="customCLFilterCountCLB" style="color:#6b7280; font-weight:400; margin-left:5px;"></span></button>
+
+            <div id="clbActiveFilters" class="clb-active-filters"></div>
           </div>
 
           <!-- Row 3, what to do with the cell lines now shown or ticked. -->
@@ -6954,6 +6958,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_70"></script>
+    <script src="app.js?v=v84_71"></script>
 </body>
 </html>
