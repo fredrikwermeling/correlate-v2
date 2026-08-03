@@ -21,6 +21,8 @@ the expression correlates should perhaps be removed. such things could be explor
 in the gene effect tab, shift clickig a cell line results in goign to the wiki, while in the correlation tab it goes to the cell line browser. It hink i prefer the wiki. but again, functionallitites should be cosnsitent over the app. 
 the function of the filters in the gene effect should be the same as in the cell line browser, including making it possivble to click the colorfull button that appear related to a filter allowing to click and change it eg from mutated to WT. 
 In the network, color by GE should scale to the genes shown on the plot, so if i use the remove mode to remove a node, the scale/color for color by GE should adjust. 
+could the network have a function that allwos for gradually increasing or deacreisng the diffeernece between th differnt nodes, i guess the settings ahave a distance somtime syou might want to make the figure more cndesed to take less space. 
+for network, the app should warn if anything is zoomed so things are outside the visible window. 
 
 
 older.
