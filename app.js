@@ -9744,6 +9744,22 @@ class CorrelationExplorer {
         this.network.setOptions({ nodes: { borderWidth: borderWidth } });
     }
 
+    // Gene-effect values for the genes actually drawn in the network, which is
+    // what the node gradient is scaled to. Falls back to every analysed gene
+    // when the network is not built yet, so the legend always has a range.
+    _networkEffectValues() {
+        const all = (this.results?.clusters || []).map(c => c.meanEffect).filter(v => !isNaN(v));
+        if (!this.networkData?.nodes?.length) return all;
+        const byGene = new Map();
+        (this.results?.clusters || []).forEach(c => byGene.set(c.gene, c.meanEffect));
+        const vis = [];
+        this.networkData.nodes.forEach(n => {
+            const v = byGene.get(n.id);
+            if (v !== undefined && !isNaN(v)) vis.push(v);
+        });
+        return vis.length ? vis : all;
+    }
+
     updateEdgeLegend(edgeWidthBase, cutoff) {
         const legendEl = document.getElementById('legendEdgeThickness');
         if (!legendEl) return;
@@ -10537,7 +10553,7 @@ Results:
         const colorByGeneEffect = document.getElementById('colorByGeneEffect').checked;
         if (colorByGeneEffect && this.results?.clusters) {
             const colorGEType = document.querySelector('input[name="colorGEType"]:checked')?.value || 'signed';
-            const effectValues = this.results.clusters.map(c => c.meanEffect).filter(v => !isNaN(v));
+            const effectValues = this._networkEffectValues();
 
             ctx.font = titleFont;
             ctx.fillStyle = '#333';
@@ -10872,7 +10888,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         const colorByGeneEffect = document.getElementById('colorByGeneEffect').checked;
         if (colorByGeneEffect && this.results?.clusters) {
             const colorGEType = document.querySelector('input[name="colorGEType"]:checked')?.value || 'signed';
-            const effectValues = this.results.clusters.map(c => c.meanEffect).filter(v => !isNaN(v));
+            const effectValues = this._networkEffectValues();
 
             svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Node Color:</text>\n`;
 
@@ -11913,7 +11929,7 @@ Results:
         const colorByGeneEffect = document.getElementById('colorByGeneEffect').checked;
         if (colorByGeneEffect && this.results?.clusters) {
             const colorGEType = document.querySelector('input[name="colorGEType"]:checked')?.value || 'signed';
-            const effectValues = this.results.clusters.map(c => c.meanEffect).filter(v => !isNaN(v));
+            const effectValues = this._networkEffectValues();
 
             ctx.font = titleFont;
             ctx.fillStyle = '#333';
@@ -12211,7 +12227,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const colorByGeneEffect = document.getElementById('colorByGeneEffect').checked;
         if (colorByGeneEffect && this.results?.clusters) {
             const colorGEType = document.querySelector('input[name="colorGEType"]:checked')?.value || 'signed';
-            const effectValues = this.results.clusters.map(c => c.meanEffect).filter(v => !isNaN(v));
+            const effectValues = this._networkEffectValues();
 
             svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Node Color:</text>\n`;
 
@@ -13641,9 +13657,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const showZero = document.getElementById('showZeroLines')?.checked !== false;
 
-        // Axis labels as draggable annotations instead of axis titles
-        const xLabelText = this.getAxisLabel(gene1, this.currentInspect?.xType || 'ge');
-        const yLabelText = this.getAxisLabel(gene2, this.currentInspect?.yType || 'ge');
+        // Axis labels as draggable annotations instead of axis titles.
+        // A label longer than the axis it sits against gets clipped at both
+        // ends ("MDM2 Expression (log2 TPM+1)" losing its M on a 400px plot),
+        // so break before the unit when it will not fit.
+        const _wrapAxisLabel = (text, availablePx, fontPx) => {
+            if (!text) return text;
+            if (text.length * fontPx * 0.55 <= availablePx) return text;
+            const i = text.lastIndexOf(' (');
+            return i > 0 ? text.slice(0, i) + '<br>' + text.slice(i + 1) : text;
+        };
+        const _plotWpx = parseInt(document.getElementById('plotWidth')?.value, 10) || 500;
+        const _plotHpx = parseInt(document.getElementById('plotHeight')?.value, 10) || 500;
+        // Compare against the drawing area, not the whole canvas: margins take
+        // a good part of it, and the label has to sit inside what is left.
+        const xLabelText = _wrapAxisLabel(this.getAxisLabel(gene1, this.currentInspect?.xType || 'ge'),
+            _plotWpx * 0.78, sts?.xLabelFontSize || 20);
+        const yLabelText = _wrapAxisLabel(this.getAxisLabel(gene2, this.currentInspect?.yType || 'ge'),
+            _plotHpx * 0.62, sts?.yLabelFontSize || (_isPhone ? 13 : 20));
         const xLabelAnnotation = {
             x: this._userXLabelPos ? this._userXLabelPos.x : 0.5,
             y: this._userXLabelPos ? this._userXLabelPos.y : -0.08,
@@ -17902,10 +17933,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     Math.abs(d.x - point.x) < 0.001 && Math.abs(d.y - point.y) < 0.001
                 );
                 if (matchingData) {
-                    // Shift-click opens the cell line in the Cell Line Browser
-                    // instead of toggling it into the inspect panel.
+                    // Shift-click opens the cell line's wiki, matching the
+                    // gene-effect view, instead of toggling it into the panel.
                     if (eventData.event?.shiftKey) {
-                        this._openCellLineInBrowser(matchingData.cellLineId);
+                        this.hideCellLineTooltip?.();
+                        this.openCellLineWiki(matchingData.cellLineId);
                         return;
                     }
                     if (this.clickedCells.has(matchingData.cellLineName)) {

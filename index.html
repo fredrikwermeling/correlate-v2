@@ -1913,6 +1913,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.77 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>Color by gene effect now rescales when you remove nodes.</b> The node colors already followed the genes on screen, but all four legends still measured every analyzed gene, so the numbers stopped matching the colors after using Remove mode.</li>
+                    <li><b>Shift-clicking a cell line opens its wiki everywhere.</b> In the correlation scatter it opened the Cell Line Browser instead, while the gene-effect view opened the wiki.</li>
+                    <li><b>Long axis labels no longer get clipped.</b> "MDM2 Expression (log2 TPM+1)" was taller than a 400px plot and lost characters at both ends; labels break before the unit when they will not fit.</li>
+                </ul>
                 <p><strong>v.84.76 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>The correlation title now names the measurement</b>, so "TP53 vs MDM2 (gene effect)" rather than just the gene pair, and both are named when the axes differ.</li>
@@ -4576,7 +4582,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.76</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.77</a>
     </div>
 
     <div class="main-content">
@@ -7002,6 +7008,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_76"></script>
+    <script src="app.js?v=v84_77"></script>
 </body>
 </html>
