@@ -13055,6 +13055,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
         }
 
+        // What survived every filter. The colour-by group picker reads this so
+        // it can only offer groups that are actually on the plot.
+        this.currentInspect.filteredData = filteredData;
+
         // Get mutation info for overlay (separate gene, hotspot or damaging)
         let mutationMap = new Map();
         const overlayMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
@@ -28670,7 +28674,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // reports. Groups under 10 cell lines are skipped: an r from 4 points is
     // noise and would crowd out anything real.
     _suggestColorByGroups(cats, howMany = 5) {
-        const data = this.currentInspect?.data || [];
+        // Score against the plotted points, so a suggestion is always something
+        // the user can actually see.
+        const data = this.currentInspect?.filteredData || this.currentInspect?.data || [];
         const mode = document.getElementById('colorByCategory')?.value;
         const of = (d) => mode === 'subtype'
             ? (this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown')
@@ -28695,7 +28701,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const mode = document.getElementById('colorByCategory')?.value;
         if (mode !== 'tissue' && mode !== 'subtype') return;
 
-        const data = this.currentInspect?.data || [];
+        // Only what is on the plot: offering a subtype that every active filter
+        // has already excluded gives a choice that cannot change anything.
+        const data = this.currentInspect?.filteredData || this.currentInspect?.data || [];
         const counts = {};
         // In subtype mode, remember which tissue each subtype belongs to so the
         // list can be shown as a tree. A flat list of 70+ subtypes gives no clue

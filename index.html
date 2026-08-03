@@ -1897,6 +1897,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.68 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>The colour-by group picker now lists only the tissues or subtypes actually on the plot.</b> It was built from the full dataset, so with a filter applied it offered groups that had already been filtered out, and picking one changed nothing. "Suggest" is scored on the plotted points for the same reason.</li>
+                </ul>
                 <p><strong>v.84.67 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Drug rows no longer print the compound's clinical indication.</b> A drug approved for colorectal cancer, listed beside a pancreatic line's own screen result, read as though the line were colorectal. The indication describes the drug and says nothing about the cell line, so it now lives only in the CSV export.</li>
@@ -4499,7 +4503,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.67</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.68</a>
     </div>
 
     <div class="main-content">
@@ -6929,6 +6933,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_67"></script>
+    <script src="app.js?v=v84_68"></script>
 </body>
 </html>
