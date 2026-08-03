@@ -1597,6 +1597,17 @@
             position: relative;
             z-index: 10;
         }
+        /* With the fusion/compare wrapper set to display:contents, the boxes fall
+           in document order: genes, plot appearance, then the cohort filters
+           (tissue, hotspot, copy number, fusion), then compare. A hairline marks
+           where the filter group starts and where compare does, drawn on the
+           first box of each group so no extra markup is needed. */
+        .inspect-controls > #cancerFilterBox,
+        .inspect-controls > #compareBox {
+            border-top: 1px solid var(--gray-200);
+            padding-top: 6px;
+            margin-top: 2px;
+        }
 
         .inspect-plot {
             flex: 1;
@@ -1913,6 +1924,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.92 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>Correlation controls regrouped.</b> The fusion filter sits below the hotspot filter and beside the amp/deletion filter, so the four cohort filters read as one block. Compare is a single row with its buttons together. Thin lines separate the groups: genes, then plot size and axis ranges, then the filters, then compare.</li>
+                </ul>
                 <p><strong>v.84.91 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Cell lines you label by clicking are now listed under the Gene Effect plot</b>, with a Copy names button, so the names can be taken out rather than only read off the chart. Clicking a name in the list removes its label from the plot.</li>
@@ -4648,7 +4663,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.91</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.92</a>
     </div>
 
     <div class="main-content">
@@ -5530,8 +5545,10 @@
                                 <option value="altered" selected>With event</option><option value="wt">Only WT</option>
                             </select>
                         </div>
-                        <!-- Fusion Filter + Compare (forced side by side) -->
-                        <div style="grid-column: span 2; display:flex; gap:6px; align-items:start;">
+                        <!-- Fusion Filter + Compare. display:contents makes both
+                             direct grid items so their position is set by the
+                             ordering rules with everything else. -->
+                        <div style="display:contents;">
                             <div class="control-box-compact" id="translocationFilterBox" style="flex:1; display:none; overflow:visible;">
                                 <span class="control-label" style="font-size:9px;">Fusion Filter</span>
                                 <div style="position:relative;">
@@ -5543,9 +5560,9 @@
                                     <option value="1+2" selected>Fused</option><option value="0">Only WT (called)</option><option value="nocall">No fusion data</option>
                                 </select>
                             </div>
-                            <div class="control-box-compact" style="flex:1;">
+                            <div class="control-box-compact" id="compareBox" style="grid-column: span 2;">
                                 <span class="control-label" style="font-size:10px;">Compare</span>
-                                <div style="display:flex; gap:3px; flex-wrap:wrap;">
+                                <div style="display:flex; gap:3px; flex-wrap:nowrap; align-items:center;">
                                     <button class="btn btn-secondary btn-sm" id="compareAllCancerTypesBtn" style="font-size:10px; padding:2px 5px;">Tissue</button>
                                     <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size:10px; padding:2px 5px;">Hotspot</button>
                                     <button class="btn btn-secondary btn-sm" id="compareAllCnBtn" style="font-size:10px; padding:2px 5px; display:none;">Amp/Del</button>
@@ -7094,6 +7111,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_91"></script>
+    <script src="app.js?v=v84_92"></script>
 </body>
 </html>
