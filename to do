@@ -11,7 +11,7 @@ the json exportedd info related to images is good but not perfect, it doesnt per
 exported scater csv file only relates to gene1 and gene2, it needs to better describe what is gene 1 and gene 2. 
 the compare hotspot in the correlation is a bit miss guided in that it compares based on 2 mutations, but if i click the mutation, the filter 1+2 mutation appears with another result (infered by the 1 mutation i guess), i guess it makes more sense the the list sorts byt 1+2 mutations instead of only 2. 
 In correlation tab, the fusion filter should be moved up below the hotspot filter box, and right to the cn amp/del filter. the compare box could be made into a one row filter with everything on the same row (similar to gate. the differnt parts could have a subtle seprating line to make it more intotuive that differnt boxes are differnt. eg plot size and axis ranges are togeheter, tissue/hotspot/CN and fusion and comare are together etc. 
-
+The gate function should have a dedicated export for AI, essentially asking the question what is explaining the differnce in the cells in the gates, not focusing on what is shown on the actuall plot, but rtying to use the other omics data to explain it. 
 
 older.
 
