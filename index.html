@@ -1913,6 +1913,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.73 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>Fixed: the fusion and copy-number grids selected no cell lines.</b> Their include / exclude choices were being checked against the hotspot mutation table, where a fusion name or an "amp / del" row does not exist, so every cell line failed the test. Each row is now checked against the layer it came from. Verified: BCR-ABL1 gives 12 cell lines, CDKN2B del gives 295, both matching the counts in the grid.</li>
+                    <li><b>Fixed: the Quick filters button and the three gene pickers did not open.</b> They take their hidden state from a stylesheet rule now, and the code that opened them was still clearing an inline style, which no longer had any effect.</li>
+                    <li><b>Fixed overlapping text in the fusion and copy-number grids.</b> The row-label pane was a fixed width sized for gene symbols; it now measures the longest label being drawn.</li>
+                    <li><b>The grid's Apply button is now the obvious next step</b>, larger and in solid green.</li>
+                </ul>
                 <p><strong>v.84.72 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Fixed overlapping text in the Cell Line Browser.</b> When a row wrapped, the second line started at the far left, underneath the row label. Controls now sit in their own column so a wrapped line stays clear of it.</li>
@@ -4551,7 +4558,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.72</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.73</a>
     </div>
 
     <div class="main-content">
@@ -6978,6 +6985,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_72"></script>
+    <script src="app.js?v=v84_73"></script>
 </body>
 </html>

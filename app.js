@@ -2485,7 +2485,17 @@ class CorrelationExplorer {
         // scrolls; it is no longer squeezed to fit a fixed 500px budget.
         const cellW = Math.max(3, Math.min(8, Math.floor(500 / sortedCLs.length)));
         const cellH = 14;
-        const labelW = 72;
+        // Fusion names ("EWSR1-FLI1") and CN rows ("CDKN2A del") are much
+        // longer than a gene symbol, and a fixed 72px pane ran them into the
+        // grid. Size the pane to the widest label actually being drawn.
+        const labelW = (() => {
+            if (gridKind === 'hotspot') return 72;
+            const probe = document.createElement('canvas').getContext('2d');
+            probe.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            let w = 72;
+            for (const g of topGenes) w = Math.max(w, Math.ceil(probe.measureText(g.gene).width) + 12);
+            return Math.min(w, 200);
+        })();
         const boxW = 10;
         const boxGap = 1;
         const boxAreaW = boxW * 2 + boxGap + 4; // include + exclude boxes
@@ -2701,7 +2711,7 @@ class CorrelationExplorer {
                 const tags = activeFilters.map(([gene, state]) =>
                     `<span style="display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:10px;font-size:10px;background:${state === 'mut' ? '#dcfce7' : '#fef2f2'};color:${state === 'mut' ? '#16a34a' : '#dc2626'};border:1px solid ${state === 'mut' ? '#86efac' : '#fecaca'};">${gene} ${state === 'mut' ? '✓' : '✗'}<button onclick="app._oncoprintClearGene('${gene}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:#999;padding:0 0 0 2px;">×</button></span>`
                 ).join('');
-                statusEl.innerHTML = `${tags} <span style="color:#6b7280;">${matchCount}/${filteredCLs.length} CLs</span> <button onclick="app._oncoprintApplyFilters()" style="padding:2px 8px;font-size:10px;background:#5a9f4a;color:white;border:none;border-radius:4px;cursor:pointer;">Apply</button> <button onclick="app._oncoprintClearAll()" style="padding:2px 8px;font-size:10px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;">Clear</button>`;
+                statusEl.innerHTML = `${tags} <span style="color:#6b7280;">${matchCount}/${filteredCLs.length} CLs</span> <button onclick="app._oncoprintApplyFilters()" style="padding:5px 16px;font-size:12px;font-weight:700;background:#15803d;color:white;border:none;border-radius:5px;cursor:pointer;box-shadow:0 2px 6px rgba(21,128,61,0.35);" title="Apply these include / exclude choices and close the grid">Apply &rarr;</button> <button onclick="app._oncoprintClearAll()" style="padding:2px 8px;font-size:10px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;">Clear</button>`;
             }
         };
 
@@ -2743,6 +2753,8 @@ class CorrelationExplorer {
             const gene = topGenes[rowIdx].gene;
             const bx1 = 2, bx2 = 2 + boxW + boxGap;
 
+            if (!this._oncoprintFilterKinds) this._oncoprintFilterKinds = {};
+            this._oncoprintFilterKinds[gene] = gridKind;
             if (x >= bx1 && x <= bx1 + boxW) {
                 if (this._oncoprintFilters[gene] === 'mut') delete this._oncoprintFilters[gene];
                 else this._oncoprintFilters[gene] = 'mut';
@@ -2816,7 +2828,10 @@ class CorrelationExplorer {
     _oncoprintSyncFilters() {
         // Sync active filters from the oncoprint checkboxes and update CLB if open
         const filters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
-        this._activeOncoprintFilters = filters.length > 0 ? filters.map(([gene, state]) => ({ gene, state })) : null;
+        const filterKind = this._oncoprintKind || 'hotspot';
+        this._activeOncoprintFilters = filters.length > 0
+            ? filters.map(([gene, state]) => ({ gene, state, kind: this._oncoprintFilterKinds?.[gene] || filterKind }))
+            : null;
 
         // Update param hotspot filter UI, gray out when oncoprint has multi-gene filters
         const controls = document.getElementById('paramHotspotControls');
@@ -2901,11 +2916,29 @@ class CorrelationExplorer {
     }
 
     // Check if a cell line passes all active oncoprint filters
+    // True when the row is present in this cell line, for whichever layer the
+    // row came from. A fusion name or a "GENE amp" row does not exist in the
+    // hotspot matrix, so looking only there made every line fail the test.
+    _oncoprintRowHit(label, cellLine, kind) {
+        if (kind === 'fusion') {
+            return !!this.clinicalFusions?.fusionData?.[label]?.cellLines?.[cellLine];
+        }
+        if (kind === 'cn') {
+            const m = /^(.*) (amp|del)$/.exec(label);
+            if (!m) return false;
+            const [, gene, dir] = m;
+            const e = this.clinicalCn?.byCellLine?.[cellLine];
+            if (!e) return false;
+            const list = dir === 'amp' ? (e.amplifications || []) : (e.deletions || []);
+            return list.some(x => x.gene === gene);
+        }
+        return this.mutations?.geneData?.[label]?.mutations?.[cellLine] > 0;
+    }
+
     _cellLinePassesOncoprintFilters(cellLine) {
         if (!this._activeOncoprintFilters || this._activeOncoprintFilters.length === 0) return true;
-        for (const { gene, state } of this._activeOncoprintFilters) {
-            const muts = this.mutations?.geneData?.[gene]?.mutations;
-            const isMut = muts && muts[cellLine] > 0;
+        for (const { gene, state, kind } of this._activeOncoprintFilters) {
+            const isMut = this._oncoprintRowHit(gene, cellLine, kind || 'hotspot');
             if (state === 'mut' && !isMut) return false;
             if (state === 'wt' && isMut) return false;
         }
@@ -3985,7 +4018,7 @@ class CorrelationExplorer {
             const cohort = cf ? cf() : null;
             const items = cohort ? this._buildFilterItems(kind, cohort) : (this._ensureGlobalFilterItems()[kind] || []);
             this[render](input.value, { inputId, dropdownId, items, onSelect: () => input._mutOnChange && input._mutOnChange() });
-            dd.style.display = '';
+            dd.style.display = 'block';
         };
         input.addEventListener('focus', open);
         input.addEventListener('input', () => { open(); if (!input.value && input._mutOnChange) input._mutOnChange(); });
@@ -29315,7 +29348,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (clbCollectionBtn && clbCollectionPanel) {
             clbCollectionBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const isOpen = clbCollectionPanel.style.display !== 'none';
+                const isOpen = getComputedStyle(clbCollectionPanel).display !== 'none';
                 if (isOpen) {
                     clbCollectionPanel.style.display = 'none';
                 } else {
@@ -29324,7 +29357,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     // the last rows stay reachable on small screens.
                     this._resetPanelAnchor(clbCollectionPanel);
                     this._renderCollectionPanel();
-                    clbCollectionPanel.style.display = '';
+                    clbCollectionPanel.style.display = 'block';
                     requestAnimationFrame(() => this._fitPopupInViewport(clbCollectionPanel));
                 }
             });
@@ -29346,13 +29379,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         clbHotspotInput.addEventListener('input', () => {
             this._renderHotspotFilterDropdown(clbHotspotInput.value, { items: this._buildFilterItems('hotspot', this._clbCohortExcluding('hotspot')) });
             const dd = document.getElementById('clbHotspotDropdown');
-            if (dd) dd.style.display = '';
+            if (dd) dd.style.display = 'block';
             if (!clbHotspotInput.value) this.renderCellLineList();
         });
         clbHotspotInput.addEventListener('focus', () => {
             this._renderHotspotFilterDropdown(clbHotspotInput.value, { items: this._buildFilterItems('hotspot', this._clbCohortExcluding('hotspot')) });
             const dd = document.getElementById('clbHotspotDropdown');
-            if (dd) dd.style.display = '';
+            if (dd) dd.style.display = 'block';
         });
         document.addEventListener('click', (e) => {
             const wrap = document.getElementById('clbHotspotFilterWrap');
@@ -29368,13 +29401,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // the cell-line filter when the input is cleared.
             this._renderFusionFilterDropdown(clbTransInput.value, { items: this._buildFilterItems('fusion', this._clbCohortExcluding('fusion')) });
             const dd = document.getElementById('clbTranslocationDropdown');
-            if (dd) dd.style.display = '';
+            if (dd) dd.style.display = 'block';
             if (!clbTransInput.value) this.renderCellLineList();
         });
         clbTransInput.addEventListener('focus', () => {
             this._renderFusionFilterDropdown(clbTransInput.value, { items: this._buildFilterItems('fusion', this._clbCohortExcluding('fusion')) });
             const dd = document.getElementById('clbTranslocationDropdown');
-            if (dd) dd.style.display = '';
+            if (dd) dd.style.display = 'block';
         });
         // Hide on outside click; small timeout so a click on a dropdown item
         // can fire before the menu is hidden.
@@ -29393,13 +29426,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             clbCnInput.addEventListener('input', () => {
                 this._renderCnFilterDropdown(clbCnInput.value, { items: this._buildFilterItems('cn', this._clbCohortExcluding('cn')) });
                 const dd = document.getElementById('clbCnDropdown');
-                if (dd) dd.style.display = '';
+                if (dd) dd.style.display = 'block';
                 if (!clbCnInput.value) this.renderCellLineList();
             });
             clbCnInput.addEventListener('focus', () => {
                 this._renderCnFilterDropdown(clbCnInput.value, { items: this._buildFilterItems('cn', this._clbCohortExcluding('cn')) });
                 const dd = document.getElementById('clbCnDropdown');
-                if (dd) dd.style.display = '';
+                if (dd) dd.style.display = 'block';
             });
             document.addEventListener('click', (e) => {
                 const wrap = document.getElementById('clbCnFilterWrap');
@@ -29469,13 +29502,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const mode = clbSortBy.value;
             if (mode === 'drug') {
                 this._renderSortDrugDropdown(clbSortGene.value);
-                dd.style.display = '';
+                dd.style.display = 'block';
             } else if (mode === 'ge' || mode === 'expr') {
                 this._renderSortGeneDropdown(clbSortGene.value);
-                dd.style.display = '';
+                dd.style.display = 'block';
             } else if (mode === 'cn') {
                 this._renderSortCnDropdown(clbSortGene.value);
-                dd.style.display = '';
+                dd.style.display = 'block';
             } else {
                 dd.style.display = 'none';
             }
