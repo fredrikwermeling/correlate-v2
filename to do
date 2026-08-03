@@ -14,6 +14,9 @@ In correlation tab, the fusion filter should be moved up below the hotspot filte
 The gate function should have a dedicated export for AI, essentially asking the question what is explaining the differnce in the cells in the gates, not focusing on what is shown on the actuall plot, but rtying to use the other omics data to explain it. woring with the gates i see that there are png and svg export buttons. i thiought we agred on having a dedicated export button everywhere allowing the user to select how to export. the emnricher A and B for the gates (im in correlation tab, but same should be true everywhere there are gates) doesnt work. 
 The correlation fusion and hotspot overlay needs to scale to the filters, ie only suggesting filters and # of cell lines absed on the filtered cells. in general all over the app it should scale number s to filters. 
 When exporting for AI, the popout should define which data that will be expoerted. 
+the fusion and hotspot overlay at color 0/1/2, the information in the hedeing related to the overlay, is too long and cropped. also, it si not pissble to edit the text related to  the overlay (fusion/hotspot, in both 0/1/2 and 3 panel) in the settings, it should be possible.
+The correlation title is only mentioning the gene name but not if it is GE expression or CN. 
+
 
 older.
 
