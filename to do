@@ -23,7 +23,7 @@ the function of the filters in the gene effect should be the same as in the cell
 In the network, color by GE should scale to the genes shown on the plot, so if i use the remove mode to remove a node, the scale/color for color by GE should adjust. 
 could the network have a function that allwos for gradually increasing or deacreisng the diffeernece between th differnt nodes, i guess the settings ahave a distance somtime syou might want to make the figure more cndesed to take less space. 
 for network, the app should warn if anything is zoomed so things are outside the visible window. 
-
+in the network, if i use a filter, the exported image has a lot of exptra white area on the sides, try to crop as much unnessecary white away (leavign a bit so it looks natureal).
 
 older.
 
