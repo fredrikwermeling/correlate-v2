@@ -12775,6 +12775,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Show tissue-specific download buttons
         document.getElementById('downloadTissuePNG').style.display = '';
+        { const _c = document.getElementById('copyTissueChart'); if (_c) _c.style.display = ''; }
         document.getElementById('downloadTissueCSV').style.display = '';
 
         this.showByTissueModal();
@@ -13167,6 +13168,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Hide tissue-specific buttons
         document.getElementById('downloadTissuePNG').style.display = 'none';
+        { const _c = document.getElementById('copyTissueChart'); if (_c) _c.style.display = 'none'; }
         document.getElementById('downloadTissueCSV').style.display = 'none';
 
         this.updateInspectPlot();
@@ -13972,14 +13974,43 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             titleLines.push(`<span style="font-size:${Math.round(subSize * 0.85)}px; color:#b45309;">&#9888; ${this.currentInspect.sparseNote}</span>`);
         }
 
+        // The overlay read-out runs long (three groups, each with n and r) and
+        // Plotly does not wrap, so it was being cut off at the plot edge. Break
+        // it across lines when it will not fit the chosen width.
+        const _wrapStatLine = (segments, sep = ' | ') => {
+            const perChar = subSize * 0.55;
+            const budget = Math.max(240, (parseInt(document.getElementById('plotWidth')?.value, 10) || 500) * 0.95);
+            const out = [];
+            let line = '';
+            for (const seg of segments) {
+                const candidate = line ? line + sep + seg : seg;
+                if (line && candidate.replace(/<[^>]*>/g, '').length * perChar > budget) { out.push(line); line = seg; }
+                else line = candidate;
+            }
+            if (line) out.push(line);
+            return out;
+        };
         if (hotspotMode === 'color' && hotspotGene) {
-            titleLines.push(`<span style="font-size:${subSize}px;"><b>${hotspotGene}:</b> WT n=${wt.length} r=${this.formatNum(wtStats.correlation)} | 1mut n=${mut1.length} r=${this.formatNum(mut1Stats.correlation)} | 2mut n=${mut2.length} r=${this.formatNum(mut2Stats.correlation)}</span>`);
+            const segs = [
+                `<b>${hotspotGene}:</b> WT n=${wt.length} r=${this.formatNum(wtStats.correlation)}`,
+                `1mut n=${mut1.length} r=${this.formatNum(mut1Stats.correlation)}`,
+                `2mut n=${mut2.length} r=${this.formatNum(mut2Stats.correlation)}`,
+            ];
+            for (const ln of _wrapStatLine(segs)) {
+                titleLines.push(`<span style="font-size:${subSize}px;">${ln}</span>`);
+            }
         } else if (transOverlayMode === 'color' && transOverlayGene) {
             const tWT = filteredData.filter(d => d.translocationLevel === 0);
             const tFused = filteredData.filter(d => d.translocationLevel >= 1);
             const tWTStats = this.pearsonWithSlope(tWT.map(d => d.x), tWT.map(d => d.y));
             const tFusedStats = this.pearsonWithSlope(tFused.map(d => d.x), tFused.map(d => d.y));
-            titleLines.push(`<span style="font-size:${subSize}px;">${transOverlayGene}: No fusion n=${tWT.length} r=${this.formatNum(tWTStats.correlation)} | Fused n=${tFused.length} r=${this.formatNum(tFusedStats.correlation)}</span>`);
+            const fsegs = [
+                `<b>${transOverlayGene}:</b> No fusion n=${tWT.length} r=${this.formatNum(tWTStats.correlation)}`,
+                `Fused n=${tFused.length} r=${this.formatNum(tFusedStats.correlation)}`,
+            ];
+            for (const ln of _wrapStatLine(fsegs)) {
+                titleLines.push(`<span style="font-size:${subSize}px;">${ln}</span>`);
+            }
         }
 
         const titleText = titleLines.join('<br>');
@@ -20355,6 +20386,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Hide tissue-specific download buttons
         document.getElementById('downloadTissuePNG').style.display = 'none';
+        { const _c = document.getElementById('copyTissueChart'); if (_c) _c.style.display = 'none'; }
         document.getElementById('downloadTissueCSV').style.display = 'none';
 
         // Set axis range inputs from defaults
@@ -39729,8 +39761,12 @@ ${clone.innerHTML}
             // wrapped title could be edited. The subtitle is the part carrying
             // its own smaller font-size span, so split there.
             const parts = raw.split(/<br\s*\/?>/i);
-            let firstSubIdx = parts.findIndex(p => /font-size:\s*\d+px\s*;?\s*color/i.test(p));
-            if (firstSubIdx <= 0) firstSubIdx = parts.length > 1 ? 1 : parts.length;
+            // The title is the first line plus any continuation lines it wrapped
+            // onto. A wrapped fragment carries no font-size span of its own; the
+            // subtitle lines each set their own size, so the first part after
+            // index 0 that does is where the subtitle begins.
+            let firstSubIdx = 1;
+            while (firstSubIdx < parts.length && !/font-size:/i.test(parts[firstSubIdx])) firstSubIdx++;
             titleText = parts.slice(0, firstSubIdx).map(stripHtml).filter(Boolean).join(' ');
             subtitleText = parts.slice(firstSubIdx).map(stripHtml).join('\n');
             // Extract subtitle font-size from subtitle parts (skip title inline span)

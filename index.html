@@ -1913,6 +1913,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.90 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>The hotspot and fusion overlay read-out no longer runs off the plot.</b> Three groups each with n and r made a line too long to fit, and it was cut at the edge. It now breaks across lines to match the plot width.</li>
+                    <li><b>Overlay and title text are editable in the settings panel.</b> A title that wrapped, or an overlay line, was treated as subtitle from the first line break onwards, so parts of it could not be reached.</li>
+                    <li>Fixed a Copy button showing on the scatter footer when the tissue chart it belongs to was hidden.</li>
+                </ul>
                 <p><strong>v.84.89 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Gene Effect filter chips work like the Cell Line Browser's.</b> Click a chip to switch which cell lines are kept, mutated to wild-type, fused to not fused, event present to absent, or to remove the filter. Tissue and subtype chips can be removed the same way.</li>
@@ -4638,7 +4644,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.89</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.90</a>
     </div>
 
     <div class="main-content">
@@ -5666,7 +5672,7 @@
                 <button class="btn btn-outline btn-sm" id="downloadScatterCSV" title="Download data as CSV spreadsheet">.csv</button>
                 <button class="btn btn-outline btn-sm" id="scatterAnalyzeWithAI" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                 <button class="btn btn-outline btn-sm mobile-hide" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
-                                <button class="btn btn-outline btn-sm mobile-hide" onclick="app.copyPlotToClipboard('byTissueChart', 'Chart')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
+                                <button class="btn btn-outline btn-sm mobile-hide" id="copyTissueChart" style="display:none;" onclick="app.copyPlotToClipboard('byTissueChart', 'Chart')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                 <button class="btn btn-outline btn-sm" id="downloadTissueCSV" style="display:none;" title="Download tissue table as CSV">.csv</button>
                 <span class="mobile-hide" style="font-size:10px; display:inline-flex; gap:8px; align-items:center; color:#666; margin-left:4px;">
                     <label style="cursor:pointer;"><input type="checkbox" id="exportWhitePlotBg" checked> White bg</label>
@@ -7083,6 +7089,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_89"></script>
+    <script src="app.js?v=v84_90"></script>
 </body>
 </html>
