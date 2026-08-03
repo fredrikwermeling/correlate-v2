@@ -13577,7 +13577,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const sts = this._savedScatterTextSettings;
         const titleFontSize = sts?.titleFontSize || 25;
         const subSize = sts?.subtitleSize || 15;
-        let titleLines = [`<span style="font-size:${titleFontSize}px"><b>${gene1} vs ${gene2}</b></span>`];
+        // Name the measurement on each axis: the same gene pair means something
+        // different for gene effect, expression and copy number.
+        const _axisWord = (t) => t === 'expr' ? 'expression' : t === 'cn' ? 'copy number' : 'gene effect';
+        const _xType = document.getElementById('xAxisDataType')?.value || 'ge';
+        const _yType = document.getElementById('yAxisDataType')?.value || 'ge';
+        // Plotly does not wrap titles, so a long pair label runs off the plot.
+        // Break it before "vs" when the plain text will not fit the width.
+        const _plainLen = (_xType === _yType)
+            ? `${gene1} vs ${gene2} (${_axisWord(_xType)})`.length
+            : `${gene1} (${_axisWord(_xType)}) vs ${gene2} (${_axisWord(_yType)})`.length;
+        const _plotW = parseInt(document.getElementById('plotWidth')?.value, 10) || 500;
+        const _fitsOneLine = _plainLen * titleFontSize * 0.58 < _plotW;
+        const _brk = _fitsOneLine ? ' ' : '<br>';
+        const _pairLabel = (_xType === _yType)
+            ? `${gene1} vs ${gene2} <span style="font-weight:400;">(${_axisWord(_xType)})</span>`
+            : `${gene1} <span style="font-weight:400;">(${_axisWord(_xType)})</span>${_brk}vs ${gene2} <span style="font-weight:400;">(${_axisWord(_yType)})</span>`;
+        let titleLines = [`<span style="font-size:${titleFontSize}px"><b>${_pairLabel}</b></span>`];
         if (filterDesc) {
             titleLines.push(`<span style="font-size:${subSize}px;color:#666;">${filterDesc}</span>`);
         }
@@ -33279,7 +33295,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }).join('')
             : '';
         const fusionHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Gene fusions (also called translocations) happen when two chromosomes break and join incorrectly, producing a chimeric gene. <b>Curated driver fusions</b> (green box) are the small list of ~50 well-known driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, …) called in this cell line, graded by how much independent evidence backs the call: <b>high</b> = the partner gene's expression <i>and</i> its CRISPR dependency both agree, <b>medium</b> = one of those two, or a matching tissue, <b>low</b> = the fusion name only, in a tissue where it is not expected, with neither signal supporting it. The <b>raw partner list</b> below is the unfiltered DepMap fusion-caller output: in rearranged genomes most of those are passenger events or technical artifacts, not drivers.</p>
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A gene fusion joins parts of two genes into one, usually after a chromosomal rearrangement such as a translocation, and the resulting chimeric gene can drive the cancer. <b>Curated driver fusions</b> (green box) are the small list of ~50 well-known driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, …) called in this cell line, graded by how much independent evidence backs the call: <b>high</b> = the partner gene's expression <i>and</i> its CRISPR dependency both agree, <b>medium</b> = one of those two, or a matching tissue, <b>low</b> = the fusion name only, in a tissue where it is not expected, with neither signal supporting it. The <b>raw partner list</b> below is the unfiltered DepMap fusion-caller output: in rearranged genomes most of those are passenger events or technical artifacts, not drivers.</p>
             ${clinicalFusionHtml ? `<div style="margin-bottom:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a;"><b style="color:#15803d;">Curated driver fusions</b> <span style="font-size:10px; color:#6b7280;">(graded high / medium / low by how much independent evidence supports the call, see above)</span>${clinicalFusionHtml}</div>` : ''}
             ${row('Fusion partners (total, raw)', fusionCount > 0 ? fusionCount : '<span style="color:#9ca3af;">none called. The fusion table lists calls only, so this means no fusion was reported for this cell line, not that it was checked and found clean.</span>')}
             ${fusionPartners.length ? row('Raw partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20} more</span>` : '')) : ''}

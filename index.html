@@ -1913,6 +1913,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.76 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>The correlation title now names the measurement</b>, so "TP53 vs MDM2 (gene effect)" rather than just the gene pair, and both are named when the axes differ.</li>
+                    <li><b>Export for AI no longer steers you to one assistant.</b> It says the instructions were written and tested against Claude, and that the file is plain JSON that works elsewhere.</li>
+                    <li><b>Reworded the fusion explanation</b> in the wiki: a fusion joins parts of two genes into one, usually after a rearrangement such as a translocation.</li>
+                    <li><b>Reset all</b> is now solid green with a dark border.</li>
+                </ul>
                 <p><strong>v.84.75 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>American English throughout</b>, color rather than colour, tumor, behavior, center, gray, labeled, analyze, signaling. 425 changes across the app.</li>
@@ -4569,7 +4576,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.75</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.76</a>
     </div>
 
     <div class="main-content">
@@ -4967,7 +4974,7 @@
                          for the appearance controls, and the two are on screen
                          together by default. -->
                     <li style="margin-left:auto; align-self:center;">
-                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid #9ca3af;" title="Clear the current genes, parameters and results and start over">Reset all</button>
+                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:2px solid #111827; background:#15803d; color:#fff; font-weight:700;" title="Clear the current genes, parameters and results and start over">Reset all</button>
                     </li>
                 </ul>
 
@@ -6984,7 +6991,7 @@
                other LLMs that accept .json.gz attachments work too. -->
           <div style="margin-top:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a; border-radius:0 4px 4px 0; font-size:11px; line-height:1.5;">
             <div style="font-weight:600; color:#15803d; margin-bottom:3px;">After download:</div>
-            Upload the <code>.json.gz</code> to an LLM that accepts attachments, <a href="https://claude.ai" target="_blank" rel="noopener" style="color:#15803d; text-decoration:underline;">claude.ai ↗</a> is the natural fit (the embedded <code>aiInstructions</code> are tuned for its analysis style; ChatGPT / Gemini also work). The LLM will open with a one-line description of what you exported, restate your question, then run the analysis.
+            Upload the <code>.json.gz</code> to any language model that accepts file attachments. The embedded <code>aiInstructions</code> were written and tested against Claude, so that is where the wording fits best, but the file is plain JSON and works with other assistants too. The model will open with a one-line description of what you exported, restate your question, then run the analysis.
           </div>
 
           <div style="display:flex; gap:8px; align-items:center; margin-top:12px;">
@@ -6995,6 +7002,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_75"></script>
+    <script src="app.js?v=v84_76"></script>
 </body>
 </html>
