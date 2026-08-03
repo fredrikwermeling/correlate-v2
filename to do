@@ -25,7 +25,7 @@ could the network have a function that allwos for gradually increasing or deacre
 for network, the app should warn if anything is zoomed so things are outside the visible window. by deafult zoom so everything fits into the n visible window, eg if i change the font size, maek sure everyhting fits into the poage. 
 in the network, if i use a filter, the exported image has a lot of exptra white area on the sides, try to crop as much unnessecary white away (leavign a bit so it looks natureal).
 in network, if aselect a linage filter, it seems to linger if i later select andother linage fitler, or at least a subtype was written as a filter that no longer was shown after applying another. 
-
+Make the reset all button more emphaziesed green and witha  stronger black border. 
 
 older.
 
