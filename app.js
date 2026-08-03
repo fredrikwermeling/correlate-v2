@@ -4641,10 +4641,12 @@ class CorrelationExplorer {
         document.getElementById('netFontSize').addEventListener('input', (e) => {
             document.getElementById('fontSizeBubble').textContent = e.target.value;
             this.updateNetworkStyle();
+            this._checkNetworkFits();
         });
         document.getElementById('netNodeSize').addEventListener('input', (e) => {
             document.getElementById('nodeSizeBubble').textContent = e.target.value;
             this.updateNetworkStyle();
+            this._checkNetworkFits();
         });
         document.getElementById('netEdgeWidth').addEventListener('input', (e) => {
             document.getElementById('edgeWidthBubble').textContent = e.target.value;
@@ -9590,6 +9592,38 @@ class CorrelationExplorer {
         this.showCopyNotification?.('Network controls reset to defaults');
     }
 
+    // Warn when part of the network has moved outside the visible area, which
+    // is easy to cause by enlarging the font or nodes and impossible to notice
+    // when the missing part is off-screen.
+    _checkNetworkFits() {
+        clearTimeout(this._fitCheckTimer);
+        this._fitCheckTimer = setTimeout(() => {
+            const host = document.getElementById('networkPlot');
+            if (!this.network || !host) return;
+            let outside = 0;
+            try {
+                const positions = this.network.getPositions();
+                const w = host.clientWidth, h = host.clientHeight;
+                for (const id in positions) {
+                    const p = this.network.canvasToDOM(positions[id]);
+                    if (p.x < 0 || p.y < 0 || p.x > w || p.y > h) outside++;
+                }
+            } catch (e) { return; }
+            let note = document.getElementById('netFitWarning');
+            if (!outside) { note?.remove(); return; }
+            if (!note) {
+                note = document.createElement('div');
+                note.id = 'netFitWarning';
+                note.style.cssText = 'position:absolute; left:8px; bottom:8px; z-index:20; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:6px; padding:4px 10px; font-size:11px; display:flex; gap:8px; align-items:center;';
+                if (!host.style.position) host.style.position = 'relative';
+                host.appendChild(note);
+            }
+            note.innerHTML = `<span>${outside} node${outside === 1 ? '' : 's'} outside the view</span>`
+                + `<button type="button" style="border:1px solid #b45309; background:#fff; color:#92400e; border-radius:4px; padding:1px 8px; font-size:10px; cursor:pointer;">Fit</button>`;
+            note.querySelector('button').onclick = () => { this.network.fit(); note.remove(); };
+        }, 260);
+    }
+
     updateNetworkStyle() {
         if (!this.network || !this.networkData) return;
 
@@ -10465,15 +10499,22 @@ Results:
             // Light gray strip + thin separator, mirroring the on-screen
             // header. Skip the strip fill in transparent mode so the export
             // doesn't paint a colored rectangle.
+            // The separator used to run the full width of the canvas. Being the
+            // only non-white thing out at the edges, it stopped the whitespace
+            // trim from cropping the sides, so a small filtered network came out
+            // with wide white margins. Draw it only as wide as the banner text.
+            ctx.font = `${bannerFs}px Arial`;
+            const bannerTextW = Math.min(totalWidth, ctx.measureText(filterText).width + bannerFs * 2);
             if (!transparentBg) {
                 ctx.fillStyle = '#f9fafb';
                 ctx.fillRect(0, 0, totalWidth, headerH);
                 ctx.strokeStyle = '#e5e7eb';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(0, headerH - 0.5); ctx.lineTo(totalWidth, headerH - 0.5); ctx.stroke();
+                ctx.moveTo((totalWidth - bannerTextW) / 2, headerH - 0.5);
+                ctx.lineTo((totalWidth + bannerTextW) / 2, headerH - 0.5);
+                ctx.stroke();
             }
-            ctx.font = `${bannerFs}px Arial`;
             ctx.fillStyle = '#374151';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
