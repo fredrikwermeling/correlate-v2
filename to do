@@ -29,7 +29,7 @@ Make the reset all button more emphaziesed green and witha  stronger black borde
 For the AI export, dont manetion which model to use. IT could state that the functionallity has been optimized for Claude, but should use for other.
 when pressing mutational analysis, any networks or gene list prsent should be removed, the app should reset. 
 Could the mutational analysis also be changed to a gene expression version, eg showing a table of genes that changes in expression based comparing BRAF wt vs BRAF mut? it could be a subtle button, with emphasis on GE.
-
+in the gene effect when looking at the selected cells GE vs genetic alteration, the title is not full editable in the settings part, the editable text is only the firest rrow of the title, and in this case the title was several rows (also0, use the full width to not make several rows on the graph title/heading/subheading unless needed. 
 
 
 
