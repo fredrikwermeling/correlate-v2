@@ -1924,6 +1924,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.93 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>Mutational analysis can compare mRNA expression as well as knockout effect.</b> A Measure toggle beside the result count switches between the two: gene effect answers "what do BRAF-mutant lines depend on", expression answers "what is expressed differently in BRAF-mutant versus wild-type lines". Cell lines without expression data are left out of both groups rather than counted as zero.</li>
+                </ul>
                 <p><strong>v.84.92 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Correlation controls regrouped.</b> The fusion filter sits below the hotspot filter and beside the amp/deletion filter, so the four cohort filters read as one block. Compare is a single row with its buttons together. Thin lines separate the groups: genes, then plot size and axis ranges, then the filters, then compare.</li>
@@ -4663,7 +4667,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.92</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.93</a>
     </div>
 
     <div class="main-content">
@@ -5321,10 +5325,15 @@
                         <strong>Note:</strong> Differential gene effects may reflect selection bias (e.g., mutations enriched in certain cancer types) rather than direct functional consequences of the mutation. Consider filtering by lineage to control for tissue-specific effects.
                     </div>
                     <div style="margin-bottom: 10px; font-size: 11px; color: #6b7280;">
-                        <strong>Statistics:</strong> p-values are calculated using Welch's t-test comparing gene effect scores between wild-type (WT, 0 mutations) and mutated cells (1+2 or 2 mutations). Δ GE = Mean(mutated) − Mean(WT).
+                        <strong>Statistics:</strong> <span id="mutStatsBlurb">p-values are calculated using Welch's t-test comparing gene effect scores between wild-type (WT, 0 mutations) and mutated cells (1+2 or 2 mutations). Δ GE = Mean(mutated) − Mean(WT).</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom: 10px;">
                         <span id="mutationResultsCount">0 genes with p < 0.001</span>
+                        <span style="display:inline-flex; align-items:center; gap:4px;">
+                            <span style="font-size:10px; color:#9ca3af;">Measure:</span>
+                            <button type="button" class="btn btn-outline btn-sm" data-mut-metric="ge" onclick="app.setMutAnalysisMetric('ge')" style="font-size:10px; padding:2px 8px; background:#f0fdf4; border-color:#5a9f4a; color:#15803d; font-weight:700;" title="Compare CRISPR knockout effect between the mutant and wild-type groups">Gene effect</button>
+                            <button type="button" class="btn btn-outline btn-sm" data-mut-metric="expr" onclick="app.setMutAnalysisMetric('expr')" style="font-size:10px; padding:2px 8px;" title="Compare mRNA expression between the mutant and wild-type groups, for example which genes are expressed differently in BRAF-mutant versus BRAF wild-type lines">mRNA expression</button>
+                        </span>
                         <label style="font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Show only genes whose primary comparison (mutated 1+2 vs wild-type) is significant at p < 0.05. Off = also show genes that only reach significance on a secondary comparison (e.g. 2 vs 0).">
                             <input type="checkbox" id="mutPvalueFilter" checked> only p &lt; 0.05 (mutant vs WT)
                         </label>
@@ -7111,6 +7120,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_92"></script>
+    <script src="app.js?v=v84_93"></script>
 </body>
 </html>

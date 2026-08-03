@@ -7307,6 +7307,24 @@ class CorrelationExplorer {
     }
 
     getGeneEffectsForCells(geneIdx, cellIndices) {
+        // Expression mode reads the same genes and cell lines out of the
+        // expression matrix, which has its own row and column order, so both
+        // indices are translated. Genes or lines absent from it simply yield no
+        // value, exactly as a missing gene effect would.
+        if (this._mutAnalysisMetric === 'expr' && this.expressionLoaded && this.expressionData) {
+            const gene = this.geneNames[geneIdx];
+            const eIdx = this.expressionGeneIndex?.get((gene || '').toUpperCase());
+            if (eIdx === undefined) return [];
+            const nE = this.expressionMetadata.nCellLines;
+            const out = [];
+            for (const cellIdx of cellIndices) {
+                const ec = this.expressionCellLineMap?.[cellIdx];
+                if (ec === undefined || ec === -1) continue;
+                const v = this.expressionData[eIdx * nE + ec];
+                if (!isNaN(v)) out.push(v);
+            }
+            return out;
+        }
         const effects = [];
         for (const cellIdx of cellIndices) {
             const value = this.geneEffects[geneIdx * this.nCellLines + cellIdx];
@@ -7315,6 +7333,31 @@ class CorrelationExplorer {
             }
         }
         return effects;
+    }
+
+    // Switch the mutation analysis between knockout effect and mRNA level.
+    async setMutAnalysisMetric(metric) {
+        const want = metric === 'expr' ? 'expr' : 'ge';
+        if (want === 'expr' && !this.expressionLoaded) {
+            this.showCopyNotification?.('Loading expression data…');
+            try { await this.loadExpressionData(); }
+            catch (e) { this.showCopyNotification?.('Could not load expression data.'); return; }
+        }
+        this._mutAnalysisMetric = want;
+        const blurb = document.getElementById('mutStatsBlurb');
+        if (blurb) {
+            blurb.textContent = want === 'expr'
+                ? "p-values are Welch's t-test on mRNA expression (log2 TPM+1) between wild-type (0 mutations) and mutated cells. \u0394 = Mean(mutated) \u2212 Mean(WT). Cell lines without expression data are left out of both groups."
+                : "p-values are calculated using Welch's t-test comparing gene effect scores between wild-type (WT, 0 mutations) and mutated cells (1+2 or 2 mutations). \u0394 GE = Mean(mutated) \u2212 Mean(WT).";
+        }
+        document.querySelectorAll('[data-mut-metric]').forEach(b => {
+            const on = b.dataset.mutMetric === want;
+            b.style.background = on ? '#f0fdf4' : '';
+            b.style.borderColor = on ? '#5a9f4a' : '';
+            b.style.color = on ? '#15803d' : '';
+            b.style.fontWeight = on ? '700' : '';
+        });
+        if (this.mutationResults) this.runAnalysis();
     }
 
     mean(arr) {
