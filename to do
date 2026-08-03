@@ -5,7 +5,7 @@ in wiki "Gene fusions (also called translocations)" sounds strange. make sure th
 the fusision filter/oncoprint in cell line browser doestn work. The trext is overlapping with other parts of the oncoprint. Also, now filter is applied succesfully when i apply it (no cell lines selected). same is tru for amp/del. even if i select something that there should be cell ines for, no cell lines are shown.   Also, for the cell line browser oncoprints, make the apply button more pronounced so it's clear that this is the final thing to click.
 the quick filter button doesnt work. Also could it conatin filters for cancer types not definedd by the kineage and subtype, eg CLL.
 For PGA1 cell line in celll ine browser: "PGA1 is a Chronic Lymphocytic Leukemia/Small Lymphocytic Lymphoma cell line (Lymphoid) from a male, primary tumour. Notable: near-diploid." Why doesnt it highlight a KRAS hotspotmutation in the card ? this must be the most relevant finding to report?
-
+when exporting the newtwork, it doesnt seems like the size and dpi of the export matters, the network looks similar in large 1200dpi as in medium 600dpi for the network exported as pptx. perhaps the legend is higher qulity but not the network.
 
 older.
 
