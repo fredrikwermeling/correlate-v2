@@ -31,6 +31,21 @@ when pressing mutational analysis, any networks or gene list prsent should be re
 Could the mutational analysis also be changed to a gene expression version, eg showing a table of genes that changes in expression based comparing BRAF wt vs BRAF mut? it could be a subtle button, with emphasis on GE.
 in the gene effect when looking at the selected cells GE vs genetic alteration, the title is not full editable in the settings part, the editable text is only the firest rrow of the title, and in this case the title was several rows (also0, use the full width to not make several rows on the graph title/heading/subheading unless needed. 
 
+I used Correlate V2's gene-effect view to look at YRDC dependency across 25 Bone / Ewing sarcoma cell lines from DepMap 25Q3, stratified by EWSR1-FLI1 fusion count, then exported the JSON and handed it to an LLM for analysis. The export format worked well and the precomputed extras (tissue summary, mutation summary, variance warning) were used as intended. The problems that surfaced were in how the app frames results, not in the export schema.
+The headline number looked strong: WT mean -1.74 (n=13) versus fusion-positive -0.61 (n=12), Welch p = 1.6e-5, and YRDC was the single most differential gene genome-wide. Two things undercut it on closer inspection.
+First, the WT group was not a fusion-negative group. Eight of the 13 lines had no RNA-seq at all, so the clinical fusion caller could not emit a call and they defaulted to WT. One of them, TC32, is a textbook EWSR1-FLI1 type 1 line, and it sits at -1.61, which inflates the gap rather than diluting it. Restricting to lines from a single screen source and correcting the known misannotations shrank the comparison to 3 EWSR1-ERG lines versus 14 FLI1 lines.
+Second, the genome-wide rank was uninformative at this sample size. Permuting group labels showed that a 5-versus-12 split yields on average 3.5 genes as extreme as YRDC by chance, against 3 observed. Empirical FDR around 1. The rank looked decisive and meant nothing.
+The independent tell that this was screen noise: YRDC's only known function is making TC-AMP for the KEOPS complex, and every KEOPS subunit (OSGEP, TP53RK, TPRKB, LAGE3, GON7) was completely flat across the same split. That check took manual work to run and should be one glance in the app.
+All three changes below aim at the same thing: the app currently makes noise look like signal in small, tissue-restricted cohorts, which is exactly the regime people use it in.
+1. Separate "called negative" from "not callable".
+Add a third tier: WT / mut / nocall, where nocall means the evidence the caller needs is missing rather than negative. Render it visually distinct in the plot, exclude it from default group statistics, and surface a banner when non-empty ("8 of 25 lines have no fusion call: no RNA-seq available"). Applies to any stratification depending on a data type a line may lack.
+2. Add a permutation FDR to the genome-wide differential ranking.
+On the gate-comparison and stratified gene-effect views, permute group labels 200 to 1000 times over the complete-case matrix, recompute Welch t genome-wide each time, and report expected-hits-at-observed-t alongside the rank. Also report the marginal per-gene permutation p for the focal gene, labelled clearly as valid only for a pre-specified gene, not one picked because it looked striking in the plot.
+3. Add a partner co-membership sanity readout.
+For a focal gene with known complex or pathway partners (the export already layers curated complexes, CORUM, and Reactome), show whether those partners move on the same split. A focal gene separating at p = 0.0002 while its entire complex is flat is the strongest available signal that the hit is noise, and right now the user has to compute that by hand.
+
+
+
 
 
 older.
