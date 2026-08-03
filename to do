@@ -3,7 +3,7 @@ if adding a gene name in eg cell line browser, correlaion or gene effect, if the
 the box for hotspot/fusion/amp/del in the cell line broweser should be a dropdown menu with all the mutations. but there shouldn´t be any selector for wt or mut. by defult, it should asumme its mutated/altered if selecting the gene.
 in wiki "Gene fusions (also called translocations)" sounds strange. make sure that the language is clear and correct.
 the fusision filter/oncoprint in cell line browser doestn work. The trext is overlapping with other parts of the oncoprint. Also, now filter is applied succesfully when i apply it (no cell lines selected). same is tru for amp/del. even if i select something that there should be cell ines for, no cell lines are shown.   Also, for the cell line browser oncoprints, make the apply button more pronounced so it's clear that this is the final thing to click.
-
+the quick filter button doesnt work. Also could it conatin filters for cancer types not definedd by the kineage and subtype, eg CLL.
 
 
 older.
