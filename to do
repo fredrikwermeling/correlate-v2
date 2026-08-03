@@ -31,6 +31,8 @@ when pressing mutational analysis, any networks or gene list prsent should be re
 Could the mutational analysis also be changed to a gene expression version, eg showing a table of genes that changes in expression based comparing BRAF wt vs BRAF mut? it could be a subtle button, with emphasis on GE.
 in the gene effect when looking at the selected cells GE vs genetic alteration, the title is not full editable in the settings part, the editable text is only the firest rrow of the title, and in this case the title was several rows (also0, use the full width to not make several rows on the graph title/heading/subheading unless needed. 
 in the gene effect, if a cancer type (subtype) has a very long name eg in soft tissues one subtype is super long name), the whole graph is not looking good, this needs to be solved in abetter way. 
+could the gene effect tab also allwo for highlighting/coloring subtypes of cell lines. also could highlighted cell lines (highlighted by clicking the names apear in the "highlight cell line box). in this way i could copy the cell line naems in a good way. 
+
 
 I used Correlate V2's gene-effect view to look at YRDC dependency across 25 Bone / Ewing sarcoma cell lines from DepMap 25Q3, stratified by EWSR1-FLI1 fusion count, then exported the JSON and handed it to an LLM for analysis. The export format worked well and the precomputed extras (tissue summary, mutation summary, variance warning) were used as intended. The problems that surfaced were in how the app frames results, not in the export schema.
 The headline number looked strong: WT mean -1.74 (n=13) versus fusion-positive -0.61 (n=12), Welch p = 1.6e-5, and YRDC was the single most differential gene genome-wide. Two things undercut it on closer inspection.
