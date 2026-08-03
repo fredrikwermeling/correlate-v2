@@ -845,7 +845,12 @@ class CorrelationExplorer {
                 subSelect.setAttribute('data-listener-attached', 'true');
             }
         } else {
+            // Hiding the control is not enough: its previous value stays in the
+            // DOM and every filter chain still reads it, so a subtype from the
+            // lineage you just left kept narrowing the results invisibly.
             document.getElementById('subLineageFilterGroup').style.display = 'none';
+            subSelect.innerHTML = '<option value="">All subtypes</option>';
+            subSelect.value = '';
         }
 
         // Update hotspot counts for selected lineage
@@ -1233,6 +1238,7 @@ class CorrelationExplorer {
     _clearResultsForModeSwitch() {
         if (!this.results && !this.mutationResults) return;
         this.results = null;
+        this._resultsFilterText = null;
         this.mutationResults = null;
         this.networkData = null;
         this._activeOncoprintFilters = null;
@@ -6423,6 +6429,10 @@ class CorrelationExplorer {
         setTimeout(() => {
             try {
                 this.results = this.calculateCorrelations(geneList, mode, cutoff, minN, minSlope, cellLineIndices, expandNetwork, includeGrowthRate);
+                // Record the filters these results were computed under. The
+                // banner used to read the live dropdowns, so changing a filter
+                // without re-running relabelled an unchanged network.
+                this._resultsFilterText = this._composeNetworkFilterText();
                 if (this.results.success) {
                     this.displayResults();
                     this.showStatus('success',
@@ -10301,9 +10311,15 @@ Results:
         URL.revokeObjectURL(url);
     }
 
+    // The banner describes the results on screen, so it uses the filter state
+    // captured when they were computed, not whatever the controls say now.
     _getNetworkFilterText() {
-        // A custom banner text from the text-settings panel overrides the auto
-        // filter text everywhere (live banner + all exports).
+        if (this._netBannerCustomText != null && this._netBannerCustomText !== '') return this._netBannerCustomText;
+        if (this.results && this._resultsFilterText != null) return this._resultsFilterText;
+        return this._composeNetworkFilterText();
+    }
+
+    _composeNetworkFilterText() {
         if (this._netBannerCustomText != null && this._netBannerCustomText !== '') return this._netBannerCustomText;
         const parts = [];
         // When the analysis was launched from a CLB selection (via "Inspect
