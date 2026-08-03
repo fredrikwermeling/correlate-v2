@@ -2321,6 +2321,10 @@ class CorrelationExplorer {
     }
 
     showOncoprint(context) {
+        // Remember which cohort this oncoprint belongs to. Without it the
+        // include / exclude toggles set a filter that nothing ever applied,
+        // and Clear reopened the print against the wrong cohort.
+        if (context !== undefined) this._oncoprintContext = context;
         // Remove any existing oncoprint popup
         document.getElementById('oncoprintPopup')?.remove();
         document.getElementById('upsetSetupPopup')?.remove();
@@ -4307,7 +4311,7 @@ class CorrelationExplorer {
 
         // Tissue breakdown button (mutations)
         document.getElementById('tissueBreakdownBtn').addEventListener('click', () => this.showTissueBreakdownPopup('mutation'));
-        document.getElementById('oncoprintBtn').addEventListener('click', () => this.showOncoprint());
+        document.getElementById('oncoprintBtn').addEventListener('click', () => this.showOncoprint(null));
         document.getElementById('mutationHotspotSelect').addEventListener('change', () => {
             const hasVal = document.getElementById('mutationHotspotSelect').value;
             document.getElementById('tissueBreakdownBtn').style.display = hasVal ? 'inline-block' : 'none';
@@ -12762,12 +12766,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const nameMap = this._buildCellLineNameToIdMap();
         const entries = raw.split(/[\n,\t]+/).map(s => s.trim()).filter(s => s);
         const matched = new Set();
+        const unmatched = [];
         for (const entry of entries) {
             const key = entry.toUpperCase();
             const id = nameMap.get(key);
             if (id) matched.add(id);
+            else unmatched.push(entry);
         }
-        return { matched, total: entries.length };
+        return { matched, total: entries.length, unmatched };
     }
 
     applyCustomCellLineFilter() {
@@ -12867,12 +12873,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (!result || result.matched.size === 0) {
             this._customCellLineFilterCLB = null;
             const countEl = document.getElementById('customCLFilterCountCLB');
-            if (countEl) countEl.textContent = result ? `0/${result.total} matched` : '';
+            if (countEl) countEl.textContent = '';
+            this._clbCustomCLStatus(result
+                ? `Nothing recognised. Use the name as shown in the list, or an ACH-000000 DepMap ID.`
+                : 'Nothing entered');
+            this.renderCellLineList();
             return;
         }
         this._customCellLineFilterCLB = result.matched;
         const countEl = document.getElementById('customCLFilterCountCLB');
-        if (countEl) countEl.textContent = `${result.matched.size}/${result.total} matched`;
+        if (countEl) countEl.textContent = `(${result.matched.size})`;
+        const miss = result.unmatched || [];
+        this._clbCustomCLStatus(miss.length
+            ? `${result.matched.size} cell line${result.matched.size === 1 ? '' : 's'} found. Not recognised: ${miss.slice(0, 4).join(', ')}${miss.length > 4 ? `, +${miss.length - 4} more` : ''}`
+            : `${result.matched.size} cell line${result.matched.size === 1 ? '' : 's'} found`);
         this.renderCellLineList();
     }
 
@@ -12882,7 +12896,28 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._customCellLineFilterCLB = null;
         const countEl = document.getElementById('customCLFilterCountCLB');
         if (countEl) countEl.textContent = '';
+        this._clbCustomCLStatus('');
         this.renderCellLineList();
+    }
+
+    _clbCustomCLStatus(text) {
+        const el = document.getElementById('clbCustomCLStatus');
+        if (el) el.textContent = text;
+    }
+
+    // Brief inline message on the browser's filter strip. Used where a button
+    // would otherwise appear to do nothing, e.g. Show Selected with an empty
+    // selection.
+    _clbFlashHint(text) {
+        const el = document.getElementById('clbActiveFilters');
+        if (!el) return;
+        clearTimeout(this._clbHintTimer);
+        this._clbHintPrev = this._clbHintPrev ?? el.innerHTML;
+        el.innerHTML = `<span style="background:#fef3c7; color:#92400e; padding:1px 8px; border-radius:10px;">${this.esc(text)}</span>`;
+        this._clbHintTimer = setTimeout(() => {
+            this._clbHintPrev = null;
+            this._updateClbActiveFilterLabel();
+        }, 3200);
     }
 
     // When a scatter filter gene/event is picked, default its level to the
@@ -29315,7 +29350,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // The wrapper carries display because the input is now inside a
             // relative-positioned <div> together with the drug-picker dropdown.
             const sortGeneWrap = document.getElementById('clbSortGeneWrap');
-            if (sortGeneWrap) sortGeneWrap.style.display = needsGene ? 'inline-block' : 'none';
+            if (sortGeneWrap) sortGeneWrap.style.visibility = needsGene ? 'visible' : 'hidden';
             if (clbSortGene) {
                 clbSortGene.placeholder = mode === 'drug' ? 'click → list of PRISM compounds'
                                         : mode === 'cn' ? 'any gene, full DepMap CN matrix'
@@ -29405,6 +29440,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         document.getElementById('clbOncoprintBtn').addEventListener('click', () => this.showOncoprint('clb'));
 
+        // Custom cell lines moved from a text box in the toolbar to a popout,
+        // anchored under its button.
+        const customBtn = document.getElementById('clbCustomCLBtn');
+        const customPop = document.getElementById('clbCustomCLPopout');
+        if (customBtn && customPop) {
+            customBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const open = customPop.style.display === 'block';
+                if (open) { customPop.style.display = 'none'; return; }
+                const r = customBtn.getBoundingClientRect();
+                customPop.style.display = 'block';
+                // Keep it on screen when the button sits near the right edge.
+                const w = customPop.offsetWidth || 360;
+                customPop.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - w - 8))}px`;
+                customPop.style.top = `${Math.min(r.bottom + 6, window.innerHeight - 60)}px`;
+                document.getElementById('customCellLineFilterCLB')?.focus();
+            });
+            document.getElementById('clbCustomCLClose')?.addEventListener('click', () => {
+                customPop.style.display = 'none';
+            });
+            document.addEventListener('mousedown', (e) => {
+                if (customPop.style.display !== 'block') return;
+                if (customPop.contains(e.target) || customBtn.contains(e.target)) return;
+                customPop.style.display = 'none';
+            });
+        }
+
         // CLB help modal
         document.getElementById('clbInfoBtn')?.addEventListener('click', () => {
             document.getElementById('clbInfoModal').style.display = 'flex';
@@ -29459,12 +29521,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // clear any stale inline display on the input itself so that
             // switching back to drug / GE / expression mode shows the box.
             const _sortWrap = document.getElementById('clbSortGeneWrap');
-            if (_sortWrap) _sortWrap.style.display = 'none';
+            if (_sortWrap) _sortWrap.style.visibility = 'hidden';
             const _sortGene = document.getElementById('clbSortGene');
             if (_sortGene) _sortGene.style.display = '';
             const _sortDrugDd = document.getElementById('clbSortDrugDropdown');
             if (_sortDrugDd) _sortDrugDd.style.display = 'none';
-            document.getElementById('clbSortDir').style.display = 'none';
+            document.getElementById('clbSortDir').style.visibility = 'hidden';
             this._clbSortMode = 'name';
             this._clbSortAsc = true;
             this._oncoprintFilters = {};
@@ -29510,6 +29572,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.updateClbSelectionCount();
         });
         document.getElementById('clbShowSelectedOnly')?.addEventListener('click', () => {
+            // With nothing ticked the toggle has no visible effect, which reads
+            // as a broken button. Say what it needs instead.
+            if (!this._clbShowSelectedOnly && this._clbSelectedCellLines.size === 0) {
+                this._clbFlashHint('Tick some cell lines first, or use Select Visible, then Show Selected narrows the list to them.');
+                return;
+            }
             this._setClbShowSelectedOnly(!this._clbShowSelectedOnly);
             this.renderCellLineList();
         });
@@ -30369,7 +30437,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (parts.length > 0) {
             const n = this._clbVisibleCellLines?.length || 0;
             const total = this.metadata?.cellLines?.length || 0;
-            el.innerHTML = `<span style="color:#6b7280;">Showing ${n} of ${total}:</span> ${parts.join(' ')}`;
+            el.innerHTML = parts.join(' ');
             el.style.display = 'flex';
             // Wire the × on each collection chip to clear that specific state.
             el.querySelectorAll('a[data-clear-collection]').forEach(a => {

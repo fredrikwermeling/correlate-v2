@@ -1389,22 +1389,61 @@
         }
 
         /* Cell Line Browser */
+        /* One shared control height across the whole toolbar, so inputs,
+           selects and buttons line up on every row regardless of content. */
         .clb-toolbar {
+            --clb-ctl-h: 28px;
             display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-            padding: 8px 20px;
+            flex-direction: column;
+            gap: 0;
+            padding: 0;
             border-bottom: 1px solid var(--gray-200);
             background: var(--gray-100);
         }
-        .clb-toolbar input[type="text"] {
-            width: 180px; padding: 5px 8px; border: 1px solid var(--gray-200); border-radius: 4px; font-size: 12px;
+        .clb-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 6px 20px;
         }
-        .clb-toolbar select {
-            padding: 5px 8px; border: 1px solid var(--gray-200); border-radius: 4px; font-size: 12px;
+        /* Rows 2 and 3 sit on a lighter ground so the three purposes read as
+           separate blocks without heavy rules between them. */
+        .clb-row-alt, .clb-row-actions { background: #fcfcfb; border-top: 1px solid var(--gray-200); }
+        .clb-row-label {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+            color: #9ca3af; white-space: nowrap; flex: 0 0 62px;
         }
-        .clb-toolbar .btn-sm { font-size: 11px; padding: 4px 10px; }
+        .clb-group-label { font-size: 10px; font-weight: 600; white-space: nowrap; }
+        .clb-sep { display: inline-block; width: 1px; height: 20px; background: var(--gray-200); margin: 0 3px; flex: 0 0 auto; }
+        .clb-toolbar input[type="text"],
+        .clb-toolbar select,
+        .clb-toolbar .btn-sm {
+            height: var(--clb-ctl-h);
+            box-sizing: border-box;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        .clb-toolbar input[type="text"] { padding: 0 8px; border: 1px solid var(--gray-200); }
+        .clb-toolbar select { padding: 0 6px; border: 1px solid var(--gray-200); }
+        .clb-toolbar .btn-sm { padding: 0 10px; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; }
+        .clb-icon-btn { width: var(--clb-ctl-h); padding: 0 !important; font-weight: 700; }
+        /* Two-line action buttons keep the row height rather than growing it. */
+        .clb-tall-btn { height: calc(var(--clb-ctl-h) + 12px) !important; line-height: 1.15; flex-direction: column; gap: 0; padding: 0 10px !important; }
+        .clb-tall-btn span { font-size: 9px; font-weight: normal; }
+        .clb-pair { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+        .clb-anchor { position: relative; display: inline-flex; align-items: center; }
+        .clb-dropdown {
+            display: none; position: absolute; top: 100%; left: 0;
+            max-height: 340px; overflow-y: auto; background: #fff;
+            border: 1px solid #d1d5db; border-radius: 5px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12); z-index: 1200; font-size: 11px;
+        }
+        /* Always occupies its line, so adding a filter chip never moves the row. */
+        .clb-active-filters {
+            display: flex; width: 100%; min-height: 18px; font-size: 10px;
+            color: #374151; gap: 4px; flex-wrap: wrap; align-items: center;
+        }
         .clb-content {
             display: flex;
             min-height: 300px;
@@ -1820,6 +1859,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.63 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>The oncoprint's include / exclude boxes now actually filter the Cell Line Browser.</b> Clicking one recorded the filter but nothing ever applied it, and Clear reopened the grid against the whole panel instead of the lines you were looking at.</li>
+                    <li><b>Cell Line Browser toolbar rebuilt into three fixed rows</b>, filter, sort, then what to do with the result. The order no longer changes with window width, every box and button shares one height so they line up, and thin separators mark the groups.</li>
+                    <li><b>Oncoprint moved out from between the hotspot box and its status dropdown</b> and now sits with Inspect Gene Effects, where the other things you can do with the visible cell lines live.</li>
+                    <li><b>Custom cell lines is a popout instead of a text box in the toolbar</b>, and explains what it accepts: the cell line name as shown in the list, or the DepMap ACH-000000 identifier.</li>
+                    <li><b>Show Selected says what it needs</b> when nothing is ticked, instead of looking like a dead button.</li>
+                    <li><b>One of the two "showing N of 1186" counts is gone.</b> The list header keeps it; the filter strip now just shows the filters.</li>
+                    <li>Quick filters sit after Sort, and the repeated "Quick filters:" label before the button is gone.</li>
+                </ul>
                 <p><strong>v.84.62 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>The wiki no longer states things it has not measured.</b> A cell line with no mutation calls at all used to show three confident zeros; it now says the calls are missing. "No fusions" and "none called" are distinguished, and the fusion row explains that the table lists calls only. Copy-number wording is split by depth: a single-copy loss is called that rather than a "focal deletion", and a band is a "loss" rather than a "deep loss".</li>
@@ -4385,7 +4434,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.62</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.63</a>
     </div>
 
     <div class="main-content">
@@ -6356,134 +6405,142 @@
         </div>
         <!-- Toolbar -->
         <div class="clb-toolbar">
-          <input type="text" id="clbSearch" placeholder="Search cell lines...">
-          <select id="clbTissueFilter" style="width:190px;"><option value="">All tissues</option></select>
-          <select id="clbSubtypeFilter" disabled title="Choose a tissue first to narrow by subtype" style="width:190px;"><option value="">All subtypes</option></select>
-          <select id="clbSexFilter" style="font-size:12px; width:170px;" title="Filter by sex. Annotation (from DepMap) and expression-based calls (Y-markers + XIST) are independent axes, they often disagree.">
-            <option value="">All sexes</option>
-            <optgroup label="By annotation">
-              <option value="ann_male">Male</option>
-              <option value="ann_female">Female</option>
-              <option value="ann_unknown">Unknown</option>
-            </optgroup>
-            <optgroup label="By expression (Y-markers + XIST)">
-              <option value="exp_male">Male</option>
-              <option value="exp_female">Female</option>
-              <option value="exp_unknown">Unknown</option>
-            </optgroup>
-          </select>
-          <!-- Hotspot filter, same custom multi-line dropdown pattern as the
-               fusion / CN filters (lists genes with live n= mutated counts;
-               native datalist truncated options in Safari). Oncoprint button
-               kept inline. -->
-          <div id="clbHotspotFilterWrap" style="display:inline-flex; align-items:center; gap:4px; vertical-align:top;">
-            <div style="position:relative; display:inline-flex; align-items:center; gap:4px;">
-              <input type="text" id="clbHotspotFilter" placeholder="Hotspot gene..." title="Keep only cell lines with the chosen status for this gene" autocomplete="off" style="width:140px;">
-              <button id="clbOncoprintBtn" type="button" style="padding:3px 6px; font-size:9px; background:#5a9f4a; color:white; border:none; border-radius:3px; cursor:pointer; white-space:nowrap;" title="Show oncoprint of hotspot mutations for filtered cell lines">Oncoprint</button>
-              <div id="clbHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
-            </div>
-            <select id="clbHotspotLevel" style="width:104px; font-size:10px; padding:2px 3px;">
-              <option value="1+2" selected>Mutated (1+2)</option><option value="1">Only 1 mut</option><option value="2">Only 2 mut</option><option value="0">Only WT</option>
+
+          <!-- Row 1, narrowing the cohort. -->
+          <div class="clb-row">
+            <span class="clb-row-label">Filter</span>
+            <input type="text" id="clbSearch" placeholder="Search cell lines..." style="width:170px;">
+            <select id="clbTissueFilter" style="width:180px;"><option value="">All tissues</option></select>
+            <select id="clbSubtypeFilter" disabled title="Choose a tissue first to narrow by subtype" style="width:180px;"><option value="">All subtypes</option></select>
+            <select id="clbSexFilter" style="width:150px;" title="Filter by sex. Annotation (from DepMap) and expression-based calls (Y-markers + XIST) are independent axes, they often disagree.">
+              <option value="">All sexes</option>
+              <optgroup label="By annotation">
+                <option value="ann_male">Male</option>
+                <option value="ann_female">Female</option>
+                <option value="ann_unknown">Unknown</option>
+              </optgroup>
+              <optgroup label="By expression (Y-markers + XIST)">
+                <option value="exp_male">Male</option>
+                <option value="exp_female">Female</option>
+                <option value="exp_unknown">Unknown</option>
+              </optgroup>
             </select>
-          </div>
-          <!-- Fusion filter, custom two-line dropdown (clinically relevant
-               pairs at top with name + n + disease context, then gene-based
-               long tail). Replaces a native datalist that Safari truncated to
-               the input width and rendered unreadably. -->
-          <div id="clbFusionFilterWrap" style="display:inline-flex; align-items:center; gap:4px; vertical-align:top;">
-            <div style="position:relative;">
-              <input type="text" id="clbTranslocationFilter" placeholder="Fusion / gene..." title="Keep only cell lines with the chosen status for this fusion" autocomplete="off" style="width:140px;">
-              <div id="clbTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+            <span class="clb-sep"></span>
+            <!-- Gene-level filters. Each is an input plus its own status
+                 dropdown; the custom panels replace native datalists, which
+                 Safari truncated to the input width. -->
+            <div id="clbHotspotFilterWrap" class="clb-pair">
+              <div class="clb-anchor">
+                <input type="text" id="clbHotspotFilter" placeholder="Hotspot gene..." title="Keep only cell lines with the chosen status for this gene" autocomplete="off" style="width:130px;">
+                <div id="clbHotspotDropdown" class="clb-dropdown" style="min-width:240px;"></div>
+              </div>
+              <select id="clbHotspotLevel" style="width:118px;">
+                <option value="1+2" selected>Mutated (1+2)</option><option value="1">Only 1 mut</option><option value="2">Only 2 mut</option><option value="0">Only WT</option>
+              </select>
             </div>
-            <select id="clbFusionLevel" style="width:104px; font-size:10px; padding:2px 3px;">
-              <option value="1+2" selected>Fused</option><option value="0">Only WT</option>
+            <div id="clbFusionFilterWrap" class="clb-pair">
+              <div class="clb-anchor">
+                <input type="text" id="clbTranslocationFilter" placeholder="Fusion / gene..." title="Keep only cell lines with the chosen status for this fusion" autocomplete="off" style="width:130px;">
+                <div id="clbTranslocationDropdown" class="clb-dropdown" style="min-width:280px;"></div>
+              </div>
+              <select id="clbFusionLevel" style="width:118px;">
+                <option value="1+2" selected>Fused</option><option value="0">Only WT</option>
+              </select>
+            </div>
+            <div id="clbCnFilterWrap" class="clb-pair">
+              <div class="clb-anchor">
+                <input type="text" id="clbCnFilter" placeholder="Amp / deletion..." title="Focal copy-number filter: amplifications (&#9650;) and deletions (&#9660;) from the curated panel. Deletions include single-copy loss, not only homozygous." autocomplete="off" style="width:130px;">
+                <div id="clbCnDropdown" class="clb-dropdown" style="min-width:300px;"></div>
+              </div>
+              <select id="clbCnLevel" style="width:118px;">
+                <option value="altered" selected>With event</option><option value="wt">Only WT</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Row 2, ordering the list and building a set. -->
+          <div class="clb-row clb-row-alt">
+            <span class="clb-row-label">Sort</span>
+            <select id="clbSortBy" style="width:210px;" title="Sort the cell line list">
+              <option value="name">Sort: Name</option>
+              <option value="ge">Sort: GE for gene(s)</option>
+              <option value="expr">Sort: Expression of gene(s)</option>
+              <option value="drug">Sort: Drug response (PRISM AUC)</option>
             </select>
-          </div>
-          <!-- Focal CN filter, same multi-line dropdown pattern as fusion
-               filter. Lists curated amplifications (▲) and TSG deletions
-               (▼) with live n=. Selecting an entry filters the cell-line
-               list to lines carrying that focal CN event. -->
-          <div id="clbCnFilterWrap" style="display:inline-flex; align-items:center; gap:4px; vertical-align:top;">
-            <div style="position:relative;">
-              <input type="text" id="clbCnFilter" placeholder="Amp / deletion..." title="Focal copy-number filter: amplifications (▲) and deletions (▼) from the curated panel. Deletions include single-copy loss, not only homozygous." autocomplete="off" style="width:140px;">
-              <div id="clbCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:300px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
+            <!-- Sort identifier. Gene symbol(s) for GE / Expression, or a PRISM
+                 compound name for drug-response sort. Kept in the layout at all
+                 times so nothing shifts when the sort mode changes. -->
+            <div id="clbSortGeneWrap" class="clb-anchor" style="visibility:hidden;">
+              <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:180px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
+              <div id="clbSortDrugDropdown" class="clb-dropdown" style="min-width:320px;"></div>
             </div>
-            <select id="clbCnLevel" style="width:104px; font-size:10px; padding:2px 3px;">
-              <option value="altered" selected>With event</option><option value="wt">Only WT</option>
-            </select>
-          </div>
-          <select id="clbSortBy" style="font-size:12px;" title="Sort the cell line list">
-            <option value="name">Sort: Name</option>
-            <option value="ge">Sort: GE for gene(s)</option>
-            <option value="expr">Sort: Expression of gene(s)</option>
-            <option value="drug">Sort: Drug response (PRISM AUC)</option>
-          </select>
-          <!-- Sort identifier input. For GE / Expression sort the user types
-               gene symbol(s); for Drug-response sort it accepts a PRISM
-               compound name and a custom dropdown panel below shows the full
-               compound list with target / MoA / indication subtitles (the
-               native <datalist> typeahead alone was too easy to miss). -->
-          <div id="clbSortGeneWrap" style="position:relative; display:none;">
-            <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:170px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
-            <div id="clbSortDrugDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:320px; max-height:340px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.12); z-index:1200; font-size:11px;"></div>
-          </div>
-          <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="padding:4px 6px; font-size:10px; display:none;">&#x25BC;</button>
-          <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Reset all filters">Reset</button>
-          <button id="clbInfoBtn" class="btn btn-outline btn-sm" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols and where each piece of data comes from" style="padding:3px 8px;">? Help</button>
-          <span id="clbSelectionCount" class="clb-selection-count mobile-hide">0 selected</span>
-          <div id="clbActiveFilters" style="display:flex; min-height:20px; font-size:10px; color:#374151; padding:2px 0; gap:4px; flex-wrap:wrap; align-items:center; width:100%;"></div>
-          <!-- Action buttons grouped by intent: selection · inspect · export.
-               Vertical separator bars distinguish the groups so the user can
-               find the right action without scanning all 9 buttons. -->
-          <div class="mobile-hide" style="margin-left:auto; display:flex; gap:6px; align-items:center;">
-            <!-- Selection group — bulk-select helpers, hidden on phones to declutter -->
-            <span class="mobile-hide" style="display:contents;">
-          <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Quick filters:</span>
-            <!-- Collections picker. Replaces a single-select dropdown with an
-                 oncoprint-style multi-select panel: each collection has three
-                 states (off / include / exclude). The button label shows the
-                 count of active states; the dropdown panel lets the user toggle
-                 each one independently. Active states are also rendered as
-                 removable chips in the active-filter strip below. -->
-            <div id="clbCollectionFilterWrap" style="position:relative; display:inline-block;">
-              <button id="clbCollectionBtn" class="btn btn-outline btn-sm" type="button" style="font-size:12px; padding:2px 8px;" title="Pick or exclude quick filters (oncoprint-style include/exclude)">Quick filters <span id="clbCollectionCount" style="color:#6b7280; font-weight:400;"></span></button>
-              <!-- Collections panel widens to fit the viewport with extra
-                   columns. min-width keeps it readable on narrow screens;
-                   width is the clamp-with-margin pattern so on a wide window
-                   it grows to ~1100 px and shows 3 columns of entries. -->
-              <div id="clbCollectionPanel" style="display:none; position:absolute; top:100%; left:0; min-width:340px; width:max-content; max-width:min(1100px, calc(100vw - 80px)); max-height:min(640px, calc(100vh - 160px)); overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.12); z-index:1200; font-size:11px; padding:8px 10px;"></div>
+            <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="width:32px; visibility:hidden;">&#x25BC;</button>
+
+            <span class="clb-sep"></span>
+
+            <!-- Quick filters. Each entry is off / include / exclude; the count
+                 on the button is how many are active. -->
+            <div id="clbCollectionFilterWrap" class="clb-anchor">
+              <button id="clbCollectionBtn" class="btn btn-outline btn-sm" type="button" title="Pick or exclude quick filters (oncoprint-style include/exclude)">Quick filters<span id="clbCollectionCount" style="color:#6b7280; font-weight:400; margin-left:5px;"></span></button>
+              <div id="clbCollectionPanel" class="clb-dropdown" style="min-width:340px; width:max-content; max-width:min(1100px, calc(100vw - 80px)); max-height:min(640px, calc(100vh - 160px)); padding:8px 10px;"></div>
             </div>
-            <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm" title="What each quick filter includes, and the rule used to decide membership" style="padding:2px 8px; font-size:10px;">? Quick filters</button>
-            <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
+            <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="What each quick filter includes, and the rule used to decide membership">?</button>
+
+            <span class="clb-sep"></span>
+
+            <button id="clbCustomCLBtn" class="btn btn-outline btn-sm" type="button" title="Restrict the list to a specific set of cell lines you paste in">Custom cell lines<span id="customCLFilterCountCLB" style="color:#6b7280; font-weight:400; margin-left:5px;"></span></button>
+
+            <span class="clb-sep"></span>
+
+            <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Clear every filter, sort and selection above">Reset</button>
+            <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols and where each piece of data comes from">?</button>
+
+            <div id="clbActiveFilters" class="clb-active-filters"></div>
+          </div>
+
+          <!-- Row 3, what to do with the cell lines now shown or ticked. -->
+          <div class="clb-row clb-row-actions mobile-hide">
+            <span class="clb-row-label">Selection</span>
             <button id="clbSelectVisible" class="btn btn-outline btn-sm" title="Select every cell line currently passing the filters">Select Visible</button>
             <button id="clbDeselectAll" class="btn btn-outline btn-sm" title="Clear the current selection">Deselect All</button>
-            <button id="clbShowSelectedOnly" class="btn btn-outline btn-sm" title="Show only the cell lines you've selected (toggle)">Show Selected</button>
-            <button id="clbCopyNamesBtn" class="btn btn-outline btn-sm" title="Copy the names of the selected cell lines (one per line) to the clipboard, ready to paste into Custom CLs">Copy Names</button>
-            </span>
+            <button id="clbShowSelectedOnly" class="btn btn-outline btn-sm" title="Collapse the list to the cell lines you have ticked. Click again to show them all.">Show Selected</button>
+            <button id="clbCopyNamesBtn" class="btn btn-outline btn-sm" title="Copy the names of the selected cell lines (one per line) to the clipboard, ready to paste into Custom cell lines">Copy Names</button>
+            <span id="clbSelectionCount" class="clb-selection-count">0 selected</span>
 
-            <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
+            <span class="clb-sep"></span>
 
-            <!-- Inspect group (analysis on selected cell lines) -->
-            <span style="font-size:10px; font-weight:600; color:var(--green-700); white-space:nowrap;">Inspect:</span>
-            <button id="clbInspectGEBtn" class="btn btn-outline btn-sm" style="color:#5a9f4a; border-color:#5a9f4a; line-height:1.2; padding:4px 8px;" title="Top gene-effect hits in the selected cell lines, and top Δ vs the rest. Fast (~seconds).">Inspect<br><span style="font-size:9px;font-weight:normal;">Gene Effects</span></button>
+            <span class="clb-group-label" style="color:var(--green-700);">Look at</span>
+            <button id="clbInspectGEBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:#5a9f4a; border-color:#5a9f4a;" title="Top gene-effect hits in the selected cell lines, and top &Delta; vs the rest. Fast (~seconds).">Inspect<br><span>Gene Effects</span></button>
+            <button id="clbOncoprintBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:#5a9f4a; border-color:#5a9f4a;" title="Mutation grid of the most-mutated genes across the cell lines currently shown. Click a gene's include / exclude box to narrow the list further.">Oncoprint<br><span>mutation grid</span></button>
 
-            <!-- Export group (raw data CSVs for selected cell lines) — hidden on phones to declutter -->
-            <span class="mobile-hide" style="display:contents;">
-            <span style="display:inline-block; width:1px; height:24px; background:#d1d5db; margin:0 4px;"></span>
-            <span style="font-size:10px; font-weight:600; color:var(--earth-700); white-space:nowrap;">Export CSV:</span>
-            <button id="clbExportMinimal" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="One or a few selected cell lines: Gene Effect + Expression for every gene (CSV). Includes DepMap version and citation.">Cell line:<br><span style="font-size:9px;font-weight:normal;">GE + expression</span></button>
-            <button id="clbExportComprehensive" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="Selected cell line(s): full profile for every gene, GE + Expression + Hotspot + Damaging + Fusion + focal CN amplifications / deletions (CSV).">Cell line:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
-            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm" style="color:var(--earth-700); border-color:var(--earth-300); line-height:1.2; padding:4px 8px;" title="One or a few genes: full profile (GE, Expression, Hotspot, Damaging, Fusion, focal CN) across the selected / visible cell lines (CSV).">Genes:<br><span style="font-size:9px;font-weight:normal;">full profile</span></button>
-            </span>
+            <span class="clb-sep"></span>
+
+            <span class="clb-group-label" style="color:var(--earth-700);">Export CSV</span>
+            <button id="clbExportMinimal" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="One or a few selected cell lines: Gene Effect + Expression for every gene (CSV). Includes DepMap version and citation.">Cell line:<br><span>GE + expression</span></button>
+            <button id="clbExportComprehensive" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="Selected cell line(s): full profile for every gene, GE + Expression + Hotspot + Damaging + Fusion + focal CN amplifications / deletions (CSV).">Cell line:<br><span>full profile</span></button>
+            <button id="clbExportGenesBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="One or a few genes: full profile (GE, Expression, Hotspot, Damaging, Fusion, focal CN) across the selected / visible cell lines (CSV).">Genes:<br><span>full profile</span></button>
           </div>
         </div>
-        <!-- Custom Cell Line Filter for CLB (hidden on phones) -->
-        <div class="mobile-hide" style="padding: 4px 12px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-          <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Custom CLs:</span>
-          <textarea id="customCellLineFilterCLB" placeholder="Paste cell line IDs or names..." style="font-size:10px; width:260px; height:28px; resize:vertical; border:1.5px solid #d1d5db; border-radius:6px; padding:4px;"></textarea>
-          <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilterCLB()" style="font-size:10px; padding:3px 8px;">Apply</button>
-          <button class="btn btn-sm btn-outline" onclick="app.clearCustomCellLineFilterCLB()" style="font-size:10px; padding:3px 8px;">Clear</button>
-          <span id="customCLFilterCountCLB" style="font-size:9px; color:#6b7280;"></span>
+
+        <!-- Custom cell lines, entered in a popout so the toolbar keeps one
+             row per purpose instead of carrying a text box. -->
+        <div id="clbCustomCLPopout" style="display:none; position:fixed; z-index:1400; background:#fff; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 12px 28px rgba(0,0,0,0.18); width:360px; padding:12px 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <b style="font-size:13px; color:#374151;">Custom cell lines</b>
+            <button id="clbCustomCLClose" style="background:none; border:none; font-size:18px; line-height:1; cursor:pointer; color:#9ca3af;">&times;</button>
+          </div>
+          <p style="margin:0 0 8px; font-size:11px; color:#6b7280; line-height:1.5;">
+            Show only the cell lines you list here. One per line, or separated by commas.
+            Both forms work: the <b>cell line name</b> as it appears in the list (A375, MCF7, HT-29),
+            or the <b>DepMap ID</b>, the ACH-000000 style identifier DepMap gives each model
+            (for example ACH-000681). Names are matched ignoring case, spaces and hyphens.
+          </p>
+          <textarea id="customCellLineFilterCLB" placeholder="A375&#10;MCF7&#10;ACH-000681" style="font-size:11px; width:100%; height:120px; resize:vertical; border:1.5px solid #d1d5db; border-radius:6px; padding:6px;"></textarea>
+          <div style="display:flex; gap:6px; align-items:center; margin-top:8px;">
+            <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilterCLB()">Apply</button>
+            <button class="btn btn-sm btn-outline" onclick="app.clearCustomCellLineFilterCLB()">Clear</button>
+            <span id="clbCustomCLStatus" style="font-size:10px; color:#6b7280; margin-left:auto;"></span>
+          </div>
         </div>
         <!-- Content (scrollable wrapper for list + UMAP) -->
         <div id="clbScrollableBody" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; min-height:0;">
@@ -6807,6 +6864,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_62"></script>
+    <script src="app.js?v=v84_63"></script>
 </body>
 </html>
