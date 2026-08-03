@@ -2320,11 +2320,13 @@ class CorrelationExplorer {
         }
     }
 
-    showOncoprint(context) {
+    showOncoprint(context, kind) {
         // Remember which cohort this oncoprint belongs to. Without it the
         // include / exclude toggles set a filter that nothing ever applied,
         // and Clear reopened the print against the wrong cohort.
         if (context !== undefined) this._oncoprintContext = context;
+        if (kind !== undefined) this._oncoprintKind = kind;
+        const gridKind = this._oncoprintKind || 'hotspot';
         // Remove any existing oncoprint popup
         document.getElementById('oncoprintPopup')?.remove();
         document.getElementById('upsetSetupPopup')?.remove();
@@ -2394,14 +2396,43 @@ class CorrelationExplorer {
         // the oncoprint as if they were recurrent somatic hotspots.
         const maxGenes = 25;
         const geneCounts = [];
-        for (const gene of Object.keys(this.mutations.geneData)) {
-            if (this._isPolymorphicLocus(gene)) continue;
-            const muts = this.mutations.geneData[gene].mutations;
-            let n = 0;
-            for (const cl of clsToShow) {
-                if (muts[cl] && muts[cl] > 0) n++;
+        if (gridKind === 'fusion') {
+            for (const gene of Object.keys(this.translocations?.geneData || {})) {
+                const muts = this.translocations.geneData[gene].translocations;
+                let n = 0;
+                for (const cl of clsToShow) if (muts[cl] > 0) n++;
+                if (n > 0) geneCounts.push({ gene, n, muts });
             }
-            if (n > 0) geneCounts.push({ gene, n, muts });
+        } else if (gridKind === 'cn') {
+            // Built from the curated focal panel: one row per gene-and-direction,
+            // shaded by depth (single-copy vs deep, gain vs strong amplification).
+            const rows = {};
+            const byCl = this.clinicalCn?.byCellLine || {};
+            for (const cl of clsToShow) {
+                const e = byCl[cl];
+                if (!e) continue;
+                for (const a of (e.amplifications || [])) {
+                    const key = `${a.gene} amp`;
+                    (rows[key] = rows[key] || {})[cl] = a.tier === 'strong_amp' ? 2 : 1;
+                }
+                for (const d of (e.deletions || [])) {
+                    const key = `${d.gene} del`;
+                    (rows[key] = rows[key] || {})[cl] = d.tier === 'deep_del' ? 2 : 1;
+                }
+            }
+            for (const [gene, muts] of Object.entries(rows)) {
+                geneCounts.push({ gene, n: Object.keys(muts).length, muts });
+            }
+        } else {
+            for (const gene of Object.keys(this.mutations.geneData)) {
+                if (this._isPolymorphicLocus(gene)) continue;
+                const muts = this.mutations.geneData[gene].mutations;
+                let n = 0;
+                for (const cl of clsToShow) {
+                    if (muts[cl] && muts[cl] > 0) n++;
+                }
+                if (n > 0) geneCounts.push({ gene, n, muts });
+            }
         }
         geneCounts.sort((a, b) => b.n - a.n);
         const topGenes = geneCounts.slice(0, maxGenes);
@@ -2462,12 +2493,22 @@ class CorrelationExplorer {
 
         // Draggable header
         let html = `<div id="oncoprintDragHandle" style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 10px; background:#f0fdf4; border-radius:8px 8px 0 0; cursor:move; user-select:none;">`;
-        html += `<span style="font-weight:600; font-size:12px; white-space:nowrap;">Oncoprint, Top ${topGenes.length} hotspot genes</span>`;
+        // "Oncoprint" is the field's word for this chart but says nothing to a
+        // reader who has not met it, so the plain description leads.
+        const gridTitle = gridKind === 'fusion' ? `Fusion grid, top ${topGenes.length} partner genes`
+                        : gridKind === 'cn' ? `Copy-number grid, top ${topGenes.length} focal events`
+                        : `Mutation grid, top ${topGenes.length} hotspot genes`;
+        html += `<span style="font-weight:600; font-size:12px; white-space:nowrap;">${gridTitle} <span style="font-weight:400; color:#9ca3af;">(oncoprint)</span></span>`;
         html += `<span style="font-size:10px; color:#6b7280; white-space:nowrap;">${sortedCLs.length} cell lines${filterLabel ? ' · ' + filterLabel : ''}</span>`;
         html += `<button onclick="document.getElementById('oncoprintPopup').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">&times;</button>`;
         html += `</div>`;
         html += `<div style="padding:6px 10px; overflow-y:auto; overflow-x:hidden; flex:1;">`;
-        html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#16a34a;">■</span> include · <span style="color:#dc2626;">■</span> exclude · <span style="display:inline-block;width:8px;height:8px;background:#3b82f6;vertical-align:middle;"></span> 1 mut · <span style="display:inline-block;width:8px;height:8px;background:#1e40af;vertical-align:middle;"></span> 2 mut · <span style="display:inline-block;width:8px;height:8px;background:#f3f4f6;border:1px solid #d1d5db;vertical-align:middle;"></span> WT</div>`;
+        const legendWords = gridKind === 'fusion'
+            ? ['one partner', 'several partners', 'none called']
+            : gridKind === 'cn'
+                ? ['single-copy change', 'deep change', 'no event']
+                : ['1 mut', '2 mut', 'WT'];
+        html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#16a34a;">■</span> include · <span style="color:#dc2626;">■</span> exclude · <span style="display:inline-block;width:8px;height:8px;background:#3b82f6;vertical-align:middle;"></span> ${legendWords[0]} · <span style="display:inline-block;width:8px;height:8px;background:#1e40af;vertical-align:middle;"></span> ${legendWords[1]} · <span style="display:inline-block;width:8px;height:8px;background:#f3f4f6;border:1px solid #d1d5db;vertical-align:middle;"></span> ${legendWords[2]}</div>`;
         html += `<div style="display:flex; align-items:flex-start; width:100%;">`;
         html += `<canvas id="oncoprintLabelCanvas" style="flex:none; cursor:pointer;"></canvas>`;
         html += `<div id="oncoprintGridScroll" style="flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden;"><canvas id="oncoprintGridCanvas" style="display:block;"></canvas></div>`;
@@ -2728,7 +2769,11 @@ class CorrelationExplorer {
             }
             const g = topGenes[rowIdx];
             const cl = sortedCLs[colIdx];
-            gridCanvas.title = `${g.gene} · ${this.getCellLineName(cl)} · ${g.muts[cl] > 0 ? 'Mutated' : 'WT'}`;
+            const hasIt = g.muts[cl] > 0;
+            const hitWord = gridKind === 'fusion' ? (hasIt ? 'Fusion called' : 'No fusion called')
+                          : gridKind === 'cn' ? (hasIt ? 'Event present' : 'No event')
+                          : (hasIt ? 'Mutated' : 'WT');
+            gridCanvas.title = `${g.gene} · ${this.getCellLineName(cl)} · ${hitWord}`;
         });
 
         // Close on Escape
@@ -29446,7 +29491,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.renderCellLineList();
         });
 
-        document.getElementById('clbOncoprintBtn').addEventListener('click', () => this.showOncoprint('clb'));
+        document.getElementById('clbGridHotspotBtn')?.addEventListener('click', () => this.showOncoprint('clb', 'hotspot'));
+        document.getElementById('clbGridFusionBtn')?.addEventListener('click', () => this.showOncoprint('clb', 'fusion'));
+        document.getElementById('clbGridCnBtn')?.addEventListener('click', () => this.showOncoprint('clb', 'cn'));
 
         // Custom cell lines moved from a text box in the toolbar to a popout,
         // anchored under its button.
@@ -30399,6 +30446,73 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
     }
 
+    // Options behind each filter chip. The level select still holds the value
+    // so the filter chain and saved views are unchanged; this is just where the
+    // user now sets it.
+    _CLB_CHIP_SPEC() {
+        return {
+            hotspot: {
+                geneId: 'clbHotspotFilter', levelId: 'clbHotspotLevel',
+                options: [
+                    { v: '1+2', label: 'Mutated (either copy)' },
+                    { v: '1', label: 'One copy mutated' },
+                    { v: '2', label: 'Both copies mutated' },
+                    { v: '0', label: 'Wild-type' },
+                ],
+            },
+            fusion: {
+                geneId: 'clbTranslocationFilter', levelId: 'clbFusionLevel',
+                options: [{ v: '1+2', label: 'Fused' }, { v: '0', label: 'Not fused' }],
+            },
+            cn: {
+                geneId: 'clbCnFilter', levelId: 'clbCnLevel',
+                options: [{ v: 'altered', label: 'Event present' }, { v: 'wt', label: 'No event' }],
+            },
+        };
+    }
+
+    _showClbChipMenu(kind, anchorEl) {
+        document.getElementById('clbChipMenu')?.remove();
+        const spec = this._CLB_CHIP_SPEC()[kind];
+        if (!spec) return;
+        const level = document.getElementById(spec.levelId);
+        const menu = document.createElement('div');
+        menu.id = 'clbChipMenu';
+        menu.className = 'select-proxy-panel';
+        menu.style.cssText = 'position:fixed; z-index:1450; width:210px; padding:4px; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.14); font-size:11px;';
+        const rowCss = 'display:block; width:100%; text-align:left; padding:5px 8px; border:none; background:none; cursor:pointer; border-radius:4px; font-size:11px;';
+        menu.innerHTML = spec.options.map(o =>
+            `<button type="button" data-lvl="${o.v}" style="${rowCss}${o.v === level?.value ? 'font-weight:700; background:#f0fdf4; color:#15803d;' : 'color:#374151;'}">${o.label}</button>`
+        ).join('')
+            + `<div style="border-top:1px solid #e5e7eb; margin:4px 0;"></div>`
+            + `<button type="button" data-remove="1" style="${rowCss}color:#b91c1c;">Remove this filter</button>`;
+        document.body.appendChild(menu);
+        const r = anchorEl.getBoundingClientRect();
+        menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - 218))}px`;
+        menu.style.top = `${Math.min(r.bottom + 4, window.innerHeight - menu.offsetHeight - 8)}px`;
+
+        menu.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            if (btn.dataset.remove) {
+                const gene = document.getElementById(spec.geneId);
+                if (gene) gene.value = '';
+            } else if (level) {
+                level.value = btn.dataset.lvl;
+            }
+            menu.remove();
+            this.renderCellLineList();
+        });
+        setTimeout(() => {
+            const away = (ev) => {
+                if (menu.contains(ev.target)) return;
+                menu.remove();
+                document.removeEventListener('mousedown', away);
+            };
+            document.addEventListener('mousedown', away);
+        }, 0);
+    }
+
     _updateClbActiveFilterLabel() {
         const el = document.getElementById('clbActiveFilters');
         if (!el) return;
@@ -30416,11 +30530,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const wtCn = document.getElementById('clbCnLevel')?.value === 'wt';
         const greyChip = 'background:#f3f4f6;color:#4b5563;';
         if (tissue) parts.push(`<span style="background:var(--earth-50);color:var(--earth-700);padding:1px 6px;border-radius:10px;">${tissue}${subtype ? ' · ' + subtype : ''}</span>`);
-        if (hotspot) parts.push(`<span style="${wtHot ? greyChip : 'background:#e6efde;color:#5a7d35;'}padding:1px 6px;border-radius:10px;">${hotspot} ${wtHot ? 'WT' : 'mutated'}</span>`);
-        if (trans) parts.push(`<span style="${wtFus ? greyChip : 'background:#efe7ec;color:#7d5a66;'}padding:1px 6px;border-radius:10px;">${trans} ${wtFus ? 'not fused' : 'fused'}</span>`);
+        const hotLvl = document.getElementById('clbHotspotLevel')?.value || '1+2';
+        const hotWord = { '1+2': 'mutated', '1': 'one copy mutated', '2': 'both copies mutated', '0': 'WT' }[hotLvl] || 'mutated';
+        if (hotspot) parts.push(`<span class="clb-chip" data-chip="hotspot" title="Click to change which cell lines are kept, or to remove this filter" style="${wtHot ? greyChip : 'background:#e6efde;color:#5a7d35;'}padding:1px 6px;border-radius:10px;">${this.esc(hotspot)} ${hotWord} &#9662;</span>`);
+        if (trans) parts.push(`<span class="clb-chip" data-chip="fusion" title="Click to change which cell lines are kept, or to remove this filter" style="${wtFus ? greyChip : 'background:#efe7ec;color:#7d5a66;'}padding:1px 6px;border-radius:10px;">${this.esc(trans)} ${wtFus ? 'not fused' : 'fused'} &#9662;</span>`);
         if (cn) {
             const label = this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del');
-            parts.push(`<span style="${wtCn ? greyChip : 'background:#fef3c7;color:#92400e;'}padding:1px 6px;border-radius:10px;">${label}${wtCn ? ' absent' : ''}</span>`);
+            parts.push(`<span class="clb-chip" data-chip="cn" title="Click to change which cell lines are kept, or to remove this filter" style="${wtCn ? greyChip : 'background:#fef3c7;color:#92400e;'}padding:1px 6px;border-radius:10px;">${this.esc(label)}${wtCn ? ' absent' : ' present'} &#9662;</span>`);
         }
         // Collection include/exclude chips. Green = "must be in"; red = "must
         // not be in". Each chip has an inline × that clears that one state.
@@ -30447,6 +30563,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const total = this.metadata?.cellLines?.length || 0;
             el.innerHTML = parts.join(' ');
             el.style.display = 'flex';
+            el.querySelectorAll('[data-chip]').forEach(chip => {
+                chip.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this._showClbChipMenu(chip.dataset.chip, chip);
+                });
+            });
             // Wire the × on each collection chip to clear that specific state.
             el.querySelectorAll('a[data-clear-collection]').forEach(a => {
                 a.addEventListener('click', (e) => {
@@ -32769,8 +32891,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ev.push({ gene: g, bits, isTs: tsSet.has(g) });
             }
             let verdict, tone;
-            if (driverOn && brakeLost) { verdict = 'Driver active and brake lost'; tone = '#b91c1c'; }
-            else if (driverOn) { verdict = 'Driver active'; tone = '#b91c1c'; }
+            if (driverOn && brakeLost) { verdict = 'Driver activated, brake lost'; tone = '#b91c1c'; }
+            else if (driverOn) { verdict = 'Driver activated'; tone = '#b91c1c'; }
             else if (brakeLost) { verdict = 'Brake lost'; tone = '#b45309'; }
             else if (ev.length) { verdict = 'Altered'; tone = '#b45309'; }
             else { verdict = 'No alteration found'; tone = '#9ca3af'; }
@@ -33174,8 +33296,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             ${keyAltBody}
             ${typicalContextHtml}
             <div style="margin-top:12px; padding-top:10px; border-top:1px solid #e5e7eb;">
-                <div class="wiki-sub-h">Central cancer pathways</div>
-                <p class="wiki-sub-p">The 25 pathways most often subverted in cancer, checked against every layer this app carries: hotspot and damaging mutations, inferred functional loss, focal copy-number events and curated fusions. <b>Driver active</b> means an accelerator is stuck on; <b>brake lost</b> means a tumour suppressor in the pathway is gone. Where a CRISPR read-out can test the conclusion, it is shown underneath. Gene-effect scale: 0 = no effect, &minus;0.5 = selectively essential, &minus;1 &asymp; a typical strongly-essential gene.</p>
+                <div class="wiki-sub-h">Pathways that may have contributed to transformation</div>
+                <p class="wiki-sub-p">Alterations in this cell line that fall inside 25 pathways commonly subverted in cancer. <b>These are hypotheses, not conclusions</b>: an alteration in a pathway does not establish that it drove transformation, and the pathway that mattered may not be listed here at all.
+                <br><br><b>What the two labels mean.</b> <b>Driver active</b>, a gene that normally promotes growth carries an activating hotspot mutation, a focal amplification, or sits in a curated fusion. <b>Brake lost</b>, a tumour suppressor in the pathway carries a damaging mutation, an inferred functional loss, or a focal deletion. Both labels describe the <i>alteration</i> found, not a measurement of pathway activity.
+                <br><br><b>What was checked.</b> Damaging mutations across ~8,900 genes, inferred functional loss, the curated focal copy-number panel, and curated driver fusions. Activating hotspots are called from a 49-gene panel, so an activating point mutation in a gene outside that panel will not appear. Where a CRISPR knockout read-out exists it is shown underneath, and that <i>is</i> a functional measurement: 0 = no effect, &minus;0.5 = selectively essential, &minus;1 &asymp; a typical strongly-essential gene.</p>
                 ${pathwayStatusHtml}
             </div>`;
 
@@ -33464,7 +33588,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const activeSig = sigResults.filter(s => s.meanZ > 0.75);
                 const sigHtml = activeSig.length > 0
                     ? `<div style="margin-top:8px; padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;">`
-                        + `<b style="color:#3730a3;">Pathway-activity signatures, elevated</b> <span style="color:#9ca3af; font-size:10px;">(each signature = a curated gene panel for one biological program, e.g. MYC targets or interferon response; the score is the mean expression z-score of that panel vs the cohort. <b>Elevated</b> = the program's genes are coordinately higher-expressed than the average cell line, mean z &gt; +0.75)</span>`
+                        + `<b style="color:#3730a3;">Gene programs expressed above average</b> <span style="color:#9ca3af; font-size:10px;">(each program is a curated gene panel, e.g. MYC targets or interferon response. The score is the <b>mean z-score of that panel's mRNA levels</b> against every cell line in the expression table, and a program is listed when that mean exceeds +0.75, i.e. its genes are coordinately higher than in the average line. This is mRNA abundance, not a measurement of pathway activity: transcripts can be high without the pathway running, and a pathway can run while its transcripts look ordinary)</span>`
                         + activeSig.map(s => `<div style="margin:3px 0 3px 4px;">`
                             + `<span style="font-weight:600; color:#3730a3;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
                             + `<span style="color:#9ca3af; font-size:10px;">, mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`
@@ -33476,7 +33600,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const inactiveSig = sigResults.filter(s => s.meanZ < -0.75);
                 const inactiveSigHtml = inactiveSig.length > 0
                     ? `<div style="margin-top:6px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6b7280; font-size:11px;">`
-                        + `<b style="color:#374151;">Pathway-activity signatures, reduced</b> <span style="color:#9ca3af; font-size:10px;">(the program's genes are coordinately lower-expressed than the average cell line, mean panel z &lt; &minus;0.75)</span>`
+                        + `<b style="color:#374151;">Gene programs expressed below average</b> <span style="color:#9ca3af; font-size:10px;">(same measure, mean panel z &lt; &minus;0.75: the program's mRNA is coordinately lower than in the average cell line)</span>`
                         + inactiveSig.map(s => `<div style="margin:3px 0 3px 4px;">`
                             + `<span style="font-weight:600; color:#4b5563;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
                             + `<span style="color:#9ca3af; font-size:10px;">, mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`
@@ -34063,7 +34187,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'DepMap 25Q3 CRISPRGeneEffect (Chronos). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s GE − cohort mean) / cohort SD. Pan-essentials filtered against the DepMap common-essentials list. Druggable dependencies cross-referenced against a curated ~60-gene panel with approved or clinical-stage inhibitors.'),
             section('Expression profile <span style="font-size:11px; color:#6b7280;">, what is uniquely highly expressed in this cell line</span>',
                 exprSigHtml,
-                'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s expression − cohort mean) / cohort SD. Pathway-activity signatures: ~9 curated gene panels (MYC targets, E2F / S-phase, G2/M, IFN response, EMT, TGF-β, hypoxia, NRF2, stem), mean z over each panel; pathways with |mean z| &gt; 0.75 are highlighted. Lineage-marker panels: ~15 markers per Oncotree lineage. Druggable targets: ~60-gene panel with approved or clinical-stage inhibitors. Potential FACS markers: curated ~100-gene panel of well-known cell-surface antigens (CD molecules, RTKs, immune checkpoints, ADC / bispecific targets, adhesion molecules); TPM &gt; 4 cutoff for inclusion.'),
+                'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s expression − cohort mean) / cohort SD. Gene programs: ~9 curated panels (MYC targets, E2F / S-phase, G2/M, IFN response, EMT, TGF-β, hypoxia, NRF2, stem), scored as the mean mRNA z of the panel; listed when |mean z| &gt; 0.75. Lineage-marker panels: ~15 markers per Oncotree lineage. Druggable targets: ~60-gene panel with approved or clinical-stage inhibitors. Potential FACS markers: curated ~100-gene panel of well-known cell-surface antigens (CD molecules, RTKs, immune checkpoints, ADC / bispecific targets, adhesion molecules); TPM &gt; 4 cutoff for inclusion.'),
             section('Drug response <span style="font-size:11px; color:#6b7280;">, PRISM Repurposing</span>',
                 drugHtml,
                 (this.drugResponse?.dataSource || 'DepMap PRISM Repurposing Secondary.') + ' Note this screen is from a different DepMap release than the rest of this page. Curated panel of ' + (this.drugResponse?.panelSize || '~100') + ' compounds. Z-scores computed per compound across the full PRISM panel. <b>Caveat:</b> in vitro viability ≠ clinical response, validate any clinically weighty hit with orthogonal 2D/3D assays.'),
