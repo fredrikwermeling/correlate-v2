@@ -5405,6 +5405,19 @@ class CorrelationExplorer {
             exprCorrelates: 'Expression correlates, target gene',
             wiki: 'Cell line wiki, one cell line'
         };
+        // What each source adds on top of the shared matrices, so the dialog
+        // names the actual contents rather than "source-specific extras".
+        const aiSourceExtras = {
+            ge: 'the gene-effect values for the gene on screen, its per-tissue summary, and the stratification currently applied',
+            scatter: 'the x and y values for both genes per cell line, the correlation statistics, and any gates you have drawn',
+            mutation: 'the differential gene-effect table (mutant vs wild-type) with p-values, and the mutation calls that defined the groups',
+            gates: 'the membership of both gates and the differential gene-effect and expression tables between them',
+            correlations: 'the correlation table for your input gene set, with r, slope and n per pair',
+            clusters: 'the network edges above the cutoff, the cluster assignments, and the gene-effect values for every gene in the network',
+            exprCorrelates: 'the expression-versus-gene-effect correlations for the target gene',
+            wiki: 'every section of the wiki for this cell line, including the alterations, pathway read-out, dependencies and drug response'
+        };
+
         const aiShowDialog = (source) => {
             this._aiExportSource = source;
             const dialog = document.getElementById('aiAnalysisDialog');
@@ -5428,15 +5441,18 @@ class CorrelationExplorer {
             } else if (n <= 100) {
                 tierText = `<b>What's in the file:</b> full GE + full expression + mutations + clinical fusions + inferred subtypes + genome signatures. No filtering at this cohort size.`;
             } else if (n <= 500) {
-                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.2; expression filtered to mean>1.0 OR sd>0.5; up to 12 000 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras (correlation pairs / cluster genes / differential GE / etc.).`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.2; expression filtered to mean>1.0 OR sd>0.5; up to 12 000 genes per matrix; mutations / fusions / inferred / signatures full.`;
             } else if (n <= 1000) {
-                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.3; expression filtered to mean>2.0 OR sd>0.5; up to 6 000 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.3; expression filtered to mean>2.0 OR sd>0.5; up to 6 000 genes per matrix; mutations / fusions / inferred / signatures full.`;
             } else if (n <= 1500) {
-                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essentials); expression filtered to mean>2.5 OR sd>0.8; up to 3 500 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essentials); expression filtered to mean>2.5 OR sd>0.8; up to 3 500 genes per matrix; mutations / fusions / inferred / signatures full.`;
             } else {
-                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essentials); expression filtered to mean>3.0 OR sd>1.0; up to 2 500 genes per matrix; mutations / fusions / inferred / signatures full. Plus source-specific extras. Large cohort, expect ~20 MB.`;
+                tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essentials); expression filtered to mean>3.0 OR sd>1.0; up to 2 500 genes per matrix; mutations / fusions / inferred / signatures full. Large cohort, expect ~20 MB.`;
             }
-            document.getElementById('aiDataTierInfo').innerHTML = tierText;
+            const extras = aiSourceExtras[source];
+            document.getElementById('aiDataTierInfo').innerHTML = tierText
+                + (extras && n > 0 ? `<div style="margin-top:6px;"><b>From this view specifically:</b> ${extras}.</div>` : '')
+                + (n > 0 ? `<div style="margin-top:6px; color:#6b7280;">Also included: the filters and settings in force, so the file describes the exact view you are looking at. No cell line outside the ${n} in this cohort is included.</div>` : '');
             document.getElementById('aiExportStatus').textContent = '';
         };
 
@@ -20243,7 +20259,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const colSuffix = (type) => type === 'expr' ? 'Expression' : type === 'growth' ? 'GrowthRate' : type === 'geneset' ? 'GeneSetScore' : 'Effect';
         const xType = this.currentInspect?.xType || 'ge';
         const yType = this.currentInspect?.yType || 'ge';
-        let header = `CellLine,CellLineID,Lineage,Subtype,Gene1_${colSuffix(xType)},Gene2_${colSuffix(yType)}`;
+        // Name the columns after the genes themselves. "Gene1"/"Gene2" left the
+        // reader to guess which axis each column came from.
+        const gX = this.currentInspect?.gene1 || 'GeneX';
+        const gY = this.currentInspect?.gene2 || 'GeneY';
+        let header = `CellLine,CellLineID,Lineage,Subtype,${gX}_${colSuffix(xType)}_xAxis,${gY}_${colSuffix(yType)}_yAxis`;
         const csvMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
         if (csvMutSource) {
             header += `,${hotspotGene}_mutation`;
@@ -20251,6 +20271,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (hasGates) {
             header += ',Gate_A,Gate_B';
         }
+        // The file carries every cell line with data for the pair, which is
+        // usually more than the plot shows once filters are on, so mark which
+        // rows are the plotted ones.
+        const plotted = this.currentInspect?.filteredData
+            ? new Set(this.currentInspect.filteredData.map(d => d.cellLineId)) : null;
+        const marksPlotted = plotted && plotted.size !== this.currentInspect.data.length;
+        if (marksPlotted) header += ',ShownOnPlot';
         header += '\n';
 
         let csv = header;
@@ -20268,6 +20295,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (hasGates) {
                 row += `,${gateAIds.has(d.cellLineId) ? 1 : 0},${gateBIds.has(d.cellLineId) ? 1 : 0}`;
             }
+            if (marksPlotted) row += `,${plotted.has(d.cellLineId) ? 1 : 0}`;
             csv += row + '\n';
         });
 
