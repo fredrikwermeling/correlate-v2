@@ -1226,6 +1226,29 @@ class CorrelationExplorer {
         levelSelect.value = (prev && prev !== 'all') ? prev : '1+2';
     }
 
+    // Drop everything produced by the previous mode: the network, the
+    // correlation and cluster tables, and the mutation-analysis results. The
+    // gene list is kept, since that is usually what the user wants to carry
+    // across, and the input box is cleared only where the mode ignores it.
+    _clearResultsForModeSwitch() {
+        if (!this.results && !this.mutationResults) return;
+        this.results = null;
+        this.mutationResults = null;
+        this.networkData = null;
+        this._activeOncoprintFilters = null;
+        this._oncoprintFilters = {};
+        this._oncoprintFilterKinds = {};
+        if (this.network) { try { this.network.destroy(); } catch (e) { /* already gone */ } this.network = null; }
+        const plot = document.getElementById('networkPlot');
+        if (plot) plot.innerHTML = '';
+        ['correlationsBody', 'clustersBody', 'mutationResultsBody', 'mutationTableBody']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+        const summaryText = document.getElementById('summaryText');
+        if (summaryText) summaryText.innerHTML = '';
+        const status = document.getElementById('analysisStatus');
+        if (status) status.textContent = '';
+    }
+
     updateAnalysisModeUI() {
         const mode = document.querySelector('input[name="analysisMode"]:checked').value;
         const isMutationMode = mode === 'mutation';
@@ -4442,6 +4465,10 @@ class CorrelationExplorer {
         // Analysis mode change
         document.querySelectorAll('input[name="analysisMode"]').forEach(radio => {
             radio.addEventListener('change', () => {
+                // Results from the previous mode do not belong to the new one.
+                // Leaving a network on screen after switching to mutation
+                // analysis made it look like part of that analysis.
+                this._clearResultsForModeSwitch();
                 this.updateAnalysisModeUI();
                 this._syncAnalysisModeButtons();
             });
@@ -14428,8 +14455,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const deltaSlope = mutStats.slope - wtStats.slope;
 
                 // Fisher z-transformation for r difference p-value
-                const z1 = 0.5 * Math.log((1 + wtStats.correlation) / (1 - wtStats.correlation));
-                const z2 = 0.5 * Math.log((1 + mutStats.correlation) / (1 - mutStats.correlation));
+                const _rz1 = Math.max(-0.999999, Math.min(0.999999, wtStats.correlation));
+                const z1 = 0.5 * Math.log((1 + _rz1) / (1 - _rz1));
+                const _rz2 = Math.max(-0.999999, Math.min(0.999999, mutStats.correlation));
+                const z2 = 0.5 * Math.log((1 + _rz2) / (1 - _rz2));
                 const se = Math.sqrt(1/(groups.wt.length - 3) + 1/(groups.mut.length - 3));
                 const zDiff = (z2 - z1) / se;
                 const pR = 2 * this.normalUpperTail(Math.abs(zDiff));
@@ -14664,8 +14693,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const deltaSlope = mutStats.slope - wtStats.slope;
 
                 // Fisher z-transformation for correlation difference p-value
-                const z1 = 0.5 * Math.log((1 + wtStats.correlation) / (1 - wtStats.correlation));
-                const z2 = 0.5 * Math.log((1 + mutStats.correlation) / (1 - mutStats.correlation));
+                const _rz1 = Math.max(-0.999999, Math.min(0.999999, wtStats.correlation));
+                const z1 = 0.5 * Math.log((1 + _rz1) / (1 - _rz1));
+                const _rz2 = Math.max(-0.999999, Math.min(0.999999, mutStats.correlation));
+                const z2 = 0.5 * Math.log((1 + _rz2) / (1 - _rz2));
                 const se = Math.sqrt(1/(wt.length - 3) + 1/(mut2.length - 3));
                 const zDiff = (z2 - z1) / se;
                 const pR = 2 * this.normalUpperTail(Math.abs(zDiff));
@@ -14867,8 +14898,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (wt.length < 3 || carr.length < 3) continue;
             const wtS = this.pearsonWithSlope(wt.map(d => d.x), wt.map(d => d.y));
             const cS = this.pearsonWithSlope(carr.map(d => d.x), carr.map(d => d.y));
-            const z1 = 0.5 * Math.log((1 + wtS.correlation) / (1 - wtS.correlation));
-            const z2 = 0.5 * Math.log((1 + cS.correlation) / (1 - cS.correlation));
+            const _rz1 = Math.max(-0.999999, Math.min(0.999999, wtS.correlation));
+                const z1 = 0.5 * Math.log((1 + _rz1) / (1 - _rz1));
+            const _rz2 = Math.max(-0.999999, Math.min(0.999999, cS.correlation));
+                const z2 = 0.5 * Math.log((1 + _rz2) / (1 - _rz2));
             const se = Math.sqrt(1 / (wt.length - 3) + 1 / (carr.length - 3));
             const pR = 2 * this.normalUpperTail(Math.abs((z2 - z1) / se));
             rows.push({ label: sub.label, colorGene: sub.colorGene || '', filterKind: sub.filterKind || '', filterValue: sub.filterValue || '', nWT: wt.length, rWT: wtS.correlation, slopeWT: wtS.slope, nC: carr.length, rC: cS.correlation, slopeC: cS.slope, deltaR: cS.correlation - wtS.correlation, deltaSlope: cS.slope - wtS.slope, pR });
@@ -14979,8 +15012,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const deltaR = fusedStats.correlation - wtStats.correlation;
                 const deltaSlope = fusedStats.slope - wtStats.slope;
 
-                const z1 = 0.5 * Math.log((1 + wtStats.correlation) / (1 - wtStats.correlation));
-                const z2 = 0.5 * Math.log((1 + fusedStats.correlation) / (1 - fusedStats.correlation));
+                const _rz1 = Math.max(-0.999999, Math.min(0.999999, wtStats.correlation));
+                const z1 = 0.5 * Math.log((1 + _rz1) / (1 - _rz1));
+                const _rz2 = Math.max(-0.999999, Math.min(0.999999, fusedStats.correlation));
+                const z2 = 0.5 * Math.log((1 + _rz2) / (1 - _rz2));
                 const se = Math.sqrt(1/(wt.length - 3) + 1/(fused.length - 3));
                 const zDiff = (z2 - z1) / se;
                 const pR = 2 * this.normalUpperTail(Math.abs(zDiff));
@@ -19584,11 +19619,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const mutCorr = this.pearsonWithSlope(mutPts.map(p => p.x), mutPts.map(p => p.y));
 
                 // Fisher z-test
-                const fisherZ = (r, n) => ({ z: 0.5 * Math.log((1 + r) / (1 - r)), se: 1 / Math.sqrt(n - 3) });
-                const wt_fz = fisherZ(wtCorr.correlation, wtPts.length);
-                const mut_fz = fisherZ(mutCorr.correlation, mutPts.length);
-                const zDiff = (wt_fz.z - mut_fz.z) / Math.sqrt(wt_fz.se * wt_fz.se + mut_fz.se * mut_fz.se);
-                const pValue = 2 * this.normalUpperTail(Math.abs(zDiff));
+                // Clamp away from +/-1, where the z transform is infinite; r is
+                // exactly 1 whenever a group has only three points.
+                const fisherZ = (r, n) => {
+                    const rc = Math.max(-0.999999, Math.min(0.999999, r));
+                    return { z: 0.5 * Math.log((1 + rc) / (1 - rc)), se: 1 / Math.sqrt(Math.max(1, n - 3)) };
+                };
+                let pValue = 1;
+                if (Number.isFinite(wtCorr.correlation) && Number.isFinite(mutCorr.correlation)) {
+                    const wt_fz = fisherZ(wtCorr.correlation, wtPts.length);
+                    const mut_fz = fisherZ(mutCorr.correlation, mutPts.length);
+                    const zDiff = (wt_fz.z - mut_fz.z) / Math.sqrt(wt_fz.se * wt_fz.se + mut_fz.se * mut_fz.se);
+                    if (Number.isFinite(zDiff)) pValue = 2 * this.normalUpperTail(Math.abs(zDiff));
+                }
 
                 hotspotStats.push({
                     group: hotspotGene,
