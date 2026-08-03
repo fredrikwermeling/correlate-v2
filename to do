@@ -19,7 +19,7 @@ The correlation title is only mentioning the gene name but not if it is GE expre
 When hover over a gene the information that apears is not always intutive, eg for CDKN2A "This gene generates several transcript variants which differ in their first exons. At least three alternatively spliced variants encoding distinct proteins have been reported, two of which encode structurally related isoforms known to function as..." apears. the first text would better focus more directly on the function of the gene.
 the expression correlates should perhaps be removed. such things could be explored with gates ot with export for AI.
 in the gene effect tab, shift clickig a cell line results in goign to the wiki, while in the correlation tab it goes to the cell line browser. It hink i prefer the wiki. but again, functionallitites should be cosnsitent over the app. 
-
+the function of the filters in the gene effect should be the same as in the cell line browser, including making it possivble to click the colorfull button that appear related to a filter allowing to click and change it eg from mutated to WT. 
 
 older.
 
