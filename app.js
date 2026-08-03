@@ -1099,7 +1099,13 @@ class CorrelationExplorer {
             if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) continue;
             if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) continue;
             if (kind !== 'hotspot' && hsMuts) { const l = hsMuts[cl] || 0; if (hotspotLevel === '0' && l !== 0) continue; if (hotspotLevel === '1' && l !== 1) continue; if (hotspotLevel === '2' && l < 2) continue; if (hotspotLevel === '1+2' && l < 1) continue; }
-            if (kind !== 'fusion' && fusionActive) { const has = this._geFusionPasses(cl, transGene); if (transLevel === '0' ? has : !has) continue; }
+            if (kind !== 'fusion' && fusionActive) {
+                const callable = this._fusionCallable(cl);
+                const has = callable && this._geFusionPasses(cl, transGene);
+                if (transLevel === 'nocall') { if (callable) continue; }
+                else if (transLevel === '0') { if (has || !callable) continue; }
+                else if (!has) continue;
+            }
             if (kind !== 'cn' && cnVal) { const has = this._cellLinePassesCnFilter(cl, cnVal); if (cnLevel === 'wt' ? has : !has) continue; }
             set.add(cl);
         }
@@ -1195,11 +1201,14 @@ class CorrelationExplorer {
         }
 
         const cellLines = this.metadata.cellLines;
-        let n0 = 0, nFused = 0;
+        let n0 = 0, nFused = 0, nNoCall = 0;
         cellLines.forEach(cellLine => {
             if (lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== lineageFilter) return;
             if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== subLineageFilter) return;
-            if (this._geFusionPasses(cellLine, raw)) nFused++; else n0++;
+            if (this._geFusionPasses(cellLine, raw)) { nFused++; return; }
+            // Never RNA-sequenced, so "not fused" was never established.
+            if (!this._fusionCallable(cellLine)) { nNoCall++; return; }
+            n0++;
         });
 
         const total = n0 + nFused;
@@ -1208,7 +1217,7 @@ class CorrelationExplorer {
         levelSelect.innerHTML = `
             <option value="1+2">Fused (${nFused})</option>
             <option value="0">Not fused (${n0})</option>
-        `;
+        ` + (nNoCall > 0 ? `<option value="nocall">No fusion data (${nNoCall})</option>` : '');
         // Default to the fused cells when a fusion is picked (see hotspot note).
         levelSelect.value = (prev && prev !== 'all') ? prev : '1+2';
     }
@@ -3880,6 +3889,19 @@ class CorrelationExplorer {
     // Gene-effect fusion filter predicate. Mirrors the scatter applier: a curated
     // clinical pair (★) filters by presence; a validated fusion gene filters by
     // having at least one fusion. Returns true when no filter is set.
+    // Whether a fusion call was possible for this cell line at all. The raw
+    // fusion table holds an entry for every RNA-sequenced line, and its 74
+    // absentees are exactly the 74 lines missing from the expression table.
+    _fusionCallable(cellLine) {
+        return (this._fusionCountByCL?.get(cellLine) || 0) > 0;
+    }
+
+    // Cell lines in the current view that cannot carry a fusion call, so a
+    // caller can warn instead of counting them as negatives.
+    _fusionNotCallable(cellLines) {
+        return (cellLines || []).filter(cl => !this._fusionCallable(cl));
+    }
+
     _geFusionPasses(cellLineId, fusionVal) {
         if (!fusionVal) return true;
         const key = this._stripFusionFilterDecoration(fusionVal);
@@ -30062,7 +30084,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
             if (sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
             if (hotspotMuts) { const l = hotspotMuts[cl] || 0; if (hotspotLvl === '0' ? l !== 0 : hotspotLvl === '1' ? l !== 1 : hotspotLvl === '2' ? l < 2 : l < 1) return false; }
-            if (transGene) { const has = this._geFusionPasses(cl, transGene); if (fusionLvl === '0' ? has : !has) return false; }
+            if (transGene) {
+                const callable = this._fusionCallable(cl);
+                const has = callable && this._geFusionPasses(cl, transGene);
+                if (fusionLvl === 'nocall') { if (callable) return false; }
+                else if (fusionLvl === '0') { if (has || !callable) return false; }
+                else if (!has) return false;
+            }
             if (cnFilterValue) { const has = this._cellLinePassesCnFilter(cl, cnFilterValue); if (cnLvl === 'wt' ? has : !has) return false; }
             if (!this._cellLinePassesOncoprintFilters(cl)) return false;
             if (this._customCellLineFilterCLB && !this._customCellLineFilterCLB.has(cl)) return false;

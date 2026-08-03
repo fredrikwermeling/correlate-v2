@@ -1456,7 +1456,7 @@
         .clb-row-alt, .clb-row-actions { background: #fcfcfb; border-top: 1px solid var(--gray-200); }
         .clb-row-label {
             font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
-            color: #9ca3af; white-space: nowrap; flex: 0 0 62px;
+            color: #9ca3af; white-space: nowrap; flex: 0 0 76px; line-height: 1.25;
             padding-top: 8px;   /* sit level with the first line of controls */
         }
         .clb-group-label { font-size: 10px; font-weight: 600; white-space: nowrap; }
@@ -1913,6 +1913,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.74 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>"No fusion data" is now separate from "not fused".</b> A fusion call needs RNA-seq, and 74 cell lines have none, so the caller could never report one for them. They were being counted as fusion-negative. In a small cohort that is enough to invent a result: for YRDC across 27 Ewing sarcoma lines, 9 of the 13 apparent negatives had simply never been sequenced, and the difference disappears once they are set aside. Fusion filters now offer three states, and the counts beside them say how many lines fall in each.</li>
+                    <li>Cell Line Browser: sort moved to the end of the Cohort row, and the second row is now labelled Genetic alterations.</li>
+                </ul>
                 <p><strong>v.84.73 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Fixed: the fusion and copy-number grids selected no cell lines.</b> Their include / exclude choices were being checked against the hotspot mutation table, where a fusion name or an "amp / del" row does not exist, so every cell line failed the test. Each row is now checked against the layer it came from. Verified: BCR-ABL1 gives 12 cell lines, CDKN2B del gives 295, both matching the counts in the grid.</li>
@@ -4558,7 +4563,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.73</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.74</a>
     </div>
 
     <div class="main-content">
@@ -5434,7 +5439,7 @@
                                     <div id="translocationFilterDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                                 </div>
                                 <select id="translocationFilterLevel" class="form-control" style="margin-top: 2px; font-size: 10px; padding: 2px 4px;">
-                                    <option value="1+2" selected>Fused</option><option value="0">Only WT</option>
+                                    <option value="1+2" selected>Fused</option><option value="0">Only WT (called)</option><option value="nocall">No fusion data</option>
                                 </select>
                             </div>
                             <div class="control-box-compact" style="flex:1;">
@@ -5997,7 +6002,7 @@
                                 <div id="caFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
                             <select id="caFusionLevel" class="form-control" style="width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
-                                <option value="1+2" selected>Fused</option><option value="0">Only WT</option>
+                                <option value="1+2" selected>Fused</option><option value="0">Only WT (called)</option><option value="nocall">No fusion data</option>
                             </select>
                         </div>
                         <div id="caCnFilterWrap" style="display:none;">
@@ -6554,6 +6559,18 @@
                   <option value="exp_unknown">Unknown</option>
                 </optgroup>
               </select>
+              <span class="clb-sep"></span>
+              <select id="clbSortBy" style="width:200px;" title="Sort the cell line list">
+                <option value="name">Sort: Name</option>
+                <option value="ge">Sort: GE for gene(s)</option>
+                <option value="expr">Sort: Expression of gene(s)</option>
+                <option value="drug">Sort: Drug response (PRISM AUC)</option>
+              </select>
+              <div id="clbSortGeneWrap" class="clb-anchor" style="visibility:hidden;">
+                <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:160px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
+                <div id="clbSortDrugDropdown" class="clb-dropdown" style="min-width:320px;"></div>
+              </div>
+              <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="width:32px; visibility:hidden;">&#x25BC;</button>
             </div>
           </div>
 
@@ -6561,7 +6578,7 @@
                lines that carry the alteration; the wild-type and single-copy
                variants are on the chip the filter produces. -->
           <div class="clb-row clb-row-alt">
-            <span class="clb-row-label">Alteration</span>
+            <span class="clb-row-label">Genetic&nbsp;alterations</span>
             <div class="clb-row-items">
               <div id="clbHotspotFilterWrap" class="clb-pair">
                 <div class="clb-anchor">
@@ -6577,7 +6594,7 @@
                   <div id="clbTranslocationDropdown" class="clb-dropdown" style="min-width:280px;"></div>
                 </div>
                 <button id="clbGridFusionBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Fusion grid for the cell lines currently shown, curated driver fusions only">&#9638;</button>
-                <select id="clbFusionLevel" style="display:none;"><option value="1+2" selected>Fused</option><option value="0">Only WT</option></select>
+                <select id="clbFusionLevel" style="display:none;"><option value="1+2" selected>Fused</option><option value="0">Only WT (called)</option><option value="nocall">No fusion data</option></select>
               </div>
               <div id="clbCnFilterWrap" class="clb-pair">
                 <div class="clb-anchor">
@@ -6596,19 +6613,6 @@
               </div>
               <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="What each quick filter includes, and the rule used to decide membership">?</button>
 
-              <span class="clb-sep"></span>
-
-              <select id="clbSortBy" style="width:200px;" title="Sort the cell line list">
-                <option value="name">Sort: Name</option>
-                <option value="ge">Sort: GE for gene(s)</option>
-                <option value="expr">Sort: Expression of gene(s)</option>
-                <option value="drug">Sort: Drug response (PRISM AUC)</option>
-              </select>
-              <div id="clbSortGeneWrap" class="clb-anchor" style="visibility:hidden;">
-                <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:160px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
-                <div id="clbSortDrugDropdown" class="clb-dropdown" style="min-width:320px;"></div>
-              </div>
-              <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="width:32px; visibility:hidden;">&#x25BC;</button>
 
               <div id="clbActiveFilters" class="clb-active-filters"></div>
             </div>
@@ -6985,6 +6989,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_73"></script>
+    <script src="app.js?v=v84_74"></script>
 </body>
 </html>
