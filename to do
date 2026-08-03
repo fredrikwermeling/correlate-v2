@@ -16,7 +16,7 @@ The correlation fusion and hotspot overlay needs to scale to the filters, ie onl
 When exporting for AI, the popout should define which data that will be expoerted. 
 the fusion and hotspot overlay at color 0/1/2, the information in the hedeing related to the overlay, is too long and cropped. also, it si not pissble to edit the text related to  the overlay (fusion/hotspot, in both 0/1/2 and 3 panel) in the settings, it should be possible.
 The correlation title is only mentioning the gene name but not if it is GE expression or CN. 
-
+When hover over a gene the information that apears is not always intutive, eg for CDKN2A "This gene generates several transcript variants which differ in their first exons. At least three alternatively spliced variants encoding distinct proteins have been reported, two of which encode structurally related isoforms known to function as..." apears. the first text would better focus more directly on the function of the gene.
 
 older.
 
