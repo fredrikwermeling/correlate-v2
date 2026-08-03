@@ -1820,6 +1820,19 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.62 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>The wiki no longer states things it has not measured.</b> A cell line with no mutation calls at all used to show three confident zeros; it now says the calls are missing. "No fusions" and "none called" are distinguished, and the fusion row explains that the table lists calls only. Copy-number wording is split by depth: a single-copy loss is called that rather than a "focal deletion", and a band is a "loss" rather than a "deep loss".</li>
+                    <li><b>"Canonical drivers not altered here" now checks the damaging-mutation table</b>, which it never did. A gene with a frameshift or nonsense mutation was listed as unaltered, and the suggestion to re-authenticate the line was made without looking at the largest mutation layer the app carries.</li>
+                    <li><b>Fusion confidence tiers are explained honestly.</b> The green box said every call was confirmed on three independent signals; a low-tier call actually has none, and the caption now says what each tier means. The drug-context section no longer treats any raw ALK, ROS1, BCR or ABL1 partner as a driver fusion.</li>
+                    <li><b>Executive summary fixes:</b> ages printed as "69.0-year-old", the literal word "unknown" appeared as a tumour stage, and a donor age of 0 was dropped entirely.</li>
+                    <li><b>Corrected figures and wording:</b> the whole-genome-doubling share (73% of lines that have a ploidy call, not 58% of everything), "very high fusion count" on a threshold most lines exceed, MSI-high asserting mismatch-repair deficiency as certain, and "hypermutated" meaning three different things in three places.</li>
+                    <li><b>Sources are no longer all labelled 25Q3.</b> The copy-number regions come from 24Q4 and the drug screen from 25Q2, and both now say so, since the two copy-number blocks can disagree.</li>
+                    <li><b>Breast receptor status</b> explains the rule it actually applies, and a line with no expression data is no longer called triple-negative by default.</li>
+                    <li><b>Drug rows:</b> the z-score and the "of N tested" count use different cohorts, which is now stated, and compounds with no variation across the panel are dropped instead of being scored exactly average.</li>
+                    <li><b>Security and robustness:</b> a saved figure can only set the controls the app itself saves, text from external gene databases is escaped, and a malformed PNG no longer throws while being opened.</li>
+                    <li><b>Removed three unused page sections</b> that were built and never displayed, one of which claimed a cell line had "retained the canonical tumour-suppressor functions" based on an eight-gene panel.</li>
+                </ul>
                 <p><strong>v.84.61 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Cell line wiki corrections.</b> The pathway panels only looked at the mutation tables, so a line could read "CDKN2A functional loss" in one section and "No mutation in RB1 / CDKN2A / CCND1" in the next; they now use the same functional-loss layer as the rest of the page. "BCR-ABL fusion detected" fired whenever BCR or ABL1 turned up anywhere in the raw fusion-caller output, which was wrong for 17 of the 29 lines it flagged, and now uses the validated BCR-ABL1 call. Copy numbers in the amplified-region list assumed every cell line was diploid, but most are genome-doubled, so they are now scaled by each line's own ploidy. A missing measurement is no longer reported as a finding: a line with no copy-number data says so instead of "nothing detected", and an annotated-male line with no expression data no longer reads as "almost certainly loss of the Y chromosome". The XIST row explains that XIST is absent from the protein-coding expression table rather than silently disappearing, and the p53 summary no longer claims an MDM2 dependency that the bullet above it contradicts.</li>
@@ -4372,7 +4385,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.61</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.62</a>
     </div>
 
     <div class="main-content">
@@ -6794,6 +6807,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_61"></script>
+    <script src="app.js?v=v84_62"></script>
 </body>
 </html>

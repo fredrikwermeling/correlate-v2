@@ -328,6 +328,13 @@ class CorrelationExplorer {
 
     _applyControls(map) {
         if (!map) return;
+        // Only controls this app itself saves may be restored. Without this a
+        // crafted file could write into any input on the page, including the
+        // gene box and the file-backed ones.
+        const allowed = new Set([
+            ...this._GE_NEWTAB_CONTROLS(), ...this._SCATTER_NEWTAB_CONTROLS(),
+            ...this._CA_NEWTAB_CONTROLS(), ...Object.keys(this._DEPENDENT_CONTROLS()),
+        ]);
         const setOne = (id, v) => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -337,11 +344,11 @@ class CorrelationExplorer {
         // Parents first, so the dependent options exist by the time the main
         // pass below assigns the child's value.
         Object.entries(this._DEPENDENT_CONTROLS()).forEach(([parentId, repopulate]) => {
-            if (!(parentId in map)) return;
+            if (!(parentId in map) || !allowed.has(parentId)) return;
             setOne(parentId, map[parentId]);
             try { repopulate(); } catch (e) { console.warn(`Could not repopulate options for ${parentId}:`, e); }
         });
-        Object.entries(map).forEach(([id, v]) => setOne(id, v));
+        Object.entries(map).forEach(([id, v]) => { if (allowed.has(id)) setOne(id, v); });
     }
 
     // Filter/setting controls captured for "Open in new tab" so the new tab
@@ -4084,13 +4091,11 @@ class CorrelationExplorer {
         return val;
     }
 
-    /**
-     * Get growth rate for a cell line by its GE cell-line index.
-     * Returns NaN if growth rate data is not loaded or cell line is missing.
-     */
     getAxisValue(gene, geCellLineIndex, type, geData) {
-        if (type === 'geneset') return this.getGeneSetScoreByGEIndex(geCellLineIndex);
-        if (type === 'growth') return this.getGrowthRateByGEIndex(geCellLineIndex);
+        // 'geneset' and 'growth' were removed as axis options; the getters they
+        // called went with them. Return NaN rather than throwing if an old
+        // saved file still names one.
+        if (type === 'geneset' || type === 'growth') return NaN;
         if (type === 'expr') return this.getExpressionValueByGEIndex(gene, geCellLineIndex);
         if (type === 'cn') return this.getCnValue(gene, this.metadata.cellLines[geCellLineIndex]);
         return geData ? geData[geCellLineIndex] : NaN;
@@ -10406,8 +10411,11 @@ Results:
             const gradY = legendY + 18;
 
             if (colorGEType === 'signed') {
-                const minEffect = Math.min(...effectValues);
-                const maxEffect = Math.max(...effectValues);
+                // effectValues can be empty (an all-NaN or empty cluster set),
+                // and Math.min of nothing is Infinity, which then printed as
+                // "Infinity" on the legend.
+                const minEffect = effectValues.length ? Math.min(...effectValues) : 0;
+                const maxEffect = effectValues.length ? Math.max(...effectValues) : 0;
 
                 // Red (negative) to White (0) to Blue (positive)
                 const gradient = ctx.createLinearGradient(legendX, 0, legendX + gradientWidth, 0);
@@ -10735,8 +10743,11 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             const gradY = legendY + 18;
 
             if (colorGEType === 'signed') {
-                const minEffect = Math.min(...effectValues);
-                const maxEffect = Math.max(...effectValues);
+                // effectValues can be empty (an all-NaN or empty cluster set),
+                // and Math.min of nothing is Infinity, which then printed as
+                // "Infinity" on the legend.
+                const minEffect = effectValues.length ? Math.min(...effectValues) : 0;
+                const maxEffect = effectValues.length ? Math.max(...effectValues) : 0;
 
                 svg += `  <rect x="${legendX}" y="${gradY}" width="${gradientWidth}" height="${gradientHeight}" fill="url(#signedGradient)" stroke="#999"/>\n`;
                 svg += `  <text x="${legendX}" y="${gradY + gradientHeight + 16}" class="legend-small">${minEffect.toFixed(2)}</text>\n`;
@@ -11012,8 +11023,11 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             const effectValues = visibleEffects.length > 0 ? visibleEffects : this.results.clusters.map(c => c.meanEffect).filter(v => !isNaN(v));
 
             if (colorGEType === 'signed') {
-                const minEffect = Math.min(...effectValues);
-                const maxEffect = Math.max(...effectValues);
+                // effectValues can be empty (an all-NaN or empty cluster set),
+                // and Math.min of nothing is Infinity, which then printed as
+                // "Infinity" on the legend.
+                const minEffect = effectValues.length ? Math.min(...effectValues) : 0;
+                const maxEffect = effectValues.length ? Math.max(...effectValues) : 0;
                 const maxAbs = Math.max(Math.abs(minEffect), Math.abs(maxEffect));
 
                 this.networkData.nodes.forEach(node => {
@@ -11773,8 +11787,11 @@ Results:
             const gradY = legendY + 18;
 
             if (colorGEType === 'signed') {
-                const minEffect = Math.min(...effectValues);
-                const maxEffect = Math.max(...effectValues);
+                // effectValues can be empty (an all-NaN or empty cluster set),
+                // and Math.min of nothing is Infinity, which then printed as
+                // "Infinity" on the legend.
+                const minEffect = effectValues.length ? Math.min(...effectValues) : 0;
+                const maxEffect = effectValues.length ? Math.max(...effectValues) : 0;
 
                 // Red (negative) to White (0) to Blue (positive)
                 const gradient = ctx.createLinearGradient(legendX, 0, legendX + gradientWidth, 0);
@@ -12065,8 +12082,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const gradY = legendY + 18;
 
             if (colorGEType === 'signed') {
-                const minEffect = Math.min(...effectValues);
-                const maxEffect = Math.max(...effectValues);
+                // effectValues can be empty (an all-NaN or empty cluster set),
+                // and Math.min of nothing is Infinity, which then printed as
+                // "Infinity" on the legend.
+                const minEffect = effectValues.length ? Math.min(...effectValues) : 0;
+                const maxEffect = effectValues.length ? Math.max(...effectValues) : 0;
 
                 svg += `  <rect x="${legendX}" y="${gradY}" width="${gradientWidth}" height="${gradientHeight}" fill="url(#signedGradient)" stroke="#999"/>\n`;
                 svg += `  <text x="${legendX}" y="${gradY + gradientHeight + 16}" class="legend-small">${minEffect.toFixed(2)}</text>\n`;
@@ -18588,8 +18608,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const view = new DataView(arrayBuffer);
         // PNG signature = 8 bytes, then chunks
         let offset = 8;
-        while (offset < view.byteLength) {
+        // Every read below is bounds-checked: a truncated or hand-edited file
+        // would otherwise throw a RangeError into an unhandled rejection.
+        while (offset + 8 <= view.byteLength) {
             const length = view.getUint32(offset);
+            if (!Number.isFinite(length) || length < 0 || offset + 12 + length > view.byteLength) break;
             const typeBytes = new Uint8Array(arrayBuffer, offset + 4, 4);
             const type = String.fromCharCode(...typeBytes);
             if (type === 'tEXt') {
@@ -18677,7 +18700,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             subLineageFilter: document.getElementById('subLineageFilter')?.value || '',
             minSlope: document.getElementById('minSlope')?.value || '0.1',
             minCellLines: document.getElementById('minCellLines')?.value || '50',
-            transparentBg: document.getElementById('exportNetworkTransparentBg')?.checked || false
+            // The transparent-background checkbox was removed from the page;
+            // the export dialog owns this setting now.
+            transparentBg: false
         };
     }
 
@@ -20079,8 +20104,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const geSummaryMeanLabel = document.getElementById('geSummaryMeanLabel');
         if (geSummaryMeanLabel) geSummaryMeanLabel.textContent = `${geMetric.mean}:`;
         document.getElementById('geSummaryGene').textContent = geneUpper;
-        document.getElementById('geSummaryMean').textContent = mean.toFixed(2);
-        document.getElementById('geSummarySD').textContent = sd.toFixed(2);
+        document.getElementById('geSummaryMean').textContent = this.formatNum(mean, 2);
+        document.getElementById('geSummarySD').textContent = this.formatNum(sd, 2);
         document.getElementById('geSummaryN').textContent = allEffects.length;
         // Blue summary banner removed as redundant (the title + active-filter chips
         // + table cover it, and its "Cell lines" count ignored the active filters).
@@ -24322,7 +24347,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // `capture: true` lets us intercept Escape before any higher-level
             // listeners (modals register their Esc handlers in bubble phase).
             document.addEventListener('keydown', escDismiss, true);
-            tooltip._cleanup = () => { document.removeEventListener('keydown', escDismiss, true); };
+            // Both listeners must go together. Dropping only the keydown one
+            // left the click handler alive holding the previous tooltip, so
+            // the first click on the next pinned tooltip closed it instantly.
+            tooltip._cleanup = () => {
+                document.removeEventListener('keydown', escDismiss, true);
+                document.removeEventListener('click', dismiss);
+            };
         }
 
         this.fetchGeneInfo(gene).then(info => {
@@ -24355,7 +24386,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
             let html = closeBtn;
             html += `<div style="margin-bottom: 4px; padding-right:${el.dataset.pinned === '1' ? '18px' : '0'};"><b style="color: #5a9f4a; font-size: 13px;">${info ? info.symbol : gene}</b>`;
-            if (info && info.name) html += ` <span style="color: #374151;">${info.name}</span>`;
+            if (info && info.name) html += ` <span style="color: #374151;">${this.esc(info.name)}</span>`;
             html += `</div>`;
             // Keep the gene-effect line (from the quick hover) at the top.
             if (prefixHtml) html += prefixHtml;
@@ -24370,9 +24401,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
             if (info && info.summary) {
                 const isPinned = el.dataset.pinned === '1';
-                const summary = isPinned || info.summary.length <= 260
+                const summary = this.esc(isPinned || info.summary.length <= 260
                     ? info.summary
-                    : info.summary.substring(0, 260) + '…';
+                    : info.summary.substring(0, 260) + '…');
                 html += `<div style="color: #4b5563;">${summary}</div>`;
             } else if (info) {
                 html += `<div style="color:#9ca3af; font-style:italic;">No summary available.</div>`;
@@ -24431,7 +24462,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const sex = (get('sex') || '').toLowerCase();
         const pomRaw = (get('primaryOrMetastasis') || '').toLowerCase();
         const pom = pomRaw.includes('metasta') ? 'metastatic' : (pomRaw.startsWith('primary') ? 'primary' : '');
-        const person = [age ? `${age}-year-old` : '', (sex === 'male' || sex === 'female') ? sex : ''].filter(Boolean).join(' ');
+        const person = [age === null ? '' : (age === 0 ? 'infant' : `${age}-year-old`), (sex === 'male' || sex === 'female') ? sex : ''].filter(Boolean).join(' ');
         if (person || pom) {
             s1 += ` from a ${person}${person && pom ? ', ' : ''}${pom ? pom + ' tumour' : (person ? ' patient' : '')}`;
         }
@@ -25378,7 +25409,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const target = el();
         if (!target) return;
         const reg = this._cellLineCnRegions(cellLineId);
-        const head = `<div style="font-weight:600; color:#374151; font-size:12px; margin-bottom:6px;">Major copy-number regions <span style="font-size:10px; color:#6b7280; font-weight:400;">, whole-cytoband level from the full DepMap gene CN matrix; curated cancer genes highlighted</span></div>`;
+        const head = `<div style="font-weight:600; color:#374151; font-size:12px; margin-bottom:6px;">Major copy-number regions <span style="font-size:10px; color:#6b7280; font-weight:400;">, whole-cytoband level from the full DepMap gene CN matrix (24Q4 OmicsCNGene, a different release from the curated focal events above, so the two blocks can disagree); curated cancer genes highlighted</span></div>`;
         if (!reg || reg.unavailable) {
             const why = reg?.unavailable === 'noprofile'
                 ? 'This cell line has no copy-number data in DepMap, so no call can be made either way.'
@@ -25396,7 +25427,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return `<span class="gene-hover" data-gene="${d.gene}" style="cursor:help; font-size:10px; font-weight:600; border-radius:8px; padding:1px 7px; margin:0 4px 4px 0; display:inline-block; ${known}" title="relative CN ${d.cn.toFixed(2)}${d.known ? ' · curated cancer gene' : ''}">${d.gene}${cop}</span>`;
         };
         const ampRow = (a) => `<div style="margin-bottom:6px;"><b style="color:#1e3a8a;">${a.band} amplification</b> <span style="font-size:10px; color:#6b7280;">(up to ${a.maxCopies} copies; ${a.nAmp} amplified gene${a.nAmp === 1 ? '' : 's'} in the band)</span><br>${a.drivers.map(d => chip(d, true)).join('')}</div>`;
-        const delRow = (a) => `<div style="margin-bottom:6px;"><b style="color:#991b1b;">${a.band} deep loss</b> <span style="font-size:10px; color:#6b7280;">(min rel-CN ${a.minCN.toFixed(2)}; ${a.nDel} deeply-deleted gene${a.nDel === 1 ? '' : 's'} in the band)</span><br>${a.drivers.map(d => chip(d, false)).join('')}</div>`;
+        const delRow = (a) => `<div style="margin-bottom:6px;"><b style="color:#991b1b;">${a.band} loss</b> <span style="font-size:10px; color:#6b7280;">(min rel-CN ${a.minCN.toFixed(2)}, i.e. relative to this line's own baseline rather than to two copies; ${a.nDel} gene${a.nDel === 1 ? '' : 's'} in the band)</span><br>${a.drivers.map(d => chip(d, false)).join('')}</div>`;
         let html = head;
         if (reg.amps.length) html += `<div style="margin-bottom:8px;"><div style="font-size:11px; color:#1e40af; font-weight:600; margin-bottom:3px;">Amplified regions</div>${reg.amps.map(ampRow).join('')}</div>`;
         if (reg.dels.length) html += `<div><div style="font-size:11px; color:#991b1b; font-weight:600; margin-bottom:3px;">Deeply deleted regions</div>${reg.dels.map(delRow).join('')}</div>`;
@@ -26759,7 +26790,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
             html += `<tr style="border-bottom:1px solid #333;">`;
             html += `<td style="padding:5px 8px; color:#888;">${row.rank}</td>`;
-            html += `<td style="padding:5px 8px; max-width:350px; overflow:hidden; text-overflow:ellipsis;" title="${row.term}">${row.term}</td>`;
+            html += `<td style="padding:5px 8px; max-width:350px; overflow:hidden; text-overflow:ellipsis;" title="${this.esc(row.term)}">${this.esc(row.term)}</td>`;
             html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px;">${this.formatPValue(row.pValue)}</td>`;
             html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px; color:#5a9f4a; font-weight:bold;">${this.formatPValue(row.adjPValue)}</td>`;
             html += `<td style="padding:5px 8px;">${row.zScore.toFixed(2)}</td>`;
@@ -32052,7 +32083,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 <div style="padding:12px 14px;">${body}</div>
                 ${source ? `<div style="padding:8px 14px; border-top:1px solid #f1f5f9; font-size:10px; color:#9ca3af;"><b>Source:</b> ${source}</div>` : ''}
             </section>`;
-        const row = (label, value) => value ? `<div class="wiki-kv" style="display:flex; gap:12px; padding:3px 0; align-items:baseline;"><span class="wiki-kv-label" style="flex:0 0 190px; color:#6b7280; font-size:11px;">${label}</span><span style="flex:1; min-width:0;">${value}</span></div>` : '';
+        const row = (label, value) => (value !== null && value !== undefined && value !== '' && value !== false) ? `<div class="wiki-kv" style="display:flex; gap:12px; padding:3px 0; align-items:baseline;"><span class="wiki-kv-label" style="flex:0 0 190px; color:#6b7280; font-size:11px;">${label}</span><span style="flex:1; min-width:0;">${value}</span></div>` : '';
         const pill = (text, color) => `<span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${color}22; color:${color}; font-weight:600; font-size:10px; margin-right:4px;">${text}</span>`;
 
         // --- Classification ---
@@ -32126,7 +32157,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 else {
                     const isHer2 = herD.mine != null && herD.mine >= herThresh;
                     const hrPos = (esrD.mine != null && esrD.mine >= esrMed) || (pgrD.mine != null && pgrD.mine >= pgrMed);
-                    if (isHer2) { call = 'HER2+ (approximate)'; callColor = '#b58a3c'; }
+                    const anyMeasured = esrD.mine != null || pgrD.mine != null || herD.mine != null;
+                    if (!anyMeasured) { call = 'Not callable, no expression data'; callColor = '#6b7280'; }
+                    else if (isHer2) { call = 'HER2+ (approximate)'; callColor = '#b58a3c'; }
                     else if (hrPos) { call = 'HR+ / luminal (approximate)'; callColor = '#6e8b4a'; }
                     else { call = 'Triple-negative (approximate)'; callColor = '#b05a3c'; }
                 }
@@ -32146,7 +32179,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     </div>`;
                 }).join('');
                 receptorHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. Calls are made <i>relative to breast lines</i> (median split for ER/PR, top quintile for HER2), a transcript surrogate, not clinical IHC/FISH.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. Calls are made <i>relative to breast lines</i>: HER2+ if ERBB2 is in the top fifth, otherwise HR+ if ESR1 or PGR is above the median, otherwise triple-negative. Lines with a published Lehmann TNBC subtype use that instead, which is why a few borderline lines are called differently from what the histograms alone would suggest. A transcript surrogate throughout, not clinical IHC/FISH.</p>
                     <div style="margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <span>Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span></span>
                         <button onclick="window.app.exportWikiBreastExpressionCSV()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Export ESR1 / PGR / ERBB2 expression for every breast line (this line flagged) as a CSV, so you can make your own plot">Export .csv</button>
@@ -32214,6 +32247,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const damagingCount = this._damagingCountByCL?.get(cellLineId) || 0;
         const hotspotCount = this._hotspotCountByCL?.get(cellLineId) || 0;
         const fusionCount = this._fusionCountByCL?.get(cellLineId) || 0;
+        // These matrices store hits only, so a line that was never sequenced
+        // looks identical to one with nothing to report. A cancer line with
+        // zero damaging calls across 8,926 genes is not credible, so treat
+        // that as the marker for "no calls exist for this line" and say so
+        // rather than printing three confident zeros.
+        const sequenced = (this._damagingCountByCL?.get(cellLineId) || 0) > 0;
 
         // Per-gene lookup helpers
         const damHit = (g) => this.damagingMutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1;
@@ -32628,30 +32667,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // separate label/value rows. Top hits are bumped to their own line
         // because the gene list can get long.
         const countsLine = `<div style="font-size:11px; padding:4px 0; color:#374151;">
-            <b>${damagingCount.toLocaleString()}</b> damaging mutations <span style="color:#9ca3af;">·</span>
-            <b>${hotspotCount.toLocaleString()}</b> hotspot-mutated genes
-            ${fusionCount ? `<span style="color:#9ca3af;">·</span> <b>${fusionCount.toLocaleString()}</b> fusions` : ''}
+            ${sequenced ? `<b>${damagingCount.toLocaleString()}</b> damaging mutations` : '<span style="color:#9ca3af;">no mutation calls for this cell line</span>'} <span style="color:#9ca3af;">·</span>
+            ${sequenced ? `<b>${hotspotCount.toLocaleString()}</b> hotspot-mutated genes <span style="color:#9ca3af;">(of a 49-gene panel)</span>` : ''}
+            ${sequenced ? `<span style="color:#9ca3af;">·</span> <b>${fusionCount.toLocaleString()}</b> fusion partner${fusionCount === 1 ? '' : 's'} called` : ''}
         </div>${topHotspots ? `<div style="font-size:11px; padding:2px 0 6px; color:#6b7280;"><b style="color:#374151;">Top hotspot hits:</b> ${topHotspots}</div>` : ''}`;
 
         // Pathway status comes first, the interpretive synthesis (genotype ×
         // CRISPR dependency), because that's the highest-value view. Pathway
         // scan follows as a compact one-line-per-pathway gene map for the
         // pathways the synthesis doesn't explicitly cover.
-        const mutationHtml = `
-            <p style="margin:0 0 6px; font-size:11px; color:#6b7280;"><b>Damaging</b> mutations typically inactivate a gene (frameshift / nonsense / splice). <b>Hotspot</b> mutations sit at residues recurrently altered across tumours, some activate oncogenes (BRAF V600E, KRAS G12D), some recurrently hit tumour suppressors (TP53 R175H). The flags below call out DNA-repair / mutation-burden context that the Pathway status block doesn't cover.</p>
-            ${countsLine}
-            ${flagsHtml}
-            <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;">
-                <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway status <span style="color:#6b7280; font-weight:400; font-size:11px;">, genotype × CRISPR dependency</span></div>
-                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">Combines mutation calls with CRISPR-knockout read-out. Catches the common case where a gene is wild-type at the DNA level but the pathway is functionally dormant (or the reverse). Gene-effect (GE) scale: 0 = no effect, &minus;0.5 = selectively essential threshold, &minus;1 ≈ typical strongly-essential gene.</p>
-                ${pathwayStatusHtml}
-            </div>
-            <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;">
-                <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway scan <span style="color:#6b7280; font-weight:400; font-size:11px;">, gene-level mutation map (~14 curated cancer pathways)</span></div>
-                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">Mutation calls only, copy-number changes, fusions and expression are not counted. <b style="color:#dc2626;">Red</b> = hotspot, <b style="color:#d97706;">orange</b> = damaging, asterisk (<b>*</b>) = both. Hover a pathway name for its short description.</p>
-                ${pathwayHtml}
-            </div>`;
-
         // --- Subtype hallmarks vs observed alterations ---
         // Three blocks: (1) Typical alteration pattern for the subtype
         // (curated KB description, blue). (2) Hallmark-gene checklist with
@@ -32760,11 +32784,6 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                </div>`
             : '';
 
-        const hallmarksHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Three views: what's <b>typical</b> for this Oncotree subtype, a <b>checklist</b> of the canonical hallmark genes with ✓ / ✗ for each in this cell line, and <b>other alterations</b> detected here that aren't on the hallmark list. Some Oncotree labels include a fusion name (e.g. "Chronic Myeloid Leukemia, BCR-ABL1+"), that's how the disease is classified by definition, not a per-cell-line call; see the checklist for what's actually present.</p>
-            ${typicalHtml}
-            ${checklistHtml}
-            ${otherHtml}`;
 
         // --- Fusion profile ---
         const fusionPartners = [];
@@ -32774,7 +32793,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
         }
         const fusionCaveat = fusionCount > 30
-            ? `<div style="margin-top:6px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>⚠ Very high fusion count (${fusionCount}).</b> When a cancer has a chaotic, highly rearranged genome, fusion-detection software tends to produce many false positives. Some of these calls are real driver fusions; many are technical artifacts or bystander events. Treat individual calls with caution, cross-reference with karyotype or targeted sequencing before acting on any single fusion.</div>`
+            ? `<div style="margin-top:6px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>⚠ High fusion count (${fusionCount}), which is typical here: most lines in this panel exceed this threshold.</b> When a cancer has a chaotic, highly rearranged genome, fusion-detection software tends to produce many false positives. Some of these calls are real driver fusions; many are technical artifacts or bystander events. Treat individual calls with caution, cross-reference with karyotype or targeted sequencing before acting on any single fusion.</div>`
             : '';
         // Clinically relevant fusions block, curated calls (BCR-ABL1, etc.)
         // surfaced first, with tier chips. The full noisy raw partner list
@@ -32797,9 +32816,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }).join('')
             : '';
         const fusionHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Gene fusions (also called translocations) happen when two chromosomes break and join incorrectly, producing a chimeric gene. <b>Validated fusions</b> (green box) are the small curated list of ~50 well-known driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, …) <i>confirmed in this specific cell line</i> on three orthogonal signals, tissue/lineage match, partner gene over/under-expression, and partner CRISPR dependency, and graded high / medium / low confidence. The <b>raw partner list</b> below is the unfiltered DepMap fusion-caller output: in rearranged genomes most of those are passenger events or technical artifacts, not drivers.</p>
-            ${clinicalFusionHtml ? `<div style="margin-bottom:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a;"><b style="color:#15803d;">Validated driver fusions</b> <span style="font-size:10px; color:#6b7280;">(curated list, confirmed in this line on lineage + partner expression + partner CRISPR dependency)</span>${clinicalFusionHtml}</div>` : ''}
-            ${row('Fusion partners (total, raw)', fusionCount)}
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Gene fusions (also called translocations) happen when two chromosomes break and join incorrectly, producing a chimeric gene. <b>Curated driver fusions</b> (green box) are the small list of ~50 well-known driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, …) called in this cell line, graded by how much independent evidence backs the call: <b>high</b> = the partner gene's expression <i>and</i> its CRISPR dependency both agree, <b>medium</b> = one of those two, or a matching tissue, <b>low</b> = the fusion name only, in a tissue where it is not expected, with neither signal supporting it. The <b>raw partner list</b> below is the unfiltered DepMap fusion-caller output: in rearranged genomes most of those are passenger events or technical artifacts, not drivers.</p>
+            ${clinicalFusionHtml ? `<div style="margin-bottom:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a;"><b style="color:#15803d;">Curated driver fusions</b> <span style="font-size:10px; color:#6b7280;">(graded high / medium / low by how much independent evidence supports the call, see above)</span>${clinicalFusionHtml}</div>` : ''}
+            ${row('Fusion partners (total, raw)', fusionCount > 0 ? fusionCount : '<span style="color:#9ca3af;">none called. The fusion table lists calls only, so this means no fusion was reported for this cell line, not that it was checked and found clean.</span>')}
             ${fusionPartners.length ? row('Raw partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20} more</span>` : '')) : ''}
             ${fusionCaveat}`;
 
@@ -32814,7 +32833,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // missing value must NOT render as "No", that wrongly implies the
             // line was tested and came back negative.
             const wgdLabel = gs.WGD === true
-                ? '<span style="color:#dc2626; font-weight:600;">Yes</span> <span style="font-size:10px; color:#6b7280;">, genome doubled at some point in tumour evolution; common (~58% of panel) and shapes downstream interpretation</span>'
+                ? '<span style="color:#dc2626; font-weight:600;">Yes</span> <span style="font-size:10px; color:#6b7280;">, genome doubled at some point in tumour evolution; common, about 73% of the lines that have a ploidy call (58% of the full panel), and shapes downstream interpretation</span>'
                 : gs.WGD === false
                     ? 'No <span style="font-size:10px; color:#6b7280;">, no whole-genome doubling event detected</span>'
                     : '';
@@ -32890,28 +32909,6 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             genomeSigHtml = '<em style="color:#6b7280;">No genome signatures available for this cell line.</em><div id="clbWikiCnRegions" style="margin-top:16px;"></div>';
         }
 
-        // --- Functional loss (integrated CN + mutation + expression) ---
-        const lofGenes = (infSub.lof || []).slice().sort();
-        let lofHtml;
-        if (this.inferredSubtypes?.byCellLine?.[cellLineId] != null) {
-            if (lofGenes.length > 0) {
-                const chips = lofGenes.map(g =>
-                    `<span class="gene-hover clb-gene-link" data-gene="${g}" `
-                    + `style="cursor:help; font-weight:600; color:#dc2626; border:1px solid #dc2626; `
-                    + `border-radius:8px; padding:1px 7px; margin-right:6px; display:inline-block; margin-bottom:4px;">`
-                    + `${g}</span>`).join('');
-                lofHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Tumor suppressors that have been functionally lost in this cell line, integrating three signals: low copy number (homozygous deletion), likely loss-of-function mutation, or near-zero expression. Catches deletion-driven losses (CDKN2A homo-del, RB1 deep deletion) that the damaging-mutation matrix alone is blind to.</p>
-                    <div style="line-height:1.9;">${chips}</div>`;
-            } else {
-                lofHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Tumor suppressors that have been functionally lost in this cell line. None of the eight scanned tumour suppressors (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC) are flagged as lost, this line has retained the canonical TSG functions tested.</p>
-                    <div style="color:#6b7280; font-size:11px;">No functional loss in the scanned tumour-suppressor panel.</div>`;
-            }
-        } else {
-            lofHtml = '<em style="color:#6b7280;">No integrated functional-loss data available for this cell line.</em>';
-        }
-
         // --- Key genetic alterations (consolidated) ---
         // Fuses the old Expected-drivers + Driver-mutations + Functional-loss
         // trio (which overlapped heavily) into one focused view: the alterations
@@ -32954,8 +32951,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             pushAlt(g, v ? `activating hotspot <b>${v}</b>` : 'hotspot mutation', 3);
         }
         for (const g of (infSub.lof || [])) pushAlt(g, 'functional loss <span style="color:#9ca3af;">(deletion / LoF / silenced)</span>', 3);
-        for (const e of (cnEventsWiki.amplifications || [])) pushAlt(e.gene, `focal amplification${e.tier === 'strong_amp' ? ' <b>(strong)</b>' : ''} <span style="color:#9ca3af;">(CN ${e.cn})</span>`, 2);
-        for (const e of (cnEventsWiki.deletions || [])) pushAlt(e.gene, `focal deletion${e.tier === 'deep_del' ? ' <b>(deep)</b>' : ''} <span style="color:#9ca3af;">(CN ${e.cn})</span>`, 2);
+        for (const e of (cnEventsWiki.amplifications || [])) pushAlt(e.gene, `${e.tier === 'strong_amp' ? 'focal amplification <b>(strong)</b>' : 'focal gain'} <span style="color:#9ca3af;">(CN ${e.cn})</span>`, 2);
+        for (const e of (cnEventsWiki.deletions || [])) pushAlt(e.gene, `${e.tier === 'deep_del' ? 'focal deletion <b>(deep, near-homozygous)</b>' : 'single-copy loss'} <span style="color:#9ca3af;">(CN ${e.cn})</span>`, 2);
 
         const geneAltRows = [...altByGene.values()]
             .sort((a, b) => (b.typical - a.typical) || (b.weight - a.weight) || a.gene.localeCompare(b.gene))
@@ -32976,19 +32973,29 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const allAltRows = [...fusionAltRows, ...geneAltRows];
 
         // Canonical subtype drivers NOT altered here (for context).
+        // Check the damaging matrix too, otherwise a gene carrying a
+        // frameshift or nonsense mutation gets listed as "not altered".
+        const _damagingHere = (g) => this.damagingMutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1;
         const notFoundDrivers = kb
-            ? kb.lookFor.filter(g => !altByGene.has(g) && !clinicalFusionCalls.some(c => c.fusion.split(/--?/).includes(g)))
+            ? kb.lookFor.filter(g => !altByGene.has(g) && !_damagingHere(g)
+                && !clinicalFusionCalls.some(c => c.fusion.split(/--?/).includes(g)))
+            : [];
+        // Genes the curated layers miss but the damaging matrix catches, shown
+        // separately so the section's negatives stay honest.
+        const damagingOnlyDrivers = kb
+            ? kb.lookFor.filter(g => !altByGene.has(g) && _damagingHere(g))
             : [];
 
         const keyAltBody = allAltRows.length > 0
             ? `<div style="line-height:1.5;">${allAltRows.join('')}</div>`
-            : `<div style="color:#6b7280; font-size:11px;">No driver-level alteration detected in the curated layers (oncogene hotspots, tumour-suppressor functional loss, validated fusions, focal CN).${kb ? ' None of the canonical ' + typFor + ' drivers are present, consider an atypical driver, a CN event outside the curated panel, or STR re-authentication.' : ''}</div>`;
+            : `<div style="color:#6b7280; font-size:11px;">No driver-level alteration detected in the curated layers (oncogene hotspots, tumour-suppressor functional loss, curated fusions, focal CN). These layers are deliberately narrow, so this is not the same as a clean genome, check the damaging-mutation count and the copy-number regions below before drawing a conclusion.${kb && !damagingOnlyDrivers.length ? ' None of the canonical ' + typFor + ' drivers show up in them either.' : ''}</div>`;
 
         const typicalContextHtml = kb
             ? `<div style="margin-top:10px; padding:8px 12px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;">`
                 + `<div style="font-weight:600; color:#3730a3; margin-bottom:3px;">For context, typical driver pattern in ${typFor}</div>`
                 + `<div style="color:#374151;">${kb.expected}</div>`
-                + (notFoundDrivers.length ? `<div style="margin-top:5px; color:#6b7280;"><b>Canonical drivers not altered here:</b> ${notFoundDrivers.join(', ')}.</div>` : '')
+                + (damagingOnlyDrivers.length ? `<div style="margin-top:5px; color:#374151;"><b>Canonical drivers with a damaging mutation</b> <span style="font-size:10px; color:#9ca3af;">(outside the curated layers above)</span>: ${damagingOnlyDrivers.join(', ')}.</div>` : '')
+                + (notFoundDrivers.length ? `<div style="margin-top:5px; color:#6b7280;"><b>Canonical drivers with nothing detected here:</b> ${notFoundDrivers.join(', ')} <span style="font-size:10px; color:#9ca3af;">(no hotspot, damaging mutation, functional loss, curated fusion or focal CN event)</span>.</div>` : '')
                 + `</div>`
             : `<div style="margin-top:10px; padding:8px 12px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280;">No curated driver profile for &ldquo;${typFor}&rdquo; yet (~30 common Oncotree subtypes covered), so the alterations above aren't tagged typical / atypical.</div>`;
 
@@ -33423,10 +33430,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 }
                 dr._sensCountsComputed = true;
             }
+            let skippedFlat = 0;
             for (const c of dr.compounds) {
                 const v = c.auc[cellLineId];
                 if (v === undefined) continue;
-                const z = (c.sd > 0) ? (v - c.mean) / c.sd : 0;
+                // A compound with no spread across the panel cannot produce a
+                // meaningful z. Drop it rather than scoring it exactly average.
+                if (!(c.sd > 0)) { skippedFlat++; continue; }
+                const z = (v - c.mean) / c.sd;
                 rows.push({ ...c, v, z });
             }
             if (rows.length === 0) {
@@ -33487,15 +33498,20 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     if (hits.length) ctxSections.push({ label: 'EGFR-mutant → EGFR TKI', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
                 }
                 // ALK/ROS1 fusion → ALK/ROS1 inhibitors
-                const alkFusion = this.translocations?.geneData?.['ALK']?.translocations?.[cellLineId] >= 1 ||
-                                  this.translocations?.geneData?.['ROS1']?.translocations?.[cellLineId] >= 1;
+                // Curated calls only. A raw ALK or ROS1 partner is usually a
+                // passenger event in a rearranged genome, not a driver fusion.
+                const _curatedFusionPartner = (gene) => {
+                    const fd = this.clinicalFusions?.fusionData || {};
+                    return Object.keys(fd).some(name =>
+                        name.split(/--?/).includes(gene) && fd[name]?.cellLines?.[cellLineId]);
+                };
+                const alkFusion = _curatedFusionPartner('ALK') || _curatedFusionPartner('ROS1');
                 if (alkFusion) {
                     const hits = [...findByTarget('ALK'), ...findByTarget('ROS1')];
                     if (hits.length) ctxSections.push({ label: 'ALK/ROS1 fusion → ALK/ROS1 inhibitors', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
                 }
                 // BCR-ABL fusion → ABL TKI
-                const bcrAbl = (this.translocations?.geneData?.['ABL1']?.translocations?.[cellLineId] >= 1) ||
-                               (this.translocations?.geneData?.['BCR']?.translocations?.[cellLineId] >= 1);
+                const bcrAbl = !!this.clinicalFusions?.fusionData?.['BCR-ABL1']?.cellLines?.[cellLineId];
                 if (bcrAbl) {
                     const hits = findByTarget('BCR-ABL');
                     if (hits.length) ctxSections.push({ label: 'BCR-ABL fusion → ABL TKI', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
@@ -33528,7 +33544,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
                 drugHtml = `
                     <div style="margin:0 0 8px;"><button onclick="window.app.exportWikiDrugResponseCSV()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Export every PRISM compound with this cell line's AUC, the cohort mean/SD and z-score, plus target / mechanism / indication, as a CSV so you can make your own plot">Export drug responses (.csv)</button></div>
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive, for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug, it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ. The mini-histogram under each compound shows the full AUC distribution across all PRISM-tested cell lines (red line = this cell line's value), mirroring the per-metric histograms in the Genome section.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, the viability score and z-score for <i>this</i> cell line, and a &ldquo;<b>Used in:</b>&rdquo; line listing the clinical disease(s) the drug is approved or used for (e.g. CRC, SCLC, pancreatic).</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive, for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. Note the two cohorts differ slightly: the z-score uses every line PRISM tested, while the &ldquo;of N tested&rdquo; count beside it uses only the lines that are also in this app's CRISPR cohort, so N is the smaller number. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug, it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ. The mini-histogram under each compound shows the full AUC distribution across all PRISM-tested cell lines (red line = this cell line's value), mirroring the per-metric histograms in the Genome section.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, the viability score and z-score for <i>this</i> cell line, and a &ldquo;<b>Used in:</b>&rdquo; line listing the clinical disease(s) the drug is approved or used for (e.g. CRC, SCLC, pancreatic).</p>
                     <div style="margin:0 0 10px; padding:8px 12px; background:var(--earth-50); border-left:3px solid var(--earth-700); border-radius:0 4px 4px 0; font-size:11px; color:#5b4a2c;"><b>&ldquo;Standout sensitive&rdquo; means selective, not necessarily strong.</b> A line can be more sensitive than most others to a drug (low z-score) while still not being very sensitive in absolute terms (high AUC, few cells killed). Always read both: the <b>AUC</b> says how much the drug kills <i>this</i> line; the <b>z-score</b> says whether that is unusual versus other lines.</div>
                     ${sensitive.length ? `<div><b style="color:#15803d;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
                     ${resistant.length ? `<div><b style="color:#991b1b;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
@@ -33637,12 +33653,17 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
             // Identity sentence with origin context.
             const originParts = [];
-            const age = get('age');
+            // Age arrives as a string float ("69.0"), and the stage field
+            // carries the literal "Unknown" for 12 lines. Round the first and
+            // drop the second rather than printing them raw.
+            const ageRawS = get('age');
+            const ageNum = (ageRawS !== '' && ageRawS !== null && ageRawS !== undefined && !isNaN(parseFloat(ageRawS)))
+                ? Math.round(parseFloat(ageRawS)) : null;
             const sexLower = (this.cellLineMetadata?.sex?.[cellLineId] || '').toLowerCase();
             const stageLower = (this.cellLineMetadata?.primaryOrMetastasis?.[cellLineId] || '').toLowerCase();
-            if (age) originParts.push(`${age}-year-old`);
+            if (ageNum !== null) originParts.push(ageNum === 0 ? 'infant donor' : `${ageNum}-year-old`);
             if (sexLower && sexLower !== 'unknown') originParts.push(sexLower);
-            if (stageLower) originParts.push(stageLower);
+            if (stageLower && stageLower !== 'unknown') originParts.push(stageLower);
             let s1 = `<b>${name}</b> is a ${lineageTxt} cell line`;
             if (originParts.length) s1 += ` <span style="color:#6b7280;">(${originParts.join(', ')})</span>`;
             s1 += '.';
@@ -33696,8 +33717,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // Genome / phenotype features sentence.
             const features = [];
             if (gs?.WGD === true) features.push('<b>whole-genome doubled</b>');
-            if (infSub.msi === true || (gs?.MSIScore != null && gs.MSIScore >= 20)) features.push('<b>MSI-high</b> (hypermutated, mismatch-repair deficient)');
-            else if (damagingCountSummary > 500) features.push(`hypermutated (${damagingCountSummary.toLocaleString()} damaging mutations)`);
+            if (infSub.msi === true || (gs?.MSIScore != null && gs.MSIScore >= 20)) features.push('<b>MSI-high</b> (hypermutated; usually, though not always, mismatch-repair deficient)');
+            else if (damagingCountSummary > 500) features.push(`high mutation burden (${damagingCountSummary.toLocaleString()} damaging mutations)`);
             if (classOneSummary.status === 'likely_lost') features.push('<b>Class-I antigen presentation likely lost</b> (immune-escape candidate)');
             else if (classOneSummary.status === 'reduced') features.push('<b>Class-I antigen presentation reduced</b>');
             const s4 = features.length > 0 ? `Genome / phenotype: ${features.join('; ')}.` : '';
@@ -33908,7 +33929,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'DepMap 25Q3 Model table, donor demographics and tissue collection metadata.'),
             section('Sex (annotation vs expression)',
                 sexHtml,
-                'Annotation: DepMap Model. Expression: Correlate V2 classifier on Y-markers (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y) and XIST, thresholds 1.0 log-TPM+1.'),
+                'Annotation: DepMap Model. Expression: Correlate V2 classifier on Y-markers (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y) and XIST, thresholds 1.0 log-TPM+1. XIST is used when the classifier is built, but it is a non-coding RNA and so is not in the protein-coding expression table this page reads from.'),
 
             // ── Genome state ──────────────────────────────────────────────
             section('Genome signatures',
@@ -33932,7 +33953,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s expression − cohort mean) / cohort SD. Pathway-activity signatures: ~9 curated gene panels (MYC targets, E2F / S-phase, G2/M, IFN response, EMT, TGF-β, hypoxia, NRF2, stem), mean z over each panel; pathways with |mean z| &gt; 0.75 are highlighted. Lineage-marker panels: ~15 markers per Oncotree lineage. Druggable targets: ~60-gene panel with approved or clinical-stage inhibitors. Potential FACS markers: curated ~100-gene panel of well-known cell-surface antigens (CD molecules, RTKs, immune checkpoints, ADC / bispecific targets, adhesion molecules); TPM &gt; 4 cutoff for inclusion.'),
             section('Drug response <span style="font-size:11px; color:#6b7280;">, PRISM Repurposing</span>',
                 drugHtml,
-                (this.drugResponse?.dataSource || 'DepMap PRISM Repurposing Secondary.') + ' Curated panel of ' + (this.drugResponse?.panelSize || '~100') + ' compounds. Z-scores computed per compound across the full PRISM panel. <b>Caveat:</b> in vitro viability ≠ clinical response, validate any clinically weighty hit with orthogonal 2D/3D assays.'),
+                (this.drugResponse?.dataSource || 'DepMap PRISM Repurposing Secondary.') + ' Note this screen is from a different DepMap release than the rest of this page. Curated panel of ' + (this.drugResponse?.panelSize || '~100') + ' compounds. Z-scores computed per compound across the full PRISM panel. <b>Caveat:</b> in vitro viability ≠ clinical response, validate any clinically weighty hit with orthogonal 2D/3D assays.'),
 
             // ── Lab use ───────────────────────────────────────────────────
             section('STR authentication',
@@ -34904,7 +34925,7 @@ ${clone.innerHTML}
             return `<th class="ge-sortable" data-side="${side}" data-key="${key}" title="Sort by ${label}" style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:${align || 'center'}; font-size:11px; cursor:pointer; user-select:none; white-space:nowrap;">${label}${arrow}</th>`;
         };
         const trows = rows.map(r => `
-            <tr class="si-row" data-gene="${r.gene}" style="cursor:pointer;">
+            <tr class="si-row" data-gene="${this.esc(r.gene)}" style="cursor:pointer;">
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#15803d;">${r.gene}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center;">${fmt(r.meanSel)}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; color:#6b7280;">${fmt(r.meanOther)}</td>
@@ -35179,12 +35200,12 @@ ${clone.innerHTML}
         const fmt = (v) => (isFinite(v) ? v.toFixed(3) : '-');
         const th = (t) => `<th style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:left; font-size:11px;">${t}</th>`;
         const leftRows = leftFiltered.map(r => `
-            <tr class="si-row" data-g1="${r.g1}" data-g2="${r.g2}" style="cursor:pointer;">
+            <tr class="si-row" data-g1="${this.esc(r.g1)}" data-g2="${this.esc(r.g2)}" style="cursor:pointer;">
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6;"><b>${r.g1}</b> &nbsp;&times;&nbsp; <b>${r.g2}</b></td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:right; font-weight:600; color:${r.r < 0 ? '#dc2626' : '#2563eb'};">${fmt(r.r)}</td>
             </tr>`).join('');
         const rightRows = rightFiltered.map(r => `
-            <tr class="si-row" data-g1="${r.g1}" data-g2="${r.g2}" style="cursor:pointer;">
+            <tr class="si-row" data-g1="${this.esc(r.g1)}" data-g2="${this.esc(r.g2)}" style="cursor:pointer;">
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6;"><b>${r.g1}</b> &nbsp;&times;&nbsp; <b>${r.g2}</b></td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:right; color:#374151;">${fmt(r.rSel)}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:right; color:#6b7280;">${fmt(r.rOther)}</td>
