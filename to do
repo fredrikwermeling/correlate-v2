@@ -20,7 +20,7 @@ When hover over a gene the information that apears is not always intutive, eg fo
 the expression correlates should perhaps be removed. such things could be explored with gates ot with export for AI.
 in the gene effect tab, shift clickig a cell line results in goign to the wiki, while in the correlation tab it goes to the cell line browser. It hink i prefer the wiki. but again, functionallitites should be cosnsitent over the app. 
 the function of the filters in the gene effect should be the same as in the cell line browser, including making it possivble to click the colorfull button that appear related to a filter allowing to click and change it eg from mutated to WT. 
-
+In the network, color by GE should scale to the genes shown on the plot, so if i use the remove mode to remove a node, the scale/color for color by GE should adjust. 
 
 
 older.
