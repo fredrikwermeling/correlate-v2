@@ -1913,6 +1913,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.87 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>A scan hit can now be checked against chance.</b> With a dozen cell lines per group a genome-wide scan throws up striking-looking results from noise alone, and the rank on its own gives no sense of that. A button on the gene-effect scan shuffles the group labels and reports how many genes separate that strongly by chance, so you can see what fraction of hits at that level are noise. Offered only for cohorts of 200 cell lines or fewer, which is where the question arises; with hundreds per group the ordinary p-value is already dependable.</li>
+                </ul>
                 <p><strong>v.84.86 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>The gene-effect scan warns when a hit's pathway partners do not move with it.</b> A gene that separates strongly on a split while its known complex or pathway partners stay flat is usually screen noise: a complex cannot work without its subunits, so a real dependency difference should shift them too. The check runs on the strongest hit and says nothing when the partners do move.</li>
@@ -4625,7 +4629,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.86</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.87</a>
     </div>
 
     <div class="main-content">
@@ -7070,6 +7074,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_86"></script>
+    <script src="app.js?v=v84_87"></script>
 </body>
 </html>

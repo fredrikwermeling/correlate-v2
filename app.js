@@ -5626,6 +5626,103 @@ class CorrelationExplorer {
         this._geneNotFoundTimer = setTimeout(() => box.remove(), 12000);
     }
 
+    // Runs the permutation check for the scan's top hit and reports it in place.
+    async runGePermutationCheck() {
+        const ctx = this._gePermContext;
+        const out = document.getElementById('gePermResult');
+        if (!ctx || !out) return;
+        out.textContent = ' working…';
+        await new Promise(r => setTimeout(r, 30));   // let the label paint
+        const idx = new Map(this.metadata.cellLines.map((c, i) => [c, i]));
+        const gi = this.geneIndex.get(ctx.gene);
+        const val = (cl) => {
+            const i = idx.get(cl);
+            if (i === undefined || gi === undefined) return null;
+            const v = this.geneEffects[gi * this.nCellLines + i];
+            return (!isNaN(v) && v !== -999) ? v : null;
+        };
+        const A = ctx.a.map(val).filter(v => v !== null);
+        const B = ctx.b.map(val).filter(v => v !== null);
+        if (A.length < 3 || B.length < 3) { out.textContent = ' not enough cell lines to test.'; return; }
+        const mean = (x) => x.reduce((p, q) => p + q, 0) / x.length;
+        const vr = (x, m) => x.reduce((p, q) => p + (q - m) ** 2, 0) / (x.length - 1);
+        const mA = mean(A), mB = mean(B);
+        const t = (mA - mB) / Math.sqrt(vr(A, mA) / A.length + vr(B, mB) / B.length);
+        // Keep the work bounded: the cost is permutations x genes x cell lines.
+        const cells = ctx.a.length + ctx.b.length;
+        const perms = Math.max(50, Math.min(200, Math.round(1.2e8 / Math.max(1, this.nGenes * cells))));
+        const res = this.permutationFDR(ctx.a, ctx.b, t, perms);
+        if (!res) { out.textContent = ' groups too small for this test.'; return; }
+        const noisy = res.fdr === null || res.fdr > 0.5;
+        out.innerHTML = `<span style="color:${noisy ? '#b45309' : '#15803d'};">`
+            + `${res.observed} gene${res.observed === 1 ? '' : 's'} separate this strongly; shuffling the groups gives `
+            + `${res.expected.toFixed(1)} by chance`
+            + (res.fdr !== null ? `, so about ${(res.fdr * 100).toFixed(0)}% of hits at this level are noise` : '')
+            + `.</span> <span style="color:#9ca3af;">(${res.permutations} shuffles)</span>`;
+    }
+
+    // How many genes would separate this strongly by chance alone? With a
+    // dozen cell lines per group, a genome-wide scan produces striking-looking
+    // hits from noise, and the rank on its own gives no sense of that. Shuffles
+    // the group labels and recounts, which is the honest denominator.
+    // Returns null if the groups are too small to permute meaningfully.
+    permutationFDR(cellLinesA, cellLinesB, observedT, permutations = 200) {
+        const idx = new Map(this.metadata.cellLines.map((c, i) => [c, i]));
+        const rows = [...cellLinesA, ...cellLinesB].map(c => idx.get(c)).filter(i => i !== undefined);
+        const labels = [
+            ...cellLinesA.map(c => idx.get(c)).filter(i => i !== undefined).map(() => 1),
+            ...cellLinesB.map(c => idx.get(c)).filter(i => i !== undefined).map(() => 0),
+        ];
+        if (labels.filter(x => x).length < 3 || labels.filter(x => !x).length < 3) return null;
+
+        // Complete-case matrix: only genes measured in every one of these lines,
+        // so a permutation never changes which values are available.
+        const mat = [];
+        for (let g = 0; g < this.nGenes; g++) {
+            const row = new Float64Array(rows.length);
+            let ok = true;
+            for (let k = 0; k < rows.length; k++) {
+                const v = this.geneEffects[g * this.nCellLines + rows[k]];
+                if (isNaN(v) || v === -999) { ok = false; break; }
+                row[k] = v;
+            }
+            if (ok) mat.push(row);
+        }
+        if (mat.length < 500) return null;
+
+        const tOf = (vals, lab) => {
+            let sa = 0, na = 0, sb = 0, nb = 0;
+            for (let i = 0; i < vals.length; i++) { if (lab[i]) { sa += vals[i]; na++; } else { sb += vals[i]; nb++; } }
+            if (na < 3 || nb < 3) return 0;
+            const ma = sa / na, mb = sb / nb;
+            let va = 0, vb = 0;
+            for (let i = 0; i < vals.length; i++) { if (lab[i]) va += (vals[i] - ma) ** 2; else vb += (vals[i] - mb) ** 2; }
+            va /= (na - 1); vb /= (nb - 1);
+            const d = Math.sqrt(va / na + vb / nb);
+            return d > 0 ? (ma - mb) / d : 0;
+        };
+
+        const cut = Math.abs(observedT);
+        let observed = 0;
+        for (const row of mat) if (Math.abs(tOf(row, labels)) >= cut) observed++;
+
+        const shuffled = labels.slice();
+        let total = 0;
+        for (let p = 0; p < permutations; p++) {
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const t = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = t;
+            }
+            for (const row of mat) if (Math.abs(tOf(row, shuffled)) >= cut) total++;
+        }
+        const expected = total / permutations;
+        return {
+            genesTested: mat.length, observed, expected,
+            fdr: observed > 0 ? expected / observed : null,
+            permutations,
+        };
+    }
+
     // Do the gene's known complex or pathway partners move on the same split?
     // A gene separating strongly while every partner is flat is the strongest
     // cheap signal that the separation is noise: a complex cannot function
@@ -21709,8 +21806,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
         } catch (e) { /* the note is a nicety, never block the chart */ }
+        // Offer a permutation check on the top hit. Run on request rather than
+        // automatically: it is a genome-wide recompute, about a second.
+        let permButton = '';
+        const topHit = hotspotStats[0];
+        const permCohort = topHit ? topHit.nMut + topHit.n0 : 0;
+        const PERM_MAX_CELLS = 200;
+        if (topHit && topHit.nMut >= 3 && topHit.n0 >= 3 && !isGrowthHS && !isGeneSetHS
+            && permCohort <= PERM_MAX_CELLS) {
+            this._gePermContext = {
+                gene,
+                group: topHit.group,
+                a: [...topHit.cellData1, ...topHit.cellData2].map(c => c.cellLineId),
+                b: topHit.cellData0.map(c => c.cellLineId),
+            };
+            permButton = `<div id="gePermRow" style="margin:6px 0 0; font-size:11px; color:#6b7280;">`
+                + `<button type="button" onclick="app.runGePermutationCheck()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px;">How many hits like this would chance give?</button>`
+                + ` <span id="gePermResult"></span></div>`;
+        }
         const partnerNoteEl = document.getElementById('gePartnerNote');
-        if (partnerNoteEl) partnerNoteEl.innerHTML = partnerNote;
+        if (partnerNoteEl) partnerNoteEl.innerHTML = partnerNote + permButton;
 
         // Apply p-value filter if enabled
         const pFilter = document.getElementById('gePvalueFilter')?.checked;
