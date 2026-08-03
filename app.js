@@ -31697,31 +31697,31 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
     _WIKI_PATHWAYS() {
         return {
-            'p53 / apoptosis':          { genes: ['TP53', 'MDM2', 'MDM4', 'CDKN2A', 'CDKN2B'], note: 'Controls apoptosis and genome stability after damage. Loss is one of the commonest events in cancer.' },
-            'Cell cycle (RB / CDK4/6)': { genes: ['RB1', 'CDK4', 'CDK6', 'CCND1', 'CCND2', 'CCNE1', 'CDKN1B'], note: 'G1/S cell-cycle brake. Many tumours release this brake; CDK4/6 inhibitors target this axis.' },
-            'RAS / MAPK':               { genes: ['KRAS', 'NRAS', 'HRAS', 'BRAF', 'MAP2K1', 'MAP2K2', 'NF1', 'PTPN11', 'RAF1'], note: 'Major proliferation-signalling cascade. Targetable with MEK or RAF inhibitors.' },
-            'PI3K / AKT / mTOR':        { genes: ['PIK3CA', 'PIK3CB', 'PIK3R1', 'PTEN', 'AKT1', 'AKT2', 'TSC1', 'TSC2', 'MTOR', 'STK11'], note: 'Survival and growth signalling. Targetable with PI3K, AKT, or mTOR inhibitors.' },
-            'Receptor tyrosine kinases':{ genes: ['EGFR', 'ERBB2', 'ERBB3', 'MET', 'KIT', 'PDGFRA', 'PDGFRB', 'FGFR1', 'FGFR2', 'FGFR3', 'FGFR4', 'ALK', 'ROS1', 'RET', 'NTRK1', 'NTRK2', 'NTRK3', 'FLT3'], note: 'Cell-surface receptors. Often the upstream cause of MAPK or PI3K activation. Many have approved inhibitors. The mutation panel below misses gene amplification and fusions, both are common driver mechanisms here, so a clean panel does not rule the pathway out.' },
-            'WNT / beta-catenin':       { genes: ['APC', 'CTNNB1', 'AXIN1', 'AXIN2', 'RNF43'], note: 'Stem-cell-like proliferation. Hyperactivation drives most colorectal cancer.' },
-            'MYC / MAX':                { genes: ['MYC', 'MYCN', 'MYCL', 'MAX'], note: 'Master proliferation regulator. Often deregulated by translocation or amplification rather than point mutation.' },
-            'SWI/SNF chromatin':        { genes: ['ARID1A', 'ARID1B', 'ARID2', 'SMARCA4', 'SMARCA2', 'SMARCB1', 'PBRM1', 'BRD7'], note: 'Chromatin-remodelling complex. Loss of one subunit can create dependency on a paralog (synthetic lethality).' },
-            'Epigenetic writers':       { genes: ['KMT2A', 'KMT2B', 'KMT2C', 'KMT2D', 'CREBBP', 'EP300', 'EZH2', 'DNMT3A', 'TET2', 'ASXL1', 'IDH1', 'IDH2'], note: 'Histone and DNA methylation machinery. Dysregulation is especially common in haematological cancers.' },
-            'Homologous recombination repair': { genes: ['BRCA1', 'BRCA2', 'PALB2', 'ATM', 'ATR', 'CHEK1', 'CHEK2', 'RAD51', 'RAD51C', 'RAD51D', 'FANCA', 'FANCC', 'FANCD2', 'BRIP1', 'BARD1'], note: 'High-fidelity DNA double-strand break repair. Loss leads to PARP-inhibitor sensitivity.' },
-            'Mismatch repair':          { genes: ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'], note: 'Corrects DNA replication errors. Loss causes microsatellite instability and a hypermutated genome, classic checkpoint-immunotherapy responder.' },
-            'NOTCH':                    { genes: ['NOTCH1', 'NOTCH2', 'NOTCH3', 'FBXW7', 'MAML2'], note: 'Cell-fate signalling. Activating mutations in T-cell leukaemia; inactivating in squamous cancers.' },
-            'Haematopoietic transcription / JAK-STAT': { genes: ['RUNX1', 'CEBPA', 'GATA2', 'IKZF1', 'PAX5', 'EBF1', 'IL7R', 'CRLF2', 'JAK1', 'JAK2', 'JAK3', 'STAT3', 'STAT5B'], note: 'Transcription factors and cytokine signalling that govern blood-cell identity and survival.' },
-            'Telomere maintenance':     { genes: ['TERT', 'TERC', 'POT1', 'ATRX', 'DAXX'], note: 'Maintains chromosome ends. Cancers reactivate telomerase (TERT promoter mutations) or use the alternative ALT mechanism.' },
-            'TGF-beta / SMAD':          { genes: ['SMAD2', 'SMAD3', 'SMAD4', 'TGFBR1', 'TGFBR2', 'ACVR1B', 'ACVR2A'], note: 'Growth-inhibitory signal in normal epithelium. Loss removes a brake on proliferation early in pancreatic and colorectal cancer; later in tumour evolution the same pathway can instead promote invasion and immune escape.' },
-            'Hippo / YAP-TAZ':          { genes: ['NF2', 'LATS1', 'LATS2', 'SAV1', 'STK3', 'STK4', 'WWTR1', 'YAP1', 'FAT1'], note: 'Controls organ size by holding YAP/TAZ out of the nucleus. Loss drives proliferation and anoikis resistance; a defining event in mesothelioma (NF2) and in fusion-driven epithelioid haemangioendothelioma.' },
-            'NRF2 oxidative stress':    { genes: ['KEAP1', 'NFE2L2', 'CUL3'], note: 'Antioxidant response. Constitutive activation lets tumour cells tolerate oxidative and chemotherapeutic stress, and predicts resistance to radiotherapy and platinum in lung squamous cancer.' },
-            'Hypoxia / VHL-HIF':        { genes: ['VHL', 'HIF1A', 'EPAS1', 'EGLN1', 'SDHA', 'SDHB', 'SDHC', 'SDHD', 'FH'], note: 'Oxygen sensing and the angiogenic response. VHL loss is the founding event of clear-cell renal carcinoma; SDH and FH loss additionally rewire metabolism.' },
-            'Apoptosis (BCL2 family)':  { genes: ['BCL2', 'BCL2L1', 'MCL1', 'BAX', 'BAK1', 'BCL2L11', 'BIRC5', 'CASP8', 'FAS'], note: 'Sets the threshold for programmed cell death. Cancers raise the anti-apoptotic side (BCL2 in follicular lymphoma, MCL1 amplification); BH3-mimetics such as venetoclax target it directly.' },
-            'Hedgehog':                 { genes: ['PTCH1', 'PTCH2', 'SMO', 'SUFU', 'GLI1', 'GLI2'], note: 'Developmental signalling reactivated in basal-cell carcinoma and medulloblastoma. Targetable with SMO inhibitors (vismodegib), though SMO mutations confer resistance.' },
-            'Spliceosome':              { genes: ['SF3B1', 'U2AF1', 'SRSF2', 'ZRSR2', 'PRPF8', 'RBM10'], note: 'Pre-mRNA splicing machinery. Recurrent hotspot mutations in myelodysplastic syndromes and CLL produce mis-spliced transcripts and create a dependency on the remaining splicing capacity.' },
-            'Cohesin complex':          { genes: ['STAG2', 'STAG1', 'RAD21', 'SMC1A', 'SMC3', 'NIPBL'], note: 'Holds sister chromatids together and shapes chromatin looping. Loss is recurrent in bladder cancer, Ewing sarcoma and AML, and affects transcription more than it does chromosome segregation.' },
-            'Antigen presentation / immune escape': { genes: ['B2M', 'HLA-A', 'HLA-B', 'HLA-C', 'TAP1', 'TAP2', 'NLRC5', 'CIITA', 'JAK1', 'JAK2', 'CD274'], note: 'How a cell displays peptides to T cells. Loss lets a tumour hide from cytotoxic T cells and predicts checkpoint-inhibitor resistance. See the Class-I antigen presentation read-out above, which combines these with expression and copy number.' },
-            'Ubiquitin / protein turnover': { genes: ['FBXW7', 'SPOP', 'CUL1', 'CDC73', 'KEAP1', 'VHL', 'TRAF3', 'TRAF7'], note: 'Targeted protein degradation. Losing an E3 ligase stabilises its substrate, which is how FBXW7 loss raises MYC and cyclin E, and SPOP loss raises the androgen receptor.' },
-            'Nucleotide excision / crosslink repair': { genes: ['ERCC1', 'ERCC2', 'ERCC3', 'ERCC4', 'ERCC5', 'XPA', 'XPC', 'POLE', 'POLD1'], note: 'Repairs bulky adducts and crosslinks, which is what platinum chemotherapy creates. POLE and POLD1 proofreading loss instead produces an ultramutated genome.' },
+            'p53 / apoptosis':          { genes: ['TP53', 'MDM2', 'MDM4', 'CDKN2A', 'CDKN2B'], ts: ['TP53', 'CDKN2A', 'CDKN2B'], note: 'Controls apoptosis and genome stability after damage. Loss is one of the commonest events in cancer.' },
+            'Cell cycle (RB / CDK4/6)': { genes: ['RB1', 'CDK4', 'CDK6', 'CCND1', 'CCND2', 'CCNE1', 'CDKN1B'], ts: ['RB1', 'CDKN1B'], note: 'G1/S cell-cycle brake. Many tumours release this brake; CDK4/6 inhibitors target this axis.' },
+            'RAS / MAPK':               { genes: ['KRAS', 'NRAS', 'HRAS', 'BRAF', 'MAP2K1', 'MAP2K2', 'NF1', 'PTPN11', 'RAF1'], ts: ['NF1'], note: 'Major proliferation-signalling cascade. Targetable with MEK or RAF inhibitors.' },
+            'PI3K / AKT / mTOR':        { genes: ['PIK3CA', 'PIK3CB', 'PIK3R1', 'PTEN', 'AKT1', 'AKT2', 'TSC1', 'TSC2', 'MTOR', 'STK11'], ts: ['PTEN', 'TSC1', 'TSC2', 'STK11', 'PIK3R1'], note: 'Survival and growth signalling. Targetable with PI3K, AKT, or mTOR inhibitors.' },
+            'Receptor tyrosine kinases':{ genes: ['EGFR', 'ERBB2', 'ERBB3', 'MET', 'KIT', 'PDGFRA', 'PDGFRB', 'FGFR1', 'FGFR2', 'FGFR3', 'FGFR4', 'ALK', 'ROS1', 'RET', 'NTRK1', 'NTRK2', 'NTRK3', 'FLT3'], ts: [], note: 'Cell-surface receptors. Often the upstream cause of MAPK or PI3K activation. Many have approved inhibitors. The mutation panel below misses gene amplification and fusions, both are common driver mechanisms here, so a clean panel does not rule the pathway out.' },
+            'WNT / beta-catenin':       { genes: ['APC', 'CTNNB1', 'AXIN1', 'AXIN2', 'RNF43'], ts: ['APC', 'AXIN1', 'AXIN2', 'RNF43'], note: 'Stem-cell-like proliferation. Hyperactivation drives most colorectal cancer.' },
+            'MYC / MAX':                { genes: ['MYC', 'MYCN', 'MYCL', 'MAX'], ts: ['MAX'], note: 'Master proliferation regulator. Often deregulated by translocation or amplification rather than point mutation.' },
+            'SWI/SNF chromatin':        { genes: ['ARID1A', 'ARID1B', 'ARID2', 'SMARCA4', 'SMARCA2', 'SMARCB1', 'PBRM1', 'BRD7'], ts: ['ARID1A', 'ARID1B', 'ARID2', 'SMARCA4', 'SMARCA2', 'SMARCB1', 'PBRM1', 'BRD7'], note: 'Chromatin-remodelling complex. Loss of one subunit can create dependency on a paralog (synthetic lethality).' },
+            'Epigenetic writers':       { genes: ['KMT2A', 'KMT2B', 'KMT2C', 'KMT2D', 'CREBBP', 'EP300', 'EZH2', 'DNMT3A', 'TET2', 'ASXL1', 'IDH1', 'IDH2'], ts: ['KMT2C', 'KMT2D', 'CREBBP', 'EP300', 'TET2', 'ASXL1'], note: 'Histone and DNA methylation machinery. Dysregulation is especially common in haematological cancers.' },
+            'Homologous recombination repair': { genes: ['BRCA1', 'BRCA2', 'PALB2', 'ATM', 'ATR', 'CHEK1', 'CHEK2', 'RAD51', 'RAD51C', 'RAD51D', 'FANCA', 'FANCC', 'FANCD2', 'BRIP1', 'BARD1'], ts: ['BRCA1', 'BRCA2', 'PALB2', 'ATM', 'ATR', 'CHEK1', 'CHEK2', 'RAD51C', 'RAD51D', 'FANCA', 'FANCC', 'FANCD2', 'BRIP1', 'BARD1'], note: 'High-fidelity DNA double-strand break repair. Loss leads to PARP-inhibitor sensitivity.' },
+            'Mismatch repair':          { genes: ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'], ts: ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'], note: 'Corrects DNA replication errors. Loss causes microsatellite instability and a hypermutated genome, classic checkpoint-immunotherapy responder.' },
+            'NOTCH':                    { genes: ['NOTCH1', 'NOTCH2', 'NOTCH3', 'FBXW7', 'MAML2'], ts: ['FBXW7'], note: 'Cell-fate signalling. Activating mutations in T-cell leukaemia; inactivating in squamous cancers.' },
+            'Haematopoietic transcription / JAK-STAT': { genes: ['RUNX1', 'CEBPA', 'GATA2', 'IKZF1', 'PAX5', 'EBF1', 'IL7R', 'CRLF2', 'JAK1', 'JAK2', 'JAK3', 'STAT3', 'STAT5B'], ts: ['RUNX1', 'CEBPA', 'GATA2', 'IKZF1', 'PAX5', 'EBF1'], note: 'Transcription factors and cytokine signalling that govern blood-cell identity and survival.' },
+            'Telomere maintenance':     { genes: ['TERT', 'TERC', 'POT1', 'ATRX', 'DAXX'], ts: ['POT1', 'ATRX', 'DAXX'], note: 'Maintains chromosome ends. Cancers reactivate telomerase (TERT promoter mutations) or use the alternative ALT mechanism.' },
+            'TGF-beta / SMAD':          { genes: ['SMAD2', 'SMAD3', 'SMAD4', 'TGFBR1', 'TGFBR2', 'ACVR1B', 'ACVR2A'], ts: ['SMAD2', 'SMAD3', 'SMAD4', 'TGFBR1', 'TGFBR2', 'ACVR1B', 'ACVR2A'], note: 'Growth-inhibitory signal in normal epithelium. Loss removes a brake on proliferation early in pancreatic and colorectal cancer; later in tumour evolution the same pathway can instead promote invasion and immune escape.' },
+            'Hippo / YAP-TAZ':          { genes: ['NF2', 'LATS1', 'LATS2', 'SAV1', 'STK3', 'STK4', 'WWTR1', 'YAP1', 'FAT1'], ts: ['NF2', 'LATS1', 'LATS2', 'SAV1', 'STK3', 'STK4', 'FAT1'], note: 'Controls organ size by holding YAP/TAZ out of the nucleus. Loss drives proliferation and anoikis resistance; a defining event in mesothelioma (NF2) and in fusion-driven epithelioid haemangioendothelioma.' },
+            'NRF2 oxidative stress':    { genes: ['KEAP1', 'NFE2L2', 'CUL3'], ts: ['KEAP1', 'CUL3'], note: 'Antioxidant response. Constitutive activation lets tumour cells tolerate oxidative and chemotherapeutic stress, and predicts resistance to radiotherapy and platinum in lung squamous cancer.' },
+            'Hypoxia / VHL-HIF':        { genes: ['VHL', 'HIF1A', 'EPAS1', 'EGLN1', 'SDHA', 'SDHB', 'SDHC', 'SDHD', 'FH'], ts: ['VHL', 'SDHA', 'SDHB', 'SDHC', 'SDHD', 'FH'], note: 'Oxygen sensing and the angiogenic response. VHL loss is the founding event of clear-cell renal carcinoma; SDH and FH loss additionally rewire metabolism.' },
+            'Apoptosis (BCL2 family)':  { genes: ['BCL2', 'BCL2L1', 'MCL1', 'BAX', 'BAK1', 'BCL2L11', 'BIRC5', 'CASP8', 'FAS'], ts: ['BAX', 'BAK1', 'BCL2L11', 'CASP8', 'FAS'], note: 'Sets the threshold for programmed cell death. Cancers raise the anti-apoptotic side (BCL2 in follicular lymphoma, MCL1 amplification); BH3-mimetics such as venetoclax target it directly.' },
+            'Hedgehog':                 { genes: ['PTCH1', 'PTCH2', 'SMO', 'SUFU', 'GLI1', 'GLI2'], ts: ['PTCH1', 'PTCH2', 'SUFU'], note: 'Developmental signalling reactivated in basal-cell carcinoma and medulloblastoma. Targetable with SMO inhibitors (vismodegib), though SMO mutations confer resistance.' },
+            'Spliceosome':              { genes: ['SF3B1', 'U2AF1', 'SRSF2', 'ZRSR2', 'PRPF8', 'RBM10'], ts: ['RBM10', 'ZRSR2'], note: 'Pre-mRNA splicing machinery. Recurrent hotspot mutations in myelodysplastic syndromes and CLL produce mis-spliced transcripts and create a dependency on the remaining splicing capacity.' },
+            'Cohesin complex':          { genes: ['STAG2', 'STAG1', 'RAD21', 'SMC1A', 'SMC3', 'NIPBL'], ts: ['STAG2', 'STAG1', 'RAD21', 'SMC1A', 'SMC3', 'NIPBL'], note: 'Holds sister chromatids together and shapes chromatin looping. Loss is recurrent in bladder cancer, Ewing sarcoma and AML, and affects transcription more than it does chromosome segregation.' },
+            'Antigen presentation / immune escape': { genes: ['B2M', 'HLA-A', 'HLA-B', 'HLA-C', 'TAP1', 'TAP2', 'NLRC5', 'CIITA', 'JAK1', 'JAK2', 'CD274'], ts: ['B2M', 'HLA-A', 'HLA-B', 'HLA-C', 'TAP1', 'TAP2', 'NLRC5', 'CIITA'], note: 'How a cell displays peptides to T cells. Loss lets a tumour hide from cytotoxic T cells and predicts checkpoint-inhibitor resistance. See the Class-I antigen presentation read-out above, which combines these with expression and copy number.' },
+            'Ubiquitin / protein turnover': { genes: ['FBXW7', 'SPOP', 'CUL1', 'CDC73', 'KEAP1', 'VHL', 'TRAF3', 'TRAF7'], ts: ['FBXW7', 'SPOP', 'CUL1', 'CDC73', 'KEAP1', 'VHL', 'TRAF3', 'TRAF7'], note: 'Targeted protein degradation. Losing an E3 ligase stabilises its substrate, which is how FBXW7 loss raises MYC and cyclin E, and SPOP loss raises the androgen receptor.' },
+            'Nucleotide excision / crosslink repair': { genes: ['ERCC1', 'ERCC2', 'ERCC3', 'ERCC4', 'ERCC5', 'XPA', 'XPC', 'POLE', 'POLD1'], ts: ['ERCC1', 'ERCC2', 'ERCC3', 'ERCC4', 'ERCC5', 'XPA', 'XPC', 'POLE', 'POLD1'], note: 'Repairs bulky adducts and crosslinks, which is what platinum chemotherapy creates. POLE and POLD1 proofreading loss instead produces an ultramutated genome.' },
         };
     }
 
@@ -32426,10 +32426,6 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 + `${tags}`
                 + `</div>`);
         }
-        const pathwayHtml = pathwayRows.length
-            ? pathwayRows.join('')
-            : '<em style="color:#6b7280; font-size:11px;">No mutation in any of the curated cancer-pathway panels. This scan reads point mutations only, so amplifications, deletions, fusions and silencing are not covered here, see Key genetic alterations and the copy-number regions above.</em>';
-
         // --- Pathway status (genotype + CRISPR dependency) ---
         // For a handful of clinically-important pathways, combine the mutation
         // call with the gene-effect (CRISPR knockout) read-out to infer whether
@@ -32713,12 +32709,97 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
         }
 
-        const pathwayStatusHtml = pathwayStatuses.map(p => `
-            <div style="margin-bottom:8px; padding:8px 12px; border-left:4px solid ${p.color}; background:${p.color}14; border-radius:0 4px 4px 0;">
-                <div style="font-weight:600; margin-bottom:4px; color:${p.color}; font-size:12px;">${p.name}</div>
-                <ul style="margin:0 0 4px 16px; padding:0; font-size:11px; color:#374151;">${p.lines.map(l => `<li>${l}</li>`).join('')}</ul>
-                <div style="font-size:11px; color:#374151; padding-top:4px; border-top:1px dashed #e5e7eb;">${p.synthesis}</div>
-            </div>`).join('');
+        // One ranked pathway read-out. Every curated pathway is evaluated
+        // against all the evidence layers, not just point mutations, and the
+        // four that also have a CRISPR-dependency reading carry their fuller
+        // narrative underneath. Pathways with nothing found collapse to a
+        // single line so the ones that matter stay at the top.
+        const deepNote = { deep_del: 'deep deletion', del: 'single-copy loss',
+                           strong_amp: 'strong amplification', amp: 'focal gain' };
+        // Read the curated CN events directly: the shared cnEventsWiki binding
+        // is declared further down this function.
+        const cnEventsForPw = this.clinicalCn?.byCellLine?.[cellLineId] || {};
+        const cnByGene = {};
+        for (const e of (cnEventsForPw.amplifications || [])) cnByGene[e.gene] = { dir: 'amp', tier: e.tier, cn: e.cn };
+        for (const e of (cnEventsForPw.deletions || [])) cnByGene[e.gene] = { dir: 'del', tier: e.tier, cn: e.cn };
+        const fusionPartnerSet = new Set();
+        for (const c of clinicalFusionCalls) for (const g of c.fusion.split(/--?/)) fusionPartnerSet.add(g);
+
+        // The interpreted blocks were written with their own names; map them onto
+        // the panel names so their CRISPR read-out lands on the right card.
+        const RICH_ALIAS = {
+            'p53 tumour-suppressor pathway': 'p53 / apoptosis',
+            'Cell cycle (RB / CDK4/6)': 'Cell cycle (RB / CDK4/6)',
+            'RAS / MAPK signalling': 'RAS / MAPK',
+            'PI3K / AKT survival pathway': 'PI3K / AKT / mTOR',
+            'BCR-ABL fusion': 'Receptor tyrosine kinases',
+            'BCR / ABL1 rearrangement': 'Receptor tyrosine kinases',
+        };
+        const richByName = {};
+        for (const ps of pathwayStatuses) richByName[RICH_ALIAS[ps.name] || ps.name] = ps;
+
+        const pathwayCards = [];
+        for (const [pname, info] of Object.entries(pathways)) {
+            const tsSet = new Set(info.ts || []);
+            const ev = [];
+            let brakeLost = false, driverOn = false;
+            for (const g of info.genes) {
+                const bits = [];
+                // A hotspot in a tumour suppressor is not "activating"; TP53
+                // R175H and friends are recurrent because they disable it.
+                if (hotHit(g)) bits.push(tsSet.has(g) ? 'recurrent hotspot mutation' : 'activating hotspot');
+                if (damHit(g)) bits.push('damaging mutation');
+                if (lofHit(g)) bits.push('functional loss');
+                const cn = cnByGene[g];
+                if (cn) bits.push(deepNote[cn.tier] || cn.dir);
+                if (fusionPartnerSet.has(g)) bits.push('in a curated fusion');
+                if (!bits.length) continue;
+                const isLoss = damHit(g) || lofHit(g) || (cn && cn.dir === 'del');
+                const isGain = hotHit(g) || (cn && cn.dir === 'amp') || fusionPartnerSet.has(g);
+                if (tsSet.has(g) && isLoss) brakeLost = true;
+                if (!tsSet.has(g) && isGain) driverOn = true;
+                ev.push({ gene: g, bits, isTs: tsSet.has(g) });
+            }
+            let verdict, tone;
+            if (driverOn && brakeLost) { verdict = 'Driver active and brake lost'; tone = '#b91c1c'; }
+            else if (driverOn) { verdict = 'Driver active'; tone = '#b91c1c'; }
+            else if (brakeLost) { verdict = 'Brake lost'; tone = '#b45309'; }
+            else if (ev.length) { verdict = 'Altered'; tone = '#b45309'; }
+            else { verdict = 'No alteration found'; tone = '#9ca3af'; }
+            pathwayCards.push({
+                name: pname, note: info.note, ev, verdict, tone,
+                rank: (driverOn && brakeLost) ? 0 : (driverOn || brakeLost) ? 1 : ev.length ? 2 : (richByName[pname] ? 3 : 4),
+                rich: richByName[pname] || null,
+            });
+        }
+        pathwayCards.sort((a, b) => (a.rank - b.rank) || (b.ev.length - a.ev.length) || a.name.localeCompare(b.name));
+
+        const pwChip = (e) => `<span class="gene-hover wiki-chip${e.isTs ? ' wiki-chip-ts' : ' wiki-chip-onc'}" data-gene="${e.gene}" title="${this.esc(e.bits.join(', '))}">${e.gene}</span>`;
+        const pwCard = (c) => {
+            const chips = c.ev.map(pwChip).join('');
+            const detail = c.ev.map(e => `${e.gene} ${e.bits.join(' + ')}`).join('; ');
+            const richLines = c.rich
+                ? `<ul class="wiki-pw-rich">${c.rich.lines.map(l => `<li>${l}</li>`).join('')}</ul>`
+                  + `<div class="wiki-pw-synth">${c.rich.synthesis}</div>`
+                : '';
+            return `<div class="wiki-pw" style="border-left-color:${c.tone};">`
+                + `<div class="wiki-pw-head"><span class="wiki-pw-name">${c.name}</span>`
+                + `<span class="wiki-pw-verdict" style="color:${c.tone};">${c.verdict}</span></div>`
+                + `<div class="wiki-pw-why" title="${this.esc(c.note)}">${detail ? this.esc(detail) : 'No mutation, copy-number event or fusion found in this panel. The CRISPR read-out below still says something about how the pathway behaves.'}</div>`
+                + `<div class="wiki-pw-chips">${chips}</div>`
+                + richLines
+                + `</div>`;
+        };
+        const hitCards = pathwayCards.filter(c => c.ev.length || c.rich);
+        const quietCards = pathwayCards.filter(c => !c.ev.length && !c.rich);
+        const pathwayStatusHtml =
+            (hitCards.length
+                ? hitCards.map(pwCard).join('')
+                : `<div class="wiki-muted">No alteration found in any of the ${pathwayCards.length} curated pathways. That is unusual, and worth checking against the mutation counts above before trusting it.</div>`)
+            + (quietCards.length
+                ? `<div class="wiki-pw-quiet"><a href="#" onclick="this.parentElement.querySelector('.wiki-pw-quiet-list').style.display='block'; this.style.display='none'; return false;">Nothing detected in ${quietCards.length} further pathway${quietCards.length === 1 ? '' : 's'}, show them</a>`
+                  + `<div class="wiki-pw-quiet-list" style="display:none;">${quietCards.map(c => `<span class="wiki-pw-quiet-item">${c.name}</span>`).join('')}</div></div>`
+                : '');
 
         // Top hotspot genes
         const hotspotsMutated = [];
@@ -33085,8 +33166,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             ${keyAltBody}
             ${typicalContextHtml}
             <div style="margin-top:12px; padding-top:10px; border-top:1px solid #e5e7eb;">
-                <div style="font-weight:600; margin-bottom:4px; color:#374151;">Pathway status <span style="color:#6b7280; font-weight:400; font-size:11px;">, genotype × CRISPR dependency</span></div>
-                <p style="margin:0 0 6px; font-size:10px; color:#6b7280;">A curated set of <b>a few high-level cancer pathways</b> (p53, cell cycle / RB, RAS-MAPK, PI3K-AKT, plus a fusion/RTK panel when relevant), not an exhaustive pathway scan. For each, the mutation calls above are combined with the CRISPR-knockout read-out to flag whether the pathway is functionally active in this line (it catches the common case where a gene is wild-type at the DNA level but the pathway is functionally dormant, or the reverse). Gene-effect (GE) scale: 0 = no effect, &minus;0.5 = selectively essential, &minus;1 ≈ typical strongly-essential gene.</p>
+                <div class="wiki-sub-h">Central cancer pathways</div>
+                <p class="wiki-sub-p">The 25 pathways most often subverted in cancer, checked against every layer this app carries: hotspot and damaging mutations, inferred functional loss, focal copy-number events and curated fusions. <b>Driver active</b> means an accelerator is stuck on; <b>brake lost</b> means a tumour suppressor in the pathway is gone. Where a CRISPR read-out can test the conclusion, it is shown underneath. Gene-effect scale: 0 = no effect, &minus;0.5 = selectively essential, &minus;1 &asymp; a typical strongly-essential gene.</p>
                 ${pathwayStatusHtml}
             </div>`;
 
@@ -33235,7 +33316,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumour suppressors whose knockout boosts growth</b> (red above): ${tsHits.map(g => g.gene).join(', ')}. Removing these helps the cell grow, so they are <em>still functional</em> here and have <em>not</em> been inactivated in this cell line.</div>`
                 : '';
 
-            const introPara = `<p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? The interesting dependencies are <b>selective to this line</b>, genes it needs more than usual, often downstream of its active oncogene or driver. <b>"More than usual" means compared to the entire DepMap cohort</b> (all ~1,100 cancer cell lines across every lineage, <i>not</i> only same-tissue lines), so a gene flagged here is one this line depends on more than the average cancer cell line of any type. <b>Pan-essentials</b> (ribosomal, RNA polymerase, etc., needed by every cell) are removed; they say nothing line-specific. Rankings use <b>z-score vs that whole cohort</b>: z &lt; &minus;2 = much more essential than typical, z &gt; +2 = knockout helps growth much more than typical. A second list scores the same way but <b>only against same-lineage lines (the cancer family)</b>, these are dependencies specific to <i>this</i> line beyond what its tissue siblings share. <span style="display:inline-block; margin-left:6px;">💊 = approved or clinical-stage drug targets this gene.</span></p>`;
+            const introPara = `<p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks: which genes, when deleted, kill this cell line? The interesting dependencies are <b>selective to this line</b>, genes it needs more than usual, often downstream of its active oncogene or driver. <b>"More than usual" means compared to every cell line in the CRISPR panel</b> (all ${this.nCellLines.toLocaleString()} screened lines, across every lineage, <i>not</i> only same-tissue lines), so a gene flagged here is one this line depends on more than the average cancer cell line of any type. <b>Pan-essentials</b> (ribosomal, RNA polymerase, etc., needed by every cell) are removed; they say nothing line-specific. Rankings use <b>z-score vs that whole cohort</b>: z &lt; &minus;2 = much more essential than typical, z &gt; +2 = knockout helps growth much more than typical. A second list scores the same way but <b>only against same-lineage lines (the cancer family)</b>, these are dependencies specific to <i>this</i> line beyond what its tissue siblings share. <span style="display:inline-block; margin-left:6px;">💊 = approved or clinical-stage drug targets this gene.</span></p>`;
             if (zScored.length === 0) {
                 // The cell line index is valid (we're in the clIdx >= 0
                 // branch) but no gene-effect values survived the per-gene
@@ -33448,12 +33529,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     : '';
 
                 exprSigHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression, that list is always dominated by mitochondrial and ribosomal genes that are high in every line. "Uniquely" here is judged <b>against the entire cohort</b> (all ~1,100 cell lines across every lineage, <i>not</i> just same-tissue lines). Values are log₂(TPM+1) (≈ mRNA on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score vs that whole cohort for the gene (&gt; +2 = much more expressed than the typical cell line, &lt; &minus;2 = strongly silenced). Whole-cohort hits carry a <span style="color:#15803d; font-weight:600;">✓ lineage-typical</span> flag when the whole cancer family also over-expresses them (i.e. common for this cancer type rather than specific to this line); a second list ranks genes uniquely high <b>vs same-lineage lines only</b>.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression, that list is always dominated by mitochondrial and ribosomal genes that are high in every line. "Uniquely" here is judged <b>against every cell line in the expression table</b> (${(this.expressionMetadata?.cellLines?.length || 0).toLocaleString()} lines across every lineage, <i>not</i> just same-tissue lines). Note this is a larger set than the ${this.nCellLines.toLocaleString()} lines with a CRISPR screen, so the two sections' comparisons are not drawn from exactly the same cell lines. Values are log₂(TPM+1) (≈ mRNA on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score vs that whole cohort for the gene (&gt; +2 = much more expressed than the typical cell line, &lt; &minus;2 = strongly silenced). Whole-cohort hits carry a <span style="color:#15803d; font-weight:600;">✓ lineage-typical</span> flag when the whole cancer family also over-expresses them (i.e. common for this cancer type rather than specific to this line); a second list ranks genes uniquely high <b>vs same-lineage lines only</b>.</p>
                     ${row('Top uniquely high vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages)</span>', topUniqueHtml)}
                     ${exprFamilyHtml}
                     ${xist !== undefined
                         ? row('XIST', xist.toFixed(2) + (xist > 1.0 ? ', active (the normal silencing of the extra X chromosome is working)' : ', silenced (unusual; can re-activate X-linked genes)'))
-                        : row('XIST', '<span style="color:#9ca3af;">not in this expression table (it is a non-coding RNA, and the table covers protein-coding genes only)</span>')}
+                        : ''}
                     ${yMean !== null && (this._getCellLineSex(cellLineId).annotation !== 'Female' || yMean > 1.0)
                         ? row('Y-chromosome genes (mean)', yMean.toFixed(2) + (yMean > 1.0 ? ', Y chromosome active' : ', Y chromosome silent or lost'))
                         : ''}
@@ -34514,7 +34595,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     const pageH = pdf.internal.pageSize.getHeight();
                     const contentW = pageW - margin * 2;
                     const ptPerPx = contentW / canvas.width;               // source px -> pt
-                    const pageSlicePx = Math.floor((pageH - margin * 2) / ptPerPx); // source px per page
+                    const footerH = 18;                                    // room for "3 / 12"
+                    const pageSlicePx = Math.floor((pageH - margin * 2 - footerH) / ptPerPx); // source px per page
                     // To avoid cutting a line of text or a chart across a page break,
                     // back the cut up to the nearest all-white row within a window.
                     let blankRow = null;
@@ -34522,9 +34604,20 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                         const fctx = canvas.getContext('2d');
                         const px = fctx.getImageData(0, 0, canvas.width, canvas.height).data;
                         const W = canvas.width;
+                        // A row qualifies when almost nothing is on it. The small
+                        // allowance lets a cut land in the gap between text lines
+                        // inside a block that has a coloured left border, which a
+                        // strict all-white test rejects.
+                        const inkAllowance = Math.max(6, Math.round(W * 0.01));
                         blankRow = (yy) => {
                             const base = yy * W * 4;
-                            for (let x = 0; x < W; x++) { const i = base + x * 4; if (px[i] < 248 || px[i + 1] < 248 || px[i + 2] < 248) return false; }
+                            let ink = 0;
+                            for (let x = 0; x < W; x++) {
+                                const i = base + x * 4;
+                                if (px[i] < 240 || px[i + 1] < 240 || px[i + 2] < 240) {
+                                    if (++ink > inkAllowance) return false;
+                                }
+                            }
                             return true;
                         };
                     } catch (e) { blankRow = null; }  // tainted canvas → fall back to fixed slicing
@@ -34532,7 +34625,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     while (y < canvas.height) {
                         let sliceH = Math.min(pageSlicePx, canvas.height - y);
                         if (blankRow && y + sliceH < canvas.height) {
-                            const minH = Math.floor(pageSlicePx * 0.55);
+                            // Back up to the last row that can be cut without
+                            // slicing through content. Going as far as a quarter
+                            // page is better than splitting a line of text.
+                            const minH = Math.floor(pageSlicePx * 0.25);
                             for (let yy = y + sliceH; yy > y + minH; yy--) {
                                 if (blankRow(yy)) { sliceH = yy - y; break; }
                             }
@@ -34556,6 +34652,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                         }
                         y += sliceH;
                         page++;
+                    }
+                    // Page numbers, centred in the bottom margin of every page.
+                    const total = pdf.internal.getNumberOfPages();
+                    for (let i = 1; i <= total; i++) {
+                        pdf.setPage(i);
+                        pdf.setFontSize(9);
+                        pdf.setTextColor(150);
+                        pdf.text(`${i} / ${total}`, pageW / 2, pageH - margin / 2, { align: 'center' });
                     }
                     pdf.save(fileName);
                     pdfDone = true;
@@ -39581,7 +39685,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // things that should scroll, so hand the wheel to them instead. Captured
         // and stopped before Plotly sees it, otherwise it would zoom as well.
         if (e.target.closest?.('.js-plotly-plot')) {
-            const scroller = inOverlay ? dialogScroller(overlay) : null;
+            // Walk out from the chart first: the nearest scrollable ancestor is
+            // what the user means, and it is not always the dialog's main
+            // scroller (a chart can sit inside its own scrolling panel).
+            let scroller = null;
+            for (let node = e.target; node && node !== document.body; node = node.parentElement) {
+                if (canScroll(node, e.deltaY)) { scroller = node; break; }
+            }
+            if (!scroller && inOverlay) scroller = dialogScroller(overlay);
             if (scroller && canScroll(scroller, e.deltaY)) {
                 scroller.scrollTop += e.deltaY;
                 e.preventDefault();
@@ -39591,6 +39702,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 e.stopPropagation();
             }
+            // Never fall through silently: if nothing could take the wheel the
+            // event is simply left alone rather than swallowed here.
             return;
         }
 

@@ -1391,6 +1391,44 @@
         /* Cell Line Browser */
         /* One shared control height across the whole toolbar, so inputs,
            selects and buttons line up on every row regardless of content. */
+        /* ---- Cell line wiki ------------------------------------------------
+           One type scale instead of the six sizes the sections had grown into:
+           14px for a section's conclusion, 12px for body, 10px for the quiet
+           source lines. Gene names are chips with real padding so a long list
+           stays readable instead of running together as tiny comma-separated
+           text. */
+        #clbWikiBody { font-size: 12px; line-height: 1.55; }
+        #clbWikiBody .wiki-sub-h { font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 3px; }
+        #clbWikiBody .wiki-sub-p { margin: 0 0 10px; font-size: 11px; color: #6b7280; line-height: 1.55; }
+        #clbWikiBody .wiki-muted { font-size: 11px; color: #6b7280; }
+        .wiki-chip {
+            display: inline-block; font-size: 11px; font-weight: 600;
+            padding: 2px 8px; margin: 0 5px 5px 0; border-radius: 10px;
+            border: 1px solid #d1d5db; background: #f9fafb; color: #374151;
+            cursor: help; white-space: nowrap;
+        }
+        /* Lost brake vs stuck accelerator, so the colour carries the meaning. */
+        .wiki-chip-ts  { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
+        .wiki-chip-onc { border-color: #93c5fd; background: #eff6ff; color: #1e40af; }
+        .wiki-pw {
+            border-left: 4px solid #d1d5db; border-radius: 0 5px 5px 0;
+            background: #fafafa; padding: 8px 12px; margin-bottom: 8px;
+        }
+        .wiki-pw-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+        .wiki-pw-name { font-weight: 700; color: #111827; font-size: 13px; }
+        .wiki-pw-verdict { font-size: 11px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; margin-left: auto; }
+        .wiki-pw-why { font-size: 11px; color: #4b5563; margin: 3px 0 6px; }
+        .wiki-pw-chips { line-height: 1.9; }
+        .wiki-pw-rich { margin: 6px 0 4px 16px; padding: 0; font-size: 11px; color: #374151; }
+        .wiki-pw-synth { font-size: 11px; color: #374151; padding-top: 4px; border-top: 1px dashed #e5e7eb; }
+        .wiki-pw-quiet { margin-top: 4px; font-size: 11px; }
+        .wiki-pw-quiet a { color: #15803d; text-decoration: none; }
+        .wiki-pw-quiet-list { margin-top: 6px; }
+        .wiki-pw-quiet-item {
+            display: inline-block; font-size: 10px; color: #6b7280;
+            border: 1px solid #e5e7eb; border-radius: 9px;
+            padding: 1px 8px; margin: 0 5px 5px 0; background: #fff;
+        }
         .clb-toolbar {
             --clb-ctl-h: 28px;
             display: flex;
@@ -1859,6 +1897,17 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.65 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>Pathways are now one ranked list instead of two blocks.</b> All 25 pathways are checked against every layer, hotspot and damaging mutations, functional loss, focal copy number and curated fusions, and each says whether a driver is active, a brake is lost, or nothing was found. The four with a CRISPR read-out carry it underneath. Pathways with nothing found collapse to a single line. The 25-panel scan previously existed but was never actually shown on the page, which is why the pathway coverage looked thin.</li>
+                    <li><b>A hotspot in a tumour suppressor is no longer called "activating".</b></li>
+                    <li><b>Gene names are readable chips</b> rather than tiny comma-separated text, coloured by whether the gene is a suppressor or an oncogene, and the wiki now uses three font sizes instead of six.</li>
+                    <li><b>PDF: page numbers</b> as "3 / 12", centred at the bottom of every page.</li>
+                    <li><b>PDF: pages no longer cut through text.</b> A break was only allowed on a row that was white right across, which never happens inside a block with a coloured left border, so dense sections were sliced mid-line. Breaks now land in the gap between lines.</li>
+                    <li><b>Corrected: expression comparisons are against the expression table, not the CRISPR panel.</b> The text claimed "~1,100 cell lines"; the expression z-scores are actually computed over 1,698. Both sections now name their own number and note that the two sets differ.</li>
+                    <li><b>Removed the XIST row</b>, which said the same thing for every cell line: XIST is a non-coding RNA and is not in the protein-coding expression table at all.</li>
+                    <li><b>Wheel handling over charts</b> now walks out to the nearest scrollable ancestor before falling back to the dialog's main scroller.</li>
+                </ul>
                 <p><strong>v.84.64 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>The wiki scrolls again.</b> With the wiki open on top of the Cell Line Browser, the scroll handler picked the browser underneath rather than the wiki, so every wheel over one of the wiki's charts was handed to the wrong panel and nothing moved. It now follows what is actually on top.</li>
@@ -4440,7 +4489,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.64</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.65</a>
     </div>
 
     <div class="main-content">
@@ -6870,6 +6919,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_64"></script>
+    <script src="app.js?v=v84_65"></script>
 </body>
 </html>
