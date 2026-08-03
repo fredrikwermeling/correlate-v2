@@ -1407,7 +1407,7 @@
             border: 1px solid #d1d5db; background: #f9fafb; color: #374151;
             cursor: help; white-space: nowrap;
         }
-        /* Lost brake vs stuck accelerator, so the colour carries the meaning. */
+        /* Lost brake vs stuck accelerator, so the color carries the meaning. */
         .wiki-chip-ts  { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
         .wiki-chip-onc { border-color: #93c5fd; background: #eff6ff; color: #1e40af; }
         .wiki-pw {
@@ -1868,7 +1868,7 @@
            so hide it there. It stays available in the full gene-effect modal. */
         #geneEffectModal.ge-condensed #toggleExprCorrelatesBtn { display: none !important; }
         /* Chart exports consolidated to a single "Export image" button (the PNG
-           button, relabelled) that opens the format popout (PNG/SVG/TIFF/PDF/
+           button, relabeled) that opens the format popout (PNG/SVG/TIFF/PDF/
            PPTX). The old per-format SVG buttons are hidden — !important so the
            JS that show/hides the scatter vs tissue buttons can't re-reveal them. */
         /* Keep the color-by chip legend inside its control box — never let its
@@ -1913,10 +1913,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.75 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>American English throughout</b>, color rather than colour, tumor, behavior, center, gray, labeled, analyze, signaling. 425 changes across the app.</li>
+                    <li><b>Alteration grids no longer look squashed when there is little to show.</b> A grid with two rows shrank the whole panel to about 300px wide and crushed the toolbar; it now keeps enough width for the controls.</li>
+                    <li><b>A grid with nothing to show now says so</b> instead of the button appearing to do nothing.</li>
+                </ul>
                 <p><strong>v.84.74 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>"No fusion data" is now separate from "not fused".</b> A fusion call needs RNA-seq, and 74 cell lines have none, so the caller could never report one for them. They were being counted as fusion-negative. In a small cohort that is enough to invent a result: for YRDC across 27 Ewing sarcoma lines, 9 of the 13 apparent negatives had simply never been sequenced, and the difference disappears once they are set aside. Fusion filters now offer three states, and the counts beside them say how many lines fall in each.</li>
-                    <li>Cell Line Browser: sort moved to the end of the Cohort row, and the second row is now labelled Genetic alterations.</li>
+                    <li>Cell Line Browser: sort moved to the end of the Cohort row, and the second row is now labeled Genetic alterations.</li>
                 </ul>
                 <p><strong>v.84.73 (2026-08-03)</strong></p>
                 <ul>
@@ -1928,7 +1934,7 @@
                 <p><strong>v.84.72 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Fixed overlapping text in the Cell Line Browser.</b> When a row wrapped, the second line started at the far left, underneath the row label. Controls now sit in their own column so a wrapped line stays clear of it.</li>
-                    <li><b>The mutated / wild-type dropdowns are gone again.</b> Picking a gene now simply keeps the cell lines carrying that alteration, which is what it is for. Wild-type, single-copy and both-copies stay available on the coloured chip the filter produces. The gene pickers keep their full ranked list.</li>
+                    <li><b>The mutated / wild-type dropdowns are gone again.</b> Picking a gene now simply keeps the cell lines carrying that alteration, which is what it is for. Wild-type, single-copy and both-copies stay available on the colored chip the filter produces. The gene pickers keep their full ranked list.</li>
                     <li><b>Custom cell lines moved onto the Selection row</b>, at its start.</li>
                     <li><b>Inspect explains what it compares.</b> It is now titled "N selected cell lines vs the other M" and states that each gene is averaged across the selection and compared with the average across every other cell line, with &Delta; = selection &minus; rest.</li>
                     <li><b>Inspect can switch between CRISPR gene effect and mRNA expression</b>, with the column headers and cohort size following the choice.</li>
@@ -1946,10 +1952,10 @@
                 </ul>
                 <p><strong>v.84.70 (2026-08-03)</strong></p>
                 <ul>
-                    <li><b>Cell Line Browser toolbar reorganised.</b> Reset and ? moved up beside the dialog title. Row 1 is the cohort (search, tissue, subtype, sex), row 2 is alterations (hotspot, fusion, amp/deletion, then quick filters and custom cell lines), row 3 is sort.</li>
+                    <li><b>Cell Line Browser toolbar reorganized.</b> Reset and ? moved up beside the dialog title. Row 1 is the cohort (search, tissue, subtype, sex), row 2 is alterations (hotspot, fusion, amp/deletion, then quick filters and custom cell lines), row 3 is sort.</li>
                     <li><b>Each alteration filter has its own grid button</b>, opening a mutation, fusion or copy-number grid for the cell lines currently shown. The standalone Oncoprint button is gone, and the grids are now titled by what they show, with "oncoprint" kept in brackets as the field's term for it.</li>
                     <li><b>The wild-type / mutated dropdowns are gone from the toolbar.</b> That choice now lives on the filter's own chip: click it to switch side (including one copy vs both copies mutated) or to remove the filter.</li>
-                    <li><b>Wiki pathways are framed as hypotheses</b>, "pathways that may have contributed to transformation", and both labels are defined: driver activated = an activating hotspot, focal amplification or curated fusion in a growth-promoting gene; brake lost = a damaging mutation, functional loss or focal deletion in a tumour suppressor. The section also states what was and was not checked, including that activating hotspots come from a 49-gene panel.</li>
+                    <li><b>Wiki pathways are framed as hypotheses</b>, "pathways that may have contributed to transformation", and both labels are defined: driver activated = an activating hotspot, focal amplification or curated fusion in a growth-promoting gene; brake lost = a damaging mutation, functional loss or focal deletion in a tumor suppressor. The section also states what was and was not checked, including that activating hotspots come from a 49-gene panel.</li>
                     <li><b>Expression signatures renamed</b> to "gene programs expressed above / below average", stating that the score is mean mRNA z-score across the expression table and is not a measurement of pathway activity.</li>
                 </ul>
                 <p><strong>v.84.69 (2026-08-03)</strong></p>
@@ -1959,7 +1965,7 @@
                 </ul>
                 <p><strong>v.84.68 (2026-08-03)</strong></p>
                 <ul>
-                    <li><b>The colour-by group picker now lists only the tissues or subtypes actually on the plot.</b> It was built from the full dataset, so with a filter applied it offered groups that had already been filtered out, and picking one changed nothing. "Suggest" is scored on the plotted points for the same reason.</li>
+                    <li><b>The color-by group picker now lists only the tissues or subtypes actually on the plot.</b> It was built from the full dataset, so with a filter applied it offered groups that had already been filtered out, and picking one changed nothing. "Suggest" is scored on the plotted points for the same reason.</li>
                 </ul>
                 <p><strong>v.84.67 (2026-08-03)</strong></p>
                 <ul>
@@ -1974,10 +1980,10 @@
                 <p><strong>v.84.65 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Pathways are now one ranked list instead of two blocks.</b> All 25 pathways are checked against every layer, hotspot and damaging mutations, functional loss, focal copy number and curated fusions, and each says whether a driver is active, a brake is lost, or nothing was found. The four with a CRISPR read-out carry it underneath. Pathways with nothing found collapse to a single line. The 25-panel scan previously existed but was never actually shown on the page, which is why the pathway coverage looked thin.</li>
-                    <li><b>A hotspot in a tumour suppressor is no longer called "activating".</b></li>
-                    <li><b>Gene names are readable chips</b> rather than tiny comma-separated text, coloured by whether the gene is a suppressor or an oncogene, and the wiki now uses three font sizes instead of six.</li>
-                    <li><b>PDF: page numbers</b> as "3 / 12", centred at the bottom of every page.</li>
-                    <li><b>PDF: pages no longer cut through text.</b> A break was only allowed on a row that was white right across, which never happens inside a block with a coloured left border, so dense sections were sliced mid-line. Breaks now land in the gap between lines.</li>
+                    <li><b>A hotspot in a tumor suppressor is no longer called "activating".</b></li>
+                    <li><b>Gene names are readable chips</b> rather than tiny comma-separated text, colored by whether the gene is a suppressor or an oncogene, and the wiki now uses three font sizes instead of six.</li>
+                    <li><b>PDF: page numbers</b> as "3 / 12", centered at the bottom of every page.</li>
+                    <li><b>PDF: pages no longer cut through text.</b> A break was only allowed on a row that was white right across, which never happens inside a block with a colored left border, so dense sections were sliced mid-line. Breaks now land in the gap between lines.</li>
                     <li><b>Corrected: expression comparisons are against the expression table, not the CRISPR panel.</b> The text claimed "~1,100 cell lines"; the expression z-scores are actually computed over 1,698. Both sections now name their own number and note that the two sets differ.</li>
                     <li><b>Removed the XIST row</b>, which said the same thing for every cell line: XIST is a non-coding RNA and is not in the protein-coding expression table at all.</li>
                     <li><b>Wheel handling over charts</b> now walks out to the nearest scrollable ancestor before falling back to the dialog's main scroller.</li>
@@ -2003,13 +2009,13 @@
                     <li><b>The wiki no longer states things it has not measured.</b> A cell line with no mutation calls at all used to show three confident zeros; it now says the calls are missing. "No fusions" and "none called" are distinguished, and the fusion row explains that the table lists calls only. Copy-number wording is split by depth: a single-copy loss is called that rather than a "focal deletion", and a band is a "loss" rather than a "deep loss".</li>
                     <li><b>"Canonical drivers not altered here" now checks the damaging-mutation table</b>, which it never did. A gene with a frameshift or nonsense mutation was listed as unaltered, and the suggestion to re-authenticate the line was made without looking at the largest mutation layer the app carries.</li>
                     <li><b>Fusion confidence tiers are explained honestly.</b> The green box said every call was confirmed on three independent signals; a low-tier call actually has none, and the caption now says what each tier means. The drug-context section no longer treats any raw ALK, ROS1, BCR or ABL1 partner as a driver fusion.</li>
-                    <li><b>Executive summary fixes:</b> ages printed as "69.0-year-old", the literal word "unknown" appeared as a tumour stage, and a donor age of 0 was dropped entirely.</li>
+                    <li><b>Executive summary fixes:</b> ages printed as "69.0-year-old", the literal word "unknown" appeared as a tumor stage, and a donor age of 0 was dropped entirely.</li>
                     <li><b>Corrected figures and wording:</b> the whole-genome-doubling share (73% of lines that have a ploidy call, not 58% of everything), "very high fusion count" on a threshold most lines exceed, MSI-high asserting mismatch-repair deficiency as certain, and "hypermutated" meaning three different things in three places.</li>
-                    <li><b>Sources are no longer all labelled 25Q3.</b> The copy-number regions come from 24Q4 and the drug screen from 25Q2, and both now say so, since the two copy-number blocks can disagree.</li>
+                    <li><b>Sources are no longer all labeled 25Q3.</b> The copy-number regions come from 24Q4 and the drug screen from 25Q2, and both now say so, since the two copy-number blocks can disagree.</li>
                     <li><b>Breast receptor status</b> explains the rule it actually applies, and a line with no expression data is no longer called triple-negative by default.</li>
                     <li><b>Drug rows:</b> the z-score and the "of N tested" count use different cohorts, which is now stated, and compounds with no variation across the panel are dropped instead of being scored exactly average.</li>
                     <li><b>Security and robustness:</b> a saved figure can only set the controls the app itself saves, text from external gene databases is escaped, and a malformed PNG no longer throws while being opened.</li>
-                    <li><b>Removed three unused page sections</b> that were built and never displayed, one of which claimed a cell line had "retained the canonical tumour-suppressor functions" based on an eight-gene panel.</li>
+                    <li><b>Removed three unused page sections</b> that were built and never displayed, one of which claimed a cell line had "retained the canonical tumor-suppressor functions" based on an eight-gene panel.</li>
                 </ul>
                 <p><strong>v.84.61 (2026-08-02)</strong></p>
                 <ul>
@@ -2023,7 +2029,7 @@
                 </ul>
                 <p><strong>v.84.60 (2026-08-02)</strong></p>
                 <ul>
-                    <li><b>The Cell Line Browser stops moving under the cursor.</b> Choosing a tissue used to make the subtype dropdown appear from nothing and shove the rest of the toolbar along, and the filter summary line did the same to the row beneath it. The subtype dropdown is now always there, greyed until a tissue is chosen, the tissue and sex boxes keep a fixed width instead of resizing with their text, and the summary line keeps its place whether or not anything is in it. Verified: nothing on the toolbar moves when filters are applied or cleared.</li>
+                    <li><b>The Cell Line Browser stops moving under the cursor.</b> Choosing a tissue used to make the subtype dropdown appear from nothing and shove the rest of the toolbar along, and the filter summary line did the same to the row beneath it. The subtype dropdown is now always there, grayed until a tissue is chosen, the tissue and sex boxes keep a fixed width instead of resizing with their text, and the summary line keeps its place whether or not anything is in it. Verified: nothing on the toolbar moves when filters are applied or cleared.</li>
                     <li><b>Quick filters moved up beside Select Visible</b>, removing a row that was mostly empty.</li>
                     <li><b>? Filters is now ? Help</b>, since it covers the whole browser rather than the filter boxes alone.</li>
                 </ul>
@@ -2039,7 +2045,7 @@
                 <ul>
                     <li><b>The data exports look like the image export.</b> <b>Export for AI</b> and <b>All Data (ZIP)</b> were blue and drew the eye first; all three now share the same neutral button.</li>
                     <li><b>The network's AI export includes the weaker pairs.</b> Correlations below the cutoff travel with the file, with a note that the cutoff is a drawing threshold rather than a verdict, so questions can be asked about relationships the picture leaves out.</li>
-                    <li><b>Cell Line Browser tags now match the filters.</b> They claimed "mutated" and "fused" whatever the selector said, and copy number had no tag at all. All three now name the side in view and turn grey on the wild-type side.</li>
+                    <li><b>Cell Line Browser tags now match the filters.</b> They claimed "mutated" and "fused" whatever the selector said, and copy number had no tag at all. All three now name the side in view and turn gray on the wild-type side.</li>
                     <li><b>Legends move out of the way on two more plots</b>, the correlation-analysis detail view and the expression-correlate scatter, which both pinned theirs to the top-left over the data.</li>
                     <li><b>Blank margins are trimmed from the UMAP / PCA and mutation-table images too.</b></li>
                     <li><b>p-values read the same everywhere.</b> The correlation-analysis, Gene Effect and pathway-enrichment tables formatted theirs separately and showed things like <code>1.2e-15</code>.</li>
@@ -2047,13 +2053,13 @@
                 </ul>
                 <p><strong>v.84.57 (2026-08-02)</strong></p>
                 <ul>
-                    <li><b>Fix: the Active filter tag said "mut" when wild-type was selected.</b> The chart caption had it right but the tag above it always claimed the mutated side, so the two contradicted each other. The tags for the hotspot, fusion and copy-number filters now follow the selector and go grey when showing the wild-type side.</li>
+                    <li><b>Fix: the Active filter tag said "mut" when wild-type was selected.</b> The chart caption had it right but the tag above it always claimed the mutated side, so the two contradicted each other. The tags for the hotspot, fusion and copy-number filters now follow the selector and go gray when showing the wild-type side.</li>
                     <li>The bias warning beside those filters no longer talks only about mutations: filtering to wild-type is just as much a selection, and can skew the comparison by cancer type the same way.</li>
                 </ul>
                 <p><strong>v.84.56 (2026-08-02)</strong></p>
                 <ul>
-                    <li><b>See the pairs that just missed the cutoff.</b> A <b>below cutoff</b> tick box above the Correlations table lists them under a divider, greyed, so a borderline result is not simply invisible. They are context only: not in the network, no cluster.</li>
-                    <li><b>Fix: reopening a saved figure lost some network settings.</b> <em>Colour by GE</em> was recorded but never re-applied after the analysis re-ran, and <em>Show all input genes</em> was not recorded at all. Both now come back, along with the GE label, its SD, the statistics label and the node border.</li>
+                    <li><b>See the pairs that just missed the cutoff.</b> A <b>below cutoff</b> tick box above the Correlations table lists them under a divider, grayed, so a borderline result is not simply invisible. They are context only: not in the network, no cluster.</li>
+                    <li><b>Fix: reopening a saved figure lost some network settings.</b> <em>Color by GE</em> was recorded but never re-applied after the analysis re-ran, and <em>Show all input genes</em> was not recorded at all. Both now come back, along with the GE label, its SD, the statistics label and the node border.</li>
                     <li><b>Fix: the tip above the Correlations table named a button that does not exist.</b> It said to click <em>Scatter</em>; the button is <b>Correlation</b>.</li>
                     <li><b>The AI exports are all called Export for AI</b>, instead of <code>.json.gz</code>, and the network has one now too.</li>
                     <li><b>Cluster columns say what they measure.</b> <em>Mean (All)</em> and <em>SD (All)</em> are now <b>GE mean</b> and <b>GE SD</b>, with the caption explaining that gene effect is how much the cell lines depend on that gene.</li>
@@ -2071,9 +2077,9 @@
                 </ul>
                 <p><strong>v.84.53 (2026-08-02)</strong></p>
                 <ul>
-                    <li><b>Fix: group tags lingered after the colouring was switched off.</b> Turning <b>Color by</b> back to nothing left the tags and the picker button sitting there naming groups that were not on the plot, which read as though a filter were still in force. Both now clear whenever nothing is coloured.</li>
+                    <li><b>Fix: group tags lingered after the coloring was switched off.</b> Turning <b>Color by</b> back to nothing left the tags and the picker button sitting there naming groups that were not on the plot, which read as though a filter were still in force. Both now clear whenever nothing is colored.</li>
                     <li><b>The two shortcuts now say what they select.</b> <b>Top 8</b> is now <b>8 largest</b>, since it picks the groups holding the most cell lines, nothing to do with correlation. <b>Suggest</b> is now <b>Strongest r</b> and does what that says: the 5 groups with the strongest correlation of their own, counting only groups of at least 10 cell lines so a value from a handful of points cannot crowd out a real one.</li>
-                    <li><b>More groups than colours no longer means repeated colours.</b> With 74 subtypes against a 40-colour palette, two groups used to share a colour with nothing to tell them apart. The marker shape now changes on each pass through the palette, so every group is distinct, and the shape shows in both the plot legend and the group tags.</li>
+                    <li><b>More groups than colors no longer means repeated colors.</b> With 74 subtypes against a 40-color palette, two groups used to share a color with nothing to tell them apart. The marker shape now changes on each pass through the palette, so every group is distinct, and the shape shows in both the plot legend and the group tags.</li>
                 </ul>
                 <p><strong>v.84.52 (2026-08-02)</strong></p>
                 <ul>
@@ -2084,9 +2090,9 @@
                 </ul>
                 <p><strong>v.84.51 (2026-08-02)</strong></p>
                 <ul>
-                    <li><b>Colour by tissue shows every tissue again</b>, which is the quick way to see whether a pattern is there at all, busy as it is. You can still narrow to chosen tissues.</li>
-                    <li><b>Colour by subtype starts empty</b> and waits for you to pick, rather than choosing subtypes for you.</li>
-                    <li><b>New Suggest button</b> in the group picker: it ticks the groups of at least 10 cell lines whose own correlation departs most from the cohort as a whole, using the same statistic as Compare by tissue, so the ones worth labelling are one click away.</li>
+                    <li><b>Color by tissue shows every tissue again</b>, which is the quick way to see whether a pattern is there at all, busy as it is. You can still narrow to chosen tissues.</li>
+                    <li><b>Color by subtype starts empty</b> and waits for you to pick, rather than choosing subtypes for you.</li>
+                    <li><b>New Suggest button</b> in the group picker: it ticks the groups of at least 10 cell lines whose own correlation departs most from the cohort as a whole, using the same statistic as Compare by tissue, so the ones worth labeling are one click away.</li>
                     <li><b>Fix: three Cell Line Browser quick filters could never match anything.</b> <em>CDKN2A deletion</em>, <em>RB1 deletion</em> and <em>PTEN deletion</em> were built from genes the curated deletion panel deliberately leaves out, because functional loss already covers them. Removed, and the "Any focal deletion" description corrected: it listed CDKN2A as being in the panel when it is not.</li>
                     <li><b>Fix: copy-number filters said "deep deletion" but did not mean it.</b> They match the curated deletion panel, which includes single-copy loss as well as homozygous. They now say <em>deletion</em> and spell out what is included. Only the mutation-analysis sub-type used the strict &le;0.3 definition, and it still does.</li>
                     <li><b>Fix: Mutation Inspect still offered "Deep deletion"</b> as something to stratify by, months after it was removed as an analysis sub-type. Gone, along with the same claim in the "How it works" panel.</li>
@@ -2103,7 +2109,7 @@
                 <ul>
                     <li><b>Highlighted cell lines are now listed.</b> Clicking a point in the plot used to leave no trace in the <b>Highlight / Color</b> box, so there was no way to see what was highlighted or to take one off. Every highlight, typed or clicked, now appears as a small tag with an <b>&times;</b> to remove it.</li>
                     <li><b>Subtypes are shown under their tissue.</b> The group picker lists each lineage with its subtypes indented beneath, so it is clear where a subtype comes from. Ticking a lineage takes all of its subtypes; the box shows a dash when only some are selected.</li>
-                    <li><b>Chosen groups are easy to drop.</b> They appear as tags under the picker, each removable with one click, and the picker has <b>None</b> alongside <b>Top 8</b> and <b>Colour all</b>.</li>
+                    <li><b>Chosen groups are easy to drop.</b> They appear as tags under the picker, each removable with one click, and the picker has <b>None</b> alongside <b>Top 8</b> and <b>Color all</b>.</li>
                     <li><b>By genetic change now scans hotspot mutations only.</b> Fusions and amplification / deep-deletion added far more rows than could be read and mixed change types that are not really comparable. The chart, table and captions all say so.</li>
                 </ul>
                 <p><strong>v.84.48 (2026-08-02)</strong></p>
@@ -2125,12 +2131,12 @@
                 </ul>
                 <p><strong>v.84.46 (2026-08-02)</strong></p>
                 <ul>
-                    <li><b>Colour by tissue or subtype now starts with the 8 largest groups</b> and greys the rest as <b>Not selected</b>, instead of giving 30 tissues (or 70 subtypes) a colour each and leaving the plot unreadable. The <b>Pick groups</b> button opens pre-ticked with those 8, so you can see what you are changing; <b>Top 8</b> and <b>Colour all</b> are one click each, and the plot only greys anything when there are more than 8 groups to begin with.</li>
-                    <li>The grey bucket is called <b>Not selected</b> rather than <b>Other</b>, because <em>Other</em> is a real lineage in the data and the two would have been indistinguishable.</li>
+                    <li><b>Color by tissue or subtype now starts with the 8 largest groups</b> and grays the rest as <b>Not selected</b>, instead of giving 30 tissues (or 70 subtypes) a color each and leaving the plot unreadable. The <b>Pick groups</b> button opens pre-ticked with those 8, so you can see what you are changing; <b>Top 8</b> and <b>Color all</b> are one click each, and the plot only grays anything when there are more than 8 groups to begin with.</li>
+                    <li>The gray bucket is called <b>Not selected</b> rather than <b>Other</b>, because <em>Other</em> is a real lineage in the data and the two would have been indistinguishable.</li>
                 </ul>
                 <p><strong>v.84.45 (2026-08-02)</strong></p>
                 <ul>
-                    <li><b>Highlight chosen tissues or subtypes.</b> <b>Color by...</b> now has a <b>Pick groups</b> button: tick the tissues or subtypes you care about and only those are coloured, with everything else folded into one grey <b>Other</b> series. <b>By subtype</b> is available without first choosing a tissue, since picking a handful out of 70+ is now practical. Works in the single and three-panel views, and the choice is kept in exports and new tabs.</li>
+                    <li><b>Highlight chosen tissues or subtypes.</b> <b>Color by...</b> now has a <b>Pick groups</b> button: tick the tissues or subtypes you care about and only those are colored, with everything else folded into one gray <b>Other</b> series. <b>By subtype</b> is available without first choosing a tissue, since picking a handful out of 70+ is now practical. Works in the single and three-panel views, and the choice is kept in exports and new tabs.</li>
                     <li><b>The hotspot three-panel view is usable as it comes.</b> The panels are square by construction instead of taking their height from the single-plot size box, which made each panel a third as wide as it was tall and had to be shrunk by hand every time.</li>
                     <li><b>Fix: the axis labels were wrong.</b> The y axis used a shortened form (&ldquo;TP53 Effect&rdquo;) and the x axis had no label at all, because its label was worked out and then never applied. Both now read the same as the single-panel view, e.g. <em>TP53 Expression (log2 TPM+1)</em> and <em>MDM2 Gene Effect</em>, shown once for the row rather than repeated on each panel.</li>
                     <li><b>Panel headings sit clear of the title</b> and stay put if you move them. Dragging one used to be undone by the next redraw.</li>
@@ -2145,21 +2151,21 @@
                 <ul>
                     <li><b>One hover box on network genes.</b> There were two: the gene-effect numbers appeared straight away in the browser's own box, then a second box with the gene description arrived a second later and overlapped it. Now a single box shows <b>GE mean, GE SD, LFC and FDR</b> with the gene name and summary underneath.</li>
                     <li><b>Fix: "Hold Shift for full text" is reliable.</b> It only ever worked in the fraction of a second between the second box appearing and the pointer moving, which is why it seemed to work sometimes. The box now appears at once, so there is a real window, and holding Shift keeps the gene-effect numbers instead of dropping them.</li>
-                    <li><b>Fix: the exported legend sat left of centre.</b> Its width was estimated from fixed column slots, counting empty space after the last column and using the wrong width for the node-colour block. It is now measured from what is actually drawn, so the legend centres under the figure. The network itself still exports exactly as arranged on screen.</li>
+                    <li><b>Fix: the exported legend sat left of center.</b> Its width was estimated from fixed column slots, counting empty space after the last column and using the wrong width for the node-color block. It is now measured from what is actually drawn, so the legend centers under the figure. The network itself still exports exactly as arranged on screen.</li>
                     <li><b>Every chart exports the same way.</b> The leftover <b>.svg</b> / <b>SVG</b> / <b>PNG</b> buttons next to <b>Export image...</b> are gone from the correlation scatter, tissue chart, Gene Effect chart, expression-correlate scatter, correlation analysis, mutation table and the UMAP / PCA plot. One button everywhere, with format, print size, resolution and background in the dialog.</li>
                 </ul>
                 <p><strong>v.84.42 (2026-08-02)</strong></p>
                 <ul>
                     <li><b>Fix: exporting from the UpSet plot did nothing visible.</b> The export dialog opened <em>behind</em> the plot, because it only looked at the declared modals when deciding how high to stack, and the UpSet popup sits above all of them. It now stacks above whatever is actually on screen.</li>
                     <li><b>Fix: the print size chosen for an SVG was ignored.</b> Width and height were set in cm and then overwritten in points by the step that cleans the file for drawing programs, so every SVG came out at the same size no matter what you asked for. This affected every chart in the app.</li>
-                    <li><b>One export button everywhere.</b> Separate <b>SVG</b> and <b>PNG</b> buttons are replaced by <b>Export image...</b>, which opens the usual dialog with format, print size, resolution and background. The oncoprint no longer saves straight to disk with no choices; its data export is now labelled <b>Export data (CSV)</b>.</li>
+                    <li><b>One export button everywhere.</b> Separate <b>SVG</b> and <b>PNG</b> buttons are replaced by <b>Export image...</b>, which opens the usual dialog with format, print size, resolution and background. The oncoprint no longer saves straight to disk with no choices; its data export is now labeled <b>Export data (CSV)</b>.</li>
                     <li><b>Fix: the Tissues heading floated over the list.</b> A 4px strip at the top of the list sat above where the heading pins, so rows scrolled through it and the heading looked like it was hovering in mid-list. Also fixed the heading being see-through, which needed the table's borders separated to work at all.</li>
                     <li><b>The lineage list is no longer a native menu.</b> With 31 tissues the browser's own menu opened taller than the screen and scrolled by growing upward with no way back down. It is now a panel that fits on screen, with a filter box for typing a tissue name.</li>
                     <li>The SVG option no longer names a particular drawing program.</li>
                 </ul>
                 <p><strong>v.84.41 (2026-08-02)</strong></p>
                 <ul>
-                    <li><b>Fix: network colouring survived by "Show all input genes".</b> Turning that on rebuilt the network with default colours and only restored <b>Color by GE</b>, so <b>Color by stats</b> silently reverted to green while its box stayed ticked. Both are restored now, and the newly shown genes are coloured too.</li>
+                    <li><b>Fix: network coloring survived by "Show all input genes".</b> Turning that on rebuilt the network with default colors and only restored <b>Color by GE</b>, so <b>Color by stats</b> silently reverted to green while its box stayed ticked. Both are restored now, and the newly shown genes are colored too.</li>
                     <li><b>Fix: input genes with no correlations now show LFC and FDR on hover.</b> The lookup was simply missing on those nodes, so the genes added by "Show all input genes" had no statistics in their tooltip.</li>
                     <li><b>Fix: "Hold Shift for full text" now works.</b> The tooltip appears a second after you start hovering and never saw a Shift key that was already held, so only pressing Shift after the box appeared did anything. Holding it works as the text says.</li>
                     <li><b>Loading stats no longer opens a dialog.</b> "Loaded N genes with statistics" was an alert that appeared on load and again on every Run, since Run re-reads the box. It is now a quiet line under the text area.</li>
@@ -2173,7 +2179,7 @@
                 <ul>
                     <li><b>Oncoprint shows every cell line.</b> It used to cap at 200, which made the per-gene counts misleading: "RAC1 2" meant 2 of the first 200 cell lines, not 2 of the cohort. The counts are now true counts, the grid scrolls sideways, and the gene names and counts stay frozen in place while you scroll.</li>
                     <li><b>Oncoprint exports are publication quality.</b> PNG is redrawn at up to 6&times; instead of being upscaled from the on-screen copy, so text and boxes are sharp rather than soft. SVG covers the whole cohort. The on-screen oncoprint is also drawn at your display's pixel density now.</li>
-                    <li><b>UpSet asks what to compare.</b> The unlabelled 3/5/7/10 dropdown is gone. <b>UpSet...</b> opens a picker where you choose <em>which</em> genes, not just how many, with a "Top N by mutation count" shortcut and the 5 most-mutated ticked by default.</li>
+                    <li><b>UpSet asks what to compare.</b> The unlabeled 3/5/7/10 dropdown is gone. <b>UpSet...</b> opens a picker where you choose <em>which</em> genes, not just how many, with a "Top N by mutation count" shortcut and the 5 most-mutated ticked by default.</li>
                     <li><b>The page no longer scrolls behind an open dialog.</b> Scrolling while Reference Data, Gene Effect, the Cell Line Browser or any other full-screen dialog is open used to move the app underneath. Small popouts that sit beside the page while you work (oncoprint, UpSet, the "?" popouts) are unaffected on purpose.</li>
                     <li><b>Dialogs can be dragged</b> by their title bar, so you can move one aside to read what's behind it.</li>
                     <li>A <b>sources</b> link next to the loaded-data line opens Reference Data without going to the nav bar.</li>
@@ -2214,7 +2220,7 @@
                     <li><b>CN amplification</b> and <b>CN deep deletion</b> renamed to <b>Amplification</b> and <b>Deep deletion</b>.</li>
                     <li><b>Correction:</b> the old Deep deletion tooltip named CDKN2A/B, PTEN, SMAD4 and STK11 as examples. Only STK11 is actually in that panel. CDKN2A and PTEN are covered by Functional loss instead, and SMAD4 is not in it at all. The new help text lists the real 14 genes.</li>
                     <li>The gene dropdowns in the sub-type box no longer crop their text.</li>
-                    <li><b>Enrichr</b> in mutation analysis now asks which genes to send when you press it, instead of a separate unlabelled dropdown sitting next to the button. The link to the Enrichr site moved into the same menu.</li>
+                    <li><b>Enrichr</b> in mutation analysis now asks which genes to send when you press it, instead of a separate unlabeled dropdown sitting next to the button. The link to the Enrichr site moved into the same menu.</li>
                 </ul>
                 <p><strong>v.84.33 (2026-08-01)</strong></p>
                 <ul>
@@ -2265,7 +2271,7 @@
                 <p><strong>v.84.24 (2026-06-18)</strong></p>
                 <ul>
                     <li>Find correlates: expression data now loads automatically when you run it, so the "Top Expression correlates" panel populates even when the X gene is a gene-effect gene (it was coming out empty / 0 outputs).</li>
-                    <li>Network filter banner: the text-settings panel now reads and edits the live banner (#networkHeader) properly, the Font Size / Text / Colour controls stay in sync, and a custom banner text now survives re-renders (zoom etc.) and is used in exports. (The panel previously read a removed element, so the banner text field never appeared and edits didn't stick.)</li>
+                    <li>Network filter banner: the text-settings panel now reads and edits the live banner (#networkHeader) properly, the Font Size / Text / Color controls stay in sync, and a custom banner text now survives re-renders (zoom etc.) and is used in exports. (The panel previously read a removed element, so the banner text field never appeared and edits didn't stick.)</li>
                 </ul>
                 <p><strong>v.84.23 (2026-06-17)</strong></p>
                 <ul>
@@ -2305,7 +2311,7 @@
                 </ul>
                 <p><strong>v.84.14 (2026-06-17)</strong></p>
                 <ul>
-                    <li>Network view controls now sync between screen and export: the filter-banner font/colour/text settings were targeting an old element that no longer exists (so changes only showed in exports) and now style the live banner; the export legend font size was hardcoded (so legend size changes only showed live) and now follows the legend text setting.</li>
+                    <li>Network view controls now sync between screen and export: the filter-banner font/color/text settings were targeting an old element that no longer exists (so changes only showed in exports) and now style the live banner; the export legend font size was hardcoded (so legend size changes only showed live) and now follows the legend text setting.</li>
                 </ul>
                 <p><strong>v.84.13 (2026-06-17)</strong></p>
                 <ul>
@@ -2337,8 +2343,8 @@
                 <p><strong>v.84.7 (2026-06-15)</strong></p>
                 <ul>
                     <li>Cell Line Browser filters: the hotspot / fusion / CN filters now have WT vs altered level selectors (default mutated 1+2 / fused / with-event), so you can list cells that are WT for a gene, not just carriers.</li>
-                    <li>Results Correlations tab: the action button is now labelled <strong>Correlation</strong> (was "Scatter").</li>
-                    <li>Results Clusters tab: the action column is now labelled <strong>Analyze</strong> (was mislabelled "Correlation"; it holds the Gene Effect button).</li>
+                    <li>Results Correlations tab: the action button is now labeled <strong>Correlation</strong> (was "Scatter").</li>
+                    <li>Results Clusters tab: the action column is now labeled <strong>Analyze</strong> (was mislabeled "Correlation"; it holds the Gene Effect button).</li>
                 </ul>
                 <p><strong>v.84.6 (2026-06-15)</strong></p>
                 <ul>
@@ -2355,14 +2361,14 @@
                 <ul>
                     <li>Correlation scatter filters: picking a hotspot / fusion / CN event now defaults to the altered side (mutated 1+2 / fused / with-event); dropped the "All cells" option (clear the gene to turn a filter off); and the CN amp/del filter now has a with-event vs WT selector like the others.</li>
                     <li>Correlation scatter: the active hotspot / fusion / CN filters (with their level) are now all listed under the plot title, and Reset no longer leaves a stale "All tissues (n=…)" count.</li>
-                    <li>Compare tables: clicking a row now applies that change as the matching <em>filter</em> (hotspot / fusion / amp-del), not a colour overlay, and every row is clickable (previously CN and curated-fusion rows weren't).</li>
+                    <li>Compare tables: clicking a row now applies that change as the matching <em>filter</em> (hotspot / fusion / amp-del), not a color overlay, and every row is clickable (previously CN and curated-fusion rows weren't).</li>
                     <li>Fusion overlay now lists only curated / validated fusion genes, matching the rest of the app.</li>
                 </ul>
                 <p><strong>v.84.3 (2026-06-15)</strong></p>
                 <ul>
                     <li>Wiki PDF export: hyperlinks (DepMap, Cellosaurus, references, etc.) are now clickable in the PDF.</li>
                     <li>Gene Effect toolbar: removed the duplicate separator next to Analyze.</li>
-                    <li>By genetic change chart: fixed the clipped header (title now stays in view on tall charts), made the zero line a thin light grey instead of a heavy black bar, and narrowed the chart so the statistics table gets more width.</li>
+                    <li>By genetic change chart: fixed the clipped header (title now stays in view on tall charts), made the zero line a thin light gray instead of a heavy black bar, and narrowed the chart so the statistics table gets more width.</li>
                 </ul>
                 <p><strong>v.84.2 (2026-06-14)</strong></p>
                 <ul>
@@ -2572,7 +2578,7 @@
                 </ul>
                 <p><strong>v.83.55 (2026-06-13)</strong></p>
                 <ul>
-                    <li>Phone decluttering: the whole Cell Line Browser action row (selection buttons, Inspect Gene Effects, CSV exports) and the selection count are now hidden on narrow screens (&le;640px), since those select-and-analyse workflows aren't practical on a phone. All remain on desktop.</li>
+                    <li>Phone decluttering: the whole Cell Line Browser action row (selection buttons, Inspect Gene Effects, CSV exports) and the selection count are now hidden on narrow screens (&le;640px), since those select-and-analyze workflows aren't practical on a phone. All remain on desktop.</li>
                 </ul>
                 <p><strong>v.83.54 (2026-06-13)</strong></p>
                 <ul>
@@ -2623,7 +2629,7 @@
                 </ul>
                 <p><strong>v.83.43 (2026-06-13)</strong></p>
                 <ul>
-                    <li>Popout screenshots: text inside small input boxes (e.g. the Highlight/Color size) is now reliably centred, the inputs are rendered as flex-centred boxes in the capture instead of relying on line-height.</li>
+                    <li>Popout screenshots: text inside small input boxes (e.g. the Highlight/Color size) is now reliably centered, the inputs are rendered as flex-centered boxes in the capture instead of relying on line-height.</li>
                     <li>Correlation scatter: when one gene has sparse data (e.g. CD99 and other pseudoautosomal genes have gene-effect data in very few lines), the plot now notes that it's limited to lines with data for <b>both</b> genes, so a small point count isn't mistaken for a hidden filter.</li>
                 </ul>
                 <p><strong>v.83.42 (2026-06-13)</strong></p>
@@ -2654,12 +2660,12 @@
                 <p><strong>v.83.36 (2026-06-12)</strong></p>
                 <ul>
                     <li><b>Fix:</b> opening a GE-vs-expression scatter (or any mixed-axis pair) in a new tab now keeps both axis data types, instead of falling back to GE vs GE.</li>
-                    <li><b>Fix:</b> popout screenshots now always include the chart again, the crisp Plotly image is composited onto the capture (fixing the offset grey background) rather than swapped into the clone (which html2canvas didn't always render). Input/box text centring improved.</li>
+                    <li><b>Fix:</b> popout screenshots now always include the chart again, the crisp Plotly image is composited onto the capture (fixing the offset gray background) rather than swapped into the clone (which html2canvas didn't always render). Input/box text centring improved.</li>
                 </ul>
                 <p><strong>v.83.35 (2026-06-12)</strong></p>
                 <ul>
                     <li><b>Correlation chart spacing</b>: the title block is lifted off the top of the plot and the rotated y-axis title is pushed clear of the tick numbers.</li>
-                    <li><b>Cleaner popout screenshots</b>: charts are flattened to a crisp image before capture (no more nudged grey plot background), and text inside input boxes (gene names, plot size, axis ranges) is now vertically centred.</li>
+                    <li><b>Cleaner popout screenshots</b>: charts are flattened to a crisp image before capture (no more nudged gray plot background), and text inside input boxes (gene names, plot size, axis ranges) is now vertically centered.</li>
                     <li><b>Options box</b> is outlined in black on load (until Analysis is clicked) so it's the obvious starting point.</li>
                     <li><b>Text settings travel with the view</b>: font sizes are saved into the metadata and re-applied when you open a metadata file or open a view in a new tab.</li>
                 </ul>
@@ -2675,17 +2681,17 @@
                 </ul>
                 <p><strong>v.83.32 (2026-06-12)</strong></p>
                 <ul>
-                    <li>Wiki <b>subtype / badge colours reworked to earthy tones</b>: breast calls now read HR+ = <span style="color:#6e8b4a;font-weight:600;">moss green</span>, HER2+ = <span style="color:#b58a3c;font-weight:600;">ochre</span>, TNBC = <span style="color:#b05a3c;font-weight:600;">terracotta</span>; the hotspot / damaging / fusion / tissue pills move off their bright amber / purple / blue onto the same earth-toned palette. Functional status colours (pathway traffic-lights, warnings, the histogram &ldquo;this line&rdquo; marker) are left as-is since they signal alerts, not categories.</li>
+                    <li>Wiki <b>subtype / badge colors reworked to earthy tones</b>: breast calls now read HR+ = <span style="color:#6e8b4a;font-weight:600;">moss green</span>, HER2+ = <span style="color:#b58a3c;font-weight:600;">ochre</span>, TNBC = <span style="color:#b05a3c;font-weight:600;">terracotta</span>; the hotspot / damaging / fusion / tissue pills move off their bright amber / purple / blue onto the same earth-toned palette. Functional status colors (pathway traffic-lights, warnings, the histogram &ldquo;this line&rdquo; marker) are left as-is since they signal alerts, not categories.</li>
                 </ul>
                 <p><strong>v.83.31 (2026-06-12)</strong></p>
                 <ul>
                     <li>Removed the <b>Inspect Correlations</b> button from the Cell Line Browser toolbar.</li>
                     <li>The Cell Line Browser export buttons are now grouped under an explicit <b>Export CSV:</b> label (and the inspect buttons under <b>Inspect:</b>) so it's clear what they do.</li>
-                    <li>Colour cleanup: the export / screenshot / data-download buttons swap their off-palette purple for an <b>earthy bronze</b> that sits alongside the brand green. Semantic colours (subtype calls, mutation badges) are unchanged.</li>
+                    <li>Color cleanup: the export / screenshot / data-download buttons swap their off-palette purple for an <b>earthy bronze</b> that sits alongside the brand green. Semantic colors (subtype calls, mutation badges) are unchanged.</li>
                 </ul>
                 <p><strong>v.83.30 (2026-06-12)</strong></p>
                 <ul>
-                    <li><b>Open in new tab now carries the full view.</b> The new tab reproduces the same gene(s) plus the current filters and settings (data type, tissue / subtype / hotspot / fusion / mutation filters, stratification gene, min group size, axis ranges, colours, etc.), not just the gene and view.</li>
+                    <li><b>Open in new tab now carries the full view.</b> The new tab reproduces the same gene(s) plus the current filters and settings (data type, tissue / subtype / hotspot / fusion / mutation filters, stratification gene, min group size, axis ranges, colors, etc.), not just the gene and view.</li>
                     <li>The popout <b>Figure</b> button is renamed <b>Screenshot</b>.</li>
                 </ul>
                 <p><strong>v.83.29 (2026-06-12)</strong></p>
@@ -2737,7 +2743,7 @@
                 <p><strong>v.83.19 (2026-06-09)</strong></p>
                 <ul>
                     <li>Wiki download is now a clean <b>PDF</b> (via the print view) instead of a raw HTML file. Each chart is embedded as a flat white image rather than the live Plotly layers, so it no longer looks broken.</li>
-                    <li>Wiki chart PNG downloads (the per-panel camera button on the genome / receptor / drug histograms) now have a <b>white background</b> instead of a transparent / grey one.</li>
+                    <li>Wiki chart PNG downloads (the per-panel camera button on the genome / receptor / drug histograms) now have a <b>white background</b> instead of a transparent / gray one.</li>
                 </ul>
                 <p><strong>v.83.18 (2026-06-08)</strong></p>
                 <ul>
@@ -2766,7 +2772,7 @@
                 <p><strong>v.83.13 (2026-06-08)</strong></p>
                 <ul>
                     <li>Export dialog &mdash; corrected the format descriptions now that PDF is true vector: <b>&ldquo;PDF &mdash; vector (scalable, selectable text)&rdquo;</b> (it previously, wrongly, still said &ldquo;raster image inside&rdquo;).</li>
-                    <li>PowerPoint export now places the figure on a <b>standard 16:9 widescreen slide</b> (13.33&times;7.5in), scaled to fit with a margin and centred, instead of sizing the slide to the figure &mdash; so it drops straight into a normal deck.</li>
+                    <li>PowerPoint export now places the figure on a <b>standard 16:9 widescreen slide</b> (13.33&times;7.5in), scaled to fit with a margin and centered, instead of sizing the slide to the figure &mdash; so it drops straight into a normal deck.</li>
                 </ul>
                 <p><strong>v.83.12 (2026-06-08)</strong></p>
                 <ul>
@@ -2795,8 +2801,8 @@
                 <ul>
                     <li>Wiki &mdash; <b>Key genetic alterations</b> now also lists hotspot-mutated canonical drivers that lack a specific-variant call (e.g. STK11, KEAP1 in lung adeno), so they show as ✓ typical and are no longer wrongly listed under &ldquo;not altered.&rdquo; A <b>POLE / POLD1 damaging mutation</b> is now surfaced even without an elevated mutation burden (flagged as likely-not-a-functional-ultramutator). The driver tags read &ldquo;typical / not a canonical hallmark&rdquo; (no more confusing &ldquo;atypical&rdquo;).</li>
                     <li>Wiki &mdash; removed treatment / drug-recommendation language (these are cell lines, not patients): pathway-status no longer suggests inhibitors/therapies, the &ldquo;targeted therapies matched&rdquo; block and the executive-summary &ldquo;model for … therapy&rdquo; / &ldquo;drug-target candidate&rdquo; lines are gone. In-vitro PRISM drug-<i>sensitivity</i> data is kept (it characterises the line). Pathway status now states it covers only a few curated high-level pathways.</li>
-                    <li>Wiki &mdash; the patient-origin row is relabelled <b>&ldquo;Sample taken from&rdquo;</b> and clarifies it&rsquo;s the tumour site this cell line was <i>established from</i> (primary vs metastasis), not the patient&rsquo;s overall disease stage.</li>
-                    <li>Quick filters &mdash; breast receptor subtypes now consistently labelled &ldquo;approximate&rdquo; (expression surrogate); a &ldquo;hover any filter for how it&rsquo;s defined&rdquo; hint added at the top; the &ldquo;Pathway-activity expression signatures&rdquo; group renamed <b>Active expression programs</b>.</li>
+                    <li>Wiki &mdash; the patient-origin row is relabeled <b>&ldquo;Sample taken from&rdquo;</b> and clarifies it&rsquo;s the tumor site this cell line was <i>established from</i> (primary vs metastasis), not the patient&rsquo;s overall disease stage.</li>
+                    <li>Quick filters &mdash; breast receptor subtypes now consistently labeled &ldquo;approximate&rdquo; (expression surrogate); a &ldquo;hover any filter for how it&rsquo;s defined&rdquo; hint added at the top; the &ldquo;Pathway-activity expression signatures&rdquo; group renamed <b>Active expression programs</b>.</li>
                 </ul>
                 <p><strong>v.83.7 (2026-06-08)</strong></p>
                 <ul>
@@ -2832,7 +2838,7 @@
                 </ul>
                 <p><strong>v.83.0 (2026-06-07)</strong></p>
                 <ul>
-                    <li>Cell Line Wiki &mdash; <b>driver sections consolidated &amp; clarified</b>. The old <i>Expected drivers for this subtype</i>, <i>Driver mutations</i> and <i>Functional loss</i> sections (which overlapped a lot) are now one <b>&ldquo;Key genetic alterations&rdquo;</b> section: the alterations likely central to this line&rsquo;s transformation &mdash; activating oncogene mutations, tumour-suppressor functional loss, validated driver fusions and focal CN gains/losses &mdash; each tagged <b>✓ typical</b> or <b>not a canonical hallmark</b> for the cancer subtype, with the typical driver pattern shown for context and the genotype × CRISPR pathway read-out below.</li>
+                    <li>Cell Line Wiki &mdash; <b>driver sections consolidated &amp; clarified</b>. The old <i>Expected drivers for this subtype</i>, <i>Driver mutations</i> and <i>Functional loss</i> sections (which overlapped a lot) are now one <b>&ldquo;Key genetic alterations&rdquo;</b> section: the alterations likely central to this line&rsquo;s transformation &mdash; activating oncogene mutations, tumor-suppressor functional loss, validated driver fusions and focal CN gains/losses &mdash; each tagged <b>✓ typical</b> or <b>not a canonical hallmark</b> for the cancer subtype, with the typical driver pattern shown for context and the genotype × CRISPR pathway read-out below.</li>
                     <li>Wiki wording clarified for scientists: <b>Aneuploidy</b> now explains it counts chromosome-arm gains/losses (not just &ldquo;Ben-David score&rdquo;); <b>Fusion landscape</b> defines what a <i>validated</i> fusion is vs the raw caller list; <b>CRISPR dependencies</b> and <b>Expression profile</b> now state explicitly that &ldquo;unique / uniquely expressed&rdquo; is vs the <i>whole cohort across all lineages</i> (not same-tissue lines); <b>pathway-activity signatures</b> ON/OFF are now properly explained.</li>
                 </ul>
                 <p><strong>v.82.6 (2026-06-07)</strong></p>
@@ -2842,7 +2848,7 @@
                 </ul>
                 <p><strong>v.82.5 (2026-06-07)</strong></p>
                 <ul>
-                    <li>Scatter &ldquo;color by tissue/subtype&rdquo; &mdash; expanded the palette from 20 to <b>40 distinct colors</b> and made it cycle instead of dumping the overflow into grey, so far fewer categories collapse to the same look.</li>
+                    <li>Scatter &ldquo;color by tissue/subtype&rdquo; &mdash; expanded the palette from 20 to <b>40 distinct colors</b> and made it cycle instead of dumping the overflow into gray, so far fewer categories collapse to the same look.</li>
                     <li>Cell Line Browser <b>hotspot filter</b> now uses the same multi-line dropdown (gene + live n= mutated count) as the Fusion and CN filters &mdash; the native list that Safari truncated is gone. The Oncoprint button stays.</li>
                     <li>When you pick a gene in a hotspot or fusion filter (1. Set Parameters), the level now defaults to <b>Only mutated</b> instead of All cells.</li>
                     <li>Cell Line Browser help (&ldquo;?&rdquo;) updated &mdash; now documents the CN filter and the Ploidy / Aneuploidy / CIN / Copy-number / <b>Drug-response (PRISM AUC)</b> sorts.</li>
@@ -2850,7 +2856,7 @@
                 <p><strong>v.82.4 (2026-06-07)</strong></p>
                 <ul>
                     <li>Cell-line <b>executive summary</b> &mdash; a plain-language overview (what cancer it is, the patient it came from, and standout molecular features: driver fusions, hotspot variants, functional losses, MSI, ploidy) now appears as the cell-line hover popout on every plot, and at the <b>top of the Cell Line Browser card</b> by default.</li>
-                    <li>Just-labelled scatter dots are now reliably hoverable &mdash; the draggable name label defaulted too close to its dot and was intercepting the hover; it now sits clear, and the marker is a touch larger.</li>
+                    <li>Just-labeled scatter dots are now reliably hoverable &mdash; the draggable name label defaulted too close to its dot and was intercepting the hover; it now sits clear, and the marker is a touch larger.</li>
                     <li>Cell Line Browser card &mdash; the <b>Immunology</b> section now sits after Fusions (it&rsquo;s one signal among many, not a headline).</li>
                     <li>Removed <b>Synonym/Ortholog Lookup</b> as a standalone analysis mode (kept in code). The synonym matching itself is unchanged &mdash; the &ldquo;Find Synonyms&rdquo; helper still recovers aliases for genes not found in the dataset.</li>
                 </ul>
@@ -2869,11 +2875,11 @@
                 </ul>
                 <p><strong>v.82.0 (2026-06-07)</strong></p>
                 <ul>
-                    <li>Cell Line Browser &mdash; new <b>Show Selected</b> button in the selection group. Toggles the list down to just the cell lines you&rsquo;ve ticked (click again, now labelled <b>Show All</b>, to restore the full list). Turns itself off if you Deselect All or Reset.</li>
+                    <li>Cell Line Browser &mdash; new <b>Show Selected</b> button in the selection group. Toggles the list down to just the cell lines you&rsquo;ve ticked (click again, now labeled <b>Show All</b>, to restore the full list). Turns itself off if you Deselect All or Reset.</li>
                 </ul>
                 <p><strong>v.81.99 (2026-06-07)</strong></p>
                 <ul>
-                    <li>Cell-line hover &mdash; now a <b>single</b> popout. The plot&rsquo;s built-in hover label (name / tissue / x&middot;y) is suppressed so only the summary card shows, with no duplicated text. The card also appears faster, and a just-clicked / labelled (orange) dot is now hoverable too &mdash; both in the correlation scatter and the gene-effect graphs.</li>
+                    <li>Cell-line hover &mdash; now a <b>single</b> popout. The plot&rsquo;s built-in hover label (name / tissue / x&middot;y) is suppressed so only the summary card shows, with no duplicated text. The card also appears faster, and a just-clicked / labeled (orange) dot is now hoverable too &mdash; both in the correlation scatter and the gene-effect graphs.</li>
                     <li>Cell Line Browser &mdash; the list now fills <b>column by column</b>: read straight down the first column (top&rarr;bottom) in sort order, then continue at the top of the next column, instead of left-to-right across rows.</li>
                 </ul>
                 <p><strong>v.81.98 (2026-06-07)</strong></p>
@@ -2900,12 +2906,12 @@
                 </ul>
                 <p><strong>v.81.92 (2026-06-07)</strong></p>
                 <ul>
-                    <li>Network &mdash; hover tooltip is now <b>two-stage</b> so it stops getting in the way while you drag nodes: a compact <b>mean gene-effect</b> readout appears quickly (~0.25s), and the fuller gene info (name + description + links) only follows after ~1.2s. Queued tooltips are cancelled the moment you start dragging.</li>
+                    <li>Network &mdash; hover tooltip is now <b>two-stage</b> so it stops getting in the way while you drag nodes: a compact <b>mean gene-effect</b> readout appears quickly (~0.25s), and the fuller gene info (name + description + links) only follows after ~1.2s. Queued tooltips are canceled the moment you start dragging.</li>
                     <li>Network &mdash; removed the <b>Show Hidden</b> button (redundant: removed nodes already appear in a &ldquo;Removed&rdquo; list where you can click any one to restore it, or use Restore All) and the <b>Layout</b> button (the alternative layouts weren&rsquo;t useful).</li>
                 </ul>
                 <p><strong>v.81.91 (2026-06-07)</strong></p>
                 <ul>
-                    <li>Network &mdash; new <b>Reset</b> button (next to Aa) that restores all the appearance controls above the network to defaults in one click: font / node / edge size sliders, the Aa text settings (font family, label &amp; node colour, legend &amp; banner size/colour), the node-border toggle, and the GE / stats label &amp; colour options. Re-renders the network with the restored settings.</li>
+                    <li>Network &mdash; new <b>Reset</b> button (next to Aa) that restores all the appearance controls above the network to defaults in one click: font / node / edge size sliders, the Aa text settings (font family, label &amp; node color, legend &amp; banner size/color), the node-border toggle, and the GE / stats label &amp; color options. Re-renders the network with the restored settings.</li>
                 </ul>
                 <p><strong>v.81.90 (2026-06-07)</strong></p>
                 <ul>
@@ -2938,8 +2944,8 @@
                 </ul>
                 <p><strong>v.81.83 (2026-06-06)</strong></p>
                 <ul>
-                    <li><b>Mutational analysis &mdash; the Fusion axis now picks a specific fusion, not a gene.</b> The axis is relabelled simply <b>&ldquo;Fusion&rdquo;</b> and the selector lists the named driver fusions themselves (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PAX3-FOXO1, &hellip; &mdash; 23 in total), splitting cell lines into carriers vs non-carriers of that exact fusion. Previously it listed the individual participating genes (ABL1, BCR, &hellip;).</li>
-                    <li><b>Click a cell-line dot to open it in the Cell Line Browser.</b> On the read-only plots (gene-effect distribution / by-tissue / by-hotspot, correlation-analysis tissue &amp; hotspot, expression-correlate) a plain click on a point now opens that cell line &mdash; previously it required Shift-click, which wasn&rsquo;t discoverable. The main correlation scatter keeps its existing behaviour (plain click toggles the inspect selection; Shift-click opens the browser).</li>
+                    <li><b>Mutational analysis &mdash; the Fusion axis now picks a specific fusion, not a gene.</b> The axis is relabeled simply <b>&ldquo;Fusion&rdquo;</b> and the selector lists the named driver fusions themselves (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PAX3-FOXO1, &hellip; &mdash; 23 in total), splitting cell lines into carriers vs non-carriers of that exact fusion. Previously it listed the individual participating genes (ABL1, BCR, &hellip;).</li>
+                    <li><b>Click a cell-line dot to open it in the Cell Line Browser.</b> On the read-only plots (gene-effect distribution / by-tissue / by-hotspot, correlation-analysis tissue &amp; hotspot, expression-correlate) a plain click on a point now opens that cell line &mdash; previously it required Shift-click, which wasn&rsquo;t discoverable. The main correlation scatter keeps its existing behavior (plain click toggles the inspect selection; Shift-click opens the browser).</li>
                 </ul>
                 <p><strong>v.81.82 (2026-06-06)</strong></p>
                 <ul>
@@ -2947,11 +2953,11 @@
                 </ul>
                 <p><strong>v.81.81 (2026-06-06)</strong></p>
                 <ul>
-                    <li>Cell Line Wiki data audit &mdash; sections 1&ndash;4. <b>Cancer classification</b>, <b>Sex (annotation vs expression)</b> and <b>Genome signatures</b> verified correct (right source fields, thresholds consistent with the rest of the app). Fixed three issues in <b>Patient &amp; sample origin</b>: patient age showed as a float (&ldquo;58.0&rdquo; &rarr; &ldquo;58&rdquo;); the row labelled &ldquo;Tumour stage (at sampling)&rdquo; was actually the <code>primaryOrMetastasis</code> field, so it&rsquo;s relabelled &ldquo;Primary vs metastatic&rdquo;; and free-text fields stored lowercase (ancestry, collection site) are now capitalized for display.</li>
+                    <li>Cell Line Wiki data audit &mdash; sections 1&ndash;4. <b>Cancer classification</b>, <b>Sex (annotation vs expression)</b> and <b>Genome signatures</b> verified correct (right source fields, thresholds consistent with the rest of the app). Fixed three issues in <b>Patient &amp; sample origin</b>: patient age showed as a float (&ldquo;58.0&rdquo; &rarr; &ldquo;58&rdquo;); the row labeled &ldquo;Tumor stage (at sampling)&rdquo; was actually the <code>primaryOrMetastasis</code> field, so it&rsquo;s relabeled &ldquo;Primary vs metastatic&rdquo;; and free-text fields stored lowercase (ancestry, collection site) are now capitalized for display.</li>
                 </ul>
                 <p><strong>v.81.80 (2026-06-06)</strong></p>
                 <ul>
-                    <li>Cell Line Wiki &mdash; visual refresh (step 1 of an ongoing pass). Each section is now a clean white <b>card</b> on a light-grey backdrop, with a slim header bar (green dot + uppercase title) and a muted source footer; the executive summary and label/value rows were aligned to match. Applied consistently across all 13 sections via the shared section()/row() helpers. Data-heavy sections (genome-signature histograms, drug-response plots) render correctly inside the cards. A field-by-field data-correctness pass follows.</li>
+                    <li>Cell Line Wiki &mdash; visual refresh (step 1 of an ongoing pass). Each section is now a clean white <b>card</b> on a light-gray backdrop, with a slim header bar (green dot + uppercase title) and a muted source footer; the executive summary and label/value rows were aligned to match. Applied consistently across all 13 sections via the shared section()/row() helpers. Data-heavy sections (genome-signature histograms, drug-response plots) render correctly inside the cards. A field-by-field data-correctness pass follows.</li>
                 </ul>
                 <p><strong>v.81.79 (2026-06-06)</strong></p>
                 <ul>
@@ -2977,15 +2983,15 @@
                 </ul>
                 <p><strong>v.81.74 (2026-06-06)</strong></p>
                 <ul>
-                    <li><b>Cell Line Browser &mdash; &ldquo;Collections&rdquo; renamed to &ldquo;Quick filters&rdquo; and trimmed from ~100 down to 54.</b> The list had grown unwieldy and esoteric &mdash; ~33 single-gene copy-number amp/del filters (AR amp, BCL2 amp, MITF amp, BAP1 del, &hellip;), 9 pathway-expression signatures (E2F active, TGF-&beta; active, &hellip;), rare-TSG losses (SMAD4/STK11/VHL), Lehmann TNBC sub-subtypes, and genetic-only MSI. We now surface only the quick filters that are genuinely useful to at least some users: driver mutations (KRAS/BRAF/EGFR/PIK3CA/IDH/CTNNB1), common tumour-suppressor functional losses (TP53/PTEN/RB1/CDKN2A/APC/NF1 + any/multi), MSI-high / HR-deficient / hypermutated / POLE / SLFN11-high, breast receptor subtypes, disease-defining fusions, oncogene-addiction sets, WGD / high-aneuploidy, NE / EMT, PD-L1-high / likely-immunogenic, the key focal CN events (MYC/ERBB2/MDM2/CDK amps; CDKN2A/RB1/PTEN deletions), and patient-age groups. The full definitions are preserved in the catalogue, so any hidden filter can be re-enabled by adding its id to a single allow-list.</li>
+                    <li><b>Cell Line Browser &mdash; &ldquo;Collections&rdquo; renamed to &ldquo;Quick filters&rdquo; and trimmed from ~100 down to 54.</b> The list had grown unwieldy and esoteric &mdash; ~33 single-gene copy-number amp/del filters (AR amp, BCL2 amp, MITF amp, BAP1 del, &hellip;), 9 pathway-expression signatures (E2F active, TGF-&beta; active, &hellip;), rare-TSG losses (SMAD4/STK11/VHL), Lehmann TNBC sub-subtypes, and genetic-only MSI. We now surface only the quick filters that are genuinely useful to at least some users: driver mutations (KRAS/BRAF/EGFR/PIK3CA/IDH/CTNNB1), common tumor-suppressor functional losses (TP53/PTEN/RB1/CDKN2A/APC/NF1 + any/multi), MSI-high / HR-deficient / hypermutated / POLE / SLFN11-high, breast receptor subtypes, disease-defining fusions, oncogene-addiction sets, WGD / high-aneuploidy, NE / EMT, PD-L1-high / likely-immunogenic, the key focal CN events (MYC/ERBB2/MDM2/CDK amps; CDKN2A/RB1/PTEN deletions), and patient-age groups. The full definitions are preserved in the catalog, so any hidden filter can be re-enabled by adding its id to a single allow-list.</li>
                 </ul>
                 <p><strong>v.81.73 (2026-06-06)</strong></p>
                 <ul>
-                    <li><b>Mutational analysis &mdash; the Fusion and Damaging axes now use validated data, cutting the noise.</b> The old &ldquo;Translocation/Fusion&rdquo; axis counted <em>every</em> raw DepMap fusion call (mostly passengers/read-through artifacts); it is now <b>&ldquo;Fusion (validated)&rdquo;</b> &mdash; the curated driver fusions shown in the Cell Line Browser&rsquo;s &ldquo;Clinically relevant fusions&rdquo; section (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PAX3-FOXO1, &hellip;), validated per cell line by tissue match + partner expression + partner CRISPR dependency, kept at <b>high+medium</b> confidence (36 participating genes). The old &ldquo;Damaging Mutation&rdquo; axis (DepMap&rsquo;s 8,926-gene predicted-LoF matrix, full of passengers like TTN/MUC19) is replaced by <b>&ldquo;Functional loss&rdquo;</b> &mdash; the 8 tumour suppressors from the Cell Line Browser&rsquo;s &ldquo;Functional loss&rdquo; section (APC, CDKN2A, MTAP, NF1, PTEN, RB1, TP53, VHL), DepMap&rsquo;s integrated CN+mutation+expression call that also catches deletion-driven losses the mutation matrix misses. Built by <code>scripts/build_validated_fusions.py</code> and <code>scripts/build_functional_loss.py</code>. The Cell Line Browser, Wiki, antigen-presentation and HR-deficiency views still use the full raw damaging/fusion data; the optional <em>additional</em> mutation/fusion sub-filters in the analysis also still use the raw sets.</li>
+                    <li><b>Mutational analysis &mdash; the Fusion and Damaging axes now use validated data, cutting the noise.</b> The old &ldquo;Translocation/Fusion&rdquo; axis counted <em>every</em> raw DepMap fusion call (mostly passengers/read-through artifacts); it is now <b>&ldquo;Fusion (validated)&rdquo;</b> &mdash; the curated driver fusions shown in the Cell Line Browser&rsquo;s &ldquo;Clinically relevant fusions&rdquo; section (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PAX3-FOXO1, &hellip;), validated per cell line by tissue match + partner expression + partner CRISPR dependency, kept at <b>high+medium</b> confidence (36 participating genes). The old &ldquo;Damaging Mutation&rdquo; axis (DepMap&rsquo;s 8,926-gene predicted-LoF matrix, full of passengers like TTN/MUC19) is replaced by <b>&ldquo;Functional loss&rdquo;</b> &mdash; the 8 tumor suppressors from the Cell Line Browser&rsquo;s &ldquo;Functional loss&rdquo; section (APC, CDKN2A, MTAP, NF1, PTEN, RB1, TP53, VHL), DepMap&rsquo;s integrated CN+mutation+expression call that also catches deletion-driven losses the mutation matrix misses. Built by <code>scripts/build_validated_fusions.py</code> and <code>scripts/build_functional_loss.py</code>. The Cell Line Browser, Wiki, antigen-presentation and HR-deficiency views still use the full raw damaging/fusion data; the optional <em>additional</em> mutation/fusion sub-filters in the analysis also still use the raw sets.</li>
                 </ul>
                 <p><strong>v.81.72 (2026-06-06)</strong></p>
                 <ul>
-                    <li>Scatter plots &mdash; <b>Shift-click any cell-line dot to open it in the Cell Line Browser</b>. Works across the main correlation scatter (including the 3-panel WT/mutant view), the expression-correlate scatter, the gene-effect distribution box plots (tissue, hotspot and tissue-comparison views), and the correlation-analysis tissue/hotspot scatters &mdash; the same destination you already get by clicking a point in the browser&rsquo;s UMAP. A plain click keeps its existing behaviour (e.g. toggling a line into the inspect panel on the main scatter); only Shift-click navigates.</li>
+                    <li>Scatter plots &mdash; <b>Shift-click any cell-line dot to open it in the Cell Line Browser</b>. Works across the main correlation scatter (including the 3-panel WT/mutant view), the expression-correlate scatter, the gene-effect distribution box plots (tissue, hotspot and tissue-comparison views), and the correlation-analysis tissue/hotspot scatters &mdash; the same destination you already get by clicking a point in the browser&rsquo;s UMAP. A plain click keeps its existing behavior (e.g. toggling a line into the inspect panel on the main scatter); only Shift-click navigates.</li>
                 </ul>
                 <p><strong>v.81.71 (2026-05-17)</strong></p>
                 <ul>
@@ -3006,7 +3012,7 @@
                 </ul>
                 <p><strong>v.81.67 (2026-05-17)</strong></p>
                 <ul>
-                    <li>CN matrix upgraded to hybrid WGS-primary / WES-fallback. Source: DepMap <code>OmicsCNGene.csv</code> (24Q4) — DepMap&rsquo;s own merged file that combines WGS and WES inferences. Cell-line coverage jumps from 1095 (WGS-only) to 1929 (WGS + WES). Lines that were never WGS&rsquo;d &mdash; Jurkat, K562, many older haematopoietic lines &mdash; now appear in the CN sort. Per-line provenance preserved: lines also in <code>OmicsCNGeneWGS.csv</code> (25Q3) are tagged WGS; lines absent get a small <code>wes</code> caveat next to the CN tier pill, hover for the explanation. Binary blob grew from 32 → 55 MB to accommodate the extra ~834 cell lines.</li>
+                    <li>CN matrix upgraded to hybrid WGS-primary / WES-fallback. Source: DepMap <code>OmicsCNGene.csv</code> (24Q4) — DepMap&rsquo;s own merged file that combines WGS and WES inferences. Cell-line coverage jumps from 1095 (WGS-only) to 1929 (WGS + WES). Lines that were never WGS&rsquo;d &mdash; Jurkat, K562, many older hematopoietic lines &mdash; now appear in the CN sort. Per-line provenance preserved: lines also in <code>OmicsCNGeneWGS.csv</code> (25Q3) are tagged WGS; lines absent get a small <code>wes</code> caveat next to the CN tier pill, hover for the explanation. Binary blob grew from 32 → 55 MB to accommodate the extra ~834 cell lines.</li>
                 </ul>
                 <p><strong>v.81.66 (2026-05-16)</strong></p>
                 <ul>
@@ -3014,7 +3020,7 @@
                 </ul>
                 <p><strong>v.81.65 (2026-05-13)</strong></p>
                 <ul>
-                    <li>CN values in the cell-line list now show a biological tier label instead of just a 2-decimal number. Tiers: <b>deep del</b> &lt; 0.3, <b>het loss</b> 0.3&ndash;0.7, <b>WT</b> 0.7&ndash;1.3, <b>low gain</b> 1.3&ndash;2.0, <b>gain</b> 2.0&ndash;3.0, <b>amp</b> 3.0&ndash;5.0, <b>strong amp</b> &ge; 5.0. Each tier carries its own coloured pill (red for losses, gray for WT, blue for gains, darker / saturated blue for amp / strong amp). The raw number is kept as a small de-emphasised suffix and in the tooltip for anyone who wants the underlying value. Previously the raw &ldquo;1.48&rdquo; / &ldquo;1.77&rdquo; type values read as sequencing noise rather than biology &mdash; this maps each line to a discrete biological category. Caption row updated to list the tier cutoffs.</li>
+                    <li>CN values in the cell-line list now show a biological tier label instead of just a 2-decimal number. Tiers: <b>deep del</b> &lt; 0.3, <b>het loss</b> 0.3&ndash;0.7, <b>WT</b> 0.7&ndash;1.3, <b>low gain</b> 1.3&ndash;2.0, <b>gain</b> 2.0&ndash;3.0, <b>amp</b> 3.0&ndash;5.0, <b>strong amp</b> &ge; 5.0. Each tier carries its own colored pill (red for losses, gray for WT, blue for gains, darker / saturated blue for amp / strong amp). The raw number is kept as a small de-emphasised suffix and in the tooltip for anyone who wants the underlying value. Previously the raw &ldquo;1.48&rdquo; / &ldquo;1.77&rdquo; type values read as sequencing noise rather than biology &mdash; this maps each line to a discrete biological category. Caption row updated to list the tier cutoffs.</li>
                 </ul>
                 <p><strong>v.81.64 (2026-05-13)</strong></p>
                 <ul>
@@ -3026,20 +3032,20 @@
                 </ul>
                 <p><strong>v.81.62 (2026-05-13)</strong></p>
                 <ul>
-                    <li>Drug-response colours aligned between the cell-line list and the sort-drug dropdown. The list previously used AUC &lt; 0.6 = green (anything that &ldquo;kills many cells&rdquo;), so a row with AUC = 0.5 showed green even though the dropdown counted it as &ldquo;partly sensitive&rdquo; (amber). Now both use the same thresholds: green = very-sensitive (AUC &lt; 0.3), amber = partly-sensitive (0.3 &ndash; 0.6), light gray = modest, very light gray = little effect.</li>
+                    <li>Drug-response colors aligned between the cell-line list and the sort-drug dropdown. The list previously used AUC &lt; 0.6 = green (anything that &ldquo;kills many cells&rdquo;), so a row with AUC = 0.5 showed green even though the dropdown counted it as &ldquo;partly sensitive&rdquo; (amber). Now both use the same thresholds: green = very-sensitive (AUC &lt; 0.3), amber = partly-sensitive (0.3 &ndash; 0.6), light gray = modest, very light gray = little effect.</li>
                     <li>Broadly-cytotoxic flag in the drug-sort dropdown. Compounds where &ge; 40 % of the cohort scores very-sensitive get a <span style="background:#fef3c7; color:#92400e; padding:1px 4px; border-radius:6px; font-size:10px;">broadly cytotoxic %</span> badge. Romidepsin (HDAC1/2) is very-sensitive in 304 / 386 (79 %) lines, Gemcitabine (dNTP depletion) in 274 / 389 (70 %) &mdash; broadly toxic chemotherapy signatures, not targeted-therapy candidates. Sort order now puts targeted hits (Trametinib / Dasatinib / Dabrafenib etc.) above broadly-cytotoxic ones with the same raw v-count, so the top of the dropdown surfaces actually selective therapies first. Header copy updated to explain the threshold.</li>
                 </ul>
                 <p><strong>v.81.61 (2026-05-13)</strong></p>
                 <ul>
-                    <li>Wiki drug-response section now shows a per-compound AUC histogram, mirroring the genome-section pattern. Each &ldquo;Standout sensitive&rdquo; and &ldquo;Standout resistant&rdquo; row gets a thin Plotly histogram of the AUC distribution across all PRISM-tested cell lines (grey bars), with a red dashed line at this cell line&rsquo;s AUC. Lets you see at a glance whether a low AUC is part of a long tail (broad killer) or genuinely isolated (selective hit), the same way the Ploidy / Aneuploidy / CIN histograms work.</li>
+                    <li>Wiki drug-response section now shows a per-compound AUC histogram, mirroring the genome-section pattern. Each &ldquo;Standout sensitive&rdquo; and &ldquo;Standout resistant&rdquo; row gets a thin Plotly histogram of the AUC distribution across all PRISM-tested cell lines (gray bars), with a red dashed line at this cell line&rsquo;s AUC. Lets you see at a glance whether a low AUC is part of a long tail (broad killer) or genuinely isolated (selective hit), the same way the Ploidy / Aneuploidy / CIN histograms work.</li>
                 </ul>
                 <p><strong>v.81.60 (2026-05-13)</strong></p>
                 <ul>
-                    <li>New sort option: &ldquo;<b>Sort: Copy number of gene</b>&rdquo;. Pick a gene from the curated cancer-relevant CN panel (33 amp + 14 del genes from <code>clinical_cn.json</code> &mdash; MYC, ERBB2, CDK4, MDM2, EGFR, CDKN2A, BRCA1/2, etc.) and the cell-line list sorts by that gene&rsquo;s copy number. Picker shows per-gene event counts (e.g. &ldquo;MYC amp &mdash; 87 lines&rdquo;) so you can see at a glance which genes have the most flagged lines. Per-row CN value is coloured blue for amplification (CN &ge; 3) and red for deletion (CN &le; 0.5). Lines without a significant CN event for the selected gene show &ldquo;&mdash;&rdquo; at the end of the list. <b>Scope note:</b> the curated panel covers ~47 clinically actionable cancer genes; sorting by arbitrary genes (any of the 25 k in the genome) would need processing the full DepMap OmicsCNGene matrix into a binary blob like <code>geneEffects.bin.gz</code> &mdash; queued as a future addition.</li>
+                    <li>New sort option: &ldquo;<b>Sort: Copy number of gene</b>&rdquo;. Pick a gene from the curated cancer-relevant CN panel (33 amp + 14 del genes from <code>clinical_cn.json</code> &mdash; MYC, ERBB2, CDK4, MDM2, EGFR, CDKN2A, BRCA1/2, etc.) and the cell-line list sorts by that gene&rsquo;s copy number. Picker shows per-gene event counts (e.g. &ldquo;MYC amp &mdash; 87 lines&rdquo;) so you can see at a glance which genes have the most flagged lines. Per-row CN value is colored blue for amplification (CN &ge; 3) and red for deletion (CN &le; 0.5). Lines without a significant CN event for the selected gene show &ldquo;&mdash;&rdquo; at the end of the list. <b>Scope note:</b> the curated panel covers ~47 clinically actionable cancer genes; sorting by arbitrary genes (any of the 25 k in the genome) would need processing the full DepMap OmicsCNGene matrix into a binary blob like <code>geneEffects.bin.gz</code> &mdash; queued as a future addition.</li>
                 </ul>
                 <p><strong>v.81.59 (2026-05-13)</strong></p>
                 <ul>
-                    <li>CLB detail card &mdash; Immunology section restyle. The previous layout placed the badge (&ldquo;MSI-high&rdquo; / &ldquo;Class-I lost&rdquo;) and the explanation sentence in an inline flex row, squeezing the sentence into whatever horizontal space was left next to the badge &mdash; awkward in the 280 px detail pane. The two now stack vertically (badge above, sentence below), matching the layout of the other sections (Hotspot Mutations, Functional loss, Genome) and giving the caption full width to wrap naturally. Section header gained a flag count and a <code>?</code> help icon explaining that these are cell-intrinsic inferences (what a CD8+ T cell could see if it got there), not tumour-microenvironment readouts &mdash; most human cancer cell lines can only be grown in immunocompromised hosts in vivo.</li>
+                    <li>CLB detail card &mdash; Immunology section restyle. The previous layout placed the badge (&ldquo;MSI-high&rdquo; / &ldquo;Class-I lost&rdquo;) and the explanation sentence in an inline flex row, squeezing the sentence into whatever horizontal space was left next to the badge &mdash; awkward in the 280 px detail pane. The two now stack vertically (badge above, sentence below), matching the layout of the other sections (Hotspot Mutations, Functional loss, Genome) and giving the caption full width to wrap naturally. Section header gained a flag count and a <code>?</code> help icon explaining that these are cell-intrinsic inferences (what a CD8+ T cell could see if it got there), not tumor-microenvironment readouts &mdash; most human cancer cell lines can only be grown in immunocompromised hosts in vivo.</li>
                 </ul>
                 <p><strong>v.81.58 (2026-05-13)</strong></p>
                 <ul>
@@ -3091,7 +3097,7 @@
                 </ul>
                 <p><strong>v.81.48 (2026-05-12)</strong></p>
                 <ul>
-                    <li>Collections panel &mdash; category headlines made larger and clearer. Bumped from 10 px to 13 px, weight 600 &rarr; 700, and the bottom rule changed from a faint 1 px grey hairline to a 2 px green accent so the major sections of the collection panel separate visually at a glance. More top margin (16 px) and a touch of padding give each section room to breathe. Italic category-note line under each header bumped from 10 px to 11 px to match.</li>
+                    <li>Collections panel &mdash; category headlines made larger and clearer. Bumped from 10 px to 13 px, weight 600 &rarr; 700, and the bottom rule changed from a faint 1 px gray hairline to a 2 px green accent so the major sections of the collection panel separate visually at a glance. More top margin (16 px) and a touch of padding give each section room to breathe. Italic category-note line under each header bumped from 10 px to 11 px to match.</li>
                 </ul>
                 <p><strong>v.81.47 (2026-05-12)</strong></p>
                 <ul>
@@ -3116,11 +3122,11 @@
                 </ul>
                 <p><strong>v.81.44 (2026-05-12)</strong></p>
                 <ul>
-                    <li>Drug list &mdash; clinical indication is now explicitly labelled wherever it appears. Previously the cancer-type list (CRC, SCLC, pancreatic, &hellip;) trailed the per-compound row as bare italic text after the &sigma; block, with no label, so it read as a random out-of-context label instead of &ldquo;the diseases this drug is used for&rdquo;.
+                    <li>Drug list &mdash; clinical indication is now explicitly labeled wherever it appears. Previously the cancer-type list (CRC, SCLC, pancreatic, &hellip;) trailed the per-compound row as bare italic text after the &sigma; block, with no label, so it read as a random out-of-context label instead of &ldquo;the diseases this drug is used for&rdquo;.
                     Now every place a compound is rendered carries an explicit &ldquo;<b>Used in:</b>&rdquo; prefix on the indication string:
                     <b>(1)</b> Standout-sensitive / -resistant lists in the Wiki Drug-response section.
                     <b>(2)</b> Context-aware cross-checks block (the same section).
-                    <b>(3)</b> The drug-response autocomplete dropdown in the cell-line browser sort &mdash; the dropdown rows now split target/MoA on one subtitle line and the clinical indication on its own labelled line, instead of joining all three with middle dots.
+                    <b>(3)</b> The drug-response autocomplete dropdown in the cell-line browser sort &mdash; the dropdown rows now split target/MoA on one subtitle line and the clinical indication on its own labeled line, instead of joining all three with middle dots.
                     Drug-response intro paragraph also names every column explicitly so the user knows what to expect before reading any single compound.</li>
                 </ul>
                 <p><strong>v.81.43 (2026-05-12)</strong></p>
@@ -3140,7 +3146,7 @@
                     <b>Infant</b> (&le; 1 yr) &mdash; congenital and very-early-onset cancers (infant ALL, neuroblastoma stage MS).
                     <b>Paediatric</b> (&le; 14 yr) &mdash; standard paediatric-oncology definition; enriched for driver fusions, chromatin / polycomb mutations, embryonal histologies.
                     <b>AYA</b> (15&ndash;39 yr) &mdash; NCI Adolescent &amp; Young Adult bucket; Ewing, osteosarcoma, testicular GCT, T-ALL, Hodgkin lymphoma.
-                    <b>Adult</b> (40&ndash;64 yr) &mdash; the canonical adult-onset solid-tumour bulk (CRC, breast, lung, pancreatic, prostate).
+                    <b>Adult</b> (40&ndash;64 yr) &mdash; the canonical adult-onset solid-tumor bulk (CRC, breast, lung, pancreatic, prostate).
                     <b>Elderly</b> (&ge; 65 yr) &mdash; MDS / secondary AML / late prostate / GBM-in-elderly; often distinct mutational backgrounds.
                     Sits in a new &ldquo;Patient demographics&rdquo; slot between Disease subtypes and Immunology in the collection ordering. Combine with other oncoprint-style filters for queries like <i>&ldquo;AYA AND EWSR1-FLI1+&rdquo;</i>, <i>&ldquo;Paediatric AND TP53-loss&rdquo;</i>, or <i>&ldquo;Elderly AND POLE-deficient&rdquo;</i>.</li>
                 </ul>
@@ -3150,7 +3156,7 @@
                 </ul>
                 <p><strong>v.81.39 (2026-05-11)</strong></p>
                 <ul>
-                    <li>Drug-response section &mdash; each compound now shows cohort-wide sensitivity counts. Below the per-line viability / z-score row, a small grey line spells out: &ldquo;<i>PRISM cohort: <b style="color:#15803d;">N</b> very-sensitive (AUC &lt; 0.3) &middot; <b style="color:#a16207;">M</b> partly-sensitive (AUC 0.3&ndash;0.6) of K tested.</i>&rdquo; Lets the user tell apart a niche-hit compound that kills only a handful of lines from a broadly active drug that kills hundreds. The cohort counts also appear inline in the context-aware cross-checks section in a compact form. Computed once per compound at first Wiki open and cached on the drug-response object for the session.</li>
+                    <li>Drug-response section &mdash; each compound now shows cohort-wide sensitivity counts. Below the per-line viability / z-score row, a small gray line spells out: &ldquo;<i>PRISM cohort: <b style="color:#15803d;">N</b> very-sensitive (AUC &lt; 0.3) &middot; <b style="color:#a16207;">M</b> partly-sensitive (AUC 0.3&ndash;0.6) of K tested.</i>&rdquo; Lets the user tell apart a niche-hit compound that kills only a handful of lines from a broadly active drug that kills hundreds. The cohort counts also appear inline in the context-aware cross-checks section in a compact form. Computed once per compound at first Wiki open and cached on the drug-response object for the session.</li>
                 </ul>
                 <p><strong>v.81.38 (2026-05-11)</strong></p>
                 <ul>
@@ -3166,7 +3172,7 @@
                     <b>(4) DNA repair / mutation burden</b> &mdash; mismatch repair &rsaquo; homologous recombination &rsaquo; polymerase proofreading &rsaquo; ATM/ATR axis &rsaquo; Mutation burden.
                     <b>(5) Genome state</b> &mdash; ploidy / instability (WGD, aneuploidy, LoH).
                     <b>(6) Chromatin / oxidative / pathway</b> &mdash; SWI/SNF &rsaquo; NRF2-mutation &rsaquo; Pathway-activity expression signatures &rsaquo; Expression signature (NE / EMT).
-                    Category notes (italic grey one-liners under each header) extended to Disease-defining fusions, Oncogene hotspot mutations, and TNBC molecular subtypes so jargon-heavy category names are self-explanatory.</li>
+                    Category notes (italic gray one-liners under each header) extended to Disease-defining fusions, Oncogene hotspot mutations, and TNBC molecular subtypes so jargon-heavy category names are self-explanatory.</li>
                 </ul>
                 <p><strong>v.81.36 (2026-05-11)</strong></p>
                 <ul>
@@ -3183,7 +3189,7 @@
                 <ul>
                     <li><b>Drug-response sort &mdash; PRISM compound autocomplete.</b> The input field for the &ldquo;Sort: Drug response (PRISM AUC)&rdquo; mode is now wired to an HTML <code>&lt;datalist&gt;</code> populated from <code>drugResponse.compounds</code> &mdash; the user gets a typeahead dropdown of every PRISM compound name (sorted A&ndash;Z) with the target / MoA / indication shown as a secondary subtitle. Placeholder updated to &ldquo;type a PRISM compound (autocomplete)&rdquo; so the affordance is obvious.</li>
                     <li><b>Thirteen new collections targeting gaps in the catalog.</b>
-                    <b>(1) TNBC molecular subtypes (Lehmann)</b> — four entries (BL1, BL2, M, LAR) for the ~22 TNBC overlap cell lines annotated in <code>lehmannTnbc</code>. Each entry summarises the panel-defined phenotype (DDR for BL1, growth-factor signalling for BL2, EMT/stem for M, AR signalling for LAR) and predicted therapy.
+                    <b>(1) TNBC molecular subtypes (Lehmann)</b> — four entries (BL1, BL2, M, LAR) for the ~22 TNBC overlap cell lines annotated in <code>lehmannTnbc</code>. Each entry summarizes the panel-defined phenotype (DDR for BL1, growth-factor signaling for BL2, EMT/stem for M, AR signaling for LAR) and predicted therapy.
                     <b>(2) Disease-defining fusions</b> — four entries: <b>BCR-ABL1+</b> (CML/Ph+ ALL), <b>EWSR1-FLI1+</b> (Ewing sarcoma), <b>EML4-ALK+</b> (ALK-rearranged NSCLC), <b>PML-RARA+</b> (APL). Members are cell lines where the curated clinical-fusion panel calls that specific fusion.
                     <b>(3) Additional DNA-repair contexts.</b> <b>POLE / POLD1 proofreading-deficient</b> (ultramutated; distinct from MMR &mdash; usually &gt; 100 mut/Mb and ICB-responsive), <b>ATM-deficient</b> (HRD-adjacent, separate from the BRCA-centric set).
                     <b>(4) Oncogene hotspots not covered by addiction.</b> <b>CTNNB1 hotspot</b> (&beta;-catenin / Wnt activator; mutually exclusive with APC loss), <b>IDH1 / IDH2 hotspot</b> (oncometabolite 2-HG producers; mutant-IDH-inhibitor cohort).
@@ -3192,7 +3198,7 @@
                 <p><strong>v.81.33 (2026-05-11)</strong></p>
                 <ul>
                     <li><b>Executive summary &mdash; new &ldquo;Strong drug-target candidates&rdquo; sentence.</b> Surfaces specific drug names where the evidence is robust: (a) any oncogene-addiction collection fires for this cell line (mutation + functional CRISPR dependency, the strongest combined signal) &mdash; KRAS-G12C inhibitors / BRAF+MEK / EGFR TKIs / ABL TKIs / PI3K-&alpha; / CDK4/6 inhibitors named directly; (b) PRISM-screen compounds with z &lt; &minus;1.5&sigma; sensitivity &mdash; top 2 named with target and z. Capped at four entries. The earlier &ldquo;Useful as a model for&rdquo; sentence frames biology; this one names concrete therapies likely to work.</li>
-                    <li><b>Collections panel &mdash; categories with jargon-heavy names get inline explainers.</b> Under each affected category header, a small italic grey line spells out the gist. Examples: <i>Oncogene addiction (mutation &times; CRISPR dependency)</i> &rarr; &ldquo;Cancer cells that have become functionally dependent on a driver gene &mdash; knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only collections above.&rdquo; <i>Pathway-activity expression signatures</i> &rarr; &ldquo;Each set marks lines where the pathway is transcriptionally active (mean z &gt; +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.&rdquo; Tumor-suppressor functional loss and Focal amplifications also get one-line gists.</li>
+                    <li><b>Collections panel &mdash; categories with jargon-heavy names get inline explainers.</b> Under each affected category header, a small italic gray line spells out the gist. Examples: <i>Oncogene addiction (mutation &times; CRISPR dependency)</i> &rarr; &ldquo;Cancer cells that have become functionally dependent on a driver gene &mdash; knocking it out (or blocking it with a drug) kills the cell. Stricter than the mutation-only collections above.&rdquo; <i>Pathway-activity expression signatures</i> &rarr; &ldquo;Each set marks lines where the pathway is transcriptionally active (mean z &gt; +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.&rdquo; Tumor-suppressor functional loss and Focal amplifications also get one-line gists.</li>
                 </ul>
                 <p><strong>v.81.32 (2026-05-11)</strong></p>
                 <ul>
@@ -3209,17 +3215,17 @@
                 <p><strong>v.81.30 (2026-05-11)</strong></p>
                 <ul>
                     <li><b>Drug response &mdash; clearer &sigma; / z-score explanation.</b> The intro paragraph now defines &sigma; explicitly (standard deviation of the AUC for that drug across all PRISM cell lines), explains what &ldquo;&minus;1.4&sigma; below average&rdquo; concretely means (this line kills 1.4 SDs harder than typical for this drug), and gives interpretation thresholds: |z| &gt; 1&sigma; = noteworthy, |z| &gt; 2&sigma; = strong outlier. AUC scale also restated at the top so the user doesn&rsquo;t have to remember 0 = killed / 1 = no effect.</li>
-                    <li><b>New &ldquo;Sort: Drug response&rdquo; in the cell line browser.</b> Pick the option, type a compound name (or substring; multiple compounds averaged) in the input field &mdash; e.g. <code>PALBOCICLIB</code>, <code>IRINOTECAN</code>, <code>PALBO, ABEMA</code>. List sorts ascending by AUC by default (most-sensitive lines at top) with the AUC value shown inline on each row, colour-coded by sensitivity (green &lt; 0.6, amber 0.6&ndash;0.85, grey &gt; 0.85). Lines not in the PRISM screen sink to the bottom regardless of direction.</li>
-                    <li><b>Wiki palette sweep &mdash; calmer, fewer hues.</b> The Wiki was previously using purple (druggable targets), teal (FACS markers), bright orange (pathway-activity signatures), sky blue (lineage markers), and several blue shades (typical-pattern, hallmark-checklist) on top of the existing green/red/grey base. All consolidated into four accent colours:
+                    <li><b>New &ldquo;Sort: Drug response&rdquo; in the cell line browser.</b> Pick the option, type a compound name (or substring; multiple compounds averaged) in the input field &mdash; e.g. <code>PALBOCICLIB</code>, <code>IRINOTECAN</code>, <code>PALBO, ABEMA</code>. List sorts ascending by AUC by default (most-sensitive lines at top) with the AUC value shown inline on each row, color-coded by sensitivity (green &lt; 0.6, amber 0.6&ndash;0.85, gray &gt; 0.85). Lines not in the PRISM screen sink to the bottom regardless of direction.</li>
+                    <li><b>Wiki palette sweep &mdash; calmer, fewer hues.</b> The Wiki was previously using purple (druggable targets), teal (FACS markers), bright orange (pathway-activity signatures), sky blue (lineage markers), and several blue shades (typical-pattern, hallmark-checklist) on top of the existing green/red/gray base. All consolidated into four accent colors:
                     <span style="background:#f0fdf4; border-left:3px solid #15803d; padding:0 6px;">green</span> for active / dependencies / sensitivities / druggable / FACS,
                     <span style="background:#fef2f2; border-left:3px solid #991b1b; padding:0 6px;">red</span> for loss / resistance / immune escape,
                     <span style="background:#eef2ff; border-left:3px solid #3730a3; padding:0 6px;">indigo</span> for typical patterns / lineage / cross-checks,
-                    <span style="background:#f9fafb; border-left:3px solid #6b7280; padding:0 6px;">grey</span> for neutral / other / off.
-                    Section headers keep their existing green strip styling; pathway-status synthesis colours (per-panel, dynamic) keep their amber/green/red since those convey the call.</li>
+                    <span style="background:#f9fafb; border-left:3px solid #6b7280; padding:0 6px;">gray</span> for neutral / other / off.
+                    Section headers keep their existing green strip styling; pathway-status synthesis colors (per-panel, dynamic) keep their amber/green/red since those convey the call.</li>
                 </ul>
                 <p><strong>v.81.29 (2026-05-11)</strong></p>
                 <ul>
-                    <li>Wiki Expression profile &mdash; new <b>&ldquo;Potential FACS markers&rdquo;</b> block. Intersects expression with a curated ~100-gene panel of well-known cell-surface antigens: CD molecules (CD3/4/8/14/19/20/22/24/27/33/44/45/56/68/127/133, &hellip;), receptor tyrosine kinases (EGFR, HER2-4, FGFR1-4, MET, AXL, KIT, IGF1R, NTRK, ALK, &hellip;), immune checkpoints (PD-L1, PD-L2, PD-1, CTLA4, LAG3, TIM-3, TIGIT, B7-H3, VISTA), ADC / bispecific / clinical targets (TROP2, FOLR1, MSLN, NECTIN4, CEACAM5/6, MUC1/16, DLL3, LIV1, STEAP1/2, PSMA, NaPi2b, claudins), adhesion molecules (EPCAM, CDH1/2, ICAM1, integrins), death receptors (FAS, DR4, DR5), Notch family, and tumour-associated antigens (CA9, GPC3, &hellip;). Threshold TPM &gt; 4 (a bit stricter than druggable targets, since FACS needs antibody-detectable protein); top 12 shown, sorted by uniqueness vs cohort (z-score). Each entry shows raw TPM and z, so the user can pick markers that are both bright AND distinctive to this line as wet-lab handles for FACS, antibody assays, or candidate targeting.</li>
+                    <li>Wiki Expression profile &mdash; new <b>&ldquo;Potential FACS markers&rdquo;</b> block. Intersects expression with a curated ~100-gene panel of well-known cell-surface antigens: CD molecules (CD3/4/8/14/19/20/22/24/27/33/44/45/56/68/127/133, &hellip;), receptor tyrosine kinases (EGFR, HER2-4, FGFR1-4, MET, AXL, KIT, IGF1R, NTRK, ALK, &hellip;), immune checkpoints (PD-L1, PD-L2, PD-1, CTLA4, LAG3, TIM-3, TIGIT, B7-H3, VISTA), ADC / bispecific / clinical targets (TROP2, FOLR1, MSLN, NECTIN4, CEACAM5/6, MUC1/16, DLL3, LIV1, STEAP1/2, PSMA, NaPi2b, claudins), adhesion molecules (EPCAM, CDH1/2, ICAM1, integrins), death receptors (FAS, DR4, DR5), Notch family, and tumor-associated antigens (CA9, GPC3, &hellip;). Threshold TPM &gt; 4 (a bit stricter than druggable targets, since FACS needs antibody-detectable protein); top 12 shown, sorted by uniqueness vs cohort (z-score). Each entry shows raw TPM and z, so the user can pick markers that are both bright AND distinctive to this line as wet-lab handles for FACS, antibody assays, or candidate targeting.</li>
                 </ul>
                 <p><strong>v.81.28 (2026-05-11)</strong></p>
                 <ul>
@@ -3270,7 +3276,7 @@
                 </ul>
                 <p><strong>v.81.19 (2026-05-11)</strong></p>
                 <ul>
-                    <li>Wiki &mdash; new &ldquo;Where this line sits in the cohort&rdquo; sub-block under the Genome signatures section. Four small Plotly panels rendered FACS-style: <b>Ploidy</b>, <b>Aneuploidy</b>, <b>CIN</b> as continuous histograms, <b>WGD</b> as a binary two-bar count. This cell line&rsquo;s value is marked with a dashed red line (continuous) or a red bar (WGD), with its numeric value labelled above the line. Per-panel PNG / SVG export via Plotly&rsquo;s built-in modebar (hover top-right of each plot). Cohort CSV export button next to the heading dumps ModelID, Name, Ploidy, WGD, Aneuploidy, CIN, plus an <code>IsInspected</code> flag for the currently-open cell line. Skipped silently for lines with no global-signatures entry.</li>
+                    <li>Wiki &mdash; new &ldquo;Where this line sits in the cohort&rdquo; sub-block under the Genome signatures section. Four small Plotly panels rendered FACS-style: <b>Ploidy</b>, <b>Aneuploidy</b>, <b>CIN</b> as continuous histograms, <b>WGD</b> as a binary two-bar count. This cell line&rsquo;s value is marked with a dashed red line (continuous) or a red bar (WGD), with its numeric value labeled above the line. Per-panel PNG / SVG export via Plotly&rsquo;s built-in modebar (hover top-right of each plot). Cohort CSV export button next to the heading dumps ModelID, Name, Ploidy, WGD, Aneuploidy, CIN, plus an <code>IsInspected</code> flag for the currently-open cell line. Skipped silently for lines with no global-signatures entry.</li>
                 </ul>
                 <p><strong>v.81.18 (2026-05-11)</strong></p>
                 <ul>
@@ -3287,7 +3293,7 @@
                 <p><strong>v.81.15 (2026-05-11)</strong></p>
                 <ul>
                     <li>Collections panel — fixed strange-looking text in tooltips. HTML entities (<code>&amp;mdash;</code>, <code>&amp;minus;</code>, <code>&amp;ge;</code>, <code>&amp;rsquo;</code>, <code>&amp;ndash;</code>) used in the catalog description strings were rendering literally in some tooltip contexts. Swapped them out for the Unicode characters directly (— − ≥ – etc.) so they show as glyphs everywhere, regardless of whether the text ends up inside a <code>title=""</code> attribute, a <code>textContent</code> assignment, or innerHTML body.</li>
-                    <li>Immunogenicity prediction added as two new collections under <b>Immunology</b>, replacing the hot/cold framing. <b>Likely immunogenic</b> = ≥ 200 damaging coding mutations <i>and</i> class-I antigen presentation appears intact (no B2M damaging, HLA-A/B/C expression not strongly reduced, HLA CN not lost vs B2M). <b>Likely non-immunogenic</b> = either class-I reduced/lost (immune escape) or ≤ 50 damaging mutations with otherwise intact MHC-I (too few neoantigens). Lines that don't fit either profile are unlabelled. The catalog description spells out the inputs and the cell-intrinsic-proxy caveat (real-tumour immunogenicity also depends on the TME, which isn't observable in cell lines).</li>
+                    <li>Immunogenicity prediction added as two new collections under <b>Immunology</b>, replacing the hot/cold framing. <b>Likely immunogenic</b> = ≥ 200 damaging coding mutations <i>and</i> class-I antigen presentation appears intact (no B2M damaging, HLA-A/B/C expression not strongly reduced, HLA CN not lost vs B2M). <b>Likely non-immunogenic</b> = either class-I reduced/lost (immune escape) or ≤ 50 damaging mutations with otherwise intact MHC-I (too few neoantigens). Lines that don't fit either profile are unlabeled. The catalog description spells out the inputs and the cell-intrinsic-proxy caveat (real-tumor immunogenicity also depends on the TME, which isn't observable in cell lines).</li>
                 </ul>
                 <p><strong>v.81.14 (2026-05-11)</strong></p>
                 <ul>
@@ -3306,7 +3312,7 @@
                 </ul>
                 <p><strong>v.81.11 (2026-05-11)</strong></p>
                 <ul>
-                    <li>Cell-line detail card &mdash; calmer, more readable. <b>Step 1 of an iterative cleanup.</b> The MSI and Class-I antigen-presentation badges no longer sit next to the cell-line ID where they read as the headline feature; they now live in a new &ldquo;Phenotype flags&rdquo; section with a one-line plain-English caption next to each chip so the user doesn&rsquo;t need to hover to know what they mean. Genome row rewritten from a single cryptic line (&ldquo;Ploidy 2.29 &middot; Aneup. 4 &middot; CIN 0.14&rdquo;) into four indented rows with descriptors (&ldquo;Ploidy 2.29 <i>(near-diploid)</i>&rdquo;, &ldquo;Aneuploidy 4 / 39 <i>(low)</i>&rdquo;, &ldquo;CIN 0.14 <i>(low)</i>&rdquo;, &ldquo;WGD yes&rdquo; when positive). Focal-CN chips no longer use the &uarr;&darr; glyphs (they read as &ldquo;going up / down&rdquo; rather than &ldquo;amplified / deleted&rdquo;); the gene name now sits next to a small &ldquo;amp&rdquo; / &ldquo;del&rdquo; / &ldquo;strong amp&rdquo; / &ldquo;deep del&rdquo; word. Palette muted across the card: amps use dark-blue text on a light-blue tint, deletions and LoF use dark-red text on a light-red tint; fusion tier pills (high/med/low) keep the semantic colour but on neutral grey borders; the Lehmann TNBC chip is now grey instead of saturated purple. No data removed.</li>
+                    <li>Cell-line detail card &mdash; calmer, more readable. <b>Step 1 of an iterative cleanup.</b> The MSI and Class-I antigen-presentation badges no longer sit next to the cell-line ID where they read as the headline feature; they now live in a new &ldquo;Phenotype flags&rdquo; section with a one-line plain-English caption next to each chip so the user doesn&rsquo;t need to hover to know what they mean. Genome row rewritten from a single cryptic line (&ldquo;Ploidy 2.29 &middot; Aneup. 4 &middot; CIN 0.14&rdquo;) into four indented rows with descriptors (&ldquo;Ploidy 2.29 <i>(near-diploid)</i>&rdquo;, &ldquo;Aneuploidy 4 / 39 <i>(low)</i>&rdquo;, &ldquo;CIN 0.14 <i>(low)</i>&rdquo;, &ldquo;WGD yes&rdquo; when positive). Focal-CN chips no longer use the &uarr;&darr; glyphs (they read as &ldquo;going up / down&rdquo; rather than &ldquo;amplified / deleted&rdquo;); the gene name now sits next to a small &ldquo;amp&rdquo; / &ldquo;del&rdquo; / &ldquo;strong amp&rdquo; / &ldquo;deep del&rdquo; word. Palette muted across the card: amps use dark-blue text on a light-blue tint, deletions and LoF use dark-red text on a light-red tint; fusion tier pills (high/med/low) keep the semantic color but on neutral gray borders; the Lehmann TNBC chip is now gray instead of saturated purple. No data removed.</li>
                 </ul>
                 <p><strong>v.81.10 (2026-05-11)</strong></p>
                 <ul>
@@ -3343,8 +3349,8 @@
                 <ul>
                     <li><strong>HLA copy-number ingested + class-I inference activated</strong>. Ran <code>scripts/process_hla_cn.py</code> against the downloaded <code>OmicsCNGeneWGS.csv</code> (~400 MB DepMap WGS CN matrix); output <code>web_data/hla_cn.json</code> (190 KB) covers 830 cell lines for HLA-A/B/C, B2M, and antigen-processing-machinery genes. Two corrections during ingestion:
                         <ul>
-                            <li>The CSV format is DepMap's <em>relative copy number</em> (1.0 = diploid), not log2 ratio or absolute &mdash; format detection rewritten to recognise this from the B2M reference distribution.</li>
-                            <li>Short-read WGS systematically under-maps HLA-C in the polymorphic region (cohort median ~0.22, not real loss). The class-I CN inference now uses <strong>HLA-A/B normalised to B2M</strong> per cell line (B2M sits on chr15, clean diploid reference). Ratio &lt; 0.5 = strong loss, &lt; 0.7 = suggestive loss. Catches HLA-specific copy loss while controlling for sample-level mappability and the HLA-C reference bias.</li>
+                            <li>The CSV format is DepMap's <em>relative copy number</em> (1.0 = diploid), not log2 ratio or absolute &mdash; format detection rewritten to recognize this from the B2M reference distribution.</li>
+                            <li>Short-read WGS systematically under-maps HLA-C in the polymorphic region (cohort median ~0.22, not real loss). The class-I CN inference now uses <strong>HLA-A/B normalized to B2M</strong> per cell line (B2M sits on chr15, clean diploid reference). Ratio &lt; 0.5 = strong loss, &lt; 0.7 = suggestive loss. Catches HLA-specific copy loss while controlling for sample-level mappability and the HLA-C reference bias.</li>
                         </ul>
                     </li>
                     <li><strong>Lehmann TNBC subtype annotation</strong>. The Oncotree subtypes (Breast Invasive Ductal Carcinoma, Triple-Negative Breast Cancer, etc.) don't capture the Lehmann TNBC molecular axis (BL1, BL2, IM, M, MSL, LAR) and our previous user-flagged: "the cell-line browser TNBC labels don't match Lehmann's classifications." Added curated subtype assignments from Lehmann <em>JCI</em> 2011 (PMID 21633166) plus the 2016 reclassification (PMID 27310713; collapsed to four classes &mdash; BL1, BL2, M, LAR &mdash; with IM and MSL re-attributed to immune / stromal infiltrate). New <code>scripts/lehmann_tnbc_anchor.json</code> + <code>scripts/process_lehmann_tnbc.py</code>; output <code>web_data/lehmann_tnbc.json</code> covers 22 of 29 panel cell lines (the other 7 aren't in DepMap 25Q3). Surfaced as a small purple chip next to the Subtype row in the cell-line browser detail panel (e.g. "Lehmann BL1" or "Lehmann MSL → M" when 2016 reclassified). Hover for full definitions of the six classes. Also embedded per cell line in the AI <code>.json.gz</code> export as <code>cellLineMetadata.&lt;cl&gt;.lehmannTnbc</code>.</li>
@@ -3365,7 +3371,7 @@
                 </ul>
                 <p><strong>v.81.3 (2026-04-27)</strong></p>
                 <ul>
-                    <li><strong>HLA / polymorphic-locus caveat</strong>. The HLA region (chr 6p21) is the most polymorphic in the human genome &mdash; HLA-A alone has &gt;7,000 known alleles &mdash; and gnomAD-based germline filtering leaks here. So "hotspot" calls in HLA / MIC / KIR genes typically reflect allelic divergence from the GRCh38 reference, not somatic events. Real cancer-relevant HLA loss exists (immune escape via class-I LoF + LOH, especially in MSI-high tumours) but should be inferred from expression loss + LOH, not the raw hotspot matrix.
+                    <li><strong>HLA / polymorphic-locus caveat</strong>. The HLA region (chr 6p21) is the most polymorphic in the human genome &mdash; HLA-A alone has &gt;7,000 known alleles &mdash; and gnomAD-based germline filtering leaks here. So "hotspot" calls in HLA / MIC / KIR genes typically reflect allelic divergence from the GRCh38 reference, not somatic events. Real cancer-relevant HLA loss exists (immune escape via class-I LoF + LOH, especially in MSI-high tumors) but should be inferred from expression loss + LOH, not the raw hotspot matrix.
                         <p style="margin: 4px 0;">New <code>_POLYMORPHIC_LOCI</code> set covers the classical class-I HLA (A/B/C), non-classical (E/F/G), class-II (DPA/DPB/DQA/DQB/DRA/DRB1-5/DM/DO), MIC (A/B), and the KIR family. Wherever a hotspot or damaging mutation is rendered, polymorphic-locus genes now get a small &#9888; marker with a hover tooltip explaining the caveat:</p>
                         <ul>
                             <li>Cell-line browser detail panel &mdash; hotspot / damaging / fusion gene lists. Polymorphic genes also <strong>sorted to the end</strong> of those lists so they don't crowd the always-visible top-10 (still surfaced when "Show all" is expanded).</li>
@@ -3409,7 +3415,7 @@
                 </ul>
                 <p><strong>v.80.8 (2026-04-27)</strong></p>
                 <ul>
-                    <li>AI <code>.json.gz</code> export &mdash; <strong>Reactome integration</strong>. Layered as a fourth tier in the focal-gene partner lookup, after CORUM. Catches pathway / signalling-cascade relationships CORUM doesn't cover &mdash; e.g. for IL4R, CORUM gives the receptor complex (IL13, IL13RA1, IL2RG, IL4) while Reactome adds the JAK/STAT cascade (STAT1, STAT5A, STAT5B, STAT6, plus PIK3CA and SOCS members from the broader signalling neighbourhood). New <code>scripts/process_reactome.py</code> fetches the GMT (~290 KB) directly from <a href="https://reactome.org/">reactome.org</a> via its public download URL (no auth, no manual intervention), filters to specific pathways (size 5&ndash;100 genes &mdash; drops broad parents like "Signal Transduction" with 2,600+ members), caps per-gene partners at 120 most-co-occurring. Output: <code>web_data/reactome_partners.json</code> (~6 MB; covers ~10,000 human genes &mdash; about half the protein-coding genome). Schema bumped to <strong>2.5</strong>.</li>
+                    <li>AI <code>.json.gz</code> export &mdash; <strong>Reactome integration</strong>. Layered as a fourth tier in the focal-gene partner lookup, after CORUM. Catches pathway / signaling-cascade relationships CORUM doesn't cover &mdash; e.g. for IL4R, CORUM gives the receptor complex (IL13, IL13RA1, IL2RG, IL4) while Reactome adds the JAK/STAT cascade (STAT1, STAT5A, STAT5B, STAT6, plus PIK3CA and SOCS members from the broader signaling neighbourhood). New <code>scripts/process_reactome.py</code> fetches the GMT (~290 KB) directly from <a href="https://reactome.org/">reactome.org</a> via its public download URL (no auth, no manual intervention), filters to specific pathways (size 5&ndash;100 genes &mdash; drops broad parents like "Signal Transduction" with 2,600+ members), caps per-gene partners at 120 most-co-occurring. Output: <code>web_data/reactome_partners.json</code> (~6 MB; covers ~10,000 human genes &mdash; about half the protein-coding genome). Schema bumped to <strong>2.5</strong>.</li>
                     <li>"Reference Data" card on the main page restructured to show all data sources in three buckets: <em>Cell-line data</em> (DepMap files, expanded to include the new CSVs we ingest &mdash; OmicsInferredMolecularSubtypes, OmicsGlobalSignatures, OmicsFusionFilteredSupplementary, PRISM Repurposing), <em>Pathway / complex memberships</em> (CORUM + Reactome + in-app curated KBs), <em>Curated annotations</em> (clinical fusions, subtype hallmarks, STR profiles). Clearer attribution for CORUM and Reactome alongside the existing DepMap acknowledgement note.</li>
                 </ul>
                 <p><strong>v.80.7 (2026-04-27)</strong></p>
@@ -3418,7 +3424,7 @@
                         <ol>
                             <li>Hand-curated complexes (NEDD8/CRL, Proteasome, Hippo, MYC, TP53, BRCA, mTOR, BCL2, splicing) &mdash; tight, biologist-vetted high-value sets.</li>
                             <li><strong>CORUM</strong> (manually curated mammalian protein complexes, ~3,000 human genes covered) &mdash; auto-populates partners for arbitrary focal genes (SMARCA4 &rarr; BAF subunits, MCM4 &rarr; MCM2-7 helicase, RUVBL1 &rarr; INO80/SRCAP, etc.).</li>
-                            <li>Wiki cancer pathways &mdash; signalling-cascade groupings CORUM doesn't cover (RAS/MAPK, RTK family, p53-MDM2-CDKN2A axis).</li>
+                            <li>Wiki cancer pathways &mdash; signaling-cascade groupings CORUM doesn't cover (RAS/MAPK, RTK family, p53-MDM2-CDKN2A axis).</li>
                         </ol>
                         New <code>scripts/process_corum.py</code> reads a downloaded CORUM TSV (<a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" rel="noopener">mips.helmholtz-muenchen.de/corum/</a>, "Human" complexes) and writes <code>web_data/corum_partners.json</code>. Schema bumped to <strong>2.4</strong>; <code>dataStructure.expression</code> documents the layered lookup. CORUM data file is optional &mdash; if not present, the export falls back to the hand-curated + wiki-pathway layers and still works.</li>
                 </ul>
@@ -3509,10 +3515,10 @@
                 <p><strong>v.79.1 (2026-04-27)</strong></p>
                 <ul>
                     <li>CLB <strong>fusion filter</strong> dropdown rebuilt as a custom multi-line component &mdash; Safari truncates native datalist options to the input width, which was hiding the n= and clipping fusion names mid-word ("★ KMT2A-", "★ EWSR1-", and rendering several option rows visibly empty). The new dropdown shows two lines per entry: bold name with n=, then disease context for clinical fusions ("Ewing sarcoma", "CML / Ph+ B-ALL", &hellip;) or "any fusion involving this gene" for the gene-based long tail. Auto-completes as you type, capped at 200 visible items, click to commit a clean canonical name to the input.</li>
-                    <li>CLB <strong>toolbar buttons grouped</strong> with vertical separators: <em>selection</em> (Select Visible · Deselect All · Copy Names) | <em>inspect</em> (Inspect Gene Effects · Inspect Correlations · Open Saved Inspect &mdash; all green-tinted, run analyses on the selected cell lines) | <em>export</em> (Export Genes CSV · GE matrix CSV · All matrices CSV &mdash; now purple-tinted, raw-data exports). The three exports remain because they have non-overlapping scopes (typed gene panel vs genome-wide GE only vs all matrices); the wiki download (per-cell-line HTML) is a different artifact entirely.</li>
+                    <li>CLB <strong>toolbar buttons grouped</strong> with vertical separators: <em>selection</em> (Select Visible · Deselect All · Copy Names) | <em>inspect</em> (Inspect Gene Effects · Inspect Correlations · Open Saved Inspect &mdash; all green-tinted, run analyzes on the selected cell lines) | <em>export</em> (Export Genes CSV · GE matrix CSV · All matrices CSV &mdash; now purple-tinted, raw-data exports). The three exports remain because they have non-overlapping scopes (typed gene panel vs genome-wide GE only vs all matrices); the wiki download (per-cell-line HTML) is a different artifact entirely.</li>
                     <li>Cell-line wiki <strong>"Expected drivers" section reworked</strong> for clarity. Was confusing when the Oncotree subtype label itself contained a fusion name &mdash; users were reading "Chronic Myeloid Leukemia, BCR-ABL1+" as a positive call about the cell line rather than the disease classification. Now two clearly separated blocks:
                         <ul>
-                            <li><b>Observed in this cell line</b> (green) &mdash; pulls from every integrated layer: specific driver variants (KRAS p.G12D), driver fusions with tier badges, functional-loss tumour suppressors, top hotspot-mutated genes, MSI-high flag, WGD flag.</li>
+                            <li><b>Observed in this cell line</b> (green) &mdash; pulls from every integrated layer: specific driver variants (KRAS p.G12D), driver fusions with tier badges, functional-loss tumor suppressors, top hotspot-mutated genes, MSI-high flag, WGD flag.</li>
                             <li><b>Typical for this disease subtype</b> (blue, was the old block) &mdash; the curated knowledge-base description, plus the intersection with what's actually mutated in the line.</li>
                         </ul>
                         Section header explains that the subtype label is a disease classification, not a per-cell-line call. When no curated KB entry exists for the subtype, the observed block still gives actionable info instead of just an "uncovered" message.</li>
@@ -3520,7 +3526,7 @@
                 </ul>
                 <p><strong>v.79.0 (2026-04-27)</strong></p>
                 <ul>
-                    <li>Cell line Wiki restructured for clarity. Sections regrouped into four buckets: <em>Identity</em> (Cancer classification &middot; Patient &amp; sample origin &middot; Sex), <em>Genome state</em> (NEW &mdash; <strong>Genome signatures</strong>), <em>Driver landscape</em> (Expected drivers for this subtype &middot; Driver mutations &middot; <strong>Functional loss</strong> NEW &middot; Fusion landscape), <em>Functional behaviour</em> (CRISPR dependencies &middot; Expression profile &middot; Drug response), and <em>Lab use</em> (STR authentication &middot; External resources). Headers shortened, each section opens with one short sentence saying what it contains, then the data, then a small grey "Source:" footer.</li>
+                    <li>Cell line Wiki restructured for clarity. Sections regrouped into four buckets: <em>Identity</em> (Cancer classification &middot; Patient &amp; sample origin &middot; Sex), <em>Genome state</em> (NEW &mdash; <strong>Genome signatures</strong>), <em>Driver landscape</em> (Expected drivers for this subtype &middot; Driver mutations &middot; <strong>Functional loss</strong> NEW &middot; Fusion landscape), <em>Functional behavior</em> (CRISPR dependencies &middot; Expression profile &middot; Drug response), and <em>Lab use</em> (STR authentication &middot; External resources). Headers shortened, each section opens with one short sentence saying what it contains, then the data, then a small gray "Source:" footer.</li>
                     <li><strong>Genome signatures</strong> section &mdash; Ploidy, WGD (in red when positive), Aneuploidy score (Ben-David 0&ndash;39), CIN, LoH fraction, and MSI score (MSI-high lines flagged red). One-liner per metric explaining what it means. WGD-positive lines (~58% of the panel) and MSI-high lines (~6%) are systematically different in many comparisons, so this is interpretive context that affects how every section below should be read.</li>
                     <li><strong>Functional loss</strong> section &mdash; new red-bordered chips for tumor suppressors that are functionally inactivated by integrated CN + mutation + expression evidence (RB1, TP53, PTEN, NF1, CDKN2A, VHL, MTAP, APC). Catches deletion-driven losses (CDKN2A homo-del in 445 lines panel-wide, RB1 deep deletion) that the damaging-mutation matrix alone is blind to.</li>
                     <li><strong>Driver mutations</strong> &mdash; the top-hotspots line now shows the specific variant in green next to the gene symbol (e.g. <code>KRAS</code> <span style="color:#16a34a;">(p.G12D)</span>) when DepMap's inferred-subtype pipeline calls a specific codon (KRAS p.G12D/G12C, BRAF V600E, EGFR L858R, JAK2 V617F, EGFR exon-19 del, plus generic group-level calls).</li>
@@ -3547,7 +3553,7 @@
                 <p><strong>v.77.1 (2026-04-27)</strong></p>
                 <ul>
                     <li>Clinically relevant fusions &mdash; renamed (was "Clinical Fusions" which sounded off). Tier rules refined to add <em>soft-pass</em> logic: a strong signal in one channel + a directionally supportive signal in the other (in correct direction at half-magnitude) now reaches <em>high</em>, not just both-strong. This fixes the canonical EWSR1-FLI1 lines like A-673 (exprZ=1.9 strong, depZ=&minus;0.42 supportive) which previously landed at <em>medium</em> only because FLI1 is broadly used in many lineages so absolute dependency z-scores stay small even when the call is genuinely fusion-driven. Atypical-with-no-support cases (e.g. BCR-ABL1 in an Ovary line, depZ=&minus;0.08) still land at <em>low</em> because the supportive threshold is not crossed. Run now: 57 high / 23 medium / 4 low (was 51 / 29 / 4).</li>
-                    <li>Cell-line browser fusion filter dropdown now lists the clinically relevant fusion <strong>pairs</strong> first (★ BCR-ABL1 (n=11), ★ EWSR1-FLI1 (n=14), &hellip;) with live n= scaled to the active cohort filters (tissue / subtype / hotspot / etc.), followed by a separator and the existing gene-based long tail. Selecting a pair filters the cell-line list to the exact curated validated set; selecting a gene keeps the original behaviour (any line with any fusion of that gene). Filter and dropdown both honour the dual lookup so the n= counts and the resulting cell-line list always agree.</li>
+                    <li>Cell-line browser fusion filter dropdown now lists the clinically relevant fusion <strong>pairs</strong> first (★ BCR-ABL1 (n=11), ★ EWSR1-FLI1 (n=14), &hellip;) with live n= scaled to the active cohort filters (tissue / subtype / hotspot / etc.), followed by a separator and the existing gene-based long tail. Selecting a pair filters the cell-line list to the exact curated validated set; selecting a gene keeps the original behavior (any line with any fusion of that gene). Filter and dropdown both honour the dual lookup so the n= counts and the resulting cell-line list always agree.</li>
                     <li>CLB <b>?</b> help modal &mdash; new section explaining what clinically relevant fusions mean, what the high/medium/low tiers are based on, why the &#9888; atypical badge appears, and what data source the calls come from.</li>
                 </ul>
                 <p><strong>v.77.0 (2026-04-27)</strong></p>
@@ -3556,7 +3562,7 @@
                 </ul>
                 <p><strong>v.76.6 (2026-04-24)</strong></p>
                 <ul>
-                    <li>CLB cell-line list &mdash; when sorted by GE / Expression / mutation count, the inline number is now prefixed with a small grey unit tag (<code>GE 0.45</code>, <code>Expr 4.12</code>, <code>hs 2</code>), carries a tooltip that spells out the metric + gene(s) + direction ("negative = essential" / "higher = more expressed"), and GE values are tinted red when essential (&lt; &minus;0.5) or amber (&lt; &minus;0.2). A one-line caption above the list repeats what the numbers represent and which gene(s) they average.</li>
+                    <li>CLB cell-line list &mdash; when sorted by GE / Expression / mutation count, the inline number is now prefixed with a small gray unit tag (<code>GE 0.45</code>, <code>Expr 4.12</code>, <code>hs 2</code>), carries a tooltip that spells out the metric + gene(s) + direction ("negative = essential" / "higher = more expressed"), and GE values are tinted red when essential (&lt; &minus;0.5) or amber (&lt; &minus;0.2). A one-line caption above the list repeats what the numbers represent and which gene(s) they average.</li>
                 </ul>
                 <p><strong>v.76.5 (2026-04-24)</strong></p>
                 <ul>
@@ -3585,8 +3591,8 @@
                 </ul>
                 <p><strong>v.75.9 (2026-04-24)</strong></p>
                 <ul>
-                    <li>CLB PCA loadings now appear in <strong>gene-color</strong> mode too, not only when colouring by tissue / subtype. The loadings sidecar describes the PCA axes (which don't change when you recolour), so it stays useful alongside any colour scheme.</li>
-                    <li>Long gene symbols in the loadings sidecar are no longer cropped. The SVG widens based on the longest label (measured with <code>canvas.measureText</code>), the 182&times;182 axis square stays centred, and both anchor positions (<em>start</em> on the right, <em>end</em> on the left) have room to spell out the full symbol.</li>
+                    <li>CLB PCA loadings now appear in <strong>gene-color</strong> mode too, not only when coloring by tissue / subtype. The loadings sidecar describes the PCA axes (which don't change when you recolor), so it stays useful alongside any color scheme.</li>
+                    <li>Long gene symbols in the loadings sidecar are no longer cropped. The SVG widens based on the longest label (measured with <code>canvas.measureText</code>), the 182&times;182 axis square stays centered, and both anchor positions (<em>start</em> on the right, <em>end</em> on the left) have room to spell out the full symbol.</li>
                 </ul>
                 <p><strong>v.75.8 (2026-04-24)</strong></p>
                 <ul>
@@ -3606,17 +3612,17 @@
                 </ul>
                 <p><strong>v.75.5 (2026-04-24)</strong></p>
                 <ul>
-                    <li>CLB PCA / UMAP &mdash; clicking a point now labels that cell line on the plot (same behaviour as the correlation scatter). Click again to remove the label, or use the <em>Clear labels</em> button that appears once at least one label is placed.</li>
-                    <li>New <strong>Cluster stats</strong> button opens a floating panel ranking tissues (or subtypes, via the <em>Group by</em> selector) by mean silhouette score in the current 2D projection. Higher = tighter cluster; the bar visualises the score on a &minus;1 &hellip; +1 scale with the zero mark. Click any row to highlight its cells in green and render everyone else in gray; click the same row (or <em>Clear highlight</em>) to return to the tissue coloring.</li>
+                    <li>CLB PCA / UMAP &mdash; clicking a point now labels that cell line on the plot (same behavior as the correlation scatter). Click again to remove the label, or use the <em>Clear labels</em> button that appears once at least one label is placed.</li>
+                    <li>New <strong>Cluster stats</strong> button opens a floating panel ranking tissues (or subtypes, via the <em>Group by</em> selector) by mean silhouette score in the current 2D projection. Higher = tighter cluster; the bar visualizes the score on a &minus;1 &hellip; +1 scale with the zero mark. Click any row to highlight its cells in green and render everyone else in gray; click the same row (or <em>Clear highlight</em>) to return to the tissue coloring.</li>
                 </ul>
                 <p><strong>v.75.4 (2026-04-24)</strong></p>
                 <ul>
-                    <li>CLB PCA / UMAP with a custom gene list now <strong>z-scores</strong> each gene (unit variance) before the projection. Without this, a single gene with a larger dynamic range (e.g. a strong dependency at &plusmn;3 alongside a partner at &plusmn;0.5) dominated PC1/PC2 and the plot showed a perfect gradient along that gene with the rest contributing noise. Top-variance (default, no list) keeps the old unscaled behaviour since those genes already have comparable magnitudes.</li>
+                    <li>CLB PCA / UMAP with a custom gene list now <strong>z-scores</strong> each gene (unit variance) before the projection. Without this, a single gene with a larger dynamic range (e.g. a strong dependency at &plusmn;3 alongside a partner at &plusmn;0.5) dominated PC1/PC2 and the plot showed a perfect gradient along that gene with the rest contributing noise. Top-variance (default, no list) keeps the old unscaled behavior since those genes already have comparable magnitudes.</li>
                 </ul>
                 <p><strong>v.75.3 (2026-04-24)</strong></p>
                 <ul>
                     <li>CLB Dimensionality Reduction now defaults to <strong>PCA</strong> instead of UMAP.</li>
-                    <li>New <strong>Genes</strong> input next to the method selector. If you enter a list (comma / semicolon / whitespace separated), the projection is computed from those genes only; leave it empty to keep the previous top-variance behaviour. Unknown symbols are skipped silently.</li>
+                    <li>New <strong>Genes</strong> input next to the method selector. If you enter a list (comma / semicolon / whitespace separated), the projection is computed from those genes only; leave it empty to keep the previous top-variance behavior. Unknown symbols are skipped silently.</li>
                     <li>When a custom gene list is used, a <strong>Highlight gene</strong> dropdown appears next to the <em>Color by gene</em> row. Pick any gene from your list to color points by that gene's GE (or Expression, when the analysis is run on expression data), without having to type the symbol back into the color-by box.</li>
                 </ul>
                 <p><strong>v.75.2 (2026-04-23)</strong></p>
@@ -3667,7 +3673,7 @@
                 </ul>
                 <p><strong>v.74.3 (2026-04-23)</strong></p>
                 <ul>
-                    <li>Gene Effect analysis modal can now plot expression instead of gene effect. New <b>GE / Expression</b> toggle next to the gene input; switching re-analyses the current gene against the expression matrix (log2-TPM+1) and redraws the By Tissue box plot. The label, axis title, and hover read <em>Expression</em> in expression mode. Switching from the mutation-inspect layout to Expression falls back to the standalone view (0/1/2 stratification is tied to GE).</li>
+                    <li>Gene Effect analysis modal can now plot expression instead of gene effect. New <b>GE / Expression</b> toggle next to the gene input; switching re-analyzes the current gene against the expression matrix (log2-TPM+1) and redraws the By Tissue box plot. The label, axis title, and hover read <em>Expression</em> in expression mode. Switching from the mutation-inspect layout to Expression falls back to the standalone view (0/1/2 stratification is tied to GE).</li>
                 </ul>
                 <p><strong>v.74.2 (2026-04-23)</strong></p>
                 <ul>
@@ -3680,15 +3686,15 @@
                 </ul>
                 <p><strong>v.74.1 (2026-04-23)</strong></p>
                 <ul>
-                    <li>Network PNG / SVG exports now match the on-screen layout: the filter banner sits in its own header strip <em>above</em> the network rather than being drawn over the upper nodes. Both formats reserve a header area sized to the banner font, paint a light-grey strip with a thin separator (matching the on-screen header), centre the filter text in it, and shift the network and legend down by the strip&rsquo;s height so nothing overlaps. Transparent-background mode keeps just the centred banner text without the grey strip.</li>
+                    <li>Network PNG / SVG exports now match the on-screen layout: the filter banner sits in its own header strip <em>above</em> the network rather than being drawn over the upper nodes. Both formats reserve a header area sized to the banner font, paint a light-gray strip with a thin separator (matching the on-screen header), center the filter text in it, and shift the network and legend down by the strip&rsquo;s height so nothing overlaps. Transparent-background mode keeps just the centered banner text without the gray strip.</li>
                 </ul>
                 <p><strong>v.74.0 (2026-04-23)</strong></p>
                 <ul>
-                    <li>Network filter banner moved out of the canvas overlay and into a dedicated header strip above the network plot. The earlier overlay kept landing on top of nodes whatever pan was applied because vis.js&rsquo;s physics + fit re-centred the layout. With a strip outside the canvas, the network has the full plot area and the banner is unambiguously above it. PNG / SVG exports still draw the filter text inline at the top of the figure (no change to the export look).</li>
+                    <li>Network filter banner moved out of the canvas overlay and into a dedicated header strip above the network plot. The earlier overlay kept landing on top of nodes whatever pan was applied because vis.js&rsquo;s physics + fit re-centered the layout. With a strip outside the canvas, the network has the full plot area and the banner is unambiguously above it. PNG / SVG exports still draw the filter text inline at the top of the figure (no change to the export look).</li>
                 </ul>
                 <p><strong>v.73.9 (2026-04-23)</strong></p>
                 <ul>
-                    <li>Correlation scatter highlights are no longer an unreadable blob when many cell lines are selected. Two-tier behaviour: when up to 12 cells are highlighted, each is labelled with just its name (lineage dropped from the label, since it&rsquo;s already in the hover); when more than 12, the per-point labels are dropped entirely &mdash; the orange markers stay, hover still shows each name, and a small caption pinned in the upper-left says &ldquo;● N cell lines highlighted (hover to see names)&rdquo;.</li>
+                    <li>Correlation scatter highlights are no longer an unreadable blob when many cell lines are selected. Two-tier behavior: when up to 12 cells are highlighted, each is labeled with just its name (lineage dropped from the label, since it&rsquo;s already in the hover); when more than 12, the per-point labels are dropped entirely &mdash; the orange markers stay, hover still shows each name, and a small caption pinned in the upper-left says &ldquo;● N cell lines highlighted (hover to see names)&rdquo;.</li>
                 </ul>
                 <p><strong>v.73.8 (2026-04-23)</strong></p>
                 <ul>
@@ -3697,7 +3703,7 @@
                 <p><strong>v.73.7 (2026-04-23)</strong></p>
                 <ul>
                     <li>Network filter banner pan: the previous offset was being reset by a <code>fit()</code> call inside the stabilization callback. Moved the pan into the same callback, after the fit, so the top nodes really do drop below the banner now.</li>
-                    <li>Clicking a correlation row from the CLB inspect-correlations modal now also pre-populates the scatter&rsquo;s highlight list with the selected cell-line names &mdash; so the cells driving the result show up <span style="color:#dc2626;">labelled in red</span> on the correlation scatter, set against the rest of the dataset.</li>
+                    <li>Clicking a correlation row from the CLB inspect-correlations modal now also pre-populates the scatter&rsquo;s highlight list with the selected cell-line names &mdash; so the cells driving the result show up <span style="color:#dc2626;">labeled in red</span> on the correlation scatter, set against the rest of the dataset.</li>
                 </ul>
                 <p><strong>v.73.6 (2026-04-23)</strong></p>
                 <ul>
@@ -3716,7 +3722,7 @@
                     <li>Inspect Gene Effects overhauled:
                         <ul>
                             <li>Row count now configurable (default 200, up to 2000 per side) via a <em>Top N</em> input.</li>
-                            <li>Sortable columns &mdash; click any header to sort ascending / descending. Headers and numeric columns are <b>centred</b>; Gene column stays left-aligned.</li>
+                            <li>Sortable columns &mdash; click any header to sort ascending / descending. Headers and numeric columns are <b>centered</b>; Gene column stays left-aligned.</li>
                             <li>Per-side <b>|Δ| cutoff</b> input filters the table instantly. Right side defaults to |Δ| ≥ 0.1.</li>
                             <li>Per-side <b>Network</b> button &mdash; prompts for r cutoff, then builds a correlation network from the currently-displayed genes restricted to the selected cell lines. Same flow as the Inspect Correlations network button.</li>
                         </ul>
@@ -3724,7 +3730,7 @@
                 </ul>
                 <p><strong>v.73.3 (2026-04-23)</strong></p>
                 <ul>
-                    <li>Inspect Correlations: refactored the inner loop. The previous implementation did a full first pass to build the top-<em>r</em>-in-selected list, then a second pass that recomputed the same values while also computing r-in-rest. Now it&rsquo;s a single pass that emits both top lists in one go. Baseline changed from <em>selected vs rest</em> to <em>selected vs all cells</em>; the all-cells centred-vector matrix is cached on the instance so subsequent inspect runs skip that setup entirely. Warning updated to be honest about cost: up to 5&ndash;10 minutes on a typical laptop.</li>
+                    <li>Inspect Correlations: refactored the inner loop. The previous implementation did a full first pass to build the top-<em>r</em>-in-selected list, then a second pass that recomputed the same values while also computing r-in-rest. Now it&rsquo;s a single pass that emits both top lists in one go. Baseline changed from <em>selected vs rest</em> to <em>selected vs all cells</em>; the all-cells centered-vector matrix is cached on the instance so subsequent inspect runs skip that setup entirely. Warning updated to be honest about cost: up to 5&ndash;10 minutes on a typical laptop.</li>
                     <li>Clicking a gene pair in the inspect-correlations results used to require an analysis to have been run already (the old path tried to find the pair in <code>this.results.correlations</code> and silently failed when it wasn&rsquo;t there). Now it opens the correlation inspect directly with a synthetic correlation stub &mdash; always works.</li>
                     <li>Clicking a gene in <em>Inspect Gene Effects</em> now highlights the selected cell lines in the By-Tissue box plot in <span style="color:#dc2626; font-weight:600;">red</span> with a larger marker and a dark outline, so you can see where the selected lines fall within each tissue. The subtitle picks up a small &ldquo;&#9679; N selected cell lines highlighted&rdquo; note. Highlight clears when you close the GE modal.</li>
                 </ul>
@@ -3741,7 +3747,7 @@
                             <li><em>Inspect Gene Effects</em> &mdash; fast (&lt; 1 s for typical selections). Two panels: most depleted in selection (lowest mean GE) and largest &Delta; vs the rest (most differentially essential). Click a row to open Gene Effect inspect for that gene.</li>
                             <li><em>Inspect Correlations</em> &mdash; unbiased all-vs-all Pearson correlation across the selection. Shows a size estimate + confirmation first; during compute a progress bar with ETA and a Cancel button. Two panels: strongest pair correlations in the selection and largest &Delta;r (selection r &minus; rest r). Click a row to open the correlation inspect for that gene pair.</li>
                         </ul>
-                        Helpers <code>_showProgress</code> / <code>_hideProgress</code> wrap a generic cancellable progress overlay that&rsquo;s ready for future long-running analyses.</li>
+                        Helpers <code>_showProgress</code> / <code>_hideProgress</code> wrap a generic cancellable progress overlay that&rsquo;s ready for future long-running analyzes.</li>
                 </ul>
                 <p><strong>v.73.0 (2026-04-23)</strong></p>
                 <ul>
@@ -3823,7 +3829,7 @@
                 </ul>
                 <p><strong>v.70.5 (2026-04-21)</strong></p>
                 <ul>
-                    <li>Gene-Effect modal toolbar reorganised. <b>Row 2</b> is now a dedicated &ldquo;Filters:&rdquo; row (mirroring the &ldquo;Gene Effect:&rdquo; legend on row 1), ending at the compare buttons. <b>Row 3</b> is a dedicated &ldquo;View:&rdquo; row with the three mode buttons + &ldquo;Gates:&rdquo; group &mdash; so view buttons and gate buttons always sit together regardless of window width (no more wrapping apart).</li>
+                    <li>Gene-Effect modal toolbar reorganized. <b>Row 2</b> is now a dedicated &ldquo;Filters:&rdquo; row (mirroring the &ldquo;Gene Effect:&rdquo; legend on row 1), ending at the compare buttons. <b>Row 3</b> is a dedicated &ldquo;View:&rdquo; row with the three mode buttons + &ldquo;Gates:&rdquo; group &mdash; so view buttons and gate buttons always sit together regardless of window width (no more wrapping apart).</li>
                     <li>Third view button renamed from &ldquo;Mutation Inspect&rdquo; to <strong>Hotspot Mutation Inspect</strong> to make clear it&rsquo;s specifically the hotspot-mutation 0/1/2 stratification (not any mutation type).</li>
                     <li>Hotspot-gene selector (the one next to Analyze, which sets the Y-axis stratification gene) now shows the mutation count per gene <em>under the currently-active filters</em> &mdash; e.g. <code>TP53 (88 mut)</code>. Options are also sorted descending by count so the most-informative genes surface first. Label changed to <b>Hotspot mutation (Y):</b>.</li>
                 </ul>
@@ -3857,14 +3863,14 @@
                 </ul>
                 <p><strong>v.69.7 (2026-04-20)</strong></p>
                 <ul>
-                    <li>UMAP/PCA hover tooltip: <code>&amp;middot;</code> HTML entities were leaking through as literal text because Plotly&rsquo;s hover renderer doesn&rsquo;t parse named entities. Replaced with the actual Unicode middle-dot (&middot;). The &ldquo;click to inspect&rdquo; hint was also a washed-out grey that didn&rsquo;t read against the tooltip background &mdash; now shown in italic at the default tooltip text color so it&rsquo;s clearly visible.</li>
+                    <li>UMAP/PCA hover tooltip: <code>&amp;middot;</code> HTML entities were leaking through as literal text because Plotly&rsquo;s hover renderer doesn&rsquo;t parse named entities. Replaced with the actual Unicode middle-dot (&middot;). The &ldquo;click to inspect&rdquo; hint was also a washed-out gray that didn&rsquo;t read against the tooltip background &mdash; now shown in italic at the default tooltip text color so it&rsquo;s clearly visible.</li>
                 </ul>
                 <p><strong>v.69.6 (2026-04-20)</strong></p>
                 <ul>
                     <li>PCA loadings sidecar now top-aligns with the plot. The &ldquo;Loadings (top 8)&rdquo; header sits at the same vertical position as the Plotly plot title, so the two axes boxes share a common top border.</li>
                     <li>PNG and SVG export now include the loadings graph when it&rsquo;s visible. The plot SVG and the loadings SVG are composed into a single outer SVG (plot on the left, title + loadings on the right), then downloaded as SVG or rasterised to PNG at 2x. Previously the loadings were on screen only.</li>
                     <li>New button under the plot: <strong>Select in list above</strong>. After lassoing a cluster, press it to tick those cell lines in the browser list &mdash; they then flow into <em>Export GE</em> and <em>Full Data Export</em>. Pairs naturally with the existing <em>Copy selected</em>.</li>
-                    <li>PNG, SVG and Aa buttons moved from the &ldquo;Display&rdquo; row (row 2) to the main Run/Reset row (row 1), with a small divider between them and the coloured action buttons. They&rsquo;re less buried now.</li>
+                    <li>PNG, SVG and Aa buttons moved from the &ldquo;Display&rdquo; row (row 2) to the main Run/Reset row (row 1), with a small divider between them and the colored action buttons. They&rsquo;re less buried now.</li>
                 </ul>
                 <p><strong>v.69.5 (2026-04-20)</strong></p>
                 <ul>
@@ -3886,18 +3892,18 @@
                 </ul>
                 <p><strong>v.69.1 (2026-04-20)</strong></p>
                 <ul>
-                    <li>Dimensionality-reduction control panel reorganised from six ragged rows into three aligned ones. Row 1 is the compute inputs (method, data, tissue, subtype, color-by, Run, Reset); row 2 is display (axes, dot size, width/height, PNG/SVG/Aa/Top-Genes/Loadings); row 3 is overlays (Color-by-gene, Split, Gate-Compare). All controls share a common 24&nbsp;px height with a consistent 11&nbsp;px font, group dividers between related button clusters, and a flex-spacer that pushes Run/Reset to the right so the eye can find them in a fixed place</li>
+                    <li>Dimensionality-reduction control panel reorganized from six ragged rows into three aligned ones. Row 1 is the compute inputs (method, data, tissue, subtype, color-by, Run, Reset); row 2 is display (axes, dot size, width/height, PNG/SVG/Aa/Top-Genes/Loadings); row 3 is overlays (Color-by-gene, Split, Gate-Compare). All controls share a common 24&nbsp;px height with a consistent 11&nbsp;px font, group dividers between related button clusters, and a flex-spacer that pushes Run/Reset to the right so the eye can find them in a fixed place</li>
                     <li>Default UMAP/PCA dot size bumped from 6 to 9 so cell lines are visible without reaching for the size slider</li>
                     <li>Fixed: splitting by mutation and then pressing <em>Clear</em> left the right-hand WT and Mutated panels on screen as ghosts. <code>_renderUmapPlot</code> now purges the child Plotly instances and wipes the plot container before re-rendering the single-panel view</li>
                 </ul>
                 <p><strong>v.69.0 (2026-04-20)</strong></p>
                 <ul>
-                    <li>Cell-line inspect panel reorganised for readability. Subtype and other long values no longer run flush against their labels on wrap (fixed with proper right-alignment and a label gap). Wiki deep-dive button moved to the top of the panel so it&rsquo;s visible before scrolling. Hotspot, Damaging and Fusion gene lists now show the first 10 cancer-panel genes (bold) with a <em>Show all</em> toggle for the rest &mdash; Jurkat&rsquo;s 658 damaging mutations and 48 fusions no longer dominate the panel. Gene Effect section separated from the mutation block by a thin divider and relabeled (&ldquo;Gene Effects&rdquo; with Genes scored / Mean / Range), which keeps Most Depleted and Most Enriched as clear sub-sections underneath. Removed the redundant &ldquo;Cell Line Detail Report&rdquo; CSV button (the Wiki already covers this and now has a <strong>Download</strong> button that saves a standalone, styled HTML file per cell line).</li>
+                    <li>Cell-line inspect panel reorganized for readability. Subtype and other long values no longer run flush against their labels on wrap (fixed with proper right-alignment and a label gap). Wiki deep-dive button moved to the top of the panel so it&rsquo;s visible before scrolling. Hotspot, Damaging and Fusion gene lists now show the first 10 cancer-panel genes (bold) with a <em>Show all</em> toggle for the rest &mdash; Jurkat&rsquo;s 658 damaging mutations and 48 fusions no longer dominate the panel. Gene Effect section separated from the mutation block by a thin divider and relabeled (&ldquo;Gene Effects&rdquo; with Genes scored / Mean / Range), which keeps Most Depleted and Most Enriched as clear sub-sections underneath. Removed the redundant &ldquo;Cell Line Detail Report&rdquo; CSV button (the Wiki already covers this and now has a <strong>Download</strong> button that saves a standalone, styled HTML file per cell line).</li>
                     <li>Version scheme switched to single-decimal (v.69.0, v.69.1 &hellip; v.69.9, v.70.0). Small changes bump the tenths digit, large changes bump the integer.</li>
                 </ul>
                 <p><strong>v.68.02 (2026-04-19)</strong></p>
                 <ul>
-                    <li>Pathway-scan section in the Mutation profile clarified. The intro now states explicitly that the scan is based on mutation calls only (copy-number, fusions and expression are excluded); drops the inaccurate "hotspot = oncogenic / damaging = tumour suppressor" shorthand; and explains the asterisk (gene carries both a hotspot and a damaging mutation). Pathway rows restructured so the name, plain-English description, and gene list each sit on their own line, with a clear "Mutated genes in panel:" label before the tags so the genes no longer run on directly after the description. Cryptic shorthand like "RTK (receptor tyr kinase) &mdash; receptor TKI targets &mdash; check amplification / fusion" is replaced with full sentences, e.g. a note on receptor tyrosine kinases explaining that the mutation panel misses amplifications and fusions &mdash; common driver mechanisms for this pathway &mdash; so a clean panel does not rule it out</li>
+                    <li>Pathway-scan section in the Mutation profile clarified. The intro now states explicitly that the scan is based on mutation calls only (copy-number, fusions and expression are excluded); drops the inaccurate "hotspot = oncogenic / damaging = tumor suppressor" shorthand; and explains the asterisk (gene carries both a hotspot and a damaging mutation). Pathway rows restructured so the name, plain-English description, and gene list each sit on their own line, with a clear "Mutated genes in panel:" label before the tags so the genes no longer run on directly after the description. Cryptic shorthand like "RTK (receptor tyr kinase) &mdash; receptor TKI targets &mdash; check amplification / fusion" is replaced with full sentences, e.g. a note on receptor tyrosine kinases explaining that the mutation panel misses amplifications and fusions &mdash; common driver mechanisms for this pathway &mdash; so a clean panel does not rule it out</li>
                 </ul>
                 <p><strong>v.67.92 (2026-04-19)</strong></p>
                 <ul>
@@ -3909,7 +3915,7 @@
                 </ul>
                 <p><strong>v.67.72 (2026-04-19)</strong></p>
                 <ul>
-                    <li>Mutation-section intro corrected: hotspots aren&rsquo;t exclusively oncogenic-driver positions &mdash; they include recurrent tumour-suppressor mutations too (TP53 R175H, R248Q are classic hotspots but inactivate a tumour suppressor). New wording covers both cases</li>
+                    <li>Mutation-section intro corrected: hotspots aren&rsquo;t exclusively oncogenic-driver positions &mdash; they include recurrent tumor-suppressor mutations too (TP53 R175H, R248Q are classic hotspots but inactivate a tumor suppressor). New wording covers both cases</li>
                 </ul>
                 <p><strong>v.67.62 (2026-04-19)</strong></p>
                 <ul>
@@ -3930,7 +3936,7 @@
                 </ul>
                 <p><strong>v.67.31 (2026-04-19)</strong></p>
                 <ul>
-                    <li>Wiki rewrite: plainer English, acronyms spelled out (MMR &rarr; mismatch repair, HR &rarr; homologous recombination, TSG &rarr; tumour suppressor gene, ICB &rarr; checkpoint immunotherapy, MSI &rarr; microsatellite instability). Generic phrasing throughout (no brand-name references). Each section gets a one-line intro in plain language explaining what it shows</li>
+                    <li>Wiki rewrite: plainer English, acronyms spelled out (MMR &rarr; mismatch repair, HR &rarr; homologous recombination, TSG &rarr; tumor suppressor gene, ICB &rarr; checkpoint immunotherapy, MSI &rarr; microsatellite instability). Generic phrasing throughout (no brand-name references). Each section gets a one-line intro in plain language explaining what it shows</li>
                     <li>Authentication section now embeds the <strong>actual STR reference profile</strong> for the cell line (parsed from Cellosaurus for 1105/1186 cell lines). Table shows expected alleles at each marker &mdash; the core ANSI/ATCC 9-marker panel plus extended markers. Users can compare lab-report numbers directly against this table</li>
                     <li>Offline pipeline: new <code>scripts/extract_str_profiles.py</code> parses the Cellosaurus flat-file dump and merges STR profiles into <code>cellLineMetadata.json</code></li>
                 </ul>
@@ -4197,7 +4203,7 @@
                 <p><strong>v.29.0–v.30.9 (2026-03-20–21)</strong></p>
                 <ul>
                     <li>Oncoprint: two boxes per gene (include mutated / exclude mutated)</li>
-                    <li>Oncoprint multi-gene filters apply to all analyses and inspect views</li>
+                    <li>Oncoprint multi-gene filters apply to all analyzes and inspect views</li>
                     <li>Oncoprint: SVG, PNG, CSV export</li>
                     <li>UpSet intersection plot with counts/percent/names toggles and export</li>
                     <li>Oncoprint in cell line browser with live filtering</li>
@@ -4538,7 +4544,7 @@
                     <p style="margin: 12px 0 0 0; font-weight:600; color:#374151;">Pathway / complex memberships</p>
                     <ul style="margin: 4px 0 0 0; padding-left: 18px;">
                         <li><a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" style="color:#0066cc;">CORUM</a> <span style="color:#999;">(manually curated mammalian protein complexes; ~5,000 human genes)</span></li>
-                        <li><a href="https://reactome.org/" target="_blank" style="color:#0066cc;">Reactome</a> <span style="color:#999;">(curated human pathways &amp; signalling cascades; pathways of size 5&ndash;100)</span></li>
+                        <li><a href="https://reactome.org/" target="_blank" style="color:#0066cc;">Reactome</a> <span style="color:#999;">(curated human pathways &amp; signaling cascades; pathways of size 5&ndash;100)</span></li>
                         <li>Curated cancer-pathway and complex KBs <span style="color:#999;">(in-app)</span></li>
                     </ul>
                     <p style="margin: 12px 0 0 0; font-weight:600; color:#374151;">Curated annotations (in this app)</p>
@@ -4563,7 +4569,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.74</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.75</a>
     </div>
 
     <div class="main-content">
@@ -4920,7 +4926,7 @@
 
                         <div class="button-row" style="margin-top: 8px;">
                             <button class="btn btn-secondary btn-sm" id="clearStatsGenes">Clear</button>
-                            <!-- Just "Test Genes": the panel is already labelled
+                            <!-- Just "Test Genes": the panel is already labeled
                                  With Stats, and the longer text overflowed the
                                  column. -->
                             <button class="btn btn-success btn-sm" id="loadTestStats">Test Genes</button>
@@ -5065,14 +5071,14 @@
                         <div class="control-column control-box">
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">View Controls:</label>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
-                                <button class="btn btn-secondary" id="fitNetwork" title="Zoom and centre so the whole network fits in view. Does not change the analysis.">Fit</button>
+                                <button class="btn btn-secondary" id="fitNetwork" title="Zoom and center so the whole network fits in view. Does not change the analysis.">Fit</button>
                                 <button class="btn btn-secondary" id="toggleSelectMode" title="Click nodes to add them to a selection, then open Gene Effect or Correlation Analysis for that group. Click again to leave the mode.">Select Mode</button>
                                 <button class="btn btn-secondary" id="toggleRemoveMode" title="Click nodes to hide them from the picture. Removing a gene only changes what is drawn, not the underlying correlations. Restore All brings them back.">Remove Mode</button>
                                 <button class="btn btn-secondary" id="togglePhysics" title="Freeze the layout so nodes stop drifting and stay where you put them. Click again to let them settle freely.">Lock</button>
                             </div>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
-                                <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;" title="Fonts, label and node colours, legend size and other appearance settings for the network and its exports.">Settings</button>
-                                <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network, font / node / edge size, colours, label options and node border, back to defaults">Reset</button>
+                                <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;" title="Fonts, label and node colors, legend size and other appearance settings for the network and its exports.">Settings</button>
+                                <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network, font / node / edge size, colors, label options and node border, back to defaults">Reset</button>
                                 <label style="font-size: 10px; display: flex; align-items: center; gap: 3px; cursor: pointer;">
                                     <input type="checkbox" id="networkNodeBorder" checked title="Draw a black outline around each node. Turn off for a flatter look in figures."> Node border
                                 </label>
@@ -5143,7 +5149,7 @@
                     <div class="table-controls">
                         <input type="text" class="table-search" id="correlationsSearch" placeholder="Search...">
                         <button class="btn btn-outline btn-sm" id="filterCorrelationsToggle" title="Toggle column filters">Filters</button>
-                        <label id="showBelowCutoffWrap" style="display:none; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Also list the pairs that fell just short of the correlation cutoff, so a borderline result is still visible. They appear greyed below a divider and are not part of the network or the clusters."><input type="checkbox" id="showBelowCutoff"> below cutoff</label>
+                        <label id="showBelowCutoffWrap" style="display:none; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Also list the pairs that fell just short of the correlation cutoff, so a borderline result is still visible. They appear grayed below a divider and are not part of the network or the clusters."><input type="checkbox" id="showBelowCutoff"> below cutoff</label>
                         <button class="btn btn-outline btn-sm" id="copyCorrelationGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadCorrelations" title="Download the correlation table as a CSV file">Download CSV</button>
                         <button class="btn btn-secondary btn-sm enrichrBtn" data-source="correlations" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
@@ -5476,10 +5482,10 @@
                                     <option value="tissue">By tissue</option>
                                     <!-- Available without a tissue filter now: the group picker below
                                          makes a long subtype list workable, which is what previously
-                                         made colouring by subtype unusable. -->
+                                         made coloring by subtype unusable. -->
                                     <option value="subtype" id="colorBySubtypeOption">By subtype</option>
                                 </select>
-                                <!-- Colour only the chosen tissues / subtypes; everything else greys out. -->
+                                <!-- Color only the chosen tissues / subtypes; everything else grays out. -->
                                 <button type="button" id="colorByGroupBtn" class="btn btn-sm btn-outline" style="display:none; font-size:9px; padding:1px 4px; margin-top:2px; width:100%;" onclick="app.showColorByGroupPicker()">Pick groups...</button>
                                 <input type="hidden" id="colorByPicked" value="">
                                 <!-- Chosen groups, each removable without reopening the picker. -->
@@ -6128,7 +6134,7 @@
     <!-- Hidden file input for re-loading saved selection-inspect results -->
     <input type="file" id="selectionInspectOpenInput" accept="application/json,.json" style="display:none;">
 
-    <!-- Progress overlay used by long-running analyses (correlation inspect). -->
+    <!-- Progress overlay used by long-running analyzes (correlation inspect). -->
     <div id="progressOverlay" style="display:none; position:fixed; inset:0; z-index:1400; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
         <div style="background:#fff; max-width:420px; width:90%; border-radius:8px; padding:20px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);">
             <div id="progressTitle" style="font-size:14px; font-weight:600; color:#15803d; margin-bottom:6px;">Working&hellip;</div>
@@ -6263,7 +6269,7 @@
                 <div style="padding: 24px 28px; background: #f0f9ef; border-bottom: 1px solid #c5e8bc;">
                     <h4 style="margin: 0 0 10px; color: #2d5a27; font-size: 16px;">What is Correlate?</h4>
                     <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
-                        Correlate analyses <strong>gene effect scores</strong> (CRISPR knockout fitness) across <strong>1,100+ cancer cell lines</strong> from the DepMap project.
+                        Correlate analyzes <strong>gene effect scores</strong> (CRISPR knockout fitness) across <strong>1,100+ cancer cell lines</strong> from the DepMap project.
                         Genes whose knockout produces correlated fitness effects across cell lines are likely to share <strong>functional relationships</strong>: shared pathways, protein complexes, or regulatory dependencies.
                     </p>
                 </div>
@@ -6312,7 +6318,7 @@
                         </div>
                         <div style="background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; flex: 0 0 auto; max-width: 280px; display: flex; flex-direction: column;">
                             <div style="flex: 1; display: flex; align-items: center;">
-                                <img src="tsc_pathway.svg" alt="TSC1/TSC2 signalling pathway" style="max-width: 100%; height: auto; border-radius: 6px;">
+                                <img src="tsc_pathway.svg" alt="TSC1/TSC2 signaling pathway" style="max-width: 100%; height: auto; border-radius: 6px;">
                             </div>
                             <div style="margin-top: auto; padding-top: 8px; border-top: 1px solid #f0f0f0;">
                                 <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">
@@ -6347,7 +6353,7 @@
                 <div style="padding: 24px 28px; background: #f0f9ef; border-bottom: 1px solid #c5e8bc;">
                     <h4 style="margin: 0 0 10px; color: #2d5a27; font-size: 16px;">From Screen Data to Hypotheses</h4>
                     <p style="margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: #333;">
-                        Correlate is designed for two complementary purposes: <strong>analysing screen data</strong> (e.g. CRISPR hits, gene lists) and <strong>generating new hypotheses</strong> using its built-in tools:
+                        Correlate is designed for two complementary purposes: <strong>analyzing screen data</strong> (e.g. CRISPR hits, gene lists) and <strong>generating new hypotheses</strong> using its built-in tools:
                     </p>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
                         <!-- Design Mode -->
@@ -6368,7 +6374,7 @@
                         <div style="background: white; border: 1px solid #c5e8bc; border-radius: 10px; padding: 14px;">
                             <div style="font-weight: 700; color: #3a7333; font-size: 14px; margin-bottom: 6px;">📊 Cell Line Browser</div>
                             <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
-                                Explore individual cell lines: filter by tissue, mutation, or gene effect. View top dependencies and select cell line subsets for focused analyses.
+                                Explore individual cell lines: filter by tissue, mutation, or gene effect. View top dependencies and select cell line subsets for focused analyzes.
                             </p>
                         </div>
                     </div>
@@ -6697,7 +6703,7 @@
             <div style="margin-bottom:6px;">
                 <strong style="font-size:12px;">Dimensionality Reduction</strong>
             </div>
-            <!-- Row 1: Compute, what to analyse + run -->
+            <!-- Row 1: Compute, what to analyze + run -->
             <div class="clb-umap-row">
                 <select id="clbUmapMethod" class="clb-umap-ctl">
                     <option value="pca" selected>PCA</option>
@@ -6989,6 +6995,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_74"></script>
+    <script src="app.js?v=v84_75"></script>
 </body>
 </html>
