@@ -9,6 +9,9 @@ when exporting the newtwork, it doesnt seems like the size and dpi of the export
 use american english in the app, eg not colour but color. 
 the json exportedd info related to images is good but not perfect, it doesnt perfectly recreat the iamge. it should constain all setting and foramting iamge for an exported image. for examople i wexporteda correlation with somne selected lianges, but the recreated(open json) file didn t have the correct selection of linages colored (it showed lal, when the exported image only had 5ish hifghlighted linage.
 exported scater csv file only relates to gene1 and gene2, it needs to better describe what is gene 1 and gene 2. 
+the compare hotspot in the correlation is a bit miss guided in that it compares based on 2 mutations, but if i click the mutation, the filter 1+2 mutation appears with another result (infered by the 1 mutation i guess), i guess it makes more sense the the list sorts byt 1+2 mutations instead of only 2. 
+
+
 
 older.
 
