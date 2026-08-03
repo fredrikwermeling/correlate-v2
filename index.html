@@ -1913,6 +1913,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.84 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>A mistyped gene now suggests the right one.</b> Every "gene not found" message across the app was a bare browser alert; it is now a popout listing the closest symbols, each clickable to copy. IL4RA offers IL4R, CDNK2A offers CDKN2A, ABL offers ABL1 / ABL2 / ABLIM1, and a mouse symbol such as Trp53 offers its human ortholog TP53.</li>
+                    <li><b>Gene tooltips lead with what the gene does.</b> RefSeq summaries often open with transcript-variant housekeeping, so the first line of a short tooltip said nothing useful: CDKN2A began "This gene generates several transcript variants which differ in their first exons" and now begins with the sentence describing it as an inhibitor of CDK4 kinase.</li>
+                </ul>
                 <p><strong>v.84.83 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Filtered network exports no longer carry wide white margins.</b> The filter banner drew a separator line right across the canvas, and being the only non-white thing at the edges it stopped the whitespace trim from cropping the sides. The line is now only as wide as the banner text. On a test composition the export crops from 1200px to 530px wide.</li>
@@ -4611,7 +4616,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.83</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.84</a>
     </div>
 
     <div class="main-content">
@@ -7037,6 +7042,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_83"></script>
+    <script src="app.js?v=v84_84"></script>
 </body>
 </html>

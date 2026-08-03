@@ -5583,6 +5583,37 @@ class CorrelationExplorer {
         }
     }
 
+    // Shown wherever a typed gene symbol does not resolve. Offers the closest
+    // matches (and the human ortholog for a mouse symbol), each clickable to
+    // copy, instead of a bare "not found".
+    geneNotFound(gene, where = '') {
+        const sugg = (this._findGeneSuggestions([gene]).get(gene) || []).slice(0, 6);
+        document.getElementById('geneNotFoundNotice')?.remove();
+        const box = document.createElement('div');
+        box.id = 'geneNotFoundNotice';
+        box.style.cssText = 'position:fixed; z-index:11500; left:50%; top:16vh; transform:translateX(-50%); width:380px; max-width:92vw; background:#fff; border:1px solid #d1d5db; border-left:4px solid #b45309; border-radius:8px; box-shadow:0 18px 40px rgba(0,0,0,0.22); padding:14px 16px; font-size:12px; color:#374151;';
+        box.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <b style="color:#b45309;">"${this.esc(gene)}" not found${where ? ' in ' + this.esc(where) : ''}</b>
+                <button style="background:none;border:none;font-size:18px;line-height:1;cursor:pointer;color:#9ca3af;">&times;</button>
+            </div>`
+            + (sugg.length
+                ? `<div style="color:#6b7280; margin-bottom:6px;">Did you mean:</div><div>${sugg.map(g =>
+                    `<button data-g="${this.esc(g)}" style="border:1px solid #d1d5db; background:#f9fafb; color:#15803d; font-weight:600; border-radius:10px; padding:2px 10px; margin:0 6px 6px 0; cursor:pointer; font-size:11px;">${this.esc(g)}</button>`).join('')}</div>
+                   <div style="color:#9ca3af; font-size:10px; margin-top:4px;">Click one to copy it.</div>`
+                : `<div style="color:#6b7280;">No similar gene symbol in this dataset. Check the spelling, or use Find synonyms for an alternative name.</div>`);
+        document.body.appendChild(box);
+        box.querySelector('button').onclick = () => box.remove();
+        box.querySelectorAll('[data-g]').forEach(b => {
+            b.onclick = () => {
+                navigator.clipboard?.writeText(b.dataset.g);
+                this.showCopyNotification?.(`Copied ${b.dataset.g}`);
+                box.remove();
+            };
+        });
+        clearTimeout(this._geneNotFoundTimer);
+        this._geneNotFoundTimer = setTimeout(() => box.remove(), 12000);
+    }
+
     _findGeneSuggestions(notFoundGenes) {
         const suggestions = new Map();
         if (!this.geneIndex || this.geneIndex.size === 0) return suggestions;
@@ -5615,14 +5646,20 @@ class CorrelationExplorer {
 
             // 2. Check edit distance ≤ 2 (only if few/no prefix matches found)
             if (matches.length < 3) {
+                // Rank by how close the match is rather than taking whichever
+                // three the gene list yields first, so a single transposition
+                // (CDNK2A for CDKN2A) outranks a coincidental near-match.
+                const scored = [];
                 for (const gene of allGenes) {
                     if (matches.includes(gene)) continue;
                     if (Math.abs(gene.length - upper.length) > 2) continue;
                     const dist = this._editDistance(upper, gene);
-                    if (dist <= 2) {
-                        matches.push(gene);
-                        if (matches.length >= 3) break;
-                    }
+                    if (dist <= 2) scored.push({ gene, dist });
+                }
+                scored.sort((a, b) => a.dist - b.dist || a.gene.localeCompare(b.gene));
+                for (const x of scored) {
+                    matches.push(x.gene);
+                    if (matches.length >= 3) break;
                 }
             }
 
@@ -5642,6 +5679,7 @@ class CorrelationExplorer {
         const m = a.length, n = b.length;
         let prev = new Array(n + 1);
         let curr = new Array(n + 1);
+        let prev2 = new Array(n + 1).fill(0);
         for (let j = 0; j <= n; j++) prev[j] = j;
 
         for (let i = 1; i <= m; i++) {
@@ -5650,8 +5688,14 @@ class CorrelationExplorer {
                 curr[j] = a[i - 1] === b[j - 1]
                     ? prev[j - 1]
                     : 1 + Math.min(prev[j - 1], prev[j], curr[j - 1]);
+                // Transposition: "CDNK2A" is one slip away from "CDKN2A", and
+                // plain Levenshtein scores that the same as two unrelated
+                // substitutions.
+                if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+                    curr[j] = Math.min(curr[j], prev2[j - 2] + 1);
+                }
             }
-            [prev, curr] = [curr, prev];
+            [prev2, prev, curr] = [prev, curr, prev2 || new Array(n + 1)];
         }
         return prev[n];
     }
@@ -7735,7 +7779,7 @@ class CorrelationExplorer {
         const geneIdx = this.geneIndex.get(gene.toUpperCase());
 
         if (geneIdx === undefined) {
-            alert(`Gene ${gene} not found`);
+            this.geneNotFound(gene);
             return;
         }
 
@@ -8428,7 +8472,7 @@ class CorrelationExplorer {
         const geneUpper = (gene || '').toUpperCase();
         const geneIdx = this.geneIndex.get(geneUpper);
         if (geneIdx === undefined) {
-            alert(`Gene ${gene} not found`);
+            this.geneNotFound(gene);
             return;
         }
         const mr = this.mutationResults;
@@ -15225,7 +15269,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const xIdx = xType === 'ge'
             ? this.geneIndex.get(xGene)
             : (this.expressionGeneIndex ? this.expressionGeneIndex.get(xGene) : undefined);
-        if (xIdx === undefined) { alert(`Gene "${xGene}" not found in ${xType === 'ge' ? 'gene-effect' : 'expression'} data.`); return; }
+        if (xIdx === undefined) { this.geneNotFound(xGene, xType === 'ge' ? 'the gene-effect data' : 'the expression data'); return; }
         const xSource = xType === 'ge' ? this.geneEffects : this.expressionData;
         if (xType === 'expr' && !this.expressionLoaded) { alert('Expression data is still loading.'); return; }
         // Keep raw X values. For each Y gene we compute Pearson over the
@@ -15545,11 +15589,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Validate genes exist in GE data (not needed for growth/geneset axis;
         // CN-axis genes are validated against the CN matrix after it loads below).
         if (!noGeneAxis(xType) && xType !== 'cn' && !this.geneIndex.has(gene1)) {
-            alert(`Gene "${gene1}" not found in the gene effect dataset.`);
+            this.geneNotFound(gene1, 'the gene-effect data');
             return;
         }
         if (!noGeneAxis(yType) && yType !== 'cn' && !this.geneIndex.has(gene2)) {
-            alert(`Gene "${gene2}" not found in the gene effect dataset.`);
+            this.geneNotFound(gene2, 'the gene-effect data');
             return;
         }
 
@@ -15601,11 +15645,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             // Validate genes exist in expression data for the axes that need it
             if (xType === 'expr' && !this.expressionGeneIndex?.has(gene1.toUpperCase())) {
-                alert(`Gene "${gene1}" not found in expression data.`);
+                this.geneNotFound(gene1, 'the expression data');
                 return;
             }
             if (yType === 'expr' && !this.expressionGeneIndex?.has(gene2.toUpperCase())) {
-                alert(`Gene "${gene2}" not found in expression data.`);
+                this.geneNotFound(gene2, 'the expression data');
                 return;
             }
         }
@@ -15619,8 +15663,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (ov) { ov.innerHTML = '<div>Loading copy-number matrix…</div>'; ov.style.display = 'flex'; }
             try { await this.loadCnData(); } catch (e) { if (ov) ov.style.display = 'none'; alert('Failed to load copy-number data.'); return; }
             if (ov) ov.style.display = 'none';
-            if (xType === 'cn' && !this.cnGeneIndex?.has(gene1.toUpperCase())) { alert(`Gene "${gene1}" not in the copy-number matrix.`); return; }
-            if (yType === 'cn' && !this.cnGeneIndex?.has(gene2.toUpperCase())) { alert(`Gene "${gene2}" not in the copy-number matrix.`); return; }
+            if (xType === 'cn' && !this.cnGeneIndex?.has(gene1.toUpperCase())) { this.geneNotFound(gene1, 'the copy-number matrix'); return; }
+            if (yType === 'cn' && !this.cnGeneIndex?.has(gene2.toUpperCase())) { this.geneNotFound(gene2, 'the copy-number matrix'); return; }
         }
 
         // Save current text settings before re-opening
@@ -20412,7 +20456,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Validate gene is present in the relevant dataset.
         if (!useExpr && !this.geneIndex.has(geneUpper)) {
-            alert(`Gene "${gene}" not found in the gene-effect dataset.`);
+            this.geneNotFound(gene, 'the gene-effect data');
             return;
         }
         if (useExpr) {
@@ -20422,7 +20466,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 return;
             }
             if (!this.expressionGeneIndex || this.expressionGeneIndex.get(geneUpper) === undefined) {
-                alert(`Gene "${gene}" not found in the expression dataset.`);
+                this.geneNotFound(gene, 'the expression data');
                 return;
             }
         }
@@ -24791,9 +24835,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
             if (info && info.summary) {
                 const isPinned = el.dataset.pinned === '1';
-                const summary = this.esc(isPinned || info.summary.length <= 260
-                    ? info.summary
-                    : info.summary.substring(0, 260) + '…');
+                const ordered = this._leadWithFunction(info.summary);
+                const summary = this.esc(isPinned || ordered.length <= 260
+                    ? ordered
+                    : ordered.substring(0, 260) + '…');
                 html += `<div style="color: #4b5563;">${summary}</div>`;
             } else if (info) {
                 html += `<div style="color:#9ca3af; font-style:italic;">No summary available.</div>`;
@@ -24821,6 +24866,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // `force` dismisses pinned tooltips too (used by the close button / Esc /
     // outside-click handler). The regular mouseleave path leaves pinned
     // tooltips alone.
+    // RefSeq summaries often open with transcript-variant housekeeping, so the
+    // first line of a short tooltip said nothing about what the gene does
+    // (CDKN2A began "This gene generates several transcript variants which
+    // differ in their first exons"). Move the first sentence that describes
+    // function to the front; the rest follows in its original order.
+    _leadWithFunction(summary) {
+        if (!summary || summary.length < 120) return summary;
+        const sentences = summary.match(/[^.!?]+[.!?]+(\s|$)/g);
+        if (!sentences || sentences.length < 2) return summary;
+        const FUNCTION_CUE = /\b(encod|function|regulat|involved in|acts? as|plays? (?:a|an) [a-z]+ role|inhibit|activat|binds?|catalyz|transcription factor|receptor|kinase|suppressor)/i;
+        const BOILERPLATE = /\b(transcript variant|alternatively spliced|splice variant|read-through|pseudogene|this locus|nomenclature|provided by RefSeq|has been observed)/i;
+        // Boilerplate only disqualifies a sentence when it says nothing about
+        // what the protein does. "…variants encoding isoforms known to function
+        // as inhibitors of CDK4 kinase" mentions splicing but is still the best
+        // available description.
+        const STRONG = /\b(function|inhibit|activat|suppress|encodes? an? |catalyz|binds?|receptor|kinase|transcription factor)/i;
+        const idx = sentences.findIndex(x => FUNCTION_CUE.test(x) && (STRONG.test(x) || !BOILERPLATE.test(x)));
+        if (idx <= 0) return summary;
+        const lead = sentences[idx];
+        const rest = sentences.filter((_, i) => i !== idx);
+        return (lead + rest.join('')).replace(/\s+/g, ' ').trim();
+    }
+
     hideGeneTooltip(force) {
         const existing = document.getElementById('geneTooltip');
         if (!existing) return;
