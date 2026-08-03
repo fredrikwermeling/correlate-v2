@@ -25465,7 +25465,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const delRow = (a) => `<div style="margin-bottom:6px;"><b style="color:#991b1b;">${a.band} loss</b> <span style="font-size:10px; color:#6b7280;">(min rel-CN ${a.minCN.toFixed(2)}, i.e. relative to this line's own baseline rather than to two copies; ${a.nDel} gene${a.nDel === 1 ? '' : 's'} in the band)</span><br>${a.drivers.map(d => chip(d, false)).join('')}</div>`;
         let html = head;
         if (reg.amps.length) html += `<div style="margin-bottom:8px;"><div style="font-size:11px; color:#1e40af; font-weight:600; margin-bottom:3px;">Amplified regions</div>${reg.amps.map(ampRow).join('')}</div>`;
-        if (reg.dels.length) html += `<div><div style="font-size:11px; color:#991b1b; font-weight:600; margin-bottom:3px;">Deeply deleted regions</div>${reg.dels.map(delRow).join('')}</div>`;
+        if (reg.dels.length) html += `<div><div style="font-size:11px; color:#991b1b; font-weight:600; margin-bottom:3px;">Lost regions</div>${reg.dels.map(delRow).join('')}</div>`;
         target.innerHTML = html;
         this.attachGeneTooltips(target);
     }
@@ -34124,7 +34124,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'Outbound links only, no data is fetched live from this app.'),
         ].join('');
 
-        document.getElementById('clbWikiModal').style.display = 'flex';
+        const wikiModal = document.getElementById('clbWikiModal');
+        wikiModal.style.display = 'flex';
+        // The overlay is the scroller now, so a newly-opened wiki has to start
+        // at the top rather than wherever the previous one was left.
+        wikiModal.scrollTop = 0;
         // Fill the major copy-number regions block (loads the CN matrix + gene
         // locations on demand, then injects amplified / deleted cytobands).
         this._fillWikiCnRegions(cellLineId);
@@ -39649,6 +39653,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const dialogScroller = (overlay) => {
         const direct = overlay.querySelector(':scope > .modal > .modal-body');
         if (direct) return direct;
+        // Some dialogs scroll as a whole rather than through an inner pane.
+        if (canScroll(overlay, 1) || canScroll(overlay, -1)) return overlay;
         // Custom-built overlays: take the tallest thing that actually scrolls.
         let best = null;
         overlay.querySelectorAll('*').forEach(el => {
