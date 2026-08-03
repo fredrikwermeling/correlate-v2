@@ -1,9 +1,11 @@
 could each plot also have a rapid copy graph button that can be used to copy a good version of the plot that could be pasted into eg an email directly, instead of exporting.
-in correlation, have a button for adding the same gene with expression  in y axis if i adda a gene for x in GE. 
 if adding a gene name in eg cell line browser, correlaion or gene effect, if the gene name is not correct, couold a popout with suggested names come up that are similar. i find my selkf eg writing il4ra, ewhen the real name is il4r.
 
 
 
+
+
+older.
 
 The app looks good on the functionality and UI. Here are a few things I found.
 
@@ -21,14 +23,6 @@ Descriptive notes for the points above:
 5.	The top hits almost always seem to be based on 1-3 cells line which makes them more or less irrelevant. Having a cell line number count will help identifying which ones are worth looking into.
 
 In general, the new export functions (image, screenshot, etc) have bugs otherwise the app is working well. The phone app works fine but I see that it is having problem with the UI placement. 
-
-
-
-
-
-
-
-
 
 - Look at the correlation_network-2.pdf in download folder. the edge thickness needs to scale to the zoom. tsc1-tsc2 should be around 0.9, but it looks much smaller in the exported (while the on screen image seems to scale correctly).
 - I find HLA in several of the hotspot mutations filters. 
