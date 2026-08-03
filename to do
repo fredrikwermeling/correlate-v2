@@ -1,7 +1,7 @@
 could each plot also have a rapid copy graph button that can be used to copy a good version of the plot that could be pasted into eg an email directly, instead of exporting.
 if adding a gene name in eg cell line browser, correlaion or gene effect, if the gene name is not correct, couold a popout with suggested names come up that are similar. i find my self eg writing il4ra, ewhen the real name is il4r.
 the box for hotspot/fusion/amp/del in the cell line broweser should be a dropdown menu with all the mutations. but there shouldn´t be any selector for wt or mut. by defult, it should asumme its mutated/altered if selecting the gene.
-
+in wiki "Gene fusions (also called translocations)" sounds strange. make sure that the language is clear and correct.
 
 
 
