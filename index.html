@@ -1859,6 +1859,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.64 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>The wiki scrolls again.</b> With the wiki open on top of the Cell Line Browser, the scroll handler picked the browser underneath rather than the wiki, so every wheel over one of the wiki's charts was handed to the wrong panel and nothing moved. It now follows what is actually on top.</li>
+                    <li><b>Cancer pathways expanded from 14 to 25</b>, about 200 genes: TGF-beta/SMAD, Hippo/YAP, NRF2 oxidative stress, hypoxia/VHL-HIF, apoptosis (BCL2 family), Hedgehog, spliceosome, cohesin, antigen presentation, ubiquitin/protein turnover, and nucleotide-excision/crosslink repair. Each says what the pathway does and why its loss matters.</li>
+                    <li><b>The pathway scan says what it does not cover.</b> It reads point mutations only, so a clean scan is not the same as an unaltered pathway.</li>
+                </ul>
                 <p><strong>v.84.63 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>The oncoprint's include / exclude boxes now actually filter the Cell Line Browser.</b> Clicking one recorded the filter but nothing ever applied it, and Clear reopened the grid against the whole panel instead of the lines you were looking at.</li>
@@ -4434,7 +4440,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.63</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.64</a>
     </div>
 
     <div class="main-content">
@@ -6864,6 +6870,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_63"></script>
+    <script src="app.js?v=v84_64"></script>
 </body>
 </html>

@@ -31711,6 +31711,17 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             'NOTCH':                    { genes: ['NOTCH1', 'NOTCH2', 'NOTCH3', 'FBXW7', 'MAML2'], note: 'Cell-fate signalling. Activating mutations in T-cell leukaemia; inactivating in squamous cancers.' },
             'Haematopoietic transcription / JAK-STAT': { genes: ['RUNX1', 'CEBPA', 'GATA2', 'IKZF1', 'PAX5', 'EBF1', 'IL7R', 'CRLF2', 'JAK1', 'JAK2', 'JAK3', 'STAT3', 'STAT5B'], note: 'Transcription factors and cytokine signalling that govern blood-cell identity and survival.' },
             'Telomere maintenance':     { genes: ['TERT', 'TERC', 'POT1', 'ATRX', 'DAXX'], note: 'Maintains chromosome ends. Cancers reactivate telomerase (TERT promoter mutations) or use the alternative ALT mechanism.' },
+            'TGF-beta / SMAD':          { genes: ['SMAD2', 'SMAD3', 'SMAD4', 'TGFBR1', 'TGFBR2', 'ACVR1B', 'ACVR2A'], note: 'Growth-inhibitory signal in normal epithelium. Loss removes a brake on proliferation early in pancreatic and colorectal cancer; later in tumour evolution the same pathway can instead promote invasion and immune escape.' },
+            'Hippo / YAP-TAZ':          { genes: ['NF2', 'LATS1', 'LATS2', 'SAV1', 'STK3', 'STK4', 'WWTR1', 'YAP1', 'FAT1'], note: 'Controls organ size by holding YAP/TAZ out of the nucleus. Loss drives proliferation and anoikis resistance; a defining event in mesothelioma (NF2) and in fusion-driven epithelioid haemangioendothelioma.' },
+            'NRF2 oxidative stress':    { genes: ['KEAP1', 'NFE2L2', 'CUL3'], note: 'Antioxidant response. Constitutive activation lets tumour cells tolerate oxidative and chemotherapeutic stress, and predicts resistance to radiotherapy and platinum in lung squamous cancer.' },
+            'Hypoxia / VHL-HIF':        { genes: ['VHL', 'HIF1A', 'EPAS1', 'EGLN1', 'SDHA', 'SDHB', 'SDHC', 'SDHD', 'FH'], note: 'Oxygen sensing and the angiogenic response. VHL loss is the founding event of clear-cell renal carcinoma; SDH and FH loss additionally rewire metabolism.' },
+            'Apoptosis (BCL2 family)':  { genes: ['BCL2', 'BCL2L1', 'MCL1', 'BAX', 'BAK1', 'BCL2L11', 'BIRC5', 'CASP8', 'FAS'], note: 'Sets the threshold for programmed cell death. Cancers raise the anti-apoptotic side (BCL2 in follicular lymphoma, MCL1 amplification); BH3-mimetics such as venetoclax target it directly.' },
+            'Hedgehog':                 { genes: ['PTCH1', 'PTCH2', 'SMO', 'SUFU', 'GLI1', 'GLI2'], note: 'Developmental signalling reactivated in basal-cell carcinoma and medulloblastoma. Targetable with SMO inhibitors (vismodegib), though SMO mutations confer resistance.' },
+            'Spliceosome':              { genes: ['SF3B1', 'U2AF1', 'SRSF2', 'ZRSR2', 'PRPF8', 'RBM10'], note: 'Pre-mRNA splicing machinery. Recurrent hotspot mutations in myelodysplastic syndromes and CLL produce mis-spliced transcripts and create a dependency on the remaining splicing capacity.' },
+            'Cohesin complex':          { genes: ['STAG2', 'STAG1', 'RAD21', 'SMC1A', 'SMC3', 'NIPBL'], note: 'Holds sister chromatids together and shapes chromatin looping. Loss is recurrent in bladder cancer, Ewing sarcoma and AML, and affects transcription more than it does chromosome segregation.' },
+            'Antigen presentation / immune escape': { genes: ['B2M', 'HLA-A', 'HLA-B', 'HLA-C', 'TAP1', 'TAP2', 'NLRC5', 'CIITA', 'JAK1', 'JAK2', 'CD274'], note: 'How a cell displays peptides to T cells. Loss lets a tumour hide from cytotoxic T cells and predicts checkpoint-inhibitor resistance. See the Class-I antigen presentation read-out above, which combines these with expression and copy number.' },
+            'Ubiquitin / protein turnover': { genes: ['FBXW7', 'SPOP', 'CUL1', 'CDC73', 'KEAP1', 'VHL', 'TRAF3', 'TRAF7'], note: 'Targeted protein degradation. Losing an E3 ligase stabilises its substrate, which is how FBXW7 loss raises MYC and cyclin E, and SPOP loss raises the androgen receptor.' },
+            'Nucleotide excision / crosslink repair': { genes: ['ERCC1', 'ERCC2', 'ERCC3', 'ERCC4', 'ERCC5', 'XPA', 'XPC', 'POLE', 'POLD1'], note: 'Repairs bulky adducts and crosslinks, which is what platinum chemotherapy creates. POLE and POLD1 proofreading loss instead produces an ultramutated genome.' },
         };
     }
 
@@ -32417,7 +32428,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
         const pathwayHtml = pathwayRows.length
             ? pathwayRows.join('')
-            : '<em style="color:#6b7280; font-size:11px;">No mutations in the curated cancer-pathway panels (~90 genes).</em>';
+            : '<em style="color:#6b7280; font-size:11px;">No mutation in any of the curated cancer-pathway panels. This scan reads point mutations only, so amplifications, deletions, fusions and silencing are not covered here, see Key genetic alterations and the copy-number regions above.</em>';
 
         // --- Pathway status (genotype + CRISPR dependency) ---
         // For a handful of clinically-important pathways, combine the mutation
@@ -39543,9 +39554,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return best;
     };
 
+    // The dialog the pointer is actually in, else the topmost open one. Taking
+    // the last entry of the list instead meant that with the wiki open over the
+    // Cell Line Browser the browser won, and every wheel over a chart in the
+    // wiki was handed to a scroller in the dialog underneath, so the wiki
+    // looked frozen wherever a chart sat.
+    const topOverlay = (target) => {
+        const open = modals.filter(isOpen);
+        if (!open.length) return null;
+        const containing = open.filter(o => target && o.contains(target));
+        const pool = containing.length ? containing : open;
+        return pool.reduce((best, el) => {
+            const z = parseInt(getComputedStyle(el).zIndex, 10) || 0;
+            const bz = best ? (parseInt(getComputedStyle(best).zIndex, 10) || 0) : -Infinity;
+            return z >= bz ? el : best;
+        }, null);
+    };
+
     document.addEventListener('wheel', (e) => {
         if (e.ctrlKey) return;   // pinch-zoom
-        const overlay = modals.filter(isOpen).pop();
+        const overlay = topOverlay(e.target);
         const inOverlay = overlay && overlay.contains(e.target);
 
         // Plotly takes the wheel for its own zoom and stops it there, so a chart
