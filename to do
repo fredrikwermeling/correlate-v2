@@ -8,7 +8,7 @@ For PGA1 cell line in celll ine browser: "PGA1 is a Chronic Lymphocytic Leukemia
 when exporting the newtwork, it doesnt seems like the size and dpi of the export matters, the network looks similar in large 1200dpi as in medium 600dpi for the network exported as pptx. perhaps the legend is higher qulity but not the network.
 use american english in the app, eg not colour but color. 
 the json exportedd info related to images is good but not perfect, it doesnt perfectly recreat the iamge. it should constain all setting and foramting iamge for an exported image. for examople i wexporteda correlation with somne selected lianges, but the recreated(open json) file didn t have the correct selection of linages colored (it showed lal, when the exported image only had 5ish hifghlighted linage.
-
+exported scater csv file only relates to gene1 and gene2, it needs to better describe what is gene 1 and gene 2. 
 
 older.
 
