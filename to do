@@ -27,6 +27,8 @@ in the network, if i use a filter, the exported image has a lot of exptra white 
 in network, if aselect a linage filter, it seems to linger if i later select andother linage fitler, or at least a subtype was written as a filter that no longer was shown after applying another. 
 Make the reset all button more emphaziesed green and witha  stronger black border. 
 For the AI export, dont manetion which model to use. IT could state that the functionallity has been optimized for Claude, but should use for other.
+when pressing mutational analysis, any networks or gene list prsent should be removed, the app should reset. 
+Could the mutational analysis also be changed to a gene expression version, eg showing a table of genes that changes in expression based comparing BRAF wt vs BRAF mut? it could be a subtle button, with emphasis on GE.
 
 
 older.
