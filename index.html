@@ -1913,6 +1913,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.78 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>The hotspot and fusion overlay lists now count against what is actually plotted.</b> They followed the tissue and subtype filters but ignored the mutation, fusion and copy-number ones, and they were refreshed before the plot rather than after, so the numbers were a step behind. With no filter KRAS reads 174 mutated of 1,147 cell lines; with a TP53-mutated filter applied it now correctly reads 100 of 574.</li>
+                </ul>
                 <p><strong>v.84.77 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Color by gene effect now rescales when you remove nodes.</b> The node colors already followed the genes on screen, but all four legends still measured every analyzed gene, so the numbers stopped matching the colors after using Remove mode.</li>
@@ -4582,7 +4586,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.77</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.78</a>
     </div>
 
     <div class="main-content">
@@ -7008,6 +7012,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_77"></script>
+    <script src="app.js?v=v84_78"></script>
 </body>
 </html>

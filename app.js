@@ -893,17 +893,21 @@ class CorrelationExplorer {
         const cancerFilter = document.getElementById('scatterCancerFilter').value;
         const subtypeFilter = document.getElementById('scatterSubtypeFilter').value;
 
-        // Get the cell lines visible in the scatter plot (respecting tissue/subtype filter)
-        let filteredData = this.currentInspect.data;
-        if (cancerFilter) {
-            filteredData = filteredData.filter(d => d.lineage === cancerFilter);
-        }
-        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
-            filteredData = filteredData.filter(d =>
-                this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
-        }
-        if (this._customCellLineFilter) {
-            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
+        // Count against exactly what the plot is showing. Rebuilding a partial
+        // filter chain here meant the mutation, fusion and copy-number filters
+        // were ignored, so the counts beside each gene described a larger set
+        // of cell lines than the plot did.
+        let filteredData = this.currentInspect.filteredData;
+        if (!filteredData) {
+            filteredData = this.currentInspect.data;
+            if (cancerFilter) filteredData = filteredData.filter(d => d.lineage === cancerFilter);
+            if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
+                filteredData = filteredData.filter(d =>
+                    this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
+            }
+            if (this._customCellLineFilter) {
+                filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
+            }
         }
         const filteredCellLines = new Set(filteredData.map(d => d.cellLineId));
 
@@ -13205,9 +13209,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
         }
 
-        // What survived every filter. The color-by group picker reads this so
-        // it can only offer groups that are actually on the plot.
+        // What survived every filter. The color-by group picker and the overlay
+        // gene counts read this, so both describe exactly what is plotted.
         this.currentInspect.filteredData = filteredData;
+        // Refresh the overlay gene lists against this set. Doing it here rather
+        // than from each filter's own handler means every filter is covered,
+        // and the counts are never a render behind.
+        if (!this._refreshingOverlayCounts) {
+            this._refreshingOverlayCounts = true;
+            try { this.updateScatterHotspotFilterCounts(); } finally { this._refreshingOverlayCounts = false; }
+        }
 
         // Get mutation info for overlay (separate gene, hotspot or damaging)
         let mutationMap = new Map();
