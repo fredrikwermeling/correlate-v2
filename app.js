@@ -17660,22 +17660,49 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.renderGEGateTab('expression');
     }
 
+    // These used to open a native prompt() for the cutoff. A blocking dialog is
+    // easy to dismiss by reflex and is suppressed outright in some browsers, and
+    // either way the button then did nothing at all. Default to the usual 0.05
+    // and let the panel's own p-value box override it.
+    // In-page stand-in for prompt(). Returns a Promise of the entered string,
+    // or null if dismissed. Native prompts block the page and some browsers
+    // refuse them entirely, which made the buttons behind them look broken.
+    _askValue(title, message, defaultValue = '') {
+        return new Promise(resolve => {
+            document.getElementById('askValueOverlay')?.remove();
+            const ov = document.createElement('div');
+            ov.id = 'askValueOverlay';
+            ov.style.cssText = 'position:fixed; inset:0; z-index:11000; background:rgba(0,0,0,0.35); display:flex; align-items:flex-start; justify-content:center; padding-top:14vh;';
+            ov.innerHTML = `<div style="background:#fff; border-radius:8px; box-shadow:0 20px 45px rgba(0,0,0,0.25); width:420px; max-width:92vw; padding:16px 18px; font-size:12px; color:#374151;">
+                <div style="font-weight:700; font-size:14px; color:#15803d; margin-bottom:6px;">${this.esc(title)}</div>
+                <div style="color:#6b7280; line-height:1.5; margin-bottom:10px; white-space:pre-line;">${this.esc(message)}</div>
+                <input id="askValueInput" type="text" value="${this.esc(defaultValue)}" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #d1d5db; border-radius:5px; font-size:13px;">
+                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+                    <button id="askValueCancel" class="btn btn-outline btn-sm">Cancel</button>
+                    <button id="askValueOk" class="btn btn-sm" style="background:#15803d; color:#fff; font-weight:600;">OK</button>
+                </div></div>`;
+            document.body.appendChild(ov);
+            const input = ov.querySelector('#askValueInput');
+            input.focus(); input.select();
+            const done = (val) => { ov.remove(); resolve(val); };
+            ov.querySelector('#askValueOk').onclick = () => done(input.value);
+            ov.querySelector('#askValueCancel').onclick = () => done(null);
+            ov.addEventListener('mousedown', (e) => { if (e.target === ov) done(null); });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); done(input.value); }
+                if (e.key === 'Escape') { e.preventDefault(); done(null); }
+            });
+        });
+    }
+
     _getGatePvalueThreshold() {
-        let pThreshold = this._gatePvalueFilter || '';
-        if (!pThreshold) {
-            pThreshold = prompt('Enter p-value threshold for Enrichr analysis:', '0.05');
-            if (!pThreshold) return null;
-        }
-        return parseFloat(pThreshold);
+        const v = parseFloat(this._gatePvalueFilter);
+        return Number.isFinite(v) && v > 0 ? v : 0.05;
     }
 
     _getGEGatePvalueThreshold() {
-        let pThreshold = this._geGatePvalueFilter || '';
-        if (!pThreshold) {
-            pThreshold = prompt('Enter p-value threshold for Enrichr analysis:', '0.05');
-            if (!pThreshold) return null;
-        }
-        return parseFloat(pThreshold);
+        const v = parseFloat(this._geGatePvalueFilter);
+        return Number.isFinite(v) && v > 0 ? v : 0.05;
     }
 
     enrichrGateDiffGE() {
@@ -17708,7 +17735,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     enrichrGateMutations(gate = 'A') {
         const r = this._gateCompareResults;
-        if (!r || !r.mutStats || r.mutStats.length === 0) return;
+        if (!r || !r.mutStats || r.mutStats.length === 0) {
+            this.showCopyNotification('No mutation comparison to send. Run the gate comparison first.');
+            return;
+        }
 
         const pThreshold = this._getGatePvalueThreshold();
         if (pThreshold === null) return;
@@ -17727,7 +17757,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const modal = document.getElementById('enrichrModal');
         const title = document.getElementById('enrichrTitle');
         const content = document.getElementById('enrichrContent');
-        title.textContent = `Enrichr / ${genes.length} mutated genes enriched in Gate ${gate}`;
+        title.textContent = `Enrichr / ${genes.length} mutated genes enriched in Gate ${gate} (p < ${pThreshold})`;
         content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
         modal.style.display = 'block';
 
@@ -35545,17 +35575,15 @@ ${clone.innerHTML}
     // requested side of the Inspect GE modal, restricted to the selected
     // cell lines. Same flow as _launchCorrelationNetwork but starting from
     // a gene list rather than gene pairs.
-    _launchGENetwork(side) {
+    async _launchGENetwork(side) {
         if (!this._geInspectResults) return;
         const list = side === 'left' ? this._geInspectResults.leftDisplayed : this._geInspectResults.rightDisplayed;
         const selected = this._geInspectResults.selected || [];
         if (!list || !list.length) { alert('No genes in the current list.'); return; }
 
-        const cutStr = prompt(
-            `Correlation cutoff |r| for the network (0 – 1).\n\n` +
-            `Only gene pairs (among the ${list.length} displayed genes) at or above this cutoff become edges.`,
-            '0.5'
-        );
+        const cutStr = await this._askValue('Build network',
+            `Correlation cutoff |r| for the network (0 to 1).\n\nOnly gene pairs among the ${list.length} displayed genes at or above this cutoff become edges.`,
+            '0.5');
         if (cutStr === null) return;
         const cut = parseFloat(cutStr);
         if (isNaN(cut) || cut < 0) return;
@@ -35850,7 +35878,7 @@ ${clone.innerHTML}
     // = top Δ vs rest). Reuses the main analysis pipeline: populates the
     // gene list, applies the cell-line selection as a custom filter, sets
     // the cutoff, runs, and switches to the network view.
-    _launchCorrelationNetwork(side) {
+    async _launchCorrelationNetwork(side) {
         const res = this._corrInspectResults;
         if (!res) return;
         const isLeft = side === 'left';
@@ -35858,11 +35886,9 @@ ${clone.innerHTML}
         const scoreOf = isLeft ? (r => r.r) : (r => r.d);
         const suggested = parseFloat(document.getElementById(isLeft ? 'siLeftCutoff' : 'siRightCutoff').value) || 0.3;
 
-        const cutStr = prompt(
-            `Correlation cutoff |${isLeft ? 'r' : 'Δr'}| for the network (0 – 1).\n\n` +
-            `Only gene pairs at or above this cutoff will become edges. A higher cutoff gives a sparser, more readable network.`,
-            suggested.toFixed(2)
-        );
+        const cutStr = await this._askValue('Build network',
+            `Correlation cutoff |${isLeft ? 'r' : 'delta r'}| for the network (0 to 1).\n\nOnly gene pairs at or above this cutoff become edges. A higher cutoff gives a sparser, more readable network.`,
+            suggested.toFixed(2));
         if (cutStr === null) return;
         const cut = parseFloat(cutStr);
         if (isNaN(cut) || cut < 0) return;
@@ -35987,11 +36013,9 @@ ${clone.innerHTML}
     }
 
     async exportCellLineBrowserGenesCSV() {
-        const input = prompt(
-            'Enter one or more gene symbols (comma, semicolon, newline, or whitespace separated).\n\n' +
-            'Each gene adds GE, Expression, Hotspot, Damaging, Fusion, focal-CN and relative copy-number columns, per cell line.',
-            'TP53, MDM2'
-        );
+        const input = await this._askValue('Export genes',
+            'Enter one or more gene symbols, separated by commas, semicolons or spaces.\n\nEach gene adds GE, Expression, Hotspot, Damaging, Fusion, focal-CN and relative copy-number columns, per cell line.',
+            'TP53, MDM2');
         if (input === null) return;
         const genes = input.split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
         if (!genes.length) return;

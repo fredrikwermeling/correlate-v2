@@ -1913,6 +1913,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.80 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>Enrichr A and B on the gates work again.</b> They asked for a p-value cutoff through a native browser prompt, which blocks the page and is refused outright by some browsers, so the button did nothing at all. They now use the panel's own p-value box, defaulting to 0.05, and the result names the cutoff used. If there is no comparison to send, it says so rather than doing nothing.</li>
+                    <li><b>The three remaining native prompts are gone too</b>, replaced by a small in-page dialog: the two build-network cutoffs and the gene list for the Cell Line Browser gene export.</li>
+                </ul>
                 <p><strong>v.84.79 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Switching analysis mode now clears the previous results.</b> A network and its correlation and cluster tables stayed on screen after switching to mutational analysis, which made them look like part of the new analysis. The gene list is kept.</li>
@@ -4591,7 +4596,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.79</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.80</a>
     </div>
 
     <div class="main-content">
@@ -7017,6 +7022,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_79"></script>
+    <script src="app.js?v=v84_80"></script>
 </body>
 </html>
