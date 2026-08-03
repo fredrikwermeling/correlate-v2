@@ -21498,9 +21498,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // top of each box (original box keeps default gray points).
         const hl = this._geSelectionHighlight instanceof Set ? this._geSelectionHighlight : null;
         const hlColor = '#dc2626';
+        // Shorten the row label, keeping the full name on hover. Names are made
+        // unique afterwards so two shortened labels cannot collapse onto one row.
+        const LABEL_MAX = 34;
+        const seenLabels = new Map();
+        const shortLabel = (group, count) => {
+            let base = group.length > LABEL_MAX ? group.slice(0, LABEL_MAX - 1).trimEnd() + '…' : group;
+            const k = seenLabels.get(base) || 0;
+            seenLabels.set(base, k + 1);
+            if (k > 0) base = `${base} (${k + 1})`;
+            return `${base} (n=${count})`;
+        };
+        const labelFor = new Map(filteredStats.map(s => [s.group, shortLabel(s.group, s.n)]));
         const traces = filteredStats.map((s, idx) => ({
             type: 'box',
-            name: `${s.group} (n=${s.n})`,
+            name: labelFor.get(s.group),
+            hovertext: s.group.length > LABEL_MAX ? s.group : undefined,
             x: s.cellData.map(c => c.geneEffect),
             text: s.cellData.map(c => c.cellLineName),
             customdata: s.cellData.map(c => c.cellLineId),
@@ -21529,7 +21542,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     mode: 'markers',
                     name: `Selected in ${s.group}`,
                     x: hlCells.map(c => c.geneEffect),
-                    y: hlCells.map(() => `${s.group} (n=${s.n})`),
+                    y: hlCells.map(() => labelFor.get(s.group)),
                     text: hlCells.map(c => c.cellLineName),
                     customdata: hlCells.map(c => c.cellLineId),
                     hovertemplate: `<b>%{text}</b><br>${hoverMetric}: %{x:.3f}<br><span style="color:${hlColor};">Selected</span><extra></extra>`,
@@ -21585,7 +21598,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 automargin: true,
                 tickfont: { size: tickFontSize }
             },
-            margin: { t: 70, b: 75, l: 10, r: 30 },
+            // Cap what automargin may claim, so a long row label cannot squeeze
+            // the plot into a sliver.
+            margin: { t: 70, b: 75, l: 10, r: 30, autoexpand: true },
             height: chartHeight,
             showlegend: false,
             paper_bgcolor: 'white',
@@ -39669,10 +39684,16 @@ ${clone.innerHTML}
         let subtitleSize = 15;
         if (usesAnnotationTitle) {
             const raw = ann0.text || '';
-            // Split on <br>, first part is title (strip <b>), rest is subtitle
+            // A <br> means one of two things here: the break between title and
+            // subtitle, or a long title wrapped onto another line. Treating every
+            // break as the subtitle boundary meant only the first row of a
+            // wrapped title could be edited. The subtitle is the part carrying
+            // its own smaller font-size span, so split there.
             const parts = raw.split(/<br\s*\/?>/i);
-            titleText = stripHtml(parts[0]);
-            subtitleText = parts.slice(1).map(stripHtml).join('\n');
+            let firstSubIdx = parts.findIndex(p => /font-size:\s*\d+px\s*;?\s*color/i.test(p));
+            if (firstSubIdx <= 0) firstSubIdx = parts.length > 1 ? 1 : parts.length;
+            titleText = parts.slice(0, firstSubIdx).map(stripHtml).filter(Boolean).join(' ');
+            subtitleText = parts.slice(firstSubIdx).map(stripHtml).join('\n');
             // Extract subtitle font-size from subtitle parts (skip title inline span)
             const subtitleHtml = parts.slice(1).join('<br>');
             const sizeMatch = subtitleHtml.match(/font-size:\s*(\d+)px/);
