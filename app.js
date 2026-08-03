@@ -5626,6 +5626,45 @@ class CorrelationExplorer {
         this._geneNotFoundTimer = setTimeout(() => box.remove(), 12000);
     }
 
+    // Do the gene's known complex or pathway partners move on the same split?
+    // A gene separating strongly while every partner is flat is the strongest
+    // cheap signal that the separation is noise: a complex cannot function
+    // without its subunits, so a real dependency difference should move them
+    // together. Returns null when no partner set is known.
+    _partnerCoMovement(gene, cellLinesA, cellLinesB) {
+        const partners = (this.corumPartners?.partners?.[gene] || this.reactomePartners?.partners?.[gene] || [])
+            .filter(g => this.geneIndex?.has(g));
+        if (partners.length < 3) return null;
+        const idx = new Map(this.metadata.cellLines.map((c, i) => [c, i]));
+        const meanOf = (g, cls) => {
+            const gi = this.geneIndex.get(g);
+            if (gi === undefined) return null;
+            let sum = 0, k = 0;
+            for (const cl of cls) {
+                const i = idx.get(cl);
+                if (i === undefined) continue;
+                const v = this.geneEffects[gi * this.nCellLines + i];
+                if (!isNaN(v) && v !== -999) { sum += v; k++; }
+            }
+            return k >= 3 ? sum / k : null;
+        };
+        const deltaOf = (g) => {
+            const a = meanOf(g, cellLinesA), b = meanOf(g, cellLinesB);
+            return (a === null || b === null) ? null : a - b;
+        };
+        const focal = deltaOf(gene);
+        if (focal === null) return null;
+        const moved = partners.map(g => ({ gene: g, delta: deltaOf(g) })).filter(x => x.delta !== null);
+        if (moved.length < 3) return null;
+        const maxPartner = Math.max(...moved.map(x => Math.abs(x.delta)));
+        return {
+            gene, focalDelta: focal, partners: moved.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)),
+            maxPartnerDelta: maxPartner,
+            // Flat partners next to a clearly separating focal gene.
+            suspicious: Math.abs(focal) > 0.4 && maxPartner < Math.abs(focal) * 0.35,
+        };
+    }
+
     _findGeneSuggestions(notFoundGenes) {
         const suggestions = new Map();
         if (!this.geneIndex || this.geneIndex.size === 0) return suggestions;
@@ -21647,6 +21686,31 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Sort by p-value (most significant first) for better visualization
         hotspotStats.sort((a, b) => a.pValue - b.pValue);
+
+        // Sanity check on the strongest hit: if this gene's complex or pathway
+        // partners do not move on the same split, the separation is more likely
+        // screen noise than biology, which is easy to miss in a small cohort.
+        let partnerNote = '';
+        try {
+            const top = hotspotStats[0];
+            if (top && top.pValue < 0.05 && !isGrowthHS && !isGeneSetHS) {
+                const co = this._partnerCoMovement(
+                    gene,
+                    [...top.cellData1, ...top.cellData2].map(c => c.cellLineId),
+                    top.cellData0.map(c => c.cellLineId));
+                if (co && co.suspicious) {
+                    const worst = co.partners.slice(0, 4)
+                        .map(p => `${p.gene} ${p.delta >= 0 ? '+' : ''}${p.delta.toFixed(2)}`).join(', ');
+                    partnerNote = `<div style="margin:6px 0 0; padding:7px 10px; background:#fef3c7; border-left:3px solid #d97706; border-radius:0 4px 4px 0; font-size:11px; color:#92400e;">`
+                        + `<b>Worth a second look.</b> ${this.esc(gene)} separates on ${this.esc(top.group)} `
+                        + `(&Delta; ${co.focalDelta.toFixed(2)}), but its known partners barely move: ${this.esc(worst)}. `
+                        + `A dependency that is real for a pathway reason usually shifts the partners too, so this may be screen noise rather than biology.`
+                        + `</div>`;
+                }
+            }
+        } catch (e) { /* the note is a nicety, never block the chart */ }
+        const partnerNoteEl = document.getElementById('gePartnerNote');
+        if (partnerNoteEl) partnerNoteEl.innerHTML = partnerNote;
 
         // Apply p-value filter if enabled
         const pFilter = document.getElementById('gePvalueFilter')?.checked;

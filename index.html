@@ -1913,6 +1913,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.86 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>The gene-effect scan warns when a hit's pathway partners do not move with it.</b> A gene that separates strongly on a split while its known complex or pathway partners stay flat is usually screen noise: a complex cannot work without its subunits, so a real dependency difference should shift them too. The check runs on the strongest hit and says nothing when the partners do move.</li>
+                </ul>
                 <p><strong>v.84.85 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Copy button on the network, scatter, tissue chart and mutation table.</b> Copies the chart as an image straight to the clipboard, ready to paste into an email or a slide without saving a file first.</li>
@@ -4621,7 +4625,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.85</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.86</a>
     </div>
 
     <div class="main-content">
@@ -5845,6 +5849,7 @@
                                     <button onclick="app.adjustNumber('geScanMinN', 1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                                 </span>
                             </div>
+                            <div id="gePartnerNote"></div>
                             <div id="geneEffectHotspotPlot" style="width: 100%; min-height: 400px;"></div>
                         </div>
                     </div>
@@ -7065,6 +7070,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_85"></script>
+    <script src="app.js?v=v84_86"></script>
 </body>
 </html>
