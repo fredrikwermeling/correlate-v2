@@ -1913,6 +1913,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.91 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>Cell lines you label by clicking are now listed under the Gene Effect plot</b>, with a Copy names button, so the names can be taken out rather than only read off the chart. Clicking a name in the list removes its label from the plot.</li>
+                </ul>
                 <p><strong>v.84.90 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>The hotspot and fusion overlay read-out no longer runs off the plot.</b> Three groups each with n and r made a line too long to fit, and it was cut at the edge. It now breaks across lines to match the plot width.</li>
@@ -4644,7 +4648,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.90</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.91</a>
     </div>
 
     <div class="main-content">
@@ -5796,6 +5800,7 @@
                         <span id="customCLFilterCountGE" style="font-size:9px; color:#6b7280;"></span>
                         <span style="border-left: 1px solid #e5e7eb; height: 18px; margin: 0 2px;"></span>
                         <span id="geActiveFilters" style="display:inline-flex; gap:4px; flex-wrap:wrap; align-items:center;"></span>
+                        <div id="geLabeledCellLines" style="display:flex; gap:4px; flex-wrap:wrap; align-items:center; width:100%; margin-top:4px;"></div>
                     </div>
                 </div>
 
@@ -7089,6 +7094,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_90"></script>
+    <script src="app.js?v=v84_91"></script>
 </body>
 </html>

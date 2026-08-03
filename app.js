@@ -25329,8 +25329,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (ann && ann._dotLabel) {
                 ev.event?.preventDefault?.();
                 const anns = (el.layout.annotations || []).filter(a => a._dotLabel !== ann._dotLabel);
-                Plotly.relayout(plotId, { annotations: anns });
+                Plotly.relayout(plotId, { annotations: anns }).then(() => this._renderLabeledCellLines(plotId));
             }
+        });
+    }
+
+    // The cell lines currently labelled on a plot, listed under it so the names
+    // can be read and copied rather than only picked off the chart.
+    _renderLabeledCellLines(plotId) {
+        const host = document.getElementById('geLabeledCellLines');
+        if (!host) return;
+        const el = document.getElementById(plotId);
+        const names = ((el?.layout?.annotations) || [])
+            .filter(a => a._dotLabel)
+            .map(a => ({ id: a._dotLabel, name: this.getCellLineName(a._dotLabel) || a._dotLabel }));
+        if (!names.length) { host.innerHTML = ''; return; }
+        host.innerHTML = `<span style="font-size:10px; color:#6b7280; font-weight:600;">Labelled (${names.length}):</span> `
+            + names.map(x => `<span class="clb-chip" data-lbl="${this.esc(x.id)}" title="Click to remove this label" `
+                + `style="background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:600;">`
+                + `${this.esc(x.name)} &times;</span>`).join(' ')
+            + ` <button type="button" id="geCopyLabelled" class="btn btn-outline btn-sm" style="font-size:9px; padding:1px 7px;" title="Copy these cell line names, one per line">Copy names</button>`;
+        host.querySelectorAll('[data-lbl]').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const keep = (el.layout.annotations || []).filter(a => a._dotLabel !== chip.dataset.lbl);
+                Plotly.relayout(plotId, { annotations: keep }).then(() => this._renderLabeledCellLines(plotId));
+            });
+        });
+        host.querySelector('#geCopyLabelled')?.addEventListener('click', () => {
+            navigator.clipboard?.writeText(names.map(x => x.name).join('\n'));
+            this.showCopyNotification?.(`Copied ${names.length} cell line name${names.length === 1 ? '' : 's'}`);
         });
     }
 
@@ -25341,7 +25368,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const name = this.getCellLineName(id) || id;
         const anns = (el.layout.annotations || []).slice();
         const idx = anns.findIndex(a => a._dotLabel === id);
-        if (idx >= 0) anns.splice(idx, 1);
+        if (idx >= 0) anns.splice(idx, 1);   // clicking again removes it
         else anns.push({
             x: pt.x, y: pt.y, xref: 'x', yref: 'y', text: name,
             showarrow: true, arrowhead: 0, arrowwidth: 1, arrowcolor: '#6b7280', ax: 0, ay: -18,
@@ -25349,7 +25376,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             bordercolor: '#d1d5db', borderwidth: 1, borderpad: 2, captureevents: true,
             _dotLabel: id, hovertext: 'Click to remove'
         });
-        Plotly.relayout(plotId, { annotations: anns });
+        Plotly.relayout(plotId, { annotations: anns }).then(() => this._renderLabeledCellLines(plotId));
     }
 
     // Wire hover (exec summary) + click (label / double-click Wiki) on a GE dot plot.
