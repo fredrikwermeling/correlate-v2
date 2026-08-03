@@ -1897,6 +1897,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.67 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>Drug rows no longer print the compound's clinical indication.</b> A drug approved for colorectal cancer, listed beside a pancreatic line's own screen result, read as though the line were colorectal. The indication describes the drug and says nothing about the cell line, so it now lives only in the CSV export.</li>
+                    <li><b>Removed the leftover therapy-matching code</b> that paired a line's alterations with drug classes. It had already been taken off the page as over-interpretation; the code that produced it is now gone too.</li>
+                    <li>Cohort wording in the expression and drug sections simplified to state plainly which cell lines each comparison uses.</li>
+                </ul>
                 <p><strong>v.84.66 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>The wiki now scrolls as one ordinary long page.</b> It used a card capped at the window height with a separate scrolling area inside it, which meant scrolling only worked if a script routed each wheel movement to the right one of several scrollers. That arrangement is gone: the dialog itself scrolls, the title bar stays pinned at the top, and no script is involved in scrolling it.</li>
@@ -4493,7 +4499,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.66</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.67</a>
     </div>
 
     <div class="main-content">
@@ -6923,6 +6929,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_66"></script>
+    <script src="app.js?v=v84_67"></script>
 </body>
 </html>

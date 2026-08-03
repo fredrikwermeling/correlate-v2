@@ -33529,7 +33529,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     : '';
 
                 exprSigHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression, that list is always dominated by mitochondrial and ribosomal genes that are high in every line. "Uniquely" here is judged <b>against every cell line in the expression table</b> (${(this.expressionMetadata?.cellLines?.length || 0).toLocaleString()} lines across every lineage, <i>not</i> just same-tissue lines). Note this is a larger set than the ${this.nCellLines.toLocaleString()} lines with a CRISPR screen, so the two sections' comparisons are not drawn from exactly the same cell lines. Values are log₂(TPM+1) (≈ mRNA on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score vs that whole cohort for the gene (&gt; +2 = much more expressed than the typical cell line, &lt; &minus;2 = strongly silenced). Whole-cohort hits carry a <span style="color:#15803d; font-weight:600;">✓ lineage-typical</span> flag when the whole cancer family also over-expresses them (i.e. common for this cancer type rather than specific to this line); a second list ranks genes uniquely high <b>vs same-lineage lines only</b>.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression, that list is always dominated by mitochondrial and ribosomal genes that are high in every line. "Uniquely" here is judged <b>against every cell line in the expression table</b> (${(this.expressionMetadata?.cellLines?.length || 0).toLocaleString()} lines across every lineage, <i>not</i> just same-tissue lines). Values are log₂(TPM+1) (≈ mRNA on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score vs that whole cohort for the gene (&gt; +2 = much more expressed than the typical cell line, &lt; &minus;2 = strongly silenced). Whole-cohort hits carry a <span style="color:#15803d; font-weight:600;">✓ lineage-typical</span> flag when the whole cancer family also over-expresses them (i.e. common for this cancer type rather than specific to this line); a second list ranks genes uniquely high <b>vs same-lineage lines only</b>.</p>
                     ${row('Top uniquely high vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages)</span>', topUniqueHtml)}
                     ${exprFamilyHtml}
                     ${xist !== undefined
@@ -33631,84 +33631,29 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     // out-of-context labels (CRC, SCLC, pancreatic …) without
                     // a clear meaning. Prefix it with "Used in" so the
                     // semantic is explicit.
-                    const indicationStr = c.indication
-                        ? `, <span style="color:#6b7280;">Used in:</span> <i>${c.indication}</i>`
-                        : '';
+                    // The compound's clinical indication is deliberately not on
+                    // this row: it describes the drug, not this cell line, and
+                    // beside the line's own result it read as a claim about the
+                    // line's cancer type. It stays in the CSV export.
                     const slug = slugify(c.name);
                     drugHistTargets.push({ slug, name: c.name, currentVal: c.v });
                     const histId = `clbWikiHistDrug_${slug}`;
                     return `<li style="padding:3px 0;"><span style="display:inline-block; min-width:170px; font-weight:600; color:${color};">${c.name}</span>
                         <span style="font-size:10px; color:#6b7280;">${c.target} &middot; ${c.moa}</span><br>
-                        <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}), <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span>${indicationStr}</span>
+                        <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}), <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span></span>
                         ${cohortStr}
                         <div id="${histId}" style="margin: 4px 0 0 170px; height: 84px;"></div></li>`;
                 };
 
-                // Context-aware cross-checks based on what this wiki has already detected
-                const findByTarget = (targetKey) => rows.filter(r => r.target.toUpperCase().includes(targetKey.toUpperCase()));
-                const ctxSections = [];
-                // BRAF mutant → BRAF/MEK inhibitors
-                if (anyHit('BRAF')) {
-                    const hits = [...findByTarget('BRAF'), ...findByTarget('MEK')];
-                    if (hits.length) ctxSections.push({ label: 'BRAF-mutant → BRAF/MEK inhibitors', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
-                }
-                // EGFR mutant → EGFR TKI
-                if (anyHit('EGFR')) {
-                    const hits = findByTarget('EGFR');
-                    if (hits.length) ctxSections.push({ label: 'EGFR-mutant → EGFR TKI', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
-                }
-                // ALK/ROS1 fusion → ALK/ROS1 inhibitors
-                // Curated calls only. A raw ALK or ROS1 partner is usually a
-                // passenger event in a rearranged genome, not a driver fusion.
-                const _curatedFusionPartner = (gene) => {
-                    const fd = this.clinicalFusions?.fusionData || {};
-                    return Object.keys(fd).some(name =>
-                        name.split(/--?/).includes(gene) && fd[name]?.cellLines?.[cellLineId]);
-                };
-                const alkFusion = _curatedFusionPartner('ALK') || _curatedFusionPartner('ROS1');
-                if (alkFusion) {
-                    const hits = [...findByTarget('ALK'), ...findByTarget('ROS1')];
-                    if (hits.length) ctxSections.push({ label: 'ALK/ROS1 fusion → ALK/ROS1 inhibitors', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
-                }
-                // BCR-ABL fusion → ABL TKI
-                const bcrAbl = !!this.clinicalFusions?.fusionData?.['BCR-ABL1']?.cellLines?.[cellLineId];
-                if (bcrAbl) {
-                    const hits = findByTarget('BCR-ABL');
-                    if (hits.length) ctxSections.push({ label: 'BCR-ABL fusion → ABL TKI', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
-                }
-                // HR-deficient → PARP
-                if (hrHits.length > 0) {
-                    const hits = findByTarget('PARP');
-                    if (hits.length) ctxSections.push({ label: 'HR-deficient → PARP inhibitors', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
-                }
-                // MMR-deficient: no cell-line-panel relevant compound here (ICB is antibody), note instead
-                // TP53-WT → MDM2
-                if (!anyHit('TP53')) {
-                    const hits = findByTarget('MDM2');
-                    if (hits.length) ctxSections.push({ label: 'TP53-WT → MDM2 inhibitor candidate', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
-                }
-                // CDKN2A lost / cell cycle → CDK4/6
-                if (damHit('CDKN2A') || anyHit('CCND1')) {
-                    const hits = findByTarget('CDK4/6');
-                    if (hits.length) ctxSections.push({ label: 'CDKN2A loss / CCND1 → CDK4/6 inhibitors', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
-                }
-                // BTK / BCR pathway for lymphoid
-                if (lin === 'Lymphoid') {
-                    const hits = [...findByTarget('BTK'), ...findByTarget('BCL-2'), ...findByTarget('PI3K-DELTA')];
-                    if (hits.length) ctxSections.push({ label: 'Lymphoid → BCR/BCL2 axis', items: hits.sort((a, b) => a.z - b.z).slice(0, 6) });
-                }
-
-                // "Targeted therapies matched to this line's alterations" removed —
-                // this is a cell-line characterisation tool, not a treatment guide.
-                const ctxHtml = '';
+                // No therapy matching here on purpose: this is a cell-line
+                // characterisation tool, not a treatment guide.
 
                 drugHtml = `
                     <div style="margin:0 0 8px;"><button onclick="window.app.exportWikiDrugResponseCSV()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Export every PRISM compound with this cell line's AUC, the cohort mean/SD and z-score, plus target / mechanism / indication, as a CSV so you can make your own plot">Export drug responses (.csv)</button></div>
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive, for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. Note the two cohorts differ slightly: the z-score uses every line PRISM tested, while the &ldquo;of N tested&rdquo; count beside it uses only the lines that are also in this app's CRISPR cohort, so N is the smaller number. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug, it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ. The mini-histogram under each compound shows the full AUC distribution across all PRISM-tested cell lines (red line = this cell line's value), mirroring the per-metric histograms in the Genome section.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, the viability score and z-score for <i>this</i> cell line, and a &ldquo;<b>Used in:</b>&rdquo; line listing the clinical disease(s) the drug is approved or used for (e.g. CRC, SCLC, pancreatic).</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive, for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. The z-score is computed across every cell line PRISM tested; the &ldquo;of N tested&rdquo; count beside it covers the lines that also have a CRISPR screen here. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug, it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ. The mini-histogram under each compound shows the full AUC distribution across all PRISM-tested cell lines (red line = this cell line's value), mirroring the per-metric histograms in the Genome section.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, and the viability score and z-score for <i>this</i> cell line. The compound's approved clinical indications are in the CSV export; they describe the drug and say nothing about this cell line's cancer type.</p>
                     <div style="margin:0 0 10px; padding:8px 12px; background:var(--earth-50); border-left:3px solid var(--earth-700); border-radius:0 4px 4px 0; font-size:11px; color:#5b4a2c;"><b>&ldquo;Standout sensitive&rdquo; means selective, not necessarily strong.</b> A line can be more sensitive than most others to a drug (low z-score) while still not being very sensitive in absolute terms (high AUC, few cells killed). Always read both: the <b>AUC</b> says how much the drug kills <i>this</i> line; the <b>z-score</b> says whether that is unusual versus other lines.</div>
                     ${sensitive.length ? `<div><b style="color:#15803d;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
-                    ${resistant.length ? `<div><b style="color:#991b1b;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}
-                    ${ctxHtml}`;
+                    ${resistant.length ? `<div><b style="color:#991b1b;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}`;
                 // Stash for the post-render histogram draw.
                 this._drugHistPending = { cellLineId, targets: drugHistTargets };
             }
