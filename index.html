@@ -1897,6 +1897,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.69 (2026-08-03)</strong></p>
+                <ul>
+                    <li><b>The pinned wiki header no longer has text sliding above it.</b> The dialog's top padding scrolled away with the content while the header anchored below it, leaving a 20px strip where body text showed through. The spacing moved onto the card so the header sits at the true top, with a soft shadow so content clearly passes behind it.</li>
+                    <li><b>CRISPR dependencies renamed</b> to "which genes this cell line needs, and which ones hold it back". The section also lists knockouts that speed growth up, which the old wording left out.</li>
+                </ul>
                 <p><strong>v.84.68 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>The colour-by group picker now lists only the tissues or subtypes actually on the plot.</b> It was built from the full dataset, so with a filter applied it offered groups that had already been filtered out, and picking one changed nothing. "Suggest" is scored on the plotted points for the same reason.</li>
@@ -4503,7 +4508,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.68</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.69</a>
     </div>
 
     <div class="main-content">
@@ -6369,9 +6374,9 @@
     </div>
 
     <!-- Cell Line Wiki Modal -->
-    <div id="clbWikiModal" style="display:none; position:fixed; inset:0; z-index:1370; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;">
-      <div style="background:#fff; width:100%; max-width:min(96vw, 1100px); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
-        <div style="position:sticky; top:0; z-index:3; display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg, #f0fdf4 0%, #fff 100%);">
+    <div id="clbWikiModal" style="display:none; position:fixed; inset:0; z-index:1370; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:0 20px 20px; overflow-y:auto;">
+      <div style="background:#fff; width:100%; max-width:min(96vw, 1100px); margin-top:20px; border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+        <div style="position:sticky; top:0; z-index:3; display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg, #f0fdf4 0%, #fff 100%); border-radius:8px 8px 0 0; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
           <div>
             <h3 id="clbWikiTitle" style="margin:0; font-size:17px; color:#15803d;">Cell Line Wiki</h3>
             <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
@@ -6933,6 +6938,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_68"></script>
+    <script src="app.js?v=v84_69"></script>
 </body>
 </html>

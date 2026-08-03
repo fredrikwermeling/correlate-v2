@@ -34058,7 +34058,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'Clinically relevant fusions: curated 51-driver list validated per cell line on lineage match + partner expression z-score + partner CRISPR dependency z-score (this app). Raw partner list: DepMap 25Q3 OmicsFusionFiltered, fusion callers on hypermutated / highly rearranged cancers produce many technical and passenger calls (counts &gt;30 are flagged).'),
 
             // ── Functional behaviour ──────────────────────────────────────
-            section('CRISPR dependencies <span style="font-size:11px; color:#6b7280;">, what this cell line uniquely needs to survive</span>',
+            section('CRISPR dependencies <span style="font-size:11px; color:#6b7280;">, which genes this cell line needs, and which ones hold it back</span>',
                 geSigHtml,
                 'DepMap 25Q3 CRISPRGeneEffect (Chronos). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s GE − cohort mean) / cohort SD. Pan-essentials filtered against the DepMap common-essentials list. Druggable dependencies cross-referenced against a curated ~60-gene panel with approved or clinical-stage inhibitors.'),
             section('Expression profile <span style="font-size:11px; color:#6b7280;">, what is uniquely highly expressed in this cell line</span>',
