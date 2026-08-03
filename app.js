@@ -4648,6 +4648,18 @@ class CorrelationExplorer {
             this.updateNetworkStyle();
             this._checkNetworkFits();
         });
+        document.getElementById('netSpread')?.addEventListener('input', (e) => {
+            document.getElementById('spreadBubble').textContent = e.target.value;
+            // Re-layout with the new spacing, then fit so nothing lands off-screen.
+            if (this.network) {
+                this.network.setOptions({ physics: { enabled: true, barnesHut: { springLength: this._recomputeSpring() } } });
+                clearTimeout(this._spreadSettle);
+                this._spreadSettle = setTimeout(() => {
+                    this.network.fit();
+                    this._checkNetworkFits();
+                }, 700);
+            }
+        });
         document.getElementById('netEdgeWidth').addEventListener('input', (e) => {
             document.getElementById('edgeWidthBubble').textContent = e.target.value;
             this.updateNetworkStyle();
@@ -9182,7 +9194,9 @@ class CorrelationExplorer {
                     // land on top of whatever node sat beneath it. Derived from
                     // the node and font sizes so it keeps working when either
                     // slider is moved.
-                    springLength: (this._netSpringLength = Math.max(140, nodeSize * 3 + fontSize * 2)),
+                    springLength: (this._netSpringLength = Math.round(
+                        Math.max(140, nodeSize * 3 + fontSize * 2)
+                        * ((parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100))),
                     springConstant: 0.08,
                     damping: 0.4,
                     // Treat each node as its own keep-out zone rather than a point.
@@ -9666,6 +9680,14 @@ class CorrelationExplorer {
                 + `<button type="button" style="border:1px solid #b45309; background:#fff; color:#92400e; border-radius:4px; padding:1px 8px; font-size:10px; cursor:pointer;">Fit</button>`;
             note.querySelector('button').onclick = () => { this.network.fit(); note.remove(); };
         }, 260);
+    }
+
+    // Spring length from the current node size, font size and spread setting.
+    _recomputeSpring() {
+        const nodeSize = parseInt(document.getElementById('netNodeSize')?.value, 10) || 25;
+        const fontSize = parseInt(document.getElementById('netFontSize')?.value, 10) || 20;
+        const spread = (parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100;
+        return Math.round(Math.max(140, nodeSize * 3 + fontSize * 2) * spread);
     }
 
     updateNetworkStyle() {
@@ -11791,6 +11813,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         slider('netFontSize', 'fontSizeBubble', 20);
         slider('netNodeSize', 'nodeSizeBubble', 25);
         slider('netEdgeWidth', 'edgeWidthBubble', 3);
+        slider('netSpread', 'spreadBubble', 100);
 
         // Reset checkboxes
         document.getElementById('showGeneEffect').checked = false;
@@ -29417,6 +29440,45 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // that doesn't fill that viewport exported with a wide empty frame around
     // it, which then had to be cropped by hand before the figure was usable.
     // Returns the original canvas untouched if it is blank or already tight.
+    // Copy a chart straight to the clipboard as an image, for pasting into an
+    // email or a slide without going through a file. Plotly charts are rendered
+    // from their own SVG; anything else goes through html2canvas.
+    async copyPlotToClipboard(elOrId, label = 'Chart') {
+        const el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+        if (!el) return;
+        if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+            this.showCopyNotification?.('This browser cannot copy images to the clipboard. Use Export image instead.');
+            return;
+        }
+        this.showCopyNotification?.('Copying…');
+        try {
+            const plot = el.classList?.contains('js-plotly-plot') ? el : el.querySelector('.js-plotly-plot');
+            let blob;
+            if (plot && typeof Plotly !== 'undefined') {
+                // 2x for a crisp paste; Plotly's own PNG writer keeps the fonts.
+                const url = await Plotly.toImage(plot, {
+                    format: 'png',
+                    width: plot.clientWidth || 700,
+                    height: plot.clientHeight || 500,
+                    scale: 2
+                });
+                blob = await (await fetch(url)).blob();
+            } else if (typeof window.html2canvas !== 'undefined') {
+                const canvas = await window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', logging: false });
+                const trimmed = this._trimCanvasWhitespace(canvas);
+                blob = await new Promise(res => trimmed.toBlob(res, 'image/png'));
+            } else {
+                this.showCopyNotification?.('Could not render this chart for copying.');
+                return;
+            }
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            this.showCopyNotification?.(`${label} copied, paste it anywhere`);
+        } catch (e) {
+            console.warn('Copy to clipboard failed:', e);
+            this.showCopyNotification?.('Copy failed. Use Export image instead.');
+        }
+    }
+
     _trimCanvasWhitespace(canvas, padPx) {
         try {
             const w = canvas.width, h = canvas.height;
