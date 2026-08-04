@@ -6517,13 +6517,30 @@ class CorrelationExplorer {
         this.updateInspectPlot();
     }
 
+    // Read a decimal input. Chrome renders <input type="number"> using the
+    // browser's locale, so 0.3 shows as "0,3" for anyone on a decimal-comma
+    // locale while every number the app prints uses a dot. Those inputs are
+    // therefore plain text with inputmode="decimal", which always shows what
+    // we wrote; this accepts either separator so typing a comma still works.
+    // Clamps to the element's own min/max, which text inputs do not enforce.
+    numInput(idOrEl, fallback = 0) {
+        const el = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
+        if (!el) return fallback;
+        const v = parseFloat(String(el.value).replace(',', '.'));
+        if (!Number.isFinite(v)) return fallback;
+        const min = el.min !== '' && el.min != null ? parseFloat(el.min) : NaN;
+        const max = el.max !== '' && el.max != null ? parseFloat(el.max) : NaN;
+        return Math.min(Number.isFinite(max) ? max : Infinity,
+                        Math.max(Number.isFinite(min) ? min : -Infinity, v));
+    }
+
     // Generic +/- helper for any <input type="number">. Reads min/max/step
     // from the element so calls stay short. Fires a 'change' event so any
     // existing change-listener (re-render, etc.) runs as if the user typed.
     adjustNumber(id, delta) {
         const el = document.getElementById(id);
         if (!el) return;
-        const val = parseFloat(el.value) || 0;
+        const val = parseFloat(String(el.value).replace(',', '.')) || 0;
         const min = el.min !== '' ? parseFloat(el.min) : -Infinity;
         const max = el.max !== '' ? parseFloat(el.max) : Infinity;
         let next = val + delta;
@@ -15707,7 +15724,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('inspectCorrelatesBody').innerHTML = `
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:8px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:10px;">
                 <label style="font-weight:600; color:#374151;">|r| ≥
-                    <input type="number" id="icThreshold" value="${defaultThreshold}" min="0" max="1" step="0.05" style="width:64px; margin-left:6px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
+                    <input type="text" inputmode="decimal" id="icThreshold" value="${defaultThreshold}" min="0" max="1" step="0.05" style="width:64px; margin-left:6px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
                 </label>
                 <label style="font-weight:600; color:#374151;">Search
                     <input type="text" id="icSearch" placeholder="Gene symbol…" style="width:140px; margin-left:6px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
@@ -15771,7 +15788,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
 
         const renderLists = () => {
-            const t = parseFloat(document.getElementById('icThreshold').value);
+            const t = this.numInput('icThreshold', NaN);
             const thr = isFinite(t) && t >= 0 ? t : 0;
             const q = (document.getElementById('icSearch')?.value || '').trim().toUpperCase();
             const nameMatch = (h) => !q || h.gene.toUpperCase().includes(q);
@@ -22874,8 +22891,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('exportOptConfirm').onclick = () => {
                 const opts = {
                     format: fmtEl?.value || context.format || 'png',
-                    widthCm: parseFloat(widthEl.value) || 5,
-                    heightCm: parseFloat(heightEl.value) || 5,
+                    widthCm: this.numInput(widthEl, 5) || 5,
+                    heightCm: this.numInput(heightEl, 5) || 5,
                     dpi: parseInt(dpiEl.value) || 600,
                     background: document.querySelector('input[name="exportOptBg"]:checked')?.value || 'white',
                     legendFrame: !!frameEl?.checked,
@@ -22905,10 +22922,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const widthEl = document.getElementById('exportOptWidth');
         const heightEl = document.getElementById('exportOptHeight');
         if (id === 'exportOptWidth') {
-            const w = parseFloat(widthEl.value) || 5;
+            const w = this.numInput(widthEl, 5) || 5;
             heightEl.value = Math.max(2, Math.round(w * aspect * 10) / 10);
         } else if (id === 'exportOptHeight') {
-            const h = parseFloat(heightEl.value) || 5;
+            const h = this.numInput(heightEl, 5) || 5;
             widthEl.value = aspect > 0 ? Math.max(2, Math.round((h / aspect) * 10) / 10) : h;
         }
     }
@@ -35954,7 +35971,7 @@ ${clone.innerHTML}
                         <div style="font-weight:600; color:#374151;">Top correlations in selection</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
                             <label>|r|&nbsp;≥</label>
-                            <input type="number" id="siLeftCutoff" min="0" max="1" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                            <input type="text" inputmode="decimal" id="siLeftCutoff" min="0" max="1" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <button class="btn btn-outline btn-sm" id="siLeftNetwork" style="font-size:11px; padding:3px 8px;">Network</button>
                         </div>
                     </div>
@@ -35966,7 +35983,7 @@ ${clone.innerHTML}
                         <div style="font-weight:600; color:#374151;">Most different vs rest (Δr)</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
                             <label>|Δ|&nbsp;≥</label>
-                            <input type="number" id="siRightCutoff" min="0" max="2" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                            <input type="text" inputmode="decimal" id="siRightCutoff" min="0" max="2" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <button class="btn btn-outline btn-sm" id="siRightNetwork" style="font-size:11px; padding:3px 8px;">Network</button>
                         </div>
                     </div>
@@ -36013,7 +36030,7 @@ ${clone.innerHTML}
                     <div style="font-weight:700; color:#15803d; font-size:13px;">${title}</div>
                     <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
                         <label title="Hide genes whose difference is smaller than this">|&Delta;|&nbsp;&ge;</label>
-                        <input type="number" id="ge${side}DeltaCutoff" min="0" max="10" step="${step}" value="${cut}" style="width:54px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                        <input type="text" inputmode="decimal" id="ge${side}DeltaCutoff" min="0" max="10" step="${step}" value="${cut}" style="width:54px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                         <label>Top</label>
                         <input type="number" id="ge${side}N" min="10" max="2000" step="10" value="200" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                         <button class="btn btn-outline btn-sm" id="ge${side}Network" style="font-size:11px; padding:3px 8px;">Network</button>
@@ -36217,8 +36234,8 @@ ${clone.innerHTML}
     _renderGEInspectTables() {
         if (!this._geInspectResults) return;
         const { rows, selected } = this._geInspectResults;
-        const leftCut = parseFloat(document.getElementById('geLeftDeltaCutoff').value) || 0;
-        const rightCut = parseFloat(document.getElementById('geRightDeltaCutoff').value) || 0;
+        const leftCut = this.numInput('geLeftDeltaCutoff', 0);
+        const rightCut = this.numInput('geRightDeltaCutoff', 0);
         const leftN = Math.max(10, Math.min(2000, parseInt(document.getElementById('geLeftN').value) || 200));
         const rightN = Math.max(10, Math.min(2000, parseInt(document.getElementById('geRightN').value) || 200));
 
@@ -36536,7 +36553,7 @@ ${clone.innerHTML}
                         <div style="font-weight:600; color:#374151;">Top correlations in selection</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
                             <label>|r|&nbsp;≥</label>
-                            <input type="number" id="siLeftCutoff" min="0" max="1" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                            <input type="text" inputmode="decimal" id="siLeftCutoff" min="0" max="1" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <button class="btn btn-outline btn-sm" id="siLeftNetwork" style="font-size:11px; padding:3px 8px;" title="Build a correlation network from these gene pairs restricted to the selected cell lines">Network</button>
                         </div>
                     </div>
@@ -36548,7 +36565,7 @@ ${clone.innerHTML}
                         <div style="font-weight:600; color:#374151;">Most different vs rest (Δr)</div>
                         <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
                             <label>|Δ|&nbsp;≥</label>
-                            <input type="number" id="siRightCutoff" min="0" max="2" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                            <input type="text" inputmode="decimal" id="siRightCutoff" min="0" max="2" step="0.05" value="0.3" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                             <button class="btn btn-outline btn-sm" id="siRightNetwork" style="font-size:11px; padding:3px 8px;" title="Build a correlation network from these gene pairs restricted to the selected cell lines">Network</button>
                         </div>
                     </div>
@@ -36572,8 +36589,8 @@ ${clone.innerHTML}
     _renderCorrInspectTables() {
         if (!this._corrInspectResults) return;
         const { corrInSel, corrDiff } = this._corrInspectResults;
-        const leftCut = parseFloat(document.getElementById('siLeftCutoff').value) || 0;
-        const rightCut = parseFloat(document.getElementById('siRightCutoff').value) || 0;
+        const leftCut = this.numInput('siLeftCutoff', 0);
+        const rightCut = this.numInput('siRightCutoff', 0);
         const leftFiltered = corrInSel.filter(r => Math.abs(r.r) >= leftCut).slice(0, 200);
         const rightFiltered = corrDiff.filter(r => Math.abs(r.d) >= rightCut).slice(0, 200);
 
@@ -36637,7 +36654,7 @@ ${clone.innerHTML}
         const isLeft = side === 'left';
         const pairs = isLeft ? res.corrInSel : res.corrDiff;
         const scoreOf = isLeft ? (r => r.r) : (r => r.d);
-        const suggested = parseFloat(document.getElementById(isLeft ? 'siLeftCutoff' : 'siRightCutoff').value) || 0.3;
+        const suggested = this.numInput(isLeft ? 'siLeftCutoff' : 'siRightCutoff', 0.3) || 0.3;
 
         const cutStr = await this._askValue('Build network',
             `Correlation cutoff |${isLeft ? 'r' : 'delta r'}| for the network (0 to 1).\n\nOnly gene pairs at or above this cutoff become edges. A higher cutoff gives a sparser, more readable network.`,

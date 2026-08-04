@@ -1944,6 +1944,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.100 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>Decimals use a dot everywhere.</b> Boxes where you type a decimal (the Inspect cutoffs, the correlation-inspect cutoffs, the mutation threshold, export width and height) were drawn by the browser in its own language, so a cutoff typed as 0.3 could read back as "0,3" while the text beside it said 0.30. They now always show a dot, matching every number the app prints. Typing a comma still works and is read as a decimal point.</li>
+                </ul>
                 <p><strong>v.84.99 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Inspect now shows CRISPR on the left and mRNA expression on the right</b>, at the same time. Before, the two tables held the same measure asked two different ways, which never made clear why both were there. Each column now answers one question: which genes differ most between your selection and every other cell line, in that measure.</li>
@@ -4724,7 +4728,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.99</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.100</a>
     </div>
 
     <div class="main-content">
@@ -6397,13 +6401,13 @@
                         <span style="display:inline-flex; gap:5px; align-items:center;">
                             <label style="font-weight:600; white-space:nowrap;">Width (cm)</label>
                             <button onclick="app.adjustExportSize('exportOptWidth', -0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
-                            <input type="number" id="exportOptWidth" value="5" min="2" max="30" step="0.5" style="width:54px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
+                            <input type="text" inputmode="decimal" id="exportOptWidth" value="5" min="2" max="30" step="0.5" style="width:54px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
                             <button onclick="app.adjustExportSize('exportOptWidth', 0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                         </span>
                         <span style="display:inline-flex; gap:5px; align-items:center;">
                             <label style="font-weight:600; white-space:nowrap;">Height (cm)</label>
                             <button onclick="app.adjustExportSize('exportOptHeight', -0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
-                            <input type="number" id="exportOptHeight" value="5" min="2" max="30" step="0.5" style="width:54px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
+                            <input type="text" inputmode="decimal" id="exportOptHeight" value="5" min="2" max="30" step="0.5" style="width:54px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; text-align:center;">
                             <button onclick="app.adjustExportSize('exportOptHeight', 0.5)" style="font-size:11px; padding:2px 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                         </span>
                         <label style="font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="When on, changing one dimension scales the other to keep the plot aspect ratio">
@@ -7180,6 +7184,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_99"></script>
+    <script src="app.js?v=v84_100"></script>
 </body>
 </html>
