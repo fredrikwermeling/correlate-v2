@@ -1966,6 +1966,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.104 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>Cell lines that were never RNA-sequenced are no longer counted as fusion-negative.</b> A fusion call needs RNA-seq, so a line without it is unknown, not negative. For EWSR1-FLI1 in Ewing sarcoma that meant 14 "not fused" cell lines of which only 4 could ever have been called. Those 10 are now held out of both groups and reported separately, in the analysis, the results header and the tissue breakdown.</li>
+                    <li>This is also why gene effect and mRNA disagreed, 13 vs 14 against 13 vs 4: the uncallable lines have no expression data either, so they dropped out of one view but not the other. Both now read 13 vs 4.</li>
+                    <li><b>Inspect follows the measure you are looking at.</b> Opening it from the mRNA table plotted knockout effect, so the numbers had nothing to do with the row clicked. Title, axis and data now all follow the choice.</li>
+                    <li><b>"Stratify Y by" offers the same four alteration types as the analysis panel</b>, in the same order. Functional loss used to appear only if the analysis had started there, so what you could stratify by depended on how you arrived.</li>
+                    <li><b>Editing text no longer crops the title.</b> Any change in Text Settings replaced the wrapped heading with a single long line, which the plot cut off at both ends. Edited text is re-wrapped to the plot width, and the subtitle box keeps one stats line per row instead of running them together.</li>
+                </ul>
                 <p><strong>v.84.103 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>The cell line summary leads with what drives the cancer.</b> The card and hover popout were reading only the inferred-subtype layer, so a KRAS hotspot recorded in the mutation matrix but never called as a specific variant, or a focal MDM2 amplification, went unmentioned and ploidy was left as the headline. Order is now driver fusion, oncogene hotspot, tumour-suppressor loss, focal amplification and deletion, then genome-wide state.</li>
@@ -4771,7 +4779,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.103</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.104</a>
     </div>
 
     <div class="main-content">
@@ -7232,6 +7240,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_103"></script>
+    <script src="app.js?v=v84_104"></script>
 </body>
 </html>

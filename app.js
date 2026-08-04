@@ -2119,9 +2119,12 @@ class CorrelationExplorer {
         cellLines.forEach(cl => {
             const lineage = this.cellLineMetadata.lineage[cl];
             if (!lineage) return;
-            if (!tissueMap[lineage]) tissueMap[lineage] = { lineage, nMut: 0, nWT: 0 };
+            if (!tissueMap[lineage]) tissueMap[lineage] = { lineage, nMut: 0, nWT: 0, nNoCall: 0 };
             if (translocations[cl] && translocations[cl] > 0) {
                 tissueMap[lineage].nMut++;
+            } else if (!this._fusionCallable(cl)) {
+                // Never RNA-sequenced, so neither fused nor not fused.
+                tissueMap[lineage].nNoCall++;
             } else {
                 tissueMap[lineage].nWT++;
             }
@@ -2224,8 +2227,11 @@ class CorrelationExplorer {
                     const sub = this.cellLineMetadata.primaryDisease?.[cl];
                     if (!lin || !sub) return;
                     if (!subBreakdowns[lin]) subBreakdowns[lin] = {};
-                    if (!subBreakdowns[lin][sub]) subBreakdowns[lin][sub] = { nMut: 0, nWT: 0 };
+                    if (!subBreakdowns[lin][sub]) subBreakdowns[lin][sub] = { nMut: 0, nWT: 0, nNoCall: 0 };
                     if (mutSource[cl] > 0) subBreakdowns[lin][sub].nMut++;
+                    // Fusion calling needs RNA-seq; a line without it is not a
+                    // negative, so it is kept out of the WT count here too.
+                    else if (isTransloc && !this._fusionCallable(cl)) subBreakdowns[lin][sub].nNoCall++;
                     else subBreakdowns[lin][sub].nWT++;
                 });
             }
@@ -6830,6 +6836,7 @@ class CorrelationExplorer {
                     nWT: analysisResult.nWT,
                     nMut: analysisResult.nMut,
                     n2: analysisResult.n2,
+                    nNoCall: analysisResult.nNoCall || 0,
                     hasFusionData: analysisResult.hasFusionData,
                     nFused: analysisResult.nFused,
                     nWTFusion: analysisResult.nWTFusion,
@@ -6847,9 +6854,15 @@ class CorrelationExplorer {
 
                 const analysisLabel = axisLbls.analysis;
                 const nSkipped = analysisResult.nSkippedMinN || 0;
+                // A small comparison group is usually the interesting part of
+                // the message for fusions, because lines with no RNA-seq are
+                // held out rather than counted as negatives.
+                const noCallNote = (isTranslocation && analysisResult.nNoCall > 0)
+                    ? ` The not-fused group has ${analysisResult.nWT} cell line${analysisResult.nWT === 1 ? '' : 's'}: ${analysisResult.nNoCall} more were never RNA-sequenced, so no fusion call could be made and they are held out of both groups rather than counted as not fused.`
+                    : '';
                 let statusMsg = `&#10003; ${analysisLabel} analysis complete: ${significantResults.length} genes with p < ${pThreshold}`;
                 if (significantResults.length === 0 && nSkipped > 0) {
-                    statusMsg = `&#9888; ${analysisLabel} analysis: no significant genes found. ${nSkipped} genes were skipped because WT group had fewer than ${minN} cell lines. Try lowering "Min Cell Lines" (currently ${minN}).`;
+                    statusMsg = `&#9888; ${analysisLabel} analysis: no significant genes found. ${nSkipped} genes were skipped because the comparison group had fewer than ${minN} cell lines.${noCallNote} Try lowering "Min Cell Lines" (currently ${minN}).`;
                     this.showStatus('warning', statusMsg);
                 } else if (nSkipped > 0 && nSkipped > analysisResult.results.length) {
                     statusMsg += ` (${nSkipped} genes skipped, WT < ${minN} cells)`;
@@ -7285,6 +7298,9 @@ class CorrelationExplorer {
         const wtCellIndices = [];
         const mut1CellIndices = [];
         const mut2CellIndices = [];
+        // Lines in scope that were never RNA-sequenced, so no fusion call of
+        // any kind could be made. Counted and reported, never analysed.
+        const noCallCellIndices = [];
 
         cellLines.forEach((cellLine, idx) => {
             if (this.excludedTissues && this.excludedTissues.size > 0) {
@@ -7312,6 +7328,12 @@ class CorrelationExplorer {
 
             const transLevel = transData.translocations[cellLine] || 0;
             if (transLevel === 0) {
+                // A fusion call needs RNA-seq. A cell line that was never
+                // sequenced is not fusion-negative, it is unknown, and putting
+                // it in the wild-type group both inflates that group and fills
+                // it with lines that may well carry the fusion. For Ewing
+                // sarcoma that turned 4 real wild-types into 14.
+                if (!this._fusionCallable(cellLine)) { noCallCellIndices.push(idx); return; }
                 wtCellIndices.push(idx);
             } else if (transLevel === 1) {
                 mut1CellIndices.push(idx);
@@ -7323,7 +7345,8 @@ class CorrelationExplorer {
         const mutAllCellIndices = [...mut1CellIndices, ...mut2CellIndices];
 
         if (wtCellIndices.length < 3 || mutAllCellIndices.length < 3) {
-            throw new Error(`Not enough cell lines: WT=${wtCellIndices.length}, Fused=${mutAllCellIndices.length}`);
+            throw new Error(`Not enough cell lines: not fused=${wtCellIndices.length}, fused=${mutAllCellIndices.length}`
+                + (noCallCellIndices.length ? `. ${noCallCellIndices.length} cell line${noCallCellIndices.length === 1 ? ' was' : 's were'} never RNA-sequenced, so no fusion call could be made and they are left out of both groups.` : ''));
         }
 
         let nSkippedMinN = 0;
@@ -7374,6 +7397,7 @@ class CorrelationExplorer {
             nMut: mutAllCellIndices.length,
             n2: mut2CellIndices.length,
             hasFusionData: false,
+            nNoCall: noCallCellIndices.length,
             nSkippedMinN
         };
     }
@@ -7665,7 +7689,7 @@ class CorrelationExplorer {
                 : '';
             let html = `
                 <td><a href="#" class="inspect-link" onclick="app.showGeneEffectDistribution('${r.gene}'); return false;">Inspect</a></td>
-                <td class="gene-hover" data-gene="${r.gene}"><a href="#" style="color: var(--green-700); text-decoration: none; cursor: pointer;" onclick="app.openGeneEffectModal('${r.gene}', 'tissue', {dataType:'ge'}); return false;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${r.gene}</a>${polymorphicMark}</td>
+                <td class="gene-hover" data-gene="${r.gene}"><a href="#" style="color: var(--green-700); text-decoration: none; cursor: pointer;" onclick="app.openGeneEffectModal('${r.gene}', 'tissue', {dataType:'${this._mutAnalysisMetric === 'expr' ? 'expr' : 'ge'}'}); return false;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${r.gene}</a>${polymorphicMark}</td>
                 <td style="border-left: 2px solid #2563eb;">${r.n_wt}</td>
                 <td>${r.mean_wt.toFixed(2)}</td>
                 <td style="border-left: 2px solid #f97316;">${r.n_mut}</td>
@@ -7700,7 +7724,12 @@ class CorrelationExplorer {
         const typeLabel = mr.isDamaging ? _L.analysis : (mr.isTranslocation ? 'Fusion' : 'Hotspot');
         const mutLabel = mr.isTranslocation ? 'Fused' : mr.isDamaging ? _L.carrier : 'Mutated';
         let settingsText = `${typeLabel}: ${mr.hotspotGene} | `;
-        settingsText += `WT: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells`;
+        settingsText += `${mr.isTranslocation ? 'Not fused' : 'WT'}: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells`;
+        // Lines with no RNA-seq cannot be called either way. Saying so here
+        // stops the group sizes looking arbitrary when they shrink.
+        if (mr.isTranslocation && mr.nNoCall > 0) {
+            settingsText += ` | ${mr.nNoCall} not callable (no RNA-seq, excluded)`;
+        }
         if (hasFusion) {
             settingsText += ` | Fused: ${mr.nFused} cells`;
         }
@@ -8046,6 +8075,19 @@ class CorrelationExplorer {
             return;
         }
 
+        // Follow the measure the results table is showing. Opening Inspect
+        // from the mRNA table used to plot knockout effect, so the numbers on
+        // screen had nothing to do with the row that was clicked.
+        const useExpr = this._mutAnalysisMetric === 'expr' && this.expressionLoaded && this.expressionData;
+        const exprGeneIdx = useExpr ? this.expressionGeneIndex?.get(gene.toUpperCase()) : undefined;
+        const exprCellIdx = useExpr
+            ? new Map(this.expressionMetadata.cellLines.map((cl, i) => [cl, i]))
+            : new Map();
+        if (useExpr && exprGeneIdx === undefined) {
+            this.showCopyNotification?.(`${gene} is not in the expression table.`);
+            return;
+        }
+
         // Get tissue filter - use override if provided, otherwise read from dropdown
         const inspectTissueFilter = tissueOverride !== undefined ? tissueOverride : (document.getElementById('geTissueFilter')?.value || '');
 
@@ -8144,8 +8186,10 @@ class CorrelationExplorer {
             // Check oncoprint multi-gene filters
             if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
 
-            const ge = this.geneEffects[geneIdx * this.nCellLines + idx];
-            if (isNaN(ge)) return;
+            const ge = useExpr
+                ? (exprGeneIdx === undefined ? NaN : this.expressionData[exprGeneIdx * this.expressionMetadata.nCellLines + (exprCellIdx.get(cellLine) ?? -1)])
+                : this.geneEffects[geneIdx * this.nCellLines + idx];
+            if (ge === undefined || isNaN(ge)) return;
 
             const mutLevel = isTranslocation
                 ? (mutationData.translocations[cellLine] || 0)
@@ -8381,9 +8425,10 @@ class CorrelationExplorer {
         const tick1Label = L.tick1;
         const tick2Label = '2';
 
-        const titleText = `${gene} Gene Effect by ${hotspotGene} ${statusLabel}`;
+        const measureLabel = useExpr ? 'mRNA expression' : 'Gene Effect';
+        const titleText = `${gene} ${measureLabel} by ${hotspotGene} ${statusLabel}`;
         const subtitleText = subtitle;
-        const xLabelText = `${gene} Gene Effect`;
+        const xLabelText = useExpr ? `${gene} mRNA, log2(TPM+1)` : `${gene} Gene Effect`;
 
         // Compute the y-axis layout first: its dynamic left margin (room reserved
         // for the rotated y-label + tick labels) determines how much horizontal
@@ -8518,7 +8563,7 @@ class CorrelationExplorer {
 
         // Show modal
         document.getElementById('geneEffectModal').style.display = 'flex';
-        document.getElementById('geneEffectTitle').textContent = `${gene} Gene Effect by ${hotspotGene} ${L.noun}`;
+        document.getElementById('geneEffectTitle').textContent = `${gene} ${useExpr ? 'mRNA expression' : 'Gene Effect'} by ${hotspotGene} ${L.noun}`;
 
         // Populate tissue filter dropdown with ALL lineages (inspect can override analysis filters)
         const tissueFilterEl = document.getElementById('geTissueFilter');
@@ -8583,18 +8628,19 @@ class CorrelationExplorer {
             // The Y-axis can be stratified by any of these, not just the type the
             // analysis started in (value is "type:gene" so the change handler can
             // flip the axis mode). Curated fusions + focal amp / deep-del added.
+            // The same four alteration types the analysis panel offers, in the
+            // same order. Functional loss used to appear only when the analysis
+            // had started there, so what you could stratify by depended on how
+            // you arrived rather than on what the data holds.
+            // "Deep deletion" is absent from both: it duplicated Functional
+            // loss, which already covers homozygous loss on the genes that
+            // have the cell lines for it.
             const groups = [
                 { type: 'hotspot', label: 'Hotspot mutation', src: this.mutations, innerKey: 'mutations', suffix: 'mut' },
                 { type: 'fusion', label: 'Fusion', src: this._fusionAxisData, innerKey: 'translocations', suffix: 'fused' },
+                { type: 'damaging', label: 'Functional loss', src: (this.functionalLoss || this.damagingMutations), innerKey: 'mutations', suffix: 'lost' },
                 { type: 'amp', label: 'Amplification', src: this.cnAmpData, innerKey: 'mutations', suffix: 'amp' },
-                // "Deep deletion" was dropped here too, to match the analysis
-                // sub-types: it duplicated Functional loss, which already covers
-                // homozygous loss on the genes that have the cell lines for it.
             ];
-            // Keep a Functional-loss group when the analysis started there.
-            if (curType === 'damaging') {
-                groups.splice(1, 0, { type: 'damaging', label: L.noun || 'Functional loss', src: (this.functionalLoss || this.damagingMutations), innerKey: 'mutations', suffix: L.countVerb || 'lost' });
-            }
             let gHtml = '';
             for (const grp of groups) {
                 const genes = grp.src?.genes || (grp.src?.geneData ? Object.keys(grp.src.geneData) : []);
@@ -40063,7 +40109,10 @@ ${clone.innerHTML}
         const subtitleAnn = anns.find(a => a._tsRole === 'subtitle');
         if (subtitleAnn) {
             const rawSub = subtitleAnn.text || '';
-            subtitleText = stripHtml(rawSub);
+            // Each stats line is its own <br>-separated span. Stripping the
+            // tags without turning the breaks into newlines ran the lines
+            // together, so the box read "…(Ewing Sarcoma)No fusion: n=13".
+            subtitleText = rawSub.split(/<br\s*\/?>/i).map(stripHtml).filter(l => l.trim()).join('\n');
             const sm = rawSub.match(/font-size:\s*(\d+)px/);
             subtitleSize = sm ? parseInt(sm[1]) : (subtitleAnn.font?.size || subtitleSize);
         }
@@ -40448,6 +40497,24 @@ ${clone.innerHTML}
             return s;
         };
 
+        // The plot builder wraps the heading to the drawable plot width. Edits
+        // made here used to bypass that and write a single long line, which
+        // Plotly clips at both ends, so re-wrap with the same measurements.
+        const plotAreaW = (() => {
+            const w = plotEl.clientWidth || 600;
+            const ml = plotEl.layout?.margin?.l ?? 80;
+            const mr = plotEl.layout?.margin?.r ?? 30;
+            return Math.max(200, w - ml - mr - 10);
+        })();
+        const reflow = (text, sizePx) => {
+            if (!text) return [''];
+            const ctx = (this._geMeasureCtx ||= document.createElement('canvas').getContext('2d'));
+            const measure = (t) => { ctx.font = `bold ${sizePx}px Arial, Helvetica, sans-serif`; return ctx.measureText(t).width * 1.25; };
+            return measure(text) <= plotAreaW
+                ? [text]
+                : this._wrapTextGreedy(text, sizePx, plotAreaW, (t) => measure(t));
+        };
+
         const updates = {};
 
         // Title, wrap in inline font-size span; annotation font.size controls line spacing
@@ -40458,19 +40525,21 @@ ${clone.innerHTML}
             // Separate title + subtitle annotations (Gene Effect header): write each
             // to its own annotation so editing the stats text/size actually sticks.
             const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 11;
-            updates[`annotations[${titleIdx}].text`] = `<span style="font-size:${titleSizeVal}px">${wrapBI(titleText, titleBold, titleItalic)}</span>`;
+            updates[`annotations[${titleIdx}].text`] = `<span style="font-size:${titleSizeVal}px">${wrapBI(reflow(titleText, titleSizeVal).join('<br>'), titleBold, titleItalic)}</span>`;
             updates[`annotations[${titleIdx}].font.size`] = titleSizeVal;
             if (subtitleEl) {
-                const lines = subtitleEl.value.split('\n').filter(l => l.trim());
+                const lines = subtitleEl.value.split('\n').filter(l => l.trim())
+                    .flatMap(l => reflow(l, subSize));
                 const subHtml = lines.map(line => `<span style="font-size:${subSize}px;color:#6b7280">${wrapBI(line, subBold, subItalic)}</span>`).join('<br>');
                 updates[`annotations[${subIdx}].text`] = subHtml;
                 updates[`annotations[${subIdx}].font.size`] = subSize;
             }
         } else if (titleIdx >= 0) {
             const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
-            let html = `<span style="font-size:${titleSizeVal}px">${wrapBI(titleText, titleBold, titleItalic)}</span>`;
+            let html = `<span style="font-size:${titleSizeVal}px">${wrapBI(reflow(titleText, titleSizeVal).join('<br>'), titleBold, titleItalic)}</span>`;
             if (subtitleEl) {
-                const lines = subtitleEl.value.split('\n').filter(l => l.trim());
+                const lines = subtitleEl.value.split('\n').filter(l => l.trim())
+                    .flatMap(l => reflow(l, subSize));
                 lines.forEach(line => { html += `<br><span style="font-size:${subSize}px;color:#666">${wrapBI(line, subBold, subItalic)}</span>`; });
                 updates[`annotations[${titleIdx}].font.size`] = Math.round(subSize * 0.85);
             } else {
@@ -40481,9 +40550,10 @@ ${clone.innerHTML}
             updates[`annotations[${titleIdx}].text`] = html;
         } else if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
             const subSize = parseInt(document.getElementById('ts_subtitle')?.value) || this._tsOriginal.subtitleSize || 10;
-            let html = `<span style="font-size:${titleSizeVal}px">${wrapBI(titleText, titleBold, titleItalic)}</span>`;
+            let html = `<span style="font-size:${titleSizeVal}px">${wrapBI(reflow(titleText, titleSizeVal).join('<br>'), titleBold, titleItalic)}</span>`;
             if (subtitleEl) {
-                const lines = subtitleEl.value.split('\n').filter(l => l.trim());
+                const lines = subtitleEl.value.split('\n').filter(l => l.trim())
+                    .flatMap(l => reflow(l, subSize));
                 lines.forEach(line => { html += `<br><span style="font-size:${subSize}px;color:#666">${wrapBI(line, subBold, subItalic)}</span>`; });
             }
             updates['annotations[0].text'] = html;
