@@ -1966,6 +1966,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.103 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>The cell line summary leads with what drives the cancer.</b> The card and hover popout were reading only the inferred-subtype layer, so a KRAS hotspot recorded in the mutation matrix but never called as a specific variant, or a focal MDM2 amplification, went unmentioned and ploidy was left as the headline. Order is now driver fusion, oncogene hotspot, tumour-suppressor loss, focal amplification and deletion, then genome-wide state.</li>
+                    <li><b>Ploidy is no longer reported as notable.</b> Near-diploid says nothing on its own. Whole-genome doubling, MSI-high, a high mutation burden and lost Class-I presentation are still reported, and ploidy appears only when extreme.</li>
+                    <li><b>The card and the wiki now say the same thing</b>, from one generator instead of two that had drifted apart. When no driver is found, both say so and note it is a statement about the data layers rather than proof of absence.</li>
+                    <li><b>The tissue breakdown popup stays on screen.</b> With the button near the top of a short window it could be given a negative height, which browsers ignore, so the list ran past the bottom of the screen and Apply Filter could not be reached.</li>
+                </ul>
                 <p><strong>v.84.102 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Inspect reports significance.</b> Every gene gets Welch's t-test between your selection and the cell lines it is compared with, adjusted across all genes tested with Benjamini-Hochberg. The <b>q</b> column is sortable and each side has a <b>q &le;</b> box, starting at 0.05. Set it to 1 to show everything regardless.</li>
@@ -4764,7 +4771,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.102</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.103</a>
     </div>
 
     <div class="main-content">
@@ -7225,6 +7232,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_102"></script>
+    <script src="app.js?v=v84_103"></script>
 </body>
 </html>

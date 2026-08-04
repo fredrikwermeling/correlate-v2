@@ -2163,19 +2163,31 @@ class CorrelationExplorer {
         const margin = 10;
         const popupWidth = 400;
 
-        // Try below the button first; if not enough space, go above
-        let top = rect.bottom + 6;
-        let maxH = vh - top - margin;
-        if (maxH < 200) {
-            // Not enough room below, place above
-            maxH = rect.top - 6 - margin;
-            top = rect.top - 6 - Math.min(480, maxH);
-            maxH = Math.min(480, maxH);
+        // Take whichever side of the button has more room. In a short window
+        // both sides can be cramped, and the old code could work out a negative
+        // height, which the browser drops, letting the popup run off the bottom
+        // with Apply Filter out of reach. Height is clamped so it always fits.
+        const spaceBelow = vh - rect.bottom - 6 - margin;
+        const spaceAbove = rect.top - 6 - margin;
+        const usable = Math.max(0, vh - 2 * margin);
+        let maxH, top;
+        if (spaceBelow >= 200 || spaceBelow >= spaceAbove) {
+            maxH = Math.min(480, Math.max(0, spaceBelow));
+            top = rect.bottom + 6;
         } else {
-            maxH = Math.min(480, maxH);
+            maxH = Math.min(480, Math.max(0, spaceAbove));
+            top = rect.top - 6 - maxH;
         }
+        // Never smaller than a usable list; if that no longer fits beside the
+        // button, centre it in the viewport instead.
+        const minH = Math.min(240, usable);
+        if (maxH < minH) {
+            maxH = minH;
+            top = Math.max(margin, (vh - maxH) / 2);
+        }
+        top = Math.max(margin, Math.min(top, vh - maxH - margin));
 
-        popup.style.top = Math.max(margin, top) + 'px';
+        popup.style.top = top + 'px';
         popup.style.left = Math.max(margin, Math.min(rect.left - 100, vw - popupWidth - margin)) + 'px';
         popup.style.maxHeight = maxH + 'px';
 
@@ -25383,67 +25395,134 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // it came from, and its standout molecular features (driver fusions, hotspot
     // variants, functional losses, MSI, ploidy). Returned as HTML. Shown as the
     // cell-line hover popout and at the top of the CLB detail card.
-    _cellLineExecutiveSummary(cellLineId, opts = {}) {
+    // One summary, used by the wiki's Executive Summary box, the browser's
+    // detail card, the hover popout and the AI/JSON exports. They used to be
+    // generated separately and disagreed: the card read only the inferred-
+    // subtype layer, so a KRAS hotspot recorded in the mutation matrix but not
+    // called specifically (PGA1) and a focal MDM2 amplification (1411H) were
+    // both missing, and what remained to report was ploidy.
+    //
+    // Order is what drives the cancer first: driver fusion, oncogene hotspot,
+    // tumour-suppressor loss, focal amplification, then genome-wide state.
+    // Ploidy on its own is not a finding, so it is not reported here.
+    _cellLineSummaryText(cellLineId) {
         const m = this.cellLineMetadata || {};
         const get = (f) => m[f]?.[cellLineId] || '';
         const name = this.getCellLineName(cellLineId) || cellLineId;
         const lin = get('lineage');
         const pd = get('primaryDisease');
         const sub = get('oncotreeSubtype') || get('subtype');
-        const disease = sub || pd || '';
-
-        // Sentence 1, identity + patient origin.
-        const article = (disease && /^[aeiou]/i.test(disease)) ? 'an' : 'a';
-        let s1 = `<b style="color:#15803d;">${name}</b> is ${article} ${disease ? disease + ' ' : ''}cell line`;
-        if (lin && lin.toLowerCase() !== disease.toLowerCase()) s1 += ` (${lin})`;
-        const ageRaw = get('age');
-        const age = (ageRaw !== '' && !isNaN(parseFloat(ageRaw))) ? Math.round(parseFloat(ageRaw)) : null;
-        const sex = (get('sex') || '').toLowerCase();
-        const pomRaw = (get('primaryOrMetastasis') || '').toLowerCase();
-        const pom = pomRaw.includes('metasta') ? 'metastatic' : (pomRaw.startsWith('primary') ? 'primary' : '');
-        const person = [age === null ? '' : (age === 0 ? 'infant' : `${age}-year-old`), (sex === 'male' || sex === 'female') ? sex : ''].filter(Boolean).join(' ');
-        if (person || pom) {
-            s1 += ` from a ${person}${person && pom ? ', ' : ''}${pom ? pom + ' tumor' : (person ? ' patient' : '')}`;
-        }
-        s1 += '.';
-
-        // Sentence 2, standout molecular features (omitted silently when absent).
         const infSub = this.inferredSubtypes?.byCellLine?.[cellLineId] || {};
-        const parts = [];
-        const fusions = (this.clinicalFusions?.byCellLine?.[cellLineId] || [])
-            .filter(c => c.tier === 'high' || c.tier === 'medium')
-            .map(c => c.fusion);
-        if (fusions.length) parts.push(`${fusions.slice(0, 3).join(', ')} fusion${fusions.length > 1 ? 's' : ''}`);
-        const hotspots = (infSub.hotspots || []).filter(h => h && !/ Hotspot$/.test(h));
-        if (hotspots.length) parts.push(hotspots.slice(0, 3).join(', '));
-        const lof = infSub.lof || [];
-        if (lof.length) parts.push(`${lof.slice(0, 4).join(', ')} loss`);
-        if (infSub.msi === true) parts.push('MSI-high');
-        const gs = this.globalSignatures?.byCellLine?.[cellLineId];
-        if (gs && gs.Ploidy != null) {
-            const pl = gs.Ploidy < 2.3 ? 'near-diploid' : gs.Ploidy < 3.4 ? 'near-triploid'
-                     : gs.Ploidy < 4.6 ? 'near-tetraploid' : 'highly polyploid';
-            parts.push(gs.WGD === true ? `${pl}, WGD` : pl);
-        }
-        const s2 = parts.length ? ` <span style="color:#4b5563;">Notable: ${parts.join('; ')}.</span>` : '';
+        const gs = this.globalSignatures?.byCellLine?.[cellLineId] || null;
+        const clinicalFusionCalls = this.clinicalFusions?.byCellLine?.[cellLineId] || [];
+        const classOne = this._classOnePresentation(cellLineId);
+        const damagingCount = this._damagingCountByCL?.get(cellLineId) || 0;
 
-        // Breast lines: surface the receptor subtype (expression surrogate) from
-        // the authoritative collection membership, so it shows in the hover card,
-        // the CLB detail card and the wiki summary.
-        let sBreast = '';
+        // --- identity -------------------------------------------------------
+        const lineageTxt = sub || pd || lin || 'cell line';
+        const originParts = [];
+        const ageRawS = get('age');
+        const ageNum = (ageRawS !== '' && ageRawS != null && !isNaN(parseFloat(ageRawS)))
+            ? Math.round(parseFloat(ageRawS)) : null;
+        const sexLower = (get('sex') || '').toLowerCase();
+        const stageLower = (get('primaryOrMetastasis') || '').toLowerCase();
+        if (ageNum !== null) originParts.push(ageNum === 0 ? 'infant donor' : `${ageNum}-year-old`);
+        if (sexLower && sexLower !== 'unknown') originParts.push(sexLower);
+        if (stageLower && stageLower !== 'unknown') originParts.push(stageLower);
+        const article = /^[aeiou]/i.test(String(lineageTxt)) ? 'an' : 'a';
+        let s1 = `<b>${this.esc(name)}</b> is ${article} ${this.esc(lineageTxt)} cell line`;
+        if (lin && lin.toLowerCase() !== String(lineageTxt).toLowerCase()) s1 += ` <span style="color:#6b7280;">(${this.esc(lin)})</span>`;
+        if (originParts.length) s1 += ` <span style="color:#6b7280;">(${originParts.join(', ')})</span>`;
+        s1 += '.';
         if ((lin || '').toLowerCase().includes('breast')) {
-            const mem = this._collectionMembership || {};
-            let sub = '';
-            if (mem.her2_pos_breast?.has(cellLineId)) sub = 'HER2+';
-            else if (mem.tnbc?.has(cellLineId)) sub = 'triple-negative';
-            else if (mem.hr_pos_breast?.has(cellLineId)) sub = 'HR+ / luminal';
-            if (sub) sBreast = ` <span style="color:#4b5563;">Receptor status (by expression): <b>${sub}</b>.</span>`;
+            const bm = this._collectionMembership || {};
+            const bsub = bm.her2_pos_breast?.has(cellLineId) ? 'HER2+'
+                       : bm.tnbc?.has(cellLineId) ? 'triple-negative'
+                       : bm.hr_pos_breast?.has(cellLineId) ? 'HR+ / luminal' : '';
+            if (bsub) s1 += ` Receptor status (by expression): <b>${bsub}</b>.`;
         }
 
-        const rrid = get('rrid');
+        // --- drivers --------------------------------------------------------
+        const driverParts = [];
+        if (clinicalFusionCalls.length > 0) {
+            const fusionsList = clinicalFusionCalls.map(c => c.fusion);
+            driverParts.push(`<b>${fusionsList.map(f => this.esc(f)).join(', ')}</b> driver fusion${fusionsList.length > 1 ? 's' : ''}`);
+        }
+        const ONCO_DRIVERS_SET = new Set(['BRAF', 'KRAS', 'NRAS', 'HRAS', 'EGFR', 'PIK3CA', 'IDH1', 'IDH2', 'CTNNB1', 'AKT1', 'FGFR3', 'FLT3', 'KIT', 'NOTCH1', 'JAK2']);
+        const oncoDrivers = [];
+        const seenOncoGenes = new Set();
+        for (const h of (infSub.hotspots || [])) {
+            const gene = h.split(' ')[0];
+            const variant = h.slice(gene.length + 1);
+            if (ONCO_DRIVERS_SET.has(gene) && variant && variant !== 'Hotspot' && !seenOncoGenes.has(gene)) {
+                oncoDrivers.push(`<b>${gene} ${this.esc(variant)}</b>`);
+                seenOncoGenes.add(gene);
+            }
+        }
+        // The inferred list only names variants DepMap could call specifically.
+        // A gene can carry a hotspot in the mutation matrix and be absent
+        // there, so fall back to the matrix for any canonical oncogene missed.
+        for (const g of ONCO_DRIVERS_SET) {
+            if (seenOncoGenes.has(g)) continue;
+            if (this.mutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1) {
+                oncoDrivers.push(`<b>${g}</b> hotspot`);
+                seenOncoGenes.add(g);
+            }
+        }
+        if (oncoDrivers.length > 0) driverParts.push(oncoDrivers.join(', '));
+
+        const MAJOR_TSGS = ['TP53', 'RB1', 'CDKN2A', 'PTEN', 'APC', 'VHL', 'STK11', 'SMAD4', 'NF1'];
+        const tsgLosses = (infSub.lof || []).filter(g => MAJOR_TSGS.includes(g));
+
+        let s2 = '';
+        if (driverParts.length > 0 && tsgLosses.length > 0) {
+            s2 = `Driven by ${driverParts.join(' plus ')}, with functional loss of <b>${tsgLosses.join(', ')}</b>.`;
+        } else if (driverParts.length > 0) {
+            s2 = `Driven by ${driverParts.join(' plus ')}.`;
+        } else if (tsgLosses.length > 0) {
+            s2 = `Driver-level event: functional loss of <b>${tsgLosses.join(', ')}</b>.`;
+        }
+
+        // --- focal copy number ----------------------------------------------
+        const cnEntry = this.clinicalCn?.byCellLine?.[cellLineId] || {};
+        const AMP_OF_NOTE = ['MYC', 'MYCN', 'MYCL', 'ERBB2', 'MDM2', 'MDM4', 'CDK4', 'CDK6', 'CCND1', 'CCNE1', 'EGFR', 'FGFR1', 'KRAS', 'AR', 'BCL2', 'TERT'];
+        const focalAmps = (cnEntry.amplifications || [])
+            .filter(a => AMP_OF_NOTE.includes(a.gene))
+            .map(a => a.gene);
+        const focalDels = (cnEntry.deletions || [])
+            .map(d => d.gene)
+            .filter(g => !tsgLosses.includes(g));
+        const cnBits = [];
+        if (focalAmps.length) cnBits.push(`focal amplification of <b>${focalAmps.join(', ')}</b>`);
+        if (focalDels.length) cnBits.push(`focal deletion of <b>${focalDels.join(', ')}</b>`);
+        const s3 = cnBits.length
+            ? cnBits.join('; ').replace(/^./, c => c.toUpperCase()) + '.'
+            : '';
+
+        // --- genome-wide state, last and only when it says something ---------
+        const features = [];
+        if (infSub.msi === true || (gs?.MSIScore != null && gs.MSIScore >= 20)) features.push('<b>MSI-high</b> (hypermutated; usually, though not always, mismatch-repair deficient)');
+        else if (damagingCount > 500) features.push(`high mutation burden (${damagingCount.toLocaleString()} damaging mutations)`);
+        if (gs?.WGD === true) features.push('<b>whole-genome doubled</b>');
+        // Ploidy alone is not notable, so it is reported only when extreme.
+        if (gs?.Ploidy != null && gs.Ploidy >= 4.6) features.push(`highly polyploid (ploidy ${gs.Ploidy.toFixed(1)})`);
+        if (classOne.status === 'likely_lost') features.push('<b>Class-I antigen presentation likely lost</b> (immune-escape candidate)');
+        else if (classOne.status === 'reduced') features.push('<b>Class-I antigen presentation reduced</b>');
+        const s4 = features.length > 0 ? `Genome / phenotype: ${features.join('; ')}.` : '';
+
+        const bodyText = [s2, s3, s4].filter(Boolean).join(' ');
+        return bodyText
+            ? `${s1} ${bodyText}`
+            : `${s1} <span style="color:#6b7280;">No driver fusion, canonical oncogene hotspot or focal copy-number change was found in the integrated DepMap layers. That is a statement about these layers, not proof the cell line carries no driver.</span>`;
+    }
+
+    // Thin wrapper: same text as the wiki, plus the ID / RRID footer the
+    // browser card and hover popout show.
+    _cellLineExecutiveSummary(cellLineId, opts = {}) {
+        const rrid = this.cellLineMetadata?.rrid?.[cellLineId] || '';
         const idFooter = opts.showId === false ? ''
-            : `<div style="color:#9ca3af; font-size:10px; margin-top:5px;">${cellLineId}${rrid ? ` · RRID: ${rrid}` : ''}</div>`;
-        return `<div style="line-height:1.5; color:#374151;">${s1}${sBreast}${s2}</div>${idFooter}`;
+            : `<div style="color:#9ca3af; font-size:10px; margin-top:5px;">${cellLineId}${rrid ? ` \u00b7 RRID: ${rrid}` : ''}</div>`;
+        return `<div style="line-height:1.5; color:#374151;">${this._cellLineSummaryText(cellLineId)}</div>${idFooter}`;
     }
 
     // Lightweight, non-interactive hover card for a cell-line dot (pointer-events
@@ -35012,294 +35091,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // section's intro paragraph already explains its scope; the section()
         // helper adds a "Source:" footer below the body.
         // === Executive summary, synthesized opening paragraph ===
-        // A one-paragraph synthesis of the most important biology of this cell
-        // line, printed at the very top of the Wiki body so the user gets the
-        // headline before scrolling. Driver hierarchy: clinical fusion >
-        // canonical oncogene hotspot > canonical TSG functional loss. Genomic
-        // flags (WGD, MSI, Class-I status, hypermutation) follow as a final
-        // sentence. All inputs are already in scope from the per-section
-        // computations above.
-        const classOneSummary = this._classOnePresentation(cellLineId);
-        const damagingCountSummary = this._damagingCountByCL?.get(cellLineId) || 0;
-        const summaryHtml = (() => {
-            const lineageTxt = sub || pd || lin || 'cell line';
-
-            // Identity sentence with origin context.
-            const originParts = [];
-            // Age arrives as a string float ("69.0"), and the stage field
-            // carries the literal "Unknown" for 12 lines. Round the first and
-            // drop the second rather than printing them raw.
-            const ageRawS = get('age');
-            const ageNum = (ageRawS !== '' && ageRawS !== null && ageRawS !== undefined && !isNaN(parseFloat(ageRawS)))
-                ? Math.round(parseFloat(ageRawS)) : null;
-            const sexLower = (this.cellLineMetadata?.sex?.[cellLineId] || '').toLowerCase();
-            const stageLower = (this.cellLineMetadata?.primaryOrMetastasis?.[cellLineId] || '').toLowerCase();
-            if (ageNum !== null) originParts.push(ageNum === 0 ? 'infant donor' : `${ageNum}-year-old`);
-            if (sexLower && sexLower !== 'unknown') originParts.push(sexLower);
-            if (stageLower && stageLower !== 'unknown') originParts.push(stageLower);
-            let s1 = `<b>${name}</b> is a ${lineageTxt} cell line`;
-            if (originParts.length) s1 += ` <span style="color:#6b7280;">(${originParts.join(', ')})</span>`;
-            s1 += '.';
-            // Breast lines: receptor subtype (expression surrogate), from the
-            // authoritative collection membership.
-            if ((lin || '').toLowerCase().includes('breast')) {
-                const bm = this._collectionMembership || {};
-                const bsub = bm.her2_pos_breast?.has(cellLineId) ? 'HER2+'
-                           : bm.tnbc?.has(cellLineId) ? 'triple-negative'
-                           : bm.hr_pos_breast?.has(cellLineId) ? 'HR+ / luminal' : '';
-                if (bsub) s1 += ` Receptor status (by expression): <b>${bsub}</b>.`;
-            }
-
-            // Driver sentence, fusion > canonical oncogene hotspot > canonical TSG LoF.
-            const driverParts = [];
-            if (clinicalFusionCalls.length > 0) {
-                const fusionsList = clinicalFusionCalls.map(c => c.fusion);
-                driverParts.push(`<b>${fusionsList.join(', ')}</b> driver fusion${fusionsList.length > 1 ? 's' : ''}`);
-            }
-            const ONCO_DRIVERS_SET = new Set(['BRAF', 'KRAS', 'NRAS', 'HRAS', 'EGFR', 'PIK3CA', 'IDH1', 'IDH2', 'CTNNB1', 'AKT1', 'FGFR3', 'FLT3', 'KIT', 'NOTCH1', 'JAK2']);
-            const oncoDrivers = [];
-            const seenOncoGenes = new Set();
-            for (const h of (infSub.hotspots || [])) {
-                const gene = h.split(' ')[0];
-                const variant = h.slice(gene.length + 1);
-                if (ONCO_DRIVERS_SET.has(gene) && variant && variant !== 'Hotspot' && !seenOncoGenes.has(gene)) {
-                    oncoDrivers.push(`<b>${gene} ${variant}</b>`);
-                    seenOncoGenes.add(gene);
-                }
-            }
-            // The inferred list only names variants DepMap could call specifically.
-            // A gene can carry a hotspot in the mutation matrix and be absent
-            // there, as PGA-1 is for KRAS, and the summary then said nothing
-            // about the most relevant finding on the page. Fall back to the
-            // matrix for any canonical oncogene the inferred list missed.
-            for (const g of ONCO_DRIVERS_SET) {
-                if (seenOncoGenes.has(g)) continue;
-                if (this.mutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1) {
-                    oncoDrivers.push(`<b>${g}</b> hotspot`);
-                    seenOncoGenes.add(g);
-                }
-            }
-            if (oncoDrivers.length > 0) driverParts.push(oncoDrivers.join(', '));
-
-            const MAJOR_TSGS = ['TP53', 'RB1', 'CDKN2A', 'PTEN', 'APC', 'VHL', 'STK11', 'SMAD4', 'NF1'];
-            const tsgLosses = (infSub.lof || []).filter(g => MAJOR_TSGS.includes(g));
-
-            let s2 = '';
-            if (driverParts.length > 0 && tsgLosses.length > 0) {
-                s2 = `Driven by ${driverParts.join(' plus ')}, with functional loss of <b>${tsgLosses.join(', ')}</b>.`;
-            } else if (driverParts.length > 0) {
-                s2 = `Driven by ${driverParts.join(' plus ')}.`;
-            } else if (tsgLosses.length > 0) {
-                s2 = `Driver-level event: functional loss of <b>${tsgLosses.join(', ')}</b>.`;
-            }
-
-            // Co-driver / focal amp sentence.
-            const focalAmps = (this.clinicalCn?.byCellLine?.[cellLineId]?.amplifications || [])
-                .map(a => a.gene)
-                .filter(g => ['MYC', 'MYCN', 'MYCL', 'ERBB2', 'MDM2', 'CDK4', 'CDK6', 'CCND1', 'CCNE1'].includes(g));
-            const s3 = focalAmps.length > 0 ? `Focal amplification of <b>${focalAmps.join(', ')}</b>.` : '';
-
-            // Genome / phenotype features sentence.
-            const features = [];
-            if (gs?.WGD === true) features.push('<b>whole-genome doubled</b>');
-            if (infSub.msi === true || (gs?.MSIScore != null && gs.MSIScore >= 20)) features.push('<b>MSI-high</b> (hypermutated; usually, though not always, mismatch-repair deficient)');
-            else if (damagingCountSummary > 500) features.push(`high mutation burden (${damagingCountSummary.toLocaleString()} damaging mutations)`);
-            if (classOneSummary.status === 'likely_lost') features.push('<b>Class-I antigen presentation likely lost</b> (immune-escape candidate)');
-            else if (classOneSummary.status === 'reduced') features.push('<b>Class-I antigen presentation reduced</b>');
-            const s4 = features.length > 0 ? `Genome / phenotype: ${features.join('; ')}.` : '';
-
-            // "Useful as a model for" sentence, synthesizes the driver pattern
-            // into a one-liner about what biological / therapeutic question
-            // this cell line is well-suited to study. Driver hierarchy mirrors
-            // the driver sentence above; flag-based context (MSI, Class-I,
-            // hypermutation) gets folded in. Lists 1–3 angles, comma-joined.
-            const modelFor = [];
-            const fusionTissueModel = {
-                'BCR--ABL1': 'ABL TKI (imatinib / dasatinib / nilotinib) response',
-                'BCR-ABL1':  'ABL TKI (imatinib / dasatinib / nilotinib) response',
-                'EML4--ALK': 'ALK-inhibitor (crizotinib / alectinib / lorlatinib) response',
-                'EML4-ALK':  'ALK-inhibitor (crizotinib / alectinib / lorlatinib) response',
-                'PML--RARA': 'all-trans retinoic acid / arsenic trioxide response',
-                'PML-RARA':  'all-trans retinoic acid / arsenic trioxide response',
-                'PAX3--FOXO1': 'alveolar rhabdomyosarcoma biology / fusion-driven transcription',
-                'PAX3-FOXO1':  'alveolar rhabdomyosarcoma biology / fusion-driven transcription',
-                'EWSR1--FLI1': 'Ewing sarcoma biology / fusion-transcription factor drug discovery',
-                'EWSR1-FLI1':  'Ewing sarcoma biology / fusion-transcription factor drug discovery',
-                'SS18--SSX1':  'synovial sarcoma biology / SWI-SNF / BAF complex perturbation',
-                'SS18-SSX1':   'synovial sarcoma biology / SWI-SNF / BAF complex perturbation',
-                'SS18--SSX2':  'synovial sarcoma biology / SWI-SNF / BAF complex perturbation',
-                'SS18-SSX2':   'synovial sarcoma biology / SWI-SNF / BAF complex perturbation',
-                'TMPRSS2--ERG': 'androgen-receptor / ERG-driven prostate cancer biology',
-                'TMPRSS2-ERG':  'androgen-receptor / ERG-driven prostate cancer biology'
-            };
-            for (const c of clinicalFusionCalls) {
-                const m = fusionTissueModel[c.fusion];
-                if (m) { modelFor.push(m); break; } // one fusion-themed model is enough
-            }
-            const oncoGeneSet = new Set([...seenOncoGenes]);
-            // Variant-aware "model for" mapping. Resolves the specific
-            // codon (KRAS G12C vs G12D, BRAF V600 vs non-V600, EGFR L858R
-            // vs T790M, IDH1 R132 vs IDH2 R140/R172) from the
-            // inferredSubtypes hotspot string so we name the drug that
-            // actually applies, no more "(if G12C)" hedging when we
-            // already have the variant.
-            const krasV = geneVariant['KRAS'] || '';
-            const brafV = geneVariant['BRAF'] || '';
-            const egfrV = geneVariant['EGFR'] || '';
-            const idh1V = geneVariant['IDH1'] || '';
-            const idh2V = geneVariant['IDH2'] || '';
-            if (oncoGeneSet.has('BRAF')) {
-                if (/V600/.test(brafV)) modelFor.push('BRAF/MEK-inhibitor response (vemurafenib / dabrafenib + trametinib for V600)');
-                else modelFor.push('BRAF non-V600 biology (class II / III BRAF, vemurafenib-resistant; investigational pan-RAF and MEK combos)');
-            } else if (oncoGeneSet.has('KRAS')) {
-                if (/G12C/.test(krasV)) modelFor.push('KRAS-G12C-inhibitor response (sotorasib, adagrasib)');
-                else if (/G12D/.test(krasV)) modelFor.push('KRAS-G12D biology (MRTX1133 investigational; MEK-inhibitor combinations otherwise)');
-                else if (/G12R/.test(krasV)) modelFor.push('KRAS-G12R biology (pancreatic-enriched; MRTX1133-resistant; MEK combinations)');
-                else if (/G12/.test(krasV) || /G13/.test(krasV) || /Q61/.test(krasV)) modelFor.push(`KRAS biology (${krasV}, no allele-specific inhibitor approved; MEK-inhibitor combinations)`);
-                else modelFor.push('RAS-pathway biology (MEK-inhibitor combinations)');
-            } else if (oncoGeneSet.has('NRAS') || oncoGeneSet.has('HRAS')) {
-                modelFor.push('RAS-pathway biology (MEK-inhibitor combinations)');
-            } else if (oncoGeneSet.has('EGFR')) {
-                if (/T790M/.test(egfrV)) modelFor.push('EGFR-TKI resistance biology (osimertinib for T790M)');
-                else if (/L858R/.test(egfrV) || /exon\s*19/i.test(egfrV) || /del/i.test(egfrV)) modelFor.push('EGFR-TKI response (osimertinib first-line; erlotinib / gefitinib as alternatives)');
-                else modelFor.push('EGFR-TKI biology (variant-dependent; osimertinib for most sensitising mutations)');
-            } else if (oncoGeneSet.has('PIK3CA')) modelFor.push('PI3K-α-inhibitor (alpelisib) response');
-            else if (oncoGeneSet.has('IDH1')) {
-                modelFor.push(`mutant-IDH1${/R132/.test(idh1V) ? ` ${idh1V}` : ''} inhibitor (ivosidenib, vorasidenib for glioma) and 2-HG biology`);
-            } else if (oncoGeneSet.has('IDH2')) {
-                modelFor.push(`mutant-IDH2${idh2V ? ` ${idh2V}` : ''} inhibitor (enasidenib) and 2-HG biology`);
-            }
-            else if (oncoGeneSet.has('FGFR3')) modelFor.push('FGFR-inhibitor (erdafitinib) response');
-            else if (oncoGeneSet.has('KIT')) modelFor.push('KIT-inhibitor (imatinib) response');
-            else if (oncoGeneSet.has('FLT3')) modelFor.push('FLT3-inhibitor (midostaurin / gilteritinib) response');
-            if (tsgLosses.includes('CDKN2A') && !oncoGeneSet.has('BRAF')) modelFor.push('CDK4/6-inhibitor (palbociclib) response');
-            if (tsgLosses.includes('BRCA1') || tsgLosses.includes('BRCA2') || tsgLosses.includes('PALB2')) modelFor.push('PARP-inhibitor (olaparib / talazoparib) response');
-            if (infSub.msi === true || (gs?.MSIScore != null && gs.MSIScore >= 20)) modelFor.push('checkpoint-immunotherapy response background');
-            if (classOneSummary.status === 'likely_lost' || classOneSummary.status === 'reduced') modelFor.push('cancer immune-escape via MHC-I loss');
-            const focalAmpsLocal = (this.clinicalCn?.byCellLine?.[cellLineId]?.amplifications || []).map(a => a.gene);
-            if (focalAmpsLocal.includes('ERBB2')) modelFor.push('HER2-targeted-therapy response (trastuzumab / T-DXd / lapatinib)');
-            if (focalAmpsLocal.includes('MDM2') && !oncoGeneSet.has('TP53') && !tsgLosses.includes('TP53')) modelFor.push('MDM2-inhibitor (nutlin / idasanutlin) response');
-            // Soft phrasing, the model-for inference is built from
-            // mutation + dependency layers without prospective validation,
-            // so "may be useful" is more honest than the bare "useful".
-            const s5 = modelFor.length > 0
-                ? `<b>May be useful as a model for:</b> ${[...new Set(modelFor)].slice(0, 3).join('; ')}.`
-                : '';
-
-            // "Strong drug-target candidates" sentence, surfaces drug names
-            // where the supporting evidence is robust: (a) oncogene-addiction
-            // collections fire AND a matching PRISM compound class is at
-            // least moderately sensitive (z < -1σ) in this line, or (b)
-            // PRISM screen shows strong sensitivity (z < -1.5σ) to a
-            // clinical compound. Collection-based claims for drug classes
-            // that PRISM tested but does NOT corroborate in this line are
-            // suppressed, otherwise the summary lists drugs that don't
-            // appear in the screen results below (the A375 "CDK4/6
-            // inhibitors" issue), which is confusing. Drug classes PRISM
-            // doesn't test at all (e.g. KRAS-G12C inhibitors) are still
-            // emitted, since the biological claim stands.
-            const strongDrugs = [];
-            const mem = this._collectionMembership || {};
-            const dr = this.drugResponse;
-            // Helper: for a list of PRISM target keywords, report
-            //   - hasCompounds: is the target represented in PRISM at all?
-            //   - sensitive:    does any matching compound show z < -1 in this cell line?
-            // We emit a collection-based claim only when (sensitive) OR (!hasCompounds).
-            const prismCorroborates = (keywords) => {
-                if (!dr?.compounds) return { hasCompounds: false, sensitive: false };
-                let hasCompounds = false, sensitive = false;
-                const upper = keywords.map(k => k.toUpperCase());
-                for (const c of dr.compounds) {
-                    const target = (c.target || '').toUpperCase();
-                    if (!upper.some(k => target.includes(k))) continue;
-                    hasCompounds = true;
-                    const v = c.auc?.[cellLineId];
-                    if (v == null || isNaN(v) || !(c.sd > 0)) continue;
-                    const z = (v - c.mean) / c.sd;
-                    if (z < -1) { sensitive = true; break; }
-                }
-                return { hasCompounds, sensitive };
-            };
-            // Variant-aware drug naming, use the specific codon when we have
-            // it, so we don't say "if G12C" when we already know the line is
-            // G12D (the standard pancreatic background) or vice versa.
-            if (mem.kras_addicted?.has(cellLineId)) {
-                if (/G12C/.test(krasV)) {
-                    // KRAS-G12C-specific inhibitors aren't in the PRISM panel
-                    // we ship, biology stands without corroboration.
-                    strongDrugs.push('<b>KRAS-G12C inhibitors</b> (sotorasib, adagrasib)');
-                } else if (/G12D/.test(krasV)) {
-                    const mek = prismCorroborates(['MEK']);
-                    if (mek.sensitive || !mek.hasCompounds) strongDrugs.push(`<b>KRAS-G12D-targeting strategies</b> (MRTX1133 investigational; MEK-inhibitor combinations for ${krasV})`);
-                } else if (krasV) {
-                    const mek = prismCorroborates(['MEK']);
-                    if (mek.sensitive || !mek.hasCompounds) strongDrugs.push(`<b>MEK-inhibitor combinations</b> for KRAS ${krasV} (no allele-specific inhibitor approved)`);
-                } else {
-                    const mek = prismCorroborates(['MEK']);
-                    if (mek.sensitive || !mek.hasCompounds) strongDrugs.push('<b>MEK-inhibitor combinations</b> (KRAS-pathway dependent)');
-                }
-            }
-            if (mem.braf_addicted?.has(cellLineId)) {
-                const bm = prismCorroborates(['BRAF', 'MEK']);
-                if (bm.sensitive || !bm.hasCompounds) {
-                    if (/V600/.test(brafV)) strongDrugs.push(`<b>BRAF + MEK inhibitors</b> (vemurafenib / dabrafenib + trametinib, encorafenib + binimetinib) for BRAF ${brafV}`);
-                    else strongDrugs.push(`<b>Pan-RAF + MEK strategies</b> for BRAF ${brafV} (non-V600, vemurafenib-resistant; investigational)`);
-                }
-            }
-            if (mem.egfr_dependent?.has(cellLineId)) {
-                const eg = prismCorroborates(['EGFR']);
-                if (eg.sensitive || !eg.hasCompounds) {
-                    if (/T790M/.test(egfrV)) strongDrugs.push(`<b>Osimertinib</b> (specifically active against EGFR T790M)`);
-                    else if (/L858R/.test(egfrV) || /exon\s*19/i.test(egfrV) || /del/i.test(egfrV)) strongDrugs.push(`<b>EGFR TKIs</b> (osimertinib first-line; erlotinib / gefitinib) for EGFR ${egfrV}`);
-                    else strongDrugs.push(`<b>EGFR TKIs</b> (osimertinib first-line) for EGFR ${egfrV || 'mutation'}`);
-                }
-            }
-            if (mem.bcr_abl_addicted?.has(cellLineId)) {
-                const ab = prismCorroborates(['BCR-ABL', 'ABL']);
-                if (ab.sensitive || !ab.hasCompounds) strongDrugs.push('<b>ABL TKIs</b> (imatinib, dasatinib, nilotinib; ponatinib for T315I)');
-            }
-            if (mem.pi3k_active_dependent?.has(cellLineId)) {
-                const pi = prismCorroborates(['PI3K', 'AKT', 'MTOR']);
-                if (pi.sensitive || !pi.hasCompounds) strongDrugs.push('<b>PI3K-α / AKT / mTOR inhibitors</b> (alpelisib for PIK3CA-mut; capivasertib for AKT-axis)');
-            }
-            if (mem.cdk46_dependent?.has(cellLineId)) {
-                const cdk = prismCorroborates(['CDK4/6', 'CDK4', 'CDK6']);
-                if (cdk.sensitive || !cdk.hasCompounds) strongDrugs.push('<b>CDK4/6 inhibitors</b> (palbociclib, ribociclib, abemaciclib)');
-            }
-            // PRISM-screen evidence, top 2 strong-sensitive compounds (z < -1.5)
-            // and ALWAYS distinct from the addiction-named drugs above.
-            if (dr?.compounds && Array.isArray(dr.compounds)) {
-                const prismHits = [];
-                for (const c of dr.compounds) {
-                    const v = c.auc?.[cellLineId];
-                    if (v == null || isNaN(v) || !(c.sd > 0)) continue;
-                    const z = (v - c.mean) / c.sd;
-                    if (z < -1.5) prismHits.push({ name: c.name, target: c.target, z });
-                }
-                prismHits.sort((a, b) => a.z - b.z);
-                const topPrism = prismHits.slice(0, 2);
-                for (const h of topPrism) {
-                    strongDrugs.push(`<b>${h.name}</b> <span style="color:#6b7280;">(${h.target}, PRISM z = ${h.z.toFixed(1)}σ)</span>`);
-                }
-            }
-            const s6 = strongDrugs.length > 0
-                ? `<b>Strong drug-target candidates:</b> ${strongDrugs.slice(0, 4).join('; ')}.`
-                : '';
-
-            // If nothing beyond the identity sentence triggered, fall back to a
-            // gentler note so the summary box doesn't read as truncated.
-            // s5 ("model for … therapy") and s6 ("drug-target candidates") dropped
-            //, this is a cell-line characterisation, not a treatment guide.
-            const bodyText = [s2, s3, s4].filter(Boolean).join(' ');
-            const fullText = bodyText
-                ? `${s1} ${bodyText}`
-                : `${s1} <span style="color:#6b7280;">No canonical driver alteration detected from the integrated DepMap layers, see &ldquo;Other alterations in this cell line&rdquo; below for non-canonical events, or consider STR re-authentication if this is surprising for the subtype.</span>`;
-
-            return `<div style="margin-bottom:16px; padding:14px 18px; background:#fff; border:1px solid #bbf7d0; border-left:4px solid #15803d; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+        // Built by the shared generator so this box and the browser's summary
+        // card say exactly the same thing about the same cell line.
+        const summaryHtml = `<div style="margin-bottom:16px; padding:14px 18px; background:#fff; border:1px solid #bbf7d0; border-left:4px solid #15803d; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
                 <div style="font-size:9px; font-weight:700; color:#15803d; letter-spacing:0.06em; margin-bottom:6px;">EXECUTIVE SUMMARY</div>
-                <div style="font-size:13px; line-height:1.65; color:#374151;">${fullText}</div>
+                <div style="font-size:13px; line-height:1.65; color:#374151;">${this._cellLineSummaryText(cellLineId)}</div>
             </div>`;
-        })();
 
         body.innerHTML = summaryHtml + [
             // ── Identity ──────────────────────────────────────────────────
