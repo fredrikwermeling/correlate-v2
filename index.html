@@ -1966,6 +1966,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.107 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>56 cell lines are flagged as problematic.</b> The panel-wide Cellosaurus check found 36 whose identity is disputed (contaminated, misidentified, or a derivative of another line) and 20 whose recorded cancer type is disputed. MKN28 is a MKN74 derivative; KE-97 is filed as gastric but is a B-lymphoblastoid line; SK-HEP-1, filed under liver, most likely arose from endothelium.</li>
+                    <li><b>Where you see it:</b> a warning at the top of the cell line summary, in the card and the wiki alike, carrying Cellosaurus's own wording and reference; a &#9888; beside the name in the browser list; and two quick filters, <b>Identity disputed</b> and <b>Cancer type disputed</b>, to include or exclude them.</li>
+                    <li>Flagged lines are never hidden. A contaminated line can still be a good experimental model; what it cannot be is evidence about the tumour type on its label. Calls Cellosaurus states as possible rather than settled say so.</li>
+                </ul>
                 <p><strong>v.84.106 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Curation extended to the whole panel.</b> Every one of the 1,167 cell lines with an RRID was checked against Cellosaurus. 26 recurrent driver fusions that the caller did not report are now available to filter on, among them <b>EML4-ALK</b> in NCI-H3122, <b>TPM3-NTRK1</b> in KM12, <b>KMT2A-AFF1</b> in RS4;11, <b>FUS-DDIT3</b> in DL-221, <b>MYB-NFIB</b> in UM-HACC-2A, <b>CRTC1-MAML2</b> in H3118, four <b>MYC-IGH</b> Burkitt lines and the <b>FGFR2</b> fusions in the cholangiocarcinoma lines.</li>
@@ -4794,7 +4800,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.106</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.107</a>
     </div>
 
     <div class="main-content">
@@ -7255,6 +7261,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_106"></script>
+    <script src="app.js?v=v84_107"></script>
 </body>
 </html>

@@ -589,7 +589,7 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes, clinicalCnRes, validatedFusionsRes, functionalLossRes, curatedFusionsRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes, clinicalCnRes, validatedFusionsRes, functionalLossRes, curatedFusionsRes, problematicRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
@@ -608,7 +608,8 @@ class CorrelationExplorer {
             fetch('web_data/clinical_cn.json').catch(() => null),
             fetch('web_data/validated_fusions.json').catch(() => null),
             fetch('web_data/functional_loss.json').catch(() => null),
-            fetch('web_data/curated_fusions.json').catch(() => null)
+            fetch('web_data/curated_fusions.json').catch(() => null),
+            fetch('web_data/problematic_lines.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -674,6 +675,13 @@ class CorrelationExplorer {
         if (curatedFusionsRes && curatedFusionsRes.ok) {
             try { this.curatedFusions = await curatedFusionsRes.json(); }
             catch (e) { this.curatedFusions = null; }
+        }
+        // Cell lines Cellosaurus flags as contaminated, misidentified or
+        // misclassified. Surfaced wherever a line is described, because a
+        // dependency attributed to the wrong line is worse than a missing one.
+        if (problematicRes && problematicRes.ok) {
+            try { this.problematicLines = await problematicRes.json(); }
+            catch (e) { this.problematicLines = null; }
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -3990,7 +3998,23 @@ class CorrelationExplorer {
         return k;
     }
 
-    // The curated entry for a cell line, if there is one.
+    // Cellosaurus's problem flag for a cell line, or null.
+    _problemFlag(cellLine) {
+        return this.problematicLines?.byCellLine?.[cellLine] || null;
+    }
+
+    // One-line warning for a flagged line. `full` includes Cellosaurus's own
+    // explanation; the short form is for lists and chips.
+    _problemText(cellLine, full = false) {
+        const p = this._problemFlag(cellLine);
+        if (!p) return '';
+        const lead = p.kind === 'identity'
+            ? 'This cell line may not be what its name says'
+            : 'The recorded cancer type for this cell line is disputed';
+        return full ? `${lead}. ${p.note}` : `${p.category}`;
+    }
+
+    // The curated fusion entry for a cell line, if there is one.
     _curatedFusionEntry(cellLine) {
         return this.curatedFusions?.byCellLine?.[cellLine] || null;
     }
@@ -25674,10 +25698,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         else if (classOne.status === 'reduced') features.push('<b>Class-I antigen presentation reduced</b>');
         const s4 = features.length > 0 ? `Genome / phenotype: ${features.join('; ')}.` : '';
 
+        // A problem flag goes first: if the line is not what its name says,
+        // every number below it is about something else.
+        const prob = this._problemFlag(cellLineId);
+        const warn = prob ? `<div style="margin-bottom:8px; padding:7px 10px; background:#fffbeb; border:1px solid #fcd34d; border-left:3px solid #d97706; border-radius:5px; color:#92400e; font-size:12px; line-height:1.5;">`
+            + `<b>&#9888; ${prob.kind === 'identity' ? 'Identity disputed' : 'Cancer type disputed'}${prob.hedged ? ' (reported as likely, not settled)' : ''}</b><br>`
+            + `${this.esc(prob.note)}`
+            + `<div style="margin-top:3px; font-size:10px; color:#b45309;">Cellosaurus ${this.esc(prob.rrid)}</div>`
+            + `</div>` : '';
+
         const bodyText = [s2, s3, s4].filter(Boolean).join(' ');
-        return bodyText
+        return warn + (bodyText
             ? `${s1} ${bodyText}`
-            : `${s1} <span style="color:#6b7280;">No driver fusion, canonical oncogene hotspot or focal copy-number change was found in the integrated DepMap layers. That is a statement about these layers, not proof the cell line carries no driver.</span>`;
+            : `${s1} <span style="color:#6b7280;">No driver fusion, canonical oncogene hotspot or focal copy-number change was found in the integrated DepMap layers. That is a statement about these layers, not proof the cell line carries no driver.</span>`);
     }
 
     // Thin wrapper: same text as the wiki, plus the ID / RRID footer the
@@ -28115,6 +28148,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 category: 'DNA repair / damage response',
                 description: '<b>Inclusion:</b> at least one damaging mutation (frameshift / nonsense / splice) in any of <b>MLH1, MSH2, MSH6, PMS2, EPCAM</b>, the canonical Lynch-syndrome / mismatch-repair gene panel. <b>This is a genetic signal, not a functional one</b>, see the "MSI-high (functional)" collection below for lines that actually score MSI-high on MSIsensor2 (which is what the per-cell-line MSI-high badge on the detail card uses). The two sets overlap but are not identical: <b>(a)</b> the most common sporadic cause of MMR-deficiency is <em>MLH1 promoter hypermethylation</em>, invisible to the mutation matrix, those lines are MSI-high without showing up here; <b>(b)</b> a single damaging mutation without biallelic loss does not always abolish MMR, those lines show up here but may still be microsatellite stable.'
             },
+            problematic_identity: {
+                label: 'Identity disputed (contaminated / misidentified)',
+                category: 'Provenance',
+                description: '<b>Inclusion:</b> cell lines Cellosaurus flags as contaminated, misidentified, or a derivative of another line. <b>Why it matters:</b> a dependency measured in one of these lines may belong to a different line entirely, so anything attributed to the name on the label is unsafe. <b>Use:</b> exclude this collection to work with a clean panel, or include it to see which of your hits rest on disputed lines. <b>Caveat:</b> flagged is not the same as useless. A contaminated line can still be a perfectly good experimental model; what it cannot be is evidence about the tumour type on its label.'
+            },
+            problematic_classification: {
+                label: 'Cancer type disputed (misclassified)',
+                category: 'Provenance',
+                description: '<b>Inclusion:</b> cell lines Cellosaurus flags as misclassified, meaning the line is itself but its recorded disease or tissue of origin is wrong. <b>Why it matters:</b> these lines are fine as models, but they sit in the wrong lineage group, so any analysis that compares tissues or subtypes will place them incorrectly. SK-HEP-1, filed under liver, most likely arose from endothelium; KE-97, filed as gastric, is a B-lymphoblastoid line.'
+            },
             msi_high_functional: {
                 label: 'MSI-high (functional; MSIsensor2 ≥ 20)',
                 category: 'DNA repair / damage response',
@@ -28703,6 +28746,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'fusion_bcr_abl1', 'fusion_ewsr1_fli1', 'fusion_eml4_alk', 'fusion_pml_rara', 'fusion_ss18_ssx', 'fusion_pax3_foxo1', 'fusion_tmprss2_erg', 'fusion_npm1_alk',
             // Oncogene addiction (mutation x CRISPR dependency)
             'kras_addicted', 'braf_addicted', 'egfr_dependent', 'cdk46_dependent', 'bcr_abl_addicted', 'pi3k_active_dependent',
+            // Provenance
+            'problematic_identity', 'problematic_classification',
             // Genome instability
             'wgd_positive', 'high_aneuploidy',
             // Expression phenotype
@@ -29328,6 +29373,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
 
+        // Provenance flags, straight from the curated Cellosaurus scan.
+        mem.problematic_identity = new Set();
+        mem.problematic_classification = new Set();
+        for (const [cl, p] of Object.entries(this.problematicLines?.byCellLine || {})) {
+            (p.kind === 'identity' ? mem.problematic_identity : mem.problematic_classification).add(cl);
+        }
+
         this._collectionMembership = mem;
     }
 
@@ -29405,6 +29457,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             msi: 'mutation', msi_high_functional: 'MSIsensor2 score',
             hrd: 'mutation', hypermutated: 'mutation count',
             pole_pold1_ultramutated: 'mutation', atm_deficient: 'mutation',
+            // Provenance
+            problematic_identity: 'Cellosaurus', problematic_classification: 'Cellosaurus',
             // Genome / ploidy / instability
             wgd_positive: 'genome signature', high_aneuploidy: 'genome signature',
             high_loh: 'genome signature',
@@ -31644,10 +31698,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const sx = this._getSexSymbol(cl);
             const sxStyle = `color:${sx.color}; font-weight:700; margin-right:4px;${sx.italic ? ' font-style:italic;' : ''}`;
             const sexStr = `<span style="${sxStyle}" title="${sx.title}">${sx.sym}</span>`;
-            const titleParts = [name, lin, sub, sx.title].filter(Boolean).join(' · ');
+            // Flagged lines are marked in the list, not hidden, so the warning
+            // is visible before the line is picked rather than after.
+            const prob = this._problemFlag(cl);
+            const probStr = prob
+                ? `<span style="color:#d97706; margin-right:3px; flex-shrink:0; cursor:help;" title="${this.esc(prob.category)}. ${this.esc(prob.note)}">&#9888;</span>`
+                : '';
+            const titleParts = [name, lin, sub, sx.title, prob ? prob.category : ''].filter(Boolean).join(' · ');
             return `<div class="${cls.join(' ')}" data-clid="${cl}" title="${titleParts}">` +
                 `<input type="checkbox"${selected ? ' checked' : ''}>` +
-                sexStr +
+                sexStr + probStr +
                 `<span class="clb-entry-name">${name}</span>` +
                 `<span class="clb-entry-tissue">${lin}${sub ? ' · ' + sub : ''}</span>${sortValStr}</div>`;
         }).join('');
