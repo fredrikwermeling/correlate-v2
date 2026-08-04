@@ -4816,8 +4816,11 @@ class CorrelationExplorer {
         document.getElementById('closeGateCompare')?.addEventListener('click', () => {
             document.getElementById('gateComparePanel').style.display = 'none';
         });
-        document.getElementById('exportGateReportPNG')?.addEventListener('click', () => this.exportGateReport('png'));
-        document.getElementById('exportGateReportSVG')?.addEventListener('click', () => this.exportGateReport('svg'));
+        document.getElementById('exportGateReportImage')?.addEventListener('click', async () => {
+            const dlg = await this._showExportDialog({ format: 'png', formats: ['png', 'svg'] });
+            if (!dlg) return;
+            this.exportGateReport(dlg.format === 'svg' ? 'svg' : 'png');
+        });
         document.getElementById('exportGateAI')?.addEventListener('click', () => this.exportForAI('gates'));
         // Gate tab switching
         document.addEventListener('click', (e) => {
@@ -5483,6 +5486,18 @@ class CorrelationExplorer {
         document.getElementById('geAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('ge'));
         document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('scatter'));
         document.getElementById('mutAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('mutation'));
+        document.getElementById('gateAnalyzeWithAI')?.addEventListener('click', () => {
+            // Pre-fill the question this export exists to answer, so the model
+            // looks past what is plotted and into the rest of the omics data.
+            aiShowDialog('gates');
+            const q = document.getElementById('aiQuestion');
+            if (q && !q.value.trim()) {
+                q.value = 'What distinguishes the cell lines in gate A from those in gate B? '
+                    + 'Do not restrict yourself to the two genes plotted; use the mutation, copy-number, '
+                    + 'fusion, expression and dependency data in this file to find what actually separates '
+                    + 'the two groups, and say how confident each explanation is given the group sizes.';
+            }
+        });
         document.getElementById('networkAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('clusters'));
         document.getElementById('clbWikiAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('wiki'));
         // Stash the helper so exportForAI (gates / correlations / clusters /
@@ -30305,6 +30320,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.renderCellLineList();
         });
 
+        document.getElementById('clbOncotreeFilter')?.addEventListener('change', () => this.renderCellLineList());
         document.getElementById('clbGridHotspotBtn')?.addEventListener('click', () => this.showOncoprint('clb', 'hotspot'));
         document.getElementById('clbGridFusionBtn')?.addEventListener('click', () => this.showOncoprint('clb', 'fusion'));
         document.getElementById('clbGridCnBtn')?.addEventListener('click', () => this.showOncoprint('clb', 'cn'));
@@ -30720,6 +30736,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbTissueFilter').value = '';
         document.getElementById('clbSubtypeFilter').value = '';
         document.getElementById('clbSubtypeFilter').disabled = true;
+        { const _o = document.getElementById('clbOncotreeFilter'); if (_o) _o.value = ''; }
         document.getElementById('clbHotspotFilter').value = '';
         document.getElementById('clbTranslocationFilter').value = '';
         const _clbCn = document.getElementById('clbCnFilter'); if (_clbCn) _clbCn.value = '';
@@ -30738,6 +30755,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.updateClbSelectionCount();
         this.updateClbFilterCounts(this.metadata.cellLines);
         this.populateUmapFilters();
+        this.populateClbOncotreeFilter();
         document.getElementById('clbUmapPlot').innerHTML = '';
         document.getElementById('clbUmapSelectionControls').style.display = 'none';
         this._clbUmapData = null;
@@ -30809,6 +30827,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return set;
     }
 
+    // Populate the exact-disease picker, most common first, from the Oncotree
+    // subtype recorded for each line.
+    populateClbOncotreeFilter() {
+        const sel = document.getElementById('clbOncotreeFilter');
+        if (!sel || sel.options.length > 1) return;
+        const counts = new Map();
+        const src = this.cellLineMetadata?.oncotreeSubtype || {};
+        for (const cl of this.metadata.cellLines) {
+            const v = src[cl];
+            if (v) counts.set(v, (counts.get(v) || 0) + 1);
+        }
+        [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .forEach(([name, k]) => {
+                const o = document.createElement('option');
+                o.value = name;
+                o.textContent = `${name} (n=${k})`;
+                sel.appendChild(o);
+            });
+        this._enhanceSelect?.('clbOncotreeFilter');
+    }
+
     _clbBaseFilteredLines() {
         const search = document.getElementById('clbSearch').value.trim().toLowerCase();
         const tissue = document.getElementById('clbTissueFilter').value;
@@ -30821,7 +30860,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cnLvl = document.getElementById('clbCnLevel')?.value || 'altered';
         const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
         const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
+        const oncotree = document.getElementById('clbOncotreeFilter')?.value || '';
         return this.metadata.cellLines.filter(cl => {
+            if (oncotree && (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') !== oncotree) return false;
             if (tissue && this.getCellLineLineage(cl) !== tissue) return false;
             if (subtype && this.getCellLineSublineage(cl) !== subtype) return false;
             if (sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
@@ -31333,6 +31374,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const sub = document.getElementById('clbSubtypeFilter'); if (sub) sub.value = '';
             } },
         ]);
+        if (kind === 'oncotree') return this._simpleChipMenu(anchorEl, [
+            { label: 'Remove this filter', danger: true, act: () => {
+                const el = document.getElementById('clbOncotreeFilter'); if (el) el.value = '';
+            } },
+        ]);
         if (kind === 'sex') {
             const el = document.getElementById('clbSexFilter');
             const opts = [
@@ -31419,6 +31465,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (tissue) parts.push(`<span class="clb-chip" data-chip="tissue" title="Click to remove this filter" style="background:var(--earth-50);color:var(--earth-700);padding:1px 6px;border-radius:10px;">${this.esc(tissue)}${subtype ? ' · ' + this.esc(subtype) : ''} &#9662;</span>`);
         // Sex was applied but never appeared here, so the strip did not match
         // the list it was describing.
+        const oncoVal = document.getElementById('clbOncotreeFilter')?.value;
+        if (oncoVal) {
+            parts.push(`<span class="clb-chip" data-chip="oncotree" title="Click to remove this filter" style="background:#ecfeff;color:#155e75;padding:1px 6px;border-radius:10px;">${this.esc(oncoVal)} &#9662;</span>`);
+        }
         const sexVal = document.getElementById('clbSexFilter')?.value;
         if (sexVal) {
             const sexLabel = {
