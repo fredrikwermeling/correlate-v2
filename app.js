@@ -4607,12 +4607,14 @@ class CorrelationExplorer {
             m.classList.remove('ge-condensed'); m.style.zIndex = '1200';
             this._geHighlightCellLine = null;
             this._geSelectionHighlight = null;
+            this._restoreAfterGeneEffect();
         });
         document.getElementById('geneEffectModal').addEventListener('click', (e) => {
             if (e.target.id === 'geneEffectModal') {
                 document.getElementById('geneEffectModal').style.display = 'none';
                 this._geHighlightCellLine = null;
                 this._geSelectionHighlight = null;
+                this._restoreAfterGeneEffect();
             }
         });
         document.getElementById('downloadGeneEffectPNG').addEventListener('click', () => this.downloadGeneEffectPNG());
@@ -5492,9 +5494,8 @@ class CorrelationExplorer {
             aiShowDialog('selection');
             const q = document.getElementById('aiQuestion');
             if (q && !q.value.trim()) {
-                const what = this._selInspectMode === 'expr' ? 'expressed' : 'depended on';
-                q.value = `What is distinctive about the cell lines I selected? Which genes are differently ${what} `
-                    + `compared with the rest of the panel, and what do those genes have in common, `
+                q.value = `What is distinctive about the cell lines I selected? Which genes are differently `
+                    + `depended on or expressed compared with the rest of the panel, and what do those genes have in common, `
                     + `for example a shared pathway, complex or lineage? Say how much weight the group sizes support.`;
             }
         });
@@ -30529,12 +30530,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.updateClbSelectionCount();
         });
         document.getElementById('clbShowSelectedOnly')?.addEventListener('click', () => {
-            // With nothing ticked the toggle has no visible effect, which reads
-            // as a broken button. Say what it needs instead.
-            if (!this._clbShowSelectedOnly && this._clbSelectedCellLines.size === 0) {
-                this._clbFlashHint('Tick some cell lines first, or use Select Visible, then Show Selected narrows the list to them.');
-                return;
-            }
+            if (!this._clbShowSelectedOnly && this._clbSelectedCellLines.size === 0) return;
             this._setClbShowSelectedOnly(!this._clbShowSelectedOnly);
             this.renderCellLineList();
         });
@@ -32461,14 +32457,36 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     // in sync. Re-rendering is left to the caller.
     _setClbShowSelectedOnly(on) {
         this._clbShowSelectedOnly = !!on;
+        this._syncClbShowSelectedBtn();
+    }
+
+    // The button used to read "Show Selected" whether or not anything was
+    // ticked, so clicking it with an empty selection looked like a dead
+    // control. It now carries the count and switches off when there is
+    // nothing to narrow to.
+    _syncClbShowSelectedBtn() {
         const btn = document.getElementById('clbShowSelectedOnly');
-        if (btn) {
-            btn.classList.toggle('btn-active', this._clbShowSelectedOnly);
-            btn.textContent = this._clbShowSelectedOnly ? 'Show All' : 'Show Selected';
+        if (!btn) return;
+        const n = this._clbSelectedCellLines?.size || 0;
+        const on = !!this._clbShowSelectedOnly;
+        btn.classList.toggle('btn-active', on);
+        if (on) {
+            btn.disabled = false;
+            btn.textContent = 'Show all cell lines';
+            btn.title = 'Back to the full list.';
+        } else if (n) {
+            btn.disabled = false;
+            btn.textContent = `Show only my ${n.toLocaleString()}`;
+            btn.title = 'Narrow the list to the cell lines you have ticked.';
+        } else {
+            btn.disabled = true;
+            btn.textContent = 'Show only selected';
+            btn.title = 'Tick some cell lines first, or use Select Visible.';
         }
     }
 
     updateClbSelectionCount() {
+        this._syncClbShowSelectedBtn();
         const el = document.getElementById('clbSelectionCount');
         if (!el) return;
         const total = this._clbSelectedCellLines.size;
@@ -35969,76 +35987,92 @@ ${clone.innerHTML}
     _renderRestoredGEInspect() {
         const r = this._geInspectResults;
         const selected = r.selected || [];
+        // Files saved before the two-column view carry only the CRISPR rows.
+        if (!r.exprRows) r.exprRows = [];
         const saveBtn = document.getElementById('selectionInspectSave');
         if (saveBtn) saveBtn.style.display = '';
-        document.getElementById('selectionInspectTitle').textContent = `Inspect Gene Effects, ${selected.length} selected cell lines (restored)`;
-        document.getElementById('selectionInspectSubtitle').textContent = `Loaded from a saved file. Click any gene to open its GE inspect with the selected cell lines highlighted.`;
-        const _lbl = this._geInspectLabels();
-        document.getElementById('selectionInspectBody').innerHTML = `
-            <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
-                <div style="flex:1; min-width:0;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
-                        <div><div style="font-weight:600; color:#374151;">${_lbl.leftTitle}</div>
-                            <div style="font-size:10px; color:#9ca3af; max-width:44ch;">${_lbl.leftHelp}</div></div>
-                        <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|&Delta;|&nbsp;≥</label>
-                            <input type="number" id="geLeftDeltaCutoff" min="0" max="10" step="${_lbl.step}" value="0" style="width:56px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
-                            <label>Top</label>
-                            <input type="number" id="geLeftN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
-                            <button class="btn btn-outline btn-sm" id="geLeftNetwork" style="font-size:11px; padding:3px 8px;">Network</button>
-                            <button class="btn btn-outline btn-sm" id="geLeftEnrichr" style="font-size:11px; padding:3px 8px;">Enrichr</button>
-                        </div>
+        ['selectionInspectCSV', 'selectionInspectAI'].forEach(id => {
+            const b = document.getElementById(id);
+            if (b) b.style.display = '';
+        });
+        document.getElementById('selectionInspectTitle').textContent =
+            `${selected.length} selected cell lines vs the rest (restored)`;
+        document.getElementById('selectionInspectSubtitle').textContent =
+            'Loaded from a saved file. Click any gene to open it with the selected cell lines highlighted.';
+        this._mountGEInspectUI(r.exprRows.length
+            ? 'Difference in mRNA level, log2(TPM+1). A difference of 1 is a two-fold change.'
+            : 'This saved file has no expression data.');
+    }
+
+    // The two-column scaffold, shared by a fresh inspect and a restored one so
+    // a saved file looks exactly like the view it was saved from.
+    _mountGEInspectUI(exprNote) {
+        const col = (side, title, note, cut, step) => `
+            <div style="flex:1; min-width:0;">
+                <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:2px; flex-wrap:wrap;">
+                    <div style="font-weight:700; color:#15803d; font-size:13px;">${title}</div>
+                    <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
+                        <label title="Hide genes whose difference is smaller than this">|&Delta;|&nbsp;&ge;</label>
+                        <input type="number" id="ge${side}DeltaCutoff" min="0" max="10" step="${step}" value="${cut}" style="width:54px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                        <label>Top</label>
+                        <input type="number" id="ge${side}N" min="10" max="2000" step="10" value="200" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                        <button class="btn btn-outline btn-sm" id="ge${side}Network" style="font-size:11px; padding:3px 8px;">Network</button>
+                        <button class="btn btn-outline btn-sm" id="ge${side}Enrichr" style="font-size:11px; padding:3px 8px;">Enrichr</button>
                     </div>
-                    <div id="geLeftHint" style="font-size:10px; color:#9ca3af; margin-bottom:6px;"></div>
-                    <div id="geLeftBody" style="max-height:58vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;"></div>
                 </div>
-                <div style="flex:1; min-width:0;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
-                        <div><div style="font-weight:600; color:#374151;">${_lbl.rightTitle}</div>
-                            <div style="font-size:10px; color:#9ca3af; max-width:44ch;">${_lbl.rightHelp}</div></div>
-                        <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|&Delta;|&nbsp;≥</label>
-                            <input type="number" id="geRightDeltaCutoff" min="0" max="10" step="${_lbl.step}" value="${_lbl.defaultCut}" style="width:56px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
-                            <label>Top</label>
-                            <input type="number" id="geRightN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
-                            <button class="btn btn-outline btn-sm" id="geRightNetwork" style="font-size:11px; padding:3px 8px;">Network</button>
-                            <button class="btn btn-outline btn-sm" id="geRightEnrichr" style="font-size:11px; padding:3px 8px;">Enrichr</button>
-                        </div>
-                    </div>
-                    <div id="geRightHint" style="font-size:10px; color:#9ca3af; margin-bottom:6px;"></div>
-                    <div id="geRightBody" style="max-height:58vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;"></div>
-                </div>
+                <div style="font-size:10px; color:#9ca3af; margin-bottom:5px;">${note}</div>
+                <div id="ge${side}Hint" style="font-size:10px; color:#9ca3af; margin-bottom:5px;"></div>
+                <div id="ge${side}Body" style="max-height:56vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;"></div>
             </div>`;
+
+        document.getElementById('selectionInspectBody').innerHTML = `
+            <div style="display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start;">
+                ${col('Left', 'CRISPR gene effect',
+                      'Difference in knockout effect. Negative means the selected lines depend on the gene more than the rest.',
+                      0.3, 0.05)}
+                ${col('Right', 'mRNA expression', exprNote, 1.0, 0.1)}
+            </div>`;
+
         this._geInspectSort = {
-            left: { key: 'meanSel', dir: this._selInspectMode === 'expr' ? -1 : 1 },
+            left:  { key: 'delta', dir: -1, absolute: true },
             right: { key: 'delta', dir: -1, absolute: true },
         };
         document.getElementById('selectionInspectModal').style.display = 'flex';
+
         const renderSides = () => this._renderGEInspectTables();
-        document.getElementById('geLeftDeltaCutoff').addEventListener('input', renderSides);
-        document.getElementById('geRightDeltaCutoff').addEventListener('input', renderSides);
-        document.getElementById('geLeftN').addEventListener('input', renderSides);
-        document.getElementById('geRightN').addEventListener('input', renderSides);
-        document.getElementById('geLeftNetwork').addEventListener('click', () => this._launchGENetwork('left'));
-        document.getElementById('geRightNetwork').addEventListener('click', () => this._launchGENetwork('right'));
-        document.getElementById('geLeftEnrichr').addEventListener('click', () => this._launchGEEnrichr('left'));
-        document.getElementById('geRightEnrichr').addEventListener('click', () => this._launchGEEnrichr('right'));
+        ['LeftDeltaCutoff', 'RightDeltaCutoff', 'LeftN', 'RightN']
+            .forEach(id => document.getElementById('ge' + id)?.addEventListener('input', renderSides));
+        document.getElementById('geLeftNetwork')?.addEventListener('click', () => this._launchGENetwork('left'));
+        document.getElementById('geRightNetwork')?.addEventListener('click', () => this._launchGENetwork('right'));
+        document.getElementById('geLeftEnrichr')?.addEventListener('click', () => this._launchGEEnrichr('left'));
+        document.getElementById('geRightEnrichr')?.addEventListener('click', () => this._launchGEEnrichr('right'));
         renderSides();
     }
 
-    // Which measurement the selection inspect compares. 'ge' = CRISPR gene
-    // effect, 'expr' = mRNA expression.
-    setSelectionInspectMode(mode) {
-        this._selInspectMode = mode === 'expr' ? 'expr' : 'ge';
-        this.inspectSelectionGE();
+    // Selection inspect: what is different about the cell lines you picked.
+    // One question, asked twice, once of the CRISPR data and once of the mRNA
+    // data, side by side. Both columns rank by the size of the difference from
+    // the rest of the panel, in either direction, because "which genes separate
+    // this group" is the only thing this view is for.
+    // Reopen whatever the gene-effect popout was launched from. Without this,
+    // closing it from the selection inspect left you on the browser list with
+    // the comparison you were reading gone.
+    _restoreAfterGeneEffect() {
+        const from = this._geOpenedFrom;
+        this._geOpenedFrom = null;
+        if (from === 'selectionInspect') {
+            const m = document.getElementById('selectionInspectModal');
+            if (m && this._geInspectResults) m.style.display = 'flex';
+        }
     }
 
     inspectSelectionGE() {
-        const selected = [...(this._clbSelectedCellLines || new Set())];
+        const selected = [...(this._clbSelectedCellLines || [])];
         if (selected.length < 3) {
-            alert('Select at least 3 cell lines first.');
+            this.showCopyNotification?.('Select at least 3 cell lines first.');
             return;
         }
+
         const cellLines = this.metadata.cellLines;
         const clIndexOf = new Map(cellLines.map((cl, i) => [cl, i]));
         const selIdx = selected.map(cl => clIndexOf.get(cl)).filter(i => i !== undefined);
@@ -36046,26 +36080,37 @@ ${clone.innerHTML}
         const otherIdx = [];
         for (let i = 0; i < this.nCellLines; i++) if (!selSet.has(i)) otherIdx.push(i);
 
-        const mode = this._selInspectMode === 'expr' ? 'expr' : 'ge';
-        const useExpr = mode === 'expr' && this.expressionLoaded && this.expressionData && this.expressionMetadata;
-        if (mode === 'expr' && !useExpr) {
-            // Asked for expression before the matrix finished loading.
-            this.loadExpressionData?.().then(() => this.inspectSelectionGE()).catch(() => {});
-            document.getElementById('selectionInspectBody').innerHTML =
-                '<div style="padding:20px; color:#6b7280; font-size:12px;">Loading expression data…</div>';
-            document.getElementById('selectionInspectModal').style.display = 'flex';
-            return;
+        // CRISPR gene effect, straight from the GE matrix.
+        const geRows = [];
+        for (let g = 0; g < this.nGenes; g++) {
+            const off = g * this.nCellLines;
+            let sSum = 0, sN = 0;
+            for (const ci of selIdx) {
+                const v = this.geneEffects[off + ci];
+                if (!isNaN(v) && v !== -999) { sSum += v; sN++; }
+            }
+            if (sN < 3) continue;
+            let oSum = 0, oN = 0;
+            for (const ci of otherIdx) {
+                const v = this.geneEffects[off + ci];
+                if (!isNaN(v) && v !== -999) { oSum += v; oN++; }
+            }
+            if (oN < 3) continue;
+            const mS = sSum / sN, mO = oSum / oN;
+            geRows.push({ gene: this.geneNames[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN });
         }
 
-        const rows = [];
-        if (useExpr) {
-            // The expression table covers a different, larger set of cell lines
-            // than the CRISPR panel, so map through its own index.
+        // mRNA expression. Its table covers a different, larger set of cell
+        // lines, so it is indexed separately rather than reusing the GE indices.
+        const exprRows = [];
+        let exprOtherN = 0;
+        if (this.expressionLoaded && this.expressionData && this.expressionMetadata) {
             const exprIdxOf = new Map(this.expressionMetadata.cellLines.map((cl, i) => [cl, i]));
             const selE = selected.map(cl => exprIdxOf.get(cl)).filter(i => i !== undefined);
             const selES = new Set(selE);
             const othE = [];
             for (let i = 0; i < this.expressionMetadata.nCellLines; i++) if (!selES.has(i)) othE.push(i);
+            exprOtherN = othE.length;
             const nC = this.expressionMetadata.nCellLines;
             const genes = this.expressionMetadata.genes;
             for (let g = 0; g < genes.length; g++) {
@@ -36077,122 +36122,43 @@ ${clone.innerHTML}
                 for (const ci of othE) { const v = this.expressionData[off + ci]; if (!isNaN(v)) { oSum += v; oN++; } }
                 if (oN < 3) continue;
                 const mS = sSum / sN, mO = oSum / oN;
-                rows.push({ gene: genes[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN });
-            }
-        } else {
-            for (let g = 0; g < this.nGenes; g++) {
-                const off = g * this.nCellLines;
-                let sSum = 0, sN = 0;
-                for (const ci of selIdx) {
-                    const v = this.geneEffects[off + ci];
-                    if (!isNaN(v) && v !== -999) { sSum += v; sN++; }
-                }
-                if (sN < 3) continue;
-                let oSum = 0, oN = 0;
-                for (const ci of otherIdx) {
-                    const v = this.geneEffects[off + ci];
-                    if (!isNaN(v) && v !== -999) { oSum += v; oN++; }
-                }
-                if (oN < 3) continue;
-                const mS = sSum / sN;
-                const mO = oSum / oN;
-                rows.push({ gene: this.geneNames[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN });
+                exprRows.push({ gene: genes[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN });
             }
         }
 
-        // Cache the full per-gene stats on the instance so sort / filter /
-        // Network / Save actions don't need to recompute.
-        this._geInspectResults = { rows, selected };
+        this._geInspectResults = { rows: geRows, exprRows, selected };
         this._activeSelectionInspect = { kind: 'ge' };
         const saveBtn = document.getElementById('selectionInspectSave');
         if (saveBtn) saveBtn.style.display = '';
-
-        const nRest = useExpr
-            ? Math.max(0, (this.expressionMetadata.nCellLines || 0) - selected.length)
-            : Math.max(0, this.nCellLines - selected.length);
-        const what = useExpr ? 'mRNA expression' : 'CRISPR gene effect';
-        document.getElementById('selectionInspectTitle').textContent =
-            `${selected.length} selected cell lines vs the other ${nRest.toLocaleString()}`;
-        const sub = document.getElementById('selectionInspectSubtitle');
-        // The entities were being written through textContent, so "&Delta;"
-        // appeared literally on screen.
-        sub.innerHTML = `Every gene's <b>${what}</b> averaged across your <b>${selected.length} selected</b> cell lines, `
-            + `compared with the average across <b>all ${nRest.toLocaleString()} other</b> cell lines in the panel. `
-            + `<b>Δ = selection − rest</b>, so a negative Δ means the selected lines sit lower.`
-            + `<br><b>Left:</b> lowest mean in the selection${useExpr
-                ? ', which for expression is mostly genes switched off in nearly every cell line, so the right-hand list is usually the informative one'
-                : ', i.e. the genes those lines most depend on'}. `
-            + `<b>Right:</b> largest difference from the rest, which is the more selective view. `
-            + `Columns sort; the |Δ| and row-count boxes below trim the lists. Click a gene to open it; Network builds a correlation network from the genes shown.`
-            ;
-        const modeBar = document.getElementById('selectionInspectModeBar');
-        if (modeBar) {
-            modeBar.innerHTML =
-                `<button type="button" onclick="app.setSelectionInspectMode('ge')" class="btn btn-outline btn-sm" style="font-size:10px; padding:3px 8px; ${mode === 'ge' ? 'background:#f0fdf4; border-color:#5a9f4a; color:#15803d; font-weight:700;' : ''}">CRISPR gene effect</button>`
-              + `<button type="button" onclick="app.setSelectionInspectMode('expr')" class="btn btn-outline btn-sm" style="font-size:10px; padding:3px 8px; ${mode === 'expr' ? 'background:#f0fdf4; border-color:#5a9f4a; color:#15803d; font-weight:700;' : ''}">mRNA expression</button>`;
-        }
         ['selectionInspectCSV', 'selectionInspectAI'].forEach(id => {
             const b = document.getElementById(id);
             if (b) b.style.display = '';
         });
-        const _lbl = this._geInspectLabels();
-        document.getElementById('selectionInspectBody').innerHTML = `
-            <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
-                <div style="flex:1; min-width:0;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
-                        <div><div style="font-weight:600; color:#374151;">${_lbl.leftTitle}</div>
-                            <div style="font-size:10px; color:#9ca3af; max-width:44ch;">${_lbl.leftHelp}</div></div>
-                        <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|&Delta;|&nbsp;≥</label>
-                            <input type="number" id="geLeftDeltaCutoff" min="0" max="10" step="${_lbl.step}" value="0" style="width:56px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
-                            <label>Top</label>
-                            <input type="number" id="geLeftN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
-                            <button class="btn btn-outline btn-sm" id="geLeftNetwork" style="font-size:11px; padding:3px 8px;" title="Build a correlation network from the displayed genes, restricted to the selected cell lines">Network</button>
-                            <button class="btn btn-outline btn-sm" id="geLeftEnrichr" style="font-size:11px; padding:3px 8px;" title="Send the displayed genes to Enrichr for pathway / ontology enrichment">Enrichr</button>
-                        </div>
-                    </div>
-                    <div id="geLeftHint" style="font-size:10px; color:#9ca3af; margin-bottom:6px;"></div>
-                    <div id="geLeftBody" style="max-height:58vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;"></div>
-                </div>
-                <div style="flex:1; min-width:0;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
-                        <div><div style="font-weight:600; color:#374151;">${_lbl.rightTitle}</div>
-                            <div style="font-size:10px; color:#9ca3af; max-width:44ch;">${_lbl.rightHelp}</div></div>
-                        <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
-                            <label>|&Delta;|&nbsp;≥</label>
-                            <input type="number" id="geRightDeltaCutoff" min="0" max="10" step="${_lbl.step}" value="${_lbl.defaultCut}" style="width:56px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
-                            <label>Top</label>
-                            <input type="number" id="geRightN" min="10" max="2000" step="10" value="200" style="width:64px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
-                            <button class="btn btn-outline btn-sm" id="geRightNetwork" style="font-size:11px; padding:3px 8px;" title="Build a correlation network from the displayed genes, restricted to the selected cell lines">Network</button>
-                            <button class="btn btn-outline btn-sm" id="geRightEnrichr" style="font-size:11px; padding:3px 8px;" title="Send the displayed genes to Enrichr for pathway / ontology enrichment">Enrichr</button>
-                        </div>
-                    </div>
-                    <div id="geRightHint" style="font-size:10px; color:#9ca3af; margin-bottom:6px;"></div>
-                    <div id="geRightBody" style="max-height:58vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;"></div>
-                </div>
-            </div>`;
 
-        // Independent sort state per side. Default: left sorted by meanSel asc
-        // (most depleted first), right sorted by delta asc (most negative first).
-        this._geInspectSort = {
-            // Left: most negative gene effect first, or highest expression
-            // first, since "lowest expressed" is just genes that are off.
-            left:  { key: 'meanSel', dir: this._selInspectMode === 'expr' ? -1 : 1 },
-            // Right: biggest difference either way, not only the depleted side.
-            right: { key: 'delta',   dir: -1, absolute: true }
-        };
-        document.getElementById('selectionInspectModal').style.display = 'flex';
+        const nRestGE = Math.max(0, this.nCellLines - selected.length);
+        document.getElementById('selectionInspectTitle').textContent =
+            `${selected.length} selected cell lines vs the other ${nRestGE.toLocaleString()}`;
+        const sub = document.getElementById('selectionInspectSubtitle');
+        sub.innerHTML = `For every gene, its average across your selection minus its average across all the other cell lines. `
+            + `Both columns are sorted by the size of that difference, so genes that are higher and lower in your selection appear together. `
+            + `Click a gene to open it; Network builds a correlation network from the genes listed.`;
 
-        const renderSides = () => this._renderGEInspectTables();
-        document.getElementById('geLeftDeltaCutoff').addEventListener('input', renderSides);
-        document.getElementById('geRightDeltaCutoff').addEventListener('input', renderSides);
-        document.getElementById('geLeftN').addEventListener('input', renderSides);
-        document.getElementById('geRightN').addEventListener('input', renderSides);
-        document.getElementById('geLeftNetwork').addEventListener('click', () => this._launchGENetwork('left'));
-        document.getElementById('geRightNetwork').addEventListener('click', () => this._launchGENetwork('right'));
-        document.getElementById('geLeftEnrichr').addEventListener('click', () => this._launchGEEnrichr('left'));
-        document.getElementById('geRightEnrichr').addEventListener('click', () => this._launchGEEnrichr('right'));
-        renderSides();
+        const exprNote = this.expressionLoaded
+            ? `Difference in mRNA level, log2(TPM+1). A difference of 1 is a two-fold change. Compared against ${exprOtherN.toLocaleString()} other cell lines.`
+            : 'Expression data has not loaded yet.';
+        this._mountGEInspectUI(exprNote);
+
+        // Expression is loaded on demand; fill the right column once it arrives.
+        if (!this.expressionLoaded) {
+            document.getElementById('geRightBody').innerHTML =
+                '<div style="padding:16px; color:#6b7280; font-size:11px;">Loading expression data…</div>';
+            this.loadExpressionData?.().then(() => {
+                if (document.getElementById('selectionInspectModal')?.style.display === 'flex') this.inspectSelectionGE();
+            }).catch(() => {
+                const b = document.getElementById('geRightBody');
+                if (b) b.innerHTML = '<div style="padding:16px; color:#b45309; font-size:11px;">Expression data could not be loaded.</div>';
+            });
+        }
     }
 
     // Submit the genes currently displayed on the requested side of the
@@ -36223,38 +36189,29 @@ ${clone.innerHTML}
     downloadSelectionInspectCSV() {
         const r = this._geInspectResults;
         if (!r?.rows?.length) return;
-        const expr = this._selInspectMode === 'expr';
-        const unit = expr ? 'Expression_log2TPM' : 'GeneEffect';
         const nSel = (r.selected || []).length;
-        const head = `Gene,Mean_${unit}_selection,Mean_${unit}_others,Delta_selection_minus_others,N_selection,N_others\n`;
-        const body = [...r.rows]
-            .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-            .map(x => `${x.gene},${x.meanSel.toFixed(4)},${x.meanOther.toFixed(4)},${x.delta.toFixed(4)},${x.nSel},${x.nOther}`)
+        // One row per gene carrying both measures, so the file matches what the
+        // two columns show rather than needing two exports.
+        const byGene = new Map();
+        for (const x of r.rows) byGene.set(x.gene, { ge: x });
+        for (const x of (r.exprRows || [])) {
+            const e = byGene.get(x.gene) || {};
+            e.expr = x;
+            byGene.set(x.gene, e);
+        }
+        const num = (v) => (v === undefined || v === null || isNaN(v)) ? '' : v.toFixed(4);
+        const head = 'Gene,GE_mean_selection,GE_mean_others,GE_delta,GE_n_selection,GE_n_others,'
+                   + 'Expr_mean_selection,Expr_mean_others,Expr_delta,Expr_n_selection,Expr_n_others\n';
+        const body = [...byGene.entries()]
+            .sort((a, b) => Math.abs(b[1].ge?.delta ?? b[1].expr?.delta ?? 0)
+                          - Math.abs(a[1].ge?.delta ?? a[1].expr?.delta ?? 0))
+            .map(([gene, v]) => [gene,
+                num(v.ge?.meanSel), num(v.ge?.meanOther), num(v.ge?.delta), v.ge?.nSel ?? '', v.ge?.nOther ?? '',
+                num(v.expr?.meanSel), num(v.expr?.meanOther), num(v.expr?.delta), v.expr?.nSel ?? '', v.expr?.nOther ?? ''
+            ].join(','))
             .join('\n');
-        this.downloadFile(head + body,
-            csvName(`selection_vs_rest_${expr ? 'expression' : 'gene_effect'}_${nSel}CLs`),
-            'text/csv');
-        this.showCopyNotification?.(`Exported ${r.rows.length.toLocaleString()} genes`);
-    }
-
-    _geInspectLabels() {
-        const expr = this._selInspectMode === 'expr';
-        return {
-            expr,
-            leftTitle: expr ? 'Highest expressed in your selection' : 'Strongest dependencies in your selection',
-            leftHelp: expr
-                ? 'Ranked by mean expression in the selected cell lines. These are simply the most-expressed genes, whether or not other cell lines express them too.'
-                : 'Ranked by mean gene effect in the selected cell lines, most negative first. Includes genes every cell line needs, so it answers "what do these lines depend on", not "what is special about them".',
-            rightTitle: expr ? 'Biggest expression difference vs the other cell lines'
-                             : 'Biggest dependency difference vs the other cell lines',
-            rightHelp: expr
-                ? 'Ranked by the size of the difference, higher or lower, so both over- and under-expressed genes appear. This is the list that says what is distinctive about your selection.'
-                : 'Ranked by the size of the difference, more or less essential, so both appear. This is the list that says what is distinctive about your selection.',
-            // Starting cutoffs: about a fifth of a typical essential gene's
-            // effect, and a two-fold change in expression.
-            defaultCut: expr ? 1.0 : 0.3,
-            step: expr ? 0.1 : 0.05,
-        };
+        this.downloadFile(head + body, csvName(`selection_vs_rest_${nSel}CLs`), 'text/csv');
+        this.showCopyNotification?.(`Exported ${byGene.size.toLocaleString()} genes`);
     }
 
     _renderGEInspectTables() {
@@ -36277,12 +36234,13 @@ ${clone.innerHTML}
             });
         };
 
+        const exprRows = this._geInspectResults.exprRows || [];
         const leftRows = applySort(
             rows.filter(r => Math.abs(r.delta) >= leftCut),
             this._geInspectSort.left
         ).slice(0, leftN);
         const rightRows = applySort(
-            rows.filter(r => Math.abs(r.delta) >= rightCut),
+            exprRows.filter(r => Math.abs(r.delta) >= rightCut),
             this._geInspectSort.right
         ).slice(0, rightN);
 
@@ -36303,7 +36261,13 @@ ${clone.innerHTML}
                     const gene = tr.dataset.gene;
                     document.getElementById('selectionInspectModal').style.display = 'none';
                     this._geSelectionHighlight = new Set(selected);
-                    this.openGeneEffectModal(gene, 'tissue', { dataType: 'ge' });
+                    // Remember where this was opened from, so closing the
+                    // gene-effect popout comes back here.
+                    this._geOpenedFrom = 'selectionInspect';
+                    // A gene picked from the expression column opens on
+                    // expression, matching the number that was clicked.
+                    const fromExpr = !!tr.closest('#geRightBody');
+                    this.openGeneEffectModal(gene, 'tissue', { dataType: fromExpr ? 'expr' : 'ge' });
                 });
                 tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
                 tr.addEventListener('mouseleave', () => tr.style.background = '');
@@ -36352,8 +36316,8 @@ ${clone.innerHTML}
         return `<table style="width:100%; border-collapse:collapse; font-size:11px;">
             <thead style="position:sticky; top:0;" class="sticky-head"><tr>
                 ${th('Gene', 'gene', 'left')}
-                ${th(this._selInspectMode === 'expr' ? 'Mean expr (sel)' : 'Mean GE (sel)', 'meanSel')}
-                ${th(this._selInspectMode === 'expr' ? 'Mean expr (rest)' : 'Mean GE (rest)', 'meanOther')}
+                ${th(side === 'right' ? 'Mean expr (sel)' : 'Mean GE (sel)', 'meanSel')}
+                ${th(side === 'right' ? 'Mean expr (rest)' : 'Mean GE (rest)', 'meanOther')}
                 ${th('Δ', 'delta')}
             </tr></thead>
             <tbody>${trows}</tbody>

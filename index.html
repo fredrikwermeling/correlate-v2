@@ -312,6 +312,9 @@
         }
         .clb-toolbar .select-proxy-caret { font-size: 11px; }
 
+        /* Controls that need a prerequisite (a selection, a loaded layer) read
+           as broken when they look clickable but do nothing. */
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; }
         .select-proxy-btn:disabled {
             opacity: 0.6;
             cursor: default;
@@ -1941,6 +1944,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.99 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>Inspect now shows CRISPR on the left and mRNA expression on the right</b>, at the same time. Before, the two tables held the same measure asked two different ways, which never made clear why both were there. Each column now answers one question: which genes differ most between your selection and every other cell line, in that measure.</li>
+                    <li><b>Both columns rank by the size of the difference</b>, largest first, so genes that are higher and lower in your selection sit together at the top. Cutoffs start at 0.3 for gene effect and 1.0 for expression, a two-fold change, instead of showing everything down to 0.1.</li>
+                    <li><b>Export as .csv or for AI.</b> The .csv carries both measures per gene in one file. Export, Save and close sit on one row with the title.</li>
+                    <li><b>Closing a gene returns you to Inspect</b> rather than dropping you back on the browser list with your comparison gone. Clicking a gene in the expression column opens it on expression.</li>
+                    <li><b>"Show only selected" says what it will do.</b> It carries the number of ticked lines, and is greyed out until you have some, rather than looking like a button that does nothing.</li>
+                </ul>
                 <p><strong>v.84.98 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>The disease filter matches the other dropdowns.</b> It is a searchable list rather than a plain menu, and was picking up different styling, at one point collapsing to just its arrow. It now takes the same height, border and width as the tissue and sex filters beside it.</li>
@@ -4713,7 +4724,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.98</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.99</a>
     </div>
 
     <div class="main-content">
@@ -6288,16 +6299,13 @@
     <!-- Selection Inspect (GE / Correlations for selected cell lines) -->
     <div id="selectionInspectModal" style="display:none; position:fixed; inset:0; z-index:1380; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;">
         <div style="background:#fff; width:100%; max-width:min(96vw,1200px); max-height:calc(100vh - 40px); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg,#f0fdf4 0%,#fff 100%);">
-                <div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg,#f0fdf4 0%,#fff 100%);">
+                <div style="flex:1 1 auto; min-width:0;">
                     <h3 id="selectionInspectTitle" style="margin:0; font-size:17px; color:#15803d;">Inspect selection</h3>
                     <div id="selectionInspectSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
                 </div>
-                <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                    <!-- Measure toggle lives here rather than in the subtitle, so
-                         it shares a row with the actions that apply to it. -->
-                    <span id="selectionInspectModeBar" style="display:inline-flex; gap:4px; align-items:center;"></span>
-                    <span style="display:inline-block; width:1px; height:20px; background:#e5e7eb; margin:0 2px;"></span>
+                <div style="display:flex; gap:6px; align-items:center; flex-wrap:nowrap; flex:0 0 auto;">
+                    <span style="font-size:10px; color:#9ca3af;">Export:</span>
                     <button id="selectionInspectCSV" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; display:none;" title="Download both tables as a CSV: every gene with its mean in the selection, its mean in the other cell lines, and the difference">.csv</button>
                     <button id="selectionInspectAI" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; display:none;" title="Package this comparison for a language model, with the selected cell lines and the data behind them">Export for AI</button>
                     <button id="selectionInspectSave" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; display:none;" title="Save these results to a JSON file you can re-open later without re-running the analysis">Save</button>
@@ -6811,7 +6819,7 @@
 
               <button id="clbSelectVisible" class="btn btn-outline btn-sm" title="Select every cell line currently passing the filters">Select Visible</button>
               <button id="clbDeselectAll" class="btn btn-outline btn-sm" title="Clear the current selection">Deselect All</button>
-              <button id="clbShowSelectedOnly" class="btn btn-outline btn-sm" title="Collapse the list to the cell lines you have ticked. Click again to show them all.">Show Selected</button>
+              <button id="clbShowSelectedOnly" class="btn btn-outline btn-sm" disabled title="Tick some cell lines first, or use Select Visible.">Show only selected</button>
               <button id="clbCopyNamesBtn" class="btn btn-outline btn-sm" title="Copy the names of the selected cell lines (one per line) to the clipboard, ready to paste into Custom cell lines">Copy Names</button>
               <span id="clbSelectionCount" class="clb-selection-count">0 selected</span>
 
@@ -7172,6 +7180,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_98"></script>
+    <script src="app.js?v=v84_99"></script>
 </body>
 </html>
