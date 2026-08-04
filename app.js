@@ -30968,26 +30968,48 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     // Populate the exact-disease picker, most common first, from the Oncotree
     // subtype recorded for each line.
+    // The disease list is scoped by every other filter, so picking Skin leaves
+    // only the skin diseases to choose from, with counts that match what the
+    // list will actually show. Scoped by the others but not by itself, or
+    // choosing a disease would leave that disease as the only option.
     populateClbOncotreeFilter() {
         const sel = document.getElementById('clbOncotreeFilter');
-        if (!sel || sel.options.length > 1) return;
-        const counts = new Map();
+        if (!sel) return;
         const src = this.cellLineMetadata?.oncotreeSubtype || {};
-        for (const cl of this.metadata.cellLines) {
+        const counts = new Map();
+        for (const cl of this._clbBaseFilteredLines({ skipOncotree: true })) {
             const v = src[cl];
             if (v) counts.set(v, (counts.get(v) || 0) + 1);
         }
-        [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-            .forEach(([name, k]) => {
-                const o = document.createElement('option');
-                o.value = name;
-                o.textContent = `${name} (n=${k})`;
-                sel.appendChild(o);
-            });
+        const entries = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+        // Rebuilding on every render would fight the open panel and the search
+        // box, so only touch the DOM when the option set actually changed.
+        const sig = entries.map(([name, k]) => `${name}:${k}`).join('|');
+        if (sel.dataset.sig === sig) return;
+        sel.dataset.sig = sig;
+
+        const current = sel.value;
+        sel.innerHTML = '<option value="">All diseases</option>';
+        entries.forEach(([name, k]) => {
+            const o = document.createElement('option');
+            o.value = name;
+            o.textContent = `${name} (n=${k})`;
+            sel.appendChild(o);
+        });
+        // Keep the chosen disease even if the other filters exclude it, so the
+        // list does not silently widen behind an unchanged-looking control.
+        if (current && !counts.has(current)) {
+            const o = document.createElement('option');
+            o.value = current;
+            o.textContent = `${current} (n=0 with the current filters)`;
+            sel.appendChild(o);
+        }
+        sel.value = current;
         this._enhanceSelect?.('clbOncotreeFilter');
     }
 
-    _clbBaseFilteredLines() {
+    _clbBaseFilteredLines(opts = {}) {
         const search = document.getElementById('clbSearch').value.trim().toLowerCase();
         const tissue = document.getElementById('clbTissueFilter').value;
         const subtype = document.getElementById('clbSubtypeFilter').value;
@@ -30999,7 +31021,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cnLvl = document.getElementById('clbCnLevel')?.value || 'altered';
         const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
         const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
-        const oncotree = document.getElementById('clbOncotreeFilter')?.value || '';
+        const oncotree = opts.skipOncotree ? '' : (document.getElementById('clbOncotreeFilter')?.value || '');
         return this.metadata.cellLines.filter(cl => {
             if (oncotree && (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') !== oncotree) return false;
             if (tissue && this.getCellLineLineage(cl) !== tissue) return false;
@@ -31039,6 +31061,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return true;
         };
 
+        this.populateClbOncotreeFilter();
         let filtered = this._clbBaseFilteredLines();
         if (collectionStates.size > 0) filtered = filtered.filter(passesCollections);
         // "Show Selected" toggle: narrow the list to the current selection
@@ -36088,6 +36111,8 @@ ${clone.innerHTML}
                     <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
                         <label title="Hide genes whose difference is smaller than this">|&Delta;|&nbsp;&ge;</label>
                         <input type="text" inputmode="decimal" id="ge${side}DeltaCutoff" min="0" max="10" step="${step}" value="${cut}" style="width:54px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                        <label title="Benjamini-Hochberg adjusted p-value. 1 shows every gene.">q&nbsp;&le;</label>
+                        <input type="text" inputmode="decimal" id="ge${side}QCutoff" min="0" max="1" step="0.01" value="0.05" style="width:54px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                         <label>Top</label>
                         <input type="number" id="ge${side}N" min="10" max="2000" step="10" value="200" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                         <button class="btn btn-outline btn-sm" id="ge${side}Network" style="font-size:11px; padding:3px 8px;">Network</button>
@@ -36114,7 +36139,7 @@ ${clone.innerHTML}
         document.getElementById('selectionInspectModal').style.display = 'flex';
 
         const renderSides = () => this._renderGEInspectTables();
-        ['LeftDeltaCutoff', 'RightDeltaCutoff', 'LeftN', 'RightN']
+        ['LeftDeltaCutoff', 'RightDeltaCutoff', 'LeftQCutoff', 'RightQCutoff', 'LeftN', 'RightN']
             .forEach(id => document.getElementById('ge' + id)?.addEventListener('input', renderSides));
         document.getElementById('geLeftNetwork')?.addEventListener('click', () => this._launchGENetwork('left'));
         document.getElementById('geRightNetwork')?.addEventListener('click', () => this._launchGENetwork('right'));
@@ -36140,6 +36165,45 @@ ${clone.innerHTML}
         }
     }
 
+    // Welch's t-test from running sums, so 18,000 genes can be tested without
+    // building an array per gene. Same result as welchTTest(), which needs the
+    // values materialised.
+    _welchFromSums(sSum, sSq, sN, oSum, oSq, oN) {
+        if (sN < 2 || oN < 2) return { p: 1, t: NaN };
+        const mS = sSum / sN, mO = oSum / oN;
+        const vS = Math.max(0, (sSq - sN * mS * mS) / (sN - 1));
+        const vO = Math.max(0, (oSq - oN * mO * mO) / (oN - 1));
+        const se2 = vS / sN + vO / oN;
+        if (!(se2 > 0)) return { p: 1, t: 0 };
+        const t = (mS - mO) / Math.sqrt(se2);
+        const df = (se2 * se2) /
+            ((vS / sN) ** 2 / (sN - 1) + (vO / oN) ** 2 / (oN - 1));
+        return { t, p: this.tDistributionPValue(Math.abs(t), df) };
+    }
+
+    // Benjamini-Hochberg. With this many genes a raw p-value of 0.01 means
+    // little, so the tables filter on q by default.
+    _addBHQValues(rows) {
+        const order = rows.map((r, i) => i).sort((a, b) => rows[a].p - rows[b].p);
+        const m = order.length;
+        let prev = 1;
+        for (let k = m - 1; k >= 0; k--) {
+            const i = order[k];
+            const q = Math.min(prev, (rows[i].p * m) / (k + 1));
+            rows[i].q = Math.min(1, q);
+            prev = rows[i].q;
+        }
+        return rows;
+    }
+
+    // Which cell lines the selection is measured against. 'all' is every other
+    // line in the panel; 'lineage' keeps only those sharing a lineage with the
+    // selection, which takes tissue of origin out of the comparison.
+    setGEInspectScope(scope) {
+        this._geInspectScope = scope === 'lineage' ? 'lineage' : 'all';
+        this.inspectSelectionGE();
+    }
+
     inspectSelectionGE() {
         const selected = [...(this._clbSelectedCellLines || [])];
         if (selected.length < 3) {
@@ -36147,57 +36211,71 @@ ${clone.innerHTML}
             return;
         }
 
+        const scope = this._geInspectScope === 'lineage' ? 'lineage' : 'all';
+        // The lineages the selection spans. Comparing within them answers
+        // "what is special about these lines for their tissue" rather than
+        // "how does this tissue differ from every other tissue".
+        const selLineages = new Set(selected.map(cl => this.getCellLineLineage(cl)).filter(Boolean));
+        const inScope = (cl) => scope === 'all' || selLineages.has(this.getCellLineLineage(cl));
+
         const cellLines = this.metadata.cellLines;
         const clIndexOf = new Map(cellLines.map((cl, i) => [cl, i]));
         const selIdx = selected.map(cl => clIndexOf.get(cl)).filter(i => i !== undefined);
         const selSet = new Set(selIdx);
         const otherIdx = [];
-        for (let i = 0; i < this.nCellLines; i++) if (!selSet.has(i)) otherIdx.push(i);
+        for (let i = 0; i < this.nCellLines; i++) if (!selSet.has(i) && inScope(cellLines[i])) otherIdx.push(i);
 
         // CRISPR gene effect, straight from the GE matrix.
         const geRows = [];
         for (let g = 0; g < this.nGenes; g++) {
             const off = g * this.nCellLines;
-            let sSum = 0, sN = 0;
+            let sSum = 0, sSq = 0, sN = 0;
             for (const ci of selIdx) {
                 const v = this.geneEffects[off + ci];
-                if (!isNaN(v) && v !== -999) { sSum += v; sN++; }
+                if (!isNaN(v) && v !== -999) { sSum += v; sSq += v * v; sN++; }
             }
             if (sN < 3) continue;
-            let oSum = 0, oN = 0;
+            let oSum = 0, oSq = 0, oN = 0;
             for (const ci of otherIdx) {
                 const v = this.geneEffects[off + ci];
-                if (!isNaN(v) && v !== -999) { oSum += v; oN++; }
+                if (!isNaN(v) && v !== -999) { oSum += v; oSq += v * v; oN++; }
             }
             if (oN < 3) continue;
             const mS = sSum / sN, mO = oSum / oN;
-            geRows.push({ gene: this.geneNames[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN });
+            const { p } = this._welchFromSums(sSum, sSq, sN, oSum, oSq, oN);
+            geRows.push({ gene: this.geneNames[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN, p });
         }
+        this._addBHQValues(geRows);
 
         // mRNA expression. Its table covers a different, larger set of cell
         // lines, so it is indexed separately rather than reusing the GE indices.
         const exprRows = [];
         let exprOtherN = 0;
         if (this.expressionLoaded && this.expressionData && this.expressionMetadata) {
-            const exprIdxOf = new Map(this.expressionMetadata.cellLines.map((cl, i) => [cl, i]));
+            const exprCLs = this.expressionMetadata.cellLines;
+            const exprIdxOf = new Map(exprCLs.map((cl, i) => [cl, i]));
             const selE = selected.map(cl => exprIdxOf.get(cl)).filter(i => i !== undefined);
             const selES = new Set(selE);
             const othE = [];
-            for (let i = 0; i < this.expressionMetadata.nCellLines; i++) if (!selES.has(i)) othE.push(i);
+            for (let i = 0; i < this.expressionMetadata.nCellLines; i++) {
+                if (!selES.has(i) && inScope(exprCLs[i])) othE.push(i);
+            }
             exprOtherN = othE.length;
             const nC = this.expressionMetadata.nCellLines;
             const genes = this.expressionMetadata.genes;
             for (let g = 0; g < genes.length; g++) {
                 const off = g * nC;
-                let sSum = 0, sN = 0;
-                for (const ci of selE) { const v = this.expressionData[off + ci]; if (!isNaN(v)) { sSum += v; sN++; } }
+                let sSum = 0, sSq = 0, sN = 0;
+                for (const ci of selE) { const v = this.expressionData[off + ci]; if (!isNaN(v)) { sSum += v; sSq += v * v; sN++; } }
                 if (sN < 3) continue;
-                let oSum = 0, oN = 0;
-                for (const ci of othE) { const v = this.expressionData[off + ci]; if (!isNaN(v)) { oSum += v; oN++; } }
+                let oSum = 0, oSq = 0, oN = 0;
+                for (const ci of othE) { const v = this.expressionData[off + ci]; if (!isNaN(v)) { oSum += v; oSq += v * v; oN++; } }
                 if (oN < 3) continue;
                 const mS = sSum / sN, mO = oSum / oN;
-                exprRows.push({ gene: genes[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN });
+                const { p } = this._welchFromSums(sSum, sSq, sN, oSum, oSq, oN);
+                exprRows.push({ gene: genes[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN, p });
             }
+            this._addBHQValues(exprRows);
         }
 
         this._geInspectResults = { rows: geRows, exprRows, selected };
@@ -36209,13 +36287,25 @@ ${clone.innerHTML}
             if (b) b.style.display = '';
         });
 
-        const nRestGE = Math.max(0, this.nCellLines - selected.length);
-        document.getElementById('selectionInspectTitle').textContent =
-            `${selected.length} selected cell lines vs the other ${nRestGE.toLocaleString()}`;
+        const nRestGE = otherIdx.length;
+        const lineageNames = [...selLineages].sort();
+        const lineageText = lineageNames.length === 1 ? lineageNames[0]
+            : lineageNames.length <= 3 ? lineageNames.join(', ')
+            : `${lineageNames.length} lineages`;
+        document.getElementById('selectionInspectTitle').textContent = scope === 'lineage'
+            ? `${selected.length} selected cell lines vs the other ${nRestGE.toLocaleString()} in ${lineageText}`
+            : `${selected.length} selected cell lines vs the other ${nRestGE.toLocaleString()}`;
         const sub = document.getElementById('selectionInspectSubtitle');
-        sub.innerHTML = `For every gene, its average across your selection minus its average across all the other cell lines. `
+        const btn = (val, label, title) => `<button type="button" onclick="app.setGEInspectScope('${val}')" title="${title}" style="font-size:10px; padding:2px 8px; border:1px solid ${scope === val ? '#5a9f4a' : '#d1d5db'}; background:${scope === val ? '#f0fdf4' : '#fff'}; color:${scope === val ? '#15803d' : '#374151'}; font-weight:${scope === val ? '700' : '400'}; border-radius:4px; cursor:pointer;">${label}</button>`;
+        sub.innerHTML = `For every gene, its average across your selection minus its average across the cell lines it is compared with. `
             + `Both columns are sorted by the size of that difference, so genes that are higher and lower in your selection appear together. `
-            + `Click a gene to open it; Network builds a correlation network from the genes listed.`;
+            + `Welch's t-test per gene, q is that p-value after Benjamini-Hochberg across all genes tested. `
+            + `Click a gene to open it; Network builds a correlation network from the genes listed.`
+            + `<div style="margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">`
+            + `<span style="color:#6b7280;">Compare with:</span>`
+            + btn('all', `All other cell lines`, 'Every other cell line in the panel')
+            + btn('lineage', `Same lineage only (${lineageText})`, 'Only cell lines from the same tissue of origin, which takes lineage out of the comparison')
+            + `</div>`;
 
         const exprNote = this.expressionLoaded
             ? `Difference in mRNA level, log2(TPM+1). A difference of 1 is a two-fold change. Compared against ${exprOtherN.toLocaleString()} other cell lines.`
@@ -36310,14 +36400,17 @@ ${clone.innerHTML}
             byGene.set(x.gene, e);
         }
         const num = (v) => (v === undefined || v === null || isNaN(v)) ? '' : v.toFixed(4);
-        const head = 'Gene,GE_mean_selection,GE_mean_others,GE_delta,GE_n_selection,GE_n_others,'
-                   + 'Expr_mean_selection,Expr_mean_others,Expr_delta,Expr_n_selection,Expr_n_others\n';
+        // p and q keep full precision; rounding them to 4 places would turn
+        // every strong hit into 0.0000.
+        const sci = (v) => (v === undefined || v === null || isNaN(v)) ? '' : v.toExponential(3);
+        const head = 'Gene,GE_mean_selection,GE_mean_others,GE_delta,GE_p,GE_q,GE_n_selection,GE_n_others,'
+                   + 'Expr_mean_selection,Expr_mean_others,Expr_delta,Expr_p,Expr_q,Expr_n_selection,Expr_n_others\n';
         const body = [...byGene.entries()]
             .sort((a, b) => Math.abs(b[1].ge?.delta ?? b[1].expr?.delta ?? 0)
                           - Math.abs(a[1].ge?.delta ?? a[1].expr?.delta ?? 0))
             .map(([gene, v]) => [gene,
-                num(v.ge?.meanSel), num(v.ge?.meanOther), num(v.ge?.delta), v.ge?.nSel ?? '', v.ge?.nOther ?? '',
-                num(v.expr?.meanSel), num(v.expr?.meanOther), num(v.expr?.delta), v.expr?.nSel ?? '', v.expr?.nOther ?? ''
+                num(v.ge?.meanSel), num(v.ge?.meanOther), num(v.ge?.delta), sci(v.ge?.p), sci(v.ge?.q), v.ge?.nSel ?? '', v.ge?.nOther ?? '',
+                num(v.expr?.meanSel), num(v.expr?.meanOther), num(v.expr?.delta), sci(v.expr?.p), sci(v.expr?.q), v.expr?.nSel ?? '', v.expr?.nOther ?? ''
             ].join(','))
             .join('\n');
         this.downloadFile(head + body, csvName(`selection_vs_rest_${nSel}CLs`), 'text/csv');
@@ -36331,6 +36424,9 @@ ${clone.innerHTML}
         const rightCut = this.numInput('geRightDeltaCutoff', 0);
         const leftN = Math.max(10, Math.min(2000, parseInt(document.getElementById('geLeftN').value) || 200));
         const rightN = Math.max(10, Math.min(2000, parseInt(document.getElementById('geRightN').value) || 200));
+        // A blank or 1 means "do not filter on significance".
+        const leftQ = this.numInput('geLeftQCutoff', 1);
+        const rightQ = this.numInput('geRightQCutoff', 1);
 
         const applySort = (arr, sort) => {
             const key = sort.key, dir = sort.dir;
@@ -36345,12 +36441,13 @@ ${clone.innerHTML}
         };
 
         const exprRows = this._geInspectResults.exprRows || [];
+        const passQ = (r, cut) => cut >= 1 || (r.q != null && r.q <= cut);
         const leftRows = applySort(
-            rows.filter(r => Math.abs(r.delta) >= leftCut),
+            rows.filter(r => Math.abs(r.delta) >= leftCut && passQ(r, leftQ)),
             this._geInspectSort.left
         ).slice(0, leftN);
         const rightRows = applySort(
-            exprRows.filter(r => Math.abs(r.delta) >= rightCut),
+            exprRows.filter(r => Math.abs(r.delta) >= rightCut && passQ(r, rightQ)),
             this._geInspectSort.right
         ).slice(0, rightN);
 
@@ -36359,8 +36456,10 @@ ${clone.innerHTML}
         this._geInspectResults.leftDisplayed = leftRows;
         this._geInspectResults.rightDisplayed = rightRows;
 
-        document.getElementById('geLeftHint').textContent = `${leftRows.length} gene(s) shown (|Δ| ≥ ${leftCut.toFixed(2)}). Click a column to sort.`;
-        document.getElementById('geRightHint').textContent = `${rightRows.length} gene(s) shown (|Δ| ≥ ${rightCut.toFixed(2)}). Click a column to sort.`;
+        const hint = (n, cut, q, total) => `${n} of ${total.toLocaleString()} genes shown (|Δ| ≥ ${cut.toFixed(2)}`
+            + (q < 1 ? `, q ≤ ${q}` : '') + `). Click a column to sort.`;
+        document.getElementById('geLeftHint').textContent = hint(leftRows.length, leftCut, leftQ, rows.length);
+        document.getElementById('geRightHint').textContent = hint(rightRows.length, rightCut, rightQ, exprRows.length);
         document.getElementById('geLeftBody').innerHTML = this._buildGEInspectTable(leftRows, 'left');
         document.getElementById('geRightBody').innerHTML = this._buildGEInspectTable(rightRows, 'right');
 
@@ -36416,12 +36515,18 @@ ${clone.innerHTML}
             const arrow = sort.key === key ? (sort.dir === 1 ? ' ▲' : ' ▼') : '';
             return `<th class="ge-sortable" data-side="${side}" data-key="${key}" title="Sort by ${label}" style="padding:6px 8px; border-bottom:2px solid #d1d5db; text-align:${align || 'center'}; font-size:11px; cursor:pointer; user-select:none; white-space:nowrap;">${label}${arrow}</th>`;
         };
+        // Small q-values are the interesting ones, so they get exponent form
+        // rather than a column of 0.000.
+        const fmtQ = (v) => (v == null || isNaN(v)) ? '-'
+            : v < 0.001 ? v.toExponential(1)
+            : v.toFixed(3);
         const trows = rows.map(r => `
             <tr class="si-row" data-gene="${this.esc(r.gene)}" style="cursor:pointer;">
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#15803d;">${r.gene}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center;">${fmt(r.meanSel)}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; color:#6b7280;">${fmt(r.meanOther)}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; font-weight:600; color:${r.delta < 0 ? '#dc2626' : '#2563eb'};">${fmt(r.delta)}</td>
+                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; color:${r.q != null && r.q < 0.05 ? '#374151' : '#9ca3af'};">${fmtQ(r.q)}</td>
             </tr>`).join('');
         return `<table style="width:100%; border-collapse:collapse; font-size:11px;">
             <thead style="position:sticky; top:0;" class="sticky-head"><tr>
@@ -36429,6 +36534,7 @@ ${clone.innerHTML}
                 ${th(side === 'right' ? 'Mean expr (sel)' : 'Mean GE (sel)', 'meanSel')}
                 ${th(side === 'right' ? 'Mean expr (rest)' : 'Mean GE (rest)', 'meanOther')}
                 ${th('Δ', 'delta')}
+                ${th('q', 'q')}
             </tr></thead>
             <tbody>${trows}</tbody>
         </table>`;

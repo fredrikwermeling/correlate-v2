@@ -312,6 +312,28 @@
         }
         .clb-toolbar .select-proxy-caret { font-size: 11px; }
 
+        /* Native selects render in the browser's own control font (Arial),
+           while the searchable proxy inherits the app's. Side by side in one
+           row that reads as two different controls, so the toolbar is put on
+           the app font throughout. */
+        .clb-toolbar select,
+        .clb-toolbar .select-proxy-btn {
+            font-family: inherit;
+            color: inherit;
+        }
+
+        /* .form-control gives a green focus ring, which the proxy inherits and
+           the plain selects beside it do not, so only the disease box lit up
+           green when pressed. Match the neighbours instead. */
+        .clb-toolbar .select-proxy-btn:focus {
+            border-color: var(--gray-200);
+            box-shadow: none;
+        }
+        .clb-toolbar .select-proxy-btn:focus-visible {
+            outline: 2px solid var(--gray-500);
+            outline-offset: -1px;
+        }
+
         /* Controls that need a prerequisite (a selection, a loaded layer) read
            as broken when they look clickable but do nothing. */
         .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -1944,6 +1966,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.102 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>Inspect reports significance.</b> Every gene gets Welch's t-test between your selection and the cell lines it is compared with, adjusted across all genes tested with Benjamini-Hochberg. The <b>q</b> column is sortable and each side has a <b>q &le;</b> box, starting at 0.05. Set it to 1 to show everything regardless.</li>
+                    <li><b>Choose what the selection is compared with.</b> <b>All other cell lines</b> as before, or <b>same lineage only</b>, which keeps just the cell lines sharing a tissue of origin with your selection. The second answers what is special about these lines for their tissue, rather than how that tissue differs from every other one.</li>
+                    <li>The .csv carries p and q for both measures.</li>
+                    <li><b>The disease filter follows the other filters.</b> Choosing Skin leaves only skin diseases to pick from, with counts matching what the list shows. A disease already chosen stays selectable and says when the other filters leave none of it.</li>
+                    <li><b>The disease box matches its neighbours.</b> It was drawn in the app font while the plain dropdowns beside it used the browser's, and it alone turned green when pressed. The whole toolbar now shares one font, and the green focus ring is gone.</li>
+                </ul>
                 <p><strong>v.84.101 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Network from Inspect now really uses your selected cell lines.</b> It said "Selection (27 cell lines)" in the banner but the correlations were computed across the whole panel, because the filter it set was the one belonging to the scatter plot and the analysis never read it. Corrected: the selection is a genuine subset of the analysis.</li>
@@ -4734,7 +4764,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.101</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.102</a>
     </div>
 
     <div class="main-content">
@@ -7195,6 +7225,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_101"></script>
+    <script src="app.js?v=v84_102"></script>
 </body>
 </html>
