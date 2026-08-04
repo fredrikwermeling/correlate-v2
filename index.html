@@ -1924,6 +1924,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.94 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>The executive summary now reports a hotspot the inferred list missed.</b> PGA1 carries a KRAS hotspot in the mutation matrix but has no entry in DepMap's inferred variant list, and the summary was built only from the latter, so the most relevant finding on the page went unmentioned. It now falls back to the mutation matrix for any canonical oncogene.</li>
+                    <li><b>Network image exports honour the resolution you ask for.</b> The network was copied from the on-screen canvas and stretched, so 1200 dpi carried no more detail than 600; only the legend, drawn directly at full size, actually improved. The network is now redrawn at the export size first, about nine times the pixels at 3x, with the view restored afterwards.</li>
+                </ul>
                 <p><strong>v.84.93 (2026-08-03)</strong></p>
                 <ul>
                     <li><b>Mutational analysis can compare mRNA expression as well as knockout effect.</b> A Measure toggle beside the result count switches between the two: gene effect answers "what do BRAF-mutant lines depend on", expression answers "what is expressed differently in BRAF-mutant versus wild-type lines". Cell lines without expression data are left out of both groups rather than counted as zero.</li>
@@ -4667,7 +4672,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.93</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.94</a>
     </div>
 
     <div class="main-content">
@@ -7120,6 +7125,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_93"></script>
+    <script src="app.js?v=v84_94"></script>
 </body>
 </html>

@@ -10677,6 +10677,43 @@ Results:
         } catch (e) { /* non-fatal */ }
     }
 
+    // Draw the network into a larger canvas by temporarily growing the view and
+    // zooming to match, so the exported image carries real detail rather than a
+    // magnified screenshot. Restores the view afterwards whatever happens.
+    async _renderNetworkAtScale(factor) {
+        const container = document.getElementById('networkPlot');
+        if (!container || !this.network) return null;
+        const w = container.clientWidth, h = container.clientHeight;
+        const view = this.network.getViewPosition();
+        const scale = this.network.getScale();
+        const prevW = container.style.width, prevH = container.style.height;
+        try {
+            container.style.width = Math.round(w * factor) + 'px';
+            container.style.height = Math.round(h * factor) + 'px';
+            this.network.setSize(container.style.width, container.style.height);
+            this.network.moveTo({ position: view, scale: scale * factor, animation: false });
+            this.network.redraw();
+            await new Promise(r => setTimeout(r, 120));
+            const live = container.querySelector('canvas');
+            if (!live) return null;
+            const out = document.createElement('canvas');
+            out.width = live.width; out.height = live.height;
+            out.getContext('2d').drawImage(live, 0, 0);
+            return out;
+        } catch (e) {
+            console.warn('High-resolution network render failed, using the on-screen canvas:', e);
+            return null;
+        } finally {
+            container.style.width = prevW;
+            container.style.height = prevH;
+            try {
+                this.network.setSize(prevW || (w + 'px'), prevH || (h + 'px'));
+                this.network.moveTo({ position: view, scale, animation: false });
+                this.network.redraw();
+            } catch (e) { /* view restore is best-effort */ }
+        }
+    }
+
     async downloadNetworkPNG() {
         if (!this.network) return;
         // Clear any zoom ghost before copying the live canvas into the export.
@@ -10770,9 +10807,15 @@ Results:
 
         // Draw the network canvas BELOW the header so banner and nodes don't
         // overlap.
-        const srcW = networkCanvas.width;
-        const srcH = networkCanvas.height;
-        ctx.drawImage(networkCanvas, 0, 0, srcW, srcH, 0, headerH, cssWidth, cssHeight);
+        // Re-draw the network at the requested pixel size before copying it,
+        // otherwise the export is an upscaled screenshot.
+        let hiRes = null;
+        const renderScale = Math.min(4, Math.max(1, (targetPxW / Math.max(1, cssWidth))));
+        if (renderScale > 1.05) {
+            hiRes = await this._renderNetworkAtScale(renderScale);
+        }
+        const src = hiRes || networkCanvas;
+        ctx.drawImage(src, 0, 0, src.width, src.height, 0, headerH, cssWidth, cssHeight);
 
         // Draw legend frame only when the user opted in via the dialog —
         // the previous default of a gray-filled box was visually noisy on
@@ -34784,6 +34827,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 if (ONCO_DRIVERS_SET.has(gene) && variant && variant !== 'Hotspot' && !seenOncoGenes.has(gene)) {
                     oncoDrivers.push(`<b>${gene} ${variant}</b>`);
                     seenOncoGenes.add(gene);
+                }
+            }
+            // The inferred list only names variants DepMap could call specifically.
+            // A gene can carry a hotspot in the mutation matrix and be absent
+            // there, as PGA-1 is for KRAS, and the summary then said nothing
+            // about the most relevant finding on the page. Fall back to the
+            // matrix for any canonical oncogene the inferred list missed.
+            for (const g of ONCO_DRIVERS_SET) {
+                if (seenOncoGenes.has(g)) continue;
+                if (this.mutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1) {
+                    oncoDrivers.push(`<b>${g}</b> hotspot`);
+                    seenOncoGenes.add(g);
                 }
             }
             if (oncoDrivers.length > 0) driverParts.push(oncoDrivers.join(', '));
