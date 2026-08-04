@@ -29345,6 +29345,45 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // The <select> stays in the DOM and stays authoritative: everything else in
     // the app reads and writes its .value and repopulates its options, and none
     // of that has to change. This only replaces how it is presented.
+    // Search keys for an option label: the initials of each clause, so
+    // "Chronic Lymphocytic Leukemia/Small Lymphocytic Lymphoma" answers to CLL
+    // and SLL, plus a few forms whose usual abbreviation is not the initials.
+    _optionAcronyms(label) {
+        const text = String(label || '').replace(/\s*\(n=\d+\)\s*$/, '');
+        const keys = new Set();
+        const STOP = new Set(['of', 'the', 'and', 'to', 'in', 'with', 'nos', 'type', 'a', 'an']);
+        for (const clause of text.split(/[\/,;]/)) {
+            const words = clause.trim().split(/[\s-]+/).filter(Boolean);
+            const initials = words
+                .filter(w => !STOP.has(w.toLowerCase()))
+                .map(w => w[0])
+                .join('')
+                .toLowerCase();
+            if (initials.length >= 2) keys.add(initials);
+        }
+        const EXTRA = {
+            'glioblastoma': ['gbm'],
+            'hepatocellular carcinoma': ['hcc'],
+            'renal clear cell carcinoma': ['ccrcc', 'rcc'],
+            'head and neck squamous cell carcinoma': ['hnscc'],
+            'pancreatic adenocarcinoma': ['pdac'],
+            'plasma cell myeloma': ['mm', 'myeloma'],
+            'chronic myeloid leukemia, bcr-abl1+': ['cml'],
+            'b-cell acute lymphoblastic leukemia': ['b-all', 'ball'],
+            't-lymphoblastic leukemia/lymphoma': ['t-all', 'tall'],
+            'acute myeloid leukemia': ['aml'],
+            'small cell lung cancer': ['sclc'],
+            'lung adenocarcinoma': ['luad', 'nsclc'],
+            'lung squamous cell carcinoma': ['lusc', 'nsclc'],
+            'diffuse large b-cell lymphoma': ['dlbcl'],
+        };
+        const lower = text.toLowerCase();
+        for (const [k, vals] of Object.entries(EXTRA)) {
+            if (lower.includes(k)) vals.forEach(v => keys.add(v));
+        }
+        return [...keys].join(' ');
+    }
+
     _enhanceSelect(selectId) {
         const select = document.getElementById(selectId);
         if (!select || select.dataset.enhanced === '1') return;
@@ -29352,7 +29391,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const wrap = document.createElement('div');
         wrap.className = 'select-proxy';
-        wrap.style.flex = select.style.flex || '1';
+        // Carry the select's own width across; without it the wrapper has no
+        // intrinsic size and collapses to the caret in a flex toolbar.
+        if (select.style.width) {
+            wrap.style.width = select.style.width;
+            wrap.style.flex = '0 0 auto';
+        } else {
+            wrap.style.flex = select.style.flex || '1';
+        }
         select.parentNode.insertBefore(wrap, select);
         wrap.appendChild(select);
         select.style.display = 'none';
@@ -29394,12 +29440,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const f = document.createElement('input');
                 f.type = 'text';
                 f.className = 'select-proxy-filter';
-                f.placeholder = 'Filter...';
+                f.placeholder = 'Filter, or type an abbreviation like CLL';
                 panel.appendChild(f);
                 f.addEventListener('input', () => {
                     const q = f.value.trim().toLowerCase();
                     panel.querySelectorAll('.select-proxy-item').forEach(it => {
-                        it.style.display = !q || it.textContent.toLowerCase().includes(q) ? '' : 'none';
+                        const hay = it.textContent.toLowerCase();
+                        const acro = (it.dataset.acronyms || '');
+                        it.style.display = !q || hay.includes(q) || acro.includes(q) ? '' : 'none';
                     });
                 });
                 setTimeout(() => f.focus(), 0);
@@ -29410,6 +29458,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const item = document.createElement('div');
                 item.className = 'select-proxy-item' + (i === select.selectedIndex ? ' is-selected' : '');
                 item.textContent = o.textContent;
+                item.dataset.acronyms = this._optionAcronyms(o.textContent);
                 item.addEventListener('click', () => {
                     select.selectedIndex = i;
                     syncLabel();
@@ -29429,7 +29478,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const above = r.top - margin;
             const useAbove = below < 200 && above > below;
             const maxH = Math.min(340, Math.max(160, useAbove ? above : below));
-            const panelW = Math.max(r.width, 220);
+            // Wide enough for long entity names; the list wraps rather than
+            // truncating, so nothing is hidden while scrolling.
+            const panelW = Math.min(window.innerWidth - 2 * margin, Math.max(r.width, 380));
             panel.style.width = panelW + 'px';
             panel.style.left = Math.max(margin, Math.min(r.left, window.innerWidth - panelW - margin)) + 'px';
             list.style.maxHeight = (maxH - (needsFilter ? 34 : 0)) + 'px';

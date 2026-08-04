@@ -297,6 +297,21 @@
             font-family: inherit;
         }
 
+        /* Inside the browser toolbar the proxy has to be indistinguishable from
+           the native selects beside it. */
+        .clb-toolbar .select-proxy { flex: 0 0 auto; }
+        .clb-toolbar .select-proxy-btn {
+            height: var(--clb-ctl-h);
+            box-sizing: border-box;
+            padding: 0 6px;
+            border: 1px solid var(--gray-200);
+            border-radius: 4px;
+            background: #fff;
+            font-size: 12px;
+            color: inherit;
+        }
+        .clb-toolbar .select-proxy-caret { font-size: 11px; }
+
         .select-proxy-btn:disabled {
             opacity: 0.6;
             cursor: default;
@@ -342,6 +357,8 @@
         }
 
         .select-proxy-item {
+            white-space: normal;
+            line-height: 1.35;
             padding: 5px 8px;
             border-radius: 4px;
             cursor: pointer;
@@ -1924,6 +1941,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.98 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>The disease filter matches the other dropdowns.</b> It is a searchable list rather than a plain menu, and was picking up different styling, at one point collapsing to just its arrow. It now takes the same height, border and width as the tissue and sex filters beside it.</li>
+                    <li><b>Renamed to "All diseases"</b>, in line with All tissues, All subtypes and All sexes.</li>
+                    <li><b>Long disease names are readable.</b> The list was 220px wide and cut names off; it is now at least 380px and wraps rather than truncating.</li>
+                    <li><b>Abbreviations work.</b> Type CLL, CML, AML, GBM, DLBCL, SCLC, PDAC and so on. Initials are derived from each name, with a few added by hand where the usual abbreviation is not the initials.</li>
+                </ul>
                 <p><strong>v.84.97 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>The Inspect tables say what they are.</b> "Most depleted in selection" and "Most different from rest" are replaced by "Strongest dependencies in your selection" and "Biggest dependency difference vs the other cell lines", each with a line explaining what it answers. In expression mode they become "Highest expressed in your selection" and "Biggest expression difference", with no talk of depletion.</li>
@@ -4689,7 +4713,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.97</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.98</a>
     </div>
 
     <div class="main-content">
@@ -6704,7 +6728,7 @@
               <input type="text" id="clbSearch" placeholder="Search cell lines..." style="width:190px;">
               <select id="clbTissueFilter" style="width:200px;"><option value="">All tissues</option></select>
               <select id="clbSubtypeFilter" disabled title="Choose a tissue first to narrow by subtype" style="width:200px;"><option value="">All subtypes</option></select>
-              <select id="clbOncotreeFilter" style="width:200px;" title="Exact disease entity from Oncotree. Finer than the tissue and subtype fields, and reaches entities they cannot, for example chronic lymphocytic leukemia, which the disease field files under mature B-cell neoplasms."><option value="">Any exact disease</option></select>
+              <select id="clbOncotreeFilter" style="width:210px;" title="Exact disease entity from Oncotree. Finer than the tissue and subtype fields, and reaches entities they cannot, for example chronic lymphocytic leukemia, which the disease field files under mature B-cell neoplasms."><option value="">All diseases</option></select>
               <select id="clbSexFilter" style="width:160px;" title="Filter by sex. Annotation (from DepMap) and expression-based calls (Y-markers + XIST) are independent axes, they often disagree.">
                 <option value="">All sexes</option>
                 <optgroup label="By annotation">
@@ -7148,6 +7172,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_97"></script>
+    <script src="app.js?v=v84_98"></script>
 </body>
 </html>
