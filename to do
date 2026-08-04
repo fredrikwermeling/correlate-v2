@@ -1,3 +1,217 @@
+⏺ Here's the full accounting, ordered by your to do file so you can walk it top
+  to bottom. 35 versions today, v.84.62 → v.84.96.
+
+  Items 1–34
+
+  1. Copy-plot button — Copy beside Export image on network, scatter, tissue
+  chart, mutation table. Plotly charts via Plotly's PNG writer, others via
+  html2canvas. .85
+- for network, also inlcude the legends in the copy. also, dont emphasis this button differntly than the ones next to it.
+
+  2. Gene-name suggestions on typo — all 11 "not found" alerts replaced by a
+  popout with closest matches, clickable to copy. IL4RA→IL4R,
+  ABL→ABL1/ABL2/ABLIM1, Trp53→TP53. Also fixed the matcher: it scored a
+  transposition as two edits and took the first three hits in list order, so
+  CDNK2A buried CDKN2A. .84
+- Good. if click the suggest match it should appear in the input box, not be copied. also, i dont undersrtadn what you mean with CDKN2A buried CDKN2a
+
+  3. Alteration dropdowns, no WT/mut selector — picking a gene applies
+  "altered"; WT / one copy / both copies moved onto the chip. .72
+
+
+  4. Wiki fusion wording — rewritten. .76
+
+  5. Fusion/amp-del grids — three faults: filters matched nothing (rows were
+  looked up in the hotspot matrix, where a fusion name or "CDKN2B del" doesn't
+  exist); labels overran (pane fixed at 72px for gene symbols); Apply now
+  prominent. BCR-ABL1→12 lines, CDKN2B del→295. .73
+
+  6. Quick filters button + non-lineage cancer types — button was broken by my
+  own CSS-class change .73. CLL genuinely unreachable: it's an Oncotree-only
+  entity, filed under "Mature B-Cell Neoplasms". 48 entities are in that
+  position, so there's now an exact-disease picker with all 165. .95
+
+  7. PGA1 not showing KRAS — it does carry a KRAS hotspot, but the summary read
+  only DepMap's inferred variant list, where PGA-1 has no hotspot entry. Now
+  falls back to the matrix. .94
+
+  8. Network export DPI — confirmed: the export copied the on-screen canvas and
+  stretched it, so detail was identical at any DPI; the legend improved because
+  it's drawn directly. Network now redrawn at export size, 9× the pixels at 3×.
+  .94
+
+  9. American English — 425 changes, verified no element reference broke. .75
+  
+  10. Saved figure not restoring colour-by — verified fixed by the restore
+  allowlist and picker scoping; 5 picked tissues → 7 traces before and after.
+  .82
+
+  11. Scatter CSV gene1/gene2 — columns named after the genes, plus a
+  ShownOnPlot column since the file holds more rows than the plot. .82
+
+  12. Compare-by-hotspot on 2 vs 1+2 — checked, both scans already group 1+2. No
+  change needed. .79
+
+  13. Correlation filter layout — fusion filter now sits with the other three,
+  Compare on its own row, hairlines between groups. .92
+
+  14. Gates: Enrichr, AI export, PNG/SVG buttons — Enrichr A/B was dead because
+  it asked for its cutoff via a blocking prompt(); now uses the panel's p-value
+  box. Separate PNG/SVG replaced by the standard dialog. Gates gained Export for
+  AI, pre-filled with the "what separates A from B" question. .80, .95
+
+  15. Overlay counts not scaling to filters — they followed tissue/subtype but
+  not mutation/fusion/CN, and ran before the plot updated. KRAS reads 174 of
+  1,147 unfiltered, 100 of 574 with a TP53 filter. .78
+
+  16. AI export defining its contents — each source now names what it
+  contributes. .82
+
+  17. Overlay heading cropped / not editable — line now wraps; title/subtitle
+  split fixed so wrapped text is reachable. .90
+
+  18. Correlation title naming GE/expr/CN — added, wraps when long. .76
+
+  19. Gene hover text — leads with function. CDKN2A no longer opens with
+  transcript-variant boilerplate. .84
+
+  20. Expression correlates — retired, panel unreachable. Code left in place —
+  91 references, some shared with mutation-analysis inspect. .96
+
+  21. Shift-click inconsistency — both open the wiki now. .77
+
+  22. Gene-effect filter chips — clickable like the browser's. .89
+
+  23. Colour-by-GE not rescaling — node colours already followed visible genes;
+  all four legends didn't. .77
+
+  24. Network node spacing — Spread slider, 40–220%, independent of font/node
+  size. .85
+
+  25. Zoom/fit warning — notice with node count and a Fit button. .83
+
+  26. Network export whitespace — the filter banner's separator ran edge to edge
+  and pinned the crop. 1200px → 530px. .83
+
+  27. Lineage filter lingering — the banner read the live dropdowns, so changing
+  a filter relabelled an unchanged network. Now captured at run time. .81
+  
+  28. Reset all emphasis — solid green, dark border. .76
+
+  29. AI export naming a model — reworded. .76
+
+  30. Mode switch not clearing results — network, tables and summary now
+  cleared; gene list kept. .79
+
+  31. Mutational analysis over expression — Measure toggle. On BRAF: gene effect
+  gives BRAF/SOX10/MAPK1/DUSP4, expression gives CD24/SPINT2/UCHL1. Top hit
+  recomputed from raw matrix, exact match. .93
+
+  32. Title not fully editable — panel split at the first <br>, but that's also
+  how a title wraps. .88
+
+  33. Long subtype names — the 99-character Soft Tissue subtype took the whole
+  margin; labels cut to 34 with full name on hover. .88
+
+  34. Subtype colouring + names in a box — labelled cell lines now list under
+  the plot with Copy names. Subtype colouring not added — the view already
+  groups by subtype and I wasn't sure what you wanted beyond that.
+
+  The YRDC block
+  
+  I checked it against the data rather than trusting it. All factual claims
+  reproduced. One correction: their permutation-FDR recommendation would have
+  endorsed the hit (FDR 0.17) on the split the app showed — it only becomes
+  informative after the no-call fix (1.31).
+
+  - No-call vs wild-type .74 — 74 lines have no RNA-seq; in Ewing that's 10 of
+  27, all landing in "wild-type". Group means: −0.61 called, −1.46 genuinely
+  negative, −1.86 never sequenced.
+  - Partner flatness .86 — YRDC moves 1.13, its 10 partners top out at 0.11.
+  - Permutation check .87 — on demand, capped at ≤200 cell lines (44s on a full
+  panel, and the question doesn't arise there).
+
+  Earlier in the session
+
+  Wiki correctness (.62): 374 lines contradicted themselves on CDKN2A; BCR-ABL
+  claimed for 29 lines when 12 are real; copy numbers assumed diploid; missing
+  data reported as findings. Wiki scrolling (.64, .66) — rebuilt as one ordinary
+  scrolling page. PDF page numbers and clean page breaks (.65) — 6 of 8 breaks
+  used to cut through text. Drug section implying a cancer type (.67).
+
+  Two caveats worth your attention: three bugs I fixed in .73 were regressions
+  I'd introduced in .70–.72, live for about an hour. And #20's code is hidden,
+  not deleted — say the word if you want it properly removed.
+
+✻ Churned for 47s
+  
+❯ are there any calls that you need inout in related to the latest todo list    
+
+⏺ Yes — six where your answer would change what I do, and a few you'd need to
+  check by eye.
+
+  Decisions that change my next move
+
+  1. Expression correlates (#20) — hidden or deleted? Right now the panel is
+  unreachable but the ~500 lines are still there, because 91 references cross
+  into the mutation-analysis inspect. If you want it genuinely gone I'd untangle
+  the shared helpers first. If "not visible" is enough, we're done.
+
+  2. Subtype colouring (#34) — what did you mean? The gene-effect view already
+  groups rows by subtype. I couldn't tell whether you wanted colour applied
+  within an existing plot (like the scatter's colour-by), or something else, so
+  I did the labelled-names half and left this.
+
+  3. The pathway verdicts. You said keep the 25 if the analysis is correct, and
+  I audited it. But you also said the app shouldn't over-interpret. "Driver
+  activated" / "Brake lost" are interpretations, even framed as hypotheses. Keep
+  as is, or reduce to naming which pathway carries which alteration and let the
+  reader judge?
+
+  4. Permutation check capped at 200 cell lines. My call, because it took 44s on
+  a full-panel split and the question doesn't really arise there. If you'd
+  rather have it available anyway, I'd make it explicit opt-in with a warning
+  rather than hidden.
+
+  5. The exact-disease filter (#6). You asked for "filters for cancer types not
+  defined by lineage and subtype, eg CLL" — I read that as a general gap and
+  added a picker with all 165 Oncotree entities. If you meant a handful of
+  curated quick filters instead, that's a different build.
+
+  6. The standalone Oncoprint button. I removed it in v.84.70 when each
+  alteration filter got its own grid. That means there's no longer a single
+  "oncoprint over the whole current cohort" button in the analysis tab. Tell me
+  if you miss it.
+
+  Please check by eye — I couldn't verify these properly
+
+  Copy to clipboard. Clipboard writes need a real user gesture, which automation
+  can't reliably produce. The code path runs clean and fails gracefully, but I
+  have not confirmed an image actually pastes into an email. Worth one test.
+
+  The PDF. I verified page count, page numbers and that breaks land in
+  whitespace, but I have no PDF renderer here — I've never seen the file. Same
+  for the network export at 1200 dpi: I confirmed 9× the pixels, not that it
+  looks right.
+
+  Network export at high DPI on a large network. I capped the re-render at 4×,
+  but a 200-node network at 1200 dpi will build a large canvas. If it's slow or
+  fails on your machine, that cap needs lowering.
+
+  Two things I'd raise unprompted
+
+  "Oncoprint" naming. I made the plain description the title with (oncoprint) in
+  grey after it. You asked whether the word makes sense — my answer was "right
+  for someone who's met it, meaningless otherwise", but I never got your verdict
+  on dropping the parenthetical.
+
+  The three regressions in v.84.73 were mine, from v.84.70–72, and live for
+  about an hour. All three were the same class of mistake: I changed how
+  elements are shown or looked up, and didn't re-test the paths that depended on
+  the old behaviour. If you hit anything odd in the browser toolbar, that's the
+  first place I'd look.
+
+
 could each plot also have a rapid copy graph button that can be used to copy a good version of the plot that could be pasted into eg an email directly, instead of exporting.
 if adding a gene name in eg cell line browser, correlaion or gene effect, if the gene name is not correct, couold a popout with suggested names come up that are similar. i find my self eg writing il4ra, ewhen the real name is il4r.
 the box for hotspot/fusion/amp/del in the cell line broweser should be a dropdown menu with all the mutations. but there shouldn´t be any selector for wt or mut. by defult, it should asumme its mutated/altered if selecting the gene.
