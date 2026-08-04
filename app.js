@@ -10859,7 +10859,48 @@ Results:
         this.downloadFile(text, 'summary.txt', 'text/plain');
     }
 
+    // Excel and Sheets execute a cell whose text begins with = + - or @, so a
+    // gene symbol or free-text note starting that way becomes a formula in a
+    // file that gets emailed onward. Every field is walked and the dangerous
+    // ones are made literal with a leading apostrophe.
+    //
+    // Plain numbers are exempt on purpose: without that, every negative gene
+    // effect would be turned into text and the file would stop being numeric.
+    //
+    // The parse is a full round trip (quotes, doubled quotes, embedded commas
+    // and newlines) so quoting already present in the input survives intact.
+    _csvGuard(text) {
+        const risky = (v) => /^[=+\-@]/.test(v) && !Number.isFinite(Number(v));
+        const enc = (v, wasQuoted) => {
+            if (risky(v)) return '"\'' + v.replace(/"/g, '""') + '"';
+            if (wasQuoted || /[",\r\n]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+            return v;
+        };
+        let out = '', field = '', quoted = false, inQ = false, i = 0;
+        while (i < text.length) {
+            const c = text[i];
+            if (inQ) {
+                if (c === '"') {
+                    if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+                    inQ = false; i++; continue;
+                }
+                field += c; i++; continue;
+            }
+            if (c === '"' && field === '') { inQ = true; quoted = true; i++; continue; }
+            if (c === ',') { out += enc(field, quoted) + ','; field = ''; quoted = false; i++; continue; }
+            if (c === '\r' || c === '\n') {
+                out += enc(field, quoted);
+                // Keep the original line ending, CRLF included.
+                if (c === '\r' && text[i + 1] === '\n') { out += '\r\n'; i += 2; } else { out += c; i++; }
+                field = ''; quoted = false; continue;
+            }
+            field += c; i++;
+        }
+        return out + enc(field, quoted);
+    }
+
     downloadFile(content, filename, mimeType) {
+        if (/csv|tab-separated/i.test(mimeType || '')) content = this._csvGuard(String(content));
         const blob = new Blob([content], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
