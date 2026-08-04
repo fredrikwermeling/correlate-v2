@@ -1966,6 +1966,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.106 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>Curation extended to the whole panel.</b> Every one of the 1,167 cell lines with an RRID was checked against Cellosaurus. 26 recurrent driver fusions that the caller did not report are now available to filter on, among them <b>EML4-ALK</b> in NCI-H3122, <b>TPM3-NTRK1</b> in KM12, <b>KMT2A-AFF1</b> in RS4;11, <b>FUS-DDIT3</b> in DL-221, <b>MYB-NFIB</b> in UM-HACC-2A, <b>CRTC1-MAML2</b> in H3118, four <b>MYC-IGH</b> Burkitt lines and the <b>FGFR2</b> fusions in the cholangiocarcinoma lines.</li>
+                    <li><b>Only recurrent drivers were added.</b> Private one-off fusions and ordinary immunoglobulin V-J rearrangements, which every B cell carries, are left out on purpose: including them would put back the noise the curated fusion axis exists to avoid.</li>
+                    <li>Of the cell lines the caller could not read, only one outside Ewing sarcoma has a published fusion. Fusion-driven sarcomas are characterised because the fusion defines the disease; most carcinomas simply have none to find.</li>
+                    <li>A comparison group that carries a different fusion of the same gene is now named without being judged, so what counts as a control stays your call.</li>
+                </ul>
                 <p><strong>v.84.105 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Published fusion calls fill in the cell lines the caller could not read.</b> Rather than holding out every line without RNA-seq, their fusion status is taken from Cellosaurus where it is documented. For Ewing sarcoma this brings 9 cell lines back: EW-22, SCCH-196, MC-IXC, ES4, EW-7, EW-1, TC-32, EW-16 and ES8 all carry EWSR1-FLI1. The EWSR1-FLI1 group goes from 13 to 22.</li>
@@ -4787,7 +4794,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.105</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.106</a>
     </div>
 
     <div class="main-content">
@@ -7248,6 +7255,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_105"></script>
+    <script src="app.js?v=v84_106"></script>
 </body>
 </html>

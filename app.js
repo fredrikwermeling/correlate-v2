@@ -3976,7 +3976,7 @@ class CorrelationExplorer {
         // A published fusion call is as good as a called one. Lines whose
         // curated entry documents no fusion stay uncallable.
         const c = this.curatedFusions?.byCellLine?.[cellLine];
-        return !!(c && !c.unknown && Array.isArray(c.fusions));
+        return !!(c && !c.unknown && Array.isArray(c.fusions) && c.fusions.length);
     }
 
     // How many of these cell lines the expression table actually covers. The
@@ -4005,14 +4005,15 @@ class CorrelationExplorer {
         const raw = rawMap ? (rawMap[cellLine] || 0) : 0;
         if (raw >= 1) return raw;
         const cur = this._curatedFusionEntry(cellLine);
-        if (cur && Array.isArray(cur.fusions)) {
-            if (cur.fusions.some(f => this._sameFusion(f, fusionKey))) return 1;
-            // Curated and complete: what it does not name, this line lacks.
-            if (!cur.unknown) return 0;
-            return null;
-        }
-        // No curated entry: the caller decides, provided it could see the line.
-        return this._fusionCallable(cellLine) ? 0 : null;
+        if (cur && Array.isArray(cur.fusions)
+            && cur.fusions.some(f => this._sameFusion(f, fusionKey))) return 1;
+        // The caller read this line and did not find it, so the negative stands.
+        if ((this._fusionCountByCL?.get(cellLine) || 0) > 0) return 0;
+        // The caller could not read it. A curated entry is then the whole
+        // record for this line, so anything it does not name is absent; an
+        // entry marked unknown, or no entry at all, leaves it unestablished.
+        if (cur && !cur.unknown) return 0;
+        return null;
     }
 
     // Cell lines in the current view that cannot carry a fusion call, so a
@@ -4029,10 +4030,9 @@ class CorrelationExplorer {
         // overturns a positive call, only adds what the caller could not know.
         const cur = this._curatedFusionEntry(cellLineId);
         if (cur && Array.isArray(cur.fusions)) {
-            const named = cur.fusions.some(f => this._sameFusion(f, key));
-            if (named) return true;
-            // The curated list is complete for this line, so anything it does
-            // not name is genuinely absent, not merely unobserved.
+            if (cur.fusions.some(f => this._sameFusion(f, key))) return true;
+            // For a line the caller could not read, the curated entry is the
+            // whole record, so anything it does not name is genuinely absent.
             if (!cur.unknown && (this._fusionCountByCL?.get(cellLineId) || 0) === 0) return false;
         }
         const pairCells = this.clinicalFusions?.fusionData?.[key]?.cellLines;
@@ -7471,9 +7471,10 @@ class CorrelationExplorer {
         }
 
         // A line without the fusion under test may still carry a different one
-        // on the same gene. In Ewing sarcoma every EWSR1-FLI1-negative line
-        // carries EWSR1-ERG or EWSR1-FEV instead, so calling that group
-        // "wild-type" would be plainly wrong.
+        // on the same gene: in Ewing sarcoma the EWSR1-FLI1-negative lines
+        // carry EWSR1-ERG or EWSR1-FEV. Reported so the user can judge whether
+        // a different partner is a control for their question. FLI1, ERG and
+        // FEV are all ETS factors, so the programmes overlap heavily.
         const altFusions = new Map();
         const headGene = String(hotspotGene).split('-')[0].toUpperCase();
         for (const idx of wtCellIndices) {
@@ -7840,10 +7841,12 @@ class CorrelationExplorer {
         if (mr.isTranslocation && mr.nNoCall > 0) {
             settingsText += ` | ${mr.nNoCall} not callable (no RNA-seq, excluded)`;
         }
-        // Name what the comparison group carries instead, when it is not nothing.
+        // State what the comparison group carries on the same gene and leave
+        // the interpretation open: whether a different partner counts as a
+        // control depends on the question being asked.
         if (mr.isTranslocation && mr.altFusions?.length) {
             const txt = mr.altFusions.map(([f, k]) => `${f} \u00d7${k}`).join(', ');
-            settingsText += ` | comparison group carries ${txt}, not fusion-free`;
+            settingsText += ` | comparison group carries ${txt}`;
         }
         if (hasFusion) {
             settingsText += ` | Fused: ${mr.nFused} cells`;
