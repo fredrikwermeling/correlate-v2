@@ -171,6 +171,11 @@ class CorrelationExplorer {
 
         // Custom cell line filter (Set<string> of cell line IDs, or null)
         this._customCellLineFilter = null;
+        // A cell-line subset handed to the analysis by "Network" in the Cell
+        // Line Browser inspect. Separate from the scatter's Custom Cell Lines
+        // box, which only ever filtered the inspect plot.
+        this._analysisCellLineSubset = null;
+        this._analysisSubsetLabel = '';
         this._customCellLineFilterGE = null; // separate for gene effect modal
         this._customCellLineFilterCLB = null; // separate for CLB
 
@@ -6488,11 +6493,16 @@ class CorrelationExplorer {
             // Check oncoprint multi-gene filters
             if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
 
+            // A subset handed over from the browser's inspect. Every other
+            // filter still applies on top, so a lineage picked afterwards
+            // narrows within the subset rather than replacing it.
+            if (this._analysisCellLineSubset && !this._analysisCellLineSubset.has(cellLine)) return;
+
             indices.push(idx);
         });
 
         // Return all indices if no filters applied
-        if (indices.length === 0 && !lineageFilter && !subLineageFilter &&
+        if (indices.length === 0 && !this._analysisCellLineSubset && !lineageFilter && !subLineageFilter &&
             (!hotspotGene || hotspotLevel === 'all') &&
             (!transGene || transLevel === 'all') && !cnVal) {
             return Array.from({ length: this.nCellLines }, (_, i) => i);
@@ -6665,12 +6675,17 @@ class CorrelationExplorer {
         }
 
         const cellLineIndices = this.getFilteredCellLineIndices();
+        // A cell-line subset is easy to forget about, so name it when it is
+        // part of what left too few lines behind.
+        const subsetNote = this._analysisCellLineSubset
+            ? ` The "Cell line subset" of ${this._analysisCellLineSubset.size} is also applied; remove it with the × beside it to use every cell line.`
+            : '';
         if (cellLineIndices.length < minN) {
-            this.showStatus('error', `Too few cell lines for analysis (${cellLineIndices.length} available, ${minN} required). Adjust filters or reduce "Min Cell Lines" setting.`);
+            this.showStatus('error', `Too few cell lines for analysis (${cellLineIndices.length} available, ${minN} required). Adjust filters or reduce "Min Cell Lines".${subsetNote}`);
             return;
         }
         if (cellLineIndices.length < 10) {
-            this.showStatus('error', `Too few cell lines match the filter (${cellLineIndices.length} found). Adjust filter settings.`);
+            this.showStatus('error', `Too few cell lines match the filter (${cellLineIndices.length} found). Adjust filter settings.${subsetNote}`);
             return;
         }
 
@@ -10670,7 +10685,7 @@ Results:
         // context so the user doesn't forget what the network represents.
         // The selection label already carries the cell-line count, so the
         // trailing pan-dataset n= would just be confusing, suppress it.
-        const fromSelection = !!this._pendingSelectionLabel;
+        const fromSelection = !!this._pendingSelectionLabel && !!this._analysisCellLineSubset;
         if (fromSelection) parts.push(this._pendingSelectionLabel);
         const lineage = document.getElementById('lineageFilter')?.value;
         const subLineage = document.getElementById('subLineageFilter')?.value;
@@ -13367,6 +13382,44 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             else unmatched.push(entry);
         }
         return { matched, total: entries.length, unmatched };
+    }
+
+    // Hand a cell-line subset to the analysis and show it as a removable chip
+    // beside the lineage filter, so it cannot quietly stay applied.
+    setAnalysisCellLineSubset(cellLines, label) {
+        const list = [...(cellLines || [])].filter(Boolean);
+        this._analysisCellLineSubset = list.length ? new Set(list) : null;
+        this._analysisSubsetLabel = list.length ? (label || `${list.length} cell lines`) : '';
+        this._renderAnalysisSubsetChip();
+    }
+
+    clearAnalysisCellLineSubset() {
+        this._analysisCellLineSubset = null;
+        this._analysisSubsetLabel = '';
+        // The banner's "Selection (n)" describes this subset, so it goes too.
+        this._pendingSelectionLabel = null;
+        this._renderAnalysisSubsetChip();
+    }
+
+    _renderAnalysisSubsetChip() {
+        const box = document.getElementById('analysisSubsetGroup');
+        if (!box) return;
+        const n = this._analysisCellLineSubset?.size || 0;
+        if (!n) { box.style.display = 'none'; box.innerHTML = ''; return; }
+        box.style.display = '';
+        box.innerHTML = `
+            <div class="param-section-heading">Cell line subset</div>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <span style="display:inline-flex; align-items:center; gap:6px; font-size:11px; background:#f0fdf4; border:1px solid #86c26f; color:#15803d; border-radius:12px; padding:2px 4px 2px 10px;">
+                    ${this.esc(this._analysisSubsetLabel)}
+                    <button type="button" id="analysisSubsetClear" title="Use all cell lines again" style="border:none; background:#dcfce7; color:#15803d; border-radius:50%; width:16px; height:16px; line-height:1; cursor:pointer; font-size:12px; padding:0;">&times;</button>
+                </span>
+            </div>
+            <div style="font-size:10px; color:#9ca3af; margin-top:3px;">Only these cell lines are analysed. Any lineage or alteration filter narrows within them.</div>`;
+        document.getElementById('analysisSubsetClear')?.addEventListener('click', () => {
+            this.clearAnalysisCellLineSubset();
+            this.showCopyNotification?.('Back to all cell lines. Run the analysis again to update it.');
+        });
     }
 
     applyCustomCellLineFilter() {
@@ -31426,14 +31479,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         menu.style.cssText = 'position:fixed; z-index:1450; width:210px; padding:4px; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.14); font-size:11px;';
         const rowCss = 'display:block; width:100%; text-align:left; padding:5px 8px; border:none; background:none; cursor:pointer; border-radius:4px; font-size:11px;';
         menu.innerHTML = options.map((o, i) =>
-            (o.danger ? '<div style="border-top:1px solid #e5e7eb; margin:4px 0;"></div>' : '')
-            + `<button type="button" data-i="${i}" style="${rowCss}${o.danger ? 'color:#b91c1c;' : o.active ? 'font-weight:700; background:#f0fdf4; color:#15803d;' : 'color:#374151;'}">${o.label}</button>`
+            (o.danger || o.sep ? '<div style="border-top:1px solid #e5e7eb; margin:4px 0;"></div>' : '')
+            + (o.href
+                ? `<a href="${o.href}" target="_blank" rel="noopener" style="${rowCss}color:#6b7280; text-decoration:none;">${o.label}</a>`
+                : `<button type="button" data-i="${i}" style="${rowCss}${o.danger ? 'color:#b91c1c;' : o.active ? 'font-weight:700; background:#f0fdf4; color:#15803d;' : 'color:#374151;'}">${o.label}</button>`)
         ).join('');
         document.body.appendChild(menu);
         const r = anchorEl.getBoundingClientRect();
         menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - 218))}px`;
         menu.style.top = `${Math.min(r.bottom + 4, window.innerHeight - menu.offsetHeight - 8)}px`;
         menu.addEventListener('click', (e) => {
+            // Links open in a new tab and leave the menu's own action alone.
+            if (e.target.closest('a')) { menu.remove(); return; }
             const btn = e.target.closest('button');
             if (!btn) return;
             options[+btn.dataset.i]?.act?.();
@@ -36034,7 +36091,7 @@ ${clone.innerHTML}
                         <label>Top</label>
                         <input type="number" id="ge${side}N" min="10" max="2000" step="10" value="200" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                         <button class="btn btn-outline btn-sm" id="ge${side}Network" style="font-size:11px; padding:3px 8px;">Network</button>
-                        <button class="btn btn-outline btn-sm" id="ge${side}Enrichr" style="font-size:11px; padding:3px 8px;">Enrichr</button>
+                        <button class="btn btn-outline btn-sm" id="ge${side}Enrichr" aria-haspopup="true" style="font-size:11px; padding:3px 8px;">Enrichr &#9662;</button>
                     </div>
                 </div>
                 <div style="font-size:10px; color:#9ca3af; margin-bottom:5px;">${note}</div>
@@ -36061,8 +36118,8 @@ ${clone.innerHTML}
             .forEach(id => document.getElementById('ge' + id)?.addEventListener('input', renderSides));
         document.getElementById('geLeftNetwork')?.addEventListener('click', () => this._launchGENetwork('left'));
         document.getElementById('geRightNetwork')?.addEventListener('click', () => this._launchGENetwork('right'));
-        document.getElementById('geLeftEnrichr')?.addEventListener('click', () => this._launchGEEnrichr('left'));
-        document.getElementById('geRightEnrichr')?.addEventListener('click', () => this._launchGEEnrichr('right'));
+        document.getElementById('geLeftEnrichr')?.addEventListener('click', (e) => this._launchGEEnrichr('left', e.currentTarget));
+        document.getElementById('geRightEnrichr')?.addEventListener('click', (e) => this._launchGEEnrichr('right', e.currentTarget));
         renderSides();
     }
 
@@ -36180,21 +36237,57 @@ ${clone.innerHTML}
 
     // Submit the genes currently displayed on the requested side of the
     // Inspect GE modal to Enrichr. Reuses the existing Enrichr modal.
-    _launchGEEnrichr(side) {
+    // Asks which genes to send, like the mutation-analysis Enrichr button, and
+    // carries the same link out to the Ma'ayan Lab site. Sending a mixed list
+    // of up- and down-genes at once dilutes the enrichment, so the directions
+    // can be sent separately.
+    _launchGEEnrichr(side, anchorEl) {
         if (!this._geInspectResults) return;
         const list = side === 'left' ? this._geInspectResults.leftDisplayed : this._geInspectResults.rightDisplayed;
-        if (!list || list.length < 2) { alert('Need at least 2 genes for Enrichr.'); return; }
-        const genes = list.map(r => r.gene);
-        const modal = document.getElementById('enrichrModal');
-        const content = document.getElementById('enrichrContent');
-        const title = document.getElementById('enrichrTitle');
-        if (!modal || !content) { alert('Enrichr UI not available.'); return; }
-        title.textContent = `Enrichr / ${genes.length} genes (${side === 'left' ? 'most depleted in selection' : 'most different vs rest'})`;
-        content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
-        modal.style.display = 'block';
-        this.submitToEnrichr(genes).catch(err => {
-            content.innerHTML = `<div style="text-align:center; padding:60px; color:#ef4444;">Failed to connect to Enrichr.<br><small style="color:#888;">${err.message}</small></div>`;
+        if (!list || list.length < 2) {
+            this.showCopyNotification?.('Need at least 2 genes for Enrichr. Lower the cutoff.');
+            return;
+        }
+        const expr = side === 'right';
+        const down = list.filter(r => r.delta < 0);
+        const up = list.filter(r => r.delta > 0);
+        const run = (rows, what) => {
+            const genes = rows.map(r => r.gene);
+            if (genes.length < 2) {
+                this.showCopyNotification?.(`Only ${genes.length} gene in that group; Enrichr needs at least 2.`);
+                return;
+            }
+            const modal = document.getElementById('enrichrModal');
+            const content = document.getElementById('enrichrContent');
+            const title = document.getElementById('enrichrTitle');
+            if (!modal || !content) return;
+            title.textContent = `Enrichr / ${genes.length} genes, ${what}`;
+            content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
+            modal.style.display = 'block';
+            this.submitToEnrichr(genes).catch(err => {
+                content.innerHTML = `<div style="text-align:center; padding:60px; color:#ef4444;">Failed to connect to Enrichr.<br><small style="color:#888;">${err.message}</small></div>`;
+            });
+        };
+
+        const measure = expr ? 'mRNA expression' : 'CRISPR gene effect';
+        const opts = [];
+        for (const k of [25, 50, 100, 250]) {
+            if (list.length > k) opts.push({ label: `Top ${k} by |&Delta;|`, act: () => run(list.slice(0, k), `top ${k} by |Δ|, ${measure}`) });
+        }
+        opts.push({ label: `All ${list.length} shown`, act: () => run(list, `all shown, ${measure}`) });
+        opts.push({
+            sep: true,
+            label: expr ? `Higher in selection (${up.length})` : `More essential in selection (${down.length})`,
+            act: () => (expr ? run(up, `higher in selection, ${measure}`) : run(down, `more essential in selection, ${measure}`)),
         });
+        opts.push({
+            label: expr ? `Lower in selection (${down.length})` : `Less essential in selection (${up.length})`,
+            act: () => (expr ? run(down, `lower in selection, ${measure}`) : run(up, `less essential in selection, ${measure}`)),
+        });
+        opts.push({ sep: true, href: 'https://maayanlab.cloud/Enrichr/', label: "About Enrichr (Ma'ayan Lab) &#8599;" });
+
+        document.getElementById('clbChipMenu')?.remove();
+        this._simpleChipMenu(anchorEl || document.getElementById(`ge${side === 'left' ? 'Left' : 'Right'}Enrichr`), opts, () => {});
     }
 
     // Render the two GE inspect tables with current sort + filter state.
@@ -36370,11 +36463,8 @@ ${clone.innerHTML}
         const taEl = document.getElementById('geneTextarea');
         if (taEl) taEl.value = list.map(r => r.gene).join('\n');
 
-        const customCLEl = document.getElementById('customCellLineFilter');
-        if (customCLEl) {
-            customCLEl.value = selected.join('\n');
-            try { this.applyCustomCellLineFilter?.(); } catch (e) { /* fall through */ }
-        }
+        this.setAnalysisCellLineSubset(selected,
+            `Selection from the browser (${selected.length} cell line${selected.length === 1 ? '' : 's'})`);
 
         const cutoffEl = document.getElementById('correlationCutoff');
         if (cutoffEl) {
@@ -36684,12 +36774,8 @@ ${clone.innerHTML}
         const taEl = document.getElementById('geneTextarea');
         if (taEl) taEl.value = [...genes].join('\n');
 
-        // Apply the cell-line selection as a custom filter on the main view.
-        const customCLEl = document.getElementById('customCellLineFilter');
-        if (customCLEl) {
-            customCLEl.value = selected.join('\n');
-            try { this.applyCustomCellLineFilter?.(); } catch (e) { /* fall through */ }
-        }
+        this.setAnalysisCellLineSubset(selected,
+            `Selection from the browser (${selected.length} cell line${selected.length === 1 ? '' : 's'})`);
 
         // Set the correlation cutoff (clamped to the slider's 0.1–0.8 range).
         const cutoffEl = document.getElementById('correlationCutoff');

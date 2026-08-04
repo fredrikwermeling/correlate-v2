@@ -1944,6 +1944,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.101 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>Network from Inspect now really uses your selected cell lines.</b> It said "Selection (27 cell lines)" in the banner but the correlations were computed across the whole panel, because the filter it set was the one belonging to the scatter plot and the analysis never read it. Corrected: the selection is a genuine subset of the analysis.</li>
+                    <li><b>The subset is visible and removable.</b> A <b>Cell line subset</b> chip appears above the lineage filter with an × to drop it. Any lineage or alteration filter narrows within the subset rather than replacing it, which is now stated where the chip is. If a combination leaves too few cell lines, the message names the subset as one of the causes.</li>
+                    <li><b>Enrichr in Inspect asks which genes to send</b>, like the one in mutation analysis: top 25 / 50 / 100 / 250 by size of difference, everything shown, or one direction on its own. Sending genes that go up and down together dilutes the enrichment, so the directions can go separately. The menu carries the link to Enrichr at the Ma'ayan Lab.</li>
+                </ul>
                 <p><strong>v.84.100 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Decimals use a dot everywhere.</b> Boxes where you type a decimal (the Inspect cutoffs, the correlation-inspect cutoffs, the mutation threshold, export width and height) were drawn by the browser in its own language, so a cutoff typed as 0.3 could read back as "0,3" while the text beside it said 0.30. They now always show a dot, matching every number the app prints. Typing a comma still works and is read as a decimal point.</li>
@@ -4728,7 +4734,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.100</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.101</a>
     </div>
 
     <div class="main-content">
@@ -4922,6 +4928,11 @@
                     </div>
 
                     <div style="border-top:1px solid #e5e7eb; margin:10px 0;"></div>
+
+                    <!-- A cell-line subset handed over by the browser's inspect.
+                         Hidden until one is active; removable from here so it
+                         cannot stay applied without the user knowing. -->
+                    <div class="form-group" id="analysisSubsetGroup" style="display: none;"></div>
 
                     <div class="form-group" id="lineageFilterGroup" style="display: none;">
                         <!-- Section heading, peer to "Genetic alterations" below. The
@@ -7184,6 +7195,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_100"></script>
+    <script src="app.js?v=v84_101"></script>
 </body>
 </html>
