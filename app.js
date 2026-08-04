@@ -8624,7 +8624,10 @@ class CorrelationExplorer {
         this._keepInlineCompare = false;
 
         // Show Expression Correlates button (only in mutation inspect mode)
-        document.getElementById('toggleExprCorrelatesBtn').style.display = '';
+        // Expression correlates retired: use the gates or Export for AI, which
+        // reach the whole dataset rather than one precomputed list. Restore by
+        // setting this back to ''.
+        document.getElementById('toggleExprCorrelatesBtn').style.display = 'none';
         // Update target gene label in the expression correlates panel
         document.getElementById('exprCorrelatesTargetGene').textContent = gene.toUpperCase();
 
@@ -20954,7 +20957,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (viewLabel && viewLabel.textContent.trim() === 'View:') viewLabel.style.display = '';
 
         // Show expression correlates button (hide panel until toggled)
-        document.getElementById('toggleExprCorrelatesBtn').style.display = '';
+        // Expression correlates retired: use the gates or Export for AI, which
+        // reach the whole dataset rather than one precomputed list. Restore by
+        // setting this back to ''.
+        document.getElementById('toggleExprCorrelatesBtn').style.display = 'none';
         document.getElementById('exprCorrelatesPanel').style.display = 'none';
 
         // Show modal. If a higher overlay is open (e.g. the Cell Line Wiki at
