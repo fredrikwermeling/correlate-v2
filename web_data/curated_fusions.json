@@ -1,0 +1,92 @@
+{
+  "_description": "Literature-curated gene fusion calls for cell lines the DepMap fusion caller could not call, and recorded alternative fusions for lines it called negative. A fusion call needs RNA-seq; lines without it are not fusion-negative, they are unknown. This file supplies the published answer where one exists, so those lines can join an analysis instead of being held out.",
+  "_howToRead": "byCellLine[<DepMap ID>].fusions lists fusions the line is documented to carry. An empty list with unknown:true means no fusion is documented and the line stays uncallable. Entries never override a positive call from the caller; they fill in lines the caller had nothing to say about, and record what a caller-negative line carries instead.",
+  "source": "Cellosaurus (https://www.cellosaurus.org), entries retrieved 2026-08-04",
+  "curatedOn": "2026-08-04",
+  "byCellLine": {
+    "ACH-002116": {
+      "name": "EW-22", "rrid": "CVCL_1214", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-FLI1"],
+      "detail": "Type 1 fusion (EWSR1 exon 7 / FLI1 exon 6)",
+      "source": "Cellosaurus CVCL_1214"
+    },
+    "ACH-001643": {
+      "name": "SCCH-196", "rrid": "CVCL_3161", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-FLI1"],
+      "detail": "Type 1 fusion (EWSR1 exon 7 / FLI1 exon 6)",
+      "source": "Cellosaurus CVCL_3161"
+    },
+    "ACH-002160": {
+      "name": "MC-IXC", "rrid": "CVCL_1398", "disease": "Askin tumor (Ewing family)",
+      "fusions": ["EWSR1-FLI1"],
+      "detail": "Type 1 fusion, inherited from the parent line SK-N-MC. Long mislabelled a neuroblastoma line; the parent was shown to come from an Askin tumor.",
+      "source": "Cellosaurus CVCL_1398"
+    },
+    "ACH-002105": {
+      "name": "ES4", "rrid": "CVCL_1200", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-FLI1"],
+      "detail": "Type 2 fusion (EWSR1 exon 7 / FLI1 exon 5)",
+      "source": "Cellosaurus CVCL_1200"
+    },
+    "ACH-002119": {
+      "name": "EW-7", "rrid": "CVCL_1217", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-FLI1"],
+      "detail": "Type 1 fusion (EWSR1 exon 7 / FLI1 exon 6)",
+      "source": "Cellosaurus CVCL_1217"
+    },
+    "ACH-002110": {
+      "name": "EW-1", "rrid": "CVCL_1208", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-FLI1"],
+      "detail": "Type 2 fusion (EWSR1 exon 7 / FLI1 exon 5)",
+      "source": "Cellosaurus CVCL_1208"
+    },
+    "ACH-001205": {
+      "name": "TC-32", "rrid": "CVCL_7151", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-FLI1"],
+      "detail": "Type 1 fusion (EWSR1 exon 7 / FLI1 exon 6)",
+      "source": "Cellosaurus CVCL_7151"
+    },
+    "ACH-002114": {
+      "name": "EW-16", "rrid": "CVCL_1212", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-FLI1"],
+      "detail": "EWSR1 exon 8 fused to FLI1 exon 7",
+      "source": "Cellosaurus CVCL_1212"
+    },
+    "ACH-002109": {
+      "name": "ES8", "rrid": "CVCL_1204", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-FLI1"],
+      "detail": "Type 2 fusion (EWSR1 exon 7 / FLI1 exon 5)",
+      "source": "Cellosaurus CVCL_1204"
+    },
+    "ACH-002106": {
+      "name": "ES5", "rrid": "CVCL_1201", "disease": "Ewing sarcoma",
+      "fusions": [], "unknown": true,
+      "detail": "No gene fusion is recorded in Cellosaurus for this line, so its fusion partner remains unknown rather than negative.",
+      "source": "Cellosaurus CVCL_1201"
+    },
+    "ACH-001431": {
+      "name": "TC-205", "rrid": "CVCL_4Z31", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-FEV"],
+      "detail": "EWSR1 exon 7 fused to FEV exon 3. A variant Ewing fusion, so genuinely EWSR1-FLI1 negative.",
+      "source": "Cellosaurus CVCL_4Z31"
+    },
+    "ACH-000210": {
+      "name": "CADO-ES1", "rrid": "CVCL_1103", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-ERG"],
+      "detail": "Cellosaurus notes this line was incorrectly reported to carry EWSR1-FLI1 in one publication; the fusion is EWSR1-ERG.",
+      "source": "Cellosaurus CVCL_1103"
+    },
+    "ACH-001283": {
+      "name": "TC-106", "rrid": "CVCL_F531", "disease": "Ewing sarcoma",
+      "fusions": ["EWSR1-ERG"],
+      "detail": "EWSR1 exon 7 fused to ERG exon 6.",
+      "source": "Cellosaurus CVCL_F531"
+    },
+    "ACH-001038": {
+      "name": "COG-E-352", "rrid": "CVCL_M153", "disease": "Primitive neuroectodermal tumor",
+      "fusions": ["EWSR1-ERG"],
+      "detail": "EWSR1-ERG fusion.",
+      "source": "Cellosaurus CVCL_M153"
+    }
+  }
+}

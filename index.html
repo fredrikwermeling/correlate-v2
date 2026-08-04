@@ -1966,6 +1966,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.105 (2026-08-04)</strong></p>
+                <ul>
+                    <li><b>Published fusion calls fill in the cell lines the caller could not read.</b> Rather than holding out every line without RNA-seq, their fusion status is taken from Cellosaurus where it is documented. For Ewing sarcoma this brings 9 cell lines back: EW-22, SCCH-196, MC-IXC, ES4, EW-7, EW-1, TC-32, EW-16 and ES8 all carry EWSR1-FLI1. The EWSR1-FLI1 group goes from 13 to 22.</li>
+                    <li><b>The comparison group says what it actually carries.</b> All four EWSR1-FLI1-negative Ewing lines carry a different fusion of the same gene: EWSR1-ERG in CADO-ES1, TC-106 and COG-E-352, EWSR1-FEV in TC-205. They are not fusion-free, and the results header now says so. Cellosaurus also records that CADO-ES1 was reported as EWSR1-FLI1 in error in one publication.</li>
+                    <li>ES5 has no documented fusion anywhere, so it stays held out rather than being guessed at.</li>
+                    <li><b>Switching between CRISPR and mRNA states its own group sizes.</b> The two panels cover different cell lines, so the same comparison is 22 vs 4 on CRISPR and 13 vs 4 on mRNA. Each mode now names its own numbers and what the other would give, instead of the count changing with no explanation.</li>
+                    <li><b>Filtering on a fusion with no data no longer matches every cell line.</b> An unrecognised pair fell through to "passes", so the whole panel looked positive.</li>
+                </ul>
                 <p><strong>v.84.104 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Cell lines that were never RNA-sequenced are no longer counted as fusion-negative.</b> A fusion call needs RNA-seq, so a line without it is unknown, not negative. For EWSR1-FLI1 in Ewing sarcoma that meant 14 "not fused" cell lines of which only 4 could ever have been called. Those 10 are now held out of both groups and reported separately, in the analysis, the results header and the tissue breakdown.</li>
@@ -4779,7 +4787,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.104</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.105</a>
     </div>
 
     <div class="main-content">
@@ -7240,6 +7248,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_104"></script>
+    <script src="app.js?v=v84_105"></script>
 </body>
 </html>

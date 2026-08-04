@@ -589,7 +589,7 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes, clinicalCnRes, validatedFusionsRes, functionalLossRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes, clinicalCnRes, validatedFusionsRes, functionalLossRes, curatedFusionsRes] = await Promise.all([
             fetch('web_data/metadata.json'),
             fetch('web_data/cellLineMetadata.json'),
             fetch('web_data/mutations.json'),
@@ -607,7 +607,8 @@ class CorrelationExplorer {
             fetch('web_data/lehmann_tnbc.json').catch(() => null),
             fetch('web_data/clinical_cn.json').catch(() => null),
             fetch('web_data/validated_fusions.json').catch(() => null),
-            fetch('web_data/functional_loss.json').catch(() => null)
+            fetch('web_data/functional_loss.json').catch(() => null),
+            fetch('web_data/curated_fusions.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -666,6 +667,13 @@ class CorrelationExplorer {
         // Mirrors damaging_mutations.json schema.
         if (functionalLossRes && functionalLossRes.ok) {
             this.functionalLoss = await functionalLossRes.json();
+        }
+        // Published fusion calls for cell lines the caller had no RNA-seq for.
+        // Without these such lines can only be held out of a fusion comparison,
+        // which for Ewing sarcoma removed most of the panel.
+        if (curatedFusionsRes && curatedFusionsRes.ok) {
+            try { this.curatedFusions = await curatedFusionsRes.json(); }
+            catch (e) { this.curatedFusions = null; }
         }
         if (translocationsRes && translocationsRes.ok) {
             this.translocations = await translocationsRes.json();
@@ -1220,7 +1228,7 @@ class CorrelationExplorer {
             if (lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== lineageFilter) return;
             if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== subLineageFilter) return;
             if (this._geFusionPasses(cellLine, raw)) { nFused++; return; }
-            // Never RNA-sequenced, so "not fused" was never established.
+            // Never established either way, so not a negative.
             if (!this._fusionCallable(cellLine)) { nNoCall++; return; }
             n0++;
         });
@@ -2120,14 +2128,10 @@ class CorrelationExplorer {
             const lineage = this.cellLineMetadata.lineage[cl];
             if (!lineage) return;
             if (!tissueMap[lineage]) tissueMap[lineage] = { lineage, nMut: 0, nWT: 0, nNoCall: 0 };
-            if (translocations[cl] && translocations[cl] > 0) {
-                tissueMap[lineage].nMut++;
-            } else if (!this._fusionCallable(cl)) {
-                // Never RNA-sequenced, so neither fused nor not fused.
-                tissueMap[lineage].nNoCall++;
-            } else {
-                tissueMap[lineage].nWT++;
-            }
+            const st = this._fusionStatus(cl, gene, translocations);
+            if (st === null) tissueMap[lineage].nNoCall++;   // never established
+            else if (st >= 1) tissueMap[lineage].nMut++;
+            else tissueMap[lineage].nWT++;
         });
 
         return Object.values(tissueMap).sort((a, b) => b.nMut - a.nMut);
@@ -2228,10 +2232,12 @@ class CorrelationExplorer {
                     if (!lin || !sub) return;
                     if (!subBreakdowns[lin]) subBreakdowns[lin] = {};
                     if (!subBreakdowns[lin][sub]) subBreakdowns[lin][sub] = { nMut: 0, nWT: 0, nNoCall: 0 };
-                    if (mutSource[cl] > 0) subBreakdowns[lin][sub].nMut++;
-                    // Fusion calling needs RNA-seq; a line without it is not a
-                    // negative, so it is kept out of the WT count here too.
-                    else if (isTransloc && !this._fusionCallable(cl)) subBreakdowns[lin][sub].nNoCall++;
+                    if (isTransloc) {
+                        const st = this._fusionStatus(cl, gene, mutSource);
+                        if (st === null) subBreakdowns[lin][sub].nNoCall++;
+                        else if (st >= 1) subBreakdowns[lin][sub].nMut++;
+                        else subBreakdowns[lin][sub].nWT++;
+                    } else if (mutSource[cl] > 0) subBreakdowns[lin][sub].nMut++;
                     else subBreakdowns[lin][sub].nWT++;
                 });
             }
@@ -3966,7 +3972,47 @@ class CorrelationExplorer {
     // fusion table holds an entry for every RNA-sequenced line, and its 74
     // absentees are exactly the 74 lines missing from the expression table.
     _fusionCallable(cellLine) {
-        return (this._fusionCountByCL?.get(cellLine) || 0) > 0;
+        if ((this._fusionCountByCL?.get(cellLine) || 0) > 0) return true;
+        // A published fusion call is as good as a called one. Lines whose
+        // curated entry documents no fusion stay uncallable.
+        const c = this.curatedFusions?.byCellLine?.[cellLine];
+        return !!(c && !c.unknown && Array.isArray(c.fusions));
+    }
+
+    // How many of these cell lines the expression table actually covers. The
+    // CRISPR panel and the expression panel are not the same set, so switching
+    // measure silently changes the group sizes unless this is reported.
+    _countWithExpression(cellIndices) {
+        if (!this.expressionMetadata?.cellLines) return null;
+        const have = (this._exprCLSet ||= new Set(this.expressionMetadata.cellLines));
+        let k = 0;
+        for (const idx of cellIndices) if (have.has(this.metadata.cellLines[idx])) k++;
+        return k;
+    }
+
+    // The curated entry for a cell line, if there is one.
+    _curatedFusionEntry(cellLine) {
+        return this.curatedFusions?.byCellLine?.[cellLine] || null;
+    }
+
+    // A cell line's status for one fusion: the caller's level when it has one,
+    // otherwise the published call, otherwise 'nocall'. Every consumer goes
+    // through here so the counts cannot disagree between views.
+    //   >=1   carries the fusion
+    //   0     does not carry it, and that is established
+    //   null  never established, hold out of both groups
+    _fusionStatus(cellLine, fusionKey, rawMap) {
+        const raw = rawMap ? (rawMap[cellLine] || 0) : 0;
+        if (raw >= 1) return raw;
+        const cur = this._curatedFusionEntry(cellLine);
+        if (cur && Array.isArray(cur.fusions)) {
+            if (cur.fusions.some(f => this._sameFusion(f, fusionKey))) return 1;
+            // Curated and complete: what it does not name, this line lacks.
+            if (!cur.unknown) return 0;
+            return null;
+        }
+        // No curated entry: the caller decides, provided it could see the line.
+        return this._fusionCallable(cellLine) ? 0 : null;
     }
 
     // Cell lines in the current view that cannot carry a fusion call, so a
@@ -3978,11 +4024,38 @@ class CorrelationExplorer {
     _geFusionPasses(cellLineId, fusionVal) {
         if (!fusionVal) return true;
         const key = this._stripFusionFilterDecoration(fusionVal);
+        // A curated call answers first for lines the caller never saw, and
+        // fills in the fusion partner for lines it called negative. It never
+        // overturns a positive call, only adds what the caller could not know.
+        const cur = this._curatedFusionEntry(cellLineId);
+        if (cur && Array.isArray(cur.fusions)) {
+            const named = cur.fusions.some(f => this._sameFusion(f, key));
+            if (named) return true;
+            // The curated list is complete for this line, so anything it does
+            // not name is genuinely absent, not merely unobserved.
+            if (!cur.unknown && (this._fusionCountByCL?.get(cellLineId) || 0) === 0) return false;
+        }
         const pairCells = this.clinicalFusions?.fusionData?.[key]?.cellLines;
         if (pairCells) return cellLineId in pairCells;
         const td = this.translocations?.geneData?.[key]?.translocations;
         if (td) return (td[cellLineId] || 0) >= 1;
+        // A named pair we hold no data for matches nothing. Falling through to
+        // true meant filtering on a fusion the caller never reported passed
+        // every cell line, which reads as "the whole panel carries it".
+        if (String(key).includes('-')) return false;
         return true;
+    }
+
+    // "EWSR1-FLI1" and a gene-level "EWSR1" filter should both match a curated
+    // EWSR1-FLI1 entry, so compare the whole pair and each partner.
+    _sameFusion(curated, key) {
+        const a = String(curated || '').toUpperCase().replace(/[^A-Z0-9]+/g, '-');
+        const b = String(key || '').toUpperCase().replace(/[^A-Z0-9]+/g, '-');
+        if (!a || !b) return false;
+        if (a === b) return true;
+        // Gene-level filter: match when the pair contains that gene.
+        if (!b.includes('-')) return a.split('-').includes(b);
+        return false;
     }
 
     // --- Unified mutation / fusion / CN filter widget (shared by the Cell Line
@@ -6837,6 +6910,10 @@ class CorrelationExplorer {
                     nMut: analysisResult.nMut,
                     n2: analysisResult.n2,
                     nNoCall: analysisResult.nNoCall || 0,
+                    altFusions: analysisResult.altFusions || [],
+                    nWTExpr: analysisResult.nWTExpr,
+                    nMutExpr: analysisResult.nMutExpr,
+                    metric: this._mutAnalysisMetric === 'expr' ? 'expr' : 'ge',
                     hasFusionData: analysisResult.hasFusionData,
                     nFused: analysisResult.nFused,
                     nWTFusion: analysisResult.nWTFusion,
@@ -7279,6 +7356,8 @@ class CorrelationExplorer {
             hasFusionData,
             nFused: fusedCellIndices?.length || 0,
             nWTFusion: wtFusionCellIndices?.length || 0,
+            nWTExpr: this._countWithExpression(wtCellIndices),
+            nMutExpr: this._countWithExpression(mutAllCellIndices),
             nSkippedMinN
         };
     }
@@ -7326,14 +7405,14 @@ class CorrelationExplorer {
             // Check oncoprint multi-gene filters
             if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
 
-            const transLevel = transData.translocations[cellLine] || 0;
-            if (transLevel === 0) {
-                // A fusion call needs RNA-seq. A cell line that was never
-                // sequenced is not fusion-negative, it is unknown, and putting
-                // it in the wild-type group both inflates that group and fills
-                // it with lines that may well carry the fusion. For Ewing
-                // sarcoma that turned 4 real wild-types into 14.
-                if (!this._fusionCallable(cellLine)) { noCallCellIndices.push(idx); return; }
+            // A fusion call needs RNA-seq. A line that was never sequenced is
+            // not fusion-negative, it is unknown, unless a published call says
+            // otherwise. _fusionStatus applies both rules.
+            const transLevel = this._fusionStatus(cellLine, hotspotGene, transData.translocations);
+            if (transLevel === null) {
+                noCallCellIndices.push(idx);
+                return;
+            } else if (transLevel === 0) {
                 wtCellIndices.push(idx);
             } else if (transLevel === 1) {
                 mut1CellIndices.push(idx);
@@ -7391,6 +7470,21 @@ class CorrelationExplorer {
             });
         }
 
+        // A line without the fusion under test may still carry a different one
+        // on the same gene. In Ewing sarcoma every EWSR1-FLI1-negative line
+        // carries EWSR1-ERG or EWSR1-FEV instead, so calling that group
+        // "wild-type" would be plainly wrong.
+        const altFusions = new Map();
+        const headGene = String(hotspotGene).split('-')[0].toUpperCase();
+        for (const idx of wtCellIndices) {
+            const cur = this._curatedFusionEntry(cellLines[idx]);
+            for (const f of (cur?.fusions || [])) {
+                if (String(f).toUpperCase().startsWith(headGene + '-')) {
+                    altFusions.set(f, (altFusions.get(f) || 0) + 1);
+                }
+            }
+        }
+
         return {
             results,
             nWT: wtCellIndices.length,
@@ -7398,6 +7492,9 @@ class CorrelationExplorer {
             n2: mut2CellIndices.length,
             hasFusionData: false,
             nNoCall: noCallCellIndices.length,
+            altFusions: [...altFusions.entries()].sort((a, b) => b[1] - a[1]),
+            nWTExpr: this._countWithExpression(wtCellIndices),
+            nMutExpr: this._countWithExpression(mutAllCellIndices),
             nSkippedMinN
         };
     }
@@ -7723,12 +7820,30 @@ class CorrelationExplorer {
         const _L = this._mutAxisLabels(mr);
         const typeLabel = mr.isDamaging ? _L.analysis : (mr.isTranslocation ? 'Fusion' : 'Hotspot');
         const mutLabel = mr.isTranslocation ? 'Fused' : mr.isDamaging ? _L.carrier : 'Mutated';
+        // In mRNA mode the usable group is only the part the expression table
+        // covers, which is a different cohort from the CRISPR panel. Show the
+        // measured numbers, and say what the other measure would have given, so
+        // switching between them never looks like the data changed by itself.
+        const onExpr = mr.metric === 'expr';
+        const exprKnown = mr.nWTExpr != null && mr.nMutExpr != null;
+        const shownWT = (onExpr && exprKnown) ? mr.nWTExpr : mr.nWT;
+        const shownMut = (onExpr && exprKnown) ? mr.nMutExpr : mr.nMut;
         let settingsText = `${typeLabel}: ${mr.hotspotGene} | `;
-        settingsText += `${mr.isTranslocation ? 'Not fused' : 'WT'}: ${mr.nWT} cells | ${mutLabel}: ${mr.nMut} cells`;
+        settingsText += `${mr.isTranslocation ? 'Not fused' : 'WT'}: ${shownWT} cells | ${mutLabel}: ${shownMut} cells`;
+        if (exprKnown && (mr.nWTExpr !== mr.nWT || mr.nMutExpr !== mr.nMut)) {
+            settingsText += onExpr
+                ? ` (of ${mr.nWT} and ${mr.nMut} in the CRISPR panel; the rest have no expression data)`
+                : ` (${mr.nWTExpr} and ${mr.nMutExpr} of these have expression data, so mRNA uses fewer)`;
+        }
         // Lines with no RNA-seq cannot be called either way. Saying so here
         // stops the group sizes looking arbitrary when they shrink.
         if (mr.isTranslocation && mr.nNoCall > 0) {
             settingsText += ` | ${mr.nNoCall} not callable (no RNA-seq, excluded)`;
+        }
+        // Name what the comparison group carries instead, when it is not nothing.
+        if (mr.isTranslocation && mr.altFusions?.length) {
+            const txt = mr.altFusions.map(([f, k]) => `${f} \u00d7${k}`).join(', ');
+            settingsText += ` | comparison group carries ${txt}, not fusion-free`;
         }
         if (hasFusion) {
             settingsText += ` | Fused: ${mr.nFused} cells`;
