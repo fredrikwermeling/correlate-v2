@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.28 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>A correction is no longer called a dispute.</b> Sixteen of the twenty cancer-type flags record a reclassification the current label already reflects, so calling them disputed suggested a disagreement that does not exist. SK-N-MC read as neuroblastoma, Askin tumour and Ewing sarcoma at once; it is an Ewing-family tumour, and the other two are its history. These now appear as quiet background with no marker in the list. The four genuinely unresolved ones keep the warning.</li>
+                    <li><b>The alteration boxes line up with the row above.</b> Each box plus its grid button now matches the width of the control above it: hotspot with search, fusion with tissue, amp/del with subtype.</li>
+                </ul>
                 <p><strong>v.85.27 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>Fusion and copy-number filters from the grids work.</b> Including EWSR1-FLI1 reported 0 of 1,186 because the row was recorded without its layer and then looked up among hotspot mutations, where a fusion name does not exist, so every cell line failed the test. It now returns the 23 lines carrying it.</li>
@@ -4912,7 +4917,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.27</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.28</a>
     </div>
 
     <div class="main-content">
@@ -6854,7 +6859,8 @@
           <p style="margin-top:14px;"><strong>&#9888; Warning marks</strong>: a triangle beside a cell line's name means <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a> records a problem with it. 56 of the 1,186 lines are flagged. Hover the mark for the full explanation, or open the line to see it with a link to the source.</p>
           <ul style="margin:4px 0 10px 20px;">
             <li><b>Identity disputed</b> (36 lines): the line is contaminated, misidentified, or a derivative of another line, so a result attributed to it may belong to something else. MKN28 is a MKN74 derivative; KP-1N is a PANC-1 derivative.</li>
-            <li><b>Cancer type disputed</b> (20 lines): the line is itself, but its recorded disease or tissue is wrong, so any tissue-grouped analysis places it incorrectly. SK-HEP-1 is filed under liver but most likely arose from endothelium; KE-97 is filed as gastric but is a B-lymphoblastoid line.</li>
+            <li><b>Cancer type disputed</b> (4 lines): the line is itself, but its recorded disease or tissue is genuinely unresolved, so any tissue-grouped analysis may place it incorrectly.</li>
+            <li><b>Earlier classification corrected</b> (16 lines): the type shown here is already the corrected one, so this is background rather than a warning and carries no marker in the list. SK-N-MC was called a neuroblastoma for years and is an Ewing-family tumour; KE-97 was filed as gastric and is a B-lymphoblastoid line.</li>
             <li>Both sets are available as quick filters, to exclude or to inspect. Nothing is hidden: a flagged line can still be a good experimental model, it just cannot be evidence about the tumour type on its label. Calls Cellosaurus states as possible rather than settled say so.</li>
           </ul>
           <p style="margin-top:14px;"><strong>Selecting cell lines</strong>: tick lines (or <b>Select Visible</b>) to build a set for Inspect / Export. <b>Show only my N</b> collapses the list to just your ticked lines and carries the count; it is greyed out until something is ticked, and turns off on Deselect All / Reset. The list fills <b>column by column</b> (down the first column in sort order, then the next).</p>
@@ -6982,7 +6988,7 @@
               </div>
               <div id="clbFusionFilterWrap" class="clb-pair">
                 <div class="clb-anchor">
-                  <input type="text" id="clbTranslocationFilter" placeholder="Fusion / gene..." title="Keep cell lines carrying this fusion. Click the chip below to invert it." autocomplete="off" style="width:158px;">
+                  <input type="text" id="clbTranslocationFilter" placeholder="Fusion / gene..." title="Keep cell lines carrying this fusion. Click the chip below to invert it." autocomplete="off" style="width:168px;">
                   <div id="clbTranslocationDropdown" class="clb-dropdown" style="min-width:280px;"></div>
                 </div>
                 <button id="clbGridFusionBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Fusion grid for the cell lines currently shown, curated driver fusions only">&#9638;</button>
@@ -6990,7 +6996,7 @@
               </div>
               <div id="clbCnFilterWrap" class="clb-pair">
                 <div class="clb-anchor">
-                  <input type="text" id="clbCnFilter" placeholder="Amp / deletion..." title="Keep cell lines carrying this focal amplification (&#9650;) or deletion (&#9660;). Click the chip below to invert it." autocomplete="off" style="width:158px;">
+                  <input type="text" id="clbCnFilter" placeholder="Amp / deletion..." title="Keep cell lines carrying this focal amplification (&#9650;) or deletion (&#9660;). Click the chip below to invert it." autocomplete="off" style="width:168px;">
                   <div id="clbCnDropdown" class="clb-dropdown" style="min-width:300px;"></div>
                 </div>
                 <button id="clbGridCnBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Copy-number grid for the cell lines currently shown">&#9638;</button>
@@ -7390,6 +7396,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_27"></script>
+    <script src="app.js?v=v85_28"></script>
 </body>
 </html>

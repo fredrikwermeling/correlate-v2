@@ -4032,6 +4032,9 @@ class CorrelationExplorer {
     // attributed, and the full record is a click away.
     _problemPlain(p) {
         if (!p) return '';
+        // A correction the current label already reflects is history, not a
+        // dispute, so it is stated as such and kept quiet.
+        if (p.settled) return 'The cancer type shown here is the corrected one. Its earlier classification was different.';
         const hedge = p.hedged ? ' This is reported as likely rather than settled.' : '';
         return (p.kind === 'identity'
             ? 'This may not be the cell line its name says, so a result from it may belong to a different line.'
@@ -25903,11 +25906,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // A problem flag goes first: if the line is not what its name says,
         // every number below it is about something else.
         const prob = this._problemFlag(cellLineId);
-        const warn = prob ? `<div style="margin-bottom:8px; padding:7px 10px; background:#fffbeb; border:1px solid #fcd34d; border-left:3px solid #d97706; border-radius:5px; color:#92400e; font-size:12px; line-height:1.5;">`
-            + `<b>&#9888; ${prob.kind === 'identity' ? 'Identity disputed' : 'Cancer type disputed'}${prob.hedged ? ' (reported as likely, not settled)' : ''}</b><br>`
+        const quiet = !!prob?.settled;
+        const warn = prob ? `<div style="margin-bottom:8px; padding:7px 10px; ${quiet
+                ? 'background:#f9fafb; border:1px solid #e5e7eb; border-left:3px solid #9ca3af; color:#4b5563;'
+                : 'background:#fffbeb; border:1px solid #fcd34d; border-left:3px solid #d97706; color:#92400e;'} border-radius:5px; font-size:12px; line-height:1.5;">`
+            + `<b>${quiet ? 'Earlier classification corrected'
+                          : '&#9888; ' + (prob.kind === 'identity' ? 'Identity disputed' : 'Cancer type disputed')
+                            + (prob.hedged ? ' (reported as likely, not settled)' : '')}</b><br>`
             + `${this.esc(this._problemPlain(prob))}`
             + (this._problemDetail(prob)
-                ? `<div style="margin-top:5px; color:#78350f;">Cellosaurus records it as <b>${this.esc(prob.category.toLowerCase())}</b>: &ldquo;${this.esc(this._problemDetail(prob))}&rdquo;</div>`
+                ? `<div style="margin-top:5px; color:${quiet ? '#6b7280' : '#78350f'};">Cellosaurus records it as <b>${this.esc(prob.category.toLowerCase())}</b>: &ldquo;${this.esc(this._problemDetail(prob))}&rdquo;</div>`
                 : '')
             + `<div style="margin-top:4px; font-size:10px;"><a href="https://www.cellosaurus.org/${this.esc(prob.rrid)}" target="_blank" rel="noopener" style="color:#b45309; text-decoration:underline;">Full record at Cellosaurus ${this.esc(prob.rrid)}</a></div>`
             + `</div>` : '';
@@ -31963,7 +31971,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const sexStr = `<span style="${sxStyle}" title="${sx.title}">${sx.sym}</span>`;
             // Flagged lines are marked in the list, not hidden, so the warning
             // is visible before the line is picked rather than after.
-            const prob = this._problemFlag(cl);
+            const probFlag = this._problemFlag(cl);
+            // Settled reclassifications are context, not warnings, so they do
+            // not put a marker beside every name.
+            const prob = probFlag && !probFlag.settled ? probFlag : null;
             const probStr = prob
                 ? `<span style="color:#d97706; margin-right:3px; flex-shrink:0; cursor:help;" title="${this.esc(this._problemPlain(prob))} Open the cell line for the Cellosaurus record.">&#9888;</span>`
                 : '';
