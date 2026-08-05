@@ -2003,6 +2003,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.45 (2026-08-05)</strong></p>
+                <ul>
+                    <li>Internal: the gate feature is marked as belonging to the extended build only, in all four places it appears, and the set of features the simpler build leaves out is written down in one file rather than living in scattered comments. No change to how anything works.</li>
+                </ul>
                 <p><strong>v.85.44 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>A selection that is only partly on the chart says so.</b> The heading reported how many selected cell lines were highlighted without saying how many were selected, so a gene screened in few lines quietly dropped most of them. Selecting all 126 lung lines and opening a gene measured in 332 of the 1,186 now reads &ldquo;41 of 126 selected cell lines shown, the other 85 have no value for this gene&rdquo;.</li>
@@ -4971,7 +4975,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.44</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.45</a>
     </div>
 
     <div class="main-content">
@@ -5933,7 +5937,10 @@
                             </div>
                         </div>
 
-                        <!-- Gate -->
+                        <!-- ===== V2 ONLY: gates (scatter) =====
+                             Draw two rectangles on the scatter and compare the
+                             cell lines inside them. Left out of the simpler
+                             build; this whole control-box goes with it. -->
                         <div class="control-box-compact mobile-hide" style="grid-column: span 2;">
                             <div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap;">
                                 <span style="font-size:11px; color:#666;">Gate:</span>
@@ -6109,6 +6116,7 @@
                     </div>
                     <!-- Row 3: Gates + Compare -->
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px;">
+                        <!-- ===== V2 ONLY: gates (gene effect) ===== -->
                         <span id="geGatesGroup" class="mobile-hide" style="display: none; gap: 4px; align-items: center; padding-left: 0; margin-left: 0;">
                             <label style="font-size: 12px; font-weight: 600; color: #374151; white-space: nowrap;">Gates:</label>
                             <button class="btn btn-sm" id="geSetGateABtn" style="font-size: 10px; padding: 2px 8px; background: #2563eb; color: white;" title="Draw rectangle on the scatter plot to define Gate A">Gate A</button>
@@ -6253,6 +6261,7 @@
                 <!-- GE Gate Compare Controls removed, using toolbar buttons (lines 2794-2798) -->
 
                 <!-- GE Gate Comparison Results Panel -->
+                <!-- ===== V2 ONLY: gates (gene-effect comparison results) ===== -->
                 <div id="geGateComparePanel" class="mobile-hide" style="display: none; margin-top: 12px; border: 2px solid #6ba544; border-radius: 8px; overflow: hidden;">
                     <div style="background: #6ba544; color: white; padding: 8px 15px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
                         <span>Gate Comparison: <span id="geGateCompareTitle">Gate A vs Gate B</span></span>
@@ -7299,7 +7308,8 @@
                     <span id="clbUmapSelectedCount" style="font-size:10px; color:#6b7280;"></span>
                 </div>
             </div>
-            <!-- UMAP Gate Comparison Results -->
+            <!-- ===== V2 ONLY: gates (UMAP lasso comparison) =====
+                 Inside the V2-only dimensionality-reduction block already. -->
             <div id="clbUmapGatePanel" style="display:none; margin-top:10px; border:2px solid #6ba544; border-radius:8px; overflow:hidden;">
                 <div style="background:#6ba544; color:white; padding:6px 12px; font-size:12px; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
                     <span>UMAP Gate Comparison: <span id="clbUmapGateTitle"></span></span>
@@ -7461,6 +7471,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_44"></script>
+    <script src="app.js?v=v85_45"></script>
 </body>
 </html>
