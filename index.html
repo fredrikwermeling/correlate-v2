@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.40 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>The receptor call says where it came from.</b> A published Lehmann subtype overrides the transcript rule, and without saying so the label could contradict the histograms beside it: HCC70 sits above both the ER and PR medians yet is a textbook triple-negative line. It now reads &ldquo;from the published Lehmann subtype (BL2), which takes precedence over the transcript rule&rdquo;.</li>
+                    <li><b>Reset clears the quick filters</b> along with everything else.</li>
+                </ul>
                 <p><strong>v.85.39 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>A lineage can be split by disease.</b> Charts broke a lineage up by DepMap's primary disease, which is coarse: every one of the 98 non-small-cell lung lines sat in a single box. Switching to the Oncotree disease separates them into lung adenocarcinoma (53), small cell (24), squamous, large cell and the rest, which is usually the more useful comparison.</li>
@@ -4955,7 +4960,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.39</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.40</a>
     </div>
 
     <div class="main-content">
@@ -7441,6 +7446,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_39"></script>
+    <script src="app.js?v=v85_40"></script>
 </body>
 </html>

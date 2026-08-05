@@ -31248,6 +31248,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this._activeOncoprintFilters = null;
             this._oncoprintSyncFilters?.();
             this.clearCustomCellLineFilterCLB();
+            // Quick filters are filters too, so a reset clears them and the
+            // panel showing them.
+            this._clbCollectionStates.clear();
+            if (document.getElementById('clbCollectionPanel')) this._renderCollectionPanel?.();
             // Reset means back to the starting state, so ticked cell lines go
             // too. Leaving them made Inspect and Export act on a selection
             // that no longer matched anything on screen.
@@ -34209,10 +34213,21 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 // fall back to an inline median/quintile call if collections
                 // haven't been built yet.
                 const _mem = this._collectionMembership || {};
-                let call, callColor;
-                if (_mem.her2_pos_breast?.has(cellLineId)) { call = 'HER2+ (approximate)'; callColor = '#b58a3c'; }
-                else if (_mem.tnbc?.has(cellLineId)) { call = 'Triple-negative (approximate)'; callColor = '#b05a3c'; }
-                else if (_mem.hr_pos_breast?.has(cellLineId)) { call = 'HR+ / luminal (approximate)'; callColor = '#6e8b4a'; }
+                let call, callColor, callBasis = '';
+                // Where the call came from. A published TNBC subtype overrides
+                // the transcript rule, and without saying so the badge can
+                // contradict the histograms right beside it: HCC70 sits above
+                // the ER and PR medians yet is a textbook TNBC line.
+                const _leh = this.lehmannTnbc?.byCellLine?.[cellLineId];
+                const _lehName = _leh?.tnbcType6 || _leh?.tnbcType4 || '';
+                if (_mem.her2_pos_breast?.has(cellLineId)) { call = 'HER2+ (approximate)'; callColor = '#b58a3c'; callBasis = 'from ERBB2 transcript level'; }
+                else if (_mem.tnbc?.has(cellLineId)) {
+                    call = 'Triple-negative (approximate)'; callColor = '#b05a3c';
+                    callBasis = _lehName
+                        ? `from the published Lehmann subtype (${_lehName}), which takes precedence over the transcript rule`
+                        : 'from the transcript rule';
+                }
+                else if (_mem.hr_pos_breast?.has(cellLineId)) { call = 'HR+ / luminal (approximate)'; callColor = '#6e8b4a'; callBasis = 'from ESR1 / PGR transcript level'; }
                 else {
                     const isHer2 = herD.mine != null && herD.mine >= herThresh;
                     const hrPos = (esrD.mine != null && esrD.mine >= esrMed) || (pgrD.mine != null && pgrD.mine >= pgrMed);
@@ -34240,7 +34255,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 receptorHtml = `
                     <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. Calls are made <i>relative to breast lines</i>: HER2+ if ERBB2 is in the top fifth, otherwise HR+ if ESR1 or PGR is above the median, otherwise triple-negative. Lines with a published Lehmann TNBC subtype use that instead, which is why a few borderline lines are called differently from what the histograms alone would suggest. A transcript surrogate throughout, not clinical IHC/FISH.</p>
                     <div style="margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                        <span>Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span></span>
+                        <span>Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span>${callBasis ? `<span style="color:#6b7280; font-size:10px; margin-left:6px;">${callBasis}</span>` : ''}</span>
                         <button onclick="window.app.exportWikiBreastExpressionCSV()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Export ESR1 / PGR / ERBB2 expression for every breast line (this line flagged) as a CSV, so you can make your own plot">Export .csv</button>
                     </div>
                     <div style="display:flex; gap:14px; flex-wrap:wrap;">${panels}</div>`;
