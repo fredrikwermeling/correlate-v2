@@ -2003,6 +2003,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.31 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>The grids' live count was wrong for fusions and copy number.</b> It read the hotspot mutation table whatever the grid was showing, so ticking EWSR1-FLI1 or MYC amp previewed as 0 of 1,186 before you even pressed Apply. All three places that test a grid row now use the same per-layer check.</li>
+                    <li><b>Reset clears the selection.</b> Ticked cell lines survived a reset, so Inspect and Export went on acting on a selection that no longer matched anything on screen.</li>
+                    <li><b>The Inspect cutoffs have &minus; and + buttons.</b> The size cutoff steps by its own increment; q walks the values people actually use, 0.001 to 1, rather than adding a fixed amount.</li>
+                    <li><b>A gene opened from a lineage-scoped Inspect opens on that lineage</b>, split by subtype. The tissue chip in the popout removes it to see every lineage.</li>
+                </ul>
                 <p><strong>v.85.28 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>A correction is no longer called a dispute.</b> Sixteen of the twenty cancer-type flags record a reclassification the current label already reflects, so calling them disputed suggested a disagreement that does not exist. SK-N-MC read as neuroblastoma, Askin tumour and Ewing sarcoma at once; it is an Ewing-family tumour, and the other two are its history. These now appear as quiet background with no marker in the list. The four genuinely unresolved ones keep the warning.</li>
@@ -4917,7 +4924,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.28</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.31</a>
     </div>
 
     <div class="main-content">
@@ -7396,6 +7403,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_28"></script>
+    <script src="app.js?v=v85_31"></script>
 </body>
 </html>

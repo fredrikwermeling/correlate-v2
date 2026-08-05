@@ -2798,12 +2798,15 @@ class CorrelationExplorer {
             if (activeFilters.length === 0) {
                 statusEl.innerHTML = '<span style="color:#9ca3af;">Click <span style="color:#5d9239;">■</span> to include or <span style="color:#dc2626;">■</span> to exclude mutated cells.</span>';
             } else {
+                // Count through the same per-layer test the applied filter
+                // uses. Reading the hotspot matrix directly meant a fusion or
+                // copy-number row always previewed as 0 matches.
+                const previewKind = self._oncoprintKind || 'hotspot';
                 let matchCount = 0;
                 for (const cl of filteredCLs) {
                     let passes = true;
                     for (const [gene, state] of activeFilters) {
-                        const muts = self.mutations.geneData[gene]?.mutations;
-                        const isMut = muts && muts[cl] > 0;
+                        const isMut = self._oncoprintRowHit(gene, cl, self._oncoprintFilterKinds?.[gene] || previewKind);
                         if (state === 'mut' && !isMut) { passes = false; break; }
                         if (state === 'wt' && isMut) { passes = false; break; }
                     }
@@ -31116,7 +31119,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this._activeOncoprintFilters = null;
             this._oncoprintSyncFilters?.();
             this.clearCustomCellLineFilterCLB();
+            // Reset means back to the starting state, so ticked cell lines go
+            // too. Leaving them made Inspect and Export act on a selection
+            // that no longer matched anything on screen.
+            this._clbSelectedCellLines.clear();
             this._setClbShowSelectedOnly(false);
+            this.updateClbSelectionCount();
             this.renderCellLineList();
             // Reset UMAP
             this._resetUmap();
@@ -36405,9 +36413,17 @@ ${clone.innerHTML}
                     <div style="font-weight:700; color:#4c782e; font-size:13px;">${title}</div>
                     <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
                         <label title="Hide genes whose difference is smaller than this">|&Delta;|&nbsp;&ge;</label>
-                        <input type="text" inputmode="decimal" id="ge${side}DeltaCutoff" min="0" max="10" step="${step}" value="${cut}" style="width:54px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                        <span style="display:inline-flex; align-items:center;">
+                            <button type="button" class="ge-step" data-t="${side}Delta" data-d="-1" title="Smaller cutoff, more genes" style="border:1px solid #d1d5db; border-right:none; border-radius:3px 0 0 3px; background:#f9fafb; cursor:pointer; padding:1px 6px; line-height:1.4;">&minus;</button>
+                            <input type="text" inputmode="decimal" id="ge${side}DeltaCutoff" min="0" max="10" step="${step}" value="${cut}" style="width:46px; padding:2px 2px; border:1px solid #d1d5db; border-radius:0; text-align:center;">
+                            <button type="button" class="ge-step" data-t="${side}Delta" data-d="1" title="Larger cutoff, fewer genes" style="border:1px solid #d1d5db; border-left:none; border-radius:0 3px 3px 0; background:#f9fafb; cursor:pointer; padding:1px 6px; line-height:1.4;">+</button>
+                        </span>
                         <label title="Benjamini-Hochberg adjusted p-value. 1 shows every gene.">q&nbsp;&le;</label>
-                        <input type="text" inputmode="decimal" id="ge${side}QCutoff" min="0" max="1" step="0.01" value="0.05" style="width:54px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
+                        <span style="display:inline-flex; align-items:center;">
+                            <button type="button" class="ge-step" data-t="${side}Q" data-d="-1" title="Stricter q" style="border:1px solid #d1d5db; border-right:none; border-radius:3px 0 0 3px; background:#f9fafb; cursor:pointer; padding:1px 6px; line-height:1.4;">&minus;</button>
+                            <input type="text" inputmode="decimal" id="ge${side}QCutoff" min="0" max="1" step="0.01" value="0.05" style="width:52px; padding:2px 2px; border:1px solid #d1d5db; border-radius:0; text-align:center;">
+                            <button type="button" class="ge-step" data-t="${side}Q" data-d="1" title="Looser q, 1 shows every gene" style="border:1px solid #d1d5db; border-left:none; border-radius:0 3px 3px 0; background:#f9fafb; cursor:pointer; padding:1px 6px; line-height:1.4;">+</button>
+                        </span>
                         <label>Top</label>
                         <input type="number" id="ge${side}N" min="10" max="2000" step="10" value="200" style="width:60px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
                         <button class="btn btn-outline btn-sm" id="ge${side}Network" style="font-size:11px; padding:3px 8px;">Network</button>
@@ -36436,6 +36452,27 @@ ${clone.innerHTML}
         const renderSides = () => this._renderGEInspectTables();
         ['LeftDeltaCutoff', 'RightDeltaCutoff', 'LeftQCutoff', 'RightQCutoff', 'LeftN', 'RightN']
             .forEach(id => document.getElementById('ge' + id)?.addEventListener('input', renderSides));
+        // q is not linear, so its buttons walk a ladder of the values people
+        // actually use rather than adding a fixed amount.
+        const Q_LADDER = [0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 1];
+        document.querySelectorAll('#selectionInspectBody .ge-step').forEach(b => {
+            b.addEventListener('click', () => {
+                const t = b.dataset.t, dir = +b.dataset.d;
+                const el = document.getElementById('ge' + t + 'Cutoff');
+                if (!el || el.disabled) return;
+                if (t.endsWith('Q')) {
+                    const cur = this.numInput(el, 0.05);
+                    let i = Q_LADDER.findIndex(v => v >= cur - 1e-9);
+                    if (i < 0) i = Q_LADDER.length - 1;
+                    el.value = Q_LADDER[Math.max(0, Math.min(Q_LADDER.length - 1, i + dir))];
+                } else {
+                    const stepSize = parseFloat(el.step) || 0.05;
+                    const next = Math.max(0, Math.round((this.numInput(el, 0) + dir * stepSize) / stepSize) * stepSize);
+                    el.value = +next.toFixed(3);
+                }
+                renderSides();
+            });
+        });
         document.getElementById('geLeftNetwork')?.addEventListener('click', () => this._launchGENetwork('left'));
         document.getElementById('geRightNetwork')?.addEventListener('click', () => this._launchGENetwork('right'));
         document.getElementById('geLeftEnrichr')?.addEventListener('click', (e) => this._launchGEEnrichr('left', e.currentTarget));
@@ -36803,6 +36840,20 @@ ${clone.innerHTML}
                     // expression, matching the number that was clicked.
                     const fromExpr = !!tr.closest('#geRightBody');
                     this.openGeneEffectModal(gene, 'tissue', { dataType: fromExpr ? 'expr' : 'ge' });
+                    // Follow the comparison the inspect was showing: if it was
+                    // scoped to one lineage, open the gene on that lineage,
+                    // which the by-tissue view then splits by subtype. The
+                    // tissue chip in the popout removes it to see everything.
+                    if (this._geInspectScope === 'lineage') {
+                        const lins = [...new Set(selected.map(c => this.getCellLineLineage(c)).filter(Boolean))];
+                        if (lins.length === 1) {
+                            const t = document.getElementById('geTissueFilter');
+                            if (t && [...t.options].some(o => o.value === lins[0])) {
+                                t.value = lins[0];
+                                t.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                    }
                 });
                 tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
                 tr.addEventListener('mouseleave', () => tr.style.background = '');
