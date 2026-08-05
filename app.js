@@ -25876,7 +25876,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const warn = prob ? `<div style="margin-bottom:8px; padding:7px 10px; background:#fffbeb; border:1px solid #fcd34d; border-left:3px solid #d97706; border-radius:5px; color:#92400e; font-size:12px; line-height:1.5;">`
             + `<b>&#9888; ${prob.kind === 'identity' ? 'Identity disputed' : 'Cancer type disputed'}${prob.hedged ? ' (reported as likely, not settled)' : ''}</b><br>`
             + `${this.esc(prob.category)}${prob.category.endsWith('.') ? '' : '.'} ${this.esc(this._problemDetail(prob))}`
-            + `<div style="margin-top:3px; font-size:10px; color:#b45309;">Cellosaurus ${this.esc(prob.rrid)}</div>`
+            + `<div style="margin-top:4px; font-size:10px;"><a href="https://www.cellosaurus.org/${this.esc(prob.rrid)}" target="_blank" rel="noopener" style="color:#b45309; text-decoration:underline;">Source: Cellosaurus ${this.esc(prob.rrid)}</a></div>`
             + `</div>` : '';
 
         const bodyText = [s2, s3, s4].filter(Boolean).join(' ');

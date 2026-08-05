@@ -385,6 +385,10 @@
             font-family: inherit;
             font-size: 12px;
         }
+        .select-proxy-filter:focus {
+            outline: none;
+            border-color: var(--gray-500);
+        }
 
         .select-proxy-list {
             overflow-y: auto;
@@ -404,13 +408,24 @@
         }
 
         .select-proxy-item:hover {
-            background: var(--green-50);
-            color: var(--green-700);
+            background: var(--gray-100);
         }
 
+        /* Marked with a tick and weight rather than a block of brand colour,
+           which made this one dropdown look unlike every other in the row. */
         .select-proxy-item.is-selected {
-            background: var(--green-600);
-            color: #fff;
+            background: transparent;
+            font-weight: 600;
+        }
+        .select-proxy-item.is-selected::before {
+            content: '\2713\00a0';
+            color: var(--gray-500);
+        }
+        .select-proxy-item:not(.is-selected)::before {
+            content: '\00a0\00a0\00a0';
+        }
+        .select-proxy-item.is-selected:hover {
+            background: var(--gray-100);
         }
 
         /* Sticky table headers inside scrolling popups. The background has to
@@ -1980,6 +1995,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.111 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>The disease dropdown's open list matches the others.</b> Its current choice was a solid block of brand green and the search box took the browser's blue focus ring, so it stood out from every neighbouring dropdown. The selection is now marked with a tick and bold text on a neutral background.</li>
+                    <li><b>Warnings say where they come from.</b> Each problematic cell line notice now carries a link to its Cellosaurus entry rather than naming it in plain text.</li>
+                    <li><b>Cellosaurus is credited in Data sources</b> for the published fusion calls and the problematic-line flags, with its citation. COSMIC was already credited for the curated fusion and subtype panels.</li>
+                </ul>
                 <p><strong>v.84.110 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>Correlate and Green Listed now share one palette.</b> Green Listed's green ramp was built as the midpoint between the two apps' wordmarks, keeping Correlate's lightness steps and shifting only the hue, so Correlate has adopted it. The greys and the earth accents were already identical.</li>
@@ -4819,8 +4840,10 @@
                         <li>Focal CN events <span style="color:#999;">(curated panel of ~32 amps + ~14 extended TSG deletions; from <code>OmicsCNGeneWGS.csv</code>)</span></li>
                         <li>HLA copy number <span style="color:#999;">(extracted from <code>OmicsCNGeneWGS.csv</code>; B2M-normalized to control for HLA-C mapping bias)</span></li>
                         <li>STR profiles <span style="color:#999;">(Cellosaurus reference panels)</span></li>
+                        <li>Published fusion calls <span style="color:#999;">(<a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a>; fills in cell lines with no RNA-seq, and recurrent driver fusions the caller did not report)</span></li>
+                        <li>Problematic cell lines <span style="color:#999;">(<a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a>; contaminated / misidentified / misclassified flags, 56 lines in this panel)</span></li>
                     </ul>
-                    <p style="margin: 12px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data; CORUM and Reactome have their own attribution requirements.</p>
+                    <p style="margin: 12px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;">Please acknowledge DepMap</a> if you use this data. CORUM, Reactome and COSMIC have their own attribution requirements. Cell-line identity, fusion and provenance annotations come from <a href="https://www.cellosaurus.org/" target="_blank" style="color: #0066cc;">Cellosaurus</a> (Bairoch A. <em>J Biomol Tech</em> 2018), which asks to be cited when used.</p>
                 </div>
             </div>
         </div>
@@ -4833,7 +4856,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.110</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.111</a>
     </div>
 
     <div class="main-content">
@@ -7294,6 +7317,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_110"></script>
+    <script src="app.js?v=v84_111"></script>
 </body>
 </html>
