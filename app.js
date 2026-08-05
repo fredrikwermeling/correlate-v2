@@ -5129,6 +5129,7 @@ class CorrelationExplorer {
         document.getElementById('downloadScatterPNG').addEventListener('click', () => this.downloadScatterPNG());
         document.getElementById('scatterTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('scatterPlot'));
         document.getElementById('geTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('geneEffectPlot'));
+        document.getElementById('geScopeToggleBtn')?.addEventListener('click', () => this.toggleGeLineageScope());
         this._initTextSettingsDrag();
         document.getElementById('downloadScatterCSV').addEventListener('click', () => this.downloadScatterCSV());
         document.getElementById('restoreFromSvgInput')?.addEventListener('change', (e) => {
@@ -21260,6 +21261,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // ============================================================
 
     openGeneEffectModal(gene, view = 'tissue', opts = {}) {
+        // Reset the lineage switch; the caller re-arms it when it applies.
+        if (!opts._keepScopeToggle) { this._geScopeLineage = ''; this._syncGeScopeToggle?.(); }
         const geneUpper = gene.toUpperCase();
         // Remember the open gene/view so "Open in new tab" can serialize it.
         this._geGene = geneUpper;
@@ -21587,6 +21590,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 row.style.display = term === '' || text.includes(term) ? '' : 'none';
             }
         });
+    }
+
+    // One lineage, split by subtype, or every lineage. The condensed popout has
+    // no filter row, so without this there was no way back out of a lineage the
+    // panel had been opened on.
+    _syncGeScopeToggle() {
+        const btn = document.getElementById('geScopeToggleBtn');
+        if (!btn) return;
+        const lin = this._geScopeLineage;
+        if (!lin) { btn.style.display = 'none'; return; }
+        const on = (document.getElementById('geTissueFilter')?.value || '') === lin;
+        btn.style.display = '';
+        btn.textContent = on ? `Showing ${lin} only, show all lineages` : `Showing all lineages, show ${lin} only`;
+        btn.title = on
+            ? `Currently split by subtype within ${lin}. Click to compare across every lineage.`
+            : `Currently across every lineage. Click to show ${lin} split by subtype.`;
+    }
+
+    toggleGeLineageScope() {
+        const lin = this._geScopeLineage;
+        const t = document.getElementById('geTissueFilter');
+        if (!lin || !t) return;
+        const on = (t.value || '') === lin;
+        t.value = on ? '' : lin;
+        this.updateGeSubtypeFilter?.();
+        const sub = document.getElementById('geSubtypeFilter');
+        if (sub) sub.value = '';
+        t.dispatchEvent(new Event('change', { bubbles: true }));
+        this._syncGeScopeToggle();
     }
 
     _applyParamFiltersToGEModal() {
@@ -36860,16 +36892,28 @@ ${clone.innerHTML}
                     //   all lineages  -> no tissue, no subtype
                     //   same lineage  -> that lineage, no subtype, so the
                     //                    by-tissue view splits it by subtype
+                    // Start from a clean slate. The popout otherwise inherits
+                    // every filter the browser had on (hotspot, fusion, copy
+                    // number, sex, custom cell lines), so a plot billed as "all
+                    // cell lines" was really "all cell lines that got through
+                    // the browser's filters". The only thing that should shape
+                    // it is the comparison the inspect was making.
+                    this._resetGEFilters?.();
                     const geT = document.getElementById('geTissueFilter');
                     const geS = document.getElementById('geSubtypeFilter');
                     const lins = [...new Set(selected.map(c => this.getCellLineLineage(c)).filter(Boolean))];
-                    const wantTissue = (this._geInspectScope === 'lineage' && lins.length === 1) ? lins[0] : '';
+                    const oneLineage = lins.length === 1 ? lins[0] : '';
+                    const wantTissue = (this._geInspectScope === 'lineage') ? oneLineage : '';
                     if (geT && (!wantTissue || [...geT.options].some(o => o.value === wantTissue))) {
                         geT.value = wantTissue;
                         this.updateGeSubtypeFilter?.();
                         if (geS) geS.value = '';
                         geT.dispatchEvent(new Event('change', { bubbles: true }));
                     }
+                    // Offer the switch either way round, defaulting to whatever
+                    // the inspect was comparing.
+                    this._geScopeLineage = oneLineage || '';
+                    this._syncGeScopeToggle();
                 });
                 tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
                 tr.addEventListener('mouseleave', () => tr.style.background = '');
