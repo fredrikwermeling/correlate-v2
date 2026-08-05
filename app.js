@@ -28285,6 +28285,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
     }
 
+    // The sort-direction button says which way the list will run, in words.
+    // A glyph-only arrow said nothing about what "up" meant for a gene-effect
+    // sort, and the control used to be hidden for most modes, which left no
+    // way to reverse the order at all.
+    _syncClbSortDirBtn() {
+        const btn = document.getElementById('clbSortDir');
+        if (!btn) return;
+        const mode = document.getElementById('clbSortBy')?.value || 'name';
+        const asc = !!this._clbSortAsc;
+        const labels = mode === 'name'
+            ? { asc: 'A &rarr; Z', desc: 'Z &rarr; A' }
+            : { asc: 'Low &rarr; high', desc: 'High &rarr; low' };
+        btn.innerHTML = asc ? labels.asc : labels.desc;
+        btn.title = mode === 'name'
+            ? 'Switch between A to Z and Z to A'
+            : 'Switch between lowest first and highest first';
+    }
+
     // ===== Cell Line Browser =====
 
     _precomputeCellLineCounts() {
@@ -30860,12 +30878,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const usesDropdown = (mode === 'drug' || mode === 'ge' || mode === 'expr' || mode === 'cn');
                 if (dd && !usesDropdown) dd.style.display = 'none';
             }
-            // Show direction arrow unless mode is name or (gene sort with empty gene input).
-            // Toggle visibility, not display: the space stays reserved so the
-            // row does not jump, and the arrow actually becomes clickable.
-            const showDir = mode !== 'name' && !(needsGene && !clbSortGene.value.trim());
-            clbSortDir.style.display = '';
-            clbSortDir.style.visibility = showDir ? 'visible' : 'hidden';
+            // Direction applies to every sort, Name included, so the button is
+            // always present rather than appearing and disappearing.
             // Default descending for count sorts and expression (highest-first
             // is usually what the user wants for "cells with highest
             // expression of gene X"). Ascending for name and gene-effect
@@ -30875,7 +30889,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             } else {
                 this._clbSortAsc = true;
             }
-            clbSortDir.innerHTML = this._clbSortAsc ? '&#x25B2;' : '&#x25BC;';
+            this._syncClbSortDirBtn();
         };
         clbSortBy.addEventListener('change', () => {
             // Clear the gene/drug input when switching sort basis, a gene
@@ -30931,7 +30945,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
         clbSortDir.addEventListener('click', () => {
             this._clbSortAsc = !this._clbSortAsc;
-            clbSortDir.innerHTML = this._clbSortAsc ? '&#x25B2;' : '&#x25BC;';
+            this._syncClbSortDirBtn();
             this.renderCellLineList();
         });
 
@@ -31047,9 +31061,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (_sortGene) _sortGene.style.display = '';
             const _sortDrugDd = document.getElementById('clbSortDrugDropdown');
             if (_sortDrugDd) _sortDrugDd.style.display = 'none';
-            document.getElementById('clbSortDir').style.visibility = 'hidden';
             this._clbSortMode = 'name';
             this._clbSortAsc = true;
+            this._syncClbSortDirBtn();
             this._oncoprintFilters = {};
             this._activeOncoprintFilters = null;
             this._oncoprintSyncFilters?.();
@@ -31653,7 +31667,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     return (va - vb) * dir;
                 };
             } else {
-                secondaryCmp = (a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                secondaryCmp = (a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)) * dir;
             }
         } else if (mode === 'hotspot' || mode === 'damaging' || mode === 'fusion') {
             const source = mode === 'hotspot' ? this._hotspotCountByCL
@@ -31777,7 +31791,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
             };
         } else {
-            secondaryCmp = (a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+            // Name sort honours the direction button too, so the list can run
+            // Z to A. It used to drop `dir`, which made the control look dead.
+            secondaryCmp = (a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)) * dir;
         }
 
         filtered.sort(secondaryCmp);

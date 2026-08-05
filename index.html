@@ -2000,6 +2000,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.17 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>Sorting runs both ways.</b> The direction control was invisible in every sort mode, so there was no way to reverse the list, and the Name sort ignored direction even when it was triggered. The button is now always there and says what it will do: <b>A &rarr; Z</b> / <b>Z &rarr; A</b> for names, <b>Low &rarr; high</b> / <b>High &rarr; low</b> for gene effect, expression and drug response.</li>
+                </ul>
                 <p><strong>v.85.15 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>The help no longer offers sorts that do not exist.</b> It listed ten, including Tissue + Subtype, Hotspot muts, Damaging muts, Fusions, Ploidy / Aneuploidy / CIN and Copy number, most of which were removed as excessive. There are four: Name, GE for gene(s), Expression of gene(s) and Drug response.</li>
@@ -4882,7 +4886,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.15</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.17</a>
     </div>
 
     <div class="main-content">
@@ -6872,7 +6876,7 @@
             <li><span style="color:#db2777; font-weight:700; font-style:italic;">&#9792;</span> pink, italic: Female by expression only (annotation unknown).</li>
             <li><span style="color:#9ca3af; font-weight:700;">?</span> gray: Unknown in both axes.</li>
           </ul>
-          <p><strong>Sort options</strong>, four in all. The arrow beside the picker flips the direction.</p>
+          <p><strong>Sort options</strong>, four in all. The button beside the picker reverses the order and says which way it will run: <b>A &rarr; Z</b> or <b>Z &rarr; A</b> for names, <b>Low &rarr; high</b> or <b>High &rarr; low</b> for everything else.</p>
           <ul style="margin:4px 0 10px 20px;">
             <li><b>Name</b>: alphabetical.</li>
             <li><b>GE for gene(s)</b>: type one or more genes; lines are ordered by CRISPR gene effect (Chronos), most essential first. Several genes are averaged, which ranks lines by combined essentiality.</li>
@@ -6931,7 +6935,7 @@
                 <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:160px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
                 <div id="clbSortDrugDropdown" class="clb-dropdown" style="min-width:320px;"></div>
               </div>
-              <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="width:32px; visibility:hidden;">&#x25BC;</button>
+              <button id="clbSortDir" class="btn btn-outline btn-sm" title="Switch the sort direction" style="min-width:96px;">A &rarr; Z</button>
               <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols, warnings and where each piece of data comes from">?</button>
             </div>
           </div>
@@ -7360,6 +7364,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_15"></script>
+    <script src="app.js?v=v85_17"></script>
 </body>
 </html>
