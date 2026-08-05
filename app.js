@@ -40083,7 +40083,15 @@ ${clone.innerHTML}
         }
     }
 
+    // Lasso is already the plot's default drag mode, so pressing this when
+    // nothing has changed it does nothing visible, which reads as a dead
+    // button. It exists to get back to lasso after the plot toolbar has been
+    // used to switch to zoom, pan or box select, and it now says so.
     clbUmapSelectMode() {
+        const cur = document.getElementById('clbUmapPlot')?.layout?.dragmode;
+        this.showCopyNotification?.(cur === 'lasso'
+            ? 'Already in lasso mode, drag on the plot to encircle cell lines.'
+            : 'Lasso mode on, drag on the plot to encircle cell lines.');
         // If 3-panel split, set lasso on all sub-plots
         const umapAll = document.getElementById('umapAll');
         if (umapAll) {

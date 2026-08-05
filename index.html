@@ -1995,6 +1995,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.13 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>The UMAP / PCA lasso is explained properly.</b> It is real lasso selection, but the plot already starts in lasso mode, so the <i>Lasso select</i> button changed nothing when pressed and looked broken. The instruction now leads with &ldquo;drag on the plot to lasso a cluster, no button needed&rdquo;, and the button is renamed <b>Back to lasso</b>: it exists to return after using the plot toolbar to zoom, pan or box-select. Pressing it now confirms the mode instead of doing nothing.</li>
+                </ul>
                 <p><strong>v.85.12 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>Dimensionality reduction is collapsed until you ask for it.</b> The browser now opens on the cell-line list, with PCA / UMAP behind a button at the bottom. Everything it needs sits inside one block, so it can be left out of a simpler build.</li>
@@ -4862,7 +4866,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.12</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.13</a>
     </div>
 
     <div class="main-content">
@@ -7175,9 +7179,9 @@
                 <div id="clbUmapLoadingsSidecar" style="display:none;"></div>
             </div>
             <div id="clbUmapSelectionControls" style="display:none; margin-top:8px; flex-direction:column; gap:4px; align-items:flex-start; flex-wrap:wrap;">
-                <div style="font-size:10px; color:#6b7280; line-height:1.4;">Draw a lasso on the plot to pick a cluster of cell lines. You can then copy their names, or check them in the list above to include them in an Export GE / Full Data Export run.</div>
+                <div style="font-size:10px; color:#6b7280; line-height:1.4;"><b>Drag on the plot to lasso a cluster</b> of cell lines, no button needed. You can then copy their names, or check them in the list above to include them in an Export GE / Full Data Export run.</div>
                 <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                    <button id="clbUmapSelectBtn" class="btn btn-sm btn-outline" style="font-size:10px;" title="Enable lasso mode on the plot, then drag to encircle points">Lasso select</button>
+                    <button id="clbUmapSelectBtn" class="btn btn-sm btn-outline" style="font-size:10px;" title="Lasso is the default drag mode. Use this to return to it after switching to zoom, pan or box select from the plot toolbar.">Back to lasso</button>
                     <button id="clbUmapCopyBtn" class="btn btn-sm btn-outline" style="font-size:10px;" title="Copy names of the currently-selected cell lines to the clipboard (one per line)">Copy selected</button>
                     <button id="clbUmapSelectInListBtn" class="btn btn-sm btn-outline" style="font-size:10px;" title="Tick the currently-lassoed cell lines in the list above so they're picked up by Export GE / Full Data Export">Select in list above</button>
                     <span id="clbUmapSelectedCount" style="font-size:10px; color:#6b7280;"></span>
@@ -7345,6 +7349,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_12"></script>
+    <script src="app.js?v=v85_13"></script>
 </body>
 </html>
