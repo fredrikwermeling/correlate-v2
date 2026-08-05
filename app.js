@@ -36851,19 +36851,24 @@ ${clone.innerHTML}
                     // expression, matching the number that was clicked.
                     const fromExpr = !!tr.closest('#geRightBody');
                     this.openGeneEffectModal(gene, 'tissue', { dataType: fromExpr ? 'expr' : 'ge' });
-                    // Follow the comparison the inspect was showing: if it was
-                    // scoped to one lineage, open the gene on that lineage,
-                    // which the by-tissue view then splits by subtype. The
-                    // tissue chip in the popout removes it to see everything.
-                    if (this._geInspectScope === 'lineage') {
-                        const lins = [...new Set(selected.map(c => this.getCellLineLineage(c)).filter(Boolean))];
-                        if (lins.length === 1) {
-                            const t = document.getElementById('geTissueFilter');
-                            if (t && [...t.options].some(o => o.value === lins[0])) {
-                                t.value = lins[0];
-                                t.dispatchEvent(new Event('change', { bubbles: true }));
-                            }
-                        }
+                    // Match the comparison the inspect was showing. The popout
+                    // otherwise inherits the browser's own tissue AND subtype
+                    // filters, so a gene opened while the browser was narrowed
+                    // to Ewing sarcoma showed only Ewing sarcoma whichever
+                    // comparison the inspect was making. Both are set here
+                    // rather than left to whatever was inherited:
+                    //   all lineages  -> no tissue, no subtype
+                    //   same lineage  -> that lineage, no subtype, so the
+                    //                    by-tissue view splits it by subtype
+                    const geT = document.getElementById('geTissueFilter');
+                    const geS = document.getElementById('geSubtypeFilter');
+                    const lins = [...new Set(selected.map(c => this.getCellLineLineage(c)).filter(Boolean))];
+                    const wantTissue = (this._geInspectScope === 'lineage' && lins.length === 1) ? lins[0] : '';
+                    if (geT && (!wantTissue || [...geT.options].some(o => o.value === wantTissue))) {
+                        geT.value = wantTissue;
+                        this.updateGeSubtypeFilter?.();
+                        if (geS) geS.value = '';
+                        geT.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 });
                 tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
