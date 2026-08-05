@@ -571,7 +571,7 @@ class CorrelationExplorer {
 @keyframes geSpinReveal { from { opacity: 0; } to { opacity: 1; } }
 #analysisSpinnerOverlay { position: fixed; inset: 0; z-index: 12000; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.5); opacity: 0; animation: geSpinReveal 0.25s ease 2s forwards; }
 #analysisSpinnerOverlay .ge-spin-card { display: flex; flex-direction: column; align-items: center; gap: 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px 30px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); }
-#analysisSpinnerOverlay .ge-spin-ring { width: 38px; height: 38px; border: 4px solid #d1fae5; border-top-color: #16a34a; border-radius: 50%; animation: geSpin 0.8s linear infinite; }
+#analysisSpinnerOverlay .ge-spin-ring { width: 38px; height: 38px; border: 4px solid #d1fae5; border-top-color: #5d9239; border-radius: 50%; animation: geSpin 0.8s linear infinite; }
 #analysisSpinnerOverlay .ge-spin-text { font-size: 13px; color: #374151; font-weight: 500; }`;
             document.head.appendChild(st);
         }
@@ -1719,7 +1719,7 @@ class CorrelationExplorer {
         html += `</div>`;
         html += `<div style="display:flex; gap:6px; align-items:center; padding:6px 10px; border-top:1px solid #e5e7eb;">`;
         html += `<span id="upsetSetupCount" style="font-size:10px; color:#6b7280; flex:1;"></span>`;
-        html += `<button id="upsetSetupGo" style="font-size:11px; padding:3px 10px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Show UpSet</button>`;
+        html += `<button id="upsetSetupGo" style="font-size:11px; padding:3px 10px; background:#6ba544; color:white; border:none; border-radius:4px; cursor:pointer;">Show UpSet</button>`;
         html += `</div>`;
         popup.innerHTML = html;
         document.body.appendChild(popup);
@@ -1987,13 +1987,13 @@ class CorrelationExplorer {
                 if (state === 'mut' && !isMut) { matches = false; break; }
                 if (state === 'wt' && isMut) { matches = false; break; }
             }
-            return matches ? '#16a34a' : '#cbd5e1';
+            return matches ? '#5d9239' : '#cbd5e1';
         });
 
         const traces = [{
             x: barX, y: barY,
             type: 'bar',
-            marker: { color: barColors, line: { color: barColors.map(c => c === '#16a34a' ? '#15803d' : 'transparent'), width: barColors.map(c => c === '#16a34a' ? 2 : 0) } },
+            marker: { color: barColors, line: { color: barColors.map(c => c === '#5d9239' ? '#4c782e' : 'transparent'), width: barColors.map(c => c === '#5d9239' ? 2 : 0) } },
             text: this._upsetShowNames ? barLabels : barLabels.map(() => ''),
             textposition: 'inside',
             textangle: -90,
@@ -2295,7 +2295,7 @@ class CorrelationExplorer {
             <span id="tbSelectionCount" style="font-size: 11px; color: #6b7280;">0 selected</span>
             <div style="display: flex; gap: 6px;">
                 <button id="tbClearBtn" style="padding: 4px 12px; font-size: 12px; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer;">Clear</button>
-                <button id="tbApplyBtn" style="padding: 4px 12px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">Apply Filter</button>
+                <button id="tbApplyBtn" style="padding: 4px 12px; font-size: 12px; background: #6ba544; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">Apply Filter</button>
             </div>
         </div>`;
 
@@ -2630,7 +2630,7 @@ class CorrelationExplorer {
             : gridKind === 'cn'
                 ? ['single-copy change', 'deep change', 'no event']
                 : ['1 mut', '2 mut', 'WT'];
-        html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#16a34a;">■</span> include · <span style="color:#dc2626;">■</span> exclude · <span style="display:inline-block;width:8px;height:8px;background:#3b82f6;vertical-align:middle;"></span> ${legendWords[0]} · <span style="display:inline-block;width:8px;height:8px;background:#1e40af;vertical-align:middle;"></span> ${legendWords[1]} · <span style="display:inline-block;width:8px;height:8px;background:#f3f4f6;border:1px solid #d1d5db;vertical-align:middle;"></span> ${legendWords[2]}</div>`;
+        html += `<div style="font-size:9px; color:#9ca3af; margin-bottom:4px;"><span style="color:#5d9239;">■</span> include · <span style="color:#dc2626;">■</span> exclude · <span style="display:inline-block;width:8px;height:8px;background:#3b82f6;vertical-align:middle;"></span> ${legendWords[0]} · <span style="display:inline-block;width:8px;height:8px;background:#1e40af;vertical-align:middle;"></span> ${legendWords[1]} · <span style="display:inline-block;width:8px;height:8px;background:#f3f4f6;border:1px solid #d1d5db;vertical-align:middle;"></span> ${legendWords[2]}</div>`;
         html += `<div style="display:flex; align-items:flex-start; width:100%;">`;
         html += `<canvas id="oncoprintLabelCanvas" style="flex:none; cursor:pointer;"></canvas>`;
         html += `<div id="oncoprintGridScroll" style="flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden;"><canvas id="oncoprintGridCanvas" style="display:block;"></canvas></div>`;
@@ -2642,7 +2642,7 @@ class CorrelationExplorer {
         html += `<button onclick="app._oncoprintExport('image')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;" title="Choose format, print size and resolution">Export image...</button>`;
         html += `<button onclick="app._oncoprintExport('csv')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;" title="The gene x cell line matrix as data">Export data (CSV)</button>`;
         html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
-        html += `<button onclick="app._showUpsetSetup()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f0fdf4;color:#16a34a;font-weight:500;" title="Pick which genes to compare, then draw the UpSet plot">UpSet...</button>`;
+        html += `<button onclick="app._showUpsetSetup()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f0fdf4;color:#5d9239;font-weight:500;" title="Pick which genes to compare, then draw the UpSet plot">UpSet...</button>`;
         html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
         const addWhat = gridKind === 'fusion' ? 'add fusion' : gridKind === 'cn' ? 'add event' : 'add gene';
         html += `<input id="oncoprintAddGene" list="oncoprintGeneOptions" placeholder="${addWhat}" style="font-size:10px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;width:104px;" title="Show a row that isn't in the top ${maxGenes}, type to search all ${geneCounts.length} with at least one cell line">`;
@@ -2727,7 +2727,7 @@ class CorrelationExplorer {
                 const bh = cellH - 4;
 
                 // Include box (green when active)
-                ctx.fillStyle = filterState === 'mut' ? '#16a34a' : '#e5e7eb';
+                ctx.fillStyle = filterState === 'mut' ? '#5d9239' : '#e5e7eb';
                 ctx.fillRect(bx1, by, boxW, bh);
                 ctx.strokeStyle = '#9ca3af';
                 ctx.lineWidth = 0.5;
@@ -2754,7 +2754,7 @@ class CorrelationExplorer {
 
                 // Gene label
                 const hasFilter = filterState !== 'none';
-                ctx.fillStyle = isSelected ? '#5a9f4a' : filterState === 'mut' ? '#16a34a' : filterState === 'wt' ? '#dc2626' : '#374151';
+                ctx.fillStyle = isSelected ? '#6ba544' : filterState === 'mut' ? '#5d9239' : filterState === 'wt' ? '#dc2626' : '#374151';
                 ctx.font = (isSelected || hasFilter) ? 'bold 10px Arial' : '10px Arial';
                 ctx.textAlign = 'right';
                 ctx.textBaseline = 'middle';
@@ -2791,7 +2791,7 @@ class CorrelationExplorer {
             const statusEl = document.getElementById('oncoprintStatus');
             if (!statusEl) return;
             if (activeFilters.length === 0) {
-                statusEl.innerHTML = '<span style="color:#9ca3af;">Click <span style="color:#16a34a;">■</span> to include or <span style="color:#dc2626;">■</span> to exclude mutated cells.</span>';
+                statusEl.innerHTML = '<span style="color:#9ca3af;">Click <span style="color:#5d9239;">■</span> to include or <span style="color:#dc2626;">■</span> to exclude mutated cells.</span>';
             } else {
                 let matchCount = 0;
                 for (const cl of filteredCLs) {
@@ -2805,9 +2805,9 @@ class CorrelationExplorer {
                     if (passes) matchCount++;
                 }
                 const tags = activeFilters.map(([gene, state]) =>
-                    `<span style="display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:10px;font-size:10px;background:${state === 'mut' ? '#dcfce7' : '#fef2f2'};color:${state === 'mut' ? '#16a34a' : '#dc2626'};border:1px solid ${state === 'mut' ? '#86efac' : '#fecaca'};">${gene} ${state === 'mut' ? '✓' : '✗'}<button onclick="app._oncoprintClearGene('${gene}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:#999;padding:0 0 0 2px;">×</button></span>`
+                    `<span style="display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:10px;font-size:10px;background:${state === 'mut' ? '#dcfce7' : '#fef2f2'};color:${state === 'mut' ? '#5d9239' : '#dc2626'};border:1px solid ${state === 'mut' ? '#86efac' : '#fecaca'};">${gene} ${state === 'mut' ? '✓' : '✗'}<button onclick="app._oncoprintClearGene('${gene}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:#999;padding:0 0 0 2px;">×</button></span>`
                 ).join('');
-                statusEl.innerHTML = `${tags} <span style="color:#6b7280;">${matchCount}/${filteredCLs.length} CLs</span> <button onclick="app._oncoprintApplyFilters()" style="padding:5px 16px;font-size:12px;font-weight:700;background:#15803d;color:white;border:none;border-radius:5px;cursor:pointer;box-shadow:0 2px 6px rgba(21,128,61,0.35);" title="Apply these include / exclude choices and close the grid">Apply &rarr;</button> <button onclick="app._oncoprintClearAll()" style="padding:2px 8px;font-size:10px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;">Clear</button>`;
+                statusEl.innerHTML = `${tags} <span style="color:#6b7280;">${matchCount}/${filteredCLs.length} CLs</span> <button onclick="app._oncoprintApplyFilters()" style="padding:5px 16px;font-size:12px;font-weight:700;background:#4c782e;color:white;border:none;border-radius:5px;cursor:pointer;box-shadow:0 2px 6px rgba(76, 120, 46,0.35);" title="Apply these include / exclude choices and close the grid">Apply &rarr;</button> <button onclick="app._oncoprintClearAll()" style="padding:2px 8px;font-size:10px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;">Clear</button>`;
             }
         };
 
@@ -3104,11 +3104,11 @@ class CorrelationExplorer {
             const y = rowIdx * cH;
             const fs = this._oncoprintFilters[g.gene] || 'none';
             // Include box
-            parts.push(`<rect x="2" y="${y + 2}" width="${bw}" height="${cH - 4}" fill="${fs === 'mut' ? '#16a34a' : '#e5e7eb'}" stroke="#9ca3af" stroke-width="0.5"/>\n`);
+            parts.push(`<rect x="2" y="${y + 2}" width="${bw}" height="${cH - 4}" fill="${fs === 'mut' ? '#5d9239' : '#e5e7eb'}" stroke="#9ca3af" stroke-width="0.5"/>\n`);
             // Exclude box
             parts.push(`<rect x="${2 + bw + bg}" y="${y + 2}" width="${bw}" height="${cH - 4}" fill="${fs === 'wt' ? '#dc2626' : '#e5e7eb'}" stroke="#9ca3af" stroke-width="0.5"/>\n`);
             // Gene label
-            const labelColor = fs === 'mut' ? '#16a34a' : fs === 'wt' ? '#dc2626' : '#374151';
+            const labelColor = fs === 'mut' ? '#5d9239' : fs === 'wt' ? '#dc2626' : '#374151';
             parts.push(`<text x="${baw + lw - 4}" y="${y + cH / 2}" text-anchor="end" dominant-baseline="central" font-family="Arial" font-size="10" fill="${labelColor}" ${fs !== 'none' ? 'font-weight="bold"' : ''}>${esc(g.gene)}</text>\n`);
             // Count
             parts.push(`<text x="${baw + lw + 3}" y="${y + cH / 2}" font-family="Arial" font-size="8" fill="#9ca3af" dominant-baseline="central">${g.n}</text>\n`);
@@ -3185,7 +3185,7 @@ class CorrelationExplorer {
             if (!overrideLabel && lineageGroup) {
                 overrideLabel = document.createElement('div');
                 overrideLabel.className = 'tb-override-label';
-                overrideLabel.style.cssText = 'font-size: 11px; color: #5a9f4a; margin-top: 2px; cursor: pointer;';
+                overrideLabel.style.cssText = 'font-size: 11px; color: #5d9239; margin-top: 2px; cursor: pointer;';
                 overrideLabel.title = 'Click to clear tissue selection';
                 overrideLabel.addEventListener('click', () => {
                     this.applyTissueBreakdownSelection([]);
@@ -3216,7 +3216,7 @@ class CorrelationExplorer {
             if (!overrideLabel && lineageGroup) {
                 overrideLabel = document.createElement('div');
                 overrideLabel.className = 'tb-override-label';
-                overrideLabel.style.cssText = 'font-size: 11px; color: #5a9f4a; margin-top: 2px; cursor: pointer;';
+                overrideLabel.style.cssText = 'font-size: 11px; color: #5d9239; margin-top: 2px; cursor: pointer;';
                 overrideLabel.title = 'Click to clear tissue selection';
                 overrideLabel.addEventListener('click', () => {
                     this.applyTissueBreakdownSelection([]);
@@ -3313,7 +3313,7 @@ class CorrelationExplorer {
                 <td style="padding: 3px 8px;"><input type="checkbox" class="tb-check" value="${t.lineage}"${checked}></td>
                 <td style="padding: 3px 4px; font-weight: 500;">${hasSubs ? '<span class="tb-expand" style="font-size:9px;color:#9ca3af;margin-right:2px;">▶</span>' : ''}${t.lineage}</td>
                 <td style="padding: 3px 6px; text-align: right; font-weight: 600;">${t.nMut}</td>
-                <td style="padding: 3px 8px;"><div style="background: #e2f4de; border-radius: 2px; height: 10px; width: 100%;"><div style="background: #5a9f4a; border-radius: 2px; height: 10px; width: ${barWidth}%;"></div></div></td>
+                <td style="padding: 3px 8px;"><div style="background: #e6f6dc; border-radius: 2px; height: 10px; width: 100%;"><div style="background: #6ba544; border-radius: 2px; height: 10px; width: ${barWidth}%;"></div></div></td>
             </tr>`;
 
             if (hasSubs) {
@@ -3324,7 +3324,7 @@ class CorrelationExplorer {
                         <td style="padding: 2px 8px 2px 16px;"><input type="checkbox" class="tb-sub-check" value="${sub}" data-parent="${t.lineage}"></td>
                         <td style="padding: 2px 4px 2px 8px; font-size:11px; color:#6b7280;">${sub}</td>
                         <td style="padding: 2px 6px; text-align: right; font-size:11px;">${count}</td>
-                        <td style="padding: 2px 8px;"><div style="background: #e2f4de; border-radius: 2px; height: 8px; width: 100%;"><div style="background: #86efac; border-radius: 2px; height: 8px; width: ${subBarW}%;"></div></div></td>
+                        <td style="padding: 2px 8px;"><div style="background: #e6f6dc; border-radius: 2px; height: 8px; width: 100%;"><div style="background: #86efac; border-radius: 2px; height: 8px; width: ${subBarW}%;"></div></div></td>
                     </tr>`;
                 });
             }
@@ -3335,7 +3335,7 @@ class CorrelationExplorer {
             <span id="tbSelectionCount" style="font-size: 11px; color: #6b7280;">0 selected</span>
             <div style="display: flex; gap: 6px;">
                 <button id="tbClearBtn" style="padding: 4px 12px; font-size: 12px; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer;">Clear</button>
-                <button id="tbApplyBtn" style="padding: 4px 12px; font-size: 12px; background: #5a9f4a; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">Apply Filter</button>
+                <button id="tbApplyBtn" style="padding: 4px 12px; font-size: 12px; background: #6ba544; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">Apply Filter</button>
             </div>
         </div>`;
         popup.innerHTML = html;
@@ -3451,8 +3451,8 @@ class CorrelationExplorer {
         // Cap at 200 items to keep DOM light; user can refine by typing.
         const visible = matches.slice(0, 200);
         dd.innerHTML = visible.map(it => {
-            const tone = it.kind === 'clinical' ? '#15803d' : '#374151';
-            const subTone = it.kind === 'clinical' ? '#15803d' : '#9ca3af';
+            const tone = it.kind === 'clinical' ? '#4c782e' : '#374151';
+            const subTone = it.kind === 'clinical' ? '#4c782e' : '#9ca3af';
             return `<div class="clb-fusion-opt" data-value="${it.value}" `
                 + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
                 + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
@@ -3611,7 +3611,7 @@ class CorrelationExplorer {
 
         const headerHtml = `<div class="clb-drug-dd-header" style="padding:6px 10px; background:#f9fafb; border-bottom:1px solid #e5e7eb; font-size:10px; color:#6b7280; position:sticky; top:0;">`
             + `Compounds ranked by potency in the <b>${visibleCls.length}</b> currently-visible cell line${visibleCls.length === 1 ? '' : 's'}.`
-            + ` Counts: <span style="color:#15803d; font-weight:600;">v</span> = very-sensitive (AUC &lt; 0.3, &ldquo;kills most cells&rdquo;), `
+            + ` Counts: <span style="color:#4c782e; font-weight:600;">v</span> = very-sensitive (AUC &lt; 0.3, &ldquo;kills most cells&rdquo;), `
             + `<span style="color:#a16207; font-weight:600;">p</span> = partly-sensitive (AUC 0.3&ndash;0.6, &ldquo;kills many cells&rdquo;). `
             + `Compounds tagged <span style="background:#fef3c7; color:#92400e; padding:1px 4px; border-radius:6px; font-size:9px; font-weight:600; border:1px solid #fde68a;">broadly cytotoxic</span> hit &ge; 40 % of the cohort, usually chemo / HDACi / proteasome inhibitors, not targeted therapies. Sorted most-potent first, so broad killers sit at the top.`
             + `</div>`;
@@ -3645,14 +3645,14 @@ class CorrelationExplorer {
                 ? ` <span title="More than 40% of the tested cohort scores very-sensitive, this is a broadly-cytotoxic compound (chemo / proteasome / HDAC / nucleoside / tubulin), not a targeted therapy. High &lsquo;v&rsquo; count does not imply this is the right drug for any one cell line." style="background:#fef3c7; color:#92400e; padding:1px 5px; border-radius:8px; font-size:9px; font-weight:600; border:1px solid #fde68a; cursor:help;">broadly cytotoxic ${Math.round(veryFrac * 100)}%</span>`
                 : '';
             const summary = totalN > 0
-                ? `<span style="color:#15803d; font-weight:600;">${veryN}</span> v · <span style="color:#a16207; font-weight:600;">${partN}</span> p / ${totalN}`
+                ? `<span style="color:#4c782e; font-weight:600;">${veryN}</span> v · <span style="color:#a16207; font-weight:600;">${partN}</span> p / ${totalN}`
                 : '<span style="color:#9ca3af;">no data</span>';
             const dimStyle = (veryN === 0 && partN === 0) ? 'opacity:0.55;' : panTox ? 'opacity:0.85;' : '';
             return `<div class="clb-sortdrug-opt" data-value="${safe(c.name)}" `
                 + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6; ${dimStyle}" `
                 + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
                 + `<div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">`
-                +   `<div style="font-weight:600; color:#15803d;">${c.name}${panToxBadge}</div>`
+                +   `<div style="font-weight:600; color:#4c782e;">${c.name}${panToxBadge}</div>`
                 +   `<div style="font-size:10px; color:#6b7280; white-space:nowrap;">${summary}</div>`
                 + `</div>`
                 + (targetMoa  ? `<div style="font-size:10px; color:#6b7280;">${targetMoa}</div>` : '')
@@ -3728,15 +3728,15 @@ class CorrelationExplorer {
         const top = candidates.slice(0, 80);
         const header = `<div style="padding:6px 10px; background:#f9fafb; border-bottom:1px solid #e5e7eb; font-size:10px; color:#6b7280; position:sticky; top:0;">`
             + `${candidates.length} match${candidates.length === 1 ? '' : 'es'} for &ldquo;${q}&rdquo; · `
-            + `<span style="color:#15803d;">●</span> = on the curated cancer-pathway panel`
+            + `<span style="color:#4c782e;">●</span> = on the curated cancer-pathway panel`
             + `</div>`;
         const rows = top.map(({ g, inPanel }) => {
             const safe = String(g).replace(/"/g, '&quot;');
-            const dot = inPanel ? '<span style="color:#15803d; font-weight:700;">●</span>' : '<span style="color:#d1d5db;">●</span>';
+            const dot = inPanel ? '<span style="color:#4c782e; font-weight:700;">●</span>' : '<span style="color:#d1d5db;">●</span>';
             return `<div class="clb-sortgene-opt" data-value="${safe}" `
                 + `style="padding:5px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6; display:flex; gap:8px; align-items:center;" `
                 + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
-                + `${dot}<span style="font-weight:600; color:#15803d;">${g}</span>`
+                + `${dot}<span style="font-weight:600; color:#4c782e;">${g}</span>`
                 + `</div>`;
         }).join('');
         dd.innerHTML = header + rows;
@@ -4003,6 +4003,15 @@ class CorrelationExplorer {
         return this.problematicLines?.byCellLine?.[cellLine] || null;
     }
 
+    // Cellosaurus's note opens by repeating the category ("Misclassified.
+    // Originally thought to be..."), so strip that opening wherever the
+    // category is already shown as a heading.
+    _problemDetail(p) {
+        if (!p?.note) return '';
+        const lead = new RegExp('^' + p.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.\\s*', 'i');
+        return p.note.replace(lead, '').trim() || p.note;
+    }
+
     // One-line warning for a flagged line. `full` includes Cellosaurus's own
     // explanation; the short form is for lists and chips.
     _problemText(cellLine, full = false) {
@@ -4011,7 +4020,7 @@ class CorrelationExplorer {
         const lead = p.kind === 'identity'
             ? 'This cell line may not be what its name says'
             : 'The recorded cancer type for this cell line is disputed';
-        return full ? `${lead}. ${p.note}` : `${p.category}`;
+        return full ? `${lead}. ${this._problemDetail(p)}` : `${p.category}`;
     }
 
     // The curated fusion entry for a cell line, if there is one.
@@ -4505,7 +4514,7 @@ class CorrelationExplorer {
                     p.style.display = 'none';
                 });
                 tab.classList.add('active');
-                tab.style.background = '#5a9f4a';
+                tab.style.background = '#6ba544';
                 tab.style.color = 'white';
                 const panel = document.getElementById('stats-' + tab.dataset.statsInput);
                 panel.classList.add('active');
@@ -5783,7 +5792,7 @@ class CorrelationExplorer {
             </div>`
             + (sugg.length
                 ? `<div style="color:#6b7280; margin-bottom:6px;">Did you mean:</div><div>${sugg.map(g =>
-                    `<button data-g="${this.esc(g)}" style="border:1px solid #d1d5db; background:#f9fafb; color:#15803d; font-weight:600; border-radius:10px; padding:2px 10px; margin:0 6px 6px 0; cursor:pointer; font-size:11px;">${this.esc(g)}</button>`).join('')}</div>
+                    `<button data-g="${this.esc(g)}" style="border:1px solid #d1d5db; background:#f9fafb; color:#4c782e; font-weight:600; border-radius:10px; padding:2px 10px; margin:0 6px 6px 0; cursor:pointer; font-size:11px;">${this.esc(g)}</button>`).join('')}</div>
                    <div style="color:#9ca3af; font-size:10px; margin-top:4px;">Click one to copy it.</div>`
                 : `<div style="color:#6b7280;">No similar gene symbol in this dataset. Check the spelling, or use Find synonyms for an alternative name.</div>`);
         document.body.appendChild(box);
@@ -5827,7 +5836,7 @@ class CorrelationExplorer {
         const res = this.permutationFDR(ctx.a, ctx.b, t, perms);
         if (!res) { out.textContent = ' groups too small for this test.'; return; }
         const noisy = res.fdr === null || res.fdr > 0.5;
-        out.innerHTML = `<span style="color:${noisy ? '#b45309' : '#15803d'};">`
+        out.innerHTML = `<span style="color:${noisy ? '#b45309' : '#4c782e'};">`
             + `${res.observed} gene${res.observed === 1 ? '' : 's'} separate this strongly; shuffling the groups gives `
             + `${res.expected.toFixed(1)} by chance`
             + (res.fdr !== null ? `, so about ${(res.fdr * 100).toFixed(0)}% of hits at this level are noise` : '')
@@ -7246,7 +7255,7 @@ class CorrelationExplorer {
         }
 
         this.synonymResults.forEach(r => {
-            const statusColor = r.status === 'Valid' ? '#16a34a' :
+            const statusColor = r.status === 'Valid' ? '#5d9239' :
                                r.status === 'Not Found' ? '#dc2626' : '#f59e0b';
             const tr = document.createElement('tr');
             const list = (arr) => (arr && arr.length > 0) ? this.esc(arr.join(', ')) : '-';
@@ -7254,7 +7263,7 @@ class CorrelationExplorer {
                 <td>${this.esc(r.input)}</td>
                 <td style="color: ${statusColor}; font-weight: 500;">${this.esc(r.status)}</td>
                 <td>${this.esc(r.official)}</td>
-                <td style="border-left: 2px solid #16a34a;">${list(r.lowRisk)}</td>
+                <td style="border-left: 2px solid #5d9239;">${list(r.lowRisk)}</td>
                 <td style="border-left: 2px solid #f59e0b; display: ${hasMidRisk ? '' : 'none'};">${list(r.midRisk)}</td>
                 <td style="border-left: 2px solid #6366f1;">${list(r.orthologs)}</td>
             `;
@@ -7680,8 +7689,8 @@ class CorrelationExplorer {
         document.querySelectorAll('[data-mut-metric]').forEach(b => {
             const on = b.dataset.mutMetric === want;
             b.style.background = on ? '#f0fdf4' : '';
-            b.style.borderColor = on ? '#5a9f4a' : '';
-            b.style.color = on ? '#15803d' : '';
+            b.style.borderColor = on ? '#6ba544' : '';
+            b.style.color = on ? '#4c782e' : '';
             b.style.fontWeight = on ? '700' : '';
         });
         if (this.mutationResults) this.runAnalysis();
@@ -8187,7 +8196,7 @@ class CorrelationExplorer {
                 if (ri % 2 === 1) svg += `<rect x="${pad}" y="${y}" width="${totalW - pad * 2}" height="${cellH}" fill="#f9fafb"/>\n`;
                 row.forEach((cell, ci) => {
                     const x = pad + (ci === 0 ? firstColW / 2 : firstColW + (ci - 1) * cellW + cellW / 2);
-                    const color = cell.startsWith('-') && !cell.startsWith('-') === false ? '#dc2626' : cell.match(/^-?\d/) && parseFloat(cell) < 0 ? '#dc2626' : parseFloat(cell) > 0 && ci > 0 ? '#16a34a' : '#374151';
+                    const color = cell.startsWith('-') && !cell.startsWith('-') === false ? '#dc2626' : cell.match(/^-?\d/) && parseFloat(cell) < 0 ? '#dc2626' : parseFloat(cell) > 0 && ci > 0 ? '#5d9239' : '#374151';
                     svg += `<text x="${x}" y="${y + cellH / 2 + 4}" font-family="Arial" font-size="9" fill="${color}" text-anchor="middle">${this.escapeXml(cell)}</text>\n`;
                 });
                 svg += `<line x1="${pad}" y1="${y + cellH}" x2="${totalW - pad}" y2="${y + cellH}" stroke="#e5e7eb" stroke-width="0.5"/>\n`;
@@ -9092,7 +9101,7 @@ class CorrelationExplorer {
         const tBtn = document.getElementById('geViewTissue');
         const hBtn = document.getElementById('geViewHotspot');
         [tBtn, hBtn].forEach(b => { b.style.background = ''; b.style.color = ''; b.classList.add('btn-secondary'); });
-        tBtn.style.background = '#5a9f4a';
+        tBtn.style.background = '#6ba544';
         tBtn.style.color = 'white';
         tBtn.classList.remove('btn-secondary');
 
@@ -9545,8 +9554,8 @@ class CorrelationExplorer {
         if (!ov) {
             ov = document.createElement('div');
             ov.id = 'networkLoadingOverlay';
-            ov.style.cssText = 'position:absolute; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:rgba(255,255,255,0.85); font-size:13px; font-weight:600; color:#15803d;';
-            ov.innerHTML = `<div style="width:38px; height:38px; border:4px solid #d1fae5; border-top-color:#15803d; border-radius:50%; animation:netspin 0.8s linear infinite;"></div><div id="networkLoadingText"></div>`;
+            ov.style.cssText = 'position:absolute; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:rgba(255,255,255,0.85); font-size:13px; font-weight:600; color:#4c782e;';
+            ov.innerHTML = `<div style="width:38px; height:38px; border:4px solid #d1fae5; border-top-color:#4c782e; border-radius:50%; animation:netspin 0.8s linear infinite;"></div><div id="networkLoadingText"></div>`;
             container.appendChild(ov);
         } else {
             ov.style.display = 'flex';
@@ -9650,7 +9659,7 @@ class CorrelationExplorer {
                 font: { size: fontSize, color: this._netLabelColor || '#333', face: this._netFontFamily || 'Arial, sans-serif' },
                 color: {
                     background: isGrowthRate ? '#9333ea' : this._netNodeColor || (this.results.mode === 'design' ?
-                        (isInput ? '#5a9f4a' : '#a8d89a') : '#5a9f4a'),
+                        (isInput ? '#6ba544' : '#b2dd95') : '#6ba544'),
                     border: '#000000'
                 },
                 borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
@@ -10002,7 +10011,7 @@ class CorrelationExplorer {
                             id: nodeId,
                             color: {
                                 background: this.results.mode === 'design' ?
-                                    (isInput ? '#5a9f4a' : '#a8d89a') : '#5a9f4a',
+                                    (isInput ? '#6ba544' : '#b2dd95') : '#6ba544',
                                 border: '#000000'
                             }
                         });
@@ -10052,8 +10061,8 @@ class CorrelationExplorer {
         if (this.results.mode === 'design' && !_colorByGEActive && !_colorByStatsActive) {
             legendNodeType.innerHTML = `
                 <strong>Node Type:</strong>
-                <span class="legend-item"><span class="legend-dot" style="background: #5a9f4a;"></span> Input</span>
-                <span class="legend-item"><span class="legend-dot" style="background: #a8d89a;"></span> Correlated</span>
+                <span class="legend-item"><span class="legend-dot" style="background: #6ba544;"></span> Input</span>
+                <span class="legend-item"><span class="legend-dot" style="background: #b2dd95;"></span> Correlated</span>
             `;
             legendNodeType.style.display = 'block';
         } else {
@@ -10154,7 +10163,7 @@ class CorrelationExplorer {
         // Aa text settings -> defaults
         this._netFontFamily = 'Arial, sans-serif';
         this._netLabelColor = '#333333';
-        this._netNodeColor = '#5a9f4a';
+        this._netNodeColor = '#6ba544';
         this._netLegendFontSize = 15;
         this._netLegendColor = '#374151';
         this._netBannerFontSize = 20;
@@ -10307,7 +10316,7 @@ class CorrelationExplorer {
         const bannerFontSize = this._netBannerFontSize || 20;
         const bannerColor = this._netBannerColor || '#374151';
         const labelColor = this._netLabelColor || '#333333';
-        const nodeColor = this._netNodeColor || '#5a9f4a';
+        const nodeColor = this._netNodeColor || '#6ba544';
 
         // Read current legend text from DOM
         const legendSections = legendEl?.querySelectorAll('.legend-section') || [];
@@ -10374,7 +10383,7 @@ class CorrelationExplorer {
 
         // Node label color
         const labelColor = document.getElementById('net_ts_labelColor')?.value || '#333333';
-        const nodeColor = document.getElementById('net_ts_nodeColor')?.value || '#5a9f4a';
+        const nodeColor = document.getElementById('net_ts_nodeColor')?.value || '#6ba544';
         this._netLabelColor = labelColor;
         this._netNodeColor = nodeColor;
 
@@ -10389,8 +10398,8 @@ class CorrelationExplorer {
                 font: { size: fontSize, color: labelColor, face: fontFamily }
             };
             // Only override color if user explicitly changed it from default
-            // Skip gray nodes (#d1d5db) and preserve input (#5a9f4a) vs correlated (#a8d89a) distinction
-            if (nodeColor !== '#5a9f4a' && node.color?.background !== '#d1d5db') {
+            // Skip gray nodes (#d1d5db) and preserve input (#6ba544) vs correlated (#b2dd95) distinction
+            if (nodeColor !== '#6ba544' && node.color?.background !== '#d1d5db') {
                 update.color = { ...node.color, background: nodeColor };
             }
             nodeUpdates.push(update);
@@ -10557,7 +10566,7 @@ class CorrelationExplorer {
                 <td>${c.n}</td>
                 <td>${muted ? '&ndash;' : c.cluster}</td>
                 <td style="white-space: nowrap;">
-                    <button class="btn btn-sm inspect-btn" style="padding: 2px 6px; font-size: 10px; background: ${muted ? '#9ca3af' : '#5a9f4a'}; color: white;" data-gene1="${c.gene1}" data-gene2="${c.gene2}">Correlation</button>
+                    <button class="btn btn-sm inspect-btn" style="padding: 2px 6px; font-size: 10px; background: ${muted ? '#9ca3af' : '#6ba544'}; color: white;" data-gene1="${c.gene1}" data-gene2="${c.gene2}">Correlation</button>
                 </td>
             `;
             tr.querySelector('.inspect-btn').addEventListener('click', () => {
@@ -10712,7 +10721,7 @@ class CorrelationExplorer {
                     <td>${c.cluster}</td>
                 `;
                 if (hasUncorrelated) {
-                    rowHtml += `<td style="text-align: center; color: ${c.hasCorrelation === false ? '#dc2626' : '#16a34a'}; font-weight: 600;">${c.hasCorrelation === false ? 'No' : 'Yes'}</td>`;
+                    rowHtml += `<td style="text-align: center; color: ${c.hasCorrelation === false ? '#dc2626' : '#5d9239'}; font-weight: 600;">${c.hasCorrelation === false ? 'No' : 'Yes'}</td>`;
                 }
                 rowHtml += `
                     <td>${c.meanEffect}</td>
@@ -10740,7 +10749,7 @@ class CorrelationExplorer {
                 // Add analyze button
                 rowHtml += `
                     <td style="text-align: center; white-space: nowrap;">
-                        <button class="btn btn-sm gene-effect-btn" style="padding: 2px 6px; font-size: 10px; background: #5a9f4a; color: white;" data-gene="${c.gene}">Gene Effect</button>
+                        <button class="btn btn-sm gene-effect-btn" style="padding: 2px 6px; font-size: 10px; background: #6ba544; color: white;" data-gene="${c.gene}">Gene Effect</button>
                     </td>
                 `;
 
@@ -11349,7 +11358,7 @@ Results:
             ctx.font = textFont;
 
             // Input gene
-            ctx.fillStyle = '#5a9f4a';
+            ctx.fillStyle = '#6ba544';
             ctx.beginPath();
             ctx.arc(legendX + 12, legendY + 25, 10, 0, Math.PI * 2);
             ctx.fill();
@@ -11357,7 +11366,7 @@ Results:
             ctx.fillText('Input', legendX + 28, legendY + 30);
 
             // Correlated gene
-            ctx.fillStyle = '#a8d89a';
+            ctx.fillStyle = '#b2dd95';
             ctx.beginPath();
             ctx.arc(legendX + 12, legendY + 52, 10, 0, Math.PI * 2);
             ctx.fill();
@@ -11630,7 +11639,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         this.networkData.nodes.forEach(node => {
             const pos = domPositions[node.id];
             if (pos) {
-                const bgColor = node.color?.background || '#5a9f4a';
+                const bgColor = node.color?.background || '#6ba544';
                 const nodeRadius = (node.size || 25) * scale;
                 const nodeFontSize = node.font?.size || 16;
                 const borderW = node.borderWidth != null ? node.borderWidth : 2;
@@ -11694,9 +11703,9 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         // Node type legend (for design mode, hidden when color by GE/stats)
         if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) {
             svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Node Type:</text>\n`;
-            svg += `  <circle cx="${legendX + 12}" cy="${legendY + 25}" r="10" fill="#5a9f4a"/>\n`;
+            svg += `  <circle cx="${legendX + 12}" cy="${legendY + 25}" r="10" fill="#6ba544"/>\n`;
             svg += `  <text x="${legendX + 28}" y="${legendY + 30}" class="legend-text">Input</text>\n`;
-            svg += `  <circle cx="${legendX + 12}" cy="${legendY + 52}" r="10" fill="#a8d89a"/>\n`;
+            svg += `  <circle cx="${legendX + 12}" cy="${legendY + 52}" r="10" fill="#b2dd95"/>\n`;
             svg += `  <text x="${legendX + 28}" y="${legendY + 57}" class="legend-text">Correlated</text>\n`;
 
             legendX += 140;
@@ -12067,7 +12076,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                     id: node.id,
                     color: {
                         background: this.results?.mode === 'design' ?
-                            (isInput ? '#5a9f4a' : '#a8d89a') : '#5a9f4a',
+                            (isInput ? '#6ba544' : '#b2dd95') : '#6ba544',
                         border: '#000000'
                     }
                 });
@@ -12312,7 +12321,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                 id: nodeId,
                 color: {
                     background: this.results?.mode === 'design' ?
-                        (isInput ? '#5a9f4a' : '#a8d89a') : '#5a9f4a',
+                        (isInput ? '#6ba544' : '#b2dd95') : '#6ba544',
                     border: '#000000'
                 }
             });
@@ -12726,7 +12735,7 @@ Results:
             ctx.font = textFont;
 
             // Input gene
-            ctx.fillStyle = '#5a9f4a';
+            ctx.fillStyle = '#6ba544';
             ctx.beginPath();
             ctx.arc(legendX + 12, legendY + 25, 10, 0, Math.PI * 2);
             ctx.fill();
@@ -12734,7 +12743,7 @@ Results:
             ctx.fillText('Input', legendX + 28, legendY + 30);
 
             // Correlated gene
-            ctx.fillStyle = '#a8d89a';
+            ctx.fillStyle = '#b2dd95';
             ctx.beginPath();
             ctx.arc(legendX + 12, legendY + 52, 10, 0, Math.PI * 2);
             ctx.fill();
@@ -12975,7 +12984,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.networkData.nodes.forEach(node => {
             const pos = domPositions[node.id];
             if (pos) {
-                const bgColor = node.color?.background || '#5a9f4a';
+                const bgColor = node.color?.background || '#6ba544';
                 const nodeRadius = (node.size || 25) * scale;
                 const nodeFontSize = node.font?.size || 16;
                 const borderW = node.borderWidth != null ? node.borderWidth : 2;
@@ -13034,9 +13043,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Node type legend (for design mode, hidden when color by GE/stats)
         if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) {
             svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Node Type:</text>\n`;
-            svg += `  <circle cx="${legendX + 12}" cy="${legendY + 25}" r="10" fill="#5a9f4a"/>\n`;
+            svg += `  <circle cx="${legendX + 12}" cy="${legendY + 25}" r="10" fill="#6ba544"/>\n`;
             svg += `  <text x="${legendX + 28}" y="${legendY + 30}" class="legend-text">Input</text>\n`;
-            svg += `  <circle cx="${legendX + 12}" cy="${legendY + 52}" r="10" fill="#a8d89a"/>\n`;
+            svg += `  <circle cx="${legendX + 12}" cy="${legendY + 52}" r="10" fill="#b2dd95"/>\n`;
             svg += `  <text x="${legendX + 28}" y="${legendY + 57}" class="legend-text">Correlated</text>\n`;
 
             legendX += 140;
@@ -13773,9 +13782,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         box.innerHTML = `
             <div class="param-section-heading">Cell line subset</div>
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                <span style="display:inline-flex; align-items:center; gap:6px; font-size:11px; background:#f0fdf4; border:1px solid #86c26f; color:#15803d; border-radius:12px; padding:2px 4px 2px 10px;">
+                <span style="display:inline-flex; align-items:center; gap:6px; font-size:11px; background:#f0fdf4; border:1px solid #86c26f; color:#4c782e; border-radius:12px; padding:2px 4px 2px 10px;">
                     ${this.esc(this._analysisSubsetLabel)}
-                    <button type="button" id="analysisSubsetClear" title="Use all cell lines again" style="border:none; background:#dcfce7; color:#15803d; border-radius:50%; width:16px; height:16px; line-height:1; cursor:pointer; font-size:12px; padding:0;">&times;</button>
+                    <button type="button" id="analysisSubsetClear" title="Use all cell lines again" style="border:none; background:#dcfce7; color:#4c782e; border-radius:50%; width:16px; height:16px; line-height:1; cursor:pointer; font-size:12px; padding:0;">&times;</button>
                 </span>
             </div>
             <div style="font-size:10px; color:#9ca3af; margin-top:3px;">Only these cell lines are analysed. Any lineage or alteration filter narrows within them.</div>`;
@@ -13848,7 +13857,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const fusion = document.getElementById('geFusionFilter')?.value;
         const cn = document.getElementById('geCnFilter')?.value;
         const mk = (txt, c, kind) => `<span${kind ? ` class="clb-chip" data-ge-chip="${kind}" title="Click to change which cell lines are kept, or to remove this filter"` : ''} style="background:${c[0]}; color:${c[1]}; border:1px solid ${c[2]}; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:600; white-space:nowrap;">${txt}${kind ? ' &#9662;' : ''}</span>`;
-        const blue = ['#eff6ff', '#1d4ed8', '#bfdbfe'], green = ['#f0fdf4', '#15803d', '#bbf7d0'], amber = ['#fffbeb', '#b45309', '#fde68a'];
+        const blue = ['#eff6ff', '#1d4ed8', '#bfdbfe'], green = ['#f0fdf4', '#4c782e', '#bbf7d0'], amber = ['#fffbeb', '#b45309', '#fde68a'];
         const chips = [];
         if (tissue) chips.push(mk(tissue, blue, 'tissue'));
         if (subtype) chips.push(mk(subtype, blue, 'subtype'));
@@ -14481,7 +14490,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 y: [allStats.slope * xRange[0] + intercept, allStats.slope * xRange[1] + intercept],
                 mode: 'lines',
                 type: 'scatter',
-                line: { color: '#5a9f4a', width: 3 },
+                line: { color: '#6ba544', width: 3 },
                 fill: 'none',
                 name: 'Regression',
                 showlegend: false
@@ -14970,9 +14979,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
 
         if (document.getElementById('showCorrelationLine')?.checked !== false) {
-            addRegressionLine(wt, wtStats, 'x', 'y', '#5a9f4a');
-            addRegressionLine(mut1, mut1Stats, 'x2', 'y2', '#5a9f4a');
-            addRegressionLine(mut2, mut2Stats, 'x3', 'y3', '#5a9f4a');
+            addRegressionLine(wt, wtStats, 'x', 'y', '#6ba544');
+            addRegressionLine(mut1, mut1Stats, 'x2', 'y2', '#6ba544');
+            addRegressionLine(mut2, mut2Stats, 'x3', 'y3', '#6ba544');
         }
 
         // Add highlighted cells for each panel
@@ -15420,8 +15429,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         `;
 
         tableData.forEach(row => {
-            const deltaRColor = row.deltaR < 0 ? '#dc2626' : '#5a9f4a';
-            const deltaSlopeColor = row.deltaSlope < 0 ? '#dc2626' : '#5a9f4a';
+            const deltaRColor = row.deltaR < 0 ? '#dc2626' : '#6ba544';
+            const deltaSlopeColor = row.deltaSlope < 0 ? '#dc2626' : '#6ba544';
 
             html += `
                 <tr class="clickable-row" data-lineage="${row.lineage}" style="cursor: pointer;" title="Click to view ${row.lineage} scatter plot with ${hotspotGene} overlay">
@@ -15650,7 +15659,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         `;
 
         tableData.forEach(row => {
-            const deltaRColor = row.deltaR < 0 ? '#dc2626' : '#5a9f4a';
+            const deltaRColor = row.deltaR < 0 ? '#dc2626' : '#6ba544';
             const pHighlight = row.pR < 0.05 ? 'background: #fef3c7;' : '';
 
             html += `
@@ -15806,7 +15815,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const filterInfo = filterDesc ? `<p style="font-size:11px;color:#333;margin-bottom:8px;background:#f0f9ff;padding:4px 8px;border-radius:4px;"><b>Filter:</b> ${filterDesc}</p>` : '';
         let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h4 style="margin:0;">${o.heading || `${carrierWord} affecting ${gene1} vs ${gene2}`}</h4><div><button class="btn btn-primary btn-sm" id="backToGraphBtnSubset" style="margin-right:8px;">← Back to Graph</button><button class="btn btn-success btn-sm" id="downloadSubsetCSV">Download CSV</button></div></div>${filterInfo}<p style="font-size:11px;color:#666;margin-bottom:6px;">Comparing WT vs ${carrierWord}. Sorted by p-value.</p>${o.clickNote ? `<p style="font-size:11px;color:#059669;margin-bottom:8px;">${o.clickNote}</p>` : ''}<div class="table-container" style="max-height:380px;overflow-y:auto;"><table id="${tableId}" class="data-table" style="width:100%;font-size:11px;"><thead><tr><th data-sort="label" data-type="string" style="cursor:pointer;">${o.subsetCol || carrierWord} ↕</th><th data-sort="nWT" data-type="number" style="cursor:pointer;border-left:2px solid #2563eb;">N(WT) ↕</th><th data-sort="rWT" data-type="number" style="cursor:pointer;">r(WT) ↕</th><th data-sort="nC" data-type="number" style="cursor:pointer;border-left:2px solid #dc2626;">N(${carrierWord}) ↕</th><th data-sort="rC" data-type="number" style="cursor:pointer;">r(${carrierWord}) ↕</th><th data-sort="deltaR" data-type="number" style="cursor:pointer;border-left:2px solid #6b7280;">Δr ↕</th><th data-sort="pR" data-type="number" style="cursor:pointer;">p(Δr) ↕</th></tr></thead><tbody>`;
         rows.forEach(row => {
-            const dc = row.deltaR < 0 ? '#dc2626' : '#5a9f4a';
+            const dc = row.deltaR < 0 ? '#dc2626' : '#6ba544';
             const hl = row.pR < 0.05 ? 'background:#fef3c7;' : '';
             const fv = String(row.filterValue || '').replace(/"/g, '&quot;');
             html += `<tr class="clickable-subset-row" data-filter-kind="${row.filterKind}" data-filter-value="${fv}" style="${hl}cursor:pointer;"><td><b>${row.label}</b></td><td style="text-align:center;border-left:2px solid #2563eb;">${row.nWT}</td><td style="text-align:center;">${row.rWT.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #dc2626;">${row.nC}</td><td style="text-align:center;">${row.rC.toFixed(3)}</td><td style="text-align:center;border-left:2px solid #6b7280;color:${dc};font-weight:600;">${row.deltaR.toFixed(3)}</td><td style="text-align:center;">${this.formatPValue(row.pR)}</td></tr>`;
@@ -15967,7 +15976,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         `;
 
         tableData.forEach(row => {
-            const deltaRColor = row.deltaR < 0 ? '#dc2626' : '#5a9f4a';
+            const deltaRColor = row.deltaR < 0 ? '#dc2626' : '#6ba544';
             const pHighlight = row.pR < 0.05 ? 'background: #fef3c7;' : '';
 
             html += `
@@ -16187,7 +16196,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const rowHtml = (r, kind) => `
             <tr class="ic-row" data-gene="${r.gene}" data-kind="${kind}" style="cursor:pointer;">
-                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#15803d;">${r.gene}</td>
+                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#4c782e;">${r.gene}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; font-weight:600; color:${r.r < 0 ? '#dc2626' : '#2563eb'};">${r.r.toFixed(3)}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; color:${r.n < 10 ? '#dc2626' : '#6b7280'};">${r.n}</td>
             </tr>`;
@@ -16592,9 +16601,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         `;
 
         tableData.forEach(row => {
-            const rColor = Math.abs(row.correlation) >= 0.5 ? (row.correlation > 0 ? '#16a34a' : '#dc2626') : '#374151';
-            const xColor = row.meanX < -0.5 ? '#dc2626' : row.meanX > 0 ? '#16a34a' : '#374151';
-            const yColor = row.meanY < -0.5 ? '#dc2626' : row.meanY > 0 ? '#16a34a' : '#374151';
+            const rColor = Math.abs(row.correlation) >= 0.5 ? (row.correlation > 0 ? '#5d9239' : '#dc2626') : '#374151';
+            const xColor = row.meanX < -0.5 ? '#dc2626' : row.meanX > 0 ? '#5d9239' : '#374151';
+            const yColor = row.meanY < -0.5 ? '#dc2626' : row.meanY > 0 ? '#5d9239' : '#374151';
             html += `
                 <tr class="clickable-row" data-cancer-type="${row.cancerType}" style="cursor: pointer;">
                     <td>${row.cancerType}</td>
@@ -16793,7 +16802,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 document.getElementById('setGateABtn').style.opacity = '0.7';
                 document.getElementById('setGateBBtn').disabled = false;
                 document.getElementById('gateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
-                document.getElementById('gateStatus').style.color = '#16a34a';
+                document.getElementById('gateStatus').style.color = '#5d9239';
                 document.getElementById('clearGatesBtn').style.display = '';
             } else {
                 // If there was already a Gate B shape, remove it
@@ -16821,7 +16830,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 document.getElementById('setGateBBtn').style.opacity = '0.7';
                 document.getElementById('compareGatesBtn').style.display = '';
                 document.getElementById('gateStatus').textContent = `Gate A: ${this._gateA?.length || 0}, Gate B: ${cells.length}. Click Compare.`;
-                document.getElementById('gateStatus').style.color = '#16a34a';
+                document.getElementById('gateStatus').style.color = '#5d9239';
             }
 
             this._gateSelecting = null;
@@ -16868,10 +16877,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const statusEl = document.getElementById('gateStatus');
             if (statusEl && this._gateA && this._gateB) {
                 statusEl.textContent = `Gate A: ${this._gateA.length}, Gate B: ${this._gateB.length}. Click Compare to refresh.`;
-                statusEl.style.color = '#16a34a';
+                statusEl.style.color = '#5d9239';
             } else if (statusEl && this._gateA) {
                 statusEl.textContent = `Gate A: ${this._gateA.length} cells. Now set Gate B.`;
-                statusEl.style.color = '#16a34a';
+                statusEl.style.color = '#5d9239';
             }
         }
     }
@@ -17165,7 +17174,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._gateSortAsc = true;
 
         document.getElementById('gateStatus').textContent = `Comparison complete. Gate A: ${gateA.length}, Gate B: ${gateB.length}`;
-        document.getElementById('gateStatus').style.color = '#16a34a';
+        document.getElementById('gateStatus').style.color = '#5d9239';
 
         // Show panel
         document.getElementById('gateComparePanel').style.display = '';
@@ -17360,7 +17369,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 </tr></thead><tbody>`;
             const filteredDiffGE = pFilterDGE ? data.filter(d => d.pValue < parseFloat(pFilterDGE)) : data;
             filteredDiffGE.slice(0, 100).forEach(d => {
-                const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
+                const color = d.diff > 0.2 ? '#5d9239' : d.diff < -0.2 ? '#dc2626' : '';
                 const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showGateGenePlot('${d.gene}','ge')">
                     <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
@@ -17379,7 +17388,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (!this.expressionLoaded) {
                     container.innerHTML = `<div style="padding:20px;text-align:center;">
                         <p style="color:#6b7280;margin-bottom:12px;">Expression data must be loaded to compare gene expression between gates.</p>
-                        <button onclick="app.loadGateExpressionComparison()" style="background:#5a9f4a;color:white;border:none;border-radius:6px;padding:8px 20px;font-size:12px;cursor:pointer;">Load Expression Comparison</button>
+                        <button onclick="app.loadGateExpressionComparison()" style="background:#6ba544;color:white;border:none;border-radius:6px;padding:8px 20px;font-size:12px;cursor:pointer;">Load Expression Comparison</button>
                     </div>`;
                 } else {
                     container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">No expression comparison results. Try re-running the gate comparison.</div>';
@@ -17419,7 +17428,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 </tr></thead><tbody>`;
             const filteredExpr = pFilterExpr ? data.filter(d => d.pValue < parseFloat(pFilterExpr)) : data;
             filteredExpr.slice(0, 100).forEach(d => {
-                const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
+                const color = d.diff > 0.5 ? '#5d9239' : d.diff < -0.5 ? '#dc2626' : '';
                 const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showGateGenePlot('${d.gene}','expression')">
                     <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
@@ -17753,7 +17762,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 document.getElementById('geSetGateABtn').style.opacity = '0.7';
                 document.getElementById('geSetGateBBtn').disabled = false;
                 document.getElementById('geGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
-                document.getElementById('geGateStatus').style.color = '#16a34a';
+                document.getElementById('geGateStatus').style.color = '#5d9239';
                 document.getElementById('geClearGatesBtn').style.display = 'inline-block';
             } else {
                 if (this._geGateBShapeIndex != null && this._geGateBShapeIndex !== currentShapes.length - 1) {
@@ -17778,7 +17787,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 document.getElementById('geSetGateBBtn').style.opacity = '0.7';
                 document.getElementById('geCompareGatesBtn').style.display = 'inline-block';
                 document.getElementById('geGateStatus').textContent = `Gate A: ${this._geGateA.length}, Gate B: ${cells.length}. Click Compare.`;
-                document.getElementById('geGateStatus').style.color = '#16a34a';
+                document.getElementById('geGateStatus').style.color = '#5d9239';
             }
 
             this._geGateSelecting = null;
@@ -17818,10 +17827,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const statusEl = document.getElementById('geGateStatus');
             if (statusEl && this._geGateA && this._geGateB) {
                 statusEl.textContent = `Gate A: ${this._geGateA.length}, Gate B: ${this._geGateB.length}. Click Compare to refresh.`;
-                statusEl.style.color = '#16a34a';
+                statusEl.style.color = '#5d9239';
             } else if (statusEl && this._geGateA) {
                 statusEl.textContent = `Gate A: ${this._geGateA.length} cells. Now set Gate B.`;
-                statusEl.style.color = '#16a34a';
+                statusEl.style.color = '#5d9239';
             }
         }
     }
@@ -18061,7 +18070,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._geGateSortAsc = true;
 
         document.getElementById('geGateStatus').textContent = `Comparison complete. Gate A: ${gateA.length}, Gate B: ${gateB.length}`;
-        document.getElementById('geGateStatus').style.color = '#16a34a';
+        document.getElementById('geGateStatus').style.color = '#5d9239';
 
         // Show panel
         document.getElementById('geGateComparePanel').style.display = '';
@@ -18254,7 +18263,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 </tr></thead><tbody>`;
             const geFilteredDiffGE = geGatePFilterDGE ? data.filter(d => d.pValue < parseFloat(geGatePFilterDGE)) : data;
             geFilteredDiffGE.slice(0, 100).forEach(d => {
-                const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
+                const color = d.diff > 0.2 ? '#5d9239' : d.diff < -0.2 ? '#dc2626' : '';
                 const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showGEGateGenePlot('${d.gene}','ge')">
                     <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
@@ -18273,7 +18282,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (!this.expressionLoaded) {
                     container.innerHTML = `<div style="padding:20px;text-align:center;">
                         <p style="color:#6b7280;">Expression data not loaded.</p>
-                        <button class="btn btn-sm" style="background:#5a9f4a;color:white;margin-top:8px;" onclick="app.loadGEGateExpressionComparison()">Load Expression Data</button>
+                        <button class="btn btn-sm" style="background:#6ba544;color:white;margin-top:8px;" onclick="app.loadGEGateExpressionComparison()">Load Expression Data</button>
                     </div>`;
                 } else {
                     container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">No differential expression results</div>';
@@ -18313,7 +18322,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 </tr></thead><tbody>`;
             const geFilteredExpr = geGatePFilterExpr ? data.filter(d => d.pValue < parseFloat(geGatePFilterExpr)) : data;
             geFilteredExpr.slice(0, 100).forEach(d => {
-                const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
+                const color = d.diff > 0.5 ? '#5d9239' : d.diff < -0.5 ? '#dc2626' : '';
                 const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showGEGateGenePlot('${d.gene}','expression')">
                     <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
@@ -18570,12 +18579,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ov.id = 'askValueOverlay';
             ov.style.cssText = 'position:fixed; inset:0; z-index:11000; background:rgba(0,0,0,0.35); display:flex; align-items:flex-start; justify-content:center; padding-top:14vh;';
             ov.innerHTML = `<div style="background:#fff; border-radius:8px; box-shadow:0 20px 45px rgba(0,0,0,0.25); width:420px; max-width:92vw; padding:16px 18px; font-size:12px; color:#374151;">
-                <div style="font-weight:700; font-size:14px; color:#15803d; margin-bottom:6px;">${this.esc(title)}</div>
+                <div style="font-weight:700; font-size:14px; color:#4c782e; margin-bottom:6px;">${this.esc(title)}</div>
                 <div style="color:#6b7280; line-height:1.5; margin-bottom:10px; white-space:pre-line;">${this.esc(message)}</div>
                 <input id="askValueInput" type="text" value="${this.esc(defaultValue)}" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #d1d5db; border-radius:5px; font-size:13px;">
                 <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
                     <button id="askValueCancel" class="btn btn-outline btn-sm">Cancel</button>
-                    <button id="askValueOk" class="btn btn-sm" style="background:#15803d; color:#fff; font-weight:600;">OK</button>
+                    <button id="askValueOk" class="btn btn-sm" style="background:#4c782e; color:#fff; font-weight:600;">OK</button>
                 </div></div>`;
             document.body.appendChild(ov);
             const input = ov.querySelector('#askValueInput');
@@ -20054,7 +20063,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (t.correlation > 0) {
                 // Green gradient for positive
                 const intensity = Math.min(1, t.correlation);
-                return `rgba(34, 197, 94, ${0.3 + intensity * 0.7})`;
+                return `rgba(122, 185, 80, ${0.3 + intensity * 0.7})`;
             } else {
                 // Red gradient for negative
                 const intensity = Math.min(1, Math.abs(t.correlation));
@@ -20109,15 +20118,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             <div style="max-height: 500px; overflow-y: auto;">
             <table id="byTissueTable" style="width: 100%; border-collapse: collapse; font-size: 11px;">
                 <thead>
-                    <tr style="background-color: #5a9f4a; color: white;">
-                        <th data-col="0" style="padding: 6px; border: 1px solid #5a9f4a; text-align: left; position: sticky; top: 0; background-color: #5a9f4a; cursor: pointer;">Lineage ▼</th>
-                        <th data-col="1" style="padding: 6px; border: 1px solid #5a9f4a; text-align: center; position: sticky; top: 0; background-color: #5a9f4a; cursor: pointer;">N</th>
-                        <th data-col="2" style="padding: 6px; border: 1px solid #5a9f4a; text-align: center; position: sticky; top: 0; background-color: #5a9f4a; cursor: pointer;">Corr</th>
-                        <th data-col="3" style="padding: 6px; border: 1px solid #5a9f4a; text-align: center; position: sticky; top: 0; background-color: #5a9f4a; cursor: pointer;">Slope</th>
-                        <th data-col="4" style="padding: 6px; border: 1px solid #5a9f4a; text-align: center; position: sticky; top: 0; background-color: #5a9f4a; cursor: pointer;">${gene1} (mean)</th>
-                        <th data-col="5" style="padding: 6px; border: 1px solid #5a9f4a; text-align: center; position: sticky; top: 0; background-color: #5a9f4a; cursor: pointer;">${gene1} (SD)</th>
-                        <th data-col="6" style="padding: 6px; border: 1px solid #5a9f4a; text-align: center; position: sticky; top: 0; background-color: #5a9f4a; cursor: pointer;">${gene2} (mean)</th>
-                        <th data-col="7" style="padding: 6px; border: 1px solid #5a9f4a; text-align: center; position: sticky; top: 0; background-color: #5a9f4a; cursor: pointer;">${gene2} (SD)</th>
+                    <tr style="background-color: #6ba544; color: white;">
+                        <th data-col="0" style="padding: 6px; border: 1px solid #6ba544; text-align: left; position: sticky; top: 0; background-color: #6ba544; cursor: pointer;">Lineage ▼</th>
+                        <th data-col="1" style="padding: 6px; border: 1px solid #6ba544; text-align: center; position: sticky; top: 0; background-color: #6ba544; cursor: pointer;">N</th>
+                        <th data-col="2" style="padding: 6px; border: 1px solid #6ba544; text-align: center; position: sticky; top: 0; background-color: #6ba544; cursor: pointer;">Corr</th>
+                        <th data-col="3" style="padding: 6px; border: 1px solid #6ba544; text-align: center; position: sticky; top: 0; background-color: #6ba544; cursor: pointer;">Slope</th>
+                        <th data-col="4" style="padding: 6px; border: 1px solid #6ba544; text-align: center; position: sticky; top: 0; background-color: #6ba544; cursor: pointer;">${gene1} (mean)</th>
+                        <th data-col="5" style="padding: 6px; border: 1px solid #6ba544; text-align: center; position: sticky; top: 0; background-color: #6ba544; cursor: pointer;">${gene1} (SD)</th>
+                        <th data-col="6" style="padding: 6px; border: 1px solid #6ba544; text-align: center; position: sticky; top: 0; background-color: #6ba544; cursor: pointer;">${gene2} (mean)</th>
+                        <th data-col="7" style="padding: 6px; border: 1px solid #6ba544; text-align: center; position: sticky; top: 0; background-color: #6ba544; cursor: pointer;">${gene2} (SD)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -20125,7 +20134,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         tissueStats.forEach(t => {
             const corrColor = t.correlation > 0 ?
-                `rgba(34, 197, 94, ${Math.min(1, Math.abs(t.correlation))})` :
+                `rgba(122, 185, 80, ${Math.min(1, Math.abs(t.correlation))})` :
                 `rgba(239, 68, 68, ${Math.min(1, Math.abs(t.correlation))})`;
             const escapedTissue = t.tissue.replace(/'/g, "\\'");
             tableHtml += `
@@ -20342,7 +20351,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (btn) { btn.style.background = ''; btn.style.color = ''; btn.classList.add('btn-secondary'); }
         });
         const activeBtn = view === 'tissue' ? tissueBtn : hotspotBtn;
-        if (activeBtn) { activeBtn.style.background = '#5a9f4a'; activeBtn.style.color = 'white'; activeBtn.classList.remove('btn-secondary'); }
+        if (activeBtn) { activeBtn.style.background = '#6ba544'; activeBtn.style.color = 'white'; activeBtn.classList.remove('btn-secondary'); }
 
         // Update summary with filtered data
         const filteredData = this.getCATissueFilteredData();
@@ -20460,7 +20469,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // metric with a misleading "Gene Effect" axis.) The per-cell scatter for
         // any one tissue is still available via the row drill-down.
         const yCats = stats.map(s => `${s.group} (n=${s.n})`);
-        const colorFor = (r) => r > 0.3 ? '#16a34a' : r < -0.3 ? '#dc2626' : '#6b7280';
+        const colorFor = (r) => r > 0.3 ? '#5d9239' : r < -0.3 ? '#dc2626' : '#6b7280';
         const traces = [];
         const stemX = [], stemY = [];
         stats.forEach((s, i) => { stemX.push(0, s.correlation, null); stemY.push(yCats[i], yCats[i], null); });
@@ -20694,7 +20703,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         if (mode === 'tissue') {
             stats.forEach(s => {
-                const color = s.pValue < 0.05 ? (s.correlation > 0.3 ? '#16a34a' : s.correlation < -0.3 ? '#dc2626' : '#374151') : '#6b7280';
+                const color = s.pValue < 0.05 ? (s.correlation > 0.3 ? '#5d9239' : s.correlation < -0.3 ? '#dc2626' : '#374151') : '#6b7280';
                 const pStr = this.formatPValue(s.pValue);
                 tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" style="cursor: pointer;">
                     <td>${s.group}</td>
@@ -20707,7 +20716,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         } else {
             stats.forEach(s => {
                 const pStr = this.formatPValue(s.pValue);
-                const diffColor = s.diff > 0.15 ? '#16a34a' : s.diff < -0.15 ? '#dc2626' : '#374151';
+                const diffColor = s.diff > 0.15 ? '#5d9239' : s.diff < -0.15 ? '#dc2626' : '#374151';
                 tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" style="cursor: pointer;">
                     <td>${s.group}</td>
                     <td style="text-align: center; color: #2563eb; border-left: 2px solid #2563eb;">${s.n0}</td>
@@ -20779,7 +20788,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 x: xVals, y: yVals,
                 text: pts.map(p => p.cellLineName),
                 customdata: pts.map(p => p.cellLineId),
-                marker: { color: '#5a9f4a', size: 6 },
+                marker: { color: '#6ba544', size: 6 },
                 hovertemplate: '<b>%{text}</b><br>%{x:.3f}, %{y:.3f}<extra></extra>'
             }];
             layout = {
@@ -21485,7 +21494,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
         const active = view === 'tissue' ? tBtn : view === 'mutation' ? mBtn : hBtn;
         if (active) {
-            active.style.background = '#5a9f4a';
+            active.style.background = '#6ba544';
             active.style.color = 'white';
             active.classList.remove('btn-secondary');
         }
@@ -21604,7 +21613,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const totalN = this.currentGeneEffect?.data?.length || 0;
             const tags = this._activeOncoprintFilters.map(f => {
                 const bg = f.state === 'mut' ? '#dcfce7' : '#fef2f2';
-                const color = f.state === 'mut' ? '#16a34a' : '#dc2626';
+                const color = f.state === 'mut' ? '#5d9239' : '#dc2626';
                 return `<span style="background:${bg};color:${color};padding:1px 6px;border-radius:10px;font-size:10px;">${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}</span>`;
             }).join(' ');
             el.innerHTML = tags + ` <span style="font-size:10px;color:#6b7280;">(${filteredN}/${totalN} cell lines)</span>`;
@@ -21951,7 +21960,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         ['geViewTissue', 'geViewHotspot', 'geViewMutation'].forEach(id => {
             const b = document.getElementById(id); if (!b) return;
             const active = id === 'geViewTissue';
-            b.style.background = active ? '#5a9f4a' : '';
+            b.style.background = active ? '#6ba544' : '';
             b.style.color = active ? 'white' : '';
             b.classList.toggle('btn-secondary', !active);
         });
@@ -22688,7 +22697,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
             stats.forEach(s => {
-                const color = s.pValue < 0.05 ? (s.mean < -0.5 ? '#dc2626' : s.mean > 0.5 ? '#16a34a' : '#374151') : '#6b7280';
+                const color = s.pValue < 0.05 ? (s.mean < -0.5 ? '#dc2626' : s.mean > 0.5 ? '#5d9239' : '#374151') : '#6b7280';
                 const pStr = this.formatPValue(s.pValue);
                 tbody.innerHTML += `<tr class="clickable-row" data-group="${s.group}" style="cursor: pointer;">
                     <td>${s.group}</td>
@@ -22704,7 +22713,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const mean1Str = isNaN(s.mean1) ? '-' : s.mean1.toFixed(2);
                 const mean2Str = isNaN(s.mean2) ? '-' : s.mean2.toFixed(2);
                 const diffStr = s.diff !== undefined ? s.diff.toFixed(2) : '-';
-                const diffColor = s.diff > 0 ? '#16a34a' : s.diff < 0 ? '#dc2626' : '#374151';
+                const diffColor = s.diff > 0 ? '#5d9239' : s.diff < 0 ? '#dc2626' : '#374151';
                 const tChip = s.type === 'fusion'
                     ? '<span style="background:#ede9fe;color:#6d28d9;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600;">fusion</span>'
                     : s.type === 'cn'
@@ -22965,11 +22974,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 jitter: 0.3,
                 pointpos: 0,
                 marker: {
-                    color: groupEffects.map(v => v < -0.5 ? '#dc2626' : v > 0 ? '#16a34a' : '#6b7280'),
+                    color: groupEffects.map(v => v < -0.5 ? '#dc2626' : v > 0 ? '#5d9239' : '#6b7280'),
                     size: 6
                 },
-                line: { color: '#5a9f4a', width: 2 },
-                fillcolor: 'rgba(90, 159, 74, 0.4)',
+                line: { color: '#6ba544', width: 2 },
+                fillcolor: 'rgba(107, 165, 68, 0.4)',
                 hovertemplate: '<b>%{text}</b><br>Gene Effect: %{y:.3f}<extra>' + group + '</extra>'
             }
         ];
@@ -25399,7 +25408,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     showCopyNotification(message) {
         const notification = document.createElement('div');
         notification.textContent = message;
-        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #5a9f4a; color: white; padding: 8px 16px; border-radius: 6px; font-size: 13px; z-index: 10000; transition: opacity 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.15);';
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #6ba544; color: white; padding: 8px 16px; border-radius: 6px; font-size: 13px; z-index: 10000; transition: opacity 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.15);';
         document.body.appendChild(notification);
         setTimeout(() => {
             notification.style.opacity = '0';
@@ -25590,14 +25599,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // still works after the element has been replaced or nearly removed.
         tooltip._ctx = { gene, whyContext, prefixHtml, x: event.clientX, y: event.clientY };
         const maxW = pinned ? 460 : 350;
-        tooltip.style.cssText = `position: fixed; z-index: 10001; background: white; border: 1px solid ${pinned ? '#5a9f4a' : '#d1d5db'}; border-radius: 8px; padding: 10px 14px; max-width: ${maxW}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 11px; line-height: 1.45; color: #374151;`;
+        tooltip.style.cssText = `position: fixed; z-index: 10001; background: white; border: 1px solid ${pinned ? '#6ba544' : '#d1d5db'}; border-radius: 8px; padding: 10px 14px; max-width: ${maxW}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 11px; line-height: 1.45; color: #374151;`;
         // A non-pinned (hover) tooltip must not capture the mouse: if it does, a
         // mousedown over the box hits the tooltip instead of the network canvas,
         // so dragging a node instead starts a text-selection on whatever is below
         // (e.g. the edge-width legend). Pinned tooltips stay interactive for the
         // links / close button.
         tooltip.style.pointerEvents = pinned ? 'auto' : 'none';
-        tooltip.innerHTML = `<div style="margin-bottom:4px;"><b style="color:#5a9f4a; font-size:13px;">${gene}</b></div>${prefixHtml || ''}<div style="color: #6b7280; margin-top:2px;">Loading info…</div>`;
+        tooltip.innerHTML = `<div style="margin-bottom:4px;"><b style="color:#5d9239; font-size:13px;">${gene}</b></div>${prefixHtml || ''}<div style="color: #6b7280; margin-top:2px;">Loading info…</div>`;
 
         const x = Math.min(event.clientX + 10, window.innerWidth - maxW - 20);
         const y = Math.min(event.clientY + 10, window.innerHeight - 200);
@@ -25642,7 +25651,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // resolves on, so they work whether or not mygene.info answered.
             const sym = (info && info.symbol) || gene;
             const q = encodeURIComponent(sym);
-            const linkStyle = 'color:#15803d; text-decoration:none; white-space:nowrap;';
+            const linkStyle = 'color:#4c782e; text-decoration:none; white-space:nowrap;';
             const mkLink = (href, label) => `<a href="${href}" target="_blank" rel="noopener" style="${linkStyle}">${label}&nbsp;&#8599;</a>`;
             const refs = [
                 mkLink(info && info.entrezgene
@@ -25663,7 +25672,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 : '';
 
             let html = closeBtn;
-            html += `<div style="margin-bottom: 4px; padding-right:${el.dataset.pinned === '1' ? '18px' : '0'};"><b style="color: #5a9f4a; font-size: 13px;">${info ? info.symbol : gene}</b>`;
+            html += `<div style="margin-bottom: 4px; padding-right:${el.dataset.pinned === '1' ? '18px' : '0'};"><b style="color: #5d9239; font-size: 13px;">${info ? info.symbol : gene}</b>`;
             if (info && info.name) html += ` <span style="color: #374151;">${this.esc(info.name)}</span>`;
             html += `</div>`;
             // Keep the gene-effect line (from the quick hover) at the top.
@@ -25866,7 +25875,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const prob = this._problemFlag(cellLineId);
         const warn = prob ? `<div style="margin-bottom:8px; padding:7px 10px; background:#fffbeb; border:1px solid #fcd34d; border-left:3px solid #d97706; border-radius:5px; color:#92400e; font-size:12px; line-height:1.5;">`
             + `<b>&#9888; ${prob.kind === 'identity' ? 'Identity disputed' : 'Cancer type disputed'}${prob.hedged ? ' (reported as likely, not settled)' : ''}</b><br>`
-            + `${this.esc(prob.note)}`
+            + `${this.esc(prob.category)}${prob.category.endsWith('.') ? '' : '.'} ${this.esc(this._problemDetail(prob))}`
             + `<div style="margin-top:3px; font-size:10px; color:#b45309;">Cellosaurus ${this.esc(prob.rrid)}</div>`
             + `</div>` : '';
 
@@ -27852,24 +27861,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const modeLabel = d.mode === 'tissue' ? 'tissue/cancer type' : (isTrans ? 'fusion gene' : 'hotspot mutation');
         document.getElementById('mutCompareModalInfo').innerHTML =
             `<b>Δ GE = Mean GE(${mutLabel}) − Mean GE(WT)</b> for ${d.hotspotGene} ${mutNoun}, stratified by ${modeLabel}. ` +
-            `<span style="color:#dc2626;">Red = more essential when ${mutLabel}</span>, <span style="color:#16a34a;">Green = less essential</span>. ` +
+            `<span style="color:#dc2626;">Red = more essential when ${mutLabel}</span>, <span style="color:#5d9239;">Green = less essential</span>. ` +
             `${geneRows.length} genes × ${filteredCols.length} ${d.mode === 'tissue' ? 'tissues' : 'hotspots'} | Min ${mutLabel} cells: ${minN} | ` +
             `Click cell to inspect, hover column header for N(WT)/N(${mutAbbr})`;
 
         // Build table HTML
         let html = '<table style="border-collapse:collapse; font-size:11px; width:auto; max-width:100%; margin:0 auto;">';
-        html += '<thead style="position:sticky; top:0; z-index:1;"><tr><th style="padding:4px 8px; background:#f0fdf4; border-bottom:2px solid #5a9f4a; position:sticky; left:0; z-index:2; text-align:left;">Gene</th>';
+        html += '<thead style="position:sticky; top:0; z-index:1;"><tr><th style="padding:4px 8px; background:#f0fdf4; border-bottom:2px solid #6ba544; position:sticky; left:0; z-index:2; text-align:left;">Gene</th>';
         filteredCols.forEach((col, ci) => {
             let arrow = '';
             if (this._compareSortCol === col.label) arrow = this._compareSortAsc ? ' ▲' : ' ▼';
             const isRef = col.isRef ? 'font-weight:700;' : '';
-            html += `<th onclick="app.sortCompareModal('${col.label.replace(/'/g, "\\'")}')" onmouseenter="app.showColumnTooltip(event, ${ci})" onmouseleave="app.hideColumnTooltip()" style="padding:4px 6px; background:#f0fdf4; border-bottom:2px solid #5a9f4a; cursor:pointer; white-space:nowrap; font-size:10px; ${isRef}">${col.label}${arrow}<br><span style="font-weight:400; font-size:9px; color:#6b7280;">${col.nWT}/${col.nMut}</span></th>`;
+            html += `<th onclick="app.sortCompareModal('${col.label.replace(/'/g, "\\'")}')" onmouseenter="app.showColumnTooltip(event, ${ci})" onmouseleave="app.hideColumnTooltip()" style="padding:4px 6px; background:#f0fdf4; border-bottom:2px solid #6ba544; cursor:pointer; white-space:nowrap; font-size:10px; ${isRef}">${col.label}${arrow}<br><span style="font-weight:400; font-size:9px; color:#6b7280;">${col.nWT}/${col.nMut}</span></th>`;
         });
         html += '</tr></thead><tbody>';
 
         geneRows.forEach(r => {
             html += '<tr>';
-            html += `<td onmouseenter="app.showGeneTooltip(event, '${r.gene}')" onmouseleave="app.hideGeneTooltip()" style="padding:3px 8px; border-bottom:1px solid #e5e7eb; position:sticky; left:0; background:white; font-weight:500; cursor:pointer; white-space:nowrap; color:#5a9f4a;" onclick="app.openCompareInspect('${r.gene}', '', '', '${d.mode}')">${r.gene}</td>`;
+            html += `<td onmouseenter="app.showGeneTooltip(event, '${r.gene}')" onmouseleave="app.hideGeneTooltip()" style="padding:3px 8px; border-bottom:1px solid #e5e7eb; position:sticky; left:0; background:white; font-weight:500; cursor:pointer; white-space:nowrap; color:#5d9239;" onclick="app.openCompareInspect('${r.gene}', '', '', '${d.mode}')">${r.gene}</td>`;
             filteredCols.forEach(col => {
                 const v = r.deltas[col.label];
                 if (v === null) {
@@ -28122,7 +28131,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const active = lib.key === activeLibrary;
             const total = results[lib.key]?.length || 0;
             const sig = (results[lib.key] || []).filter(r => r[6] < 0.05).length;
-            return `<button data-lib="${lib.key}" style="padding:5px 12px; font-size:12px; border:1px solid ${active ? '#5a9f4a' : '#555'}; background:${active ? '#5a9f4a' : 'transparent'}; color:${active ? '#fff' : '#ccc'}; border-radius:4px; cursor:pointer;">${lib.label} (${sig}/${total})</button>`;
+            return `<button data-lib="${lib.key}" style="padding:5px 12px; font-size:12px; border:1px solid ${active ? '#6ba544' : '#555'}; background:${active ? '#6ba544' : 'transparent'}; color:${active ? '#fff' : '#ccc'}; border-radius:4px; cursor:pointer;">${lib.label} (${sig}/${total})</button>`;
         }).join('');
 
         tabsEl.querySelectorAll('button').forEach(btn => {
@@ -28197,7 +28206,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             html += `<td style="padding:5px 8px; color:#888;">${row.rank}</td>`;
             html += `<td style="padding:5px 8px; max-width:350px; overflow:hidden; text-overflow:ellipsis;" title="${this.esc(row.term)}">${this.esc(row.term)}</td>`;
             html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px;">${this.formatPValue(row.pValue)}</td>`;
-            html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px; color:#5a9f4a; font-weight:bold;">${this.formatPValue(row.adjPValue)}</td>`;
+            html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px; color:#5d9239; font-weight:bold;">${this.formatPValue(row.adjPValue)}</td>`;
             html += `<td style="padding:5px 8px;">${row.zScore.toFixed(2)}</td>`;
             html += `<td style="padding:5px 8px;">${row.combinedScore.toFixed(1)}</td>`;
             if (isLong) {
@@ -29680,7 +29689,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         for (const cat of catKeys) {
             // Section header, matches the live-panel green-accent banner.
-            html += `<h4 style="margin:18px 0 4px; padding:4px 0 3px; font-size:14px; font-weight:700; color:#15803d; border-bottom:2px solid #15803d;">${cat}</h4>`;
+            html += `<h4 style="margin:18px 0 4px; padding:4px 0 3px; font-size:14px; font-weight:700; color:#4c782e; border-bottom:2px solid #4c782e;">${cat}</h4>`;
             if (CATEGORY_NOTES[cat]) {
                 html += `<div style="color:#6b7280; font-size:11px; font-style:italic; margin:0 0 10px 0; padding:0 2px;">${CATEGORY_NOTES[cat]}</div>`;
             }
@@ -29754,7 +29763,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             + `<span style="font-weight:600; color:#374151;">Filter cell lines by quick filter <span style="font-weight:400; color:#9ca3af; font-size:10px;">(drag to move)</span></span>`
             + `<a href="#" id="clbCollectionsClear" style="color:#6b7280; text-decoration:none; font-size:10px;">clear all</a>`
             + `</div>`
-            + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#15803d;">+</b> to require, <b style="color:#991b1b;">−</b> to exclude. Multiple quick filters combine with AND. <b>Hover any filter name for how it's defined.</b></div>`;
+            + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#4c782e;">+</b> to require, <b style="color:#991b1b;">−</b> to exclude. Multiple quick filters combine with AND. <b>Hover any filter name for how it's defined.</b></div>`;
 
         // One-line explainers for categories whose name is jargon-heavy.
         // Rendered as italic gray text below the category header so the user
@@ -29813,7 +29822,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Category headline, bumped from 10 px (cramped) to 13 px and
             // given more breathing room so the major sections of the
             // collection panel separate visually at a glance.
-            html += `<div style="color:#15803d; font-size:13px; font-weight:700; margin:16px 0 4px; padding:4px 0 3px; border-bottom:2px solid #15803d;">${cat}</div>`;
+            html += `<div style="color:#4c782e; font-size:13px; font-weight:700; margin:16px 0 4px; padding:4px 0 3px; border-bottom:2px solid #4c782e;">${cat}</div>`;
             if (CATEGORY_NOTES[cat]) {
                 html += `<div style="color:#6b7280; font-size:11px; font-style:italic; margin:0 0 6px 0; padding:0 4px;">${CATEGORY_NOTES[cat]}</div>`;
             }
@@ -29827,8 +29836,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const incActive = state === 'include';
                 const excActive = state === 'exclude';
                 const incStyle = incActive
-                    ? 'background:#15803d; color:#fff; border-color:#15803d;'
-                    : 'background:#fff; color:#15803d; border-color:#d1d5db;';
+                    ? 'background:#4c782e; color:#fff; border-color:#4c782e;'
+                    : 'background:#fff; color:#4c782e; border-color:#d1d5db;';
                 const excStyle = excActive
                     ? 'background:#991b1b; color:#fff; border-color:#991b1b;'
                     : 'background:#fff; color:#991b1b; border-color:#d1d5db;';
@@ -30207,12 +30216,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             `<div style="display:flex; gap:4px; flex-wrap:wrap;">` +
             `<button id="cbgAll" style="font-size:10px; padding:3px 8px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer; white-space:nowrap;">Color all</button>` +
             `<button id="cbgTop" style="font-size:10px; padding:3px 8px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer; white-space:nowrap;" title="The ${this.COLOR_BY_DEFAULT_TOP} groups holding the most cell lines">${this.COLOR_BY_DEFAULT_TOP} largest</button>` +
-            `<button id="cbgSuggest" style="font-size:10px; padding:3px 8px; border:1px solid #bbf7d0; border-radius:4px; background:#f0fdf4; color:#15803d; cursor:pointer; white-space:nowrap;" title="The 5 groups with the strongest correlation of their own, counting only groups of at least 10 cell lines">Strongest r</button>` +
+            `<button id="cbgSuggest" style="font-size:10px; padding:3px 8px; border:1px solid #bbf7d0; border-radius:4px; background:#f0fdf4; color:#4c782e; cursor:pointer; white-space:nowrap;" title="The 5 groups with the strongest correlation of their own, counting only groups of at least 10 cell lines">Strongest r</button>` +
             `<button id="cbgNone" style="font-size:10px; padding:3px 8px; border:1px solid #d1d5db; border-radius:4px; background:#f9fafb; cursor:pointer; white-space:nowrap;">None</button>` +
             `</div>` +
             `<div style="display:flex; gap:8px; align-items:center; margin-top:8px;">` +
             `<span id="cbgCount" style="font-size:10px; color:#6b7280; flex:1;"></span>` +
-            `<button id="cbgApply" style="font-size:11px; padding:4px 14px; background:#5a9f4a; color:white; border:none; border-radius:4px; cursor:pointer;">Apply</button>` +
+            `<button id="cbgApply" style="font-size:11px; padding:4px 14px; background:#6ba544; color:white; border:none; border-radius:4px; cursor:pointer;">Apply</button>` +
             `</div></div>`;
         document.body.appendChild(panel);
 
@@ -31833,7 +31842,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     // so a line with AUC = 0.5 (counted as "p" in the
                     // dropdown) showed GREEN in the list, confusing.
                     const color = mode === 'drug'
-                        ? (raw < 0.3 ? '#15803d' : raw < 0.6 ? '#a16207' : raw < 0.85 ? '#9ca3af' : '#d1d5db')
+                        ? (raw < 0.3 ? '#4c782e' : raw < 0.6 ? '#a16207' : raw < 0.85 ? '#9ca3af' : '#d1d5db')
                         : '#374151';
                     // CN gets a tier label ("deep del" / "het loss" / "WT" /
                     // "low gain" / "gain" / "amp" / "strong amp") instead
@@ -31865,7 +31874,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // is visible before the line is picked rather than after.
             const prob = this._problemFlag(cl);
             const probStr = prob
-                ? `<span style="color:#d97706; margin-right:3px; flex-shrink:0; cursor:help;" title="${this.esc(prob.category)}. ${this.esc(prob.note)}">&#9888;</span>`
+                ? `<span style="color:#d97706; margin-right:3px; flex-shrink:0; cursor:help;" title="${this.esc(prob.note)}">&#9888;</span>`
                 : '';
             const titleParts = [name, lin, sub, sx.title, prob ? prob.category : ''].filter(Boolean).join(' · ');
             return `<div class="${cls.join(' ')}" data-clid="${cl}" title="${titleParts}">` +
@@ -31971,7 +31980,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             (o.danger || o.sep ? '<div style="border-top:1px solid #e5e7eb; margin:4px 0;"></div>' : '')
             + (o.href
                 ? `<a href="${o.href}" target="_blank" rel="noopener" style="${rowCss}color:#6b7280; text-decoration:none;">${o.label}</a>`
-                : `<button type="button" data-i="${i}" style="${rowCss}${o.danger ? 'color:#b91c1c;' : o.active ? 'font-weight:700; background:#f0fdf4; color:#15803d;' : 'color:#374151;'}">${o.label}</button>`)
+                : `<button type="button" data-i="${i}" style="${rowCss}${o.danger ? 'color:#b91c1c;' : o.active ? 'font-weight:700; background:#f0fdf4; color:#4c782e;' : 'color:#374151;'}">${o.label}</button>`)
         ).join('');
         document.body.appendChild(menu);
         const r = anchorEl.getBoundingClientRect();
@@ -32047,7 +32056,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         menu.style.cssText = 'position:fixed; z-index:1450; width:210px; padding:4px; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.14); font-size:11px;';
         const rowCss = 'display:block; width:100%; text-align:left; padding:5px 8px; border:none; background:none; cursor:pointer; border-radius:4px; font-size:11px;';
         menu.innerHTML = spec.options.map(o =>
-            `<button type="button" data-lvl="${o.v}" style="${rowCss}${o.v === level?.value ? 'font-weight:700; background:#f0fdf4; color:#15803d;' : 'color:#374151;'}">${o.label}</button>`
+            `<button type="button" data-lvl="${o.v}" style="${rowCss}${o.v === level?.value ? 'font-weight:700; background:#f0fdf4; color:#4c782e;' : 'color:#374151;'}">${o.label}</button>`
         ).join('')
             + `<div style="border-top:1px solid #e5e7eb; margin:4px 0;"></div>`
             + `<button type="button" data-remove="1" style="${rowCss}color:#b91c1c;">Remove this filter</button>`;
@@ -32122,7 +32131,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         for (const [id, state] of this._clbCollectionStates) {
             const lbl = this._getCollectionLabel(id);
             const bg = state === 'include' ? '#dcfce7' : '#fef2f2';
-            const color = state === 'include' ? '#15803d' : '#991b1b';
+            const color = state === 'include' ? '#4c782e' : '#991b1b';
             const sign = state === 'include' ? '+' : '−';
             parts.push(`<span class="clb-chip" data-chip="collection" data-collection="${id}" title="Click to switch between include and exclude" style="background:${bg};color:${color};padding:1px 6px;border-radius:10px;">${sign} ${lbl}`
                 + ` <a href="#" data-clear-collection="${id}" style="color:${color}; text-decoration:none; margin-left:2px; font-weight:700;" title="Remove this filter">×</a></span>`);
@@ -32132,7 +32141,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             for (const f of this._activeOncoprintFilters) {
                 if (!shown.has(f.gene)) {
                     const bg = f.state === 'mut' ? '#dcfce7' : '#fef2f2';
-                    const color = f.state === 'mut' ? '#16a34a' : '#dc2626';
+                    const color = f.state === 'mut' ? '#5d9239' : '#dc2626';
                     parts.push(`<span class="clb-chip" data-chip="grid" data-grid-gene="${this.esc(f.gene)}" title="Click to switch side or remove" style="background:${bg};color:${color};padding:1px 6px;border-radius:10px;">${this.esc(f.gene)} ${f.state === 'mut' ? 'Mut' : 'WT'} &#9662;</span>`);
                 }
             }
@@ -32575,7 +32584,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const tagHtml = (g) => {
                 const hl = cancerSet.has(g) ? ' style="cursor:help; font-weight:600;"' : ' style="cursor:help;"';
                 const variant = variantMap?.[g];
-                const suffix = variant ? ` <span style="color:#16a34a; font-weight:500;">(${variant})</span>` : '';
+                const suffix = variant ? ` <span style="color:#5d9239; font-weight:500;">(${variant})</span>` : '';
                 // Polymorphic-locus caveat marker (HLA / MIC / KIR), calls
                 // in these genes are typically allelic divergence from
                 // GRCh38, not somatic events.
@@ -32623,7 +32632,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let top = `<h4>${name}</h4>`;
         top += `<div class="clb-detail-id">${cellLineId}</div>`;
         // Executive summary, plain-language overview at the very top of the card.
-        top += `<div class="clb-detail-section clb-keep-mobile" style="background:#f7fbf8; border:1px solid #e5e7eb; border-left:3px solid #15803d; border-radius:6px; padding:8px 10px; margin-bottom:10px;">${this._cellLineExecutiveSummary(cellLineId, { showId: false })}</div>`;
+        top += `<div class="clb-detail-section clb-keep-mobile" style="background:#f7fbf8; border:1px solid #e5e7eb; border-left:3px solid #4c782e; border-radius:6px; padding:8px 10px; margin-bottom:10px;">${this._cellLineExecutiveSummary(cellLineId, { showId: false })}</div>`;
         // Wiki entry-point sits just under the executive summary so the deep-dive
         // is the first action, before the tissue / classification rows.
         top += `<div class="clb-detail-section clb-keep-mobile" style="margin-bottom:12px;">`;
@@ -32829,9 +32838,9 @@ This is a small curated panel. The full DepMap CN matrix has hundreds of focal c
         // prominently; the full noisy raw fusion list is collapsed underneath.
         const clinicalCalls = this.clinicalFusions?.byCellLine?.[cellLineId] || [];
         // Muted tier colors so high/med/low still convey ordering but don't
-        // shout. High = muted green (#15803d), med = muted amber (#a16207),
+        // shout. High = muted green (#4c782e), med = muted amber (#a16207),
         // low = muted red (#991b1b), paired with a light background tint.
-        const tierColor = { high: '#15803d', medium: '#a16207', low: '#991b1b' };
+        const tierColor = { high: '#4c782e', medium: '#a16207', low: '#991b1b' };
         const tierBg    = { high: '#f0fdf4', medium: '#fefce8', low: '#fef2f2' };
         const tierLabel = { high: 'high', medium: 'med', low: 'low' };
         if (clinicalCalls.length > 0) {
@@ -33888,8 +33897,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const section = (title, body, source) => `
             <section style="margin-bottom:16px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04); overflow:hidden;">
                 <div style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #eef2f7; background:#f7fbf8;">
-                    <span style="width:8px; height:8px; border-radius:50%; background:#15803d; flex:0 0 auto;"></span>
-                    <h3 style="margin:0; font-size:13px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#15803d;">${title}</h3>
+                    <span style="width:8px; height:8px; border-radius:50%; background:#4c782e; flex:0 0 auto;"></span>
+                    <h3 style="margin:0; font-size:13px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#4c782e;">${title}</h3>
                 </div>
                 <div style="padding:12px 14px;">${body}</div>
                 ${source ? `<div style="padding:8px 14px; border-top:1px solid #f1f5f9; font-size:10px; color:#9ca3af;"><b>Source:</b> ${source}</div>` : ''}
@@ -34121,7 +34130,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (hrHits.length > 0) flagCards.push({
             title: 'Homologous-recombination repair is broken',
             body: `Damaging mutation in ${hrHits.map(g => `<b>${g}</b>`).join(', ')}. The cell can't accurately repair DNA double-strand breaks and often depends on backup pathways (homologous-recombination deficiency).`,
-            color: '#15803d'
+            color: '#4c782e'
         });
         // TP53 and G1/S flag cards are deliberately NOT added here, the
         // Pathway status block below has dedicated panels for p53 and Cell
@@ -34552,7 +34561,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             .slice(0, 10)
             .map(h => {
                 const variant = geneVariant[h.gene];
-                const variantSuffix = variant ? ` <span style="color:#16a34a; font-weight:500;">(${variant})</span>` : '';
+                const variantSuffix = variant ? ` <span style="color:#5d9239; font-weight:500;">(${variant})</span>` : '';
                 return `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>${variantSuffix}`;
             }).join(', ');
         // Compact counts line, three values in one row instead of three
@@ -34613,8 +34622,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const lines = rows.map(r => {
                 if (r.summary) {
                     return `<div style="margin:2px 0; font-size:11px;">`
-                        + `<span style="color:#15803d; font-weight:700; display:inline-block; width:14px;">✓</span>`
-                        + `<span class="gene-hover clb-gene-link" data-gene="${r.gene}" style="cursor:help; font-weight:600; color:#15803d;">${r.gene}</span>`
+                        + `<span style="color:#4c782e; font-weight:700; display:inline-block; width:14px;">✓</span>`
+                        + `<span class="gene-hover clb-gene-link" data-gene="${r.gene}" style="cursor:help; font-weight:600; color:#4c782e;">${r.gene}</span>`
                         + `<span style="color:#6b7280;">, ${r.summary}</span>`
                         + `</div>`;
                 }
@@ -34623,7 +34632,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     + `<span>${r.gene}</span>`
                     + `</div>`;
             }).join('');
-            const headerColor = nHit > 0 ? '#15803d' : '#991b1b';
+            const headerColor = nHit > 0 ? '#4c782e' : '#991b1b';
             const headerBg = nHit > 0 ? '#f0fdf4' : '#fef2f2';
             const summaryNote = nHit === 0
                 ? ` <span style="font-weight:400; color:#991b1b; font-size:10px;">, none of the canonical hallmark genes are altered; consider an atypical driver, a CN event the panel doesn't catch, or STR re-authentication</span>`
@@ -34690,7 +34699,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // Clinically relevant fusions block, curated calls (BCR-ABL1, etc.)
         // surfaced first, with tier chips. The full noisy raw partner list
         // remains as a secondary view.
-        const tierColor = { high: '#16a34a', medium: '#ca8a04', low: '#dc2626' };
+        const tierColor = { high: '#5d9239', medium: '#ca8a04', low: '#dc2626' };
         const tierLabel = { high: 'high', medium: 'med', low: 'low' };
         const sortedClinicalFusions = [...clinicalFusionCalls].sort((a, b) => {
             const order = { high: 0, medium: 1, low: 2 };
@@ -34709,7 +34718,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             : '';
         const fusionHtml = `
             <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A gene fusion joins parts of two genes into one, usually after a chromosomal rearrangement such as a translocation, and the resulting chimeric gene can drive the cancer. <b>Curated driver fusions</b> (green box) are the small list of ~50 well-known driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA, …) called in this cell line, graded by how much independent evidence backs the call: <b>high</b> = the partner gene's expression <i>and</i> its CRISPR dependency both agree, <b>medium</b> = one of those two, or a matching tissue, <b>low</b> = the fusion name only, in a tissue where it is not expected, with neither signal supporting it. The <b>raw partner list</b> below is the unfiltered DepMap fusion-caller output: in rearranged genomes most of those are passenger events or technical artifacts, not drivers.</p>
-            ${clinicalFusionHtml ? `<div style="margin-bottom:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #16a34a;"><b style="color:#15803d;">Curated driver fusions</b> <span style="font-size:10px; color:#6b7280;">(graded high / medium / low by how much independent evidence supports the call, see above)</span>${clinicalFusionHtml}</div>` : ''}
+            ${clinicalFusionHtml ? `<div style="margin-bottom:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #5d9239;"><b style="color:#4c782e;">Curated driver fusions</b> <span style="font-size:10px; color:#6b7280;">(graded high / medium / low by how much independent evidence supports the call, see above)</span>${clinicalFusionHtml}</div>` : ''}
             ${row('Fusion partners (total, raw)', fusionCount > 0 ? fusionCount : '<span style="color:#9ca3af;">none called. The fusion table lists calls only, so this means no fusion was reported for this cell line, not that it was checked and found clean.</span>')}
             ${fusionPartners.length ? row('Raw partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20} more</span>` : '')) : ''}
             ${fusionCaveat}`;
@@ -34786,7 +34795,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 <div style="margin-top:16px; padding-top:12px; border-top:1px dashed #e5e7eb;">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                         <div style="font-weight:600; color:#374151; font-size:12px;">Where this line sits in the cohort</div>
-                        <button onclick="app._downloadGenomeMetricsCSV('${cellLineId}')" style="font-size:10px; padding:3px 8px; background:#fff; color:#15803d; border:1px solid #d1d5db; border-radius:4px; cursor:pointer;" title="Download cohort values for Ploidy, WGD, Aneuploidy, CIN as CSV (with this line flagged)">⤓ CSV</button>
+                        <button onclick="app._downloadGenomeMetricsCSV('${cellLineId}')" style="font-size:10px; padding:3px 8px; background:#fff; color:#4c782e; border:1px solid #d1d5db; border-radius:4px; cursor:pointer;" title="Download cohort values for Ploidy, WGD, Aneuploidy, CIN as CSV (with this line flagged)">⤓ CSV</button>
                     </div>
                     <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">Distribution of each metric across all cell lines with the value available. The dashed red line marks <b>this</b> cell line's position; for WGD (binary) the red bar is this line's category. Hover the Plotly toolbar (top-right of each plot) for PNG / SVG download per panel.</p>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -34812,7 +34821,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const cnEventsWiki = this.clinicalCn?.byCellLine?.[cellLineId] || {};
         const typFor = subKey || pd || 'this subtype';
         const typTag = (isTypical) => isTypical
-            ? ` <span style="color:#15803d; font-size:10px; font-weight:600;" title="One of the canonical / recurrent drivers of ${typFor}">✓ typical ${typFor} driver</span>`
+            ? ` <span style="color:#4c782e; font-size:10px; font-weight:600;" title="One of the canonical / recurrent drivers of ${typFor}">✓ typical ${typFor} driver</span>`
             : (kb ? ` <span style="color:#9ca3af; font-size:10px;" title="Not among the handful of canonical ${typFor} hallmark genes. This is a short curated list, so 'not listed' does not necessarily mean rare, it may still be a real, even common, driver in this line.">not a canonical ${typFor} hallmark</span>` : '');
 
         // Merge hotspot + functional-loss + CN on the same gene into one row.
@@ -34892,7 +34901,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             : `<div style="margin-top:10px; padding:8px 12px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280;">No curated driver profile for &ldquo;${typFor}&rdquo; yet (~30 common Oncotree subtypes covered), so the alterations above aren't tagged typical / atypical.</div>`;
 
         const keyAlterationsHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The alterations most likely <b>central to this cell line's transformation</b>, activating oncogene mutations, tumor-suppressor functional loss, validated driver fusions, and focal copy-number events, each tagged <span style="color:#15803d; font-weight:600;">✓ typical</span> driver of, or <span style="color:#6b7280;">not a canonical hallmark</span> of, its cancer subtype. Overall mutation / fusion burden and the functional pathway read-out follow.</p>
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The alterations most likely <b>central to this cell line's transformation</b>, activating oncogene mutations, tumor-suppressor functional loss, validated driver fusions, and focal copy-number events, each tagged <span style="color:#4c782e; font-weight:600;">✓ typical</span> driver of, or <span style="color:#6b7280;">not a canonical hallmark</span> of, its cancer subtype. Overall mutation / fusion burden and the functional pathway read-out follow.</p>
             ${countsLine}
             ${flagsHtml}
             ${keyAltBody}
@@ -34989,12 +34998,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const lineageTagGE = (gene) => {
                 const lz = geLineageZ.get(gene);
                 return (lz != null && lz <= -1)
-                    ? ` <span style="color:#15803d; font-size:9px; font-weight:600;" title="The ${lin} lineage as a whole also depends on this gene (lineage mean z ${fmtZ(lz)}), common for this cancer type, not specific to this line.">✓ ${lin}-typical</span>`
+                    ? ` <span style="color:#4c782e; font-size:9px; font-weight:600;" title="The ${lin} lineage as a whole also depends on this gene (lineage mean z ${fmtZ(lz)}), common for this cancer type, not specific to this line.">✓ ${lin}-typical</span>`
                     : '';
             };
             const renderEssRow = (g, opts = {}) => {
                 const isTgt = drugTargets.has(g.gene);
-                const tgtStyle = isTgt ? 'color:#15803d; font-weight:600; background:#f0fdf4; padding:1px 4px; border-radius:3px;' : '';
+                const tgtStyle = isTgt ? 'color:#4c782e; font-weight:600; background:#f0fdf4; padding:1px 4px; border-radius:3px;' : '';
                 const pill = isTgt ? ' <span title="Approved or clinical-stage drug targets this gene">💊</span>' : '';
                 return `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tgtStyle}">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="GE = CRISPR knockout effect (0 = neutral, −0.5 ≈ selective, −1 = strongly essential). z-score = how unusual this GE is vs the rest of the cohort.">(GE ${g.val.toFixed(2)}, z ${fmtZ(g.z)})</span>${pill}${opts.tagLineage ? lineageTagGE(g.gene) : ''}`;
             };
@@ -35021,7 +35030,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
             const interpLines = [];
             if (essentialDrugTargets.length > 0) {
-                interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #15803d; font-size:11px;"><b style="color:#15803d;">Druggable dependencies unique to this line</b>, genes this cell line depends on more than typical AND for which approved or clinical-stage drugs exist: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;">(z ${fmtZ(g.z)})</span>`).join(', ')}.</div>`);
+                interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #4c782e; font-size:11px;"><b style="color:#4c782e;">Druggable dependencies unique to this line</b>, genes this cell line depends on more than typical AND for which approved or clinical-stage drugs exist: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;">(z ${fmtZ(g.z)})</span>`).join(', ')}.</div>`);
             }
             if (essentialPathwayHits.length > 0) {
                 const hitsByPathway = {};
@@ -35031,7 +35040,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 }
                 if (Object.keys(hitsByPathway).length > 0) {
                     const items = Object.entries(hitsByPathway).map(([pw, gs]) => `<li><b>${pw}</b>: ${gs.join(', ')}</li>`).join('');
-                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #16a34a; font-size:11px;"><b style="color:#15803d;">Pathway dependencies unique to this line</b>, cancer-pathway genes this cell line depends on more than typical (z &lt; &minus;1.5):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
+                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #5d9239; font-size:11px;"><b style="color:#4c782e;">Pathway dependencies unique to this line</b>, cancer-pathway genes this cell line depends on more than typical (z &lt; &minus;1.5):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
                 }
             }
 
@@ -35148,7 +35157,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const lineageTagExpr = (gene) => {
                     const lz = exprLineageZ.get(gene);
                     return (lz != null && lz >= 1)
-                        ? ` <span style="color:#15803d; font-size:9px; font-weight:600;" title="The ${lin} lineage as a whole also over-expresses this gene (lineage mean z ${fmtZ(lz)}), common for this cancer type, not specific to this line.">✓ ${lin}-typical</span>`
+                        ? ` <span style="color:#4c782e; font-size:9px; font-weight:600;" title="The ${lin} lineage as a whole also over-expresses this gene (lineage mean z ${fmtZ(lz)}), common for this cancer type, not specific to this line.">✓ ${lin}-typical</span>`
                         : '';
                 };
                 const renderExprRow = (g, opts = {}) => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; font-weight:600;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="TPM = log2(TPM+1) expression value. z-score = how unusual this expression is vs the rest of the cohort.">(TPM ${g.val.toFixed(1)}, z ${fmtZ(g.z)})</span>${opts.tagLineage ? lineageTagExpr(g.gene) : ''}`;
@@ -35235,7 +35244,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     .sort((a, b) => (b.z ?? -99) - (a.z ?? -99))
                     .slice(0, 10);
                 const drugExprHtml = expressedDrugTargets.length > 0
-                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f0fdf4; border-left:3px solid #15803d; font-size:11px;"><b style="color:#15803d;">Highly-expressed druggable targets</b> <span style="color:#9ca3af; font-size:10px;">(TPM &gt; 3; sorted by how unusually high vs cohort)</span>: ${expressedDrugTargets.map(e => {
+                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f0fdf4; border-left:3px solid #4c782e; font-size:11px;"><b style="color:#4c782e;">Highly-expressed druggable targets</b> <span style="color:#9ca3af; font-size:10px;">(TPM &gt; 3; sorted by how unusually high vs cohort)</span>: ${expressedDrugTargets.map(e => {
                         const zStr = e.z != null ? ` <span style="color:#9ca3af; font-size:10px;">[z ${fmtZ(e.z)}]</span>` : '';
                         return `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" style="cursor:help;">${e.gene}</span> (${e.val.toFixed(1)})${zStr}`;
                     }).join(', ')}</div>`
@@ -35256,14 +35265,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     .sort((a, b) => (b.z ?? -99) - (a.z ?? -99) || b.val - a.val)
                     .slice(0, 12);
                 const facsHtml = facsHits.length > 0
-                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f0fdf4; border-left:3px solid #15803d; font-size:11px;"><b style="color:#15803d;">Potential FACS markers</b> <span style="color:#9ca3af; font-size:10px;">(highly-expressed cell-surface antigens, CD molecules, receptor tyrosine kinases, immune checkpoints, ADC targets; TPM &gt; 4; sorted by how uniquely high vs cohort)</span>: ${facsHits.map(e => {
+                    ? `<div style="margin-top:6px; padding:6px 10px; background:#f0fdf4; border-left:3px solid #4c782e; font-size:11px;"><b style="color:#4c782e;">Potential FACS markers</b> <span style="color:#9ca3af; font-size:10px;">(highly-expressed cell-surface antigens, CD molecules, receptor tyrosine kinases, immune checkpoints, ADC targets; TPM &gt; 4; sorted by how uniquely high vs cohort)</span>: ${facsHits.map(e => {
                         const zStr = e.z != null ? ` <span style="color:#9ca3af; font-size:10px;">[z ${fmtZ(e.z)}]</span>` : '';
                         return `<span class="gene-hover clb-gene-link" data-gene="${e.gene}" style="cursor:help;">${e.gene}</span> (${e.val.toFixed(1)})${zStr}`;
                     }).join(', ')}</div>`
                     : '';
 
                 exprSigHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression, that list is always dominated by mitochondrial and ribosomal genes that are high in every line. "Uniquely" here is judged <b>against every cell line in the expression table</b> (${(this.expressionMetadata?.cellLines?.length || 0).toLocaleString()} lines across every lineage, <i>not</i> just same-tissue lines). Values are log₂(TPM+1) (≈ mRNA on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score vs that whole cohort for the gene (&gt; +2 = much more expressed than the typical cell line, &lt; &minus;2 = strongly silenced). Whole-cohort hits carry a <span style="color:#15803d; font-weight:600;">✓ lineage-typical</span> flag when the whole cancer family also over-expresses them (i.e. common for this cancer type rather than specific to this line); a second list ranks genes uniquely high <b>vs same-lineage lines only</b>.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression, that list is always dominated by mitochondrial and ribosomal genes that are high in every line. "Uniquely" here is judged <b>against every cell line in the expression table</b> (${(this.expressionMetadata?.cellLines?.length || 0).toLocaleString()} lines across every lineage, <i>not</i> just same-tissue lines). Values are log₂(TPM+1) (≈ mRNA on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score vs that whole cohort for the gene (&gt; +2 = much more expressed than the typical cell line, &lt; &minus;2 = strongly silenced). Whole-cohort hits carry a <span style="color:#4c782e; font-weight:600;">✓ lineage-typical</span> flag when the whole cancer family also over-expresses them (i.e. common for this cancer type rather than specific to this line); a second list ranks genes uniquely high <b>vs same-lineage lines only</b>.</p>
                     ${row('Top uniquely high vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages)</span>', topUniqueHtml)}
                     ${exprFamilyHtml}
                     ${xist !== undefined
@@ -35351,13 +35360,13 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const slugify = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
                 const fmtCompound = (c, signClass) => {
                     const zStr = c.z >= 0 ? `+${c.z.toFixed(1)}` : c.z.toFixed(1);
-                    const color = signClass === 'sens' ? '#15803d' : '#991b1b';
+                    const color = signClass === 'sens' ? '#4c782e' : '#991b1b';
                     const bg = signClass === 'sens' ? '#f0fdf4' : '#fef2f2';
                     const word = signClass === 'sens' ? 'below average' : 'above average';
                     const survivalLabel = c.v < 0.3 ? 'kills most cells' : c.v < 0.6 ? 'kills many cells' : c.v < 0.85 ? 'modest killing' : 'little effect';
                     const sc = c._sensCounts;
                     const cohortStr = sc
-                        ? `<div style="padding-left:170px; font-size:10px; color:#6b7280;">PRISM cohort: <b style="color:#15803d;">${sc.very}</b> very-sensitive (AUC&nbsp;&lt;&nbsp;0.3) · <b style="color:#a16207;">${sc.part}</b> partly-sensitive (AUC&nbsp;0.3&ndash;0.6) of ${sc.total} tested.</div>`
+                        ? `<div style="padding-left:170px; font-size:10px; color:#6b7280;">PRISM cohort: <b style="color:#4c782e;">${sc.very}</b> very-sensitive (AUC&nbsp;&lt;&nbsp;0.3) · <b style="color:#a16207;">${sc.part}</b> partly-sensitive (AUC&nbsp;0.3&ndash;0.6) of ${sc.total} tested.</div>`
                         : '';
                     // c.indication is the clinical disease(s) the drug is
                     // used / approved for. Previously rendered as bare italic
@@ -35386,7 +35395,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     <div style="margin:0 0 8px;"><button onclick="window.app.exportWikiDrugResponseCSV()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Export every PRISM compound with this cell line's AUC, the cohort mean/SD and z-score, plus target / mechanism / indication, as a CSV so you can make your own plot">Export drug responses (.csv)</button></div>
                     <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically-relevant compounds). The <b>AUC viability score</b> goes from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. AUC alone doesn't tell you whether this cell line is unusually responsive, for that, compare it to how every <i>other</i> tested cell line behaved with the same drug.<br><br>The <b>z-score</b> (shown as <b>&minus;1.4σ below average</b> etc.) does exactly that. <b>σ (sigma)</b> = the standard deviation of this drug's AUC across all PRISM cell lines. The z-score is computed across every cell line PRISM tested; the &ldquo;of N tested&rdquo; count beside it covers the lines that also have a CRISPR screen here. <b>&minus;1.4σ below average</b> means this cell line's AUC sits 1.4 standard deviations below the cohort mean for that drug, it is killing about 1.4σ harder than typical. Rough guide: <b>|z| &gt; 1σ</b> = noteworthy, <b>|z| &gt; 2σ</b> = strong outlier worth following up. Below: &ldquo;standout sensitive&rdquo; lists compounds with z &lt; &minus;1σ; &ldquo;standout resistant&rdquo; lists z &gt; +1σ. The mini-histogram under each compound shows the full AUC distribution across all PRISM-tested cell lines (red line = this cell line's value), mirroring the per-metric histograms in the Genome section.<br><br>Each compound row shows: <b>name</b>, molecular <b>target &middot; mechanism of action</b>, and the viability score and z-score for <i>this</i> cell line. The compound's approved clinical indications are in the CSV export; they describe the drug and say nothing about this cell line's cancer type.</p>
                     <div style="margin:0 0 10px; padding:8px 12px; background:var(--earth-50); border-left:3px solid var(--earth-700); border-radius:0 4px 4px 0; font-size:11px; color:#5b4a2c;"><b>&ldquo;Standout sensitive&rdquo; means selective, not necessarily strong.</b> A line can be more sensitive than most others to a drug (low z-score) while still not being very sensitive in absolute terms (high AUC, few cells killed). Always read both: the <b>AUC</b> says how much the drug kills <i>this</i> line; the <b>z-score</b> says whether that is unusual versus other lines.</div>
-                    ${sensitive.length ? `<div><b style="color:#15803d;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
+                    ${sensitive.length ? `<div><b style="color:#4c782e;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
                     ${resistant.length ? `<div><b style="color:#991b1b;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}`;
                 // Stash for the post-render histogram draw.
                 this._drugHistPending = { cellLineId, targets: drugHistTargets };
@@ -35463,7 +35472,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const pubmedLink = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(name)}+cell+line`;
         const atccLink = `https://www.atcc.org/search#q=${encodeURIComponent(stripped)}`;
         const cosmic = `https://cancer.sanger.ac.uk/cell_lines/search?q=${encodeURIComponent(stripped)}`;
-        const linkStyle = 'display:inline-block; margin:3px 8px 3px 0; padding:4px 10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:4px; color:#15803d; text-decoration:none; font-size:11px;';
+        const linkStyle = 'display:inline-block; margin:3px 8px 3px 0; padding:4px 10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:4px; color:#4c782e; text-decoration:none; font-size:11px;';
         const extHtml = `
             <a href="${depmapLink}" target="_blank" rel="noopener" style="${linkStyle}">DepMap Portal ↗</a>
             ${cellosaurusLink ? `<a href="${cellosaurusLink}" target="_blank" rel="noopener" style="${linkStyle}">Cellosaurus (${rrid}) ↗</a>` : ''}
@@ -35480,8 +35489,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // === Executive summary, synthesized opening paragraph ===
         // Built by the shared generator so this box and the browser's summary
         // card say exactly the same thing about the same cell line.
-        const summaryHtml = `<div style="margin-bottom:16px; padding:14px 18px; background:#fff; border:1px solid #bbf7d0; border-left:4px solid #15803d; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
-                <div style="font-size:9px; font-weight:700; color:#15803d; letter-spacing:0.06em; margin-bottom:6px;">EXECUTIVE SUMMARY</div>
+        const summaryHtml = `<div style="margin-bottom:16px; padding:14px 18px; background:#fff; border:1px solid #bbf7d0; border-left:4px solid #4c782e; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+                <div style="font-size:9px; font-weight:700; color:#4c782e; letter-spacing:0.06em; margin-bottom:6px;">EXECUTIVE SUMMARY</div>
                 <div style="font-size:13px; line-height:1.65; color:#374151;">${this._cellLineSummaryText(cellLineId)}</div>
             </div>`;
 
@@ -35967,7 +35976,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // dialog / no "Save as PDF" printer needed).
             const holder = document.createElement('div');
             holder.style.cssText = "position:fixed; left:-99999px; top:0; width:760px; background:#fff; padding:26px; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:#374151; line-height:1.5; font-size:12.5px;";
-            holder.innerHTML = `<h1 style="color:#15803d;margin:0 0 4px;font-size:22px;">${title}</h1>
+            holder.innerHTML = `<h1 style="color:#4c782e;margin:0 0 4px;font-size:22px;">${title}</h1>
                 <div style="font-size:11px;color:#6b7280;margin-bottom:16px;">${subtitle}</div>
                 ${clone.innerHTML}
                 <div style="margin-top:20px;font-size:10px;color:#9ca3af;">Generated ${date} by Correlate V2, data from DepMap 25Q3 and Cellosaurus.</div>`;
@@ -36092,11 +36101,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 <style>
   @page { margin: 14mm; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#374151; max-width:900px; margin:0 auto; padding:0 8px; line-height:1.55; font-size:12.5px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  h1 { color:#15803d; margin:0 0 4px; font-size:22px; }
-  h3 { color:#15803d; font-size:16px; font-weight:700; margin:0 0 10px; padding:7px 11px; background:#f0fdf4; border-left:4px solid #15803d; border-radius:0 4px 4px 0; }
+  h1 { color:#4c782e; margin:0 0 4px; font-size:22px; }
+  h3 { color:#4c782e; font-size:16px; font-weight:700; margin:0 0 10px; padding:7px 11px; background:#f0fdf4; border-left:4px solid #4c782e; border-radius:0 4px 4px 0; }
   .subtitle { font-size:11px; color:#6b7280; margin-bottom:18px; }
   section { margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #e5e7eb; page-break-inside:avoid; }
-  img { page-break-inside:avoid; } a { color:#15803d; text-decoration:none; }
+  img { page-break-inside:avoid; } a { color:#4c782e; text-decoration:none; }
 </style></head><body>
 <h1>${title}</h1><div class="subtitle">${subtitle}</div>
 ${clone.innerHTML}
@@ -36291,7 +36300,7 @@ ${clone.innerHTML}
         const col = (side, title, note, cut, step) => `
             <div style="flex:1; min-width:0;">
                 <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:2px; flex-wrap:wrap;">
-                    <div style="font-weight:700; color:#15803d; font-size:13px;">${title}</div>
+                    <div style="font-weight:700; color:#4c782e; font-size:13px;">${title}</div>
                     <div style="display:flex; gap:6px; align-items:center; font-size:11px;">
                         <label title="Hide genes whose difference is smaller than this">|&Delta;|&nbsp;&ge;</label>
                         <input type="text" inputmode="decimal" id="ge${side}DeltaCutoff" min="0" max="10" step="${step}" value="${cut}" style="width:54px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center;">
@@ -36480,7 +36489,7 @@ ${clone.innerHTML}
             ? `${selected.length} selected cell lines vs the other ${nRestGE.toLocaleString()} in ${lineageText}`
             : `${selected.length} selected cell lines vs the other ${nRestGE.toLocaleString()}`;
         const sub = document.getElementById('selectionInspectSubtitle');
-        const btn = (val, label, title) => `<button type="button" onclick="app.setGEInspectScope('${val}')" title="${title}" style="font-size:10px; padding:2px 8px; border:1px solid ${scope === val ? '#5a9f4a' : '#d1d5db'}; background:${scope === val ? '#f0fdf4' : '#fff'}; color:${scope === val ? '#15803d' : '#374151'}; font-weight:${scope === val ? '700' : '400'}; border-radius:4px; cursor:pointer;">${label}</button>`;
+        const btn = (val, label, title) => `<button type="button" onclick="app.setGEInspectScope('${val}')" title="${title}" style="font-size:10px; padding:2px 8px; border:1px solid ${scope === val ? '#6ba544' : '#d1d5db'}; background:${scope === val ? '#f0fdf4' : '#fff'}; color:${scope === val ? '#4c782e' : '#374151'}; font-weight:${scope === val ? '700' : '400'}; border-radius:4px; cursor:pointer;">${label}</button>`;
         sub.innerHTML = `For every gene, its average across your selection minus its average across the cell lines it is compared with. `
             + `Both columns are sorted by the size of that difference, so genes that are higher and lower in your selection appear together. `
             + `Welch's t-test per gene, q is that p-value after Benjamini-Hochberg across all genes tested. `
@@ -36706,7 +36715,7 @@ ${clone.innerHTML}
             : v.toFixed(3);
         const trows = rows.map(r => `
             <tr class="si-row" data-gene="${this.esc(r.gene)}" style="cursor:pointer;">
-                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#15803d;">${r.gene}</td>
+                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#4c782e;">${r.gene}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center;">${fmt(r.meanSel)}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; color:#6b7280;">${fmt(r.meanOther)}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; font-weight:600; color:${r.delta < 0 ? '#dc2626' : '#2563eb'};">${fmt(r.delta)}</td>
@@ -38011,13 +38020,13 @@ ${clone.innerHTML}
             document.getElementById('clbUmapClearGates').style.display = '';
             document.getElementById('clbUmapUmapFromGate').style.display = cells.length >= 15 ? '' : 'none';
             document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
-            document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
+            document.getElementById('clbUmapGateStatus').style.color = '#5d9239';
         } else {
             this._umapGateB = cells;
             document.getElementById('clbUmapSetGateB').textContent = `Gate B (n=${cells.length})`;
             document.getElementById('clbUmapCompareGates').style.display = '';
             document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${this._umapGateA?.length || 0}, Gate B: ${cells.length}. Click Compare.`;
-            document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
+            document.getElementById('clbUmapGateStatus').style.color = '#5d9239';
         }
         this._updateUmapGateOverlay();
     }
@@ -38054,7 +38063,7 @@ ${clone.innerHTML}
                 document.getElementById('clbUmapClearGates').style.display = '';
                 document.getElementById('clbUmapUmapFromGate').style.display = cells.length >= 15 ? '' : 'none';
                 document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
-                document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
+                document.getElementById('clbUmapGateStatus').style.color = '#5d9239';
             } else {
                 if (this._umapGateBShapeIndex != null && this._umapGateBShapeIndex !== currentShapes.length - 1) {
                     currentShapes.splice(this._umapGateBShapeIndex, 1);
@@ -38070,7 +38079,7 @@ ${clone.innerHTML}
                 document.getElementById('clbUmapSetGateB').textContent = `Gate B (n=${cells.length})`;
                 document.getElementById('clbUmapCompareGates').style.display = '';
                 document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${this._umapGateA?.length || 0}, Gate B: ${cells.length}. Click Compare.`;
-                document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
+                document.getElementById('clbUmapGateStatus').style.color = '#5d9239';
             }
             this._umapGateSelecting = null;
             Plotly.relayout(plotDiv, { shapes: currentShapes, dragmode: 'lasso' });
@@ -38355,7 +38364,7 @@ ${clone.innerHTML}
         this._umapGatePvalueFilter = '';
 
         document.getElementById('clbUmapGateStatus').textContent = `Comparison complete. Gate A: ${nA}, Gate B: ${nB}`;
-        document.getElementById('clbUmapGateStatus').style.color = '#16a34a';
+        document.getElementById('clbUmapGateStatus').style.color = '#5d9239';
         const gatePanel = document.getElementById('clbUmapGatePanel');
         gatePanel.style.display = '';
         document.getElementById('clbUmapGateTitle').textContent = `Gate A (${nA}) vs Gate B (${nB})`;
@@ -38513,7 +38522,7 @@ ${clone.innerHTML}
                 </tr></thead><tbody>`;
             const filtered = pf ? data.filter(d => d.pValue < parseFloat(pf)) : data;
             filtered.slice(0, 100).forEach(d => {
-                const color = d.diff > 0.2 ? '#16a34a' : d.diff < -0.2 ? '#dc2626' : '';
+                const color = d.diff > 0.2 ? '#5d9239' : d.diff < -0.2 ? '#dc2626' : '';
                 const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showUmapGateGenePlot('${d.gene}','ge')"><td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
@@ -38555,7 +38564,7 @@ ${clone.innerHTML}
                 </tr></thead><tbody>`;
             const filtered = pf ? data.filter(d => d.pValue < parseFloat(pf)) : data;
             filtered.slice(0, 100).forEach(d => {
-                const color = d.diff > 0.5 ? '#16a34a' : d.diff < -0.5 ? '#dc2626' : '';
+                const color = d.diff > 0.5 ? '#5d9239' : d.diff < -0.5 ? '#dc2626' : '';
                 const pStr = this.formatPValue(d.pValue);
                 html += `<tr style="cursor:pointer;" onclick="app.showUmapGateGenePlot('${d.gene}','expression')"><td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
                     <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(2)}</td>
@@ -39148,7 +39157,7 @@ ${clone.innerHTML}
         const rowHtml = stats.rows.map(r => {
             const s = r.silhouette;
             const bar = Math.max(0, Math.min(1, (s + 1) / 2));
-            const barColor = s >= 0.25 ? '#16a34a' : s >= 0 ? '#f59e0b' : '#dc2626';
+            const barColor = s >= 0.25 ? '#5d9239' : s >= 0 ? '#f59e0b' : '#dc2626';
             const bg = r.group === highlightGroup ? '#dcfce7' : '';
             return `
                 <tr class="clb-umap-cs-row" data-group="${r.group}" style="cursor:pointer; background:${bg};">
@@ -39984,7 +39993,7 @@ ${clone.innerHTML}
                         text: matchIdx.map(i => makeHoverText(i)),
                         customdata: matchIdx.map(i => cellLines[i]),
                         mode: 'markers', type: 'scattergl', name: `${highlight.group} (${matchIdx.length})`,
-                        marker: { size: markerSize + 1, color: '#16a34a', opacity: 0.95, line: { width: 0.6, color: '#14532d' } },
+                        marker: { size: markerSize + 1, color: '#5d9239', opacity: 0.95, line: { width: 0.6, color: '#14532d' } },
                         hoverinfo: 'text', showlegend: true
                     }
                 ];
@@ -40663,8 +40672,8 @@ ${clone.innerHTML}
             let mc, fc, lc;
             switch (scheme) {
                 case 'essential':
-                    mc = mean < -0.5 ? 'rgba(220,38,38,0.6)' : mean > 0 ? 'rgba(34,197,94,0.5)' : 'rgba(107,114,128,0.5)';
-                    fc = mean < -0.5 ? 'rgba(220,38,38,0.2)' : mean > 0 ? 'rgba(34,197,94,0.15)' : 'rgba(156,163,175,0.2)';
+                    mc = mean < -0.5 ? 'rgba(220,38,38,0.6)' : mean > 0 ? 'rgba(122, 185, 80,0.5)' : 'rgba(107,114,128,0.5)';
+                    fc = mean < -0.5 ? 'rgba(220,38,38,0.2)' : mean > 0 ? 'rgba(122, 185, 80,0.15)' : 'rgba(156,163,175,0.2)';
                     lc = (stats[i]?.pValue ?? 1) < 0.05 ? '#1f2937' : '#9ca3af';
                     break;
                 case 'bw':
@@ -41428,7 +41437,7 @@ window._geStressTest = async function _geStressTest() {
     const failed = results.filter(r => !r.A || !r.B || !r.C);
     const pass = results.length - failed.length;
     console.log(`%c[_geStressTest] PASS: ${pass}/${results.length}, FAIL: ${failed.length}`,
-        failed.length ? 'color:#dc2626;font-weight:700;' : 'color:#16a34a;font-weight:700;');
+        failed.length ? 'color:#dc2626;font-weight:700;' : 'color:#5d9239;font-weight:700;');
     if (failed.length) {
         console.log('[_geStressTest] Failed combos:', failed);
     }
