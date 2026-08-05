@@ -17,34 +17,41 @@
 
   3. Alteration dropdowns, no WT/mut selector — picking a gene applies
   "altered"; WT / one copy / both copies moved onto the chip. .72
-
+- ok
 
   4. Wiki fusion wording — rewritten. .76
+- i dont understand 
 
   5. Fusion/amp-del grids — three faults: filters matched nothing (rows were
   looked up in the hotspot matrix, where a fusion name or "CDKN2B del" doesn't
   exist); labels overran (pane fixed at 72px for gene symbols); Apply now
   prominent. BCR-ABL1→12 lines, CDKN2B del→295. .73
+- looks ok now
 
   6. Quick filters button + non-lineage cancer types — button was broken by my
   own CSS-class change .73. CLL genuinely unreachable: it's an Oncotree-only
   entity, filed under "Mature B-Cell Neoplasms". 48 entities are in that
   position, so there's now an exact-disease picker with all 165. .95
+- ok
 
   7. PGA1 not showing KRAS — it does carry a KRAS hotspot, but the summary read
   only DepMap's inferred variant list, where PGA-1 has no hotspot entry. Now
   falls back to the matrix. .94
+- we ahve worked further on this. but in general the summary should indicate the most important potential drivers of the cancer. if it is an atypical mutation it should still be stated but the atyupical nature indicated.
 
   8. Network export DPI — confirmed: the export copied the on-screen canvas and
   stretched it, so detail was identical at any DPI; the legend improved because
   it's drawn directly. Network now redrawn at export size, 9× the pixels at 3×.
   .94
+- good. the copy button is also good but should contain the legend (below the network). also that button should not be differnt from the other export buttons (grayish), and it should be called copy network. 
 
   9. American English — 425 changes, verified no element reference broke. .75
-  
+- ok
+
   10. Saved figure not restoring colour-by — verified fixed by the restore
   allowlist and picker scoping; 5 picked tissues → 7 traces before and after.
   .82
+
 
   11. Scatter CSV gene1/gene2 — columns named after the genes, plus a
   ShownOnPlot column since the file holds more rows than the plot. .82
