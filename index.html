@@ -2003,6 +2003,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.32 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>Inspect works without ticking anything.</b> Having filtered the list down to a group is itself a selection, so with nothing ticked it compares the cell lines currently showing. The title and the note say which set was used, so a filtered run is never mistaken for a ticked one. If no filter is active there is nothing to compare against, and it says so rather than comparing the panel with itself.</li>
+                </ul>
                 <p><strong>v.85.31 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>The grids' live count was wrong for fusions and copy number.</b> It read the hotspot mutation table whatever the grid was showing, so ticking EWSR1-FLI1 or MYC amp previewed as 0 of 1,186 before you even pressed Apply. All three places that test a grid row now use the same per-layer check.</li>
@@ -4924,7 +4928,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.31</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.32</a>
     </div>
 
     <div class="main-content">
@@ -7403,6 +7407,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_31"></script>
+    <script src="app.js?v=v85_32"></script>
 </body>
 </html>

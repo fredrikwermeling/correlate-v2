@@ -36537,9 +36537,17 @@ ${clone.innerHTML}
     }
 
     inspectSelectionGE() {
-        const selected = [...(this._clbSelectedCellLines || [])];
+        // With nothing ticked, take whatever the filters have left on screen:
+        // having narrowed the list to a group is itself a selection.
+        let selected = [...(this._clbSelectedCellLines || [])];
+        const fromFilter = selected.length === 0;
+        if (fromFilter) selected = [...(this._clbVisibleCellLines || [])];
         if (selected.length < 1) {
-            this.showCopyNotification?.('Tick at least one cell line first.');
+            this.showCopyNotification?.('No cell lines to inspect. Tick some, or filter the list.');
+            return;
+        }
+        if (fromFilter && selected.length >= this.nCellLines) {
+            this.showCopyNotification?.('Every cell line is showing, so there is nothing to compare against. Filter the list or tick some lines.');
             return;
         }
         // The difference between a selection and the rest is meaningful for a
@@ -36632,13 +36640,16 @@ ${clone.innerHTML}
         const lineageText = lineageNames.length === 1 ? lineageNames[0]
             : lineageNames.length <= 3 ? lineageNames.join(', ')
             : `${lineageNames.length} lineages`;
-        const selWord = `${selected.length} selected cell line${selected.length === 1 ? '' : 's'}`;
+        const selWord = `${selected.length} ${fromFilter ? 'filtered' : 'selected'} cell line${selected.length === 1 ? '' : 's'}`;
         document.getElementById('selectionInspectTitle').textContent = scope === 'lineage'
             ? `${selWord} vs the other ${nRestGE.toLocaleString()} in ${lineageText}`
             : `${selWord} vs the other ${nRestGE.toLocaleString()}`;
         const sub = document.getElementById('selectionInspectSubtitle');
         const btn = (val, label, title) => `<button type="button" onclick="app.setGEInspectScope('${val}')" title="${title}" style="font-size:10px; padding:2px 8px; border:1px solid ${scope === val ? '#6ba544' : '#d1d5db'}; background:${scope === val ? '#f0fdf4' : '#fff'}; color:${scope === val ? '#4c782e' : '#374151'}; font-weight:${scope === val ? '700' : '400'}; border-radius:4px; cursor:pointer;">${label}</button>`;
-        sub.innerHTML = `For every gene, its average across your selection minus its average across the cell lines it is compared with. `
+        sub.innerHTML = (fromFilter
+                ? `<b>Nothing was ticked, so this compares the ${selected.length} cell lines your filters currently leave showing.</b> `
+                : '')
+            + `For every gene, its average across your selection minus its average across the cell lines it is compared with. `
             + `Both columns are sorted by the size of that difference, so genes that are higher and lower in your selection appear together. `
             + (canTest
                 ? `Welch's t-test per gene, q is that p-value after Benjamini-Hochberg across all genes tested. `
