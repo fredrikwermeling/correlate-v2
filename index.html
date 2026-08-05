@@ -1995,45 +1995,45 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
-                <p><strong>v.84.111 (2026-08-05)</strong></p>
+                <p><strong>v.85.11 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>The disease dropdown's open list matches the others.</b> Its current choice was a solid block of brand green and the search box took the browser's blue focus ring, so it stood out from every neighbouring dropdown. The selection is now marked with a tick and bold text on a neutral background.</li>
                     <li><b>Warnings say where they come from.</b> Each problematic cell line notice now carries a link to its Cellosaurus entry rather than naming it in plain text.</li>
                     <li><b>Cellosaurus is credited in Data sources</b> for the published fusion calls and the problematic-line flags, with its citation. COSMIC was already credited for the curated fusion and subtype panels.</li>
                 </ul>
-                <p><strong>v.84.110 (2026-08-05)</strong></p>
+                <p><strong>v.85.10 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>Correlate and Green Listed now share one palette.</b> Green Listed's green ramp was built as the midpoint between the two apps' wordmarks, keeping Correlate's lightness steps and shifting only the hue, so Correlate has adopted it. The greys and the earth accents were already identical.</li>
                     <li><b>Stray greens folded into the ramp.</b> Around 300 hard-coded colours, including a separate green used for headings and links that belonged to neither app, now sit on the shared scale. Text contrast improves everywhere it changed.</li>
                     <li>Shared radius tokens for cards, inputs and buttons, matching Green Listed.</li>
                     <li><b>Fix:</b> the cell line warning repeated its first word, showing "Misclassified. Misclassified. Originally thought to be...", because the category was printed in front of a note that already began with it.</li>
                 </ul>
-                <p><strong>v.84.109 (2026-08-05)</strong></p>
+                <p><strong>v.85.9 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>Gene names that Excel turned into dates are recognised and offered back.</b> Paste a list containing 9-Sep, 1-Mar or 1-Dec and the app names the gene each one came from, one click to restore it. It reads the usual shapes: 9-Sep, Sep-9, 09-Sep-25 and 2025-09-09.</li>
                     <li><b>Ambiguous ones are never guessed.</b> Ten of the thirty-eight date cells could be two different genes, because both once shared the old name: 1-Mar is MARCHF1 or RTL1, 2-Sep is SEPTIN2 or SEPTIN6. Both are offered and the choice is yours.</li>
                     <li><b>Exports avoid the problem at source.</b> Anything shaped like a date, and clone identifiers such as 2310009E13 that Excel reads as scientific notation, are written so Excel keeps them as text. Real numbers, including negative gene effects and values like 1e5, stay numeric.</li>
                     <li>The gene symbols in this dataset already use the current HGNC names (SEPTIN9, not SEPT9), so exports were not affected; the guard covers anything you type and any future data release.</li>
                 </ul>
-                <p><strong>v.84.108 (2026-08-04)</strong></p>
+                <p><strong>v.85.8 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Exported .csv files can no longer carry a formula.</b> Excel and Sheets run a cell whose text starts with =, +, - or @, and these files get shared onward. Every field in every export is now checked and made literal where needed. Plain numbers are exempt, so negative gene effects stay numeric rather than turning into text.</li>
                     <li><b>Analytics honours Do Not Track</b> and no longer records campaign parameters, matching the settings used on Green Listed.</li>
                 </ul>
-                <p><strong>v.84.107 (2026-08-04)</strong></p>
+                <p><strong>v.85.7 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>56 cell lines are flagged as problematic.</b> The panel-wide Cellosaurus check found 36 whose identity is disputed (contaminated, misidentified, or a derivative of another line) and 20 whose recorded cancer type is disputed. MKN28 is a MKN74 derivative; KE-97 is filed as gastric but is a B-lymphoblastoid line; SK-HEP-1, filed under liver, most likely arose from endothelium.</li>
                     <li><b>Where you see it:</b> a warning at the top of the cell line summary, in the card and the wiki alike, carrying Cellosaurus's own wording and reference; a &#9888; beside the name in the browser list; and two quick filters, <b>Identity disputed</b> and <b>Cancer type disputed</b>, to include or exclude them.</li>
                     <li>Flagged lines are never hidden. A contaminated line can still be a good experimental model; what it cannot be is evidence about the tumour type on its label. Calls Cellosaurus states as possible rather than settled say so.</li>
                 </ul>
-                <p><strong>v.84.106 (2026-08-04)</strong></p>
+                <p><strong>v.85.6 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Curation extended to the whole panel.</b> Every one of the 1,167 cell lines with an RRID was checked against Cellosaurus. 26 recurrent driver fusions that the caller did not report are now available to filter on, among them <b>EML4-ALK</b> in NCI-H3122, <b>TPM3-NTRK1</b> in KM12, <b>KMT2A-AFF1</b> in RS4;11, <b>FUS-DDIT3</b> in DL-221, <b>MYB-NFIB</b> in UM-HACC-2A, <b>CRTC1-MAML2</b> in H3118, four <b>MYC-IGH</b> Burkitt lines and the <b>FGFR2</b> fusions in the cholangiocarcinoma lines.</li>
                     <li><b>Only recurrent drivers were added.</b> Private one-off fusions and ordinary immunoglobulin V-J rearrangements, which every B cell carries, are left out on purpose: including them would put back the noise the curated fusion axis exists to avoid.</li>
                     <li>Of the cell lines the caller could not read, only one outside Ewing sarcoma has a published fusion. Fusion-driven sarcomas are characterised because the fusion defines the disease; most carcinomas simply have none to find.</li>
                     <li>A comparison group that carries a different fusion of the same gene is now named without being judged, so what counts as a control stays your call.</li>
                 </ul>
-                <p><strong>v.84.105 (2026-08-04)</strong></p>
+                <p><strong>v.85.5 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Published fusion calls fill in the cell lines the caller could not read.</b> Rather than holding out every line without RNA-seq, their fusion status is taken from Cellosaurus where it is documented. For Ewing sarcoma this brings 9 cell lines back: EW-22, SCCH-196, MC-IXC, ES4, EW-7, EW-1, TC-32, EW-16 and ES8 all carry EWSR1-FLI1. The EWSR1-FLI1 group goes from 13 to 22.</li>
                     <li><b>The comparison group says what it actually carries.</b> All four EWSR1-FLI1-negative Ewing lines carry a different fusion of the same gene: EWSR1-ERG in CADO-ES1, TC-106 and COG-E-352, EWSR1-FEV in TC-205. They are not fusion-free, and the results header now says so. Cellosaurus also records that CADO-ES1 was reported as EWSR1-FLI1 in error in one publication.</li>
@@ -2041,7 +2041,7 @@
                     <li><b>Switching between CRISPR and mRNA states its own group sizes.</b> The two panels cover different cell lines, so the same comparison is 22 vs 4 on CRISPR and 13 vs 4 on mRNA. Each mode now names its own numbers and what the other would give, instead of the count changing with no explanation.</li>
                     <li><b>Filtering on a fusion with no data no longer matches every cell line.</b> An unrecognised pair fell through to "passes", so the whole panel looked positive.</li>
                 </ul>
-                <p><strong>v.84.104 (2026-08-04)</strong></p>
+                <p><strong>v.85.4 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Cell lines that were never RNA-sequenced are no longer counted as fusion-negative.</b> A fusion call needs RNA-seq, so a line without it is unknown, not negative. For EWSR1-FLI1 in Ewing sarcoma that meant 14 "not fused" cell lines of which only 4 could ever have been called. Those 10 are now held out of both groups and reported separately, in the analysis, the results header and the tissue breakdown.</li>
                     <li>This is also why gene effect and mRNA disagreed, 13 vs 14 against 13 vs 4: the uncallable lines have no expression data either, so they dropped out of one view but not the other. Both now read 13 vs 4.</li>
@@ -2049,14 +2049,14 @@
                     <li><b>"Stratify Y by" offers the same four alteration types as the analysis panel</b>, in the same order. Functional loss used to appear only if the analysis had started there, so what you could stratify by depended on how you arrived.</li>
                     <li><b>Editing text no longer crops the title.</b> Any change in Text Settings replaced the wrapped heading with a single long line, which the plot cut off at both ends. Edited text is re-wrapped to the plot width, and the subtitle box keeps one stats line per row instead of running them together.</li>
                 </ul>
-                <p><strong>v.84.103 (2026-08-04)</strong></p>
+                <p><strong>v.85.3 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>The cell line summary leads with what drives the cancer.</b> The card and hover popout were reading only the inferred-subtype layer, so a KRAS hotspot recorded in the mutation matrix but never called as a specific variant, or a focal MDM2 amplification, went unmentioned and ploidy was left as the headline. Order is now driver fusion, oncogene hotspot, tumour-suppressor loss, focal amplification and deletion, then genome-wide state.</li>
                     <li><b>Ploidy is no longer reported as notable.</b> Near-diploid says nothing on its own. Whole-genome doubling, MSI-high, a high mutation burden and lost Class-I presentation are still reported, and ploidy appears only when extreme.</li>
                     <li><b>The card and the wiki now say the same thing</b>, from one generator instead of two that had drifted apart. When no driver is found, both say so and note it is a statement about the data layers rather than proof of absence.</li>
                     <li><b>The tissue breakdown popup stays on screen.</b> With the button near the top of a short window it could be given a negative height, which browsers ignore, so the list ran past the bottom of the screen and Apply Filter could not be reached.</li>
                 </ul>
-                <p><strong>v.84.102 (2026-08-04)</strong></p>
+                <p><strong>v.85.2 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Inspect reports significance.</b> Every gene gets Welch's t-test between your selection and the cell lines it is compared with, adjusted across all genes tested with Benjamini-Hochberg. The <b>q</b> column is sortable and each side has a <b>q &le;</b> box, starting at 0.05. Set it to 1 to show everything regardless.</li>
                     <li><b>Choose what the selection is compared with.</b> <b>All other cell lines</b> as before, or <b>same lineage only</b>, which keeps just the cell lines sharing a tissue of origin with your selection. The second answers what is special about these lines for their tissue, rather than how that tissue differs from every other one.</li>
@@ -2064,13 +2064,13 @@
                     <li><b>The disease filter follows the other filters.</b> Choosing Skin leaves only skin diseases to pick from, with counts matching what the list shows. A disease already chosen stays selectable and says when the other filters leave none of it.</li>
                     <li><b>The disease box matches its neighbours.</b> It was drawn in the app font while the plain dropdowns beside it used the browser's, and it alone turned green when pressed. The whole toolbar now shares one font, and the green focus ring is gone.</li>
                 </ul>
-                <p><strong>v.84.101 (2026-08-04)</strong></p>
+                <p><strong>v.85.1 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Network from Inspect now really uses your selected cell lines.</b> It said "Selection (27 cell lines)" in the banner but the correlations were computed across the whole panel, because the filter it set was the one belonging to the scatter plot and the analysis never read it. Corrected: the selection is a genuine subset of the analysis.</li>
                     <li><b>The subset is visible and removable.</b> A <b>Cell line subset</b> chip appears above the lineage filter with an × to drop it. Any lineage or alteration filter narrows within the subset rather than replacing it, which is now stated where the chip is. If a combination leaves too few cell lines, the message names the subset as one of the causes.</li>
                     <li><b>Enrichr in Inspect asks which genes to send</b>, like the one in mutation analysis: top 25 / 50 / 100 / 250 by size of difference, everything shown, or one direction on its own. Sending genes that go up and down together dilutes the enrichment, so the directions can go separately. The menu carries the link to Enrichr at the Ma'ayan Lab.</li>
                 </ul>
-                <p><strong>v.84.100 (2026-08-04)</strong></p>
+                <p><strong>v.85.0 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Decimals use a dot everywhere.</b> Boxes where you type a decimal (the Inspect cutoffs, the correlation-inspect cutoffs, the mutation threshold, export width and height) were drawn by the browser in its own language, so a cutoff typed as 0.3 could read back as "0,3" while the text beside it said 0.30. They now always show a dot, matching every number the app prints. Typing a comma still works and is read as a decimal point.</li>
                 </ul>
@@ -4856,7 +4856,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.111</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.11</a>
     </div>
 
     <div class="main-content">
@@ -7317,6 +7317,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_111"></script>
+    <script src="app.js?v=v85_11"></script>
 </body>
 </html>
