@@ -2003,6 +2003,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.36 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>A gene measured in few cell lines says so.</b> A small n looked like a filter was still on when it was really the data: RPL13A carries a CRISPR score in 332 of the 1,186 cell lines, against 1,147 for TP53. The chart heading now adds &ldquo;measured in 332 of 1,186 cell lines&rdquo; whenever a gene covers less than 95% of the panel, and stays quiet otherwise.</li>
+                </ul>
                 <p><strong>v.85.35 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>A button to switch between one lineage and all of them.</b> Opening a gene from Inspect gave no way back out of the lineage it opened on, because the condensed popout has no filter row. There is now a button beside Settings that names both states: &ldquo;Showing Bone only, show all lineages&rdquo; and back. It starts on whichever comparison Inspect was making.</li>
@@ -4937,7 +4941,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.35</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.36</a>
     </div>
 
     <div class="main-content">
@@ -7420,6 +7424,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_35"></script>
+    <script src="app.js?v=v85_36"></script>
 </body>
 </html>

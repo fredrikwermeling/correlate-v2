@@ -22050,6 +22050,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.clearCustomCellLineFilterGE?.();
     }
 
+    // How many cell lines this gene actually has a value for, so a small n can
+    // be attributed to the data rather than to a filter.
+    _geMeasuredCount(gene, isExpr) {
+        const sym = String(gene || '').toUpperCase();
+        if (isExpr) {
+            if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata) return null;
+            const gi = this.expressionGeneIndex?.get(sym);
+            if (gi === undefined) return null;
+            const nC = this.expressionMetadata.nCellLines;
+            let m = 0;
+            for (let i = 0; i < nC; i++) if (!isNaN(this.expressionData[gi * nC + i])) m++;
+            return { measured: m, total: nC };
+        }
+        const gi = this.geneIndex?.get(sym);
+        if (gi === undefined) return null;
+        let m = 0;
+        for (let i = 0; i < this.nCellLines; i++) {
+            const v = this.geneEffects[gi * this.nCellLines + i];
+            if (v !== -999 && !isNaN(v)) m++;
+        }
+        return { measured: m, total: this.nCellLines };
+    }
+
     _getGEFilterDescription() {
         const parts = [];
         const tissue = document.getElementById('geTissueFilter')?.value;
@@ -22274,6 +22297,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const geTissueTitle = isGrowth ? 'Growth Rate' : isGeneSet ? gene : `${gene} ${metricLabel}`;
         const filterDesc = this._getGEFilterDescription();
         const subtitleParts = [`n=${data.length}`];
+        // A gene can be measured in far fewer cell lines than the panel holds,
+        // and a small n then looks like a filter rather than the data. RPL13A
+        // has a CRISPR score in 332 of 1,186 lines, TP53 in 1,147, so say when
+        // the gene itself is the limit.
+        const covered = this._geMeasuredCount?.(gene, isExpr);
+        if (covered && covered.total && covered.measured < covered.total * 0.95 && !filterDesc) {
+            subtitleParts.push(`<span style="color:#b45309;">measured in ${covered.measured.toLocaleString()} of ${covered.total.toLocaleString()} cell lines</span>`);
+        }
         if (filterDesc) subtitleParts.push(filterDesc);
         if (hl && hl.size > 0) {
             const shown = hl.__shown ?? hl.size;
