@@ -28311,10 +28311,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (!btn) return;
         const mode = document.getElementById('clbSortBy')?.value || 'name';
         const asc = !!this._clbSortAsc;
+        // Only meaningful once there is something to order by: a sort other
+        // than the default name, and for the gene and compound sorts, an
+        // actual symbol typed in. Hidden with visibility rather than display
+        // so the row keeps its shape and nothing shifts when it appears.
+        const needsGene = (mode === 'ge' || mode === 'expr' || mode === 'drug' || mode === 'cn');
+        const geneVal = (document.getElementById('clbSortGene')?.value || '').trim();
+        // Enabled only once there is something to order by. Disabling rather
+        // than hiding keeps the row's shape, and greying out reads as "not
+        // applicable yet" rather than as a control that vanished.
+        const usable = mode !== 'name' && !(needsGene && !geneVal);
+        btn.disabled = !usable;
+        btn.classList.remove('clb-hidden');
         btn.innerHTML = asc ? '&#x25B2;' : '&#x25BC;';
-        btn.title = mode === 'name'
-            ? (asc ? 'A to Z. Click for Z to A.' : 'Z to A. Click for A to Z.')
-            : (asc ? 'Lowest first. Click for highest first.' : 'Highest first. Click for lowest first.');
+        btn.title = !usable
+            ? (mode === 'name' ? 'Pick something to sort by to reverse the order'
+                               : 'Enter a gene or compound to reverse the order')
+            : (asc ? 'Lowest first. Click for highest first.'
+                   : 'Highest first. Click for lowest first.');
     }
 
     // ===== Cell Line Browser =====
