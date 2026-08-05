@@ -21621,6 +21621,29 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._syncGeScopeToggle();
     }
 
+    // Open a gene the way the list it came from framed it. A gene identified
+    // against the whole panel opens against the whole panel; one identified
+    // within its own lineage opens on that lineage, split by subtype. Used by
+    // the browser's Inspect and by the wiki, so the two cannot drift apart.
+    openGeneScoped(gene, { dataType = 'ge', scope = 'all', lineage = '', condensed = false } = {}) {
+        this.openGeneEffectModal(gene, 'tissue', { dataType, condensed });
+        // Start clean: the popout otherwise inherits whatever the browser was
+        // filtered to, which silently narrows a chart billed as "all lines".
+        this._resetGEFilters?.();
+        const geT = document.getElementById('geTissueFilter');
+        const geS = document.getElementById('geSubtypeFilter');
+        const want = (scope === 'lineage' && lineage) ? lineage : '';
+        if (geT && (!want || [...geT.options].some(o => o.value === want))) {
+            geT.value = want;
+            this.updateGeSubtypeFilter?.();
+            if (geS) geS.value = '';
+            geT.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        // Arm the lineage/all switch whenever there is a lineage to switch to.
+        this._geScopeLineage = lineage || '';
+        this._syncGeScopeToggle?.();
+    }
+
     _applyParamFiltersToGEModal() {
         // Carry active filters (from parameter section OR cell line browser) into the GE modal
         // Lineage filter → GE tissue filter (check param section, then CLB)
@@ -31147,8 +31170,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // the popout on the Expression data type; otherwise Gene Effect.
             const secTitle = link.closest('section')?.querySelector('h3')?.textContent || '';
             const dataType = /expression profile/i.test(secTitle) ? 'expr' : 'ge';
-            this.openGeneEffectModal(link.dataset.gene, 'tissue', { dataType });
-            this._applyParamFiltersToGEModal();
+            // The wiki lists a gene either against the whole panel or against
+            // the cell line's own lineage; open it the same way.
+            this.openGeneScoped(link.dataset.gene, {
+                dataType,
+                scope: link.dataset.scope === 'lineage' ? 'lineage' : 'all',
+                lineage: this.getCellLineLineage(this._wikiCellLineId || this._clbInspectedCellLine) || '',
+            });
         });
 
         document.getElementById('clbResetFilters').addEventListener('click', () => {
@@ -35178,7 +35206,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const isTgt = drugTargets.has(g.gene);
                 const tgtStyle = isTgt ? 'color:#4c782e; font-weight:600; background:#f0fdf4; padding:1px 4px; border-radius:3px;' : '';
                 const pill = isTgt ? ' <span title="Approved or clinical-stage drug targets this gene">💊</span>' : '';
-                return `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; ${tgtStyle}">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="GE = CRISPR knockout effect (0 = neutral, −0.5 ≈ selective, −1 = strongly essential). z-score = how unusual this GE is vs the rest of the cohort.">(GE ${g.val.toFixed(2)}, z ${fmtZ(g.z)})</span>${pill}${opts.tagLineage ? lineageTagGE(g.gene) : ''}`;
+                return `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" data-scope="${opts.familyScope ? 'lineage' : 'all'}" style="cursor:help; ${tgtStyle}">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="GE = CRISPR knockout effect (0 = neutral, −0.5 ≈ selective, −1 = strongly essential). z-score = how unusual this GE is vs the rest of the cohort.">(GE ${g.val.toFixed(2)}, z ${fmtZ(g.z)})</span>${pill}${opts.tagLineage ? lineageTagGE(g.gene) : ''}`;
             };
             // Whole-cohort hits, each flagged ✓ <lineage>-typical when the whole
             // cancer family shares the dependency.
@@ -35190,7 +35218,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             if (hasFamily) {
                 const topFamily = familyZ.sort((a, b) => a.z - b.z).slice(0, 8);
                 familyDepHtml = topFamily.length > 0
-                    ? row(`Top essential vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdx.length})</span>`, topFamily.map(g => renderEssRow(g)).join(', '))
+                    ? row(`Top essential vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdx.length})</span>`, topFamily.map(g => renderEssRow(g, { familyScope: true })).join(', '))
                     : '';
             } else if (lin) {
                 familyDepHtml = `<div style="padding:6px 10px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280; margin-top:4px;">Too few ${lin} cell lines (${familyIdx.length}) for a same-lineage &ldquo;cancer family&rdquo; comparison, only the whole-cohort view above is shown.</div>`;
@@ -35333,7 +35361,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                         ? ` <span style="color:#4c782e; font-size:9px; font-weight:600;" title="The ${lin} lineage as a whole also over-expresses this gene (lineage mean z ${fmtZ(lz)}), common for this cancer type, not specific to this line.">✓ ${lin}-typical</span>`
                         : '';
                 };
-                const renderExprRow = (g, opts = {}) => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help; font-weight:600;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="TPM = log2(TPM+1) expression value. z-score = how unusual this expression is vs the rest of the cohort.">(TPM ${g.val.toFixed(1)}, z ${fmtZ(g.z)})</span>${opts.tagLineage ? lineageTagExpr(g.gene) : ''}`;
+                const renderExprRow = (g, opts = {}) => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" data-scope="${opts.familyScope ? 'lineage' : 'all'}" style="cursor:help; font-weight:600;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;" title="TPM = log2(TPM+1) expression value. z-score = how unusual this expression is vs the rest of the cohort.">(TPM ${g.val.toFixed(1)}, z ${fmtZ(g.z)})</span>${opts.tagLineage ? lineageTagExpr(g.gene) : ''}`;
 
                 // 1) Top uniquely high (most positive z). Filter to genes
                 //    with TPM >= 1 (otherwise "uniquely high" can mean
@@ -35347,11 +35375,26 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const topUniqueHtml = topUniqueExpr.length > 0
                     ? topUniqueExpr.map(g => renderExprRow(g, { tagLineage: true })).join(', ')
                     : '<em style="color:#9ca3af;">No genes with sufficient cohort variance to rank.</em>';
+                // Uniquely LOW. A gene silenced here but expressed across the
+                // cohort is as informative as one over-expressed: lost lineage
+                // markers, deleted tumour suppressors, immune-evasion losses.
+                // The cohort has to actually express it, otherwise "low" just
+                // means the gene is off everywhere.
+                const topLowExpr = zScored
+                    .filter(g => g.z <= -1 && (g.val + Math.abs(g.z) * 0.3) >= 1 && g.val < 1.5)
+                    .sort((a, b) => a.z - b.z)
+                    .slice(0, 8);
+                const topLowHtml = topLowExpr.length > 0
+                    ? topLowExpr.map(g => renderExprRow(g, { tagLineage: true })).join(', ')
+                    : '<em style="color:#9ca3af;">No gene is markedly lower here than across the cohort.</em>';
+
                 // Same-lineage ranking, genes uniquely high in THIS line vs its
                 // tissue siblings.
                 const topFamilyExpr = exprFamilyZ.sort((a, b) => b.z - a.z).slice(0, 8);
+                const topFamilyLow = [...exprFamilyZ].sort((a, b) => a.z - b.z).filter(g => g.z <= -1).slice(0, 8);
                 const exprFamilyHtml = hasFamilyE
-                    ? (topFamilyExpr.length ? row(`Top uniquely high vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdxE.length})</span>`, topFamilyExpr.map(g => renderExprRow(g)).join(', ')) : '')
+                    ? ((topFamilyExpr.length ? row(`Top uniquely high vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdxE.length})</span>`, topFamilyExpr.map(g => renderExprRow(g, { familyScope: true })).join(', ')) : '')
+                       + (topFamilyLow.length ? row(`Top uniquely low vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family)</span>`, topFamilyLow.map(g => renderExprRow(g, { familyScope: true })).join(', ')) : ''))
                     : (lin ? `<div style="padding:6px 10px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280; margin-top:4px;">Too few ${lin} cell lines (${familyIdxE.length}) for a same-lineage comparison.</div>` : '');
 
                 // 2) Pathway-activity signatures.
@@ -35447,6 +35490,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 exprSigHtml = `
                     <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The biologically interesting question is <b>what's uniquely on or off in this cell line</b>, not which genes have the highest raw expression, that list is always dominated by mitochondrial and ribosomal genes that are high in every line. "Uniquely" here is judged <b>against every cell line in the expression table</b> (${(this.expressionMetadata?.cellLines?.length || 0).toLocaleString()} lines across every lineage, <i>not</i> just same-tissue lines). Values are log₂(TPM+1) (≈ mRNA on a log scale, &gt; 1 = clearly expressed) <i>plus</i> the z-score vs that whole cohort for the gene (&gt; +2 = much more expressed than the typical cell line, &lt; &minus;2 = strongly silenced). Whole-cohort hits carry a <span style="color:#4c782e; font-weight:600;">✓ lineage-typical</span> flag when the whole cancer family also over-expresses them (i.e. common for this cancer type rather than specific to this line); a second list ranks genes uniquely high <b>vs same-lineage lines only</b>.</p>
                     ${row('Top uniquely high vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages)</span>', topUniqueHtml)}
+                    ${row('Top uniquely low vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages, genes the cohort expresses but this line does not)</span>', topLowHtml)}
                     ${exprFamilyHtml}
                     ${xist !== undefined
                         ? row('XIST', xist.toFixed(2) + (xist > 1.0 ? ', active (the normal silencing of the extra X chromosome is working)' : ', silenced (unusual; can re-activate X-linked genes)'))
@@ -36913,38 +36957,12 @@ ${clone.innerHTML}
                     // A gene picked from the expression column opens on
                     // expression, matching the number that was clicked.
                     const fromExpr = !!tr.closest('#geRightBody');
-                    this.openGeneEffectModal(gene, 'tissue', { dataType: fromExpr ? 'expr' : 'ge' });
-                    // Match the comparison the inspect was showing. The popout
-                    // otherwise inherits the browser's own tissue AND subtype
-                    // filters, so a gene opened while the browser was narrowed
-                    // to Ewing sarcoma showed only Ewing sarcoma whichever
-                    // comparison the inspect was making. Both are set here
-                    // rather than left to whatever was inherited:
-                    //   all lineages  -> no tissue, no subtype
-                    //   same lineage  -> that lineage, no subtype, so the
-                    //                    by-tissue view splits it by subtype
-                    // Start from a clean slate. The popout otherwise inherits
-                    // every filter the browser had on (hotspot, fusion, copy
-                    // number, sex, custom cell lines), so a plot billed as "all
-                    // cell lines" was really "all cell lines that got through
-                    // the browser's filters". The only thing that should shape
-                    // it is the comparison the inspect was making.
-                    this._resetGEFilters?.();
-                    const geT = document.getElementById('geTissueFilter');
-                    const geS = document.getElementById('geSubtypeFilter');
-                    const lins = [...new Set(selected.map(c => this.getCellLineLineage(c)).filter(Boolean))];
-                    const oneLineage = lins.length === 1 ? lins[0] : '';
-                    const wantTissue = (this._geInspectScope === 'lineage') ? oneLineage : '';
-                    if (geT && (!wantTissue || [...geT.options].some(o => o.value === wantTissue))) {
-                        geT.value = wantTissue;
-                        this.updateGeSubtypeFilter?.();
-                        if (geS) geS.value = '';
-                        geT.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                    // Offer the switch either way round, defaulting to whatever
-                    // the inspect was comparing.
-                    this._geScopeLineage = oneLineage || '';
-                    this._syncGeScopeToggle();
+                    const insLins = [...new Set(selected.map(c => this.getCellLineLineage(c)).filter(Boolean))];
+                    this.openGeneScoped(gene, {
+                        dataType: fromExpr ? 'expr' : 'ge',
+                        scope: this._geInspectScope === 'lineage' ? 'lineage' : 'all',
+                        lineage: insLins.length === 1 ? insLins[0] : '',
+                    });
                 });
                 tr.addEventListener('mouseenter', () => tr.style.background = '#f0fdf4');
                 tr.addEventListener('mouseleave', () => tr.style.background = '');

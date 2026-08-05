@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.38 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>Clicking a gene in the wiki now follows the list it came from</b>, the same as in the browser's Inspect. A gene ranked against the whole panel opens across every lineage; one ranked against the cell line's own lineage opens on that lineage, split by subtype. Both carry the switch between the two views. One shared function does this now, so the two places cannot drift apart again.</li>
+                    <li><b>The wiki's expression profile gained &ldquo;uniquely low&rdquo;</b>, against the whole cohort and against the same lineage. Only high expression was listed, although a gene the cohort expresses and this line does not is just as informative, whether a lost lineage marker, a deleted tumour suppressor or an immune-evasion loss. The CRISPR section already covered both directions.</li>
+                </ul>
                 <p><strong>v.85.37 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>The y axis names the alteration, not just the gene.</b> Groups labelled 0 / 1 / 2 say nothing on their own, and the axis read only &ldquo;KRAS Mutations&rdquo;. It now reads <b>KRAS hotspot mutations</b>, <b>BCR-ABL1 fusion</b>, <b>TP53 functional loss</b>, <b>MYC amplification</b> or <b>CDKN2A deep deletion</b>, so the split is readable from the chart alone.</li>
@@ -4945,7 +4950,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.37</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.38</a>
     </div>
 
     <div class="main-content">
@@ -7428,6 +7433,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_37"></script>
+    <script src="app.js?v=v85_38"></script>
 </body>
 </html>
