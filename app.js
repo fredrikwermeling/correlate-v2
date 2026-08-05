@@ -589,27 +589,32 @@ class CorrelationExplorer {
         this.updateLoadingText('Loading metadata...');
 
         // Load essential JSON files in parallel (synonyms loaded lazily on demand)
+        // Tie the data files to the same version as app.js, otherwise a
+        // browser keeps serving yesterday's JSON to today's code.
+        const _dv = (document.querySelector('script[src*="app.js"]')?.src.split('?v=')[1]) || '';
+        const dfetch = (path) => fetch(_dv ? `${path}?v=${_dv}` : path);
+
         const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes, clinicalCnRes, validatedFusionsRes, functionalLossRes, curatedFusionsRes, problematicRes] = await Promise.all([
-            fetch('web_data/metadata.json'),
-            fetch('web_data/cellLineMetadata.json'),
-            fetch('web_data/mutations.json'),
-            fetch('web_data/orthologs.json'),
-            fetch('web_data/translocations.json').catch(() => null),
-            fetch('web_data/damaging_mutations.json').catch(() => null),
+            dfetch('web_data/metadata.json'),
+            dfetch('web_data/cellLineMetadata.json'),
+            dfetch('web_data/mutations.json'),
+            dfetch('web_data/orthologs.json'),
+            dfetch('web_data/translocations.json').catch(() => null),
+            dfetch('web_data/damaging_mutations.json').catch(() => null),
             Promise.resolve(null), // growth_rate.json disabled (v.54)
-            fetch('web_data/drug_response.json').catch(() => null),
-            fetch('web_data/clinical_fusions.json').catch(() => null),
-            fetch('web_data/inferred_subtypes.json').catch(() => null),
-            fetch('web_data/global_signatures.json').catch(() => null),
-            fetch('web_data/corum_partners.json').catch(() => null),
-            fetch('web_data/reactome_partners.json').catch(() => null),
-            fetch('web_data/hla_cn.json').catch(() => null),
-            fetch('web_data/lehmann_tnbc.json').catch(() => null),
-            fetch('web_data/clinical_cn.json').catch(() => null),
-            fetch('web_data/validated_fusions.json').catch(() => null),
-            fetch('web_data/functional_loss.json').catch(() => null),
-            fetch('web_data/curated_fusions.json').catch(() => null),
-            fetch('web_data/problematic_lines.json').catch(() => null)
+            dfetch('web_data/drug_response.json').catch(() => null),
+            dfetch('web_data/clinical_fusions.json').catch(() => null),
+            dfetch('web_data/inferred_subtypes.json').catch(() => null),
+            dfetch('web_data/global_signatures.json').catch(() => null),
+            dfetch('web_data/corum_partners.json').catch(() => null),
+            dfetch('web_data/reactome_partners.json').catch(() => null),
+            dfetch('web_data/hla_cn.json').catch(() => null),
+            dfetch('web_data/lehmann_tnbc.json').catch(() => null),
+            dfetch('web_data/clinical_cn.json').catch(() => null),
+            dfetch('web_data/validated_fusions.json').catch(() => null),
+            dfetch('web_data/functional_loss.json').catch(() => null),
+            dfetch('web_data/curated_fusions.json').catch(() => null),
+            dfetch('web_data/problematic_lines.json').catch(() => null)
         ]);
 
         this.metadata = await metadataRes.json();
@@ -4006,10 +4011,19 @@ class CorrelationExplorer {
     // Cellosaurus's note opens by repeating the category ("Misclassified.
     // Originally thought to be..."), so strip that opening wherever the
     // category is already shown as a heading.
+    // Our own plain description of what the flag means. Cellosaurus's wording
+    // is never paraphrased into our voice: where it is shown it is quoted and
+    // attributed, and the full record is a click away.
+    _problemPlain(p) {
+        if (!p) return '';
+        const hedge = p.hedged ? ' This is reported as likely rather than settled.' : '';
+        return (p.kind === 'identity'
+            ? 'This may not be the cell line its name says, so a result from it may belong to a different line.'
+            : 'The recorded cancer type for this cell line is disputed, so it may sit in the wrong tissue group.') + hedge;
+    }
+
     _problemDetail(p) {
-        if (!p?.note) return '';
-        const lead = new RegExp('^' + p.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.\\s*', 'i');
-        return p.note.replace(lead, '').trim() || p.note;
+        return p?.summary || '';
     }
 
     // One-line warning for a flagged line. `full` includes Cellosaurus's own
@@ -25875,8 +25889,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const prob = this._problemFlag(cellLineId);
         const warn = prob ? `<div style="margin-bottom:8px; padding:7px 10px; background:#fffbeb; border:1px solid #fcd34d; border-left:3px solid #d97706; border-radius:5px; color:#92400e; font-size:12px; line-height:1.5;">`
             + `<b>&#9888; ${prob.kind === 'identity' ? 'Identity disputed' : 'Cancer type disputed'}${prob.hedged ? ' (reported as likely, not settled)' : ''}</b><br>`
-            + `${this.esc(prob.category)}${prob.category.endsWith('.') ? '' : '.'} ${this.esc(this._problemDetail(prob))}`
-            + `<div style="margin-top:4px; font-size:10px;"><a href="https://www.cellosaurus.org/${this.esc(prob.rrid)}" target="_blank" rel="noopener" style="color:#b45309; text-decoration:underline;">Source: Cellosaurus ${this.esc(prob.rrid)}</a></div>`
+            + `${this.esc(this._problemPlain(prob))}`
+            + (this._problemDetail(prob)
+                ? `<div style="margin-top:5px; color:#78350f;">Cellosaurus records it as <b>${this.esc(prob.category.toLowerCase())}</b>: &ldquo;${this.esc(this._problemDetail(prob))}&rdquo;</div>`
+                : '')
+            + `<div style="margin-top:4px; font-size:10px;"><a href="https://www.cellosaurus.org/${this.esc(prob.rrid)}" target="_blank" rel="noopener" style="color:#b45309; text-decoration:underline;">Full record at Cellosaurus ${this.esc(prob.rrid)}</a></div>`
             + `</div>` : '';
 
         const bodyText = [s2, s3, s4].filter(Boolean).join(' ');
@@ -28294,13 +28311,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (!btn) return;
         const mode = document.getElementById('clbSortBy')?.value || 'name';
         const asc = !!this._clbSortAsc;
-        const labels = mode === 'name'
-            ? { asc: 'A &rarr; Z', desc: 'Z &rarr; A' }
-            : { asc: 'Low &rarr; high', desc: 'High &rarr; low' };
-        btn.innerHTML = asc ? labels.asc : labels.desc;
+        btn.innerHTML = asc ? '&#x25B2;' : '&#x25BC;';
         btn.title = mode === 'name'
-            ? 'Switch between A to Z and Z to A'
-            : 'Switch between lowest first and highest first';
+            ? (asc ? 'A to Z. Click for Z to A.' : 'Z to A. Click for A to Z.')
+            : (asc ? 'Lowest first. Click for highest first.' : 'Highest first. Click for lowest first.');
     }
 
     // ===== Cell Line Browser =====
@@ -31925,7 +31939,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // is visible before the line is picked rather than after.
             const prob = this._problemFlag(cl);
             const probStr = prob
-                ? `<span style="color:#d97706; margin-right:3px; flex-shrink:0; cursor:help;" title="${this.esc(prob.note)}">&#9888;</span>`
+                ? `<span style="color:#d97706; margin-right:3px; flex-shrink:0; cursor:help;" title="${this.esc(this._problemPlain(prob))} Open the cell line for the Cellosaurus record.">&#9888;</span>`
                 : '';
             const titleParts = [name, lin, sub, sx.title, prob ? prob.category : ''].filter(Boolean).join(' · ');
             return `<div class="${cls.join(' ')}" data-clid="${cl}" title="${titleParts}">` +
