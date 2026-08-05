@@ -5129,8 +5129,7 @@ class CorrelationExplorer {
         document.getElementById('downloadScatterPNG').addEventListener('click', () => this.downloadScatterPNG());
         document.getElementById('scatterTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('scatterPlot'));
         document.getElementById('geTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('geneEffectPlot'));
-        document.getElementById('geScopeToggleBtn')?.addEventListener('click', () => this.toggleGeLineageScope());
-        document.getElementById('geSplitToggleBtn')?.addEventListener('click', () => this.setGeSplitByOncotree(!this._geSplitByOncotree));
+        document.getElementById('geScopeSelect')?.addEventListener('change', (e) => this.setGeScopeMode(e.target.value));
         this._initTextSettingsDrag();
         document.getElementById('downloadScatterCSV').addEventListener('click', () => this.downloadScatterCSV());
         document.getElementById('restoreFromSvgInput')?.addEventListener('change', (e) => {
@@ -8372,6 +8371,12 @@ class CorrelationExplorer {
             this.geneNotFound(gene);
             return;
         }
+
+        // The mutation analysis fixes its own lineage, so there is nothing to
+        // switch between here. Clearing this also stops a lineage left over
+        // from a previous popout (Skin) appearing over a Bowel analysis.
+        this._geScopeLineage = '';
+        this._syncGeScopeToggle?.();
 
         // Follow the measure the results table is showing. Opening Inspect
         // from the mRNA table used to plot knockout effect, so the numbers on
@@ -21596,63 +21601,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // One lineage, split by subtype, or every lineage. The condensed popout has
     // no filter row, so without this there was no way back out of a lineage the
     // panel had been opened on.
-    _syncGeScopeToggle() {
-        const btn = document.getElementById('geScopeToggleBtn');
-        if (!btn) return;
-        const lin = this._geScopeLineage;
-        if (!lin) { btn.style.display = 'none'; return; }
-        const on = (document.getElementById('geTissueFilter')?.value || '') === lin;
-        btn.style.display = '';
-        btn.textContent = on ? `Showing ${lin} only, show all lineages` : `Showing all lineages, show ${lin} only`;
-        btn.title = on
-            ? `Currently split by disease within ${lin}. Click to compare across every lineage.`
-            : `Currently across every lineage. Click to show ${lin} split by disease.`;
-        this._syncGeSplitToggle?.();
-    }
-
-    toggleGeLineageScope() {
-        const lin = this._geScopeLineage;
-        const t = document.getElementById('geTissueFilter');
-        if (!lin || !t) return;
-        const on = (t.value || '') === lin;
-        t.value = on ? '' : lin;
-        this.updateGeSubtypeFilter?.();
-        const sub = document.getElementById('geSubtypeFilter');
-        if (sub) sub.value = '';
-        t.dispatchEvent(new Event('change', { bubbles: true }));
-        this._syncGeScopeToggle();
-    }
-
-    // Open a gene the way the list it came from framed it. A gene identified
-    // against the whole panel opens against the whole panel; one identified
-    // within its own lineage opens on that lineage, split by subtype. Used by
-    // the browser's Inspect and by the wiki, so the two cannot drift apart.
-    openGeneScoped(gene, { dataType = 'ge', scope = 'all', lineage = '', condensed = false } = {}) {
-        this.openGeneEffectModal(gene, 'tissue', { dataType, condensed });
-        // Start clean: the popout otherwise inherits whatever the browser was
-        // filtered to, which silently narrows a chart billed as "all lines".
-        this._resetGEFilters?.();
-        const geT = document.getElementById('geTissueFilter');
-        const geS = document.getElementById('geSubtypeFilter');
-        const want = (scope === 'lineage' && lineage) ? lineage : '';
-        if (geT && (!want || [...geT.options].some(o => o.value === want))) {
-            geT.value = want;
-            this.updateGeSubtypeFilter?.();
-            if (geS) geS.value = '';
-            geT.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        // Arm the lineage/all switch whenever there is a lineage to switch to.
-        this._geScopeLineage = lineage || '';
-        this._syncGeScopeToggle?.();
-    }
-
     // How a single lineage is broken up on a chart. DepMap's primary disease is
     // broad (one "Non-Small Cell Lung Cancer" bucket of 98 lines); the Oncotree
     // disease separates that into adenocarcinoma, squamous, large cell and the
-    // rest, which is usually the more useful cut. Switchable, and the choice is
-    // shared by every chart that splits a lineage.
-    _geSplitField() { return this._geSplitByOncotree ? 'oncotreeSubtype' : 'primaryDisease'; }
-
+    // rest. Shared by every chart that splits a lineage.
     _geSplitLabel() { return this._geSplitByOncotree ? 'Disease' : 'Primary disease'; }
 
     _geGroupOf(cellLineId) {
@@ -21665,21 +21617,72 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     setGeSplitByOncotree(on) {
         this._geSplitByOncotree = !!on;
-        this._syncGeSplitToggle?.();
-        // Redraw whichever chart is showing.
+        this._syncGeScopeToggle?.();
         if (this.geneEffectViewMode === 'mutation') this.showGeneEffectDistribution(this.currentGeneEffectGene);
         else if (this.currentGeneEffect) this.renderGeneEffectByTissue();
     }
 
-    _syncGeSplitToggle() {
-        const btn = document.getElementById('geSplitToggleBtn');
-        if (!btn) return;
-        const on = (document.getElementById('geTissueFilter')?.value || '') !== '';
-        btn.style.display = on ? '' : 'none';
-        btn.textContent = this._geSplitByOncotree ? 'Split by disease' : 'Split by primary disease';
-        btn.title = this._geSplitByOncotree
-            ? 'Grouped by Oncotree disease, the finer split. Click for DepMap primary disease.'
-            : 'Grouped by DepMap primary disease, the broader split. Click for Oncotree disease.';
+    // Three alternatives, not two switches: compare across every lineage, or
+    // within this cell line's own lineage broken up by DepMap's primary disease
+    // (broad) or by the Oncotree disease (finer).
+    _syncGeScopeToggle() {
+        const sel = document.getElementById('geScopeSelect');
+        if (!sel) return;
+        const lin = this._geScopeLineage;
+        if (!lin) { sel.style.display = 'none'; return; }
+        sel.style.display = '';
+        const onLineage = (document.getElementById('geTissueFilter')?.value || '') === lin;
+        sel.value = !onLineage ? 'all' : (this._geSplitByOncotree ? 'disease' : 'primary');
+        sel.options[1].textContent = `${lin} only, by primary disease`;
+        sel.options[2].textContent = `${lin} only, by disease`;
+        sel.title = 'What this gene is compared against, and how that group is broken up';
+    }
+
+    setGeScopeMode(mode) {
+        const lin = this._geScopeLineage;
+        const t = document.getElementById('geTissueFilter');
+        if (!t) return;
+        this._geSplitByOncotree = (mode === 'disease');
+        const want = (mode === 'all' || !lin) ? '' : lin;
+        t.value = want;
+        this.updateGeSubtypeFilter?.();
+        const sub = document.getElementById('geSubtypeFilter');
+        if (sub) sub.value = '';
+        t.dispatchEvent(new Event('change', { bubbles: true }));
+        // Changing only the split field leaves the tissue unchanged, so the
+        // change event above may not redraw; force it.
+        if (this.geneEffectViewMode === 'mutation') this.showGeneEffectDistribution(this.currentGeneEffectGene);
+        else if (this.currentGeneEffect) this.renderGeneEffectByTissue();
+        this._syncGeScopeToggle();
+    }
+
+    // Open a gene the way the list it came from framed it. A gene identified
+    // against the whole panel opens against the whole panel; one identified
+    // within its own lineage opens on that lineage. Used by the browser's
+    // Inspect and by the wiki, so the two cannot drift apart.
+    openGeneScoped(gene, { dataType = 'ge', scope = 'all', lineage = '', condensed } = {}) {
+        // condensed is left undefined on purpose: openGeneEffectModal then works
+        // out whether it would open behind another overlay and lifts itself
+        // above it. Passing false forced z-index 1200, under the browser's
+        // 1350, so the popout opened invisibly behind the cell line list.
+        const openOpts = { dataType };
+        if (condensed != null) openOpts.condensed = condensed;
+        this.openGeneEffectModal(gene, 'tissue', openOpts);
+        // Start clean: the popout otherwise inherits whatever the browser was
+        // filtered to, which silently narrows a chart billed as "all lines".
+        this._resetGEFilters?.();
+        const geT = document.getElementById('geTissueFilter');
+        const geS = document.getElementById('geSubtypeFilter');
+        const want = (scope === 'lineage' && lineage) ? lineage : '';
+        if (geT && (!want || [...geT.options].some(o => o.value === want))) {
+            geT.value = want;
+            this.updateGeSubtypeFilter?.();
+            if (geS) geS.value = '';
+            geT.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        // Arm the scope control whenever there is a lineage to switch to.
+        this._geScopeLineage = lineage || '';
+        this._syncGeScopeToggle?.();
     }
 
     _applyParamFiltersToGEModal() {
@@ -23621,17 +23624,28 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const svgUrl = URL.createObjectURL(svgBlob);
             const img = new Image();
             img.onload = async () => {
+                // The SVG's own proportions are the truth: expanding it to fit
+                // a legend placed below changes its aspect ratio after the
+                // export dialog collected width and height, and stretching it
+                // into the old box squashed the figure sideways, turning round
+                // markers into ellipses and condensing every label.
+                const srcW = img.naturalWidth || targetPxW;
+                const srcH = img.naturalHeight || targetPxH;
+                const srcAR = srcH / srcW;
+                const drawW = targetPxW;
+                const drawH = Math.abs(targetPxH / targetPxW - srcAR) > 0.01
+                    ? Math.round(targetPxW * srcAR)
+                    : targetPxH;
                 const canvas = document.createElement('canvas');
-                canvas.width = targetPxW;
-                canvas.height = targetPxH;
+                canvas.width = drawW;
+                canvas.height = drawH;
                 const ctx = canvas.getContext('2d');
                 if (background === 'white') {
                     ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, targetPxW, targetPxH);
+                    ctx.fillRect(0, 0, drawW, drawH);
                 }
-                // drawImage stretches the SVG to fill the canvas; because it's
-                // a vector source the result stays crisp at any density.
-                ctx.drawImage(img, 0, 0, targetPxW, targetPxH);
+                // Vector source, so it stays crisp at any density.
+                ctx.drawImage(img, 0, 0, drawW, drawH);
                 URL.revokeObjectURL(svgUrl);
                 // PNG / TIFF use this rasterised canvas; PDF / PPTX prefer the
                 // vector SVG (passed through) and fall back to the canvas.

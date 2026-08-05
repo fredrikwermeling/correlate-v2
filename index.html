@@ -2003,6 +2003,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.43 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>Exported images are no longer squashed.</b> Placing the legend below the plot changes the figure's proportions after the export dialog has collected a width and height, and it was then stretched into the old box: round markers became ellipses and every label was condensed. The image now keeps the proportions of what it actually contains.</li>
+                    <li><b>A gene opened from the browser now appears in front of it.</b> It was being given a z-index below the browser, so clicking a gene looked like it did nothing but return to the list.</li>
+                    <li><b>One control for the comparison</b>, replacing two buttons that had to be read together: all lineages, this lineage by primary disease, or this lineage by disease.</li>
+                    <li><b>Fix:</b> the comparison control could offer a lineage left over from a previous popout, showing Skin over a Bowel analysis. The mutation analysis fixes its own lineage, so the control stays out of the way there.</li>
+                </ul>
                 <p><strong>v.85.40 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>The receptor call says where it came from.</b> A published Lehmann subtype overrides the transcript rule, and without saying so the label could contradict the histograms beside it: HCC70 sits above both the ER and PR medians yet is a textbook triple-negative line. It now reads &ldquo;from the published Lehmann subtype (BL2), which takes precedence over the transcript rule&rdquo;.</li>
@@ -4960,7 +4967,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.40</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.43</a>
     </div>
 
     <div class="main-content">
@@ -6024,7 +6031,7 @@
     </footer>
 
     <!-- Gene Effect Analysis Modal -->
-    <div class="modal-overlay" id="geneEffectModal" style="display: none; z-index: 1200;">
+    <div class="modal-overlay" id="geneEffectModal" style="display: none; z-index: 1400;">
         <div class="modal" id="geneEffectModalInner" style="max-width: 95vw; width: 1300px;">
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="geneEffectTitle" style="flex:1; margin:0;">Gene Effect Analysis</h3>
@@ -6273,10 +6280,14 @@
                     <!-- Switch between one lineage (split by subtype) and every
                          lineage. Present in the condensed view, which has no
                          filter row of its own. -->
-                    <button class="btn btn-outline btn-sm" id="geScopeToggleBtn" style="display:none; font-size:11px;"></button>
-                    <!-- How a single lineage is broken up: DepMap primary
-                         disease (broad) or Oncotree disease (finer). -->
-                    <button class="btn btn-outline btn-sm" id="geSplitToggleBtn" style="display:none; font-size:11px;"></button>
+                    <!-- Compare across everything, or within this cell line's
+                         lineage broken up either way. One control, because the
+                         three are alternatives, not independent switches. -->
+                    <select id="geScopeSelect" class="form-control" style="display:none; width:auto; font-size:11px; padding:2px 6px;">
+                        <option value="all">All lineages</option>
+                        <option value="primary">This lineage, by primary disease</option>
+                        <option value="disease">This lineage, by disease</option>
+                    </select>
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
                     <button class="btn btn-outline btn-sm mobile-hide" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                     <button class="btn btn-sm btn-outline" id="geExpandFullBtn" title="Show the full analysis (filters + statistics table)" style="font-size:11px;">⤢ Full view</button>
@@ -7446,6 +7457,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_40"></script>
+    <script src="app.js?v=v85_43"></script>
 </body>
 </html>
