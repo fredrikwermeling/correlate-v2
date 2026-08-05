@@ -330,6 +330,10 @@
         .clb-toolbar .select-proxy-btn {
             font-family: inherit;
             color: inherit;
+            /* iOS gives a native select a grey ground while the searchable
+               proxy beside it is white, so the disease box looked unlike its
+               neighbours on a phone. Pin both to white on every platform. */
+            background-color: #fff;
         }
 
         /* .form-control gives a green focus ring, which the proxy inherits and
@@ -1996,6 +2000,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.15 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>The help no longer offers sorts that do not exist.</b> It listed ten, including Tissue + Subtype, Hotspot muts, Damaging muts, Fusions, Ploidy / Aneuploidy / CIN and Copy number, most of which were removed as excessive. There are four: Name, GE for gene(s), Expression of gene(s) and Drug response.</li>
+                    <li>It also still described a single <i>Oncoprint</i> button. That became three alteration grids, one each for hotspot mutations, curated fusions and copy number, and the help now says so.</li>
+                    <li><b>A disease that repeats its own group is explained.</b> Filtering to Non-Small Cell Lung Cancer lists NSCLC again among its own subtypes; those are the six cell lines Oncotree never typed any further, and they now read &ldquo;no finer subtype recorded&rdquo;. The nine entries sum to the 98 lines in the group.</li>
+                    <li><b>Toolbar boxes match on a phone.</b> iOS draws a native dropdown on grey while the searchable disease box is white, so one control looked unlike its neighbours. All are pinned to white.</li>
+                </ul>
                 <p><strong>v.85.14 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>The three toolbar rows line up.</b> Cohort and Selection started at the same edge but Genetic alterations did not, because its longer label was held on one line and pushed its controls to the right. The label now wraps to two lines inside a fixed column, so Search cell lines, Hotspot gene and Custom cell lines all begin at the same place.</li>
@@ -4871,7 +4882,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.14</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.15</a>
     </div>
 
     <div class="main-content">
@@ -6806,7 +6817,8 @@
             <li><b>Fusion filter</b>: the dropdown lists <b>clinically relevant fusion pairs</b> first (★ BCR-ABL1, ★ EWSR1-FLI1, &hellip;) followed by the gene-based long tail. Selecting a pair filters to the curated set; selecting a gene returns any line with any fusion involving that gene.</li>
             <li><b>CN amp/del filter</b>: the dropdown lists curated focal amplifications (▲) and tumor-suppressor deletions (▼) with live n=; selecting one filters to lines carrying that focal copy-number event.</li>
             <li><b>Disease</b>: searchable, and scoped by whatever else is filtered, so choosing Skin leaves only the skin diseases. Abbreviations work: type CLL, AML, GBM, PDAC.</li>
-            <li><b>Oncoprint</b>: mutation heatmap across filtered cell lines (hotspot filter only).</li>
+            <li><b>Alteration grids</b> (&#9638; beside each alteration box): a grid of the cell lines currently shown, one for hotspot mutations, one for curated driver fusions, one for copy number. Click a gene in the grid to require it altered or wild-type.</li>
+            <li><b>Quick filters</b>: curated cell-line collections to include or exclude, among them the two provenance sets below.</li>
           </ul>
 
           <p style="margin-top:14px;"><strong>&#9888; Warning marks</strong>: a triangle beside a cell line's name means <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a> records a problem with it. 56 of the 1,186 lines are flagged. Hover the mark for the full explanation, or open the line to see it with a link to the source.</p>
@@ -6860,18 +6872,12 @@
             <li><span style="color:#db2777; font-weight:700; font-style:italic;">&#9792;</span> pink, italic: Female by expression only (annotation unknown).</li>
             <li><span style="color:#9ca3af; font-weight:700;">?</span> gray: Unknown in both axes.</li>
           </ul>
-          <p><strong>Sort options</strong></p>
+          <p><strong>Sort options</strong>, four in all. The arrow beside the picker flips the direction.</p>
           <ul style="margin:4px 0 10px 20px;">
             <li><b>Name</b>: alphabetical.</li>
-            <li><b>Tissue + Subtype</b>: alphabetical by tissue, then subtype within each tissue.</li>
-            <li><b>Hotspot muts</b>: number of hotspot-mutated genes per cell line (descending by default).</li>
-            <li><b>Damaging muts</b>: number of genes with damaging (deleterious / loss-of-function) somatic mutations per cell line (descending). Source: DepMap <code>OmicsSomaticMutationsMatrixDamaging</code>.</li>
-            <li><b>Fusions</b>: number of distinct fusion/translocation partner genes per cell line (descending).</li>
-            <li><b>Ploidy / Aneuploidy / CIN</b>: genome-signature sorts: average chromosome dosage (PureCN), Ben-David 2021 aneuploidy score (0&ndash;39), and chromosomal instability. Source: <code>OmicsGlobalSignatures.csv</code>.</li>
-            <li><b>GE for gene(s)</b>: enter one or more genes; cells sorted by CRISPR gene effect (Chronos score). For multiple genes the mean across the panel is used: rank cells by combined essentiality.</li>
-            <li><b>Expression of gene(s)</b>: enter one or more genes; cells sorted by log&#8322;(TPM+1) expression (descending by default, so highest-expressing cells surface first). Multiple genes are averaged, so a panel like <code>CDKN2A, RB1</code> or <code>ASCL1, NEUROD1, CHGA, SYP</code> finds cells with the strongest combined signature.</li>
-            <li><b>Copy number of gene</b>: enter a gene; cells sorted by DepMap relative CN (1.0 = diploid), each tagged deep&nbsp;del / het&nbsp;loss / WT / gain / amp / strong&nbsp;amp.</li>
-            <li><b>Drug response (PRISM AUC)</b>: type a compound (the picker lists PRISM Repurposing compounds, ranked by how many of the currently-visible cells they kill); cells sorted by area-under-curve, most-sensitive first (lower AUC = more killing).</li>
+            <li><b>GE for gene(s)</b>: type one or more genes; lines are ordered by CRISPR gene effect (Chronos), most essential first. Several genes are averaged, which ranks lines by combined essentiality.</li>
+            <li><b>Expression of gene(s)</b>: type one or more genes; lines are ordered by log&#8322;(TPM+1), highest first. Several genes are averaged, so a panel like <code>ASCL1, NEUROD1, CHGA, SYP</code> finds the strongest combined signature.</li>
+            <li><b>Drug response (PRISM AUC)</b>: type a compound; the picker lists PRISM Repurposing compounds ranked by how many of the visible lines they kill. Ordered by area under the curve, most sensitive first, so a lower AUC means more killing.</li>
           </ul>
           <p style="color:#6b7280;"><b>Gene-sort input:</b> comma, semicolon, newline or whitespace can separate multiple symbols.</p>
           <p style="color:#6b7280; margin-bottom:0;"><b>Data sources:</b> DepMap 25Q3 for every measurement. Cell-line identity warnings and the published fusion calls come from <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a>; the curated fusion and subtype panels draw on COSMIC, OncoKB, WHO and NCCN. All filters and sorts use the data currently loaded in the browser; changing tissue / subtype filters narrows the visible set that subsequent sorts operate on.</p>
@@ -7354,6 +7360,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_14"></script>
+    <script src="app.js?v=v85_15"></script>
 </body>
 </html>

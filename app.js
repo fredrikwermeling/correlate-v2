@@ -30860,9 +30860,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const usesDropdown = (mode === 'drug' || mode === 'ge' || mode === 'expr' || mode === 'cn');
                 if (dd && !usesDropdown) dd.style.display = 'none';
             }
-            // Show direction arrow unless mode is name or (gene sort with empty gene input)
+            // Show direction arrow unless mode is name or (gene sort with empty gene input).
+            // Toggle visibility, not display: the space stays reserved so the
+            // row does not jump, and the arrow actually becomes clickable.
             const showDir = mode !== 'name' && !(needsGene && !clbSortGene.value.trim());
-            clbSortDir.style.display = showDir ? '' : 'none';
+            clbSortDir.style.display = '';
+            clbSortDir.style.visibility = showDir ? 'visible' : 'hidden';
             // Default descending for count sorts and expression (highest-first
             // is usually what the user wants for "cells with highest
             // expression of gene X"). Ascending for name and gene-effect
@@ -31466,10 +31469,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const sel = document.getElementById('clbOncotreeFilter');
         if (!sel) return;
         const src = this.cellLineMetadata?.oncotreeSubtype || {};
+        const disease = this.cellLineMetadata?.primaryDisease || {};
         const counts = new Map();
+        // Oncotree is a tree, and a cell line can be typed only as far as the
+        // parent. Those land under a name identical to the broader disease,
+        // e.g. "Non-Small Cell Lung Cancer" listed among the NSCLC subtypes,
+        // which reads as a duplicate rather than as "nothing finer recorded".
+        const parentLevel = new Map();
         for (const cl of this._clbBaseFilteredLines({ skipOncotree: true })) {
             const v = src[cl];
-            if (v) counts.set(v, (counts.get(v) || 0) + 1);
+            if (!v) continue;
+            counts.set(v, (counts.get(v) || 0) + 1);
+            if (!parentLevel.has(v)) parentLevel.set(v, true);
+            if (disease[cl] !== v) parentLevel.set(v, false);
         }
         const entries = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 
@@ -31484,7 +31496,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         entries.forEach(([name, k]) => {
             const o = document.createElement('option');
             o.value = name;
-            o.textContent = `${name} (n=${k})`;
+            o.textContent = parentLevel.get(name)
+                ? `${name}, no finer subtype recorded (n=${k})`
+                : `${name} (n=${k})`;
             sel.appendChild(o);
         });
         // Keep the chosen disease even if the other filters exclude it, so the
