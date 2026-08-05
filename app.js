@@ -5130,6 +5130,7 @@ class CorrelationExplorer {
         document.getElementById('scatterTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('scatterPlot'));
         document.getElementById('geTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('geneEffectPlot'));
         document.getElementById('geScopeToggleBtn')?.addEventListener('click', () => this.toggleGeLineageScope());
+        document.getElementById('geSplitToggleBtn')?.addEventListener('click', () => this.setGeSplitByOncotree(!this._geSplitByOncotree));
         this._initTextSettingsDrag();
         document.getElementById('downloadScatterCSV').addEventListener('click', () => this.downloadScatterCSV());
         document.getElementById('restoreFromSvgInput')?.addEventListener('change', (e) => {
@@ -21604,8 +21605,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         btn.style.display = '';
         btn.textContent = on ? `Showing ${lin} only, show all lineages` : `Showing all lineages, show ${lin} only`;
         btn.title = on
-            ? `Currently split by subtype within ${lin}. Click to compare across every lineage.`
-            : `Currently across every lineage. Click to show ${lin} split by subtype.`;
+            ? `Currently split by disease within ${lin}. Click to compare across every lineage.`
+            : `Currently across every lineage. Click to show ${lin} split by disease.`;
+        this._syncGeSplitToggle?.();
     }
 
     toggleGeLineageScope() {
@@ -21642,6 +21644,42 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Arm the lineage/all switch whenever there is a lineage to switch to.
         this._geScopeLineage = lineage || '';
         this._syncGeScopeToggle?.();
+    }
+
+    // How a single lineage is broken up on a chart. DepMap's primary disease is
+    // broad (one "Non-Small Cell Lung Cancer" bucket of 98 lines); the Oncotree
+    // disease separates that into adenocarcinoma, squamous, large cell and the
+    // rest, which is usually the more useful cut. Switchable, and the choice is
+    // shared by every chart that splits a lineage.
+    _geSplitField() { return this._geSplitByOncotree ? 'oncotreeSubtype' : 'primaryDisease'; }
+
+    _geSplitLabel() { return this._geSplitByOncotree ? 'Disease' : 'Primary disease'; }
+
+    _geGroupOf(cellLineId) {
+        const m = this.cellLineMetadata || {};
+        const primary = this._geSplitByOncotree
+            ? (m.oncotreeSubtype?.[cellLineId] || m.primaryDisease?.[cellLineId])
+            : m.primaryDisease?.[cellLineId];
+        return primary || 'Unknown';
+    }
+
+    setGeSplitByOncotree(on) {
+        this._geSplitByOncotree = !!on;
+        this._syncGeSplitToggle?.();
+        // Redraw whichever chart is showing.
+        if (this.geneEffectViewMode === 'mutation') this.showGeneEffectDistribution(this.currentGeneEffectGene);
+        else if (this.currentGeneEffect) this.renderGeneEffectByTissue();
+    }
+
+    _syncGeSplitToggle() {
+        const btn = document.getElementById('geSplitToggleBtn');
+        if (!btn) return;
+        const on = (document.getElementById('geTissueFilter')?.value || '') !== '';
+        btn.style.display = on ? '' : 'none';
+        btn.textContent = this._geSplitByOncotree ? 'Split by disease' : 'Split by primary disease';
+        btn.title = this._geSplitByOncotree
+            ? 'Grouped by Oncotree disease, the finer split. Click for DepMap primary disease.'
+            : 'Grouped by DepMap primary disease, the broader split. Click for Oncotree disease.';
     }
 
     _applyParamFiltersToGEModal() {
@@ -22184,7 +22222,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const groupedData = {};
         data.forEach(d => {
             const groupKey = groupBySubtype
-                ? (this.cellLineMetadata.primaryDisease[d.cellLineId] || 'Unknown')
+                ? this._geGroupOf(d.cellLineId)
                 : (d.lineage || 'Unknown');
             if (!groupedData[groupKey]) groupedData[groupKey] = [];
             groupedData[groupKey].push({
@@ -22208,7 +22246,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // Calculate p-value comparing this group to all other cells
                 const otherEffects = data.filter(d => {
                     const key = groupBySubtype
-                        ? (this.cellLineMetadata.primaryDisease[d.cellLineId] || 'Unknown')
+                        ? this._geGroupOf(d.cellLineId)
                         : (d.lineage || 'Unknown');
                     return key !== groupName;
                 }).map(d => d.geneEffect);
@@ -26229,7 +26267,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (isNaN(ge)) return;
 
             const groupKey = groupBySubtype
-                ? (this.cellLineMetadata.primaryDisease[cellLine] || 'Unknown')
+                ? this._geGroupOf(cellLine)
                 : (this.cellLineMetadata?.lineage?.[cellLine] || 'Unknown');
             const mutLevel = isTranslocation
                 ? (mutationData.translocations[cellLine] || 0)
@@ -26259,7 +26297,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const allRow = rows.filter(r => r.isAll);
         const otherRows = rows.filter(r => !r.isAll).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-        const groupLabel = groupBySubtype ? 'Subtype' : 'Tissue';
+        const groupLabel = groupBySubtype ? this._geSplitLabel() : 'Tissue';
         this._inlineCompareData = {
             title: `${gene} GE, comparison of ${hotspotGene} ${mutLabel} vs WT, repeated within each ${groupLabel.toLowerCase()} subset`,
             subsetLabel: groupLabel,
@@ -27717,7 +27755,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
             const groupKey = groupBySubtype
-                ? (this.cellLineMetadata.primaryDisease[cellLine] || 'Unknown')
+                ? this._geGroupOf(cellLine)
                 : (this.cellLineMetadata?.lineage?.[cellLine] || 'Unknown');
             const mutLevel = isTranslocation
                 ? (mutationData.translocations[cellLine] || 0)
@@ -27739,7 +27777,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         const typeLabel = isTranslocation ? 'Translocation/Fusion' : 'Hotspot Mutational';
-        const groupLabel = groupBySubtype ? 'Subtype' : 'Tissue';
+        const groupLabel = groupBySubtype ? this._geSplitLabel() : 'Tissue';
         // Store data for rendering
         this._compareModalData = {
             cols,

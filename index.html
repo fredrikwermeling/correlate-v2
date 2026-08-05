@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.39 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>A lineage can be split by disease.</b> Charts broke a lineage up by DepMap's primary disease, which is coarse: every one of the 98 non-small-cell lung lines sat in a single box. Switching to the Oncotree disease separates them into lung adenocarcinoma (53), small cell (24), squamous, large cell and the rest, which is usually the more useful comparison.</li>
+                    <li>The choice is a button beside the lineage switch and applies to every chart that splits a lineage: the gene-effect and expression views, and the mutation inspect.</li>
+                </ul>
                 <p><strong>v.85.38 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>Clicking a gene in the wiki now follows the list it came from</b>, the same as in the browser's Inspect. A gene ranked against the whole panel opens across every lineage; one ranked against the cell line's own lineage opens on that lineage, split by subtype. Both carry the switch between the two views. One shared function does this now, so the two places cannot drift apart again.</li>
@@ -4950,7 +4955,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.38</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.39</a>
     </div>
 
     <div class="main-content">
@@ -6264,6 +6269,9 @@
                          lineage. Present in the condensed view, which has no
                          filter row of its own. -->
                     <button class="btn btn-outline btn-sm" id="geScopeToggleBtn" style="display:none; font-size:11px;"></button>
+                    <!-- How a single lineage is broken up: DepMap primary
+                         disease (broad) or Oncotree disease (finer). -->
+                    <button class="btn btn-outline btn-sm" id="geSplitToggleBtn" style="display:none; font-size:11px;"></button>
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
                     <button class="btn btn-outline btn-sm mobile-hide" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                     <button class="btn btn-sm btn-outline" id="geExpandFullBtn" title="Show the full analysis (filters + statistics table)" style="font-size:11px;">⤢ Full view</button>
@@ -7433,6 +7441,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_38"></script>
+    <script src="app.js?v=v85_39"></script>
 </body>
 </html>
