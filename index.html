@@ -1995,6 +1995,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.12 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>Dimensionality reduction is collapsed until you ask for it.</b> The browser now opens on the cell-line list, with PCA / UMAP behind a button at the bottom. Everything it needs sits inside one block, so it can be left out of a simpler build.</li>
+                    <li><b>The &ldquo;?&rdquo; moved out of the title bar</b> to sit after Sort, beside the controls it explains.</li>
+                    <li><b>Help rewritten for what the browser now does</b>: the &#9888; warning marks and what identity-disputed and cancer-type-disputed mean, how fusion calls treat a cell line that was never RNA-sequenced, where the published calls come from, the two-column Inspect with q-values and the choice of comparison group, and the searchable disease filter. Data sources now name Cellosaurus alongside DepMap and COSMIC.</li>
+                </ul>
                 <p><strong>v.85.11 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>The disease dropdown's open list matches the others.</b> Its current choice was a solid block of brand green and the search box took the browser's blue focus ring, so it stood out from every neighbouring dropdown. The selection is now marked with a tick and bold text on a neutral background.</li>
@@ -4856,7 +4862,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.11</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.12</a>
     </div>
 
     <div class="main-content">
@@ -6790,9 +6796,19 @@
             <li><b>Hotspot filter</b>: only show cell lines mutated in this gene at a hotspot position. The dropdown lists genes with live n= mutated counts (matching the Fusion / CN filter style).</li>
             <li><b>Fusion filter</b>: the dropdown lists <b>clinically relevant fusion pairs</b> first (★ BCR-ABL1, ★ EWSR1-FLI1, &hellip;) followed by the gene-based long tail. Selecting a pair filters to the curated set; selecting a gene returns any line with any fusion involving that gene.</li>
             <li><b>CN amp/del filter</b>: the dropdown lists curated focal amplifications (▲) and tumor-suppressor deletions (▼) with live n=; selecting one filters to lines carrying that focal copy-number event.</li>
+            <li><b>Disease</b>: searchable, and scoped by whatever else is filtered, so choosing Skin leaves only the skin diseases. Abbreviations work: type CLL, AML, GBM, PDAC.</li>
             <li><b>Oncoprint</b>: mutation heatmap across filtered cell lines (hotspot filter only).</li>
           </ul>
-          <p style="margin-top:14px;"><strong>Selecting cell lines</strong>: tick lines (or <b>Select Visible</b>) to build a set for Inspect / Export. <b>Show Selected</b> collapses the list to just your ticked lines (click again, now <b>Show All</b>, to restore); it also turns off on Deselect All / Reset. The list fills <b>column by column</b> (down the first column in sort order, then the next).</p>
+
+          <p style="margin-top:14px;"><strong>&#9888; Warning marks</strong>: a triangle beside a cell line's name means <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a> records a problem with it. 56 of the 1,186 lines are flagged. Hover the mark for the full explanation, or open the line to see it with a link to the source.</p>
+          <ul style="margin:4px 0 10px 20px;">
+            <li><b>Identity disputed</b> (36 lines): the line is contaminated, misidentified, or a derivative of another line, so a result attributed to it may belong to something else. MKN28 is a MKN74 derivative; KP-1N is a PANC-1 derivative.</li>
+            <li><b>Cancer type disputed</b> (20 lines): the line is itself, but its recorded disease or tissue is wrong, so any tissue-grouped analysis places it incorrectly. SK-HEP-1 is filed under liver but most likely arose from endothelium; KE-97 is filed as gastric but is a B-lymphoblastoid line.</li>
+            <li>Both sets are available as quick filters, to exclude or to inspect. Nothing is hidden: a flagged line can still be a good experimental model, it just cannot be evidence about the tumour type on its label. Calls Cellosaurus states as possible rather than settled say so.</li>
+          </ul>
+          <p style="margin-top:14px;"><strong>Selecting cell lines</strong>: tick lines (or <b>Select Visible</b>) to build a set for Inspect / Export. <b>Show only my N</b> collapses the list to just your ticked lines and carries the count; it is greyed out until something is ticked, and turns off on Deselect All / Reset. The list fills <b>column by column</b> (down the first column in sort order, then the next).</p>
+
+          <p style="margin-top:10px;"><strong>Inspect selected vs rest</strong>: compares your selection with the cell lines it is measured against, <b>CRISPR gene effect on the left, mRNA expression on the right</b>. Both columns rank by the size of the difference in either direction, so genes higher and lower in your selection appear together. Each gene carries a Welch's t-test adjusted across all genes tested (Benjamini-Hochberg), shown as <b>q</b> and filterable. You can compare against <b>all other cell lines</b> or only those <b>sharing a lineage</b> with your selection, which takes tissue of origin out of the comparison. The two measures cover different cell lines, so each states its own group sizes.</p>
           <p style="margin-top:10px;"><strong>Detail card</strong>: clicking a line opens a card that now leads with a plain-language <b>executive summary</b> (cancer type, patient origin, and standout molecular features), the same overview shown when you hover a cell-line dot on any plot.</p>
           <p style="margin-top:14px;"><strong>Hotspot variants</strong>: when DepMap's inferred-subtype pipeline calls a specific codon (KRAS p.G12D, BRAF p.V600E, EGFR p.L858R, JAK2 p.V617F, EGFR exon-19 del), the variant is appended in green next to the gene name in the Hotspot Mutations list. Generic group calls like KRAS p.G12 (any G12 not specifically D or C) are also shown when no specific call is available. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
 
@@ -6814,6 +6830,9 @@
             <li><span style="color:#b45309; font-weight:600;">&#9888; atypical</span>: the cell line's tissue isn't the canonical context for this fusion (e.g. EML4-ALK in a Bowel line). Lineage is a <em>modifier</em>, not a gate: when orthogonal evidence is strong the call is kept and flagged, not hidden (could be a misclassified line or a genuine rare event worth investigating).</li>
             <li>Source: Arriba-annotated fusion calls from <code>OmicsFusionFilteredSupplementary.csv</code>, filtered to confidence=high with read-through transcripts dropped.</li>
           </ul>
+          <p style="margin-top:14px;"><strong>Fusion calls, and what &ldquo;not fused&rdquo; means</strong>: a fusion is called from RNA-seq, so a cell line that was never sequenced is <em>unknown</em>, not fusion-negative. Those lines are held out of both groups rather than counted as wild-type, and the count is reported wherever a fusion comparison is made. Where the answer is published it is filled in from Cellosaurus instead: for EWSR1-FLI1 in Ewing sarcoma that returns nine cell lines, taking the fused group from 13 to 22.</p>
+          <p style="margin-top:8px;">Published calls also add recurrent driver fusions the caller did not report, among them EML4-ALK in NCI-H3122, TPM3-NTRK1 in KM12 and KMT2A-AFF1 in RS4;11. Private one-off fusions and ordinary immunoglobulin rearrangements are deliberately left out. Note that a line without the fusion you filtered on may carry a different one of the same gene: every EWSR1-FLI1-negative Ewing line carries EWSR1-ERG or EWSR1-FEV.</p>
+
           <p><strong>Sex</strong>: two independent axes:</p>
           <ul style="margin:4px 0 10px 20px;">
             <li><b>Sex (annotation)</b>: from DepMap's Model table (patient-reported). Values: Male, Female, Unknown.</li>
@@ -6846,7 +6865,7 @@
             <li><b>Drug response (PRISM AUC)</b>: type a compound (the picker lists PRISM Repurposing compounds, ranked by how many of the currently-visible cells they kill); cells sorted by area-under-curve, most-sensitive first (lower AUC = more killing).</li>
           </ul>
           <p style="color:#6b7280;"><b>Gene-sort input:</b> comma, semicolon, newline or whitespace can separate multiple symbols.</p>
-          <p style="color:#6b7280; margin-bottom:0;"><b>Data source:</b> DepMap 25Q3. All filters and sorts use the data currently loaded in the browser; changing tissue / subtype filters narrows the visible set that subsequent sorts operate on.</p>
+          <p style="color:#6b7280; margin-bottom:0;"><b>Data sources:</b> DepMap 25Q3 for every measurement. Cell-line identity warnings and the published fusion calls come from <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a>; the curated fusion and subtype panels draw on COSMIC, OncoKB, WHO and NCCN. All filters and sorts use the data currently loaded in the browser; changing tissue / subtype filters narrows the visible set that subsequent sorts operate on.</p>
         </div>
       </div>
     </div>
@@ -6859,7 +6878,6 @@
           <h3>Cell Line Browser</h3>
           <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
             <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Clear every filter, sort and selection">Reset</button>
-            <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols and where each piece of data comes from">?</button>
             <button id="clbCloseBtn" class="modal-close" title="Close the Cell Line Browser">&times;</button>
           </div>
         </div>
@@ -6888,7 +6906,7 @@
                 </optgroup>
               </select>
               <span class="clb-sep"></span>
-              <select id="clbSortBy" style="width:200px;" title="Sort the cell line list">
+              <select id="clbSortBy" style="width:172px;" title="Sort the cell line list">
                 <option value="name">Sort: Name</option>
                 <option value="ge">Sort: GE for gene(s)</option>
                 <option value="expr">Sort: Expression of gene(s)</option>
@@ -6899,6 +6917,7 @@
                 <div id="clbSortDrugDropdown" class="clb-dropdown" style="min-width:320px;"></div>
               </div>
               <button id="clbSortDir" class="btn btn-outline btn-sm" title="Toggle sort direction" style="width:32px; visibility:hidden;">&#x25BC;</button>
+              <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols, warnings and where each piece of data comes from">?</button>
             </div>
           </div>
 
@@ -7020,11 +7039,19 @@
             </div>
           </div>
         </div>
-        <!-- UMAP Section (hidden on phones — heavy interactive analysis) -->
+        <!-- ===== V2 ONLY: Dimensionality Reduction (PCA / UMAP) =====
+             Kept out of the simpler build. Collapsed by default so the browser
+             opens on the cell-line list; everything lives inside
+             #clbUmapSection, so the whole block can be dropped in one piece.
+             Hidden on phones as well, it is a heavy interactive analysis. -->
         <div id="clbUmapSection" class="mobile-hide" style="border-top:1px solid #e5e7eb; padding:10px 16px; position:relative;">
-            <div style="margin-bottom:6px;">
-                <strong style="font-size:12px;">Dimensionality Reduction</strong>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <button id="clbUmapToggle" class="btn btn-outline btn-sm" aria-expanded="false" aria-controls="clbUmapBody" style="font-size:12px;">
+                    <span id="clbUmapToggleCaret">&#9656;</span> Dimensionality reduction
+                </button>
+                <span id="clbUmapToggleHint" style="font-size:11px; color:var(--gray-500);">PCA or UMAP over the filtered cell lines, with lasso selection and gate comparison.</span>
             </div>
+            <div id="clbUmapBody" style="display:none; margin-top:10px;">
             <!-- Row 1: Compute, what to analyze + run -->
             <div class="clb-umap-row">
                 <select id="clbUmapMethod" class="clb-umap-ctl">
@@ -7182,6 +7209,7 @@
         <div style="padding: 8px 16px; border-top: 1px solid var(--gray-200); font-size: 11px; color: var(--gray-500); text-align: center;">
           Data from <a href="https://depmap.org/" target="_blank" rel="noopener" style="color: var(--green-700);">DepMap</a> (Broad Institute). Please acknowledge DepMap when using this data in publications.
         </div>
+            </div>
         </div><!-- /clbScrollableBody -->
       </div>
     </div>
@@ -7317,6 +7345,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_11"></script>
+    <script src="app.js?v=v85_12"></script>
 </body>
 </html>

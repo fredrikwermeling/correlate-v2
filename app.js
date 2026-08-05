@@ -30964,6 +30964,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         }
 
+        // Dimensionality reduction is collapsed until asked for, so the
+        // browser opens on the cell-line list rather than a heavy analysis
+        // panel. Plotly needs a resize once the container has real size,
+        // otherwise a plot drawn while hidden comes back zero-width.
+        document.getElementById('clbUmapToggle')?.addEventListener('click', () => {
+            const body = document.getElementById('clbUmapBody');
+            const btn = document.getElementById('clbUmapToggle');
+            const hint = document.getElementById('clbUmapToggleHint');
+            if (!body || !btn) return;
+            const open = body.style.display === 'none';
+            body.style.display = open ? '' : 'none';
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            document.getElementById('clbUmapToggleCaret').innerHTML = open ? '&#9662;' : '&#9656;';
+            if (hint) hint.style.display = open ? 'none' : '';
+            if (open) {
+                const plot = document.getElementById('clbUmapPlot');
+                if (plot?.data && window.Plotly) { try { Plotly.Plots.resize(plot); } catch (e) { /* not drawn yet */ } }
+                body.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        });
+
         // CLB help modal
         document.getElementById('clbInfoBtn')?.addEventListener('click', () => {
             document.getElementById('clbInfoModal').style.display = 'flex';
