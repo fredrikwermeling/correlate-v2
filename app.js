@@ -3005,8 +3005,22 @@ class CorrelationExplorer {
         const filters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
         if (filters.length === 0) return;
 
-        // Store filters, applied via _cellLinePassesOncoprintFilters, don't touch hotspot selector
-        this._activeOncoprintFilters = filters.map(([gene, state]) => ({ gene, state }));
+        // Store filters, applied via _cellLinePassesOncoprintFilters, don't touch hotspot selector.
+        // The kind has to travel with the row: without it a fusion or
+        // copy-number row was looked up among hotspot mutations, matched
+        // nothing, and filtered the list down to zero.
+        const filterKind = this._oncoprintKind || 'hotspot';
+        this._activeOncoprintFilters = filters.map(([gene, state]) => ({
+            gene, state, kind: this._oncoprintFilterKinds?.[gene] || filterKind,
+        }));
+
+        // Redraw the browser list straight away. Without this the list still
+        // showed every cell line while the filter was already in force, so
+        // Select Visible picked up all 1,186 and the list then collapsed to
+        // the real matches, which looked like the selection had emptied it.
+        if (document.getElementById('cellLineBrowserModal')?.style.display === 'flex') {
+            this.renderCellLineList();
+        }
 
         // Run analysis if in mutation mode
         const mode = document.querySelector('input[name="analysisMode"]:checked')?.value;
@@ -3022,7 +3036,9 @@ class CorrelationExplorer {
     // hotspot matrix, so looking only there made every line fail the test.
     _oncoprintRowHit(label, cellLine, kind) {
         if (kind === 'fusion') {
-            return !!this.clinicalFusions?.fusionData?.[label]?.cellLines?.[cellLine];
+            // Same test the filters and the analysis use, so a published call
+            // counts here too rather than the grid alone disagreeing.
+            return this._geFusionPasses(cellLine, label);
         }
         if (kind === 'cn') {
             const m = /^(.*) (amp|del)$/.exec(label);

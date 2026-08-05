@@ -2003,6 +2003,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.27 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>Fusion and copy-number filters from the grids work.</b> Including EWSR1-FLI1 reported 0 of 1,186 because the row was recorded without its layer and then looked up among hotspot mutations, where a fusion name does not exist, so every cell line failed the test. It now returns the 23 lines carrying it.</li>
+                    <li><b>The list redraws the moment a grid filter is applied.</b> It kept showing every cell line while the filter was already in force, so Select Visible picked up all 1,186 and the list then collapsed, which looked as though selecting had emptied it. Inspect then reported no cell lines.</li>
+                    <li><b>The grid agrees with the rest of the app</b> about who carries a fusion: published calls count here too, so EWSR1-FLI1 gives 23 rather than 14.</li>
+                </ul>
                 <p><strong>v.85.25 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>Inspect works on a single cell line.</b> It asked for three, which was the requirement of the significance test rather than of the comparison. One line against the rest is a reasonable question, so the difference is shown; below three lines there is no spread to test, so the q column and its filter step aside and the panel says why.</li>
@@ -4906,7 +4912,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.25</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.27</a>
     </div>
 
     <div class="main-content">
@@ -7384,6 +7390,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_25"></script>
+    <script src="app.js?v=v85_27"></script>
 </body>
 </html>
