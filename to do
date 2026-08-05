@@ -51,21 +51,26 @@
   10. Saved figure not restoring colour-by — verified fixed by the restore
   allowlist and picker scoping; 5 picked tissues → 7 traces before and after.
   .82
-
+- i dont understand
 
   11. Scatter CSV gene1/gene2 — columns named after the genes, plus a
   ShownOnPlot column since the file holds more rows than the plot. .82
+- i dont understand
 
   12. Compare-by-hotspot on 2 vs 1+2 — checked, both scans already group 1+2. No
   change needed. .79
+- ok
+
 
   13. Correlation filter layout — fusion filter now sits with the other three,
   Compare on its own row, hairlines between groups. .92
+- ok
 
   14. Gates: Enrichr, AI export, PNG/SVG buttons — Enrichr A/B was dead because
   it asked for its cutoff via a blocking prompt(); now uses the panel's p-value
   box. Separate PNG/SVG replaced by the standard dialog. Gates gained Export for
   AI, pre-filled with the "what separates A from B" question. .80, .95
+- i dont find this. in genrela you need to specify better what you are commenting on. where in the app is this related to?
 
   15. Overlay counts not scaling to filters — they followed tissue/subtype but
   not mutation/fusion/CN, and ran before the plot updated. KRAS reads 174 of
