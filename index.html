@@ -1523,7 +1523,8 @@
         .clb-row-alt, .clb-row-actions { background: #fcfcfb; border-top: 1px solid var(--gray-200); }
         .clb-row-label {
             font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
-            color: #9ca3af; white-space: nowrap; flex: 0 0 76px; line-height: 1.25;
+            color: #9ca3af; flex: 0 0 76px; min-width: 0; line-height: 1.25;
+            overflow-wrap: break-word;
             padding-top: 8px;   /* sit level with the first line of controls */
         }
         .clb-group-label { font-size: 10px; font-weight: 600; white-space: nowrap; }
@@ -1995,6 +1996,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.14 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>The three toolbar rows line up.</b> Cohort and Selection started at the same edge but Genetic alterations did not, because its longer label was held on one line and pushed its controls to the right. The label now wraps to two lines inside a fixed column, so Search cell lines, Hotspot gene and Custom cell lines all begin at the same place.</li>
+                </ul>
                 <p><strong>v.85.13 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>The UMAP / PCA lasso is explained properly.</b> It is real lasso selection, but the plot already starts in lasso mode, so the <i>Lasso select</i> button changed nothing when pressed and looked broken. The instruction now leads with &ldquo;drag on the plot to lasso a cluster, no button needed&rdquo;, and the button is renamed <b>Back to lasso</b>: it exists to return after using the plot toolbar to zoom, pan or box-select. Pressing it now confirms the mode instead of doing nothing.</li>
@@ -4866,7 +4871,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.13</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.14</a>
     </div>
 
     <div class="main-content">
@@ -6929,7 +6934,7 @@
                lines that carry the alteration; the wild-type and single-copy
                variants are on the chip the filter produces. -->
           <div class="clb-row clb-row-alt">
-            <span class="clb-row-label">Genetic&nbsp;alterations</span>
+            <span class="clb-row-label">Genetic alterations</span>
             <div class="clb-row-items">
               <div id="clbHotspotFilterWrap" class="clb-pair">
                 <div class="clb-anchor">
@@ -7349,6 +7354,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_13"></script>
+    <script src="app.js?v=v85_14"></script>
 </body>
 </html>
