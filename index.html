@@ -1970,6 +1970,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.84.109 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>Gene names that Excel turned into dates are recognised and offered back.</b> Paste a list containing 9-Sep, 1-Mar or 1-Dec and the app names the gene each one came from, one click to restore it. It reads the usual shapes: 9-Sep, Sep-9, 09-Sep-25 and 2025-09-09.</li>
+                    <li><b>Ambiguous ones are never guessed.</b> Ten of the thirty-eight date cells could be two different genes, because both once shared the old name: 1-Mar is MARCHF1 or RTL1, 2-Sep is SEPTIN2 or SEPTIN6. Both are offered and the choice is yours.</li>
+                    <li><b>Exports avoid the problem at source.</b> Anything shaped like a date, and clone identifiers such as 2310009E13 that Excel reads as scientific notation, are written so Excel keeps them as text. Real numbers, including negative gene effects and values like 1e5, stay numeric.</li>
+                    <li>The gene symbols in this dataset already use the current HGNC names (SEPTIN9, not SEPT9), so exports were not affected; the guard covers anything you type and any future data release.</li>
+                </ul>
                 <p><strong>v.84.108 (2026-08-04)</strong></p>
                 <ul>
                     <li><b>Exported .csv files can no longer carry a formula.</b> Excel and Sheets run a cell whose text starts with =, +, - or @, and these files get shared onward. Every field in every export is now checked and made literal where needed. Plain numbers are exempt, so negative gene effects stay numeric rather than turning into text.</li>
@@ -4809,7 +4816,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.108</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.84.109</a>
     </div>
 
     <div class="main-content">
@@ -7270,6 +7277,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v84_108"></script>
+    <script src="app.js?v=v84_109"></script>
 </body>
 </html>

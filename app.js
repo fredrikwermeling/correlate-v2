@@ -5719,6 +5719,31 @@ class CorrelationExplorer {
             synonymBtn.style.display = 'none';
             /* findBestFilterBtn removed, auto-runs after analysis */
         } else {
+            // Tokens Excel turned into dates get their own notice: the fuzzy
+            // matcher has nothing useful to say about "1-Mar", and the cause
+            // is worth naming so the user can fix it at source.
+            const mangled = [];
+            for (const g of notFound) {
+                const hit = this._excelDateGeneCandidates(g);
+                if (hit) mangled.push({ token: g, ...hit });
+            }
+            let excelHtml = '';
+            if (mangled.length) {
+                const rows = mangled.map(mg => {
+                    const links = mg.candidates.map(c =>
+                        `<a href="#" style="color:#0066cc;" data-bad="${this.esc(mg.token)}" data-good="${this.esc(c)}" onclick="app.replaceGeneInTextarea(this.dataset.bad, this.dataset.good); return false;">${this.esc(c)}</a>`
+                    ).join(' or ');
+                    return `<div style="margin-top:3px;"><b>${this.esc(mg.token)}</b> &rarr; ${links}`
+                        + `<span style="color:#9ca3af;"> (was ${mg.wasAlias.map(a => this.esc(a)).join(' / ')})</span>`
+                        + (mg.candidates.length > 1 ? `<span style="color:#b45309;"> &mdash; two genes shared that name, pick the one you meant</span>` : '')
+                        + `</div>`;
+                }).join('');
+                excelHtml = `<div class="status-box status-warning" style="margin-bottom:6px;">
+                    <strong>&#9888; ${mangled.length} gene name${mangled.length === 1 ? '' : 's'} look${mangled.length === 1 ? 's' : ''} like a date.</strong>
+                    Excel converts symbols such as SEPT9 and MARCH1 into dates when a file is opened without setting the column to text.
+                    ${rows}
+                </div>`;
+            }
             // Find fuzzy suggestions for not-found genes
             const suggestions = this._findGeneSuggestions(notFound);
             let notFoundHtml = notFound.slice(0, 10).map(g => {
@@ -5733,7 +5758,7 @@ class CorrelationExplorer {
             }).join(', ');
             if (notFound.length > 10) notFoundHtml += ` (+${notFound.length - 10} more)`;
 
-            display.innerHTML = `<div class="status-box status-warning">
+            display.innerHTML = excelHtml + `<div class="status-box status-warning">
                 <strong>${found.length} found</strong>, <strong>${notFound.length} not found</strong><br>
                 <span>Not found: ${notFoundHtml}</span>
             </div>`;
@@ -6523,6 +6548,90 @@ class CorrelationExplorer {
 
         const csv = sampleData.map(row => row.join(',')).join('\n');
         this.downloadFile(csv, csvName('sample_genes_with_stats'), 'text/csv');
+    }
+
+    // ===== Excel gene-name damage =====
+    // Excel silently turns a gene symbol that looks like a date into one:
+    // SEPT9 becomes 9-Sep, MARCH1 becomes 1-Mar. Saving that back out loses
+    // the gene. This maps a date cell back to the gene(s) it could have been.
+    //
+    // Built from the synonym table: every legacy alias of the form <month><day>
+    // whose modern symbol is in this dataset. Ten of the 38 cells are
+    // genuinely ambiguous, because two different genes once shared the alias
+    // (1-Mar is MARCHF1 or RTL1; 2-Sep is SEPTIN2 or SEPTIN6). Those are never
+    // guessed at, they are handed back to the user to choose.
+    _excelDateGeneMap() {
+        return (this._xlDateMap ||= {
+        '2-3': { g: ["SCN1A"], was: ["FEB3"] },
+        '2-4': { g: ["ADGRV1"], was: ["FEB4"] },
+        '3-1': { g: ["MARCHF1", "RTL1"], was: ["MAR1", "MARCH1"] },
+        '3-2': { g: ["MARCHF2", "PEG10"], was: ["MAR2", "MARCH2"] },
+        '3-3': { g: ["MARCHF3", "RTL3"], was: ["MAR3", "MARCH3"] },
+        '3-4': { g: ["MARCHF4", "RTL4"], was: ["MAR4", "MARCH4"] },
+        '3-5': { g: ["MARCHF5", "RTL5"], was: ["MAR5", "MARCH5"] },
+        '3-6': { g: ["MARCHF6", "RTL6"], was: ["MAR6", "MARCH6"] },
+        '3-7': { g: ["LDOC1", "MARCHF7"], was: ["MAR7", "MARCH7"] },
+        '3-8': { g: ["MARCHF8", "RTL8C"], was: ["MAR8", "MARCH8"] },
+        '3-9': { g: ["MARCHF9", "RTL9"], was: ["MAR9", "MARCH9"] },
+        '3-10': { g: ["MARCHF10"], was: ["MARCH10"] },
+        '3-11': { g: ["MARCHF11"], was: ["MARCH11"] },
+        '4-1': { g: ["MAGEH1"], was: ["APR1"] },
+        '4-3': { g: ["ATRAID"], was: ["APR3"] },
+        '9-1': { g: ["XRN1"], was: ["SEP1"] },
+        '9-2': { g: ["SEPTIN2", "SEPTIN6"], was: ["SEP2", "SEPT2"] },
+        '9-3': { g: ["SEPTIN3"], was: ["SEP3", "SEPT3"] },
+        '9-4': { g: ["SEPTIN4"], was: ["SEPT4"] },
+        '9-5': { g: ["SEPTIN5"], was: ["SEPT5"] },
+        '9-6': { g: ["SEPTIN6"], was: ["SEPT6"] },
+        '9-7': { g: ["SEPTIN7"], was: ["SEPT7"] },
+        '9-8': { g: ["SEPTIN8"], was: ["SEPT8"] },
+        '9-9': { g: ["SEPTIN9"], was: ["SEPT9"] },
+        '9-10': { g: ["SEPTIN10"], was: ["SEPT10"] },
+        '9-11': { g: ["SEPTIN11"], was: ["SEPT11"] },
+        '9-12': { g: ["SEPTIN12"], was: ["SEPT12"] },
+        '9-14': { g: ["SEPTIN14"], was: ["SEPT14"] },
+        '9-15': { g: ["SELENOF"], was: ["SEP15"] },
+        '10-1': { g: ["POU2F1"], was: ["OCT1"] },
+        '10-2': { g: ["POU2F2"], was: ["OCT2"] },
+        '10-3': { g: ["POU5F1"], was: ["OCT3"] },
+        '10-4': { g: ["POU5F1"], was: ["OCT4"] },
+        '10-6': { g: ["POU3F1"], was: ["OCT6"] },
+        '10-7': { g: ["POU3F2"], was: ["OCT7"] },
+        '10-11': { g: ["POU2F3"], was: ["OCT11"] },
+        '12-1': { g: ["BHLHE40"], was: ["DEC1"] },
+        '12-2': { g: ["BHLHE41"], was: ["DEC2"] },
+        });
+    }
+
+    // Recognise the shapes Excel writes a date in, and return {month, day}.
+    // A four-digit year is taken as the year Excel invented, not data.
+    _parseExcelDateToken(tok) {
+        const MON = { JAN:1, FEB:2, MAR:3, APR:4, MAY:5, JUN:6, JUL:7, AUG:8, SEP:9, OCT:10, NOV:11, DEC:12 };
+        const t = String(tok).trim().replace(/\.$/, '');
+        let m;
+        // 9-Sep, 9 Sep, 09-Sep-25, 9/Sep
+        if ((m = t.match(/^(\d{1,2})[-\s\/]([A-Za-z]{3,9})(?:[-\s\/]\d{2,4})?$/))) {
+            const mo = MON[m[2].slice(0, 3).toUpperCase()];
+            if (mo) return { month: mo, day: +m[1] };
+        }
+        // Sep-9, Sep 9, Sep-09-2025
+        if ((m = t.match(/^([A-Za-z]{3,9})[-\s\/](\d{1,2})(?:[-\s\/]\d{2,4})?$/))) {
+            const mo = MON[m[1].slice(0, 3).toUpperCase()];
+            if (mo) return { month: mo, day: +m[2] };
+        }
+        // 2025-09-09, ISO from a re-saved sheet
+        if ((m = t.match(/^\d{4}-(\d{1,2})-(\d{1,2})$/))) return { month: +m[1], day: +m[2] };
+        return null;
+    }
+
+    // Given one token, say whether it is a mangled gene and what it could be.
+    // Returns null when the token is not date-shaped or maps to nothing here.
+    _excelDateGeneCandidates(tok) {
+        const d = this._parseExcelDateToken(tok);
+        if (!d) return null;
+        const hit = this._excelDateGeneMap()[`${d.month}-${d.day}`];
+        if (!hit) return null;
+        return { candidates: hit.g.slice(), wasAlias: hit.was.slice() };
     }
 
     getGeneList() {
@@ -10870,7 +10979,20 @@ Results:
     // The parse is a full round trip (quotes, doubled quotes, embedded commas
     // and newlines) so quoting already present in the input survives intact.
     _csvGuard(text) {
-        const risky = (v) => /^[=+\-@]/.test(v) && !Number.isFinite(Number(v));
+        // Excel also mangles values it reads as a date or as scientific
+        // notation. Gene symbols in this dataset use the current HGNC names
+        // (SEPTIN9, MARCHF1), which are safe, but anything a user typed or a
+        // future data release could still hit it, so guard the shape rather
+        // than a fixed list of symbols.
+        const dateLike = (v) =>
+            /^\d{1,2}[-\/\s](?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*(?:[-\/\s]\d{2,4})?$/i.test(v)
+            || /^(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*[-\/\s]\d{1,2}(?:[-\/\s]\d{2,4})?$/i.test(v)
+            || /^(?:SEPT|MARCH|DEC|OCT|APR|FEB|JAN|JUN|JUL|AUG|NOV|MAY|MAR|SEP)\d{1,2}$/i.test(v)
+            // Clone identifiers such as 2310009E13 are read as scientific
+            // notation. A long digit run and no decimal point separates them
+            // from a real value like 1e5, which must stay numeric.
+            || /^\d{4,}E\d+$/i.test(v);
+        const risky = (v) => (/^[=+\-@]/.test(v) && !Number.isFinite(Number(v))) || dateLike(v);
         const enc = (v, wasQuoted) => {
             if (risky(v)) return '"\'' + v.replace(/"/g, '""') + '"';
             if (wasQuoted || /[",\r\n]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
