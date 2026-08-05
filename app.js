@@ -1440,11 +1440,11 @@ class CorrelationExplorer {
         if (isT) key = 'fusion';
         else if (isD) key = cn === 'amp' ? 'amp' : cn === 'del' ? 'del' : 'loss';
         const T = {
-            hotspot: { analysis: 'Mutation', noun: 'Mutation', carrier: 'Mut', ref: 'WT', status: 'Mutation Status', yaxis: 'Mutations', tick0: '0 WT', tick1: '1', selectLabel: 'Hotspot Mutation', selectNoun: 'hotspot mutation', countVerb: 'mutated' },
-            fusion:  { analysis: 'Fusion', noun: 'Fusion', carrier: 'Fused', ref: 'No fusion', status: 'Fusion Status', yaxis: 'Fusions', tick0: 'No fusion', tick1: 'Fusion+', selectLabel: 'Fusion', selectNoun: 'fusion', countVerb: 'fused' },
-            loss:    { analysis: 'Functional Loss', noun: 'Functional loss', carrier: 'Lost', ref: 'Intact', status: 'Functional Loss', yaxis: 'Functional Loss', tick0: 'Intact', tick1: 'Lost', selectLabel: 'Functional-loss Gene', selectNoun: 'functional-loss gene', countVerb: 'lost' },
-            amp:     { analysis: 'CN Amplification', noun: 'Amplification', carrier: 'Amp', ref: 'Neutral', status: 'Amplification Status', yaxis: 'Amplification', tick0: 'Neutral', tick1: 'Amp', selectLabel: 'Amplified Gene', selectNoun: 'amplified gene', countVerb: 'amplified' },
-            del:     { analysis: 'CN Deep Deletion', noun: 'Deep deletion', carrier: 'Del', ref: 'Neutral', status: 'Deep-deletion Status', yaxis: 'Deep Deletion', tick0: 'Neutral', tick1: 'Del', selectLabel: 'Deep-deleted Gene', selectNoun: 'deep-deleted gene', countVerb: 'deep-deleted' },
+            hotspot: { analysis: 'Mutation', noun: 'Mutation', carrier: 'Mut', ref: 'WT', status: 'Mutation Status', yaxis: 'hotspot mutations', tick0: '0 WT', tick1: '1', selectLabel: 'Hotspot Mutation', selectNoun: 'hotspot mutation', countVerb: 'mutated' },
+            fusion:  { analysis: 'Fusion', noun: 'Fusion', carrier: 'Fused', ref: 'No fusion', status: 'Fusion Status', yaxis: 'fusion', tick0: 'No fusion', tick1: 'Fusion+', selectLabel: 'Fusion', selectNoun: 'fusion', countVerb: 'fused' },
+            loss:    { analysis: 'Functional Loss', noun: 'Functional loss', carrier: 'Lost', ref: 'Intact', status: 'Functional Loss', yaxis: 'functional loss', tick0: 'Intact', tick1: 'Lost', selectLabel: 'Functional-loss Gene', selectNoun: 'functional-loss gene', countVerb: 'lost' },
+            amp:     { analysis: 'CN Amplification', noun: 'Amplification', carrier: 'Amp', ref: 'Neutral', status: 'Amplification Status', yaxis: 'amplification', tick0: 'Neutral', tick1: 'Amp', selectLabel: 'Amplified Gene', selectNoun: 'amplified gene', countVerb: 'amplified' },
+            del:     { analysis: 'CN Deep Deletion', noun: 'Deep deletion', carrier: 'Del', ref: 'Neutral', status: 'Deep-deletion Status', yaxis: 'deep deletion', tick0: 'Neutral', tick1: 'Del', selectLabel: 'Deep-deleted Gene', selectNoun: 'deep-deleted gene', countVerb: 'deep-deleted' },
         };
         return T[key];
     }
