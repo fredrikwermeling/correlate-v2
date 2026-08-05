@@ -28320,15 +28320,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Enabled only once there is something to order by. Disabling rather
         // than hiding keeps the row's shape, and greying out reads as "not
         // applicable yet" rather than as a control that vanished.
-        const usable = mode !== 'name' && !(needsGene && !geneVal);
+        const usable = !(needsGene && !geneVal);
         btn.disabled = !usable;
         btn.classList.remove('clb-hidden');
         btn.innerHTML = asc ? '&#x25B2;' : '&#x25BC;';
-        btn.title = !usable
-            ? (mode === 'name' ? 'Pick something to sort by to reverse the order'
-                               : 'Enter a gene or compound to reverse the order')
-            : (asc ? 'Lowest first. Click for highest first.'
-                   : 'Highest first. Click for lowest first.');
+        btn.title = usable ? 'Reverse the order' : 'Enter a gene or compound first';
     }
 
     // ===== Cell Line Browser =====
@@ -36478,10 +36474,18 @@ ${clone.innerHTML}
 
     inspectSelectionGE() {
         const selected = [...(this._clbSelectedCellLines || [])];
-        if (selected.length < 3) {
-            this.showCopyNotification?.('Select at least 3 cell lines first.');
+        if (selected.length < 1) {
+            this.showCopyNotification?.('Tick at least one cell line first.');
             return;
         }
+        // The difference between a selection and the rest is meaningful for a
+        // single cell line: "what is this line unlike everything else in".
+        // A significance test is not, since it needs spread within the group,
+        // so below three lines the deltas are shown without p or q.
+        const canTest = selected.length >= 3;
+        // With one or two lines, requiring three measured values per gene
+        // would drop every gene.
+        const minSel = Math.min(3, selected.length);
 
         const scope = this._geInspectScope === 'lineage' ? 'lineage' : 'all';
         // The lineages the selection spans. Comparing within them answers
@@ -36506,7 +36510,7 @@ ${clone.innerHTML}
                 const v = this.geneEffects[off + ci];
                 if (!isNaN(v) && v !== -999) { sSum += v; sSq += v * v; sN++; }
             }
-            if (sN < 3) continue;
+            if (sN < minSel) continue;
             let oSum = 0, oSq = 0, oN = 0;
             for (const ci of otherIdx) {
                 const v = this.geneEffects[off + ci];
@@ -36514,10 +36518,10 @@ ${clone.innerHTML}
             }
             if (oN < 3) continue;
             const mS = sSum / sN, mO = oSum / oN;
-            const { p } = this._welchFromSums(sSum, sSq, sN, oSum, oSq, oN);
+            const p = canTest ? this._welchFromSums(sSum, sSq, sN, oSum, oSq, oN).p : null;
             geRows.push({ gene: this.geneNames[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN, p });
         }
-        this._addBHQValues(geRows);
+        if (canTest) this._addBHQValues(geRows);
 
         // mRNA expression. Its table covers a different, larger set of cell
         // lines, so it is indexed separately rather than reusing the GE indices.
@@ -36539,15 +36543,15 @@ ${clone.innerHTML}
                 const off = g * nC;
                 let sSum = 0, sSq = 0, sN = 0;
                 for (const ci of selE) { const v = this.expressionData[off + ci]; if (!isNaN(v)) { sSum += v; sSq += v * v; sN++; } }
-                if (sN < 3) continue;
+                if (sN < minSel) continue;
                 let oSum = 0, oSq = 0, oN = 0;
                 for (const ci of othE) { const v = this.expressionData[off + ci]; if (!isNaN(v)) { oSum += v; oSq += v * v; oN++; } }
                 if (oN < 3) continue;
                 const mS = sSum / sN, mO = oSum / oN;
-                const { p } = this._welchFromSums(sSum, sSq, sN, oSum, oSq, oN);
+                const p = canTest ? this._welchFromSums(sSum, sSq, sN, oSum, oSq, oN).p : null;
                 exprRows.push({ gene: genes[g], meanSel: mS, meanOther: mO, delta: mS - mO, nSel: sN, nOther: oN, p });
             }
-            this._addBHQValues(exprRows);
+            if (canTest) this._addBHQValues(exprRows);
         }
 
         this._geInspectResults = { rows: geRows, exprRows, selected };
@@ -36564,14 +36568,17 @@ ${clone.innerHTML}
         const lineageText = lineageNames.length === 1 ? lineageNames[0]
             : lineageNames.length <= 3 ? lineageNames.join(', ')
             : `${lineageNames.length} lineages`;
+        const selWord = `${selected.length} selected cell line${selected.length === 1 ? '' : 's'}`;
         document.getElementById('selectionInspectTitle').textContent = scope === 'lineage'
-            ? `${selected.length} selected cell lines vs the other ${nRestGE.toLocaleString()} in ${lineageText}`
-            : `${selected.length} selected cell lines vs the other ${nRestGE.toLocaleString()}`;
+            ? `${selWord} vs the other ${nRestGE.toLocaleString()} in ${lineageText}`
+            : `${selWord} vs the other ${nRestGE.toLocaleString()}`;
         const sub = document.getElementById('selectionInspectSubtitle');
         const btn = (val, label, title) => `<button type="button" onclick="app.setGEInspectScope('${val}')" title="${title}" style="font-size:10px; padding:2px 8px; border:1px solid ${scope === val ? '#6ba544' : '#d1d5db'}; background:${scope === val ? '#f0fdf4' : '#fff'}; color:${scope === val ? '#4c782e' : '#374151'}; font-weight:${scope === val ? '700' : '400'}; border-radius:4px; cursor:pointer;">${label}</button>`;
         sub.innerHTML = `For every gene, its average across your selection minus its average across the cell lines it is compared with. `
             + `Both columns are sorted by the size of that difference, so genes that are higher and lower in your selection appear together. `
-            + `Welch's t-test per gene, q is that p-value after Benjamini-Hochberg across all genes tested. `
+            + (canTest
+                ? `Welch's t-test per gene, q is that p-value after Benjamini-Hochberg across all genes tested. `
+                : `<b>With fewer than three cell lines there is no spread to test</b>, so differences are shown without p or q. `)
             + `Click a gene to open it; Network builds a correlation network from the genes listed.`
             + `<div style="margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">`
             + `<span style="color:#6b7280;">Compare with:</span>`
@@ -36713,7 +36720,15 @@ ${clone.innerHTML}
         };
 
         const exprRows = this._geInspectResults.exprRows || [];
-        const passQ = (r, cut) => cut >= 1 || (r.q != null && r.q <= cut);
+        const anyQ = rows.some(r => r.q != null) || exprRows.some(r => r.q != null);
+        ['geLeftQCutoff', 'geRightQCutoff'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.disabled = !anyQ;
+            el.title = anyQ ? 'Benjamini-Hochberg adjusted p-value. 1 shows every gene.'
+                            : 'Needs at least three cell lines to test';
+        });
+        const passQ = (r, cut) => !anyQ || cut >= 1 || (r.q != null && r.q <= cut);
         const leftRows = applySort(
             rows.filter(r => Math.abs(r.delta) >= leftCut && passQ(r, leftQ)),
             this._geInspectSort.left
@@ -36728,10 +36743,22 @@ ${clone.innerHTML}
         this._geInspectResults.leftDisplayed = leftRows;
         this._geInspectResults.rightDisplayed = rightRows;
 
-        const hint = (n, cut, q, total) => `${n} of ${total.toLocaleString()} genes shown (|Δ| ≥ ${cut.toFixed(2)}`
-            + (q < 1 ? `, q ≤ ${q}` : '') + `). Click a column to sort.`;
-        document.getElementById('geLeftHint').textContent = hint(leftRows.length, leftCut, leftQ, rows.length);
-        document.getElementById('geRightHint').textContent = hint(rightRows.length, rightCut, rightQ, exprRows.length);
+        const hint = (shown, cut, q, all) => {
+            let t = `${shown} of ${all.length.toLocaleString()} genes shown (|Δ| ≥ ${cut.toFixed(2)}`
+                  + (anyQ && q < 1 ? `, q ≤ ${q}` : '') + `). Click a column to sort.`;
+            // Two cutoffs can each pass plenty while their overlap is empty,
+            // which otherwise just reads as "nothing here".
+            if (shown === 0 && all.length) {
+                const nD = all.filter(r => Math.abs(r.delta) >= cut).length;
+                const nQ = anyQ ? all.filter(r => r.q != null && r.q <= q).length : null;
+                t += ` ${nD.toLocaleString()} pass the size cutoff`
+                   + (nQ != null ? ` and ${nQ.toLocaleString()} pass q, but none pass both` : '')
+                   + `.`;
+            }
+            return t;
+        };
+        document.getElementById('geLeftHint').textContent = hint(leftRows.length, leftCut, leftQ, rows);
+        document.getElementById('geRightHint').textContent = hint(rightRows.length, rightCut, rightQ, exprRows);
         document.getElementById('geLeftBody').innerHTML = this._buildGEInspectTable(leftRows, 'left');
         document.getElementById('geRightBody').innerHTML = this._buildGEInspectTable(rightRows, 'right');
 
@@ -36778,6 +36805,9 @@ ${clone.innerHTML}
 
     // Build the HTML for one sortable GE-inspect table.
     _buildGEInspectTable(rows, side) {
+        // No q column at all when the selection was too small to test, rather
+        // than a column of blanks.
+        const hasQ = rows.some(r => r.q != null);
         const fmt = (v) => (isNaN(v) ? '-' : v.toFixed(3));
         const sort = this._geInspectSort[side];
         // Sortable header cell. Column headers are centered over the numeric
@@ -36798,7 +36828,7 @@ ${clone.innerHTML}
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center;">${fmt(r.meanSel)}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; color:#6b7280;">${fmt(r.meanOther)}</td>
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; font-weight:600; color:${r.delta < 0 ? '#dc2626' : '#2563eb'};">${fmt(r.delta)}</td>
-                <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; color:${r.q != null && r.q < 0.05 ? '#374151' : '#9ca3af'};">${fmtQ(r.q)}</td>
+                ${hasQ ? `<td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; text-align:center; color:${r.q != null && r.q < 0.05 ? '#374151' : '#9ca3af'};">${fmtQ(r.q)}</td>` : ''}
             </tr>`).join('');
         return `<table style="width:100%; border-collapse:collapse; font-size:11px;">
             <thead style="position:sticky; top:0;" class="sticky-head"><tr>
@@ -36806,7 +36836,7 @@ ${clone.innerHTML}
                 ${th(side === 'right' ? 'Mean expr (sel)' : 'Mean GE (sel)', 'meanSel')}
                 ${th(side === 'right' ? 'Mean expr (rest)' : 'Mean GE (rest)', 'meanOther')}
                 ${th('Δ', 'delta')}
-                ${th('q', 'q')}
+                ${hasQ ? th('q', 'q') : ''}
             </tr></thead>
             <tbody>${trows}</tbody>
         </table>`;

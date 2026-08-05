@@ -2003,6 +2003,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.25 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>Inspect works on a single cell line.</b> It asked for three, which was the requirement of the significance test rather than of the comparison. One line against the rest is a reasonable question, so the difference is shown; below three lines there is no spread to test, so the q column and its filter step aside and the panel says why.</li>
+                    <li><b>The sort arrow sits directly after the sort box</b> and reverses any sort, names included. For a gene or compound sort it waits until you have entered one. No wording, just the arrow.</li>
+                    <li><b>An empty gene list explains itself.</b> Two cutoffs can each pass plenty while nothing passes both, which used to read as a broken panel; it now says how many pass each.</li>
+                </ul>
                 <p><strong>v.85.22 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>The three alteration boxes line up with the row above.</b> Each box plus its grid button now spans exactly the width of the search box, so the Cohort and Genetic alterations rows share the same column edges.</li>
@@ -4900,7 +4906,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.22</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.25</a>
     </div>
 
     <div class="main-content">
@@ -6890,7 +6896,7 @@
             <li><span style="color:#db2777; font-weight:700; font-style:italic;">&#9792;</span> pink, italic: Female by expression only (annotation unknown).</li>
             <li><span style="color:#9ca3af; font-weight:700;">?</span> gray: Unknown in both axes.</li>
           </ul>
-          <p><strong>Sort options</strong>, four in all. The arrow beside the picker reverses the order. It stays greyed out until there is something to order by, and hovering it says which way the list is running.</p>
+          <p><strong>Sort options</strong>, four in all. The arrow beside the picker reverses the order; for a gene or compound sort it waits until you have entered one.</p>
           <ul style="margin:4px 0 10px 20px;">
             <li><b>Name</b>: alphabetical.</li>
             <li><b>GE for gene(s)</b>: type one or more genes; lines are ordered by CRISPR gene effect (Chronos), most essential first. Several genes are averaged, which ranks lines by combined essentiality.</li>
@@ -6945,11 +6951,11 @@
                 <option value="expr">Sort: Expression of gene(s)</option>
                 <option value="drug">Sort: Drug response (PRISM AUC)</option>
               </select>
+              <button id="clbSortDir" title="Switch the sort direction" class="btn btn-outline btn-sm" style="width:32px;">&#x25B2;</button>
               <div id="clbSortGeneWrap" class="clb-anchor" style="visibility:hidden;">
                 <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:160px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
                 <div id="clbSortDrugDropdown" class="clb-dropdown" style="min-width:320px;"></div>
               </div>
-              <button id="clbSortDir" title="Switch the sort direction" class="btn btn-outline btn-sm" style="width:32px;" disabled>&#x25B2;</button>
               <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols, warnings and where each piece of data comes from">?</button>
             </div>
           </div>
@@ -7378,6 +7384,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_22"></script>
+    <script src="app.js?v=v85_25"></script>
 </body>
 </html>
