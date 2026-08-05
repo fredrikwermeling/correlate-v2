@@ -22372,7 +22372,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (filterDesc) subtitleParts.push(filterDesc);
         if (hl && hl.size > 0) {
             const shown = hl.__shown ?? hl.size;
-            subtitleParts.push(`<span style="color:${hlColor}">&#9670; ${shown} selected cell lines highlighted</span>`);
+            // Say when part of the selection is missing from the plot. A bare
+            // "39 highlighted" against a selection of 126 hides that 87 have no
+            // value for this gene and are simply absent from the chart.
+            subtitleParts.push(shown < hl.size
+                ? `<span style="color:${hlColor}">&#9670; ${shown} of ${hl.size} selected cell lines shown, the other ${hl.size - shown} have no value for this gene</span>`
+                : `<span style="color:${hlColor}">&#9670; ${shown} selected cell lines highlighted</span>`);
         }
         const layout = {
             annotations: [

@@ -2003,6 +2003,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.44 (2026-08-05)</strong></p>
+                <ul>
+                    <li><b>A selection that is only partly on the chart says so.</b> The heading reported how many selected cell lines were highlighted without saying how many were selected, so a gene screened in few lines quietly dropped most of them. Selecting all 126 lung lines and opening a gene measured in 332 of the 1,186 now reads &ldquo;41 of 126 selected cell lines shown, the other 85 have no value for this gene&rdquo;.</li>
+                </ul>
                 <p><strong>v.85.43 (2026-08-05)</strong></p>
                 <ul>
                     <li><b>Exported images are no longer squashed.</b> Placing the legend below the plot changes the figure's proportions after the export dialog has collected a width and height, and it was then stretched into the old box: round markers became ellipses and every label was condensed. The image now keeps the proportions of what it actually contains.</li>
@@ -4967,7 +4971,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.43</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.44</a>
     </div>
 
     <div class="main-content">
@@ -7457,6 +7461,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_43"></script>
+    <script src="app.js?v=v85_44"></script>
 </body>
 </html>
