@@ -11232,18 +11232,13 @@ Results:
         }
     }
 
-    async downloadNetworkPNG() {
-        if (!this.network) return;
-        // Clear any zoom ghost before copying the live canvas into the export.
-        this._cleanNetworkCanvas();
-
+    // Layout of a network export: a header strip for the filter banner, the
+    // network canvas, then the legend block underneath. The export dialog needs
+    // these numbers before the canvas is built, so they live on their own.
+    _networkExportGeometry() {
         const networkCanvas = document.querySelector('#networkPlot canvas');
-        if (!networkCanvas) {
-            console.error('Network canvas not found');
-            return;
-        }
-
         const container = document.getElementById('networkPlot');
+        if (!networkCanvas || !container) return null;
         const cssWidth = container.clientWidth;
         const cssHeight = container.clientHeight;
         const legendHeight = 160;
@@ -11254,13 +11249,26 @@ Results:
         // it doesn't overlap nodes (matches the on-screen layout). Height
         // scales with banner font size.
         const headerH = filterText ? Math.round(bannerFs * 1.6 + 12) : 0;
-        const totalWidth = cssWidth;
-        const totalHeight = headerH + cssHeight + legendHeight + padding;
+        return {
+            networkCanvas, cssWidth, cssHeight, legendHeight, padding,
+            filterText, bannerFs, headerH,
+            totalWidth: cssWidth,
+            totalHeight: headerH + cssHeight + legendHeight + padding
+        };
+    }
+
+    async downloadNetworkPNG() {
+        if (!this.network) return;
+        const geo = this._networkExportGeometry();
+        if (!geo) {
+            console.error('Network canvas not found');
+            return;
+        }
 
         // The same dialog also offers capturing the whole page, which is where
         // the old standalone Screenshot button used to live.
         const dlg = await this._showExportDialog({
-            format: 'png', plotW: totalWidth, plotH: totalHeight, hasLegendFrame: true,
+            format: 'png', plotW: geo.totalWidth, plotH: geo.totalHeight, hasLegendFrame: true,
             canScreenshot: true, screenshotLabel: 'The whole page'
         });
         if (dlg && dlg.what === 'popout') {
@@ -11275,7 +11283,47 @@ Results:
         // SVG = vector reconstruction; hand off (reusing this dialog so the user
         // isn't asked twice). PNG/TIFF/PDF/PPTX build the raster canvas below.
         if (dlg.format === 'svg') return this.downloadNetworkSVG(dlg);
-        const { widthCm, heightCm, dpi, background, legendFrame } = dlg;
+        const { widthCm, heightCm, dpi } = dlg;
+        const canvas = await this._composeNetworkExportCanvas(dlg);
+        if (!canvas) return;
+
+        // Embed metadata and create download link
+        const meta = this._buildExportMetadata('network', {
+            geneList: this.getGeneList(),
+            mode: this.results?.mode,
+            cutoff: this.results?.cutoff,
+            nCellLines: this.results?.nCellLines,
+            networkSettings: this._captureNetworkSettings(),
+            oncoprintFilters: this._activeOncoprintFilters || null
+        });
+        // PNG / TIFF / PDF / PPTX all come from this composed canvas; SVG uses
+        // the dedicated vector reconstruction (reusing the dialog we just shew).
+        // Trim the empty frame, then recompute the height so the figure keeps its
+        // real proportions at the width that was asked for.
+        const trimmed = this._trimCanvasWhitespace(canvas);
+        const outHeightCm = (trimmed !== canvas && trimmed.width)
+            ? Math.round(widthCm * (trimmed.height / trimmed.width) * 100) / 100
+            : heightCm;
+        await this._downloadCanvasAs(trimmed, dlg.format, 'correlation_network', {
+            dpi, widthCm, heightCm: outHeightCm,
+            metaJson: dlg.sidecar === false ? null : JSON.stringify(meta)
+        });
+    }
+
+    // Paints banner + network + legend onto a single canvas at the requested
+    // physical size. Both "Export image..." and "Copy network" come through
+    // here, so a pasted network carries the same legend as a saved one.
+    async _composeNetworkExportCanvas({ widthCm, heightCm, dpi, background, legendFrame }) {
+        if (!this.network) return null;
+        // Clear any zoom ghost before copying the live canvas into the export.
+        this._cleanNetworkCanvas();
+        const geo = this._networkExportGeometry();
+        if (!geo) return null;
+        const {
+            networkCanvas, cssWidth, cssHeight, legendHeight, padding,
+            filterText, bannerFs, headerH, totalWidth, totalHeight
+        } = geo;
+
         const transparentBg = background === 'transparent';
         const CM_TO_IN = 1 / 2.54;
         const targetPxW = Math.round(widthCm * dpi * CM_TO_IN);
@@ -11621,27 +11669,47 @@ Results:
             ctx.fillText('* = synonym/orthologue used', legendX, legendY + 25);
         }
 
-        // Embed metadata and create download link
-        const meta = this._buildExportMetadata('network', {
-            geneList: this.getGeneList(),
-            mode: this.results?.mode,
-            cutoff: this.results?.cutoff,
-            nCellLines: this.results?.nCellLines,
-            networkSettings: this._captureNetworkSettings(),
-            oncoprintFilters: this._activeOncoprintFilters || null
-        });
-        // PNG / TIFF / PDF / PPTX all come from this composed canvas; SVG uses
-        // the dedicated vector reconstruction (reusing the dialog we just shew).
-        // Trim the empty frame, then recompute the height so the figure keeps its
-        // real proportions at the width that was asked for.
-        const trimmed = this._trimCanvasWhitespace(canvas);
-        const outHeightCm = (trimmed !== canvas && trimmed.width)
-            ? Math.round(widthCm * (trimmed.height / trimmed.width) * 100) / 100
-            : heightCm;
-        await this._downloadCanvasAs(trimmed, dlg.format, 'correlation_network', {
-            dpi, widthCm, heightCm: outHeightCm,
-            metaJson: dlg.sidecar === false ? null : JSON.stringify(meta)
-        });
+        return canvas;
+    }
+
+    // Copy the network to the clipboard the way it would be exported: filter
+    // banner, nodes and legend, on white. No dialog, so it goes at a fixed
+    // print-ish size rather than asking for one.
+    async copyNetworkToClipboard() {
+        if (!this.network) {
+            this.showCopyNotification?.('Build a network first.');
+            return;
+        }
+        if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+            this.showCopyNotification?.('This browser cannot copy images to the clipboard. Use Export image instead.');
+            return;
+        }
+        this.showCopyNotification?.('Copying…');
+        try {
+            const geo = this._networkExportGeometry();
+            if (!geo) {
+                this.showCopyNotification?.('Could not render the network for copying.');
+                return;
+            }
+            // 20 cm wide at 150 dpi is a crisp paste into a slide or a document
+            // without producing a clipboard image so large it stalls the paste.
+            const widthCm = 20;
+            const heightCm = Math.round(widthCm * (geo.totalHeight / geo.totalWidth) * 100) / 100;
+            const canvas = await this._composeNetworkExportCanvas({
+                widthCm, heightCm, dpi: 150, background: 'white', legendFrame: false
+            });
+            if (!canvas) {
+                this.showCopyNotification?.('Could not render the network for copying.');
+                return;
+            }
+            const trimmed = this._trimCanvasWhitespace(canvas);
+            const blob = await new Promise(res => trimmed.toBlob(res, 'image/png'));
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            this.showCopyNotification?.('Network copied, paste it anywhere');
+        } catch (e) {
+            console.warn('Copy network failed:', e);
+            this.showCopyNotification?.('Copy failed. Use Export image instead.');
+        }
     }
 
     async downloadNetworkSVG(dlgOverride = null) {

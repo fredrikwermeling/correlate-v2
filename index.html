@@ -2003,6 +2003,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.54 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>&ldquo;Copy network&rdquo; copies what you would have exported.</b> The button used to screenshot the plot area alone, so the legend and the filter banner were missing from anything pasted into a slide. Copy and Export image now build the same picture, banner on top, legend underneath, and the button is named and styled like the other export buttons instead of sitting there as a small outlined &ldquo;Copy&rdquo;.</li>
+                </ul>
                 <p><strong>v.85.53 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>&ldquo;Export for AI&rdquo; in the help popouts.</b> Rather than reading the help end to end, download it and ask an LLM. The file carries the help text as shown, the version, the sizes of the CRISPR and expression cohorts and the note that they are different sets of cell lines, where each layer's data comes from, and what the panel was filtered to at the time, so questions like &ldquo;why does my list show 27 cell lines&rdquo; can actually be answered. Available in the Cell Line Browser help and the quick-filter criteria.</li>
@@ -5001,7 +5005,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.53</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.54</a>
     </div>
 
     <div class="main-content">
@@ -5546,7 +5550,7 @@
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">Export:</label>
                             <div class="button-group-horizontal">
                                 <button class="btn btn-secondary mobile-hide" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
-                                <button class="btn btn-outline btn-sm mobile-hide" onclick="app.copyPlotToClipboard('networkPlot', 'Network')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
+                                <button class="btn btn-secondary mobile-hide" onclick="app.copyNetworkToClipboard()" title="Copy the network as an image to the clipboard, legend included, ready to paste into an email or slide">Copy network</button>
                                 <button class="btn btn-secondary" id="downloadNetworkSVG" style="display:none;">SVG</button>
                                 <button class="btn btn-secondary" id="networkAnalyzeWithAI" title="Package this network as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                                 <button class="btn btn-secondary" id="downloadAllData" title="Download everything behind this run as one zip: the correlation table, the clusters, the gene-effect values for the genes in the network, and the settings used, as CSV files you can open in Excel or R">All Data (ZIP)</button>
@@ -7512,6 +7516,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_53"></script>
+    <script src="app.js?v=v85_54"></script>
 </body>
 </html>
