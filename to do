@@ -70,17 +70,20 @@
   it asked for its cutoff via a blocking prompt(); now uses the panel's p-value
   box. Separate PNG/SVG replaced by the standard dialog. Gates gained Export for
   AI, pre-filled with the "what separates A from B" question. .80, .95
-- i dont find this. in genrela you need to specify better what you are commenting on. where in the app is this related to?
+- i dont find this. in genral you need to specify better what you are commenting on. where in the app is this related to?
 
   15. Overlay counts not scaling to filters — they followed tissue/subtype but
   not mutation/fusion/CN, and ran before the plot updated. KRAS reads 174 of
   1,147 unfiltered, 100 of 574 with a TP53 filter. .78
+- I lack context and dont know what this relate to.
 
   16. AI export defining its contents — each source now names what it
   contributes. .82
+- ok
 
   17. Overlay heading cropped / not editable — line now wraps; title/subtitle
   split fixed so wrapped text is reachable. .90
+- I lack a bit of context here, but if this relate to the correlation popout overlaying eg a hotspot mutation and viewing it as 3 panels, it looks better, but in the settings i can still not edit the text of the idividual plots only the proper title of the plot. 
 
   18. Correlation title naming GE/expr/CN — added, wraps when long. .76
 
