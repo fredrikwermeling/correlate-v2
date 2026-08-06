@@ -26156,18 +26156,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (originParts.length) s1 += ` <span style="color:#6b7280;">(${originParts.join(', ')})</span>`;
         s1 += '.';
         if ((lin || '').toLowerCase().includes('breast')) {
-            const bm = this._collectionMembership || {};
-            // A line the Lehmann panel covers is forced into the TNBC set, so
-            // the few lines the two sources disagree about sit in two sets at
-            // once. Read the expression call first and then say that Lehmann
-            // says otherwise, rather than letting one quietly win.
-            const bsub = bm.her2_pos_breast?.has(cellLineId) ? 'HER2+'
-                       : bm.hr_pos_breast?.has(cellLineId) ? 'HR+ / luminal'
-                       : bm.tnbc?.has(cellLineId) ? 'triple-negative' : '';
-            if (bsub) s1 += ` Receptor status (by expression): <b>${bsub}</b>.`;
-            const bConflict = this._breastReceptorConflicts?.get(cellLineId);
-            if (bConflict) {
-                s1 += ` <span style="color:#92400e;">The Lehmann panel calls it triple-negative (${this.esc(bConflict.lehmann)}), so the two sources disagree.</span>`;
+            // A published classification leads. Where this line's own data says
+            // something else, that is stated next to it rather than either one
+            // being dropped, because the disagreement is the useful part.
+            const bcall = this._breastReceptorCalls?.get(cellLineId);
+            const lehPub = this.lehmannTnbc?.byCellLine?.[cellLineId];
+            const lehName = bcall?.lehmann || lehPub?.tnbcType4 || lehPub?.tnbcType6 || '';
+            if (lehName) {
+                s1 += ` Receptor status: <b>triple-negative</b> <span style="color:#6b7280;">(published, Lehmann ${this.esc(lehName)})</span>.`;
+                if (bcall && bcall.measured !== 'triple-negative') {
+                    s1 += ` <span style="color:#92400e;">Its own ${bcall.measured === 'HER2+' ? 'copy number' : 'expression'} reads <b>${this.esc(bcall.measured)}</b>, so the two disagree.</span>`;
+                }
+            } else if (bcall) {
+                s1 += ` Receptor status (${bcall.measured === 'HER2+' ? 'by copy number' : 'by expression'}): <b>${this.esc(bcall.measured)}</b>.`;
             }
         }
 
@@ -28841,20 +28842,30 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 category: 'Expression signature',
                 description: '<b>Inclusion:</b> top 20 % of cell lines by composite mesenchymal z-score: positive contribution from <b>VIM, ZEB1, SNAI1, TWIST1</b> and negative contribution from <b>CDH1</b> (E-cadherin). <b>Why:</b> identifies cell lines on the mesenchymal end of the EMT axis, irrespective of tissue lineage. <b>Caveat:</b> this is a small canonical-marker panel, full EMT signatures (Hallmark, Tan / Mak) cover hundreds of genes; this is a quick proxy.'
             },
+            tnbc_published: {
+                label: 'Triple-negative breast (published annotation)',
+                category: 'Breast, receptor subtype (published annotation)',
+                description: '<b>Inclusion:</b> the line carries a TNBC subtype assignment in the Lehmann panels (JCI 2011 / PLOS ONE 2016). <b>Why this is separate:</b> a published classification and a measurement are two different kinds of evidence, so they are kept on separate axes here, the way annotated patient sex is kept separate from sex inferred from expression. This is the parent of the four Lehmann sub-types, so Lehmann &sube; this collection by construction. <b>Coverage:</b> the Lehmann papers only classified TNBC lines, so a line missing from this collection is not thereby ER+ or HER2+, it simply was not in the panel. DepMap\'s model table carries no receptor annotation of its own, which is why this is the only published axis available. <b>Where it disagrees with the measured call,</b> see the conflict collection below.'
+            },
             tnbc: {
-                label: 'Triple-negative breast (approximate)',
-                category: 'Breast, receptor subtype (expression surrogate)',
-                description: '<b>Inclusion (two paths, either qualifies):</b> <b>(a)</b> breast lineage AND ESR1 below 3.0 AND PGR below 1.0 AND ERBB2 below 8.0 log&#8322;-TPM (transcript surrogates of ER, PR, HER2 status); <b>OR</b> <b>(b)</b> the line carries a Lehmann TNBC subtype annotation from the curated 2011 / 2016 panels. This guarantees Lehmann &sube; TNBC by construction. <b>Where the two disagree:</b> a Lehmann line whose transcripts read HR+ or HER2+ stays in this collection but is also listed in that one, and both the Wiki and the cell-line summary say so rather than picking a winner. <b>Cutoffs:</b> fixed levels, not ranks. An earlier median split put half the breast lines above the line by construction and called 25 of 50 HR+ where roughly 8 are; these cutoffs sit in the gap between the two groups. <b>Caveat:</b> clinical TNBC is defined by IHC (and FISH for HER2); transcript and protein don\'t always agree.'
+                label: 'Triple-negative breast (measured)',
+                category: 'Breast, receptor subtype (measured)',
+                description: '<b>Inclusion:</b> breast lineage AND no focal ERBB2 amplification AND ESR1 below 3.0 AND PGR below 1.0 log&#8322;-TPM. <b>Cutoffs:</b> fixed levels, not ranks. An earlier median split put half the breast lines above the line by construction and called 25 of 50 HR+ where roughly 8 are; these cutoffs sit in the gap between the two groups. <b>Published lines are no longer folded in:</b> a Lehmann-classified line whose transcripts read otherwise stays out of this set and shows up in the conflict collection instead, so the disagreement is visible rather than resolved silently. <b>Caveat:</b> clinical TNBC is defined by IHC (and FISH for HER2); transcript and protein don\'t always agree.'
             },
             hr_pos_breast: {
-                label: 'HR+ / luminal breast (approximate)',
-                category: 'Breast, receptor subtype (expression surrogate)',
-                description: '<b>Inclusion:</b> breast lineage AND ESR1 &ge; 3.0 OR PGR &ge; 1.0 log&#8322;-TPM, AND ERBB2 below 8.0 (HER2 takes precedence, as in clinical subtyping). <b>Why:</b> approximates ER+/PR+/HER2− (luminal A/B) breast cancer by transcript surrogates. <b>Cutoffs:</b> fixed levels rather than the breast-line median, which by construction called half the panel HR+. The 8 lines here are the recognised ER+ luminal models. <b>Caveat:</b> see TNBC entry, transcript-based receptor status is approximate, not clinical.'
+                label: 'HR+ / luminal breast (measured)',
+                category: 'Breast, receptor subtype (measured)',
+                description: '<b>Inclusion:</b> breast lineage AND ESR1 &ge; 3.0 OR PGR &ge; 1.0 log&#8322;-TPM, AND no focal ERBB2 amplification (HER2 takes precedence, as in clinical subtyping). <b>Why:</b> approximates ER+/PR+/HER2&minus; (luminal A/B) breast cancer. <b>Cutoffs:</b> fixed levels rather than the breast-line median, which by construction called half the panel HR+. The 8 lines here are the recognised ER+ luminal models. <b>Caveat:</b> transcript-based receptor status is approximate, not clinical IHC.'
             },
             her2_pos_breast: {
-                label: 'HER2+ breast (approximate)',
-                category: 'Breast, receptor subtype (expression surrogate)',
-                description: '<b>Inclusion:</b> breast lineage AND ERBB2 &ge; 8.0 log&#8322;-TPM. <b>Why:</b> approximates HER2-amplified breast cancer by transcript level. <b>Cutoff:</b> a fixed level rather than the top fifth of breast lines. The amplified lines start at 8.1 and everything else sits at 7.3 or below, so the gap is real; the old quintile cut through it and missed JIMT-1, a standard HER2+ model. <b>Caveat:</b> clinical HER2+ status is defined by IHC 3+ or FISH amplification, high transcript expression is correlated but not equivalent. Without copy-number data here, this is a surrogate.'
+                label: 'HER2+ breast (copy number)',
+                category: 'Breast, receptor subtype (measured)',
+                description: '<b>Inclusion:</b> breast lineage AND focal amplification of <b>ERBB2</b> in the curated copy-number panel. <b>Why copy number:</b> clinical HER2+ means amplification, tested by FISH, so this asks the same question rather than reading it off transcript level. All 11 lines here sit at CN 5.6 or above. Two lines the older transcript rule called HER2+ have no amplification at all and are not in this set: MDA-MB-453, the standard AR+ / LAR model, and UACC-3133. A line with no copy-number entry at all falls back to ERBB2 &ge; 8.0 log&#8322;-TPM. <b>Caveat:</b> clinical status also counts IHC 3+ protein without amplification, which this cannot see.'
+            },
+            breast_receptor_conflict: {
+                label: 'Breast: published and measured calls disagree',
+                category: 'Breast, receptor subtype (measured)',
+                description: '<b>Inclusion:</b> breast lines the Lehmann panels classified as TNBC whose own transcripts or copy number read HR+ or HER2+ instead. <b>Why surface it:</b> the published call used to win silently, so KPL-1 was labelled triple-negative with nothing to indicate that its ER transcript sits at the 88th percentile of breast lines (it is also a documented MCF-7 derivative, which fits the ER+ reading). <b>How to use it:</b> treat these lines as unresolved rather than as either call, and look at the receptor histograms in the Wiki before deciding. The published annotation leads wherever a call has to be shown, with the disagreement stated alongside it.'
             },
             class_i_reduced: {
                 label: 'Class-I antigen presentation reduced/lost',
@@ -29388,8 +29399,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'tp53_loss', 'pten_loss', 'rb1_loss', 'cdkn2a_loss', 'apc_loss', 'nf1_loss', 'any_tsg_loss', 'multi_tsg_loss',
             // DNA repair / mutation burden
             'msi_high_functional', 'hrd', 'hypermutated', 'pole_pold1_ultramutated', 'slfn11_high',
-            // Breast receptor subtype
-            'tnbc', 'hr_pos_breast', 'her2_pos_breast',
+            // Breast receptor subtype, published annotation and measured call kept apart
+            'tnbc_published', 'tnbc', 'hr_pos_breast', 'her2_pos_breast', 'breast_receptor_conflict',
             // Disease-defining fusions
             'fusion_bcr_abl1', 'fusion_ewsr1_fli1', 'fusion_eml4_alk', 'fusion_pml_rara', 'fusion_ss18_ssx', 'fusion_pax3_foxo1', 'fusion_tmprss2_erg', 'fusion_npm1_alk',
             // Oncogene addiction (mutation x CRISPR dependency)
@@ -29510,21 +29521,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 else if (t4 === 'LAR') mem.tnbc_lar.add(cl);
             }
         }
-        // Belt-and-braces: every cell line with a Lehmann TNBC annotation
-        // IS TNBC by the source papers' definition. The expression-based
-        // tnbc collection above sometimes misses these when ESR1 / PGR sit
-        // near the breast-line median, which produces the counter-intuitive
-        // situation that the Lehmann sub-types appear to contain more lines
-        // than their parent "Triple-negative breast" collection. Add the
-        // Lehmann set to mem.tnbc here so Lehmann ⊆ TNBC by construction.
-        // mem.tnbc may not exist yet if expression isn't loaded; create it
-        // on demand.
+        // The published TNBC set: every line the Lehmann papers classified is
+        // TNBC by those papers' definition, whatever the transcripts say.
+        // This is the parent of the four Lehmann sub-types, so Lehmann &sube;
+        // tnbc_published by construction.
+        //
+        // These lines used to be pushed into the expression-based `tnbc`
+        // collection instead, which made a disagreement between the two
+        // sources disappear: KPL-1 came out labelled triple-negative with no
+        // sign that its ER transcript sits at the 88th percentile of breast
+        // lines. Published and measured are now two independent axes, the
+        // same way annotated sex and sex-by-expression are, and a line can
+        // appear in one without being forced into the other.
+        mem.tnbc_published = new Set();
         if (this.lehmannTnbc?.byCellLine) {
-            if (!mem.tnbc) mem.tnbc = new Set();
             for (const cl of clLines) {
                 const t = this.lehmannTnbc.byCellLine[cl]?.tnbcType4
                       || this.lehmannTnbc.byCellLine[cl]?.tnbcType6;
-                if (t) mem.tnbc.add(cl);
+                if (t) mem.tnbc_published.add(cl);
             }
         }
 
@@ -29915,32 +29929,49 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Keep any pre-existing TNBC members (Lehmann-annotated lines
             // were added earlier by the v.81.46 belt-and-braces pass; a
             // plain `new Set()` here would wipe them).
-            if (!mem.tnbc) mem.tnbc = new Set();
+            mem.tnbc = new Set();
             mem.hr_pos_breast = new Set();
             mem.her2_pos_breast = new Set();
-            // Where the expression call and the Lehmann panel disagree. The
-            // Lehmann lines are forced into TNBC above, so without this the
-            // disagreement would be resolved silently and the reader would
-            // never learn that the two sources say different things.
-            this._breastReceptorConflicts = new Map();
+            mem.breast_receptor_conflict = new Set();
+            // Every measured call for every breast line, so the summary, the
+            // Wiki and the quick filters all read the same numbers instead of
+            // each recomputing them.
+            this._breastReceptorCalls = new Map();
             for (const { cl } of breastLines) {
                 const e = esr.get(cl);
                 const p = pgr.get(cl);
                 const h = her.get(cl);
-                const isHer2 = h !== undefined && h >= ERBB2_POS;
+                // HER2 comes from copy number, not transcript. Clinical HER2+
+                // means amplification (FISH), and the curated focal-CN panel
+                // carries ERBB2 already, so this is the same question asked the
+                // right way. Two lines the transcript rule called HER2+ have no
+                // amplification at all: MDA-MB-453, the standard AR+ / LAR
+                // model, and UACC-3133. Only when a line has no CN entry does
+                // the transcript level stand in.
+                const erbb2Amp = (this.clinicalCn?.byCellLine?.[cl]?.amplifications || [])
+                    .find(a => a.gene === 'ERBB2');
+                const hasCnEntry = !!this.clinicalCn?.byCellLine?.[cl];
+                const isHer2 = erbb2Amp ? true
+                             : (!hasCnEntry && h !== undefined && h >= ERBB2_POS);
                 const hrPos = (e !== undefined && e >= ESR1_POS) || (p !== undefined && p >= PGR_POS);
+                const measured = isHer2 ? 'HER2+' : hrPos ? 'HR+ / luminal' : 'triple-negative';
+
                 if (isHer2) mem.her2_pos_breast.add(cl);
-                if (hrPos && !isHer2) mem.hr_pos_breast.add(cl);
+                else if (hrPos) mem.hr_pos_breast.add(cl);
+                else mem.tnbc.add(cl);
+
+                // The published axis, kept separate from the measured one the
+                // way annotated sex is kept separate from sex by expression.
+                // The Lehmann panel is the only published receptor annotation
+                // in this dataset; DepMap's model table carries none.
                 const lehType = this.lehmannTnbc?.byCellLine?.[cl]?.tnbcType4
                              || this.lehmannTnbc?.byCellLine?.[cl]?.tnbcType6;
-                if (lehType && (isHer2 || hrPos)) {
-                    this._breastReceptorConflicts.set(cl, {
-                        exprCall: isHer2 ? 'HER2+' : 'HR+ / luminal',
-                        lehmann: lehType,
-                        esr1: e, pgr: p, erbb2: h
-                    });
-                }
-                if (!hrPos && !isHer2) mem.tnbc.add(cl);
+                if (lehType && measured !== 'triple-negative') mem.breast_receptor_conflict.add(cl);
+                this._breastReceptorCalls.set(cl, {
+                    measured, lehmann: lehType || '',
+                    esr1: e, pgr: p, erbb2Expr: h,
+                    erbb2Cn: erbb2Amp ? erbb2Amp.cn : null
+                });
             }
 
             // Active expression programs, mean z-score across
@@ -30143,9 +30174,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             age_aya: 'patient metadata', age_adult: 'patient metadata',
             age_elderly: 'patient metadata',
             // Breast subtypes
-            tnbc: 'expression + Lehmann publication',
+            tnbc_published: 'Lehmann publication',
+            tnbc: 'expression + copy number',
             hr_pos_breast: 'expression',
-            her2_pos_breast: 'expression',
+            her2_pos_breast: 'copy number',
+            breast_receptor_conflict: 'publication vs expression / copy number',
             // Lehmann TNBC subtypes, all publication-curated
             tnbc_bl1: 'Lehmann publication', tnbc_bl2: 'Lehmann publication',
             tnbc_m:   'Lehmann publication', tnbc_lar: 'Lehmann publication',
@@ -34673,40 +34706,42 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 // collections use. Kept in step with them by hand; if they drift
                 // apart the badge and the collections start disagreeing.
                 const ESR1_POS = 3.0, PGR_POS = 1.0, ERBB2_POS = 8.0;
-                // Prefer the app's authoritative collection membership and fall
-                // back to an inline call if collections haven't been built yet.
-                const _mem = this._collectionMembership || {};
-                let call, callColor, callBasis = '';
                 const _leh = this.lehmannTnbc?.byCellLine?.[cellLineId];
-                const _lehName = _leh?.tnbcType6 || _leh?.tnbcType4 || '';
-                // Every Lehmann-annotated line is forced into the TNBC set, so a
-                // line the two sources disagree about is in two sets at once.
-                // Read the transcript call first and report the disagreement
-                // underneath, rather than showing a TNBC badge that contradicts
-                // the histograms sitting right beside it.
-                if (_mem.her2_pos_breast?.has(cellLineId)) { call = 'HER2+ (approximate)'; callColor = '#b58a3c'; callBasis = 'from ERBB2 transcript level'; }
-                else if (_mem.hr_pos_breast?.has(cellLineId)) { call = 'HR+ / luminal (approximate)'; callColor = '#6e8b4a'; callBasis = 'from ESR1 / PGR transcript level'; }
-                else if (_mem.tnbc?.has(cellLineId)) {
-                    call = 'Triple-negative (approximate)'; callColor = '#b05a3c';
-                    callBasis = _lehName
-                        ? `from the published Lehmann subtype (${_lehName}), which agrees with the transcript rule here`
-                        : 'from the transcript rule';
-                }
-                else {
-                    const isHer2 = herD.mine != null && herD.mine >= ERBB2_POS;
+                const _lehName = _leh?.tnbcType4 || _leh?.tnbcType6 || '';
+                // The measured call, preferring the shared per-line record the
+                // collections were built from and falling back to an inline
+                // calculation if they have not been built yet.
+                let _measured = this._breastReceptorCalls?.get(cellLineId)?.measured;
+                if (!_measured) {
+                    const _amp = (this.clinicalCn?.byCellLine?.[cellLineId]?.amplifications || [])
+                        .find(a => a.gene === 'ERBB2');
+                    const _hasCn = !!this.clinicalCn?.byCellLine?.[cellLineId];
+                    const isHer2 = _amp ? true : (!_hasCn && herD.mine != null && herD.mine >= ERBB2_POS);
                     const hrPos = (esrD.mine != null && esrD.mine >= ESR1_POS) || (pgrD.mine != null && pgrD.mine >= PGR_POS);
                     const anyMeasured = esrD.mine != null || pgrD.mine != null || herD.mine != null;
-                    if (!anyMeasured) { call = 'Not callable, no expression data'; callColor = '#6b7280'; }
-                    else if (isHer2) { call = 'HER2+ (approximate)'; callColor = '#b58a3c'; }
-                    else if (hrPos) { call = 'HR+ / luminal (approximate)'; callColor = '#6e8b4a'; }
-                    else { call = 'Triple-negative (approximate)'; callColor = '#b05a3c'; }
+                    _measured = !anyMeasured ? '' : isHer2 ? 'HER2+' : hrPos ? 'HR+ / luminal' : 'triple-negative';
                 }
-                // Stated, not resolved: the two sources are built differently and
+                const _COLOR = { 'HER2+': '#b58a3c', 'HR+ / luminal': '#6e8b4a', 'triple-negative': '#b05a3c' };
+                // A published classification is the leading call; the measured
+                // one stands in only where there is no publication to go on.
+                let call, callColor, callBasis = '';
+                if (_lehName) {
+                    call = 'Triple-negative'; callColor = '#b05a3c';
+                    callBasis = `published, Lehmann subtype ${_lehName}`;
+                } else if (_measured) {
+                    call = _measured === 'triple-negative' ? 'Triple-negative (approximate)' : `${_measured} (approximate)`;
+                    callColor = _COLOR[_measured];
+                    callBasis = _measured === 'HER2+' ? 'from focal ERBB2 amplification'
+                              : _measured === 'HR+ / luminal' ? 'from ESR1 / PGR transcript level'
+                              : 'from the transcript and copy-number rule';
+                } else {
+                    call = 'Not callable, no expression data'; callColor = '#6b7280';
+                }
+                // Stated, not resolved. The two sources are built differently and
                 // the reader is better served knowing they part company here.
-                const _bConflict = this._breastReceptorConflicts?.get(cellLineId);
-                const conflictHtml = _bConflict
+                const conflictHtml = (_lehName && _measured && _measured !== 'triple-negative')
                     ? `<div style="margin:0 0 10px; padding:7px 10px; background:#fffbeb; border:1px solid #fcd34d; border-left:3px solid #d97706; border-radius:5px; font-size:11px; line-height:1.5; color:#92400e;">
-                        <b>The two sources disagree here.</b> The transcript levels below read as <b>${this.esc(_bConflict.exprCall)}</b>, while the Lehmann panel assigns this line the triple-negative subtype <b>${this.esc(_bConflict.lehmann)}</b>. The Lehmann call comes from a published expression-panel classification of TNBC lines and is kept in the triple-negative collection; the call above is what these three transcripts say. Neither is IHC.
+                        <b>The published call and this line's own data disagree.</b> The Lehmann panel classifies it as triple-negative, subtype <b>${this.esc(_lehName)}</b>, and that is the call shown above. Its own measurements read <b>${this.esc(_measured)}</b> instead${_measured === 'HER2+' ? ', from a focal ERBB2 amplification' : ', from the transcript levels below'}. Neither is IHC, so treat this line as unresolved rather than as either call.
                        </div>`
                     : '';
                 const targets = [
@@ -34725,7 +34760,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     </div>`;
                 }).join('');
                 receptorHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. Calls use fixed levels, not a rank within the breast lines: <b>HER2+</b> at ERBB2 &ge; 8.0 log&#8322;-TPM, otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0, otherwise <b>triple-negative</b>. Each cutoff sits in the gap between the two groups in these histograms, which a median could not do: half the breast lines are below the median whether or not any of them express the receptor. A transcript surrogate throughout, not clinical IHC/FISH.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; the measurement stands in otherwise, and where the two disagree both are shown. The measured rule: <b>HER2+</b> on focal ERBB2 amplification (copy number, the same thing FISH tests), otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels sitting in the gap between the two groups in these histograms, which a median could not do: half the breast lines fall below the median whether or not any of them express the receptor. None of this is IHC.</p>
                     ${conflictHtml}
                     <div style="margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <span>Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span>${callBasis ? `<span style="color:#6b7280; font-size:10px; margin-left:6px;">${callBasis}</span>` : ''}</span>
@@ -36244,7 +36279,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'DepMap 25Q3 Model table (Oncotree lineage / subtype / code, patient-tumor features).'),
             receptorHtml ? section('Receptor status <span style="font-size:11px; color:#6b7280;">, expression surrogate for ER / PR / HER2</span>',
                 receptorHtml,
-                'DepMap 25Q3 OmicsExpressionTPMLogp1 (log₂-TPM+1) for ESR1 / PGR / ERBB2. Fixed cutoffs: ERBB2 ≥ 8.0 for HER2+, otherwise ESR1 ≥ 3.0 or PGR ≥ 1.0 for HR+, otherwise triple-negative. Transcript-based surrogate, clinical receptor status is defined by IHC (and FISH for HER2) and may differ.') : '',
+                'DepMap 25Q3 OmicsExpressionTPMLogp1 (log₂-TPM+1) for ESR1 / PGR / ERBB2, plus DepMap focal copy number for ERBB2. Published TNBC calls from Lehmann JCI 2011 / PLOS ONE 2016. Measured rule: focal ERBB2 amplification for HER2+, otherwise ESR1 ≥ 3.0 or PGR ≥ 1.0 for HR+, otherwise triple-negative. Clinical receptor status is defined by IHC (and FISH for HER2) and may differ.') : '',
             section('Patient & sample origin',
                 originHtml,
                 'DepMap 25Q3 Model table, donor demographics and tissue collection metadata.'),
