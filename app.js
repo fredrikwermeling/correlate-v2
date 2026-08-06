@@ -26303,17 +26303,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             .map(d => d.gene)
             .filter(g => !tsgLosses.includes(g));
 
-        // CDKN2A and CDKN2B sit side by side at 9p21 and go together in one
-        // deletion. Reporting a functional loss of one and a focal deletion of
-        // the other reads as two separate events when it is a single one, so
-        // they are collapsed into a single "CDKN2A/B" wherever both turn up.
-        const tsgOut = [...tsgLosses];
-        if (tsgOut.includes('CDKN2A') && focalDels.includes('CDKN2B')) {
-            tsgOut[tsgOut.indexOf('CDKN2A')] = 'CDKN2A/B';
-            focalDels = focalDels.filter(g => g !== 'CDKN2B');
-        } else if (focalDels.includes('CDKN2A') && focalDels.includes('CDKN2B')) {
-            focalDels = focalDels.filter(g => g !== 'CDKN2B');
-            focalDels[focalDels.indexOf('CDKN2A')] = 'CDKN2A/B';
+        // CDKN2A, CDKN2B and MTAP sit within 164 kb of each other at 9p21 and go
+        // in a single deletion, so the summary names the locus once instead of
+        // listing its genes as separate findings.
+        //
+        // This also covers the case where only CDKN2B is called. Checked against
+        // the full copy-number matrix: of the 34 lines where the curated panel
+        // calls CDKN2B deleted but says nothing about CDKN2A, 33 have CDKN2A at
+        // effectively the same copy number (0.33 against 0.33, 0.40 against
+        // 0.40) and only one has CDKN2A intact. A lone "focal deletion of
+        // CDKN2B" therefore read as an independent finding about the gene that
+        // is rarely the point, while the gene that is, CDKN2A, went unmentioned.
+        // Every other pair of genes this summary reports together sits on a
+        // different chromosome, so 9p21 is the only locus that needs this.
+        const NINE_P21 = ['CDKN2A', 'CDKN2B', 'MTAP'];
+        const collapse9p21 = (list, label) => {
+            const first = list.findIndex(g => NINE_P21.includes(g));
+            if (first === -1) return list;
+            const out = list.filter((g, i) => i === first || !NINE_P21.includes(g));
+            out[out.indexOf(list[first])] = label;
+            return out;
+        };
+        let tsgOut = [...tsgLosses];
+        // MTAP on its own is a real, separately meaningful call (it is the
+        // PRMT5-synthetic-lethal marker), so it only folds in when one of the
+        // CDKN2 genes is already naming the locus.
+        const namesLocus = (l) => l.includes('CDKN2A') || l.includes('CDKN2B');
+        if (namesLocus(tsgOut)) {
+            tsgOut = collapse9p21(tsgOut, 'CDKN2A/B');
+            focalDels = focalDels.filter(g => !NINE_P21.includes(g));
+        } else if (namesLocus(focalDels)) {
+            focalDels = collapse9p21(focalDels, 'CDKN2A/B');
         }
         const s3 = focalDels.length
             ? `Focal deletion of <b>${focalDels.join(', ')}</b>.`

@@ -2003,6 +2003,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.60 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>The 9p21 locus is reported once everywhere, not just where both genes happened to be called.</b> 34 cell lines reported a focal deletion of <b>CDKN2B</b> on its own, with CDKN2A not mentioned at all. Checked against the full copy-number matrix, 33 of those 34 have CDKN2A at effectively the same copy number as CDKN2B (0.33 against 0.33, 0.40 against 0.40): it is one deletion, and CDKN2A simply missed the curated call list. Naming CDKN2B alone pointed at the gene that is rarely the point while leaving out the one that is. All of these now read <b>CDKN2A/B</b>, and MTAP folds into the same locus. Across all 1,186 cell lines no summary now names CDKN2A or CDKN2B on its own.</li>
+                </ul>
                 <p><strong>v.85.59 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>Spread works, and there is a Compact button.</b> Dragging it down pulls the nodes closer together at exactly the same node, font and edge size, and the whole network stays in the panel. Compact does the same in one click, each click packing them tighter; Fit puts them back.</li>
@@ -5030,7 +5034,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.59</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.60</a>
     </div>
 
     <div class="main-content">
@@ -7542,6 +7546,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_59"></script>
+    <script src="app.js?v=v85_60"></script>
 </body>
 </html>
