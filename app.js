@@ -19246,7 +19246,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!md) return;
             const ev = { clientX: eventData.event?.clientX, clientY: eventData.event?.clientY };
             clearTimeout(scatterHoverTimer);
-            scatterHoverTimer = setTimeout(() => this.showCellLineTooltip(ev, md.cellLineId, 'Click to mark · Shift-click to open in Cell Line Browser'), 180);
+            scatterHoverTimer = setTimeout(() => this.showCellLineTooltip(ev, md.cellLineId, 'Click to mark · Shift-click to open its Wiki'), 180);
         });
         hoverEl.on('plotly_unhover', () => { clearTimeout(scatterHoverTimer); this.hideCellLineTooltip(); });
 

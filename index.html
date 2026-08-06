@@ -2040,6 +2040,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.67 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>Correlation scatter hover text corrected.</b> It said Shift-click opens the Cell Line Browser; it opens the cell line's Wiki, which is what it already did.</li>
+                    <li><b>&ldquo;Reset all&rdquo; uses the standard green.</b> It had a green of its own plus a heavy black border, which made it shout louder than it needed to.</li>
+                </ul>
                 <p><strong>v.85.66 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>The gene effect popout uses the shared chips too.</b> All five places you can filter cell lines, the Cell Line Browser, the analysis panel, the correlation scatter, the correlation analysis panel and the gene effect popout, now draw their filter chips from one piece of code, so the same filter reads the same everywhere: <i>mutated (either copy)</i>, <i>one copy mutated</i>, <i>both copies mutated</i>, <i>wild-type</i>, <i>fused</i> / <i>not fused</i>, <i>event present</i> / <i>no event</i>.</li>
@@ -5104,7 +5109,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.66</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.67</a>
     </div>
 
     <div class="main-content">
@@ -5508,7 +5513,7 @@
                          for the appearance controls, and the two are on screen
                          together by default. -->
                     <li style="margin-left:auto; align-self:center;">
-                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:2px solid #111827; background:#4c782e; color:#fff; font-weight:700;" title="Clear the current genes, parameters and results and start over">Reset all</button>
+                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid rgba(17,24,39,0.55); background:var(--green-600); color:#fff; font-weight:700;" title="Clear the current genes, parameters and results and start over">Reset all</button>
                     </li>
                 </ul>
 
@@ -7595,6 +7600,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_66"></script>
+    <script src="app.js?v=v85_67"></script>
 </body>
 </html>
