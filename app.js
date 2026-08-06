@@ -5129,6 +5129,7 @@ class CorrelationExplorer {
         document.getElementById('scatterTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('scatterPlot'));
         document.getElementById('geTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('geneEffectPlot'));
         document.getElementById('geScopeSelect')?.addEventListener('change', (e) => this.setGeScopeMode(e.target.value));
+        document.getElementById('scatterLassoHighlightBtn')?.addEventListener('click', () => this.startScatterLassoHighlight());
         this._initTextSettingsDrag();
         document.getElementById('downloadScatterCSV').addEventListener('click', () => this.downloadScatterCSV());
         document.getElementById('restoreFromSvgInput')?.addEventListener('change', (e) => {
@@ -10307,11 +10308,16 @@ class CorrelationExplorer {
         for (const id of ids) {
             this.network.moveNode(id, cx + (base[id].x - cx) * factor, cy + (base[id].y - cy) * factor);
         }
+        // Deliberately no fit(). Scaling every position and then refitting is a
+        // no-op on screen: the view zooms by the same factor and the network
+        // looks identical, which is why the slider appeared to do nothing even
+        // once the positions really were moving. Holding the zoom steady and
+        // only recentring is what makes the nodes visibly close up or spread
+        // out relative to their own size and labels.
+        const scale = this.network.getScale();
+        this.network.moveTo({ position: { x: cx, y: cy }, scale, animation: false });
         clearTimeout(this._spreadSettle);
-        this._spreadSettle = setTimeout(() => {
-            this.network.fit();
-            this._checkNetworkFits();
-        }, 250);
+        this._spreadSettle = setTimeout(() => this._checkNetworkFits(), 250);
     }
 
     _recomputeSpring() {
@@ -26291,6 +26297,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const name = this.getCellLineName(id) || id;
         const anns = (el.layout.annotations || []).slice();
         const idx = anns.findIndex(a => a._dotLabel === id);
+        // A second click on the same dot inside the double-click window always
+        // removes the label, rather than toggling again. Without this, double-
+        // clicking a labelled dot took it off and put it straight back, so the
+        // obvious gesture for "get rid of this name" appeared to do nothing.
+        const now = performance.now();
+        const isDouble = this._lastDotClick && this._lastDotClick.id === id
+                       && this._lastDotClick.plotId === plotId
+                       && (now - this._lastDotClick.t) < 450;
+        this._lastDotClick = { id, plotId, t: now };
+        if (isDouble) {
+            const kept = anns.filter(a => a._dotLabel !== id);
+            Plotly.relayout(plotId, { annotations: kept })
+                .then(() => this._renderLabeledCellLines(plotId));
+            return;
+        }
         if (idx >= 0) anns.splice(idx, 1);   // clicking again removes it
         else anns.push({
             x: pt.x, y: pt.y, xref: 'x', yref: 'y', text: name,
@@ -30679,6 +30700,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!btn) return;
             this.removeHighlight(btn.dataset.chipValue);
         };
+    }
+
+    // Encircle points on the scatter and add them to the highlight set. Kept
+    // apart from the analysis gates: this only marks cell lines, it defines no
+    // cohort and runs no comparison.
+    startScatterLassoHighlight() {
+        const el = document.getElementById('scatterPlot');
+        if (!el?.data) { this.showCopyNotification?.('Open a plot first.'); return; }
+        Plotly.relayout(el, { dragmode: 'lasso' });
+        if (!this._scatterLassoBound) {
+            this._scatterLassoBound = true;
+            el.on('plotly_selected', (ev) => {
+                if (!ev?.points?.length) return;
+                let added = 0;
+                ev.points.forEach(p => {
+                    // Point text carries the cell line name on these traces.
+                    const name = (p.customdata && (p.customdata.name || p.customdata))
+                              || (typeof p.text === 'string' ? p.text.split('<')[0].trim() : '');
+                    if (name && !this.clickedCells.has(name)) { this.clickedCells.add(name); added++; }
+                });
+                // Leave lasso mode so the selection outline does not linger.
+                Plotly.relayout(el, { dragmode: 'zoom' });
+                this.updateInspectPlot();
+                this.showCopyNotification?.(added
+                    ? `Highlighted ${added} more cell line${added === 1 ? '' : 's'}`
+                    : 'Those cell lines were already highlighted');
+            });
+        }
+        this.showCopyNotification?.('Drag on the plot to encircle cell lines');
     }
 
     // Shared by the highlight and colour-by chip rows.

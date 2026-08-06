@@ -2003,6 +2003,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.51 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>Spread now visibly condenses the network.</b> Scaling the layout and then refitting the view cancelled itself out, which is why the nodes never appeared to move. The zoom is now held steady, so the nodes really do close up: the network spans 336 pixels at the default, 135 at the tightest setting and 740 at the widest.</li>
+                    <li><b>Double-clicking a labelled point removes its name</b>, on the correlation scatter and the gene-effect plots. A double-click used to toggle twice and leave the label where it was.</li>
+                    <li><b>Lasso highlight.</b> A button beside the cell line box turns on lasso mode; encircle points and they join the highlighted set. Separate from the gates: it marks cell lines and nothing else.</li>
+                    <li>The Cell Line Browser &ldquo;?&rdquo; sits next to Reset.</li>
+                </ul>
                 <p><strong>v.85.50 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>Spread actually spreads the network now.</b> It was writing the spacing to a physics solver the network does not use, and even with that corrected the layout does not re-simulate once settled, so no physics value could move a node. Spread now scales the settled layout out from its centre: at 40% the network spans 150 units where it spanned 375, at 220% it spans 825, and returning to 100% restores it exactly.</li>
@@ -4985,7 +4992,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.50</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.51</a>
     </div>
 
     <div class="main-content">
@@ -5917,6 +5924,10 @@
                                     </div>
                                 </div>
                                 <textarea id="scatterCellSearch" class="form-control" style="height:28px; max-height:28px; resize:none; font-size:10px; margin-top:2px;" placeholder="Type or click plot..."></textarea>
+                                <!-- Encircle points to highlight them. Separate
+                                     from the analysis gates: this only adds to
+                                     the highlight set, it defines no cohort. -->
+                                <button type="button" id="scatterLassoHighlightBtn" class="btn btn-sm btn-outline" style="font-size:9px; padding:1px 4px; margin-top:2px; width:100%;" title="Draw a lasso on the plot to highlight the cell lines inside it">Lasso highlight</button>
                                 <!-- Every highlighted cell line, however it got there. Clicking a
                                      point used to leave no trace in this box, so there was no way
                                      to see what was highlighted or to remove one. -->
@@ -7012,6 +7023,7 @@
         <div class="modal-header">
           <h3>Cell Line Browser</h3>
           <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
+            <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols, warnings and where each piece of data comes from">?</button>
             <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Clear every filter, sort and selection">Reset</button>
             <button id="clbCloseBtn" class="modal-close" title="Close the Cell Line Browser">&times;</button>
           </div>
@@ -7052,7 +7064,6 @@
                 <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:160px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
                 <div id="clbSortDrugDropdown" class="clb-dropdown" style="min-width:320px;"></div>
               </div>
-              <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols, warnings and where each piece of data comes from">?</button>
             </div>
           </div>
 
@@ -7481,6 +7492,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_50"></script>
+    <script src="app.js?v=v85_51"></script>
 </body>
 </html>
