@@ -26116,8 +26116,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // called specifically (PGA1) and a focal MDM2 amplification (1411H) were
     // both missing, and what remained to report was ploidy.
     //
-    // Order is what drives the cancer first: driver fusion, oncogene hotspot,
-    // tumour-suppressor loss, focal amplification, then genome-wide state.
+    // Order is what most likely drives the cancer first: driver fusion, named
+    // oncogene hotspot, unnamed hotspot, focal amplification, and within each
+    // of those the alteration canonical for this cancer type ahead of one that
+    // is not. Anything the curated knowledge base does not expect for this
+    // cancer type is marked atypical, since an off-lineage driver is usually
+    // the interesting thing about a line rather than a detail. Then
+    // tumour-suppressor loss, focal deletion, and genome-wide state.
     // Ploidy on its own is not a finding, so it is not reported here.
     _cellLineSummaryText(cellLineId) {
         const m = this.cellLineMetadata || {};
@@ -26156,21 +26161,58 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (bsub) s1 += ` Receptor status (by expression): <b>${bsub}</b>.`;
         }
 
+        // --- what this cancer type is expected to carry ----------------------
+        // The same curated knowledge base the Wiki's "typical alteration
+        // pattern" block uses. It does two jobs here: it decides the order of
+        // the drivers, so the summary opens with the alteration most likely to
+        // be driving this line, and it marks the ones that do not belong to
+        // this cancer type. Roughly 40 Oncotree subtypes are covered; with no
+        // entry, nothing is called atypical, because there is nothing to call
+        // it atypical against.
+        //
+        // Only driver fusions and oncogene hotspots are judged this way. Those
+        // are lineage-specific, so a gene missing from the list is a real
+        // signal. Tumour-suppressor loss, focal deletion and amplification of a
+        // common oncogene are not: TP53, CDKN2A/B, NF1 and MYC turn up across
+        // most cancers, and the curated lists name only each disease's
+        // headline genes, so absence there would flag half the cohort.
+        const { key: kbKey, entry: _kb } = this._hallmarkEntryFor(sub, pd);
+        // lookFor is a list of mutated genes, so it under-lists fusion partners:
+        // PML-RARA and the KMT2A rearrangements are named in the AML entry's
+        // prose but absent from its gene list, and judging on the list alone
+        // called the defining lesion of APL atypical for AML. Take the symbols
+        // out of the prose too. This only ever widens what counts as expected,
+        // so a stray word picked up as a gene costs a flag, never adds a wrong one.
+        const expectedGenes = new Set(_kb?.lookFor || []);
+        for (const tok of String(_kb?.expected || '').match(/\b[A-Z][A-Z0-9]{1,9}\b/g) || []) expectedGenes.add(tok);
+        const isTypical = (genes) => !kbKey || genes.some(g => expectedGenes.has(g));
+        const atypicalNote = (genes) => isTypical(genes) ? ''
+            : ` <span style="color:#92400e;">(atypical for ${this.esc(kbKey)})</span>`;
+
         // --- drivers --------------------------------------------------------
-        const driverParts = [];
-        if (clinicalFusionCalls.length > 0) {
-            const fusionsList = clinicalFusionCalls.map(c => c.fusion);
-            driverParts.push(`<b>${fusionsList.map(f => this.esc(f)).join(', ')}</b> driver fusion${fusionsList.length > 1 ? 's' : ''}`);
+        // Ranked: a defining fusion outranks a named oncogene hotspot, which
+        // outranks one we can only report as "hotspot", which outranks a focal
+        // amplification. Within a rank the canonical alteration for this cancer
+        // type comes first, so an off-lineage event never leads the sentence.
+        const driverCands = [];
+        for (const c of clinicalFusionCalls) {
+            const partners = String(c.fusion).split(/[^A-Za-z0-9]+/).filter(Boolean);
+            driverCands.push({
+                rank: 1, typical: isTypical(partners),
+                html: `<b>${this.esc(c.fusion)}</b> driver fusion${atypicalNote(partners)}`
+            });
         }
         const ONCO_DRIVERS_SET = new Set(['BRAF', 'KRAS', 'NRAS', 'HRAS', 'EGFR', 'PIK3CA', 'IDH1', 'IDH2', 'CTNNB1', 'AKT1', 'FGFR3', 'FLT3', 'KIT', 'NOTCH1', 'JAK2']);
-        const oncoDrivers = [];
         const seenOncoGenes = new Set();
         for (const h of (infSub.hotspots || [])) {
             const gene = h.split(' ')[0];
             const variant = h.slice(gene.length + 1);
             if (ONCO_DRIVERS_SET.has(gene) && variant && variant !== 'Hotspot' && !seenOncoGenes.has(gene)) {
-                oncoDrivers.push(`<b>${gene} ${this.esc(variant)}</b>`);
                 seenOncoGenes.add(gene);
+                driverCands.push({
+                    rank: 2, typical: isTypical([gene]),
+                    html: `<b>${gene} ${this.esc(variant)}</b>${atypicalNote([gene])}`
+                });
             }
         }
         // The inferred list only names variants DepMap could call specifically.
@@ -26179,39 +26221,55 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         for (const g of ONCO_DRIVERS_SET) {
             if (seenOncoGenes.has(g)) continue;
             if (this.mutations?.geneData?.[g]?.mutations?.[cellLineId] >= 1) {
-                oncoDrivers.push(`<b>${g}</b> hotspot`);
                 seenOncoGenes.add(g);
+                driverCands.push({
+                    rank: 3, typical: isTypical([g]),
+                    html: `<b>${g}</b> hotspot${atypicalNote([g])}`
+                });
             }
         }
-        if (oncoDrivers.length > 0) driverParts.push(oncoDrivers.join(', '));
 
         const MAJOR_TSGS = ['TP53', 'RB1', 'CDKN2A', 'PTEN', 'APC', 'VHL', 'STK11', 'SMAD4', 'NF1'];
         const tsgLosses = (infSub.lof || []).filter(g => MAJOR_TSGS.includes(g));
 
-        let s2 = '';
-        if (driverParts.length > 0 && tsgLosses.length > 0) {
-            s2 = `Driven by ${driverParts.join(' plus ')}, with functional loss of <b>${tsgLosses.join(', ')}</b>.`;
-        } else if (driverParts.length > 0) {
-            s2 = `Driven by ${driverParts.join(' plus ')}.`;
-        } else if (tsgLosses.length > 0) {
-            s2 = `Driver-level event: functional loss of <b>${tsgLosses.join(', ')}</b>.`;
-        }
-
         // --- focal copy number ----------------------------------------------
+        // Amplification of an oncogene is a driver event, so it joins the ranked
+        // list above rather than trailing behind the genome-wide state. Only the
+        // deletions are left to report separately.
         const cnEntry = this.clinicalCn?.byCellLine?.[cellLineId] || {};
         const AMP_OF_NOTE = ['MYC', 'MYCN', 'MYCL', 'ERBB2', 'MDM2', 'MDM4', 'CDK4', 'CDK6', 'CCND1', 'CCNE1', 'EGFR', 'FGFR1', 'KRAS', 'AR', 'BCL2', 'TERT'];
         const focalAmps = (cnEntry.amplifications || [])
             .filter(a => AMP_OF_NOTE.includes(a.gene))
             .map(a => a.gene);
+        if (focalAmps.length) {
+            // One phrase for all of them, the amplification that belongs to this
+            // cancer type first, so a HER2+ breast line leads with ERBB2 rather
+            // than with whichever gene the copy-number file listed first.
+            const ordered = [...focalAmps].sort((x, y) => (isTypical([x]) ? 0 : 1) - (isTypical([y]) ? 0 : 1));
+            driverCands.push({ rank: 4, typical: true, html: `focal amplification of <b>${ordered.join(', ')}</b>` });
+        }
         const focalDels = (cnEntry.deletions || [])
             .map(d => d.gene)
             .filter(g => !tsgLosses.includes(g));
-        const cnBits = [];
-        if (focalAmps.length) cnBits.push(`focal amplification of <b>${focalAmps.join(', ')}</b>`);
-        if (focalDels.length) cnBits.push(`focal deletion of <b>${focalDels.join(', ')}</b>`);
-        const s3 = cnBits.length
-            ? cnBits.join('; ').replace(/^./, c => c.toUpperCase()) + '.'
+        const s3 = focalDels.length
+            ? `Focal deletion of <b>${focalDels.join(', ')}</b>.`
             : '';
+
+        driverCands.sort((a, b) => a.rank - b.rank || (a.typical ? 0 : 1) - (b.typical ? 0 : 1));
+        const driverParts = driverCands.map(d => d.html);
+        const joinDrivers = (arr) => arr.length <= 1
+            ? (arr[0] || '')
+            : `${arr.slice(0, -1).join(', ')} plus ${arr[arr.length - 1]}`;
+        const tsgHtml = `<b>${tsgLosses.join(', ')}</b>`;
+
+        let s2 = '';
+        if (driverParts.length > 0 && tsgLosses.length > 0) {
+            s2 = `Driven by ${joinDrivers(driverParts)}, with functional loss of ${tsgHtml}.`;
+        } else if (driverParts.length > 0) {
+            s2 = `Driven by ${joinDrivers(driverParts)}.`;
+        } else if (tsgLosses.length > 0) {
+            s2 = `Driver-level event: functional loss of ${tsgHtml}.`;
+        }
 
         // --- genome-wide state, last and only when it says something ---------
         const features = [];
@@ -34044,6 +34102,28 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         };
     }
 
+    // Which hallmark entry describes this cell line, preferring the Oncotree
+    // subtype over the broader primary disease. The exact-match lookup missed a
+    // couple of cases where the two vocabularies word the same disease
+    // differently ("Acute Promyelocytic Leukemia" against the KB's "Acute
+    // Promyelocytic Leukemia with PML-RARA"), which sent APL lines to the
+    // general AML entry, so one name being a prefix of the other counts as a
+    // match. Returns { key, entry }; key is '' when nothing is curated.
+    _hallmarkEntryFor(sub, pd) {
+        const kb = this._WIKI_SUBTYPE_HALLMARKS();
+        for (const cand of [sub, pd]) {
+            if (!cand) continue;
+            if (kb[cand]) return { key: cand, entry: kb[cand] };
+            const lc = String(cand).toLowerCase();
+            const near = Object.keys(kb).find(k => {
+                const kl = k.toLowerCase();
+                return kl.startsWith(lc + ' ') || lc.startsWith(kl + ' ');
+            });
+            if (near) return { key: near, entry: kb[near] };
+        }
+        return { key: '', entry: null };
+    }
+
     // Subtype hallmarks, canonical mutation/fusion signatures associated with
     // each Oncotree subtype. Sources: WHO classification (hematologic
     // neoplasms 5th ed. 2022), COSMIC, OncoKB, NCCN guidelines.
@@ -34095,8 +34175,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 lookFor: ['NOTCH1', 'FBXW7', 'CDKN2A', 'PTEN', 'TAL1', 'LMO2', 'TLX1', 'TLX3']
             },
             'Acute Myeloid Leukemia': {
-                expected: 'Recurrent: FLT3-ITD (~25%), NPM1 (~30%), DNMT3A (~25%), IDH1/2 (~20%), TET2, ASXL1, RUNX1, TP53 (complex karyotype). Fusions: PML-RARA (APL), RUNX1-RUNX1T1 t(8;21), CBFB-MYH11 inv(16).',
-                lookFor: ['FLT3', 'NPM1', 'DNMT3A', 'IDH1', 'IDH2', 'TET2', 'ASXL1', 'RUNX1', 'TP53', 'NRAS', 'KIT', 'WT1']
+                expected: 'Recurrent: FLT3-ITD (~25%), NPM1 (~30%), DNMT3A (~25%), IDH1/2 (~20%), TET2, ASXL1, RUNX1, TP53 (complex karyotype), RAS pathway (NRAS, KRAS ~15%). Fusions: PML-RARA (APL), RUNX1-RUNX1T1 t(8;21), CBFB-MYH11 inv(16), KMT2A/MLL rearrangements (~10%, partners MLLT3, MLLT1, AFF1, ELL) which define a distinct monocytic, HOXA-driven subgroup.',
+                lookFor: ['FLT3', 'NPM1', 'DNMT3A', 'IDH1', 'IDH2', 'TET2', 'ASXL1', 'RUNX1', 'TP53', 'NRAS', 'KRAS', 'KIT', 'WT1', 'KMT2A', 'MLLT3', 'MLLT1', 'AFF1']
             },
             'Plasmablastic Lymphoma': {
                 expected: 'MYC rearrangement in majority (~50–70%). Often EBV+ and associated with HIV. Plasma-cell phenotype but IG-MYC fusion like Burkitt.',
@@ -34121,8 +34201,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 lookFor: ['TP53', 'CDKN2A', 'PIK3CA', 'PTEN', 'FGFR1', 'NFE2L2', 'KEAP1', 'SOX2']
             },
             'Colon Adenocarcinoma': {
-                expected: 'CIN (chromosomal instability, 85%): APC ~80%, KRAS ~45%, TP53 ~55%, SMAD4, PIK3CA. MSI subtype (15%): MMR loss, BRAF V600E, often right-sided. POLE/POLD1 hypermutators (~1–2%).',
-                lookFor: ['APC', 'KRAS', 'TP53', 'SMAD4', 'BRAF', 'PIK3CA', 'MLH1', 'MSH2', 'MSH6', 'PMS2', 'POLE']
+                expected: 'CIN (chromosomal instability, 85%): APC ~80%, KRAS ~45%, TP53 ~55%, SMAD4, PIK3CA. CTNNB1 (~5%) is the alternative route to Wnt activation where APC is intact. MSI subtype (15%): MMR loss, BRAF V600E, often right-sided. POLE/POLD1 hypermutators (~1–2%).',
+                lookFor: ['APC', 'CTNNB1', 'KRAS', 'TP53', 'SMAD4', 'BRAF', 'PIK3CA', 'MLH1', 'MSH2', 'MSH6', 'PMS2', 'POLE']
             },
             'Invasive Breast Carcinoma': {
                 expected: 'Receptor status (ER / PR / HER2) drives treatment. Molecular: PIK3CA ~35%, TP53 ~35%, GATA3, CDH1 (lobular), BRCA1/2. ERBB2 amplification → HER2+ (15–20%).',
@@ -34137,8 +34217,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 lookFor: ['KRAS', 'CDKN2A', 'TP53', 'SMAD4', 'BRCA2']
             },
             'Glioblastoma': {
-                expected: 'EGFR amp/EGFRvIII ~45%, TERT promoter ~80%, CDKN2A/B deletion ~60%, TP53 ~30%, PTEN ~35%, NF1. IDH1/2 mutation denotes "astrocytoma, IDH-mutant" (now classified separately from GBM).',
-                lookFor: ['EGFR', 'TERT', 'CDKN2A', 'TP53', 'PTEN', 'NF1', 'IDH1', 'IDH2']
+                expected: 'EGFR amp/EGFRvIII ~45%, TERT promoter ~80%, CDKN2A/B deletion ~60%, TP53 ~30%, PTEN ~35%, NF1. PI3K pathway altered in ~25% beyond PTEN loss (PIK3CA, PIK3R1). IDH1/2 mutation denotes "astrocytoma, IDH-mutant" (now classified separately from GBM).',
+                lookFor: ['EGFR', 'TERT', 'CDKN2A', 'TP53', 'PTEN', 'NF1', 'IDH1', 'IDH2', 'PIK3CA', 'PIK3R1']
             },
             'Prostate Adenocarcinoma': {
                 expected: 'TMPRSS2-ERG fusion ~50% (ETS family rearrangement). AR amplification/mutation in castration-resistant. PTEN loss ~40%, SPOP mutation, TP53, FOXA1. BRCA2 in subset (PARP inhibitor context).',
@@ -35176,9 +35256,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // hallmark list, plus genome-level flags (MSI, WGD). Previously
         // these mixed in one block which made the expected-vs-found split
         // hard to read.
-        const subtypeKB = this._WIKI_SUBTYPE_HALLMARKS();
-        const subKey = sub || pd;
-        const kb = subtypeKB[subKey] || subtypeKB[pd];
+        const _hall = this._hallmarkEntryFor(sub, pd);
+        const kb = _hall.entry;
+        const subKey = _hall.key || sub || pd;
         const lookForSet = new Set(kb?.lookFor || []);
 
         // Reusable: collect every kind of hit on a given gene into a short

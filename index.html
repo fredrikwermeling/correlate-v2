@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.55 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>The cell line summary leads with the likely driver, and says when one does not fit.</b> Alterations were listed in the order the data layers happened to be read, so a focal amplification could open the sentence ahead of the fusion that defines the line. They are now ranked: driver fusion, then a named oncogene hotspot, then an unnamed one, then focal amplification, and within each of those the alteration canonical for that cancer type comes first. Anything not expected for the cancer type is marked <i>atypical</i>, which is how MDA-MB-231 now reads as KRAS-driven, atypical for breast. Only fusions and oncogene hotspots are judged this way; TP53 or CDKN2A loss turns up almost everywhere and says nothing about lineage. Roughly 1 in 60 lines carries a flag.</li>
+                    <li><b>Curated cancer-type knowledge base corrected.</b> KMT2A rearrangements and RAS mutations were missing from acute myeloid leukaemia, CTNNB1 from colon adenocarcinoma and the PI3K genes from glioblastoma, and acute promyelocytic leukaemia lines were being matched to the general AML entry because the two vocabularies word the disease differently. All four affected the Wiki's &ldquo;typical alteration pattern&rdquo; block as well.</li>
+                </ul>
                 <p><strong>v.85.54 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>&ldquo;Copy network&rdquo; copies what you would have exported.</b> The button used to screenshot the plot area alone, so the legend and the filter banner were missing from anything pasted into a slide. Copy and Export image now build the same picture, banner on top, legend underneath, and the button is named and styled like the other export buttons instead of sitting there as a small outlined &ldquo;Copy&rdquo;.</li>
@@ -5005,7 +5010,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.54</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.55</a>
     </div>
 
     <div class="main-content">
@@ -7516,6 +7521,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_54"></script>
+    <script src="app.js?v=v85_55"></script>
 </body>
 </html>
