@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.57 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>The cell line summary says &ldquo;candidate drivers&rdquo;, not &ldquo;driven by&rdquo;.</b> These alterations are the ones most likely to be driving the line on the evidence in the data layers, but none of it has been tested in the cell, and an alteration being recurrent in a cancer type is not proof it drives this particular model. The wording now says what the evidence supports.</li>
+                    <li><b>CDKN2A and CDKN2B are reported as one event.</b> The two genes sit side by side at 9p21 and are removed by the same deletion, so reading &ldquo;functional loss of CDKN2A&rdquo; and then &ldquo;focal deletion of CDKN2B&rdquo; made a single lesion look like two. They now collapse to <b>CDKN2A/B</b>.</li>
+                </ul>
                 <p><strong>v.85.56 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>Breast receptor status is called against fixed expression levels.</b> The split was the breast-line median for ER and PR and the top fifth for HER2, which decides in advance that half the panel is hormone-receptor positive: 25 of 50 lines came out HR+ where about 8 are. Receptor expression across these lines is not centred, it is two separate groups, so the cutoffs now sit in the gap between them (ERBB2 &ge; 8.0, else ESR1 &ge; 3.0 or PGR &ge; 1.0, on log&#8322;-TPM). HR+ is now the eight recognised luminal models, and HER2+ picks up JIMT-1, which the old top-fifth cut left out.</li>
@@ -5015,7 +5020,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.56</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.57</a>
     </div>
 
     <div class="main-content">
@@ -7526,6 +7531,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_56"></script>
+    <script src="app.js?v=v85_57"></script>
 </body>
 </html>

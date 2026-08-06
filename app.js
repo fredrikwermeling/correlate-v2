@@ -26116,7 +26116,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // called specifically (PGA1) and a focal MDM2 amplification (1411H) were
     // both missing, and what remained to report was ploidy.
     //
-    // Order is what most likely drives the cancer first: driver fusion, named
+    // Reported as candidates, not conclusions: these are the alterations most
+    // likely to be driving the line given these layers, none of them tested in
+    // the cell. Order is most-likely-first: driver fusion, named
     // oncogene hotspot, unnamed hotspot, focal amplification, and within each
     // of those the alteration canonical for this cancer type ahead of one that
     // is not. Anything the curated knowledge base does not expect for this
@@ -26207,7 +26209,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const partners = String(c.fusion).split(/[^A-Za-z0-9]+/).filter(Boolean);
             driverCands.push({
                 rank: 1, typical: isTypical(partners),
-                html: `<b>${this.esc(c.fusion)}</b> driver fusion${atypicalNote(partners)}`
+                html: `<b>${this.esc(c.fusion)}</b> fusion${atypicalNote(partners)}`
             });
         }
         const ONCO_DRIVERS_SET = new Set(['BRAF', 'KRAS', 'NRAS', 'HRAS', 'EGFR', 'PIK3CA', 'IDH1', 'IDH2', 'CTNNB1', 'AKT1', 'FGFR3', 'FLT3', 'KIT', 'NOTCH1', 'JAK2']);
@@ -26256,9 +26258,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const ordered = [...focalAmps].sort((x, y) => (isTypical([x]) ? 0 : 1) - (isTypical([y]) ? 0 : 1));
             driverCands.push({ rank: 4, typical: true, html: `focal amplification of <b>${ordered.join(', ')}</b>` });
         }
-        const focalDels = (cnEntry.deletions || [])
+        let focalDels = (cnEntry.deletions || [])
             .map(d => d.gene)
             .filter(g => !tsgLosses.includes(g));
+
+        // CDKN2A and CDKN2B sit side by side at 9p21 and go together in one
+        // deletion. Reporting a functional loss of one and a focal deletion of
+        // the other reads as two separate events when it is a single one, so
+        // they are collapsed into a single "CDKN2A/B" wherever both turn up.
+        const tsgOut = [...tsgLosses];
+        if (tsgOut.includes('CDKN2A') && focalDels.includes('CDKN2B')) {
+            tsgOut[tsgOut.indexOf('CDKN2A')] = 'CDKN2A/B';
+            focalDels = focalDels.filter(g => g !== 'CDKN2B');
+        } else if (focalDels.includes('CDKN2A') && focalDels.includes('CDKN2B')) {
+            focalDels = focalDels.filter(g => g !== 'CDKN2B');
+            focalDels[focalDels.indexOf('CDKN2A')] = 'CDKN2A/B';
+        }
         const s3 = focalDels.length
             ? `Focal deletion of <b>${focalDels.join(', ')}</b>.`
             : '';
@@ -26268,15 +26283,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const joinDrivers = (arr) => arr.length <= 1
             ? (arr[0] || '')
             : `${arr.slice(0, -1).join(', ')} plus ${arr[arr.length - 1]}`;
-        const tsgHtml = `<b>${tsgLosses.join(', ')}</b>`;
+        const tsgHtml = `<b>${tsgOut.join(', ')}</b>`;
 
+        // "Candidate", not "driven by". These are the alterations most likely to
+        // be driving the line on the evidence in these layers, but nothing here
+        // has been tested in the cell, and a recurrent alteration in a cancer
+        // type is not proof it is the driver in this particular model.
         let s2 = '';
-        if (driverParts.length > 0 && tsgLosses.length > 0) {
-            s2 = `Driven by ${joinDrivers(driverParts)}, with functional loss of ${tsgHtml}.`;
+        if (driverParts.length > 0 && tsgOut.length > 0) {
+            s2 = `Candidate drivers: ${joinDrivers(driverParts)}, with functional loss of ${tsgHtml}.`;
         } else if (driverParts.length > 0) {
-            s2 = `Driven by ${joinDrivers(driverParts)}.`;
-        } else if (tsgLosses.length > 0) {
-            s2 = `Driver-level event: functional loss of ${tsgHtml}.`;
+            s2 = `Candidate drivers: ${joinDrivers(driverParts)}.`;
+        } else if (tsgOut.length > 0) {
+            s2 = `Candidate driver: functional loss of ${tsgHtml}.`;
         }
 
         // --- genome-wide state, last and only when it says something ---------
