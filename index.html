@@ -2040,6 +2040,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.65 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>The same filter chips in the correlation scatter and the correlation analysis panel.</b> Both now show active filters as chips under their controls, with the same wording and the same click-to-change menus as the Cell Line Browser and the analysis panel. Four of the five places you can filter cell lines now behave identically; the gene effect popout already had chips and keeps them.</li>
+                </ul>
                 <p><strong>v.85.64 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>The analysis filters now work like the Cell Line Browser's.</b> Active filters appear as small chips under the controls. Click one to switch which cell lines it keeps, mutated against wild-type, fused against not fused, event present against absent, or to remove it. Same chips, same wording and same menus as the browser.</li>
@@ -5096,7 +5100,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.64</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.65</a>
     </div>
 
     <div class="main-content">
@@ -5989,6 +5993,7 @@
                                     <button class="btn btn-secondary btn-sm" id="compareAllCnBtn" style="font-size:10px; padding:2px 5px; display:none;">Amp/Del</button>
                                     <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size:10px; padding:2px 5px; display:none;">Fusion</button>
                                     <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size:10px; padding:2px 5px;">Reset</button>
+                                    <div id="scatterActiveFilters" class="clb-active-filters" style="display:none; width:100%;"></div>
                                 </div>
                             </div>
                         </div>
@@ -6548,6 +6553,7 @@
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <button class="btn btn-sm btn-outline" id="caShowAllBtn" style="display: none;">← Show All</button>
                         <button class="btn btn-sm btn-secondary" id="caResetFiltersBtn" style="display: none; font-size: 11px; padding: 3px 8px;" title="Reset all filters">Reset Filters</button>
+                        <div id="caActiveFilters" class="clb-active-filters" style="display:none; width:100%;"></div>
                         <select id="caTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
                             <option value="">All tissues</option>
                         </select>
@@ -7585,6 +7591,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_64"></script>
+    <script src="app.js?v=v85_65"></script>
 </body>
 </html>

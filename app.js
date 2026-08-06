@@ -5566,6 +5566,12 @@ class CorrelationExplorer {
         ['caHotspotLevel', 'caFusionLevel', 'caCnLevel'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', () => this.switchCorrAnalysisView(this._caView || 'tissue'));
         });
+        // Keep the chip strip in step with every one of these controls.
+        ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCnFilter',
+         'caHotspotLevel', 'caFusionLevel', 'caCnLevel'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', () => this._renderFilterChips('ca'));
+        });
+        document.getElementById('caResetFiltersBtn')?.addEventListener('click', () => this._renderFilterChips('ca'));
         document.getElementById('caShowAllBtn')?.addEventListener('click', () => {
             this._caDetailedView = null;
             document.getElementById('caShowAllBtn').style.display = 'none';
@@ -14371,6 +14377,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     updateInspectPlot() {
+        // The chip strip mirrors these controls, redrawn from the same place the
+        // plot is, so it can never describe a different cohort from the one shown.
+        this._renderFilterChips('scatter');
         if (!this.currentInspect) return;
 
         // Re-order the Tissue filter by the active mutation/fusion/CN cohort
@@ -20694,6 +20703,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     switchCorrAnalysisView(view) {
+        this._renderFilterChips('ca');
         this._caView = view;
         this._caDetailedView = null;
         document.getElementById('caShowAllBtn').style.display = 'none';
@@ -32963,6 +32973,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Re-run whatever the main page shows off the back of its filters. The
     // analysis itself is not re-run, only the counts and labels that describe
     // the cohort, so editing a chip never silently changes a result.
+    // Re-apply the correlation-analysis filters after a chip edit. The panel
+    // redraws from its own controls, so nudging one of them is enough.
+    _reapplyCorrAnalysisFilters() {
+        this._showCAResetBtn?.();
+        this.switchCorrAnalysisView(this._caView || 'tissue');
+    }
+
+    // Same for the gene-effect popout.
+    _reapplyGeneEffectFilters() {
+        document.getElementById('geTissueFilter')?.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
     _refreshParamFilterDependents() {
         try { this.updateSubLineageFilter?.(); } catch (e) {}
         try { this._updateParamFilterVisibility?.(); } catch (e) {}
