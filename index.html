@@ -2040,6 +2040,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.72 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>The headings on a split plot can be edited.</b> When a correlation is shown as three panels (wild-type / one mutation / two mutations, or the fusion equivalent) each panel has its own heading, but the text settings only offered the overall title, so those three were fixed. They now appear as <i>Panel 1</i>, <i>2</i> and <i>3</i> alongside the title and axis labels. A panel you do not edit keeps exactly the heading it was drawn with.</li>
+                </ul>
                 <p><strong>v.85.71 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>The Wiki histograms have been redrawn.</b> All of them, receptor status, drug response and the genome panels, now share one look: solid bars in a single muted colour instead of a pale fill ringed by a bright outline, which was what made them look sketched; a real gap between bars; and no gridlines or tick labels on the small panels, where the shape is the whole message and the rest was furniture. This cell line is still marked by a red line with its value above it, the one number on the panel. The bar colour was checked for contrast against the panel and for separation from that red marker, including for colour-blind readers.</li>
@@ -5129,7 +5133,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.71</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.72</a>
     </div>
 
     <div class="main-content">
@@ -7620,6 +7624,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_71"></script>
+    <script src="app.js?v=v85_72"></script>
 </body>
 </html>

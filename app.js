@@ -41815,6 +41815,11 @@ ${clone.innerHTML}
         const titleAnn = anns.find(a => a._tsRole === 'title');
         const xLabelAnn = anns.find(a => a._tsRole === 'xlabel');
         const yLabelAnn = anns.find(a => a._tsRole === 'ylabel');
+        // The split views (wild-type / mutant / and so on) give each panel its
+        // own heading. They were drawn but never offered here, so the only text
+        // that could be edited on a three-panel figure was the overall title.
+        const panelAnns = anns.filter(a => /^panel\d+$/.test(a._tsRole || ''))
+            .sort((x, y) => x._tsRole.localeCompare(y._tsRole));
         const ann0 = titleAnn || anns[0];
         const usesAnnotationTitle = !!titleAnn || (ann0 && !ann0._gateAnnotation && ann0.xref === 'paper');
         // For annotation-based titles, the real title size is in the inline span, not annotation font.size
@@ -41948,6 +41953,7 @@ ${clone.innerHTML}
             ${subtitleText ? textRow('Subtitle', 'ts_subtitleText', subtitleText, true) : ''}
             ${textRow('X Axis', 'ts_xLabelText', xLabel)}
             ${textRow('Y Axis', 'ts_yLabelText', yLabel)}
+            ${panelAnns.map((a, i) => textRow(`Panel ${i + 1}`, `ts_panelText${i}`, stripHtml(a.text))).join('')}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Font Sizes &amp; Visibility</div>
             ${sizeRow('Title', 'ts_title', titleSize, 6, 48, 'ts_titleVis', this._tsVisible.title)}
@@ -41990,6 +41996,12 @@ ${clone.innerHTML}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-size:10px;color:#9ca3af;">Drag title, axis labels, and annotations on plot to reposition.<br>Click an annotation, then use arrow keys to nudge (Shift = larger steps).</div>
         `;
+        // Remember each panel heading as it was drawn, so an untouched box never
+        // overwrites the label and flattens its formatting.
+        panelAnns.forEach((ann, i) => {
+            const box = document.getElementById(`ts_panelText${i}`);
+            if (box) box.dataset.tsOriginal = box.value;
+        });
         panel.style.display = 'block';
 
         // Initialize B/I button states from current formatting
@@ -42233,6 +42245,22 @@ ${clone.innerHTML}
 
         const titleText = document.getElementById('ts_titleText')?.value || '';
         const subtitleEl = document.getElementById('ts_subtitleText');
+        // Per-panel headings, written straight back onto their annotations.
+        // They carry no inline sizing, so the text replaces the whole label.
+        {
+            const anns = plotEl.layout.annotations || [];
+            const panels = anns.filter(a => /^panel\d+$/.test(a._tsRole || ''))
+                .sort((x, y) => x._tsRole.localeCompare(y._tsRole));
+            panels.forEach((ann, i) => {
+                const box = document.getElementById(`ts_panelText${i}`);
+                if (!box) return;
+                // The box shows the label stripped of its markup. Writing every
+                // box back on any edit flattened the panels the user had not
+                // touched, losing their bold. Only a box that has actually been
+                // changed replaces its label.
+                if (box.dataset.tsOriginal !== undefined && box.value !== box.dataset.tsOriginal) ann.text = box.value;
+            });
+        }
         const xLabel = document.getElementById('ts_xLabelText')?.value || '';
         const yLabel = document.getElementById('ts_yLabelText')?.value || '';
 
