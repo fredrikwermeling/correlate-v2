@@ -1,3 +1,10 @@
+make the spread starting at 100. also the settings for the font size, edge node sliders etc are too small. revert to the orignial look and try to shrink about 30%.
+in network, corrleate, gene effect and mutation inspect for filters dont include the boxes where sellecting wt or mutated. look how it is done in cell line browser. by defult when selecting an alteration, it is selected as mutated, and the user can then can then change it. Also add the oncoprint button (grid button) next to all genetic alteration filter as in the cell line browser.
+in the correlat popout. if i label a cell line by pressing it needs to be able to remove the label. do like in the gen effect popout. if you hower over the name it asks if you want to remove and you can click and it is removed. 
+
+
+
+---
 ⏺ Here's the full accounting, ordered by your to do file so you can walk it top
   to bottom. 35 versions today, v.84.62 → v.84.96.
 
