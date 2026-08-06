@@ -108,8 +108,10 @@
 
   24. Network node spacing — Spread slider, 40–220%, independent of font/node
   size. .85
+- we are working on this outsied of this todo list and you have been struggling. 
 
   25. Zoom/fit warning — notice with node count and a Fit button. .83
+- this doesnt seem to work. when the network is zoomed so nodes or text is outside there is no warning and the network is even sometimes generated with nodes or text not fully visble (a netweork should never be generated like this when pressing run, it should be possible if the user zooms in, but not when user press run, then all should be visble. perhaps its the spread function that interferes with this, having the spread at the highest number makes some nodes/text outside the visible area).
 
   26. Network export whitespace — the filter banner's separator ran edge to edge
   and pinned the crop. 1200px → 530px. .83
