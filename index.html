@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.52 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>Names clicked onto the correlation plot can be removed.</b> They now appear as a row of chips under the cell line box, each reading &ldquo;click to remove this label&rdquo;, with a Copy names button, exactly as in the gene-effect popout. The row only ever wrote into the gene-effect panel before, so labels on the scatter had no visible way off. The double-click attempt is removed.</li>
+                    <li><b>Known limitation:</b> the network Spread slider does not change the distance between nodes. The layout engine fixes the spacing once it has settled and will not re-run, so the control cannot do what it promises; it is left in place but should not be relied on.</li>
+                </ul>
                 <p><strong>v.85.51 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>Spread now visibly condenses the network.</b> Scaling the layout and then refitting the view cancelled itself out, which is why the nodes never appeared to move. The zoom is now held steady, so the nodes really do close up: the network spans 336 pixels at the default, 135 at the tightest setting and 740 at the widest.</li>
@@ -4992,7 +4997,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.51</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.52</a>
     </div>
 
     <div class="main-content">
@@ -5932,6 +5937,9 @@
                                      point used to leave no trace in this box, so there was no way
                                      to see what was highlighted or to remove one. -->
                                 <div id="highlightChips" style="display:none; margin-top:3px; flex-wrap:wrap; gap:3px;"></div>
+                                <!-- Names clicked onto the plot, each removable,
+                                     the same row the gene-effect popout uses. -->
+                                <div id="scatterLabeledCellLines" style="display:flex; gap:4px; flex-wrap:wrap; align-items:center; width:100%; margin-top:4px;"></div>
                                 <select id="colorByCategory" class="form-control" style="font-size:10px; padding:1px 3px; margin-top:2px;">
                                     <option value="">Color by...</option>
                                     <option value="tissue">By tissue</option>
@@ -7492,6 +7500,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_51"></script>
+    <script src="app.js?v=v85_52"></script>
 </body>
 </html>

@@ -26266,7 +26266,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // The cell lines currently labelled on a plot, listed under it so the names
     // can be read and copied rather than only picked off the chart.
     _renderLabeledCellLines(plotId) {
-        const host = document.getElementById('geLabeledCellLines');
+        // Each plot needs its own row of chips; this used to write only into the
+        // gene-effect popout, so names clicked onto the correlation scatter had
+        // no visible way to be removed.
+        const hostId = plotId === 'scatterPlot' ? 'scatterLabeledCellLines' : 'geLabeledCellLines';
+        const host = document.getElementById(hostId);
         if (!host) return;
         const el = document.getElementById(plotId);
         const names = ((el?.layout?.annotations) || [])
@@ -26277,14 +26281,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             + names.map(x => `<span class="clb-chip" data-lbl="${this.esc(x.id)}" title="Click to remove this label" `
                 + `style="background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:600;">`
                 + `${this.esc(x.name)} &times;</span>`).join(' ')
-            + ` <button type="button" id="geCopyLabelled" class="btn btn-outline btn-sm" style="font-size:9px; padding:1px 7px;" title="Copy these cell line names, one per line">Copy names</button>`;
+            + ` <button type="button" class="btn btn-outline btn-sm js-copy-labelled" style="font-size:9px; padding:1px 7px;" title="Copy these cell line names, one per line">Copy names</button>`;
         host.querySelectorAll('[data-lbl]').forEach(chip => {
             chip.addEventListener('click', () => {
                 const keep = (el.layout.annotations || []).filter(a => a._dotLabel !== chip.dataset.lbl);
                 Plotly.relayout(plotId, { annotations: keep }).then(() => this._renderLabeledCellLines(plotId));
             });
         });
-        host.querySelector('#geCopyLabelled')?.addEventListener('click', () => {
+        host.querySelector('.js-copy-labelled')?.addEventListener('click', () => {
             navigator.clipboard?.writeText(names.map(x => x.name).join('\n'));
             this.showCopyNotification?.(`Copied ${names.length} cell line name${names.length === 1 ? '' : 's'}`);
         });
@@ -26297,21 +26301,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const name = this.getCellLineName(id) || id;
         const anns = (el.layout.annotations || []).slice();
         const idx = anns.findIndex(a => a._dotLabel === id);
-        // A second click on the same dot inside the double-click window always
-        // removes the label, rather than toggling again. Without this, double-
-        // clicking a labelled dot took it off and put it straight back, so the
-        // obvious gesture for "get rid of this name" appeared to do nothing.
-        const now = performance.now();
-        const isDouble = this._lastDotClick && this._lastDotClick.id === id
-                       && this._lastDotClick.plotId === plotId
-                       && (now - this._lastDotClick.t) < 450;
-        this._lastDotClick = { id, plotId, t: now };
-        if (isDouble) {
-            const kept = anns.filter(a => a._dotLabel !== id);
-            Plotly.relayout(plotId, { annotations: kept })
-                .then(() => this._renderLabeledCellLines(plotId));
-            return;
-        }
         if (idx >= 0) anns.splice(idx, 1);   // clicking again removes it
         else anns.push({
             x: pt.x, y: pt.y, xref: 'x', yref: 'y', text: name,
