@@ -1142,8 +1142,8 @@
         .network-controls-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            padding: 10px;
+            gap: 10px;
+            padding: 8px 10px;
             background: #f9fafb;
             border: 1px solid var(--gray-200);
             border-radius: 8px;
@@ -1163,15 +1163,53 @@
             gap: 8px;
         }
 
+        /* Sliders sit two to a row so the controls above the network stay short. */
+        .slider-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 10px;
+            align-content: start;
+        }
+
         .slider-group {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
         }
+
+        /* Label and current value share one line instead of taking two. */
+        .slider-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .slider-row {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+
+        .slider-step {
+            font-size: 11px;
+            line-height: 1;
+            padding: 2px 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background: #f9f9f9;
+            cursor: pointer;
+        }
+
+        .slider-row input[type="range"] { flex: 1; min-width: 0; }
+
+        /* Word labels under a slider, without the tick marks. */
+        .slider-ticks-plain span::before { display: none; }
+        .slider-ticks-plain { padding: 0 2px; }
 
         .slider-group label {
             font-weight: 600;
-            font-size: 13px;
+            font-size: 11px;
             color: #374151;
         }
 
@@ -1192,11 +1230,11 @@
         .slider-bubble {
             background: var(--green-600);
             color: white;
-            padding: 2px 8px;
+            padding: 1px 6px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            min-width: 32px;
+            min-width: 26px;
             text-align: center;
         }
 
@@ -2003,6 +2041,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.62 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>The controls above the network take up much less room.</b> The four sliders sit two to a row with the label and value on one line, so the network itself starts higher up the page. Compact is gone: it did the same job as the Spread slider. Networks now open at Spread 65 rather than 100, which is a tighter default.</li>
+                    <li><b>Unlock puts the layout back.</b> Compacting to 60 and then pressing Unlock used to leave the packed picture on screen while the setting still read 60, and the next compaction measured from that, so 60 behaved like the previous 100. Unlock now restores the full-width layout and returns the setting to 100, so the number always describes what you are looking at.</li>
+                    <li><b>Quick filter descriptions rewritten.</b> They describe what each filter selects and what it approximates, rather than how the definition came about. The breast receptor filters in particular.</li>
+                    <li><b>&ldquo;Export for AI&rdquo; in the quick filters panel.</b> Downloads every filter currently offered with its definition and how many cell lines it holds, so the groupings can be discussed with a language model without reading them one hover at a time.</li>
+                    <li><b>Copying the network no longer makes it jump.</b> The high-resolution copy briefly resizes the drawing canvas; a still of the network is now held over the top while that happens.</li>
+                </ul>
                 <p><strong>v.85.61 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>Spread and Compact actually move the nodes now.</b> They only worked if you had pressed Lock first. While the layout engine is running it owns the node positions and redraws its own arrangement over anything placed by hand, so the setting changed the stored coordinates, reported them back correctly, and left the picture on screen alone. Spread and Compact now freeze the layout themselves before moving anything, and the Lock button flips to Unlock so it is clear what happened and how to undo it.</li>
@@ -5038,7 +5084,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.61</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.62</a>
     </div>
 
     <div class="main-content">
@@ -5448,63 +5494,40 @@
                 <!-- Network Tab -->
                 <div class="tab-content active" id="tab-network">
                     <div class="network-controls-grid">
-                        <!-- Column 1: Sliders -->
-                        <div class="control-column">
+                        <!-- Column 1: Sliders, two per row to keep the panel short -->
+                        <div class="slider-grid">
                             <div class="slider-group">
-                                <label>Font Size:</label>
-                                <div class="slider-with-value">
-                                    <span class="slider-bubble" id="fontSizeBubble">20</span>
-                                </div>
-                                <div style="display:flex; gap:4px; align-items:center;">
-                                    <button type="button" onclick="app.adjustNumber('netFontSize', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
-                                    <input type="range" id="netFontSize" min="10" max="40" value="20" step="1" style="flex:1; min-width:0;">
-                                    <button type="button" onclick="app.adjustNumber('netFontSize', 1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
-                                </div>
-                                <div class="slider-ticks">
-                                    <span>10</span><span>16</span><span>22</span><span>28</span><span>34</span><span>40</span>
+                                <div class="slider-head"><label>Font</label><span class="slider-bubble" id="fontSizeBubble">20</span></div>
+                                <div class="slider-row">
+                                    <button type="button" class="slider-step" onclick="app.adjustNumber('netFontSize', -1)">&minus;</button>
+                                    <input type="range" id="netFontSize" min="10" max="40" value="20" step="1">
+                                    <button type="button" class="slider-step" onclick="app.adjustNumber('netFontSize', 1)">+</button>
                                 </div>
                             </div>
                             <div class="slider-group">
-                                <label>Node Size:</label>
-                                <div class="slider-with-value">
-                                    <span class="slider-bubble" id="nodeSizeBubble">25</span>
-                                </div>
-                                <div style="display:flex; gap:4px; align-items:center;">
-                                    <button type="button" onclick="app.adjustNumber('netNodeSize', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
-                                    <input type="range" id="netNodeSize" min="10" max="60" value="25" step="1" style="flex:1; min-width:0;">
-                                    <button type="button" onclick="app.adjustNumber('netNodeSize', 1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
-                                </div>
-                                <div class="slider-ticks">
-                                    <span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span>
+                                <div class="slider-head"><label>Node</label><span class="slider-bubble" id="nodeSizeBubble">25</span></div>
+                                <div class="slider-row">
+                                    <button type="button" class="slider-step" onclick="app.adjustNumber('netNodeSize', -1)">&minus;</button>
+                                    <input type="range" id="netNodeSize" min="10" max="60" value="25" step="1">
+                                    <button type="button" class="slider-step" onclick="app.adjustNumber('netNodeSize', 1)">+</button>
                                 </div>
                             </div>
                             <div class="slider-group">
-                                <label>Spread:</label>
-                                <div class="slider-with-value">
-                                    <span class="slider-bubble" id="spreadBubble">100</span>
-                                </div>
-                                <div style="display:flex; gap:4px; align-items:center;">
-                                    <button type="button" onclick="app.adjustNumber('netSpread', -10)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">&minus;</button>
-                                    <input type="range" id="netSpread" min="30" max="100" value="100" step="5" style="flex:1; min-width:0;" title="How far apart the nodes sit, at the same node, font and edge size. 100 is as far apart as they can sit with the whole network still in view; lower packs them closer together.">
-                                    <button type="button" onclick="app.adjustNumber('netSpread', 10)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
-                                </div>
-                                <div class="slider-ticks">
-                                    <span>packed</span><span></span><span></span><span></span><span>full panel</span>
+                                <div class="slider-head"><label>Edge</label><span class="slider-bubble" id="edgeWidthBubble">3</span></div>
+                                <div class="slider-row">
+                                    <button type="button" class="slider-step" onclick="app.adjustNumber('netEdgeWidth', -1)">&minus;</button>
+                                    <input type="range" id="netEdgeWidth" min="1" max="10" value="3" step="1">
+                                    <button type="button" class="slider-step" onclick="app.adjustNumber('netEdgeWidth', 1)">+</button>
                                 </div>
                             </div>
                             <div class="slider-group">
-                                <label>Edge Width:</label>
-                                <div class="slider-with-value">
-                                    <span class="slider-bubble" id="edgeWidthBubble">3</span>
+                                <div class="slider-head"><label>Spread</label><span class="slider-bubble" id="spreadBubble">65</span></div>
+                                <div class="slider-row">
+                                    <button type="button" class="slider-step" onclick="app.adjustNumber('netSpread', -5)">&minus;</button>
+                                    <input type="range" id="netSpread" min="30" max="100" value="65" step="5" title="How far apart the nodes sit, at the same node, font and edge size. 100 is as far apart as they can sit with the whole network still in view; lower packs them closer together.">
+                                    <button type="button" class="slider-step" onclick="app.adjustNumber('netSpread', 5)">+</button>
                                 </div>
-                                <div style="display:flex; gap:4px; align-items:center;">
-                                    <button type="button" onclick="app.adjustNumber('netEdgeWidth', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
-                                    <input type="range" id="netEdgeWidth" min="1" max="10" value="3" step="1" style="flex:1; min-width:0;">
-                                    <button type="button" onclick="app.adjustNumber('netEdgeWidth', 1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
-                                </div>
-                                <div class="slider-ticks">
-                                    <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
-                                </div>
+                                <div class="slider-ticks slider-ticks-plain"><span>packed</span><span>full panel</span></div>
                             </div>
                         </div>
 
@@ -5560,7 +5583,6 @@
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">View Controls:</label>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
                                 <button class="btn btn-secondary" id="fitNetwork" title="Zoom and center so the whole network fits in view. Does not change the analysis.">Fit</button>
-                                <button class="btn btn-secondary" id="compactNetwork" title="Pull the nodes closer together, at the same node, font and edge size. Click again to pack them tighter still; Fit puts them back to filling the panel.">Compact</button>
                                 <button class="btn btn-secondary" id="toggleSelectMode" title="Click nodes to add them to a selection, then open Gene Effect or Correlation Analysis for that group. Click again to leave the mode.">Select Mode</button>
                                 <button class="btn btn-secondary" id="toggleRemoveMode" title="Click nodes to hide them from the picture. Removing a gene only changes what is drawn, not the underlying correlations. Restore All brings them back.">Remove Mode</button>
                                 <button class="btn btn-secondary" id="togglePhysics" title="Freeze the layout so nodes stop drifting and stay where you put them. Click again to let them settle freely.">Lock</button>
@@ -7550,6 +7572,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_61"></script>
+    <script src="app.js?v=v85_62"></script>
 </body>
 </html>

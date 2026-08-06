@@ -4845,16 +4845,6 @@ class CorrelationExplorer {
             }
             this.network.fit();
         });
-        // One click per step tighter, which is the quickest way to use this;
-        // the Spread slider is the same control with a finer grip.
-        document.getElementById('compactNetwork')?.addEventListener('click', () => {
-            const sl = document.getElementById('netSpread');
-            if (!this.network || !sl) return;
-            const next = Math.max(parseInt(sl.min, 10) || 30, (parseInt(sl.value, 10) || 100) - 15);
-            sl.value = String(next);
-            document.getElementById('spreadBubble').textContent = String(next);
-            this._applyNetworkSpread();
-        });
         document.getElementById('restoreAllNodes').addEventListener('click', () => this.showHiddenNodes());
         document.getElementById('showGeneEffect').addEventListener('change', (e) => {
             document.getElementById('showGESDGroup').style.display = e.target.checked ? 'inline' : 'none';
@@ -11256,6 +11246,35 @@ Results:
         const view = this.network.getViewPosition();
         const scale = this.network.getScale();
         const prevW = container.style.width, prevH = container.style.height;
+
+        // The hi-res grab works by briefly resizing the live canvas, which the
+        // user sees as the network ballooning and snapping back. Cover it with a
+        // still of itself and pin the wrapper, so the picture holds steady while
+        // the real canvas is resized underneath.
+        const wrap = container.parentElement;
+        let cover = null, prevWrapH = '', prevWrapOverflow = '', prevWrapPos = '';
+        try {
+            const liveNow = container.querySelector('canvas');
+            if (wrap && liveNow) {
+                const snap = document.createElement('canvas');
+                snap.width = liveNow.width; snap.height = liveNow.height;
+                snap.getContext('2d').drawImage(liveNow, 0, 0);
+                snap.style.cssText = `width:${w}px; height:${h}px; display:block;`;
+                cover = document.createElement('div');
+                cover.id = 'networkCopyCover';
+                cover.style.cssText = `position:absolute; left:0; top:${container.offsetTop}px; `
+                    + `width:${w}px; height:${h}px; z-index:30; background:#fff; pointer-events:none;`;
+                cover.appendChild(snap);
+                prevWrapH = wrap.style.height;
+                prevWrapOverflow = wrap.style.overflow;
+                prevWrapPos = wrap.style.position;
+                wrap.style.height = wrap.offsetHeight + 'px';
+                wrap.style.overflow = 'hidden';
+                if (!wrap.style.position) wrap.style.position = 'relative';
+                wrap.appendChild(cover);
+            }
+        } catch (e) { cover = null; }
+
         try {
             container.style.width = Math.round(w * factor) + 'px';
             container.style.height = Math.round(h * factor) + 'px';
@@ -11280,6 +11299,16 @@ Results:
                 this.network.moveTo({ position: view, scale, animation: false });
                 this.network.redraw();
             } catch (e) { /* view restore is best-effort */ }
+            // Uncover only after the real canvas is back at its own size, so the
+            // still is never lifted onto a half-restored picture.
+            if (cover) {
+                cover.remove();
+                if (wrap) {
+                    wrap.style.height = prevWrapH;
+                    wrap.style.overflow = prevWrapOverflow;
+                    wrap.style.position = prevWrapPos;
+                }
+            }
         }
     }
 
@@ -12453,17 +12482,56 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
     togglePhysics() {
         if (!this.network) return;
 
-        this.physicsEnabled = !this.physicsEnabled;
+        const turningOn = !this.physicsEnabled;
+        const btn = document.getElementById('togglePhysics');
+
+        if (turningOn) {
+            // Unlocking means giving the nodes back to the solver, which throws
+            // away any hand-placed spacing. Put them back where the solver last
+            // settled them before handing over, so the full-panel layout visibly
+            // returns instead of the compacted picture staying on screen under a
+            // "100" label. The solver will not re-expand them on its own: once
+            // stabilised it does not step again.
+            const base = this._netBasePositions;
+            if (base) {
+                for (const id of Object.keys(base)) {
+                    try { this.network.moveNode(id, base[id].x, base[id].y); } catch (e) { /* node may be hidden */ }
+                }
+                this.network.redraw();
+            }
+        }
+
+        this.physicsEnabled = turningOn;
         this.network.setOptions({ physics: { enabled: this.physicsEnabled } });
 
-        const btn = document.getElementById('togglePhysics');
         if (this.physicsEnabled) {
             btn.textContent = 'Lock';
             btn.classList.remove('btn-active');
+            // Spread no longer describes the picture, so it goes back to 100 and
+            // re-reads the restored layout as its reference. Leaving it reading
+            // 60 was worse than cosmetic: the next compaction measured from a
+            // stale baseline, and 60 then behaved like the old 100.
+            this._resetNetworkSpreadBaseline();
         } else {
             btn.textContent = 'Unlock';
             btn.classList.add('btn-active');
         }
+    }
+
+    // Forget the hand-placed layout and put Spread back to "full panel", then
+    // take the solver's new resting positions as the reference once it settles.
+    _resetNetworkSpreadBaseline() {
+        this._netBasePositions = null;
+        this._netBaseSpread = 100;
+        const sl = document.getElementById('netSpread');
+        if (sl) sl.value = '100';
+        const bubble = document.getElementById('spreadBubble');
+        if (bubble) bubble.textContent = '100';
+        // If this never fires, _applyNetworkSpread captures the baseline lazily
+        // on first use, which gives the same answer.
+        this.network?.once?.('stabilized', () => {
+            if (this.network && !this._netBasePositions) this._netBasePositions = this.network.getPositions();
+        });
     }
 
     toggleRemoveMode() {
@@ -12683,7 +12751,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         slider('netFontSize', 'fontSizeBubble', 20);
         slider('netNodeSize', 'nodeSizeBubble', 25);
         slider('netEdgeWidth', 'edgeWidthBubble', 3);
-        slider('netSpread', 'spreadBubble', 100);
+        slider('netSpread', 'spreadBubble', 65);
 
         // Reset checkboxes
         document.getElementById('showGeneEffect').checked = false;
@@ -28927,27 +28995,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             tnbc_published: {
                 label: 'Triple-negative breast (published annotation)',
                 category: 'Breast, receptor subtype (published annotation)',
-                description: '<b>Inclusion:</b> the line carries a TNBC subtype assignment in the Lehmann panels (JCI 2011 / PLOS ONE 2016). <b>Why this is separate:</b> a published classification and a measurement are two different kinds of evidence, so they are kept on separate axes here, the way annotated patient sex is kept separate from sex inferred from expression. This is the parent of the four Lehmann sub-types, so Lehmann &sube; this collection by construction. <b>Coverage:</b> the Lehmann papers only classified TNBC lines, so a line missing from this collection is not thereby ER+ or HER2+, it simply was not in the panel. DepMap\'s model table carries no receptor annotation of its own, which is why this is the only published axis available. <b>Where it disagrees with the measured call,</b> see the conflict collection below.'
+                description: '<b>Selects:</b> breast lines classified as triple-negative in the published Lehmann panels (JCI 2011, PLOS ONE 2016). <b>Parent of</b> the four Lehmann sub-types (BL1, BL2, M, LAR), so those are always subsets of this. <b>Coverage:</b> the Lehmann papers only classified TNBC lines, so a breast line missing from this set is not thereby ER+ or HER2+, it simply was not in the panel. Use the measured filters for those lines.'
             },
             tnbc: {
                 label: 'Triple-negative breast (measured)',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Inclusion:</b> breast lineage AND no focal ERBB2 amplification AND ESR1 below 3.0 AND PGR below 1.0 log&#8322;-TPM. <b>Cutoffs:</b> fixed levels, not ranks. An earlier median split put half the breast lines above the line by construction and called 25 of 50 HR+ where roughly 8 are; these cutoffs sit in the gap between the two groups. <b>Published lines are no longer folded in:</b> a Lehmann-classified line whose transcripts read otherwise stays out of this set and shows up in the conflict collection instead, so the disagreement is visible rather than resolved silently. <b>Caveat:</b> clinical TNBC is defined by IHC (and FISH for HER2); transcript and protein don\'t always agree.'
+                description: '<b>Selects:</b> breast lines with no focal ERBB2 amplification, ESR1 below 3.0 and PGR below 1.0 log&#8322;-TPM, so no ER, PR or HER2 signal. <b>Approximates</b> clinical triple-negative breast cancer, which is defined by IHC and FISH on protein; transcript and protein do not always agree.'
             },
             hr_pos_breast: {
                 label: 'HR+ / luminal breast (measured)',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Inclusion:</b> breast lineage AND ESR1 &ge; 3.0 OR PGR &ge; 1.0 log&#8322;-TPM, AND no focal ERBB2 amplification (HER2 takes precedence, as in clinical subtyping). <b>Why:</b> approximates ER+/PR+/HER2&minus; (luminal A/B) breast cancer. <b>Cutoffs:</b> fixed levels rather than the breast-line median, which by construction called half the panel HR+. The 8 lines here are the recognised ER+ luminal models. <b>Caveat:</b> transcript-based receptor status is approximate, not clinical IHC.'
+                description: '<b>Selects:</b> breast lines expressing ESR1 at 3.0 or above, or PGR at 1.0 or above (log&#8322;-TPM), without a focal ERBB2 amplification. HER2 takes precedence when both apply, as in clinical subtyping. <b>Approximates</b> ER+ / PR+, HER2&minus; luminal A/B breast cancer. Contains the recognised ER+ luminal models such as MCF7, T-47D and ZR-75-1.'
             },
             her2_pos_breast: {
                 label: 'HER2+ breast (copy number)',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Inclusion:</b> breast lineage AND focal amplification of <b>ERBB2</b> in the curated copy-number panel. <b>Why copy number:</b> clinical HER2+ means amplification, tested by FISH, so this asks the same question rather than reading it off transcript level. All 11 lines here sit at CN 5.6 or above. Two lines the older transcript rule called HER2+ have no amplification at all and are not in this set: MDA-MB-453, the standard AR+ / LAR model, and UACC-3133. A line with no copy-number entry at all falls back to ERBB2 &ge; 8.0 log&#8322;-TPM. <b>Caveat:</b> clinical status also counts IHC 3+ protein without amplification, which this cannot see.'
+                description: '<b>Selects:</b> breast lines carrying a focal amplification of <b>ERBB2</b>. <b>Why copy number:</b> clinical HER2+ status is an amplification, tested by FISH, so this reads the amplification directly rather than inferring it from transcript level. <b>Limit:</b> tumours that are IHC 3+ without amplification cannot be detected this way.'
             },
             breast_receptor_conflict: {
                 label: 'Breast: published and measured calls disagree',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Inclusion:</b> breast lines the Lehmann panels classified as TNBC whose own transcripts or copy number read HR+ or HER2+ instead. <b>Why surface it:</b> the published call used to win silently, so KPL-1 was labelled triple-negative with nothing to indicate that its ER transcript sits at the 88th percentile of breast lines (it is also a documented MCF-7 derivative, which fits the ER+ reading). <b>How to use it:</b> treat these lines as unresolved rather than as either call, and look at the receptor histograms in the Wiki before deciding. The published annotation leads wherever a call has to be shown, with the disagreement stated alongside it.'
+                description: '<b>Selects:</b> breast lines the Lehmann panels classified as triple-negative whose own expression or copy number reads HR+ or HER2+ instead. <b>Use for:</b> spotting lines whose receptor status is unsettled, worth checking against the receptor histograms in the Wiki before relying on either call. Elsewhere in the app the published call is the one shown, with the measured reading given alongside it.'
             },
             class_i_reduced: {
                 label: 'Class-I antigen presentation reduced/lost',
@@ -30375,10 +30443,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!n) continue;
             (byCat[def.category] = byCat[def.category] || []).push({ id, def, n });
         }
+        // Flat record of what the panel is offering, so Export for AI can write
+        // out the same filters and counts the user is looking at.
+        this._lastQuickFilterRows = Object.entries(byCat).flatMap(([category, list]) =>
+            list.map(x => ({ id: x.id, label: x.def.label, category, n: x.n, description: x.def.description })));
 
         let html = `<div id="clbCollectionDragHandle" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; cursor:move; user-select:none;">`
             + `<span style="font-weight:600; color:#374151;">Filter cell lines by quick filter <span style="font-weight:400; color:#9ca3af; font-size:10px;">(drag to move)</span></span>`
+            + `<span style="display:flex; align-items:center; gap:10px;">`
+            + `<button type="button" id="clbQuickFiltersExportAI" class="btn btn-outline btn-sm" style="font-size:10px; padding:1px 7px;" title="Download every quick filter shown here, with how it is defined and how many cell lines it holds, to paste into an LLM">Export for AI</button>`
             + `<a href="#" id="clbCollectionsClear" style="color:#6b7280; text-decoration:none; font-size:10px;">clear all</a>`
+            + `</span>`
             + `</div>`
             + `<div style="font-size:10px; color:#6b7280; margin-bottom:8px;">Click <b style="color:#4c782e;">+</b> to require, <b style="color:#991b1b;">−</b> to exclude. Multiple quick filters combine with AND. <b>Hover any filter name for how it's defined.</b></div>`;
 
@@ -30487,6 +30562,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 this.renderCellLineList();
             });
         }
+        document.getElementById('clbQuickFiltersExportAI')
+            ?.addEventListener('click', (e) => { e.preventDefault(); this.exportQuickFiltersForAI(); });
         // Drag-to-move via the header, so the panel can always be repositioned.
         this._makeDraggable(panel, document.getElementById('clbCollectionDragHandle'));
     }
@@ -31091,6 +31168,64 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         this.downloadFile(out, `correlate_help_${String(title).toLowerCase().replace(/[^a-z0-9]+/g, '_')}.md`, 'text/markdown');
         this.showCopyNotification?.('Help exported. Paste the file into an LLM to ask about this panel.');
+    }
+
+    // Every quick filter currently offered, with its definition, its size and
+    // whether it is switched on, written out for a language model. The help
+    // modal's export covers the panel's own text; this one covers the filters
+    // themselves, which is what a user actually wants to ask questions about.
+    exportQuickFiltersForAI() {
+        const rows = this._lastQuickFilterRows;
+        if (!rows || !rows.length) { this.showCopyNotification?.('Open the quick filters first.'); return; }
+        const ver = document.getElementById('versionBadge')?.textContent?.trim() || 'unknown';
+        // Strip the markup and turn entities back into characters, so the file
+        // reads as prose rather than leaking "&#8322;" into the text.
+        const plain = (h) => {
+            const d = document.createElement('div');
+            d.innerHTML = String(h || '');
+            return (d.textContent || '').replace(/\s+/g, ' ').trim();
+        };
+        const states = this._clbCollectionStates || new Map();
+
+        const lines = [];
+        let lastCat = null;
+        for (const r of rows) {
+            if (r.category !== lastCat) { lines.push('', `### ${r.category}`); lastCat = r.category; }
+            const st = states.get(r.id);
+            const mark = st === 'require' ? ' [REQUIRED]' : st === 'exclude' ? ' [EXCLUDED]' : '';
+            lines.push('', `**${r.label}** (${r.n} cell lines of those currently listed)${mark}`, plain(r.description));
+        }
+
+        const active = [...states].map(([k, v]) => `${k} (${v})`).join(', ');
+        const out = [
+            `# Correlate ${ver}, quick filters`,
+            '',
+            'Exported from Correlate, a browser tool for exploring DepMap CRISPR screen,',
+            'expression, mutation, fusion, copy-number and drug-response data across human',
+            'cancer cell lines. "Quick filters" are predefined cell-line groups. This file',
+            'lists every one currently offered, how it is defined and how many cell lines it',
+            'holds. Answer using this text; where it does not say, say so rather than',
+            'guessing, and do not invent numbers for this dataset.',
+            '',
+            '## How they combine',
+            'Each filter can be required (+) or excluded (-). Several combine with AND.',
+            'Counts below are within the cohort currently listed, not the whole panel, so',
+            'they change as the tissue, disease and other filters change.',
+            '',
+            '## Cohorts, which differ and are a common source of confusion',
+            `- CRISPR gene effect: ${(this.nCellLines || 0).toLocaleString()} cell lines.`,
+            `- Expression: ${(this.expressionMetadata?.nCellLines || 0).toLocaleString()} cell lines, log2(TPM+1). Not the same set of lines.`,
+            '- Copy number and drug response come from other DepMap releases again.',
+            '',
+            `## Currently switched on: ${active || 'none'}`,
+            `## Cell lines currently listed: ${this._clbVisibleCellLines?.length ?? 'unknown'}`,
+            '',
+            '## The filters',
+            ...lines,
+            ''
+        ].join('\n');
+        this.downloadFile(out, 'correlate_quick_filters.md', 'text/markdown');
+        this.showCopyNotification?.('Quick filters exported. Paste the file into an LLM to ask about them.');
     }
 
     // Shared by the highlight and colour-by chip rows.
@@ -34842,7 +34977,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     </div>`;
                 }).join('');
                 receptorHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; the measurement stands in otherwise, and where the two disagree both are shown. The measured rule: <b>HER2+</b> on focal ERBB2 amplification (copy number, the same thing FISH tests), otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels sitting in the gap between the two groups in these histograms, which a median could not do: half the breast lines fall below the median whether or not any of them express the receptor. None of this is IHC.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; otherwise the measurement stands in, and where the two disagree both are shown. The measured rule: <b>HER2+</b> on focal ERBB2 amplification (copy number, what FISH tests), otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels, placed in the gap between the expressing and non-expressing groups visible in these histograms. None of this is IHC.</p>
                     ${conflictHtml}
                     <div style="margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <span>Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span>${callBasis ? `<span style="color:#6b7280; font-size:10px; margin-left:6px;">${callBasis}</span>` : ''}</span>
