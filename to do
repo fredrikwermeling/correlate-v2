@@ -1,6 +1,18 @@
-make the spread starting at 100. also the settings for the font size, edge node sliders etc are too small. revert to the orignial look and try to shrink about 30%.
-in network, corrleate, gene effect and mutation inspect for filters dont include the boxes where sellecting wt or mutated. look how it is done in cell line browser. by defult when selecting an alteration, it is selected as mutated, and the user can then can then change it. Also add the oncoprint button (grid button) next to all genetic alteration filter as in the cell line browser.
-in the correlat popout. if i label a cell line by pressing it needs to be able to remove the label. do like in the gen effect popout. if you hower over the name it asks if you want to remove and you can click and it is removed. 
+-make the spread starting at 100. also the settings for the font size, edge node sliders etc are too small. revert to the orignial look and try to shrink about 30%.
+-in network, corrleate, gene effect and mutation inspect for filters dont include the boxes where sellecting wt or mutated. look how it is done in cell line browser. by defult when selecting an alteration, it is selected as mutated, and the user can then can then change it. Also add the oncoprint button (grid button) next to all genetic alteration filter as in the cell line browser.
+-in the correlat popout. if i label a cell line by pressing it needs to be able to remove the label. do like in the gen effect popout. if you hower over the name it asks if you want to remove and you can click and it is removed. 
+-the network now can have text cropped when generating. this should never happen when press run, the nodes edges and ext should always be full shown.
+-you wrote "  Mutation analysis has its own view now. The gene box is hidden entirely, since
+  mutation analysis never reads it, and the right-hand side switches to the
+  empty Mutation Analysis table instead of leaving the previous network up. Both
+  of those were what made it read as though the listed genes were about to be
+  used."  this is not at all what i see v86.57. it still looks like the gene set analysis layout.  I suggest that when pressing the mutational anlysis in options the the right part of the ap becomes the muation analysis table but without any gene. also the inout gene set needs tp be removed.
+-in mutation analsysis inspect. if i change between GE and expression in the upper left corner, it automatically goes to gene effect by tissue, instead of staying in the mutationa anlysis mode. if i swithch back to amutation anaylsis it doesnt remmeber the gene modification that shuold be starified of on the y axis. also, often the mutational analysi inpspect deoesnt have a legend on the y axis. 
+- 
+
+
+
+
 
 
 
