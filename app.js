@@ -4817,15 +4817,14 @@ class CorrelationExplorer {
         });
         document.getElementById('netSpread')?.addEventListener('input', (e) => {
             document.getElementById('spreadBubble').textContent = e.target.value;
-            // Re-layout with the new spacing, then fit so nothing lands off-screen.
-            if (this.network) {
-                this.network.setOptions({ physics: { enabled: true, barnesHut: { springLength: this._recomputeSpring() } } });
-                clearTimeout(this._spreadSettle);
-                this._spreadSettle = setTimeout(() => {
-                    this.network.fit();
-                    this._checkNetworkFits();
-                }, 700);
-            }
+            // Scale the settled layout directly instead of asking the solver to
+            // re-run. Two reasons: the slider used to write springLength under
+            // barnesHut while the network runs forceAtlas2Based, so it was
+            // writing to an inactive solver; and once the layout has settled the
+            // simulation does not step again, so no physics value moves a node.
+            // Scaling about the centre is also exactly what "how far apart do
+            // the nodes sit" means, and it is instant and reversible.
+            this._applyNetworkSpread();
         });
         document.getElementById('netEdgeWidth').addEventListener('input', (e) => {
             document.getElementById('edgeWidthBubble').textContent = e.target.value;
@@ -9930,6 +9929,10 @@ class CorrelationExplorer {
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
             this.network.fit({ animation: false });
+            // The settled layout is the reference Spread scales from, so the
+            // slider is reversible and does not compound on itself.
+            this._netBasePositions = this.network.getPositions();
+            this._netBaseSpread = parseInt(document.getElementById('netSpread')?.value, 10) || 100;
             clearTimeout(this._networkLoadingFallback);
             this._hideNetworkLoading();
             if (nodeCount > 30) {
@@ -10286,6 +10289,31 @@ class CorrelationExplorer {
     }
 
     // Spring length from the current node size, font size and spread setting.
+    // Push the settled layout out from, or in towards, its own centre.
+    _applyNetworkSpread() {
+        if (!this.network) return;
+        let base = this._netBasePositions;
+        if (!base || !Object.keys(base).length) {
+            base = this._netBasePositions = this.network.getPositions();
+            this._netBaseSpread = 100;
+        }
+        const ids = Object.keys(base);
+        if (!ids.length) return;
+        const factor = ((parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100)
+                     / ((this._netBaseSpread || 100) / 100);
+        let cx = 0, cy = 0;
+        for (const id of ids) { cx += base[id].x; cy += base[id].y; }
+        cx /= ids.length; cy /= ids.length;
+        for (const id of ids) {
+            this.network.moveNode(id, cx + (base[id].x - cx) * factor, cy + (base[id].y - cy) * factor);
+        }
+        clearTimeout(this._spreadSettle);
+        this._spreadSettle = setTimeout(() => {
+            this.network.fit();
+            this._checkNetworkFits();
+        }, 250);
+    }
+
     _recomputeSpring() {
         const nodeSize = parseInt(document.getElementById('netNodeSize')?.value, 10) || 25;
         const fontSize = parseInt(document.getElementById('netFontSize')?.value, 10) || 20;
@@ -15366,6 +15394,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let html = '<div style="display: flex; gap: 2px; margin-bottom: 4px;">';
         html += '<button id="colorByShowAll" class="btn btn-secondary btn-sm" style="font-size: 9px; padding: 1px 5px;">Show all</button>';
         html += '<button id="colorByHideAll" class="btn btn-secondary btn-sm" style="font-size: 9px; padding: 1px 5px;">Hide all</button>';
+        // The groups left visible are a cohort worth taking elsewhere, so their
+        // cell line names can be copied without reading them off the plot.
+        html += '<button id="colorByCopyNames" class="btn btn-secondary btn-sm" style="font-size: 9px; padding: 1px 5px;" title="Copy the names of the cell lines in the groups currently shown">Copy names</button>';
         html += '</div>';
         html += '<div style="display: flex; flex-wrap: wrap; gap: 2px;">';
         categories.forEach((cat, i) => {
@@ -15380,6 +15411,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Track hidden categories
         const hidden = new Set();
+        container.querySelector('#colorByCopyNames')?.addEventListener('click', () => {
+            const shown = categories.filter((c, i) => !hidden.has(i) && c !== this.OTHER_GROUP_LABEL);
+            const want = new Set(shown);
+            const mode = document.getElementById('colorByCategory')?.value || 'tissue';
+            const md = this.cellLineMetadata || {};
+            const names = (this.currentInspect?.filteredData || this.currentInspect?.data || [])
+                .filter(d => want.has(mode === 'subtype'
+                    ? (md.primaryDisease?.[d.cellLineId] || '')
+                    : (d.lineage || md.lineage?.[d.cellLineId] || '')))
+                .map(d => d.cellLineName || this.getCellLineName(d.cellLineId));
+            this.copyNamesToClipboard(names, 'coloured');
+        });
 
         // Click chip to toggle
         container.querySelectorAll('.color-by-chip').forEach(chip => {
@@ -30621,12 +30664,30 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const list = [...new Set(names || [])];
         if (!list.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
         box.style.display = 'flex';
-        box.innerHTML = list.map(n => this._chipHtml(n, 'highlight', n, '#f59e0b')).join('');
+        // Whatever ends up highlighted is usually a set worth taking elsewhere,
+        // so it can be copied without reading the chips off the screen.
+        box.innerHTML = list.map(n => this._chipHtml(n, 'highlight', n, '#f59e0b')).join('')
+            + `<button type="button" id="copyHighlightedBtn" title="Copy these ${list.length} cell line names, one per line"`
+            + ` style="border:1px solid #d1d5db; background:#f9fafb; color:#4b5563; border-radius:10px; padding:1px 8px; font-size:10px; cursor:pointer; margin-left:2px;">`
+            + `Copy ${list.length} name${list.length === 1 ? '' : 's'}</button>`;
         box.onclick = (e) => {
+            if (e.target.closest('#copyHighlightedBtn')) {
+                this.copyNamesToClipboard(list, 'highlighted');
+                return;
+            }
             const btn = e.target.closest('[data-chip-action="highlight"]');
             if (!btn) return;
             this.removeHighlight(btn.dataset.chipValue);
         };
+    }
+
+    // Shared by the highlight and colour-by chip rows.
+    copyNamesToClipboard(names, what) {
+        const list = [...new Set(names || [])].filter(Boolean);
+        if (!list.length) { this.showCopyNotification?.('Nothing to copy.'); return; }
+        navigator.clipboard?.writeText(list.join('\n')).then(
+            () => this.showCopyNotification?.(`Copied ${list.length} ${what} cell line name${list.length === 1 ? '' : 's'}`),
+            () => this.showCopyNotification?.('Could not reach the clipboard.'));
     }
 
     // Drops one highlight whether it came from a click or from the text box.
@@ -30651,8 +30712,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         box.innerHTML = list.map((c, i) => {
             const m = CorrelationExplorer.categoryMarker(i, 8, 1);
             return this._chipHtml(c, 'group', c, colors ? m.color : null, m.symbol);
-        }).join('');
+        }).join('')
+            + `<button type="button" id="copyColoredBtn" title="Copy the names of the cell lines in these groups, one per line"`
+            + ` style="border:1px solid #d1d5db; background:#f9fafb; color:#4b5563; border-radius:10px; padding:1px 8px; font-size:10px; cursor:pointer; margin-left:2px;">`
+            + `Copy names</button>`;
         box.onclick = (e) => {
+            if (e.target.closest('#copyColoredBtn')) {
+                // The groups are categories, so what is useful to copy is the
+                // cell lines sitting in them on the current plot.
+                const want = new Set(list);
+                const mode = document.getElementById('colorByCategory')?.value || 'tissue';
+                const md = this.cellLineMetadata || {};
+                const names = (this.currentInspect?.filteredData || this.currentInspect?.data || [])
+                    .filter(d => want.has(mode === 'subtype'
+                        ? (md.primaryDisease?.[d.cellLineId] || '')
+                        : (d.lineage || md.lineage?.[d.cellLineId] || '')))
+                    .map(d => d.cellLineName || this.getCellLineName(d.cellLineId));
+                this.copyNamesToClipboard(names, 'coloured');
+                return;
+            }
             const btn = e.target.closest('[data-chip-action="group"]');
             if (!btn) return;
             const drop = btn.dataset.chipValue;

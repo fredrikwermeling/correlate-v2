@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.50 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>Spread actually spreads the network now.</b> It was writing the spacing to a physics solver the network does not use, and even with that corrected the layout does not re-simulate once settled, so no physics value could move a node. Spread now scales the settled layout out from its centre: at 40% the network spans 150 units where it spanned 375, at 220% it spans 825, and returning to 100% restores it exactly.</li>
+                    <li><b>Copy the names of highlighted or coloured cell lines.</b> The highlight row gains &ldquo;Copy 2 names&rdquo;, counting what is highlighted, and the colour-by legend gains &ldquo;Copy names&rdquo;, which copies the cell lines in the groups currently shown and respects any group you have hidden.</li>
+                </ul>
                 <p><strong>v.85.46 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>The correlation popout starts fresh on a new gene pair.</b> Axis measures and filters were read from whatever the controls happened to say, so after setting one plot to gene effect against expression, clicking the next edge in the network opened as gene effect against expression too, without being asked. A new pair now resets the axis measures, the axis ranges, the tissue, mutation, fusion and copy-number filters, colour-by, highlights and custom cell lines, and closing the popout resets them as well.</li>
@@ -4980,7 +4985,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.46</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.50</a>
     </div>
 
     <div class="main-content">
@@ -7476,6 +7481,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_46"></script>
+    <script src="app.js?v=v85_50"></script>
 </body>
 </html>
