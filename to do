@@ -134,17 +134,20 @@
   31. Mutational analysis over expression — Measure toggle. On BRAF: gene effect
   gives BRAF/SOX10/MAPK1/DUSP4, expression gives CD24/SPINT2/UCHL1. Top hit
   recomputed from raw matrix, exact match. .93
-
+- this is not solved. if i do mutational analysis and switch to     .  also, if im in the mutation analysis inspect, and change eg the GE to expression, the poput swithches from the mutational analysis inspect tot the standard gene effect/by tissue. if im in the gene analysis inspect mode, it should stay there independent of any changes i make until i press the by tissue/hotspot. Also, if im in the gene analysis and have the GE setting, and press inspect for a gene, it goes to the inspect and in the upper left corner it says the gene and GE. if i then go back to the gene analysis, select mRNA and press inspect for a gene the upper right corener stats the gene name and GE (not epxression). the graph might ocrrectly show expression, but the seldctor says GE. this is an example of where settings are saved. in general settings should not be saved.
 
   32. Title not fully editable — panel split at the first <br>, but that's also
   how a title wraps. .88
+- not clear where you are refering to here. but all text (headisngs subheading, x y axis etc= should be possible to edit in the settings.
 
   33. Long subtype names — the 99-character Soft Tissue subtype took the whole
   margin; labels cut to 34 with full name on hover. .88
+- ok
 
   34. Subtype colouring + names in a box — labelled cell lines now list under
   the plot with Copy names. Subtype colouring not added — the view already
   groups by subtype and I wasn't sure what you wanted beyond that.
+- ok
 
   The YRDC block
   
@@ -159,6 +162,7 @@
   - Partner flatness .86 — YRDC moves 1.13, its 10 partners top out at 0.11.
   - Permutation check .87 — on demand, capped at ≤200 cell lines (44s on a full
   panel, and the question doesn't arise there).
+- what is your suggestion to solve this? is it a problem? 
 
   Earlier in the session
 
@@ -185,47 +189,56 @@
   unreachable but the ~500 lines are still there, because 91 references cross
   into the mutation-analysis inspect. If you want it genuinely gone I'd untangle
   the shared helpers first. If "not visible" is enough, we're done.
+-remove
 
   2. Subtype colouring (#34) — what did you mean? The gene-effect view already
   groups rows by subtype. I couldn't tell whether you wanted colour applied
   within an existing plot (like the scatter's colour-by), or something else, so
   I did the labelled-names half and left this.
+- looks good, also add version for disese coloring.
 
   3. The pathway verdicts. You said keep the 25 if the analysis is correct, and
   I audited it. But you also said the app shouldn't over-interpret. "Driver
   activated" / "Brake lost" are interpretations, even framed as hypotheses. Keep
   as is, or reduce to naming which pathway carries which alteration and let the
   reader judge?
+- keep
 
   4. Permutation check capped at 200 cell lines. My call, because it took 44s on
   a full-panel split and the question doesn't really arise there. If you'd
   rather have it available anyway, I'd make it explicit opt-in with a warning
   rather than hidden.
+- is this related to the cell line inspet? 200 cap is good
 
   5. The exact-disease filter (#6). You asked for "filters for cancer types not
   defined by lineage and subtype, eg CLL" — I read that as a general gap and
   added a picker with all 165 Oncotree entities. If you meant a handful of
   curated quick filters instead, that's a different build.
+- good
 
   6. The standalone Oncoprint button. I removed it in v.84.70 when each
   alteration filter got its own grid. That means there's no longer a single
   "oncoprint over the whole current cohort" button in the analysis tab. Tell me
   if you miss it.
+- good
 
   Please check by eye — I couldn't verify these properly
 
   Copy to clipboard. Clipboard writes need a real user gesture, which automation
   can't reliably produce. The code path runs clean and fails gracefully, but I
   have not confirmed an image actually pastes into an email. Worth one test.
+- ok
 
   The PDF. I verified page count, page numbers and that breaks land in
   whitespace, but I have no PDF renderer here — I've never seen the file. Same
   for the network export at 1200 dpi: I confirmed 9× the pixels, not that it
   looks right.
+- looks good.
 
   Network export at high DPI on a large network. I capped the re-render at 4×,
   but a 200-node network at 1200 dpi will build a large canvas. If it's slow or
   fails on your machine, that cap needs lowering.
+- ok
 
   Two things I'd raise unprompted
 
@@ -233,12 +246,16 @@
   grey after it. You asked whether the word makes sense — my answer was "right
   for someone who's met it, meaningless otherwise", but I never got your verdict
   on dropping the parenthetical.
+- ok
 
   The three regressions in v.84.73 were mine, from v.84.70–72, and live for
   about an hour. All three were the same class of mistake: I changed how
   elements are shown or looked up, and didn't re-test the paths that depended on
   the old behaviour. If you hit anything odd in the browser toolbar, that's the
   first place I'd look.
+- ok 
+
+
 
 
 could each plot also have a rapid copy graph button that can be used to copy a good version of the plot that could be pasted into eg an email directly, instead of exporting.
