@@ -2040,6 +2040,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.70 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>Switching between gene effect and expression keeps you in Mutation Inspect.</b> Flipping the measure dropped the whole mutation-inspect layout and returned you to the standalone by-tissue view, throwing away the split you had set up for what was only a change of y-axis. It now redraws in place, and only <i>By Tissue</i> or <i>By Hotspot</i> leaves that view, as you would expect.</li>
+                    <li><b>The gene effect popout no longer inherits the last measure.</b> Opening a gene from a gene-effect list after looking at an expression gene left the toggle on expression, so the heading and the toggle disagreed about what was on screen. Where the link does not say which measure it wants, the popout opens on gene effect; links that do say, including restored exports, are honoured.</li>
+                </ul>
                 <p><strong>v.85.69 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>Mutation analysis has its own view.</b> Choosing it now hides the gene box entirely, since mutation analysis never reads it: it ranks the whole screen by itself. The right-hand side switches to the Mutation Analysis table, empty until you press Run, instead of leaving the previous network on display. Both made it look as though the genes listed were about to be used.</li>
@@ -5120,7 +5125,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.69</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.70</a>
     </div>
 
     <div class="main-content">
@@ -7611,6 +7616,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_69"></script>
+    <script src="app.js?v=v85_70"></script>
 </body>
 </html>

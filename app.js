@@ -5326,9 +5326,12 @@ class CorrelationExplorer {
                 const gene = document.getElementById('geneEffectSearch').value.trim().toUpperCase() || this.currentGeneEffectGene;
                 if (!gene) return;
                 if (this.geneEffectViewMode === 'mutation' && this.mutationResults) {
-                    // Mutation-inspect layout is tied to gene-effect stratification;
-                    // switch back to the standalone view when the user picks expression.
-                    this.openGeneEffectModal(gene, this.currentGEView || 'tissue');
+                    // Stay in the mutation-inspect layout and redraw it in the new
+                    // measure. Dropping back to the standalone by-tissue view threw
+                    // away the split the user had set up, for a change that only
+                    // asked for a different y-axis.
+                    this._mutAnalysisMetric = geDataTypeEl.value === 'expr' ? 'expr' : 'ge';
+                    this.showGeneEffectDistribution(gene);
                 } else {
                     this.showGeneEffectAnalysis(gene, this.currentGEView || 'tissue');
                 }
@@ -5340,12 +5343,12 @@ class CorrelationExplorer {
         // chrome; from standalone they just toggle the plot container.
         document.getElementById('geViewTissue')?.addEventListener('click', () => {
             const gene = this.currentGeneEffectGene || document.getElementById('geneEffectSearch')?.value.trim().toUpperCase();
-            if (this.geneEffectViewMode === 'mutation' && gene) this.openGeneEffectModal(gene, 'tissue');
+            if (this.geneEffectViewMode === 'mutation' && gene) this.openGeneEffectModal(gene, 'tissue', { dataType: this._mutAnalysisMetric === 'expr' ? 'expr' : 'ge' });
             else this.switchGeneEffectView('tissue');
         });
         document.getElementById('geViewHotspot')?.addEventListener('click', () => {
             const gene = this.currentGeneEffectGene || document.getElementById('geneEffectSearch')?.value.trim().toUpperCase();
-            if (this.geneEffectViewMode === 'mutation' && gene) this.openGeneEffectModal(gene, 'hotspot');
+            if (this.geneEffectViewMode === 'mutation' && gene) this.openGeneEffectModal(gene, 'hotspot', { dataType: this._mutAnalysisMetric === 'expr' ? 'expr' : 'ge' });
             else this.switchGeneEffectView('hotspot');
         });
         document.getElementById('geViewMutation')?.addEventListener('click', () => {
@@ -20087,7 +20090,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Gene effect exports → open gene effect modal
         if (meta.graphType === 'gene_effect' && meta.gene) {
-            this.openGeneEffectModal(meta.gene, meta.view || 'tissue');
+            this.openGeneEffectModal(meta.gene, meta.view || 'tissue',
+                meta.dataType ? { dataType: meta.dataType } : {});
             return;
         }
 
@@ -21658,9 +21662,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         //, otherwise the modal's GE/Expression toggle would "leak" the last
         // choice (e.g. clicking a GE-list gene after viewing an expression gene
         // would wrongly show expression).
-        if (opts.dataType === 'ge' || opts.dataType === 'expr') {
+        // A caller that names a data type wins. Where none is named the toggle
+        // goes back to gene effect rather than keeping whatever was picked last
+        // time: the popout would otherwise open on expression for a gene reached
+        // from a gene-effect list, with the heading and the toggle disagreeing
+        // about what was on screen.
+        {
             const dt = document.getElementById('geDataType');
-            if (dt) dt.value = opts.dataType;
+            if (dt) dt.value = (opts.dataType === 'expr') ? 'expr' : 'ge';
+            const labelEl = document.getElementById('geneEffectLabel');
+            if (labelEl) labelEl.textContent = dt && dt.value === 'expr' ? 'Expression:' : 'Gene Effect:';
         }
         // Read the data-type toggle (GE / Expression). The data field is
         // still called "geneEffect" downstream for backwards compatibility —
