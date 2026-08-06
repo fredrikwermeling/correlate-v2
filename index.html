@@ -2003,6 +2003,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.53 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>&ldquo;Export for AI&rdquo; in the help popouts.</b> Rather than reading the help end to end, download it and ask an LLM. The file carries the help text as shown, the version, the sizes of the CRISPR and expression cohorts and the note that they are different sets of cell lines, where each layer's data comes from, and what the panel was filtered to at the time, so questions like &ldquo;why does my list show 27 cell lines&rdquo; can actually be answered. Available in the Cell Line Browser help and the quick-filter criteria.</li>
+                </ul>
                 <p><strong>v.85.52 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>Names clicked onto the correlation plot can be removed.</b> They now appear as a row of chips under the cell line box, each reading &ldquo;click to remove this label&rdquo;, with a Copy names button, exactly as in the gene-effect popout. The row only ever wrote into the gene-effect panel before, so labels on the scatter had no visible way off. The double-click attempt is removed.</li>
@@ -4997,7 +5001,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.52</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.53</a>
     </div>
 
     <div class="main-content">
@@ -6591,7 +6595,10 @@
         <div style="background:#fff; width:100%; max-width:min(94vw,760px); max-height:calc(100vh - 40px); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
             <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg,#f0fdf4 0%,#fff 100%);">
                 <h3 style="margin:0; font-size:17px; color:#4c782e;">Quick filters, inclusion criteria</h3>
-                <button id="collectionsInfoClose" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="btn btn-outline btn-sm js-help-export-ai" data-help="collectionsInfoModal" data-help-title="Quick filters, inclusion criteria" style="font-size:11px;" title="Download this help text with the current app state, to paste into an LLM">Export for AI</button>
+                    <button id="collectionsInfoClose" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
+                </div>
             </div>
             <div id="collectionsInfoBody" style="padding:14px 18px; overflow-y:auto; font-size:12px; color:#374151; line-height:1.55;"></div>
         </div>
@@ -6944,7 +6951,12 @@
       <div style="background:#fff; max-width:720px; width:100%; max-height:80vh; overflow-y:auto; border-radius:8px; padding:20px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="margin:0; font-size:16px;">Cell Line Browser / Help</h3>
-          <button id="clbInfoCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1;">&times;</button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <!-- Hand this help text, plus what the app is currently showing, to
+                 an LLM instead of reading it end to end. -->
+            <button class="btn btn-outline btn-sm js-help-export-ai" data-help="clbInfoModal" data-help-title="Cell Line Browser" style="font-size:11px;" title="Download this help text with the current app state, to paste into an LLM">Export for AI</button>
+            <button id="clbInfoCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1;">&times;</button>
+          </div>
         </div>
         <div style="font-size:12px; line-height:1.55; color:#374151;">
           <p style="margin-top:0;"><strong>Filters</strong>: stack with AND. Click Reset to clear.</p>
@@ -7500,6 +7512,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_52"></script>
+    <script src="app.js?v=v85_53"></script>
 </body>
 </html>

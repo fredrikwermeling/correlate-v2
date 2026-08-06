@@ -5130,6 +5130,12 @@ class CorrelationExplorer {
         document.getElementById('geTextSettingsBtn')?.addEventListener('click', () => this.openTextSettings('geneEffectPlot'));
         document.getElementById('geScopeSelect')?.addEventListener('change', (e) => this.setGeScopeMode(e.target.value));
         document.getElementById('scatterLassoHighlightBtn')?.addEventListener('click', () => this.startScatterLassoHighlight());
+        // One handler for every help popout's Export for AI button.
+        document.addEventListener('click', (e) => {
+            const b = e.target.closest('.js-help-export-ai');
+            if (!b) return;
+            this.exportHelpForAI(b.dataset.help, b.dataset.helpTitle || 'Help');
+        });
         this._initTextSettingsDrag();
         document.getElementById('downloadScatterCSV').addEventListener('click', () => this.downloadScatterCSV());
         document.getElementById('restoreFromSvgInput')?.addEventListener('change', (e) => {
@@ -30718,6 +30724,79 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         }
         this.showCopyNotification?.('Drag on the plot to encircle cell lines');
+    }
+
+    // Turn a help popout into something an LLM can answer questions from. The
+    // help text alone is not enough: a question like "why does my list show 27
+    // cell lines" needs the app's version, the data releases behind each layer
+    // and what is currently filtered, so all of that travels with it.
+    exportHelpForAI(modalId, title) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        const body = modal.querySelector('[id$="Body"]')
+                  || modal.querySelector('div[style*="line-height"]')
+                  || modal;
+        // innerText follows what is on screen, so collapsed detail stays out and
+        // the reading order matches what the user sees.
+        const text = (body.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
+        const ver = document.getElementById('versionBadge')?.textContent?.trim() || 'unknown';
+
+        const val = (id) => document.getElementById(id)?.value || '';
+        const state = [];
+        const push = (label, v) => { if (v) state.push(`- ${label}: ${v}`); };
+        push('Tissue filter', val('clbTissueFilter'));
+        push('Subtype filter', val('clbSubtypeFilter'));
+        push('Disease filter', val('clbOncotreeFilter'));
+        push('Sex filter', val('clbSexFilter'));
+        push('Hotspot gene filter', val('clbHotspotFilter'));
+        push('Fusion filter', val('clbTranslocationFilter'));
+        push('Amplification / deletion filter', val('clbCnFilter'));
+        push('Sort', val('clbSortBy'));
+        push('Sort gene or compound', val('clbSortGene'));
+        if (this._clbCollectionStates?.size) {
+            push('Quick filters', [...this._clbCollectionStates].map(([k, v]) => `${k} (${v})`).join(', '));
+        }
+        if (this._activeOncoprintFilters?.length) {
+            push('Alteration grid filters', this._activeOncoprintFilters
+                .map(f => `${f.gene} ${f.state === 'mut' ? 'altered' : 'wild-type'} (${f.kind})`).join(', '));
+        }
+        push('Cell lines currently listed', String(this._clbVisibleCellLines?.length ?? ''));
+        push('Cell lines ticked', String(this._clbSelectedCellLines?.size ?? ''));
+
+        const out = [
+            `# Correlate ${ver}, help export: ${title}`,
+            '',
+            'This file was exported from Correlate, a browser tool for exploring DepMap',
+            'CRISPR screen, expression, mutation, fusion, copy-number and drug-response',
+            'data across human cancer cell lines. It contains the in-app help for one',
+            'panel, followed by what that panel was showing at the time of export.',
+            'Answer questions using this text. Where it does not say, say so rather than',
+            'guessing about the app, and do not invent numbers for this dataset.',
+            '',
+            '## Cohorts, which differ and are a common source of confusion',
+            `- CRISPR gene effect: ${(this.nCellLines || 0).toLocaleString()} cell lines, ${(this.nGenes || 0).toLocaleString()} genes (Chronos score; negative means the knockout impairs growth).`,
+            `- Expression: ${(this.expressionMetadata?.nCellLines || 0).toLocaleString()} cell lines, log2(TPM+1). Not the same set of lines as the CRISPR panel.`,
+            '- Copy number and drug response come from other DepMap releases again, so group sizes can differ between views.',
+            '- A gene can be measured in only part of the panel; charts say so when coverage is below 95%.',
+            '',
+            '## Data sources',
+            '- DepMap 25Q3 for every measurement (gene effect, expression, mutations, fusions, copy number, Model metadata).',
+            '- PRISM Repurposing Secondary for drug response, a different release from the rest.',
+            '- CORUM and Reactome for complexes and pathways.',
+            '- COSMIC, OncoKB, WHO and NCCN for the curated fusion and subtype panels.',
+            '- Cellosaurus for cell-line identity warnings and published fusion calls.',
+            '',
+            `## In-app help: ${title}`,
+            '',
+            text,
+            '',
+            '## What this panel was showing when exported',
+            state.length ? state.join('\n') : '- No filters were active.',
+            '',
+        ].join('\n');
+
+        this.downloadFile(out, `correlate_help_${String(title).toLowerCase().replace(/[^a-z0-9]+/g, '_')}.md`, 'text/markdown');
+        this.showCopyNotification?.('Help exported. Paste the file into an LLM to ask about this panel.');
     }
 
     // Shared by the highlight and colour-by chip rows.
