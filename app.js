@@ -14193,44 +14193,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
     }
 
-    // Show the active Gene Effect filters as chips (like the Cell Line Browser),
-    // so it's clear what's applied without reading every control.
+    // The gene-effect popout uses the shared chip strip, so a filter reads and
+    // behaves the same here as in the browser and everywhere else. The custom
+    // cell-line list is the one thing only this panel has, so it is appended.
     _updateGEActiveFilters() {
+        // Wire the controls once, so the strip follows them even when a value is
+        // set outside the popout's own handlers.
+        if (!this._geChipListenersWired) {
+            this._geChipListenersWired = true;
+            ['geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geHotspotLevel',
+             'geFusionFilter', 'geFusionLevel', 'geCnFilter', 'geCnLevel'].forEach(id =>
+                document.getElementById(id)?.addEventListener('change', () => this._renderFilterChips('ge')));
+        }
+        this._renderFilterChips('ge');
         const el = document.getElementById('geActiveFilters');
         if (!el) return;
-        const tissue = document.getElementById('geTissueFilter')?.value;
-        const subtype = document.getElementById('geSubtypeFilter')?.value;
-        const hotspot = document.getElementById('geHotspotFilter')?.value;
-        const fusion = document.getElementById('geFusionFilter')?.value;
-        const cn = document.getElementById('geCnFilter')?.value;
-        const mk = (txt, c, kind) => `<span${kind ? ` class="clb-chip" data-ge-chip="${kind}" title="Click to change which cell lines are kept, or to remove this filter"` : ''} style="background:${c[0]}; color:${c[1]}; border:1px solid ${c[2]}; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:600; white-space:nowrap;">${txt}${kind ? ' &#9662;' : ''}</span>`;
-        const blue = ['#eff6ff', '#1d4ed8', '#bfdbfe'], green = ['#f0fdf4', '#4c782e', '#bbf7d0'], amber = ['#fffbeb', '#b45309', '#fde68a'];
-        const chips = [];
-        if (tissue) chips.push(mk(tissue, blue, 'tissue'));
-        if (subtype) chips.push(mk(subtype, blue, 'subtype'));
-        // Each of these can now be inverted to the wild-type side, so the chip
-        // has to follow the level select rather than always claiming "mut".
-        const isWT = (id) => document.getElementById(id)?.value === 'wt';
-        const gray = ['#f3f4f6', '#4b5563', '#e5e7eb'];
-        if (hotspot) {
-            const wt = isWT('geHotspotLevel');
-            chips.push(mk(`${hotspot} ${wt ? 'WT' : 'mut'}`, wt ? gray : green, 'hotspot'));
+        if (this._customCellLineFilterGE) {
+            el.insertAdjacentHTML('beforeend',
+                ` <span style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 7px;border-radius:10px;">`
+                + `custom CLs: ${this._customCellLineFilterGE.size}</span>`);
+            el.style.display = 'flex';
         }
-        if (fusion) {
-            const wt = isWT('geFusionLevel');
-            const name = this._stripFusionFilterDecoration(fusion);
-            chips.push(mk(wt ? `${name} not fused` : `${name} fusion`, wt ? gray : green, 'fusion'));
-        }
-        if (cn) {
-            const wt = isWT('geCnLevel');
-            const name = this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del');
-            chips.push(mk(wt ? `${name} absent` : name, wt ? gray : amber, 'cn'));
-        }
-        if (this._customCellLineFilterGE) chips.push(mk(`custom CLs: ${this._customCellLineFilterGE.size}`, blue));
-        el.innerHTML = chips.length ? `<span style="font-size:10px; color:#6b7280; font-weight:600;">Active:</span> ${chips.join(' ')}` : '';
-        el.querySelectorAll('[data-ge-chip]').forEach(chip => {
-            chip.addEventListener('click', (e) => { e.preventDefault(); this._showGEChipMenu(chip.dataset.geChip, chip); });
-        });
     }
 
     // The gene-effect equivalent of the browser's chip menu, so the same click

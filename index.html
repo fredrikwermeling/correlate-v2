@@ -2040,6 +2040,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.66 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>The gene effect popout uses the shared chips too.</b> All five places you can filter cell lines, the Cell Line Browser, the analysis panel, the correlation scatter, the correlation analysis panel and the gene effect popout, now draw their filter chips from one piece of code, so the same filter reads the same everywhere: <i>mutated (either copy)</i>, <i>one copy mutated</i>, <i>both copies mutated</i>, <i>wild-type</i>, <i>fused</i> / <i>not fused</i>, <i>event present</i> / <i>no event</i>.</li>
+                </ul>
                 <p><strong>v.85.65 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>The same filter chips in the correlation scatter and the correlation analysis panel.</b> Both now show active filters as chips under their controls, with the same wording and the same click-to-change menus as the Cell Line Browser and the analysis panel. Four of the five places you can filter cell lines now behave identically; the gene effect popout already had chips and keeps them.</li>
@@ -5100,7 +5104,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.65</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.66</a>
     </div>
 
     <div class="main-content">
@@ -7591,6 +7595,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_65"></script>
+    <script src="app.js?v=v85_66"></script>
 </body>
 </html>
