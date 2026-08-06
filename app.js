@@ -13486,6 +13486,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const scatterEl = document.getElementById('scatterPlot');
         if (scatterEl && !scatterEl.data) scatterEl.innerHTML = '';
 
+        // A different gene pair starts fresh. The axis measures and filters are
+        // read straight off the controls further down, so without this a pair
+        // opened from the network inherited the previous pair's settings, and
+        // clicking a new edge produced a GE vs expression plot unasked. Coming
+        // back to the same pair (from a gene popout, say) keeps its setup.
+        const pairKey = `${c?.gene1 || ''}::${c?.gene2 || ''}`;
+        if (this._lastInspectPair && this._lastInspectPair !== pairKey) {
+            this._resetInspectSettings();
+        }
+        this._lastInspectPair = pairKey;
+
         // c is now the correlation object directly
         this._userLegendPosition = null;
         this._userTitlePosition = null;
@@ -13740,10 +13751,51 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     closeInspectModal() {
         document.getElementById('inspectModal').classList.remove('active');
+        // Settings belong to the pair being looked at, not to the app. Leaving
+        // them behind meant the next edge clicked in the network opened with
+        // whatever axis types and filters the previous one had, so a plot
+        // labelled GE vs expression appeared without anyone asking for it.
+        this._resetInspectSettings();
+        this._lastInspectPair = null;
         this.currentInspect = null;
         this._savedScatterTextSettings = null;
         const tsPanel = document.getElementById('textSettingsPanel');
         if (tsPanel) tsPanel.style.display = 'none';
+    }
+
+    // Axis measures and the axis ranges, plus every filter and overlay. Kept
+    // separate from resetAllInspectFilters, which is the user-facing Reset and
+    // must not redraw a plot that is being torn down.
+    _resetInspectSettings() {
+        const set = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
+        set('xAxisDataType', 'ge');
+        set('yAxisDataType', 'ge');
+        ['scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax'].forEach(id => set(id, ''));
+        set('scatterCancerFilter', '');
+        set('scatterSubtypeFilter', '');
+        const sub = document.getElementById('scatterSubtypeFilter');
+        if (sub) sub.style.display = 'none';
+        set('mutationFilterGene', ''); set('mutationFilterLevel', '1+2');
+        set('hotspotGene', ''); set('hotspotMode', 'color');
+        set('translocationFilterGene', ''); set('translocationFilterLevel', '1+2');
+        set('translocationGene', ''); set('translocationMode', 'color');
+        set('scatterCnFilter', ''); set('scatterCnLevel', 'altered');
+        set('colorByCategory', ''); set('colorByPicked', '');
+        set('customCellLineFilter', '');
+        set('scatterCellSearch', '');
+        this._customCellLineFilter = null;
+        const cnt = document.getElementById('customCLFilterCount');
+        if (cnt) cnt.textContent = '';
+        ['highlightChips', 'colorByChips', 'colorByLegend'].forEach(id => {
+            const e = document.getElementById(id);
+            if (e) { e.innerHTML = ''; e.style.display = 'none'; }
+        });
+        const caution = document.getElementById('mutationCautionScatter');
+        if (caution) caution.style.display = 'none';
+        this._scatterHighlight = null;
+        this._syncColorByGroupBtn?.();
+        this._styleActiveFilters?.();
+        this.clearGEGates?.();
     }
 
     resetInspectAxes() {

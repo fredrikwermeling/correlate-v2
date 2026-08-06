@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.46 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>The correlation popout starts fresh on a new gene pair.</b> Axis measures and filters were read from whatever the controls happened to say, so after setting one plot to gene effect against expression, clicking the next edge in the network opened as gene effect against expression too, without being asked. A new pair now resets the axis measures, the axis ranges, the tissue, mutation, fusion and copy-number filters, colour-by, highlights and custom cell lines, and closing the popout resets them as well.</li>
+                    <li>Returning to the same pair, from a gene popout for instance, keeps its setup, so the reset only fires when the pair actually changes.</li>
+                </ul>
                 <p><strong>v.85.45 (2026-08-05)</strong></p>
                 <ul>
                     <li>Internal: the gate feature is marked as belonging to the extended build only, in all four places it appears, and the set of features the simpler build leaves out is written down in one file rather than living in scattered comments. No change to how anything works.</li>
@@ -4975,7 +4980,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.45</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.46</a>
     </div>
 
     <div class="main-content">
@@ -7471,6 +7476,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_45"></script>
+    <script src="app.js?v=v85_46"></script>
 </body>
 </html>
