@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.56 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>Breast receptor status is called against fixed expression levels.</b> The split was the breast-line median for ER and PR and the top fifth for HER2, which decides in advance that half the panel is hormone-receptor positive: 25 of 50 lines came out HR+ where about 8 are. Receptor expression across these lines is not centred, it is two separate groups, so the cutoffs now sit in the gap between them (ERBB2 &ge; 8.0, else ESR1 &ge; 3.0 or PGR &ge; 1.0, on log&#8322;-TPM). HR+ is now the eight recognised luminal models, and HER2+ picks up JIMT-1, which the old top-fifth cut left out.</li>
+                    <li><b>Where the Lehmann panel disagrees, both calls are shown.</b> A published Lehmann TNBC subtype used to silently win, so KPL-1 was labelled triple-negative with no hint that its ER transcript sits at the 88th percentile of breast lines. The cell line summary and the Wiki now give the transcript call and state that Lehmann says otherwise, leaving the judgement to the reader. Two lines are affected, KPL-1 and MDA-MB-453.</li>
+                </ul>
                 <p><strong>v.85.55 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>The cell line summary leads with the likely driver, and says when one does not fit.</b> Alterations were listed in the order the data layers happened to be read, so a focal amplification could open the sentence ahead of the fusion that defines the line. They are now ranked: driver fusion, then a named oncogene hotspot, then an unnamed one, then focal amplification, and within each of those the alteration canonical for that cancer type comes first. Anything not expected for the cancer type is marked <i>atypical</i>, which is how MDA-MB-231 now reads as KRAS-driven, atypical for breast. Only fusions and oncogene hotspots are judged this way; TP53 or CDKN2A loss turns up almost everywhere and says nothing about lineage. Roughly 1 in 60 lines carries a flag.</li>
@@ -5010,7 +5015,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.55</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.56</a>
     </div>
 
     <div class="main-content">
@@ -7521,6 +7526,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_55"></script>
+    <script src="app.js?v=v85_56"></script>
 </body>
 </html>
