@@ -36878,8 +36878,29 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     // Shared look for the Wiki cohort-distribution histograms (receptor,
     // drug-response, genome) so they match instead of each being a flat-gray
     // blob: soft-filled bars with a thin border.
+    // Bars for every wiki histogram. They are context, the cohort this cell line
+    // sits in, so they are a single muted hue and carry no outline: a pale fill
+    // ringed by a saturated stroke was what made these panels look sketched
+    // rather than drawn. Checked against the white panel for contrast (3:1) and
+    // against the red "this line" marker for separation.
     _wikiHistMarker() {
-        return { color: '#dbeafe', line: { color: '#60a5fa', width: 1 } };
+        return { color: '#6b93b8' };
+    }
+
+    // Axis and spacing settings shared by the wiki histograms, so the three
+    // sets (genome, drug response, receptor status) read as one family.
+    _wikiHistAxisStyle(xTitle) {
+        return {
+            xaxis: {
+                title: { text: xTitle, font: { size: 9, color: '#6b7280' } },
+                tickfont: { size: 8, color: '#9ca3af' },
+                showgrid: false, zeroline: false, showline: true, linecolor: '#d1d5db'
+            },
+            // The bar heights carry the frequency; tick labels and gridlines on
+            // a panel this small are furniture, so only the baseline stays.
+            yaxis: { showgrid: false, zeroline: false, showticklabels: false, showline: false },
+            bargap: 0.15
+        };
     }
     // This cell line's value as a solid red marker line plus a small value
     // pill above the plot. Returns {} when no value, so it spreads cleanly
@@ -36891,6 +36912,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 type: 'line', x0: currentVal, x1: currentVal, y0: 0, y1: 1, yref: 'paper',
                 line: { color: '#dc2626', width: 2 }
             }],
+            // The pill above the line is the only number on the panel, which is
+            // what a direct label should be: one, on the mark that matters.
             annotations: [{
                 x: currentVal, y: 1.08, yref: 'paper',
                 text: `<b>${currentVal.toFixed(decimals)}</b>`,
@@ -36922,10 +36945,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 hovertemplate: '<b>%{x} log₂-TPM</b>: %{y} breast lines<extra></extra>'
             };
             const lay = {
-                margin: { l: 22, r: 10, t: 16, b: 26 },
-                xaxis: { title: { text: 'log₂-TPM across breast lines', font: { size: 9, color: '#6b7280' } }, tickfont: { size: 8, color: '#9ca3af' }, showgrid: false, zeroline: false, showline: true, linecolor: '#e5e7eb' },
-                yaxis: { tickfont: { size: 8 }, showgrid: true, gridcolor: '#f1f5f9', zeroline: false, showticklabels: false },
-                bargap: 0.06, showlegend: false,
+                margin: { l: 12, r: 10, t: 16, b: 26 },
+                ...this._wikiHistAxisStyle('log₂-TPM across breast lines'),
+                showlegend: false,
                 paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff',
                 font: { family: 'Open Sans, sans-serif' }, height: 84,
                 ...this._wikiHistMarkerLine(p.mine, 2)
@@ -36950,16 +36972,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
         const layout = {
             margin: { l: 26, r: 10, t: 16, b: 26 },
-            xaxis: {
-                title: { text: 'AUC across PRISM cohort', font: { size: 9, color: '#6b7280' } },
-                tickfont: { size: 8, color: '#9ca3af' }, showgrid: false, zeroline: false,
-                showline: true, linecolor: '#e5e7eb', range: [0, 1.1]
-            },
-            yaxis: {
-                tickfont: { size: 8 }, showgrid: true, gridcolor: '#f1f5f9',
-                zeroline: false, showticklabels: false
-            },
-            bargap: 0.06,
+            ...(() => { const st = this._wikiHistAxisStyle('AUC across PRISM cohort');
+                        st.xaxis.range = [0, 1.1]; return st; })(),
             showlegend: false,
             paper_bgcolor: '#ffffff',
             plot_bgcolor: '#ffffff',
@@ -37019,9 +37033,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // pan / zoom) stays on for export.
         const baseLayout = (xTitle, yTitle = '# lines') => ({
             margin: { l: 36, r: 10, t: 16, b: 34 },
-            xaxis: { title: { text: xTitle, font: { size: 10, color: '#6b7280' } }, tickfont: { size: 9, color: '#9ca3af' }, showgrid: false, zeroline: false, showline: true, linecolor: '#e5e7eb' },
-            yaxis: { title: { text: yTitle, font: { size: 10, color: '#6b7280' } }, tickfont: { size: 9, color: '#9ca3af' }, showgrid: true, gridcolor: '#f1f5f9', zeroline: false },
-            bargap: 0.06,
+            xaxis: { title: { text: xTitle, font: { size: 10, color: '#6b7280' } }, tickfont: { size: 9, color: '#9ca3af' }, showgrid: false, zeroline: false, showline: true, linecolor: '#d1d5db' },
+            // These panels are tall enough to earn a counted y-axis, unlike the
+            // small receptor and drug ones. The grid stays but recedes.
+            yaxis: { title: { text: yTitle, font: { size: 10, color: '#6b7280' } }, tickfont: { size: 9, color: '#9ca3af' }, showgrid: true, gridcolor: '#f3f4f6', zeroline: false },
+            bargap: 0.15,
             showlegend: false,
             // White (not transparent) so the Plotly camera-button PNG download
             // has a white background instead of a see-through / gray one. The
@@ -37056,19 +37072,17 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (wgdEl && (arrs.WGD_yes + arrs.WGD_no) > 0) {
             const isWgd = gs.WGD === true;
             const isKnown = gs.WGD != null;
+            // Same two colours as every other wiki histogram: the cohort bar in
+            // the muted hue, this cell line's own bar in the marker red.
             const colors = [
-                (isKnown && !isWgd) ? '#dc2626' : '#dbeafe',
-                (isKnown && isWgd)  ? '#dc2626' : '#dbeafe'
-            ];
-            const lineColors = [
-                (isKnown && !isWgd) ? '#dc2626' : '#60a5fa',
-                (isKnown && isWgd)  ? '#dc2626' : '#60a5fa'
+                (isKnown && !isWgd) ? '#dc2626' : '#6b93b8',
+                (isKnown && isWgd)  ? '#dc2626' : '#6b93b8'
             ];
             const trace = {
                 type: 'bar',
                 x: ['No WGD', 'WGD-positive'],
                 y: [arrs.WGD_no, arrs.WGD_yes],
-                marker: { color: colors, line: { color: lineColors, width: 1 } },
+                marker: { color: colors },
                 text: [arrs.WGD_no, arrs.WGD_yes].map(String),
                 textposition: 'outside',
                 textfont: { size: 10, color: '#374151' },
