@@ -115,20 +115,26 @@
 
   26. Network export whitespace — the filter banner's separator ran edge to edge
   and pinned the crop. 1200px → 530px. .83
+- ok
 
   27. Lineage filter lingering — the banner read the live dropdowns, so changing
   a filter relabelled an unchanged network. Now captured at run time. .81
-  
+- i dont follow the context for this comment. 
+
   28. Reset all emphasis — solid green, dark border. .76
+- ok. it looks good in general except for the reset all in network shuld have the same green as other things, not the dark green. its emphasised by being green and by having a sublte black border. no need to add another green nuance. 
 
   29. AI export naming a model — reworded. .76
+- ok. i note in the export for ai in the gene effect that it suggest to ask what is the differnce in gata a and b. first there are no gates in gene effect (only in mutational analysis. and since gates are likelly not going to the version to be publishe, make a more genereic comment than top talka bout gates. 
 
   30. Mode switch not clearing results — network, tables and summary now
   cleared; gene list kept. .79
+- it doesnt look to be implemented. if i first work with a network/gene list, and then go the the mutation analyis, the gene list is seen but grayed out. in general i´m thinking tha tthe mutational analysis could be partly changed to not keep too much of the network analysis parts visible. its a bit confusing, and could benefit from a more dedivcted look. perhaps the right side of the app could show the tabels setup that appear when pressing run in mutation analysis, but without any genes (as run has yet note beem pressed). also the 2. input gene set could be completelly hidden when selecting the mutation analysis. its confusing. 
 
   31. Mutational analysis over expression — Measure toggle. On BRAF: gene effect
   gives BRAF/SOX10/MAPK1/DUSP4, expression gives CD24/SPINT2/UCHL1. Top hit
   recomputed from raw matrix, exact match. .93
+
 
   32. Title not fully editable — panel split at the first <br>, but that's also
   how a title wraps. .88
