@@ -9834,6 +9834,9 @@ class CorrelationExplorer {
             }
         };
 
+        // Kept so the off-screen high-resolution render can build a clone that
+        // looks identical to what is on the page.
+        this._networkOptions = options;
         this.network = new vis.Network(container, data, options);
         this.networkData = data;
 
@@ -9954,7 +9957,11 @@ class CorrelationExplorer {
             // nodes off the canvas.
             this._netBasePositions = this.network.getPositions();
             this._netBaseSpread = 100;
-            this._applyNetworkSpread();
+            // Apply the default spacing, then hand the nodes straight back to
+            // the solver so a new network does not open in the locked state.
+            // Placing nodes needs the solver stopped, but it will not re-expand
+            // an already-settled layout, so the spacing survives being released.
+            this._applyNetworkSpread({ releaseAfter: true });
             clearTimeout(this._networkLoadingFallback);
             this._hideNetworkLoading();
             if (nodeCount > 30) {
@@ -10327,7 +10334,7 @@ class CorrelationExplorer {
     // that genuinely changes on-screen spacing is not refitting, and that only
     // works downwards, because going wider than the panel pushes nodes out of
     // sight. So downwards is what this offers.
-    _applyNetworkSpread() {
+    _applyNetworkSpread(opts = {}) {
         if (!this.network) return;
         let base = this._netBasePositions;
         if (!base || !Object.keys(base).length) {
@@ -10347,7 +10354,8 @@ class CorrelationExplorer {
         // the nodes are ours to place. It stays frozen, because giving them back
         // to the solver just lets it pull them to its own equilibrium again. The
         // Lock button flips to Unlock so the state is visible and reversible.
-        if (factor !== 1 && this.physicsEnabled !== false) this._freezeNetworkLayout();
+        const wasRunning = this.physicsEnabled !== false;
+        if (factor !== 1 && wasRunning) this._freezeNetworkLayout();
         let cx = 0, cy = 0;
         for (const id of ids) { cx += base[id].x; cy += base[id].y; }
         cx /= ids.length; cy /= ids.length;
@@ -10363,6 +10371,14 @@ class CorrelationExplorer {
         const scale = this.network.getScale();
         this.network.moveTo({ position: { x: cx, y: cy }, scale, animation: false });
         this.network.redraw();
+        // Used when a network first opens: the spacing is applied, then the
+        // solver takes the nodes back so the Lock button starts off unpressed.
+        if (opts.releaseAfter && wasRunning && this.physicsEnabled === false) {
+            this.physicsEnabled = true;
+            this.network.setOptions({ physics: { enabled: true } });
+            const btn = document.getElementById('togglePhysics');
+            if (btn) { btn.textContent = 'Lock'; btn.classList.remove('btn-active'); }
+        }
         clearTimeout(this._spreadSettle);
         this._spreadSettle = setTimeout(() => this._checkNetworkFits(), 250);
     }
@@ -11241,48 +11257,41 @@ Results:
     // magnified screenshot. Restores the view afterwards whatever happens.
     async _renderNetworkAtScale(factor) {
         const container = document.getElementById('networkPlot');
-        if (!container || !this.network) return null;
+        if (!container || !this.network || typeof vis === 'undefined') return null;
         const w = container.clientWidth, h = container.clientHeight;
         const view = this.network.getViewPosition();
         const scale = this.network.getScale();
-        const prevW = container.style.width, prevH = container.style.height;
 
-        // The hi-res grab works by briefly resizing the live canvas, which the
-        // user sees as the network ballooning and snapping back. Cover it with a
-        // still of itself and pin the wrapper, so the picture holds steady while
-        // the real canvas is resized underneath.
-        const wrap = container.parentElement;
-        let cover = null, prevWrapH = '', prevWrapOverflow = '', prevWrapPos = '';
+        // Draw the high-resolution copy in a second, throwaway network that
+        // lives off-screen, rather than resizing the one on the page. Resizing
+        // the live canvas was visible as the network jumping and settling back,
+        // and no amount of covering it up fully hid that. The clone is given the
+        // live node positions and no physics, so it is the same picture, just
+        // drawn bigger. The network on screen is never touched.
+        let host = null, clone = null;
         try {
-            const liveNow = container.querySelector('canvas');
-            if (wrap && liveNow) {
-                const snap = document.createElement('canvas');
-                snap.width = liveNow.width; snap.height = liveNow.height;
-                snap.getContext('2d').drawImage(liveNow, 0, 0);
-                snap.style.cssText = `width:${w}px; height:${h}px; display:block;`;
-                cover = document.createElement('div');
-                cover.id = 'networkCopyCover';
-                cover.style.cssText = `position:absolute; left:0; top:${container.offsetTop}px; `
-                    + `width:${w}px; height:${h}px; z-index:30; background:#fff; pointer-events:none;`;
-                cover.appendChild(snap);
-                prevWrapH = wrap.style.height;
-                prevWrapOverflow = wrap.style.overflow;
-                prevWrapPos = wrap.style.position;
-                wrap.style.height = wrap.offsetHeight + 'px';
-                wrap.style.overflow = 'hidden';
-                if (!wrap.style.position) wrap.style.position = 'relative';
-                wrap.appendChild(cover);
-            }
-        } catch (e) { cover = null; }
+            const positions = this.network.getPositions();
+            const nodes = this.networkData.nodes.get().map(n => ({
+                ...n,
+                x: positions[n.id] ? positions[n.id].x : n.x,
+                y: positions[n.id] ? positions[n.id].y : n.y,
+                fixed: true, physics: false
+            }));
+            host = document.createElement('div');
+            host.setAttribute('aria-hidden', 'true');
+            host.style.cssText = `position:fixed; left:-100000px; top:0; pointer-events:none; `
+                + `width:${Math.round(w * factor)}px; height:${Math.round(h * factor)}px;`;
+            document.body.appendChild(host);
 
-        try {
-            container.style.width = Math.round(w * factor) + 'px';
-            container.style.height = Math.round(h * factor) + 'px';
-            this.network.setSize(container.style.width, container.style.height);
-            this.network.moveTo({ position: view, scale: scale * factor, animation: false });
-            this.network.redraw();
+            clone = new vis.Network(host, {
+                nodes: new vis.DataSet(nodes),
+                edges: new vis.DataSet(this.networkData.edges.get())
+            }, { ...this._networkOptions, physics: { enabled: false }, interaction: { dragView: false, zoomView: false } });
+            clone.moveTo({ position: view, scale: scale * factor, animation: false });
+            clone.redraw();
             await new Promise(r => setTimeout(r, 120));
-            const live = container.querySelector('canvas');
+
+            const live = host.querySelector('canvas');
             if (!live) return null;
             const out = document.createElement('canvas');
             out.width = live.width; out.height = live.height;
@@ -11292,23 +11301,8 @@ Results:
             console.warn('High-resolution network render failed, using the on-screen canvas:', e);
             return null;
         } finally {
-            container.style.width = prevW;
-            container.style.height = prevH;
-            try {
-                this.network.setSize(prevW || (w + 'px'), prevH || (h + 'px'));
-                this.network.moveTo({ position: view, scale, animation: false });
-                this.network.redraw();
-            } catch (e) { /* view restore is best-effort */ }
-            // Uncover only after the real canvas is back at its own size, so the
-            // still is never lifted onto a half-restored picture.
-            if (cover) {
-                cover.remove();
-                if (wrap) {
-                    wrap.style.height = prevWrapH;
-                    wrap.style.overflow = prevWrapOverflow;
-                    wrap.style.position = prevWrapPos;
-                }
-            }
+            try { clone?.destroy(); } catch (e) { /* nothing to clean up */ }
+            host?.remove();
         }
     }
 
@@ -29000,22 +28994,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             tnbc: {
                 label: 'Triple-negative breast (measured)',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Selects:</b> breast lines with no focal ERBB2 amplification, ESR1 below 3.0 and PGR below 1.0 log&#8322;-TPM, so no ER, PR or HER2 signal. <b>Approximates</b> clinical triple-negative breast cancer, which is defined by IHC and FISH on protein; transcript and protein do not always agree.'
+                description: '<b>Selects:</b> breast lines with no focal ERBB2 amplification, ESR1 below 3.0 and PGR below 1.0 log&#8322;-TPM, so no ER, PR or HER2 signal. <b>Approximates</b> clinical triple-negative breast cancer. <b>The clinical test is different:</b> ER and PR status are read by immunohistochemistry on protein, and HER2 by immunohistochemistry with in-situ hybridisation (FISH) used to count <i>ERBB2</i> gene copies when the staining is equivocal. Transcript level and copy number are stand-ins for that, and they do not always agree with it.'
             },
             hr_pos_breast: {
                 label: 'HR+ / luminal breast (measured)',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Selects:</b> breast lines expressing ESR1 at 3.0 or above, or PGR at 1.0 or above (log&#8322;-TPM), without a focal ERBB2 amplification. HER2 takes precedence when both apply, as in clinical subtyping. <b>Approximates</b> ER+ / PR+, HER2&minus; luminal A/B breast cancer. Contains the recognised ER+ luminal models such as MCF7, T-47D and ZR-75-1.'
+                description: '<b>Selects:</b> breast lines expressing ESR1 at 3.0 or above, or PGR at 1.0 or above (log&#8322;-TPM), without a focal ERBB2 amplification. HER2 takes precedence when both apply, as in clinical subtyping. <b>Approximates</b> ER+ / PR+, HER2&minus; luminal A/B breast cancer. Contains the recognised ER+ luminal models such as MCF7, T-47D and ZR-75-1. <b>The clinical test is different:</b> ER and PR are scored by immunohistochemistry on protein, positive at 1 % or more of tumour nuclei staining. Transcript level is a stand-in for that.'
             },
             her2_pos_breast: {
                 label: 'HER2+ breast (copy number)',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Selects:</b> breast lines carrying a focal amplification of <b>ERBB2</b>. <b>Why copy number:</b> clinical HER2+ status is an amplification, tested by FISH, so this reads the amplification directly rather than inferring it from transcript level. <b>Limit:</b> tumours that are IHC 3+ without amplification cannot be detected this way.'
+                description: '<b>Selects:</b> breast lines carrying a focal amplification of <b>ERBB2</b>. <b>Why copy number:</b> clinically, HER2 is scored by immunohistochemistry on protein, and an equivocal result is resolved by in-situ hybridisation (FISH), which counts <i>ERBB2</i> gene copies. Copy number is the closest available match to that second test. <b>Limit:</b> a tumour that stains strongly for HER2 protein without gene amplification is HER2-positive clinically but is not detected here.'
             },
             breast_receptor_conflict: {
                 label: 'Breast: published and measured calls disagree',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Selects:</b> breast lines the Lehmann panels classified as triple-negative whose own expression or copy number reads HR+ or HER2+ instead. <b>Use for:</b> spotting lines whose receptor status is unsettled, worth checking against the receptor histograms in the Wiki before relying on either call. Elsewhere in the app the published call is the one shown, with the measured reading given alongside it.'
+                description: '<b>Selects:</b> breast lines the Lehmann panels classified as triple-negative whose own expression or copy number reads HR+ or HER2+ instead. <b>Use for:</b> spotting lines whose receptor status is unsettled, worth checking against the receptor histograms in the Wiki before relying on either call. Elsewhere in the app the published call is the one shown, with the measured reading given alongside it. Neither is the clinical test, which is done on protein.'
             },
             class_i_reduced: {
                 label: 'Class-I antigen presentation reduced/lost',
@@ -34977,7 +34971,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     </div>`;
                 }).join('');
                 receptorHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; otherwise the measurement stands in, and where the two disagree both are shown. The measured rule: <b>HER2+</b> on focal ERBB2 amplification (copy number, what FISH tests), otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels, placed in the gap between the expressing and non-expressing groups visible in these histograms. None of this is IHC.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; otherwise the measurement stands in, and where the two disagree both are shown. The measured rule: <b>HER2+</b> on focal <i>ERBB2</i> amplification, otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels, placed in the gap between the expressing and non-expressing groups visible in these histograms. <b>None of this is the clinical test.</b> Clinically, ER and PR are scored by immunohistochemistry on protein, and HER2 by immunohistochemistry with in-situ hybridisation (FISH) counting <i>ERBB2</i> gene copies where the staining is equivocal. Transcript level and copy number stand in for those, and a cell line can read differently from the tumour it came from.</p>
                     ${conflictHtml}
                     <div style="margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <span>Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span>${callBasis ? `<span style="color:#6b7280; font-size:10px; margin-left:6px;">${callBasis}</span>` : ''}</span>
@@ -36496,7 +36490,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'DepMap 25Q3 Model table (Oncotree lineage / subtype / code, patient-tumor features).'),
             receptorHtml ? section('Receptor status <span style="font-size:11px; color:#6b7280;">, expression surrogate for ER / PR / HER2</span>',
                 receptorHtml,
-                'DepMap 25Q3 OmicsExpressionTPMLogp1 (log₂-TPM+1) for ESR1 / PGR / ERBB2, plus DepMap focal copy number for ERBB2. Published TNBC calls from Lehmann JCI 2011 / PLOS ONE 2016. Measured rule: focal ERBB2 amplification for HER2+, otherwise ESR1 ≥ 3.0 or PGR ≥ 1.0 for HR+, otherwise triple-negative. Clinical receptor status is defined by IHC (and FISH for HER2) and may differ.') : '',
+                'DepMap 25Q3 OmicsExpressionTPMLogp1 (log₂-TPM+1) for ESR1 / PGR / ERBB2, plus DepMap focal copy number for ERBB2. Published TNBC calls from Lehmann JCI 2011 / PLOS ONE 2016. Measured rule: focal ERBB2 amplification for HER2+, otherwise ESR1 ≥ 3.0 or PGR ≥ 1.0 for HR+, otherwise triple-negative. Clinically, ER and PR are scored by immunohistochemistry on protein and HER2 by immunohistochemistry, with in-situ hybridisation (FISH) counting ERBB2 gene copies where staining is equivocal; transcript and copy number are approximations of that.') : '',
             section('Patient & sample origin',
                 originHtml,
                 'DepMap 25Q3 Model table, donor demographics and tissue collection metadata.'),

@@ -1163,32 +1163,30 @@
             gap: 8px;
         }
 
-        /* Sliders sit two to a row so the controls above the network stay short. */
+        /* One slider per row, but the whole control on a single line: name,
+           current value, then the track. Keeps each one readable at full width
+           while taking a quarter of the height the stacked version did. */
         .slider-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px 10px;
-            align-content: start;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
         }
 
         .slider-group {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
+            display: grid;
+            grid-template-columns: 52px 34px 1fr;
+            align-items: center;
+            column-gap: 6px;
+            row-gap: 1px;
         }
 
-        /* Label and current value share one line instead of taking two. */
-        .slider-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 6px;
-        }
+        .slider-head { display: contents; }
 
         .slider-row {
             display: flex;
-            gap: 3px;
+            gap: 4px;
             align-items: center;
+            min-width: 0;
         }
 
         .slider-step {
@@ -1205,12 +1203,13 @@
 
         /* Word labels under a slider, without the tick marks. */
         .slider-ticks-plain span::before { display: none; }
-        .slider-ticks-plain { padding: 0 2px; }
+        .slider-ticks-plain { padding: 0 2px; grid-column: 3; margin-top: 0; }
 
         .slider-group label {
             font-weight: 600;
             font-size: 11px;
             color: #374151;
+            white-space: nowrap;
         }
 
         .slider-with-value {
@@ -2041,6 +2040,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.63 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>Network sliders sit one per row again, each on a single line.</b> Name, value and track share a row, so they are still readable at full width but take a quarter of the height the stacked version did.</li>
+                    <li><b>A new network opens unlocked.</b> Placing nodes requires the layout engine to be stopped, which was leaving Lock pressed on every new network. The spacing is applied and the nodes handed straight back, so Lock starts off unpressed.</li>
+                    <li><b>Copying the network no longer disturbs it at all.</b> The high-resolution copy is drawn in a second, off-screen network rather than by resizing the one on the page, so nothing on screen moves.</li>
+                    <li><b>Receptor status wording corrected.</b> The help said clinical status is defined by IHC and FISH &ldquo;on protein&rdquo;, which is wrong about FISH. ER and PR are scored by immunohistochemistry on protein; HER2 by immunohistochemistry, with in-situ hybridisation (FISH) counting <i>ERBB2</i> gene copies where the staining is equivocal. The transcript and copy-number readings in this app are approximations of those tests, and the text now says so.</li>
+                </ul>
                 <p><strong>v.85.62 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>The controls above the network take up much less room.</b> The four sliders sit two to a row with the label and value on one line, so the network itself starts higher up the page. Compact is gone: it did the same job as the Spread slider. Networks now open at Spread 65 rather than 100, which is a tighter default.</li>
@@ -5084,7 +5090,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.62</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.63</a>
     </div>
 
     <div class="main-content">
@@ -7572,6 +7578,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_62"></script>
+    <script src="app.js?v=v85_63"></script>
 </body>
 </html>
