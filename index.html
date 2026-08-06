@@ -2003,6 +2003,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.61 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>Spread and Compact actually move the nodes now.</b> They only worked if you had pressed Lock first. While the layout engine is running it owns the node positions and redraws its own arrangement over anything placed by hand, so the setting changed the stored coordinates, reported them back correctly, and left the picture on screen alone. Spread and Compact now freeze the layout themselves before moving anything, and the Lock button flips to Unlock so it is clear what happened and how to undo it.</li>
+                </ul>
                 <p><strong>v.85.60 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>The 9p21 locus is reported once everywhere, not just where both genes happened to be called.</b> 34 cell lines reported a focal deletion of <b>CDKN2B</b> on its own, with CDKN2A not mentioned at all. Checked against the full copy-number matrix, 33 of those 34 have CDKN2A at effectively the same copy number as CDKN2B (0.33 against 0.33, 0.40 against 0.40): it is one deletion, and CDKN2A simply missed the curated call list. Naming CDKN2B alone pointed at the gene that is rarely the point while leaving out the one that is. All of these now read <b>CDKN2A/B</b>, and MTAP folds into the same locus. Across all 1,186 cell lines no summary now names CDKN2A or CDKN2B on its own.</li>
@@ -5034,7 +5038,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.60</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.61</a>
     </div>
 
     <div class="main-content">
@@ -7546,6 +7550,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_60"></script>
+    <script src="app.js?v=v85_61"></script>
 </body>
 </html>

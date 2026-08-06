@@ -10348,6 +10348,16 @@ class CorrelationExplorer {
         if (!ids.length) return;
         const factor = Math.min(1, ((parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100)
                                  / ((this._netBaseSpread || 100) / 100));
+
+        // A running physics simulation owns the node positions. The renderer
+        // draws the solver's bodies, so moveNode() writes a value that
+        // getPositions() will hand back while the picture on screen does not
+        // change: the setting measured as working and visibly did nothing, and
+        // it only behaved once the layout was locked by hand. Freeze it here so
+        // the nodes are ours to place. It stays frozen, because giving them back
+        // to the solver just lets it pull them to its own equilibrium again. The
+        // Lock button flips to Unlock so the state is visible and reversible.
+        if (factor !== 1 && this.physicsEnabled !== false) this._freezeNetworkLayout();
         let cx = 0, cy = 0;
         for (const id of ids) { cx += base[id].x; cy += base[id].y; }
         cx /= ids.length; cy /= ids.length;
@@ -10362,6 +10372,7 @@ class CorrelationExplorer {
         // out relative to their own size and labels.
         const scale = this.network.getScale();
         this.network.moveTo({ position: { x: cx, y: cy }, scale, animation: false });
+        this.network.redraw();
         clearTimeout(this._spreadSettle);
         this._spreadSettle = setTimeout(() => this._checkNetworkFits(), 250);
     }
@@ -12426,6 +12437,17 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         }
 
         return `rgb(${r},${g},${b})`;
+    }
+
+    // Stop the solver and hand the node positions over to us, leaving the Lock
+    // button showing what happened. Anything that places nodes by hand has to
+    // do this first, or the solver simply redraws its own layout over the top.
+    _freezeNetworkLayout() {
+        if (!this.network) return;
+        this.physicsEnabled = false;
+        this.network.setOptions({ physics: { enabled: false } });
+        const btn = document.getElementById('togglePhysics');
+        if (btn) { btn.textContent = 'Unlock'; btn.classList.add('btn-active'); }
     }
 
     togglePhysics() {
