@@ -10132,6 +10132,11 @@ class CorrelationExplorer {
                         this.hiddenNodes.push(node);
                         this.networkData.nodes.remove(nodeId);
                         this.updateRemovedNodesList();
+                        // With the colour scale set to "network only" the range is
+                        // read off the nodes that are actually drawn, so taking one
+                        // out changes it. Re-apply immediately rather than waiting
+                        // for the user to re-pick the scale.
+                        this.updateNetworkColors();
                         // Also remove gene from input list
                         const textarea = document.getElementById('geneTextarea');
                         const genes = textarea.value.split(/[\n\r]+/).map(g => g.trim()).filter(g => g);
@@ -10308,6 +10313,47 @@ class CorrelationExplorer {
     // Warn when part of the network has moved outside the visible area, which
     // is easy to cause by enlarging the font or nodes and impossible to notice
     // when the missing part is off-screen.
+    // Which nodes are not fully inside the panel. The node's own radius and the
+    // label under it both count: checking the centre alone, as this used to,
+    // called a node half over the edge, or one whose name hangs off the side,
+    // perfectly visible.
+    _networkNodesOutOfView() {
+        const host = document.getElementById('networkPlot');
+        if (!this.network || !host || !this.networkData) return [];
+        const w = host.clientWidth, h = host.clientHeight;
+        const positions = this.network.getPositions();
+        const scale = this.network.getScale();
+        const out = [];
+        for (const n of this.networkData.nodes.get()) {
+            const pos = positions[n.id];
+            if (!pos) continue;
+            const d = this.network.canvasToDOM(pos);
+            const r = (n.size || 25) * scale;
+            const fs = (n.font?.size || 16) * scale;
+            // Rough half-width of the label. Arial averages a little over half
+            // the font size per character; 0.28 is that halved, which is close
+            // enough to catch a name hanging off the edge.
+            const halfText = String(n.label || n.id).length * fs * 0.28;
+            const labelBottom = d.y + r + fs;
+            if (d.x - r < 0 || d.y - r < 0 || d.x + r > w || d.y + r > h
+                || d.x - halfText < 0 || d.x + halfText > w || labelBottom > h) out.push(n.id);
+        }
+        return out;
+    }
+
+    // Pull the zoom back a little at a time until every node and label is
+    // inside the panel. Running an analysis should never hand back a picture
+    // with something already cut off; zooming in afterwards is the user's call.
+    _zoomOutUntilNetworkFits() {
+        if (!this.network) return;
+        for (let i = 0; i < 12; i++) {
+            if (!this._networkNodesOutOfView().length) return;
+            const s = this.network.getScale();
+            if (s < 0.05) return;
+            this.network.moveTo({ scale: s * 0.92, animation: false });
+        }
+    }
+
     _checkNetworkFits() {
         clearTimeout(this._fitCheckTimer);
         this._fitCheckTimer = setTimeout(() => {
@@ -10315,12 +10361,7 @@ class CorrelationExplorer {
             if (!this.network || !host) return;
             let outside = 0;
             try {
-                const positions = this.network.getPositions();
-                const w = host.clientWidth, h = host.clientHeight;
-                for (const id in positions) {
-                    const p = this.network.canvasToDOM(positions[id]);
-                    if (p.x < 0 || p.y < 0 || p.x > w || p.y > h) outside++;
-                }
+                outside = this._networkNodesOutOfView().length;
             } catch (e) { return; }
             let note = document.getElementById('netFitWarning');
             if (!outside) { note?.remove(); return; }
@@ -10393,6 +10434,7 @@ class CorrelationExplorer {
         this.network.redraw();
         // Used when a network first opens: the spacing is applied, then the
         // solver takes the nodes back so the Lock button starts off unpressed.
+        if (opts.releaseAfter) this._zoomOutUntilNetworkFits();
         if (opts.releaseAfter && wasRunning && this.physicsEnabled === false) {
             this.physicsEnabled = true;
             this.network.setOptions({ physics: { enabled: true } });
@@ -11886,14 +11928,19 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             if (pos) {
                 const bgColor = node.color?.background || '#6ba544';
                 const nodeRadius = (node.size || 25) * scale;
-                const nodeFontSize = node.font?.size || 16;
+                // The label has to be scaled by the zoom like everything else.
+                // It was the one thing left unscaled, so at any zoom below 1 the
+                // text stayed full size while the nodes and edges shrank around
+                // it, which is why an exported edge read as much thinner than
+                // the same edge on screen.
+                const nodeFontSize = (node.font?.size || 16) * scale;
                 const borderW = node.borderWidth != null ? node.borderWidth : 2;
                 svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? '#000' : 'none'}" stroke-width="${borderW * scale}"/>\n`;
 
                 // Handle multi-line labels
                 const labelLines = (node.label || node.id).split('\n');
                 labelLines.forEach((line, i) => {
-                    const yOffset = pos.y + nodeRadius + 14 + (i * nodeFontSize);
+                    const yOffset = pos.y + nodeRadius + 14 * scale + (i * nodeFontSize);
                     svg += `  <text x="${pos.x}" y="${yOffset}" text-anchor="middle" style="font-family: Arial; font-size: ${nodeFontSize}px; fill: ${node.font?.color || '#333'};">${this.escapeXml(line)}</text>\n`;
                 });
             }
@@ -12132,6 +12179,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         this.hiddenNodes = [];
         this.network.fit();
         this.updateRemovedNodesList();
+        this.updateNetworkColors();
     }
 
     updateNetworkLabels() {
@@ -12679,6 +12727,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             this.networkData.nodes.add(node);
         }
         this.updateRemovedNodesList();
+        this.updateNetworkColors();
     }
 
     changeNetworkLayout() {
@@ -13281,14 +13330,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (pos) {
                 const bgColor = node.color?.background || '#6ba544';
                 const nodeRadius = (node.size || 25) * scale;
-                const nodeFontSize = node.font?.size || 16;
+                // The label has to be scaled by the zoom like everything else.
+                // It was the one thing left unscaled, so at any zoom below 1 the
+                // text stayed full size while the nodes and edges shrank around
+                // it, which is why an exported edge read as much thinner than
+                // the same edge on screen.
+                const nodeFontSize = (node.font?.size || 16) * scale;
                 const borderW = node.borderWidth != null ? node.borderWidth : 2;
                 svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? '#000' : 'none'}" stroke-width="${borderW * scale}"/>\n`;
 
                 // Handle multi-line labels
                 const labelLines = (node.label || node.id).split('\n');
                 labelLines.forEach((line, i) => {
-                    const yOffset = pos.y + nodeRadius + 14 + (i * nodeFontSize);
+                    const yOffset = pos.y + nodeRadius + 14 * scale + (i * nodeFontSize);
                     svg += `  <text x="${pos.x}" y="${yOffset}" text-anchor="middle" style="font-family: Arial; font-size: ${nodeFontSize}px; fill: ${node.font?.color || '#333'};">${this.escapeXml(line)}</text>\n`;
                 });
             }

@@ -2040,6 +2040,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.68 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>Exported networks keep the right edge thickness.</b> In the SVG, PDF and PowerPoint exports the node sizes and edge widths were scaled by the current zoom but the gene labels were not, so at any zoom below 1 the text stayed full size while everything around it shrank, and an edge came out looking far thinner than the same edge on screen. Labels now scale with the rest.</li>
+                    <li><b>The colour scale follows the network as genes are removed.</b> With <i>Scale: network only</i>, removing a gene in Remove Mode left the colours keyed to a range that included the gene that had just gone; you had to re-pick the scale to refresh it. Removing or restoring a gene now recolours straight away.</li>
+                    <li><b>&ldquo;Nodes outside the view&rdquo; now counts nodes and labels, not centres.</b> The warning only looked at the middle of each node, so a node sitting half over the edge, or one whose gene name hung off the side, counted as visible. Running an analysis also zooms out if anything would be cut off, so a network is never handed back already clipped.</li>
+                </ul>
                 <p><strong>v.85.67 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>Correlation scatter hover text corrected.</b> It said Shift-click opens the Cell Line Browser; it opens the cell line's Wiki, which is what it already did.</li>
@@ -5109,7 +5115,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.67</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.68</a>
     </div>
 
     <div class="main-content">
@@ -7600,6 +7606,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_67"></script>
+    <script src="app.js?v=v85_68"></script>
 </body>
 </html>
