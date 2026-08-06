@@ -86,17 +86,21 @@
 - I lack a bit of context here, but if this relate to the correlation popout overlaying eg a hotspot mutation and viewing it as 3 panels, it looks better, but in the settings i can still not edit the text of the idividual plots only the proper title of the plot. 
 
   18. Correlation title naming GE/expr/CN — added, wraps when long. .76
+- look at the screenshot from 06:58, the title doesnt look good in corrleation
 
   19. Gene hover text — leads with function. CDKN2A no longer opens with
   transcript-variant boilerplate. .84
+- ok. 
 
   20. Expression correlates — retired, panel unreachable. Code left in place —
   91 references, some shared with mutation-analysis inspect. .96
+- ok
 
   21. Shift-click inconsistency — both open the wiki now. .77
+- good. In the correlation it still states that shift click will go to cell line browser, it should be to cell line wiki (which should also be the text elswhere this function exist).
 
   22. Gene-effect filter chips — clickable like the browser's. .89
-
+- 
   23. Colour-by-GE not rescaling — node colours already followed visible genes;
   all four legends didn't. .77
 
