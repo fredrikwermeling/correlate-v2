@@ -2040,6 +2040,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.64 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>The analysis filters now work like the Cell Line Browser's.</b> Active filters appear as small chips under the controls. Click one to switch which cell lines it keeps, mutated against wild-type, fused against not fused, event present against absent, or to remove it. Same chips, same wording and same menus as the browser.</li>
+                    <li><b>A grid button on each of the three alteration filters.</b> The single &ldquo;Oncoprint&rdquo; button named the chart rather than what it does and only ever opened the mutation grid. There is now one small grid button beside the hotspot, copy-number and fusion filters, matching the browser. Genes picked from a grid appear as chips alongside the rest, which is how more than one gene of the same kind can be filtered on at once.</li>
+                    <li><b>Lineage and disease sit together.</b> The tissue and disease selectors are under one <i>Lineage and disease</i> heading rather than being separated.</li>
+                </ul>
                 <p><strong>v.85.63 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>Network sliders sit one per row again, each on a single line.</b> Name, value and track share a row, so they are still readable at full width but take a quarter of the height the stacked version did.</li>
@@ -5090,7 +5096,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.63</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.64</a>
     </div>
 
     <div class="main-content">
@@ -5293,7 +5299,7 @@
                     <div class="form-group" id="lineageFilterGroup" style="display: none;">
                         <!-- Section heading, peer to "Genetic alterations" below. The
                              subtype and exclude-tissue controls sit under it. -->
-                        <div class="param-section-heading">Lineage filter</div>
+                        <div class="param-section-heading">Lineage and disease</div>
                         <div style="display: flex; gap: 6px; align-items: center;">
                             <select id="lineageFilter" class="form-control" style="flex: 1;">
                                 <option value="">All lineages</option>
@@ -5303,7 +5309,7 @@
                     </div>
 
                     <div class="form-group" id="subLineageFilterGroup" style="display: none;">
-                        <label class="form-label">Subtype Filter:</label>
+                        <label class="form-label">Disease / subtype:</label>
                         <select id="subLineageFilter" class="form-control">
                             <option value="">All subtypes</option>
                         </select>
@@ -5321,10 +5327,7 @@
                     <div id="geneticAlterationsHeading" class="param-section-heading" style="display: none;">Genetic alterations</div>
 
                     <div class="form-group" id="paramHotspotFilterGroup" style="display: none;">
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <label class="form-label" style="margin-bottom:0;">Hotspot Mutation Filter:</label>
-                            <button id="oncoprintBtn" type="button" style="padding: 2px 8px; font-size: 10px; background: #6ba544; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show oncoprint of top hotspot mutations">Oncoprint</button>
-                        </div>
+                        <label class="form-label">Hotspot mutation:</label>
                         <!-- Gene box and level box share one row: they are one choice,
                              and stacking them made each filter look like two settings. -->
                         <div id="paramHotspotControls" class="param-filter-row">
@@ -5333,31 +5336,33 @@
                                 <div id="paramHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
                             <select id="paramHotspotLevel" class="form-control" style="flex:1 1 44%; min-width:0;">
-                                <option value="1+2" selected>Mutated</option>
-                                <option value="1">1 mut</option>
-                                <option value="2">2 mut</option>
-                                <option value="0">WT</option>
+                                <option value="1+2" selected>Mutated (either copy)</option>
+                                <option value="1">One copy mutated</option>
+                                <option value="2">Both copies mutated</option>
+                                <option value="0">Wild-type</option>
                             </select>
+                            <button type="button" class="btn btn-outline btn-sm clb-icon-btn" id="paramGridHotspotBtn" title="Mutation grid for the cell lines currently selected, click a gene to require it mutated or wild-type">&#9638;</button>
                         </div>
                         <div id="oncoprintFilterLabel" style="display:none; font-size:11px; color:#5d9239; margin-top:4px; cursor:pointer;" title="Click to clear oncoprint filters"></div>
                     </div>
 
                     <div class="form-group" id="paramCnFilterGroup" style="display: none;">
-                        <label class="form-label">Copy Number Filter:</label>
+                        <label class="form-label">Copy number:</label>
                         <div class="param-filter-row">
                             <div style="position:relative; flex:1 1 56%; min-width:0;">
                                 <input type="text" id="paramCnFilter" class="form-control" placeholder="Gene..." title="Search a gene with a focal amplification (&#9650;) or deletion (&#9660;) from the curated panel. Deletions include single-copy loss, not only homozygous." autocomplete="off">
                                 <div id="paramCnDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
                             <select id="paramCnLevel" class="form-control" style="flex:1 1 44%; min-width:0;">
-                                <option value="altered" selected>With event</option>
-                                <option value="wt">Only WT</option>
+                                <option value="altered" selected>Event present</option>
+                                <option value="wt">No event</option>
                             </select>
+                            <button type="button" class="btn btn-outline btn-sm clb-icon-btn" id="paramGridCnBtn" title="Copy-number grid for the cell lines currently selected, click a gene to require the event present or absent">&#9638;</button>
                         </div>
                     </div>
 
                     <div class="form-group" id="paramTranslocationFilterGroup" style="display: none;">
-                        <label class="form-label">Fusion Filter:</label>
+                        <label class="form-label">Fusion:</label>
                         <div class="param-filter-row">
                             <div style="position:relative; flex:1 1 56%; min-width:0;">
                                 <input type="text" id="paramTranslocationGene" class="form-control" placeholder="Fusion..." title="Search a fusion; &#9733; marks curated clinical driver pairs" autocomplete="off">
@@ -5367,7 +5372,9 @@
                                 <option value="1+2" selected>Fused</option>
                                 <option value="0">Not fused</option>
                             </select>
+                            <button type="button" class="btn btn-outline btn-sm clb-icon-btn" id="paramGridFusionBtn" title="Fusion grid for the cell lines currently selected, click a gene to require it fused or not fused">&#9638;</button>
                         </div>
+                        <div id="paramActiveFilters" class="clb-active-filters" style="display:none;"></div>
                         <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 4px; font-size: 9px; color: #92400e;">
                             Selecting for genetic alterations can introduce unintended bias in analysis.
                             <span onclick="const d=this.nextElementSibling; d.style.display = d.style.display==='none'?'block':'none';" style="display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; background:#f59e0b; color:#fff; font-weight:700; font-size:9px; cursor:pointer; vertical-align:middle;" title="More about this bias">?</span>
@@ -7578,6 +7585,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_63"></script>
+    <script src="app.js?v=v85_64"></script>
 </body>
 </html>

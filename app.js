@@ -1087,6 +1087,7 @@ class CorrelationExplorer {
                     // the level to "mutated (1+2)" each time a gene is selected.
                     if (document.getElementById('paramHotspotGene').value) document.getElementById('paramHotspotLevel').value = '1+2';
                     this.updateParamHotspotLevelCounts();
+                    this._renderFilterChips('params');
                 },
                 () => this._paramCohortExcluding('hotspot'));
             this.updateParamHotspotLevelCounts();
@@ -1102,6 +1103,7 @@ class CorrelationExplorer {
             () => {
                 // Selecting a CN event defaults to "with event" (vs WT).
                 if (document.getElementById('paramCnFilter').value) document.getElementById('paramCnLevel').value = 'altered';
+                this._renderFilterChips('params');
             },
             () => this._paramCohortExcluding('cn'));
     }
@@ -2918,7 +2920,7 @@ class CorrelationExplorer {
             const outsideHandler = (e) => {
                 const upsetPopup = document.getElementById('upsetPopup');
                 const upsetSetup = document.getElementById('upsetSetupPopup');
-                if (!popup.contains(e.target) && e.target.id !== 'oncoprintBtn'
+                if (!popup.contains(e.target) && !/^paramGrid(Hotspot|Fusion|Cn)Btn$/.test(e.target.id)
                     && (!upsetPopup || !upsetPopup.contains(e.target))
                     && (!upsetSetup || !upsetSetup.contains(e.target))) {
                     popup.remove();
@@ -2962,10 +2964,14 @@ class CorrelationExplorer {
         } else {
             // Update param section lineage filter counts to reflect oncoprint filters
             this._updateLineageFilterCounts();
+            this._renderFilterChips('params');
         }
     }
 
     _updateLineageFilterCounts() {
+        // The chip strip mirrors these controls, so it is redrawn from the same
+        // place the counts are, and cannot drift out of step with them.
+        this._renderFilterChips('params');
         const select = document.getElementById('lineageFilter');
         if (!select || !this.cellLineMetadata?.lineage) return;
         const currentVal = select.value;
@@ -4647,7 +4653,12 @@ class CorrelationExplorer {
 
         // Tissue breakdown button (mutations)
         document.getElementById('tissueBreakdownBtn').addEventListener('click', () => this.showTissueBreakdownPopup('mutation'));
-        document.getElementById('oncoprintBtn').addEventListener('click', () => this.showOncoprint(null));
+        // Three grid buttons, one per alteration type, matching the cell line
+        // browser. The single "Oncoprint" text button they replace named the
+        // chart rather than what it does, and only ever opened the mutation one.
+        document.getElementById('paramGridHotspotBtn')?.addEventListener('click', () => this.showOncoprint(null, 'hotspot'));
+        document.getElementById('paramGridFusionBtn')?.addEventListener('click', () => this.showOncoprint(null, 'fusion'));
+        document.getElementById('paramGridCnBtn')?.addEventListener('click', () => this.showOncoprint(null, 'cn'));
         document.getElementById('mutationHotspotSelect').addEventListener('change', () => {
             const hasVal = document.getElementById('mutationHotspotSelect').value;
             document.getElementById('tissueBreakdownBtn').style.display = hasVal ? 'inline-block' : 'none';
@@ -4733,10 +4744,13 @@ class CorrelationExplorer {
         // Parameter translocation filter
         document.getElementById('paramTranslocationGene')?.addEventListener('change', () => {
             this.updateParamTranslocationLevelCounts();
+            this._renderFilterChips('params');
         });
-        document.getElementById('paramTranslocationLevel')?.addEventListener('change', () => {
-            // Counts stay the same; filter applies on Run
-        });
+        // Every level select redraws the chip strip, so the chip always names
+        // the side of the filter that is actually in force.
+        ['paramTranslocationLevel', 'paramHotspotLevel', 'paramCnLevel', 'lineageFilter', 'subLineageFilter',
+         'paramHotspotGene', 'paramCnFilter']
+            .forEach(id => document.getElementById(id)?.addEventListener('change', () => this._renderFilterChips('params')));
 
         // Mutation results search
         document.getElementById('mutationSearch').addEventListener('input', (e) => {
@@ -32880,6 +32894,216 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Options behind each filter chip. The level select still holds the value
     // so the filter chain and saved views are unchanged; this is just where the
     // user now sets it.
+
+    // ---------------------------------------------------------------------
+    // Shared cell-line filter bar.
+    //
+    // Every panel that filters cell lines used to do it its own way: different
+    // wording for the same thing, chips in the browser but bare inputs
+    // everywhere else, and a text "Oncoprint" button in one place against small
+    // grid buttons in another. This registry is what makes them one control.
+    // Each context names its elements; the chip strip, the chip menus and the
+    // wording all come from here, so a filter reads the same wherever it is.
+    // ---------------------------------------------------------------------
+    _FILTER_BAR_SPEC() {
+        // The words for each alteration state, shared by every context so the
+        // same filter never reads two different ways.
+        const HOT = {
+            '1+2': 'Mutated (either copy)', '1': 'One copy mutated',
+            '2': 'Both copies mutated', '0': 'Wild-type',
+            altered: 'Mutated', wt: 'Wild-type',
+        };
+        const FUS = { '1+2': 'Fused', altered: 'Fused', '0': 'Not fused', wt: 'Not fused', nocall: 'Not callable' };
+        const CN = { altered: 'Event present', wt: 'No event' };
+        const opts = (map, vals) => vals.map(v => ({ v, label: map[v] }));
+
+        const ctx = {
+            clb: {
+                tissue: 'clbTissueFilter', subtype: 'clbSubtypeFilter', oncotree: 'clbOncotreeFilter',
+                sex: 'clbSexFilter', chips: 'clbActiveFilters',
+                hotspot: { geneId: 'clbHotspotFilter', levelId: 'clbHotspotLevel', options: opts(HOT, ['1+2', '1', '2', '0']) },
+                fusion:  { geneId: 'clbTranslocationFilter', levelId: 'clbFusionLevel', options: opts(FUS, ['1+2', '0', 'nocall']) },
+                cn:      { geneId: 'clbCnFilter', levelId: 'clbCnLevel', options: opts(CN, ['altered', 'wt']) },
+                apply: () => this.renderCellLineList(),
+            },
+            params: {
+                tissue: 'lineageFilter', subtype: 'subLineageFilter', chips: 'paramActiveFilters',
+                hotspot: { geneId: 'paramHotspotGene', levelId: 'paramHotspotLevel', options: opts(HOT, ['1+2', '1', '2', '0']) },
+                fusion:  { geneId: 'paramTranslocationGene', levelId: 'paramTranslocationLevel', options: opts(FUS, ['1+2', '0']) },
+                cn:      { geneId: 'paramCnFilter', levelId: 'paramCnLevel', options: opts(CN, ['altered', 'wt']) },
+                apply: () => { this._updateLineageFilterCounts?.(); this._refreshParamFilterDependents?.(); },
+            },
+            scatter: {
+                tissue: 'scatterCancerFilter', subtype: 'scatterSubtypeFilter', chips: 'scatterActiveFilters',
+                hotspot: { geneId: 'mutationFilterGene', levelId: 'mutationFilterLevel', options: opts(HOT, ['1+2', '1', '2', '0']) },
+                fusion:  { geneId: 'translocationFilterGene', levelId: 'translocationFilterLevel', options: opts(FUS, ['1+2', '0', 'nocall']) },
+                cn:      { geneId: 'scatterCnFilter', levelId: 'scatterCnLevel', options: opts(CN, ['altered', 'wt']) },
+                apply: () => this.updateInspectPlot(),
+            },
+            ge: {
+                tissue: 'geTissueFilter', subtype: 'geSubtypeFilter', chips: 'geActiveFilters',
+                hotspot: { geneId: 'geHotspotFilter', levelId: 'geHotspotLevel', options: opts(HOT, ['altered', 'wt']) },
+                fusion:  { geneId: 'geFusionFilter', levelId: 'geFusionLevel', options: opts(FUS, ['altered', 'wt']) },
+                cn:      { geneId: 'geCnFilter', levelId: 'geCnLevel', options: opts(CN, ['altered', 'wt']) },
+                apply: () => this._reapplyGeneEffectFilters?.(),
+            },
+            ca: {
+                tissue: 'caTissueFilter', chips: 'caActiveFilters',
+                hotspot: { geneId: 'caHotspotFilter', levelId: 'caHotspotLevel', options: opts(HOT, ['1+2', '1', '2', '0']) },
+                fusion:  { geneId: 'caFusionFilter', levelId: 'caFusionLevel', options: opts(FUS, ['1+2', '0', 'nocall']) },
+                cn:      { geneId: 'caCnFilter', levelId: 'caCnLevel', options: opts(CN, ['altered', 'wt']) },
+                apply: () => this._reapplyCorrAnalysisFilters?.(),
+            },
+        };
+        return ctx;
+    }
+
+    _filterCtx(name) { return this._FILTER_BAR_SPEC()[name] || null; }
+
+    // Re-run whatever the main page shows off the back of its filters. The
+    // analysis itself is not re-run, only the counts and labels that describe
+    // the cohort, so editing a chip never silently changes a result.
+    _refreshParamFilterDependents() {
+        try { this.updateSubLineageFilter?.(); } catch (e) {}
+        try { this._updateParamFilterVisibility?.(); } catch (e) {}
+    }
+
+    // Is this alteration filter currently asking for the wild-type side? Used
+    // to grey the chip, so "kept because altered" and "kept because not
+    // altered" never look alike.
+    _filterIsWildType(kind, value) {
+        if (kind === 'hotspot') return value === '0' || value === 'wt';
+        if (kind === 'fusion') return value === '0' || value === 'wt' || value === 'nocall';
+        return value === 'wt';
+    }
+
+    // The chip strip for any context. Same markup, same wording, same menus as
+    // the cell line browser, wherever it is mounted.
+    _renderFilterChips(ctxName) {
+        const spec = this._filterCtx(ctxName);
+        if (!spec) return;
+        const host = document.getElementById(spec.chips);
+        if (!host) return;
+        const val = (id) => (id && document.getElementById(id)?.value) || '';
+        const chip = (kind, text, style, title) =>
+            `<span class="clb-chip" data-chip="${kind}" title="${title}" style="${style}padding:1px 6px;border-radius:10px;cursor:pointer;">${text} &#9662;</span>`;
+        const gray = 'background:#f3f4f6;color:#4b5563;';
+        const parts = [];
+
+        const tissue = val(spec.tissue), subtype = val(spec.subtype), onco = val(spec.oncotree);
+        if (tissue) {
+            parts.push(chip('tissue', this.esc(tissue) + (subtype ? ' · ' + this.esc(subtype) : ''),
+                'background:var(--earth-50);color:var(--earth-700);', 'Click to remove this filter'));
+        }
+        if (onco) parts.push(chip('oncotree', this.esc(onco), 'background:#ecfeff;color:#155e75;', 'Click to remove this filter'));
+        if (spec.sex && val(spec.sex)) {
+            const m = {
+                ann_male: 'Male (annotation)', ann_female: 'Female (annotation)', ann_unknown: 'Sex unknown (annotation)',
+                exp_male: 'Male (by expression)', exp_female: 'Female (by expression)', exp_unknown: 'Sex unclear (by expression)',
+            };
+            parts.push(chip('sex', m[val(spec.sex)] || val(spec.sex), 'background:#eef2ff;color:#3730a3;', 'Click to change or remove this filter'));
+        }
+
+        const editTitle = 'Click to change which cell lines are kept, or to remove this filter';
+        const hotGene = val(spec.hotspot?.geneId);
+        if (hotGene) {
+            const lvl = val(spec.hotspot.levelId) || spec.hotspot.options[0].v;
+            const wt = this._filterIsWildType('hotspot', lvl);
+            const word = { '1+2': 'mutated', altered: 'mutated', '1': 'one copy mutated', '2': 'both copies mutated', '0': 'WT', wt: 'WT' }[lvl] || 'mutated';
+            parts.push(chip('hotspot', `${this.esc(hotGene)} ${word}`, wt ? gray : 'background:#e6efde;color:#5a7d35;', editTitle));
+        }
+        const fusGene = this._stripFusionFilterDecoration(val(spec.fusion?.geneId));
+        if (fusGene) {
+            const lvl = val(spec.fusion.levelId) || spec.fusion.options[0].v;
+            const wt = this._filterIsWildType('fusion', lvl);
+            const word = lvl === 'nocall' ? 'not callable' : wt ? 'not fused' : 'fused';
+            parts.push(chip('fusion', `${this.esc(fusGene)} ${word}`, wt ? gray : 'background:#efe7ec;color:#7d5a66;', editTitle));
+        }
+        const cnGene = val(spec.cn?.geneId);
+        if (cnGene) {
+            const lvl = val(spec.cn.levelId) || 'altered';
+            const wt = this._filterIsWildType('cn', lvl);
+            const label = this._stripCnFilterDecoration(cnGene).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del');
+            parts.push(chip('cn', `${this.esc(label)}${wt ? ' absent' : ' present'}`, wt ? gray : 'background:#fef3c7;color:#92400e;', editTitle));
+        }
+
+        // Genes picked out of an alteration grid. These are how more than one
+        // gene of the same kind is filtered on at once.
+        for (const f of (this._activeOncoprintFilters || [])) {
+            if (f.gene === hotGene || f.gene === fusGene) continue;
+            const on = f.state === 'mut';
+            parts.push(`<span class="clb-chip" data-chip="grid" data-grid-gene="${this.esc(f.gene)}" title="Click to switch side or remove"`
+                + ` style="background:${on ? '#dcfce7' : '#fef2f2'};color:${on ? '#5d9239' : '#dc2626'};padding:1px 6px;border-radius:10px;cursor:pointer;">`
+                + `${this.esc(f.gene)} ${on ? 'Mut' : 'WT'} &#9662;</span>`);
+        }
+
+        host.innerHTML = parts.join(' ');
+        host.style.display = parts.length ? 'flex' : 'none';
+        host.querySelectorAll('[data-chip]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (e.target.closest('[data-clear-collection]')) return;
+                e.preventDefault();
+                this._showFilterChipMenu(ctxName, el.dataset.chip, el);
+            });
+        });
+    }
+
+    // The menu behind a chip: switch which side is kept, or drop the filter.
+    _showFilterChipMenu(ctxName, kind, anchorEl) {
+        const spec = this._filterCtx(ctxName);
+        if (!spec) return;
+        document.getElementById('clbChipMenu')?.remove();
+        const after = () => { this._renderFilterChips(ctxName); spec.apply?.(); };
+        const setVal = (id, v) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.value = v;
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        if (kind === 'tissue') {
+            return this._simpleChipMenu(anchorEl, [{
+                label: 'Remove this filter', danger: true,
+                act: () => { setVal(spec.subtype, ''); setVal(spec.tissue, ''); },
+            }], after);
+        }
+        if (kind === 'oncotree') {
+            return this._simpleChipMenu(anchorEl, [{
+                label: 'Remove this filter', danger: true, act: () => setVal(spec.oncotree, ''),
+            }], after);
+        }
+        if (kind === 'sex') {
+            const cur = document.getElementById(spec.sex)?.value;
+            return this._simpleChipMenu(anchorEl, [
+                { label: 'Male (annotation)', active: cur === 'ann_male', act: () => setVal(spec.sex, 'ann_male') },
+                { label: 'Female (annotation)', active: cur === 'ann_female', act: () => setVal(spec.sex, 'ann_female') },
+                { label: 'Male (by expression)', active: cur === 'exp_male', act: () => setVal(spec.sex, 'exp_male') },
+                { label: 'Female (by expression)', active: cur === 'exp_female', act: () => setVal(spec.sex, 'exp_female') },
+                { label: 'Remove this filter', danger: true, act: () => setVal(spec.sex, '') },
+            ], after);
+        }
+        if (kind === 'grid') {
+            const gene = anchorEl.dataset.gridGene;
+            return this._simpleChipMenu(anchorEl, [
+                { label: 'Keep altered lines', act: () => { this._oncoprintFilters[gene] = 'mut'; this._oncoprintSyncFilters?.(); } },
+                { label: 'Keep wild-type lines', act: () => { this._oncoprintFilters[gene] = 'wt'; this._oncoprintSyncFilters?.(); } },
+                { label: 'Remove this filter', danger: true, act: () => this._oncoprintClearGene?.(gene) },
+            ], after);
+        }
+
+        const unit = spec[kind];
+        if (!unit) return;
+        const cur = document.getElementById(unit.levelId)?.value;
+        const rows = unit.options.map(o => ({
+            label: o.label, active: cur === o.v, act: () => setVal(unit.levelId, o.v),
+        }));
+        rows.push({
+            label: 'Remove this filter', danger: true,
+            act: () => { setVal(unit.geneId, ''); },
+        });
+        this._simpleChipMenu(anchorEl, rows, after);
+    }
+
     _CLB_CHIP_SPEC() {
         return {
             hotspot: {
