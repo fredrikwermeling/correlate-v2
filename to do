@@ -100,9 +100,11 @@
 - good. In the correlation it still states that shift click will go to cell line browser, it should be to cell line wiki (which should also be the text elswhere this function exist).
 
   22. Gene-effect filter chips — clickable like the browser's. .89
-- 
+- I lack som context here and dont follow the comment, what is filter chips?. But in the gene effect (and mutational analsis insepct), the filters should work as 
+
   23. Colour-by-GE not rescaling — node colours already followed visible genes;
   all four legends didn't. .77
+- it seems to work, but when removeing or adding back genes using the remove mode, I need to reselect the scale to "network only" for it to change the scale of the coloring scale. this should be automaitic if the color scale lowest is -2 and i click to remove the .2 gene, the scale should autmaitically scale to the new reality without the removed gene. and if the gene is returned, the colors should directly scale accordingly.
 
   24. Network node spacing — Spread slider, 40–220%, independent of font/node
   size. .85
