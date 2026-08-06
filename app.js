@@ -19854,6 +19854,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
         setActive('modeGeneSetBtn', !isMutation);
         setActive('modeMutationBtn', isMutation);
+
+        // Mutation analysis does not read the gene box at all: it picks its own
+        // genes by ranking the whole screen. Leaving box 2 on screen, greyed out
+        // and still holding the last network's gene list, invited the reading
+        // that those genes were about to be used. Hide it outright in this mode.
+        const geneCard = document.getElementById('geneInputCard');
+        if (geneCard) geneCard.style.display = isMutation ? 'none' : '';
+
+        // Show the results area this mode actually fills, so the right-hand side
+        // is the empty Mutation Analysis table rather than a network from the
+        // previous mode.
+        const wanted = isMutation ? 'mutation' : 'network';
+        const tabBtn = document.querySelector(`.nav-link[data-tab="${wanted}"]`);
+        const tabPane = document.getElementById('tab-' + wanted);
+        if (tabBtn && tabPane) {
+            if (isMutation) tabBtn.style.display = '';
+            document.querySelectorAll('.nav-link').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            tabBtn.classList.add('active');
+            tabPane.classList.add('active');
+        }
     }
 
     // Gray out / enable boxes 1 (Set Parameters), 2 (Input Gene Set) and
