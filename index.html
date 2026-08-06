@@ -2003,6 +2003,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.59 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>Spread works, and there is a Compact button.</b> Dragging it down pulls the nodes closer together at exactly the same node, font and edge size, and the whole network stays in the panel. Compact does the same in one click, each click packing them tighter; Fit puts them back.</li>
+                    <li><b>Why it only goes one way now.</b> Spread used to run up to 220, and above 100 it pushed nodes off the edge of the panel, which read as the setting doing nothing. Once the whole network is in view, how far apart the nodes look is no longer something that can be dialled independently of node size: scaling the layout up and re-fitting is cancelled exactly by the zoom, and re-running the layout engine with a longer spring is cancelled the same way. Measured on an 18-node network, a twelvefold change in spring length moved the layout from 139 to 3410 units across while the picture on screen stayed the same size. So the top of the slider is now &ldquo;as far apart as they can sit with everything still visible&rdquo;, and the range below it is real.</li>
+                </ul>
                 <p><strong>v.85.58 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>HER2+ now comes from copy number, not transcript level.</b> Clinical HER2+ means amplification, which is what FISH tests, and the focal copy-number panel already carried ERBB2. The 11 lines called HER2+ all sit at CN 5.6 or above. Two lines the transcript rule had called HER2+ turn out to carry no amplification at all: MDA-MB-453, the standard AR+ / LAR model, and UACC-3133, which reads ER+ and moves to HR+.</li>
@@ -5025,7 +5030,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.58</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.59</a>
     </div>
 
     <div class="main-content">
@@ -5472,11 +5477,11 @@
                                 </div>
                                 <div style="display:flex; gap:4px; align-items:center;">
                                     <button type="button" onclick="app.adjustNumber('netSpread', -10)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">&minus;</button>
-                                    <input type="range" id="netSpread" min="40" max="220" value="100" step="10" style="flex:1; min-width:0;" title="How far apart the nodes sit. Lower packs the network into less space; higher spreads it out.">
+                                    <input type="range" id="netSpread" min="30" max="100" value="100" step="5" style="flex:1; min-width:0;" title="How far apart the nodes sit, at the same node, font and edge size. 100 is as far apart as they can sit with the whole network still in view; lower packs them closer together.">
                                     <button type="button" onclick="app.adjustNumber('netSpread', 10)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                                 </div>
                                 <div class="slider-ticks">
-                                    <span>tight</span><span></span><span></span><span></span><span>wide</span>
+                                    <span>packed</span><span></span><span></span><span></span><span>full panel</span>
                                 </div>
                             </div>
                             <div class="slider-group">
@@ -5547,6 +5552,7 @@
                             <label style="font-weight: 600; margin-bottom: 4px; display: block;">View Controls:</label>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
                                 <button class="btn btn-secondary" id="fitNetwork" title="Zoom and center so the whole network fits in view. Does not change the analysis.">Fit</button>
+                                <button class="btn btn-secondary" id="compactNetwork" title="Pull the nodes closer together, at the same node, font and edge size. Click again to pack them tighter still; Fit puts them back to filling the panel.">Compact</button>
                                 <button class="btn btn-secondary" id="toggleSelectMode" title="Click nodes to add them to a selection, then open Gene Effect or Correlation Analysis for that group. Click again to leave the mode.">Select Mode</button>
                                 <button class="btn btn-secondary" id="toggleRemoveMode" title="Click nodes to hide them from the picture. Removing a gene only changes what is drawn, not the underlying correlations. Restore All brings them back.">Remove Mode</button>
                                 <button class="btn btn-secondary" id="togglePhysics" title="Freeze the layout so nodes stop drifting and stay where you put them. Click again to let them settle freely.">Lock</button>
@@ -7536,6 +7542,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_58"></script>
+    <script src="app.js?v=v85_59"></script>
 </body>
 </html>

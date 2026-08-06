@@ -4834,7 +4834,26 @@ class CorrelationExplorer {
         document.getElementById('resetNetworkControls')?.addEventListener('click', () => this.resetNetworkControls());
         document.getElementById('networkNodeBorder')?.addEventListener('change', (e) => this.toggleNetworkBorder(e.target.checked));
         document.getElementById('fitNetwork').addEventListener('click', () => {
-            if (this.network) this.network.fit();
+            if (!this.network) return;
+            // Fit is also the way back from Compact: put the nodes back to
+            // filling the panel, then fit the view to them.
+            const sl = document.getElementById('netSpread');
+            if (sl && sl.value !== '100') {
+                sl.value = '100';
+                document.getElementById('spreadBubble').textContent = '100';
+                this._applyNetworkSpread();
+            }
+            this.network.fit();
+        });
+        // One click per step tighter, which is the quickest way to use this;
+        // the Spread slider is the same control with a finer grip.
+        document.getElementById('compactNetwork')?.addEventListener('click', () => {
+            const sl = document.getElementById('netSpread');
+            if (!this.network || !sl) return;
+            const next = Math.max(parseInt(sl.min, 10) || 30, (parseInt(sl.value, 10) || 100) - 15);
+            sl.value = String(next);
+            document.getElementById('spreadBubble').textContent = String(next);
+            this._applyNetworkSpread();
         });
         document.getElementById('restoreAllNodes').addEventListener('click', () => this.showHiddenNodes());
         document.getElementById('showGeneEffect').addEventListener('change', (e) => {
@@ -9936,10 +9955,16 @@ class CorrelationExplorer {
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
             this.network.fit({ animation: false });
-            // The settled layout is the reference Spread scales from, so the
-            // slider is reversible and does not compound on itself.
+            // The settled, fitted layout is the reference Spread works from, and
+            // it is by definition the 100 setting: the network exactly fills the
+            // panel there, so 100 is as far apart as the nodes can sit and still
+            // all be visible. Recording the slider's own value here instead used
+            // to make the reference whatever the slider happened to say from a
+            // previous run, which is how a factor above 1 crept in and pushed
+            // nodes off the canvas.
             this._netBasePositions = this.network.getPositions();
-            this._netBaseSpread = parseInt(document.getElementById('netSpread')?.value, 10) || 100;
+            this._netBaseSpread = 100;
+            this._applyNetworkSpread();
             clearTimeout(this._networkLoadingFallback);
             this._hideNetworkLoading();
             if (nodeCount > 30) {
@@ -10297,6 +10322,21 @@ class CorrelationExplorer {
 
     // Spring length from the current node size, font size and spread setting.
     // Push the settled layout out from, or in towards, its own centre.
+    // Pull the settled layout in towards its own centre, or let it back out to
+    // the full panel. Node, font and edge sizes are untouched and the zoom is
+    // held, so the only thing that changes is how far apart the nodes sit.
+    //
+    // Why the setting tops out at "fills the panel" rather than going wider:
+    // once the whole network is fitted in the frame, spacing at a fixed node
+    // size is no longer a free parameter. Scaling the layout up and refitting
+    // is exactly cancelled by the zoom, and the force solver only ever changes
+    // the layout's overall scale, so re-running it with a longer spring is
+    // cancelled the same way. Measured on an 18-node network: a 12-fold range
+    // of spring length moved the canvas span from 139 to 3410 px and the zoom
+    // from 1.0 to 0.096, leaving the on-screen picture the same. The one thing
+    // that genuinely changes on-screen spacing is not refitting, and that only
+    // works downwards, because going wider than the panel pushes nodes out of
+    // sight. So downwards is what this offers.
     _applyNetworkSpread() {
         if (!this.network) return;
         let base = this._netBasePositions;
@@ -10306,8 +10346,8 @@ class CorrelationExplorer {
         }
         const ids = Object.keys(base);
         if (!ids.length) return;
-        const factor = ((parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100)
-                     / ((this._netBaseSpread || 100) / 100);
+        const factor = Math.min(1, ((parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100)
+                                 / ((this._netBaseSpread || 100) / 100));
         let cx = 0, cy = 0;
         for (const id of ids) { cx += base[id].x; cy += base[id].y; }
         cx /= ids.length; cy /= ids.length;
