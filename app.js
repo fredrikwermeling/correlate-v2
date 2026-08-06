@@ -5855,6 +5855,19 @@ class CorrelationExplorer {
     // Shown wherever a typed gene symbol does not resolve. Offers the closest
     // matches (and the human ortholog for a mouse symbol), each clickable to
     // copy, instead of a bare "not found".
+    // The visible box whose contents include this gene symbol as a whole word.
+    // Used to put a corrected spelling back where it was typed, whichever of the
+    // app's many gene inputs that happened to be.
+    _findInputContainingGene(gene) {
+        const esc = String(gene).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`(^|[\\s,;])${esc}(?=[\\s,;]|$)`, 'i');
+        const boxes = [...document.querySelectorAll('input[type="text"], textarea')];
+        // A box the user is looking at wins over one hidden behind a modal.
+        return boxes.find(el => el.offsetParent !== null && el.value && re.test(el.value))
+            || boxes.find(el => el.value && re.test(el.value))
+            || null;
+    }
+
     geneNotFound(gene, where = '') {
         const sugg = (this._findGeneSuggestions([gene]).get(gene) || []).slice(0, 6);
         document.getElementById('geneNotFoundNotice')?.remove();
@@ -5868,14 +5881,32 @@ class CorrelationExplorer {
             + (sugg.length
                 ? `<div style="color:#6b7280; margin-bottom:6px;">Did you mean:</div><div>${sugg.map(g =>
                     `<button data-g="${this.esc(g)}" style="border:1px solid #d1d5db; background:#f9fafb; color:#4c782e; font-weight:600; border-radius:10px; padding:2px 10px; margin:0 6px 6px 0; cursor:pointer; font-size:11px;">${this.esc(g)}</button>`).join('')}</div>
-                   <div style="color:#9ca3af; font-size:10px; margin-top:4px;">Click one to copy it.</div>`
+                   <div style="color:#9ca3af; font-size:10px; margin-top:4px;">Click one to use it.</div>`
                 : `<div style="color:#6b7280;">No similar gene symbol in this dataset. Check the spelling, or use Find synonyms for an alternative name.</div>`);
         document.body.appendChild(box);
         box.querySelector('button').onclick = () => box.remove();
         box.querySelectorAll('[data-g]').forEach(b => {
             b.onclick = () => {
-                navigator.clipboard?.writeText(b.dataset.g);
-                this.showCopyNotification?.(`Copied ${b.dataset.g}`);
+                const picked = b.dataset.g;
+                // Put the correction where the misspelling came from. Copying it
+                // to the clipboard left the user to find the box and paste it
+                // themselves, which is the work the suggestion was meant to save.
+                const target = this._findInputContainingGene(gene);
+                if (target) {
+                    const esc = gene.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    target.value = target.value.replace(
+                        new RegExp(`(^|[\\s,;])${esc}(?=[\\s,;]|$)`, 'i'),
+                        (m, lead) => `${lead}${picked}`);
+                    target.dispatchEvent(new Event('input', { bubbles: true }));
+                    target.dispatchEvent(new Event('change', { bubbles: true }));
+                    try { target.focus(); } catch (e) {}
+                    this.showCopyNotification?.(`Replaced ${gene} with ${picked}`);
+                } else {
+                    // Nothing on screen still holds the typo, so fall back to the
+                    // clipboard rather than doing nothing.
+                    navigator.clipboard?.writeText(picked);
+                    this.showCopyNotification?.(`Copied ${picked}`);
+                }
                 box.remove();
             };
         });

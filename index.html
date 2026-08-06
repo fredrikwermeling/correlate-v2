@@ -2040,6 +2040,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.74 (2026-08-06)</strong></p>
+                <ul>
+                    <li><b>A suggested spelling goes into the box you typed in.</b> When a gene is not found the &ldquo;Did you mean&rdquo; suggestions used to copy to the clipboard, leaving you to find the box and paste it, which is the work the suggestion was there to save. Clicking one now replaces the misspelling where it was typed, whichever gene box that was, and re-runs whatever depended on it. If nothing on screen still holds the typo it falls back to copying.</li>
+                </ul>
                 <p><strong>v.85.73 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>Correlation titles no longer overlap themselves.</b> When the gene pair was too long for one line the second line landed on top of the first. The plotting library spaces the lines of a heading by the heading's own font size rather than the size each line is drawn at, so a title drawn large inside a block spaced for small text collided. The pair label now shrinks until it fits on one line, and in the rare case it still has to wrap the block is spaced for the title instead.</li>
@@ -5137,7 +5141,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.73</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.74</a>
     </div>
 
     <div class="main-content">
@@ -7628,6 +7632,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_73"></script>
+    <script src="app.js?v=v85_74"></script>
 </body>
 </html>
