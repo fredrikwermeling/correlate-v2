@@ -14895,7 +14895,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Build title - condensed to avoid overlapping with data
         const sts = this._savedScatterTextSettings;
-        const titleFontSize = sts?.titleFontSize || 25;
+        let titleFontSize = sts?.titleFontSize || 25;
         const subSize = sts?.subtitleSize || 15;
         // Name the measurement on each axis: the same gene pair means something
         // different for gene effect, expression and copy number.
@@ -14908,6 +14908,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ? `${gene1} vs ${gene2} (${_axisWord(_xType)})`.length
             : `${gene1} (${_axisWord(_xType)}) vs ${gene2} (${_axisWord(_yType)})`.length;
         const _plotW = parseInt(document.getElementById('plotWidth')?.value, 10) || 500;
+        // Plotly spaces the lines of an annotation by the annotation's own font
+        // size, not by the size each line is actually drawn at. A title drawn at
+        // 25px inside a block spaced for 13px put its second line on top of its
+        // first. Shrink the pair label until it fits one line, so the wrap that
+        // caused the collision does not happen; below the floor it still wraps,
+        // and the block is then spaced for the title instead.
+        const _TITLE_MIN = 15;
+        while (titleFontSize > _TITLE_MIN && _plainLen * titleFontSize * 0.58 >= _plotW) titleFontSize -= 1;
         const _fitsOneLine = _plainLen * titleFontSize * 0.58 < _plotW;
         const _brk = _fitsOneLine ? ' ' : '<br>';
         const _pairLabel = (_xType === _yType)
@@ -14980,13 +14988,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             yanchor: this._userTitlePosition ? 'auto' : 'bottom',
             text: titleText,
             showarrow: false,
-            font: { size: Math.round(subSize * 0.85) },
+            // One line of big text sits fine above smaller ones; two do not,
+            // unless the block is spaced for the big one.
+            font: { size: _fitsOneLine ? Math.round(subSize * 0.85) : titleFontSize },
             _tsRole: 'title'
         };
 
-        // Calculate margin based on title lines, spacing scales with subtitle
-        // font size. Extra base headroom accounts for the title gap above.
-        const topMargin = 94 + (titleLines.length * Math.max(subSize * 1.2, 14));
+        // Room for the title block. A wrapped pair label is spaced by the title
+        // size, so the reserve has to follow the same number.
+        const _lineLead = _fitsOneLine ? Math.max(subSize * 1.2, 14) : Math.max(titleFontSize * 1.2, 14);
+        const topMargin = 94 + (titleLines.length * _lineLead);
 
         const showZero = document.getElementById('showZeroLines')?.checked !== false;
 
