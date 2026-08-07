@@ -888,8 +888,10 @@ class CorrelationExplorer {
         const subSelect = document.getElementById('scatterSubtypeFilter');
 
         if (!lineage || !this.currentInspect?.data) {
-            subSelect.style.display = 'none';
+            // Stays on screen with nothing chosen. Appearing and disappearing as
+            // a tissue is picked made the panel jump.
             subSelect.innerHTML = '<option value="">All subtypes</option>';
+            subSelect.value = '';
             return;
         }
 
@@ -911,9 +913,9 @@ class CorrelationExplorer {
             subtypes.forEach(sub => {
                 subSelect.innerHTML += `<option value="${sub}">${sub} (n=${subtypeCounts[sub]})</option>`;
             });
-            subSelect.style.display = 'block';
+            
         } else {
-            subSelect.style.display = 'none';
+            subSelect.value = '';
             subSelect.innerHTML = '<option value="">All subtypes</option>';
         }
     }
@@ -1020,8 +1022,9 @@ class CorrelationExplorer {
         if (!subSelect) return;
 
         if (!lineage || !this.cellLineMetadata?.primaryDisease) {
-            subSelect.style.display = 'none';
+            // Stays on screen with nothing chosen, so the panel does not jump.
             subSelect.innerHTML = '<option value="">All subtypes</option>';
+            subSelect.value = '';
             return;
         }
 
@@ -1044,10 +1047,9 @@ class CorrelationExplorer {
             subtypes.forEach(sub => {
                 subSelect.innerHTML += `<option value="${sub}">${sub} (n=${subtypeCounts[sub]})</option>`;
             });
-            subSelect.style.display = '';
         } else {
-            subSelect.style.display = 'none';
             subSelect.innerHTML = '<option value="">All subtypes</option>';
+            subSelect.value = '';
         }
     }
 
@@ -12653,6 +12655,11 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             // 60 was worse than cosmetic: the next compaction measured from a
             // stale baseline, and 60 then behaved like the old 100.
             this._resetNetworkSpreadBaseline();
+            // Releasing the nodes can leave one, or its label, over the edge.
+            // Bring the view back so everything is visible again, once the
+            // solver has finished moving them.
+            clearTimeout(this._fitAfterUnlock);
+            this._fitAfterUnlock = setTimeout(() => this._zoomOutUntilNetworkFits(), 450);
         } else {
             btn.textContent = 'Unlock';
             btn.classList.add('btn-active');
@@ -14007,12 +14014,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             } else {
                 document.getElementById('scatterSubtypeFilter').innerHTML = '<option value="">All subtypes</option>';
-                document.getElementById('scatterSubtypeFilter').style.display = 'none';
+                document.getElementById('scatterSubtypeFilter').value = '';
             }
             cancerBox.style.display = 'block';
         } else {
             cancerBox.style.display = 'none';
-            document.getElementById('scatterSubtypeFilter').style.display = 'none';
+            document.getElementById('scatterSubtypeFilter').value = '';
         }
 
         // Reset color-by dropdown. "By subtype" is always offered now: it was
@@ -14454,7 +14461,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Reset cancer type and subtype filters
         document.getElementById('scatterCancerFilter').value = '';
         document.getElementById('scatterSubtypeFilter').value = '';
-        document.getElementById('scatterSubtypeFilter').style.display = 'none';
+        document.getElementById('scatterSubtypeFilter').value = '';
 
         // Reset mutation filters (gene cleared = filter off; level back to default)
         document.getElementById('mutationFilterGene').value = '';
@@ -15001,8 +15008,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // first. Shrink the pair label until it fits one line, so the wrap that
         // caused the collision does not happen; below the floor it still wraps,
         // and the block is then spaced for the title instead.
-        const _TITLE_MIN = 15;
-        while (titleFontSize > _TITLE_MIN && _plainLen * titleFontSize * 0.58 >= _plotW) titleFontSize -= 1;
+        // The title keeps the size it is set to. Shrinking it to fit one line
+        // meant switching an axis to expression, which lengthens the label,
+        // silently dropped the heading from 25px to 17px. It wraps instead, and
+        // the block is spaced for the title so the two lines cannot collide.
         const _fitsOneLine = _plainLen * titleFontSize * 0.58 < _plotW;
         const _brk = _fitsOneLine ? ' ' : '<br>';
         const _pairLabel = (_xType === _yType)
@@ -21519,7 +21528,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this._styleActiveFilters();
         } else {
             cancerBox.style.display = 'none';
-            document.getElementById('scatterSubtypeFilter').style.display = 'none';
+            document.getElementById('scatterSubtypeFilter').value = '';
         }
 
         // Populate hotspot genes (same as openInspect)

@@ -1178,6 +1178,34 @@
         /* One heading style for every block of controls above the network.
            Two of the four columns had a heading and two had none, and the ones
            that did set their own size and weight inline. */
+        /* Every filter selector in a popout gets the same size and width, so the
+           three tissue levels read as one control instead of three, and a long
+           disease name cannot stretch the box across the plot. */
+        .filter-level-select {
+            font-size: 10px !important;
+            padding: 2px 4px !important;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 2px;
+            box-sizing: border-box;
+            text-overflow: ellipsis;
+        }
+
+        /* The grid button sits beside its gene box rather than on its own row. */
+        /* Gene box and its grid button share one row. The button follows a
+           hidden level select in the markup, so it is pulled back up onto the
+           box's line rather than starting a new one. */
+        .filter-input-wrap { display: inline-block; width: calc(100% - 30px); vertical-align: top; }
+        .control-box-compact > .clb-icon-btn,
+        .form-group > .clb-icon-btn {
+            display: inline-flex;
+            vertical-align: top;
+            margin-left: 4px;
+            margin-top: -22px;
+            position: relative;
+            z-index: 1;
+        }
+
         .panel-heading {
             font-weight: 700;
             font-size: 11px;
@@ -2094,6 +2122,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.78 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>The title keeps its size when an axis switches to expression.</b> A longer label made the heading shrink from 25px to 17px to stay on one line. It now keeps the size it is set to and wraps instead, with the two lines spaced so they cannot collide.</li>
+                    <li><b>Unlocking the network brings everything back into view.</b> Releasing hand-placed nodes could leave one, or its label, over the edge; the view is now refitted once the layout stops moving.</li>
+                    <li><b>Three tissue levels everywhere, all the same shape.</b> Tissue, subtype and disease now sit together in the correlation scatter and the gene effect popout, all the same width and size. The disease selector was stretching right across the plot, and subtype was missing altogether in the scatter.</li>
+                    <li><b>Subtype no longer appears and disappears</b> as a tissue is picked, in the scatter and the gene effect popout as well as the analysis panel, so nothing jumps.</li>
+                    <li><b>The grid buttons share a row with their gene box</b> rather than taking a line of their own.</li>
+                </ul>
                 <p><strong>v.85.77 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>The header sits straight.</b> The version badge was part of the centred row, so the five links were pushed left of the logo. It is now placed on the right independently and the links centre on the logo exactly. &ldquo;Extended version&rdquo; has been tucked up under the tagline, clear of the links below.</li>
@@ -5214,7 +5250,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.77</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.78</a>
     </div>
 
     <div class="main-content">
@@ -5469,7 +5505,7 @@
                     <div class="form-group" id="paramCnFilterGroup" style="display: none;">
                         <label class="form-label">Copy number:</label>
                         <div class="param-filter-row">
-                            <div style="position:relative; flex:1 1 56%; min-width:0;">
+                            <div class="filter-input-wrap" style="position:relative; flex:1 1 56%; min-width:0;">
                                 <input type="text" id="paramCnFilter" class="form-control" placeholder="Gene..." title="Search a gene with a focal amplification (&#9650;) or deletion (&#9660;) from the curated panel. Deletions include single-copy loss, not only homozygous." autocomplete="off">
                                 <div id="paramCnDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
@@ -5484,7 +5520,7 @@
                     <div class="form-group" id="paramTranslocationFilterGroup" style="display: none;">
                         <label class="form-label">Fusion:</label>
                         <div class="param-filter-row">
-                            <div style="position:relative; flex:1 1 56%; min-width:0;">
+                            <div class="filter-input-wrap" style="position:relative; flex:1 1 56%; min-width:0;">
                                 <input type="text" id="paramTranslocationGene" class="form-control" placeholder="Fusion..." title="Search a fusion; &#9733; marks curated clinical driver pairs" autocomplete="off">
                                 <div id="paramTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
@@ -5890,7 +5926,7 @@
                              the button, with no indication it belonged to Enrichr. It is
                              now asked for when you press Enrichr. The select is kept
                              (hidden) because _getFilteredMutationGenes() reads it. -->
-                        <div style="position:relative; display:inline-block;">
+                        <div class="filter-input-wrap" style="position:relative; display:inline-block;">
                             <button class="btn btn-secondary btn-sm" id="mutEnrichrBtn" aria-haspopup="true" aria-expanded="false" title="Pathway enrichment analysis via Enrichr">Enrichr &#9662;</button>
                             <div id="mutEnrichrMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1500; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.14); min-width:190px; padding:4px;">
                                 <div style="font-size:10px; color:#9ca3af; padding:3px 10px 4px;">Which genes to send?</div>
@@ -6070,13 +6106,13 @@
                         <!-- Row 3: Tissue | Hotspot | Fusion filters -->
                         <div class="control-box-compact" id="cancerFilterBox" style="display: none;">
                             <span class="control-label" style="font-size:9px;">Tissue Filter</span>
-                            <select id="scatterCancerFilter" class="form-control" style="font-size: 10px; padding: 2px 4px;"><option value="">All tissues</option></select>
-                            <select id="scatterSubtypeFilter" class="form-control" style="margin-top: 2px; display: none; font-size: 10px; padding: 2px 4px;"><option value="">All subtypes</option></select>
-                                        <select id="scatterOncotreeFilter" class="form-control" style="font-size: 10px; padding: 2px 4px;" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
+                            <select id="scatterCancerFilter" class="form-control filter-level-select"><option value="">All tissues</option></select>
+                            <select id="scatterSubtypeFilter" class="form-control filter-level-select"><option value="">All subtypes</option></select>
+                            <select id="scatterOncotreeFilter" class="form-control filter-level-select" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
                         </div>
                         <div class="control-box-compact" id="mutationFilterBox" style="display: none; overflow: visible;">
                             <span class="control-label" style="font-size:9px;">Hotspot Filter</span>
-                            <div style="position:relative;">
+                            <div class="filter-input-wrap" style="position:relative;">
                                 <input type="text" id="mutationFilterGene" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="font-size: 10px; padding: 2px 4px;">
                                 <div id="mutationFilterDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
@@ -6087,7 +6123,7 @@
                         </div>
                         <div class="control-box-compact" id="scatterCnFilterBox" style="display: none; overflow: visible;">
                             <span class="control-label" style="font-size:9px;">CN amp/del Filter</span>
-                            <div style="position:relative;">
+                            <div class="filter-input-wrap" style="position:relative;">
                                 <input type="text" id="scatterCnFilter" class="form-control" placeholder="Amp / deletion..." autocomplete="off" style="font-size: 10px; padding: 2px 4px;">
                                 <div id="scatterCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
@@ -6102,7 +6138,7 @@
                         <div style="display:contents;">
                             <div class="control-box-compact" id="translocationFilterBox" style="flex:1; display:none; overflow:visible;">
                                 <span class="control-label" style="font-size:9px;">Fusion Filter</span>
-                                <div style="position:relative;">
+                                <div class="filter-input-wrap" style="position:relative;">
                                     <input type="text" id="translocationFilterGene" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="font-size: 10px; padding: 2px 4px;">
                                     <datalist id="translocationFilterGeneList"></datalist>
                                     <div id="translocationFilterDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
@@ -6320,13 +6356,13 @@
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Filters:</label>
                         <button class="btn btn-sm btn-outline" id="geShowAllBtn" style="display: none;">← Show All</button>
-                        <select id="geTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
+                        <select id="geTissueFilter" class="form-control filter-level-select" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
                             <option value="">All tissues</option>
                         </select>
-                        <select id="geSubtypeFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Filter by disease subtype">
+                        <select id="geSubtypeFilter" class="form-control filter-level-select" style="width: 140px; font-size: 11px; padding: 3px 6px; " title="Filter by disease subtype">
                             <option value="">All subtypes</option>
                         </select>
-                            <select id="geOncotreeFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
+                            <select id="geOncotreeFilter" class="form-control filter-level-select" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
                         <div id="geHotspotFilterWrap" style="position:relative; display:none;">
                             <input type="text" id="geHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
                             <div id="geHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
@@ -6685,13 +6721,13 @@
                         <button class="btn btn-sm btn-outline" id="caShowAllBtn" style="display: none;">← Show All</button>
                         <button class="btn btn-sm btn-secondary" id="caResetFiltersBtn" style="display: none; font-size: 11px; padding: 3px 8px;" title="Reset all filters">Reset Filters</button>
                         <div id="caActiveFilters" class="clb-active-filters" style="display:none; width:100%;"></div>
-                        <select id="caTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
+                        <select id="caTissueFilter" class="form-control filter-level-select" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
                             <option value="">All tissues</option>
                         </select>
-                            <select id="caSubtypeFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Sublineage / subtype"><option value="">All subtypes</option></select>
-                            <select id="caOncotreeFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
+                            <select id="caSubtypeFilter" class="form-control filter-level-select" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Sublineage / subtype"><option value="">All subtypes</option></select>
+                            <select id="caOncotreeFilter" class="form-control filter-level-select" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
                         <div id="caHotspotFilterWrap" style="display:none;">
-                            <div style="position:relative;">
+                            <div class="filter-input-wrap" style="position:relative;">
                                 <input type="text" id="caHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
                                 <div id="caHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
@@ -6702,7 +6738,7 @@
                         </div>
                         <span id="caHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Filtering on a gene&#39;s status, mutated or wild-type, can introduce bias: these alterations are often concentrated in particular cancer types, so the two groups may differ by cancer type as much as by the alteration.">&#9888;</span>
                         <div id="caFusionFilterWrap" style="display:none;">
-                            <div style="position:relative;">
+                            <div class="filter-input-wrap" style="position:relative;">
                                 <input type="text" id="caFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
                                 <div id="caFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
@@ -6712,7 +6748,7 @@
 <button id="caGridFusionBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Fusion grid for the cell lines shown, click a gene to require it fused or not fused">&#9638;</button>
                         </div>
                         <div id="caCnFilterWrap" style="display:none;">
-                            <div style="position:relative;">
+                            <div class="filter-input-wrap" style="position:relative;">
                                 <input type="text" id="caCnFilter" class="form-control" placeholder="Amp / deletion..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal copy-number filter: amplifications (▲) and deletions (▼) from the curated panel. Deletions include single-copy loss, not only homozygous.">
                                 <div id="caCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
@@ -7727,6 +7763,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_77"></script>
+    <script src="app.js?v=v85_78"></script>
 </body>
 </html>
