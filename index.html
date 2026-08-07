@@ -2168,6 +2168,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.96 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Grid picks no longer run the analysis by themselves.</b> Applying a grid filter silently re-ran the mutation analysis, which made pressing Run afterwards look dead. The table now stays as it is, the Run button turns amber reading "filters changed", and you run when ready.</li>
+                    <li><b>Highlight ring: longer dashes</b>, same gaps.</li>
+                    <li><b>Several diseases from a Tissue split show up everywhere.</b> Inspect opened from such an analysis used to state only the lineage (e.g. Skin) while filtering correctly underneath; its disease selector now carries the whole set as one entry ("Melanoma + Acral Melanoma (from analysis)"), shown in the chips too. The set also scopes the front page's tissue and subtype lists, travels with "Open in new tab" and image exports, and is restored with them; the AI export names it as well.</li>
+                </ul>
                 <p><strong>v.85.95 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>The disease filter reaches everywhere.</b> Inspect opened from a mutation analysis now shows the run's disease in its filter row and applies it; several diseases ticked in a Tissue split (e.g. melanoma + cutaneous melanoma) now filter the run as a set, are shown in the header and chips, and clear together; the filter-menu counts in the popouts also respect the disease pick.</li>
@@ -5408,7 +5414,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.95</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.96</a>
         </span>
     </div>
 
@@ -7940,6 +7946,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_95"></script>
+    <script src="app.js?v=v85_96"></script>
 </body>
 </html>

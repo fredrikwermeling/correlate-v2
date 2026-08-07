@@ -435,6 +435,8 @@ class CorrelationExplorer {
             isDamaging: mr.isDamaging || false,
             lineageFilter: mr.lineageFilter || '',
             subLineageFilter: mr.subLineageFilter || '',
+            oncotreeFilter: mr.oncotreeFilter || '',
+            oncotreeFilterMulti: mr.oncotreeFilterMulti || null,
             controls: this._captureControls(this._GE_NEWTAB_CONTROLS()),
             textSettings: this._capturePlotTextSettings('geneEffectPlot'),
             geChartWidthRatio: this.geChartWidthRatio || 1.0,
@@ -849,9 +851,10 @@ class CorrelationExplorer {
         const onc = this.cellLineMetadata?.oncotreeSubtype || {};
         const counts = new Map();
         let total = 0;
+        const diseaseSet = Array.isArray(diseaseVal) ? diseaseVal : null;
         for (const cl of (cellLines || this.metadata?.cellLines || [])) {
             if (tissue && lin[cl] !== tissue) continue;
-            if (diseaseVal && onc[cl] !== diseaseVal) continue;
+            if (diseaseSet ? !diseaseSet.includes(onc[cl] || '') : (diseaseVal && onc[cl] !== diseaseVal)) continue;
             total++;
             const s = pd[cl];
             if (s) counts.set(s, (counts.get(s) || 0) + 1);
@@ -878,7 +881,8 @@ class CorrelationExplorer {
     updateSubLineageFilter() {
         const lineage = document.getElementById('lineageFilter').value;
         const subSelect = document.getElementById('subLineageFilter');
-        const diseaseVal = document.getElementById('paramOncotreeFilter')?.value || '';
+        const diseaseVal = (this._paramDiseaseMulti?.length ? this._paramDiseaseMulti : null)
+            || document.getElementById('paramOncotreeFilter')?.value || '';
 
         if (!lineage && !diseaseVal) {
             // The block stays on screen with nothing chosen. Showing and hiding
@@ -3102,13 +3106,11 @@ class CorrelationExplorer {
         const cellLines = this.metadata.cellLines;
         // The tissue list scales to the disease pick too: choosing Ewing
         // sarcoma first leaves only the tissues that carry it, with counts.
-        const oncVal = document.getElementById('paramOncotreeFilter')?.value || '';
-        const oncMap = this.cellLineMetadata?.oncotreeSubtype || {};
         const counts = {};
         let total = 0;
         for (const cl of cellLines) {
             if (!this._cellLinePassesOncoprintFilters(cl)) continue;
-            if (oncVal && oncMap[cl] !== oncVal) continue;
+            if (!this._paramOncotreePasses(cl)) continue;
             if (this.excludedTissues && this.excludedTissues.size > 0) {
                 const lin = this.cellLineMetadata.lineage[cl];
                 if (lin && this.excludedTissues.has(lin)) continue;
@@ -3175,10 +3177,17 @@ class CorrelationExplorer {
             if (vis('corrAnalysisModal') && this._corrAnalysisData) this.switchCorrAnalysisView(this._caView || 'tissue');
         } catch (e) { /* keep the filter applied even if a redraw fails */ }
 
-        // Run analysis if in mutation mode
+        // In mutation mode the table is NOT re-run automatically: the silent
+        // auto-run made pressing Run afterwards look dead. The Run button is
+        // marked instead, and the user runs when ready.
         const mode = document.querySelector('input[name="analysisMode"]:checked')?.value;
-        if (mode === 'mutation') {
-            this.runAnalysis();
+        if (mode === 'mutation' && this.mutationResults) {
+            const runBtn = document.getElementById('runMutationAnalysisBtn');
+            if (runBtn) {
+                runBtn.textContent = 'Run Mutation Analysis (filters changed)';
+                runBtn.style.background = '#b45309';
+            }
+            this.showStatus('info', 'Grid filter applied. Press Run to update the results.');
         }
         document.getElementById('oncoprintPopup')?.remove();
     }
@@ -7529,6 +7538,12 @@ class CorrelationExplorer {
     }
 
     runMutationAnalysis() {
+        // Clear the "filters changed" marker the grid puts on the Run button.
+        const runMarkBtn = document.getElementById('runMutationAnalysisBtn');
+        if (runMarkBtn) {
+            runMarkBtn.textContent = 'Run Mutation Analysis';
+            runMarkBtn.style.background = '';
+        }
         // Reset expression correlates panel
         document.getElementById('toggleExprCorrelatesBtn').style.display = 'none';
         document.getElementById('exprCorrelatesPanel').style.display = 'none';
@@ -9481,7 +9496,18 @@ class CorrelationExplorer {
                 this._populateOncotreeSelect('geOncotreeFilter',
                     inspectTissueFilter || mr.lineageFilter || '',
                     inspectSubtype || mr.subLineageFilter || '');
-                if (!geOncPre.value && mr.oncotreeFilter) {
+                if (!geOncPre.value && mr.oncotreeFilterMulti?.length) {
+                    // Several diseases from the Tissue split: one synthetic
+                    // option carries the whole set, so the filter row states
+                    // what the run was filtered to.
+                    if (![...geOncPre.options].some(o => o.value === '__mr_multi__')) {
+                        const o = document.createElement('option');
+                        o.value = '__mr_multi__';
+                        o.textContent = `${mr.oncotreeFilterMulti.join(' + ')} (from analysis)`;
+                        geOncPre.appendChild(o);
+                    }
+                    geOncPre.value = '__mr_multi__';
+                } else if (!geOncPre.value && mr.oncotreeFilter) {
                     if (![...geOncPre.options].some(o => o.value === mr.oncotreeFilter)) {
                         const o = document.createElement('option');
                         o.value = mr.oncotreeFilter;
@@ -9779,6 +9805,8 @@ class CorrelationExplorer {
                 isDamaging: this.mutationResults?.isDamaging || false,
                 lineageFilter: this.mutationResults?.lineageFilter || '',
                 subLineageFilter: this.mutationResults?.subLineageFilter || '',
+                oncotreeFilter: this.mutationResults?.oncotreeFilter || '',
+                oncotreeFilterMulti: this.mutationResults?.oncotreeFilterMulti || null,
                 textSettings: this._capturePlotTextSettings('geneEffectPlot'),
                 geChartWidthRatio: this.geChartWidthRatio || 1.0,
                 oncoprintFilters: this._activeOncoprintFilters || null
@@ -13266,7 +13294,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                     _cvPrevBorderWidth: n._cvHl ? n._cvPrevBorderWidth : (n.borderWidth ?? 2),
                     borderWidth: 4,
                     color: { ...(n.color || {}), border: n._cvHl ? n._cvPrevBorder : (n.color?.border ?? '#000000') },
-                    shapeProperties: { borderDashes: [6, 4] }
+                    shapeProperties: { borderDashes: [12, 4] }
                 });
             } else if (n._cvHl) {
                 updates.push({
@@ -21076,6 +21104,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const subEl = document.getElementById('subLineageFilter');
                 if (subEl) subEl.value = meta.subLineageFilter;
             }
+            // Restore the disease level too, single pick or the Tissue split's
+            // multi-set, so the re-run reproduces the saved cohort.
+            this._paramDiseaseMulti = meta.oncotreeFilterMulti?.length ? [...meta.oncotreeFilterMulti] : null;
+            if (meta.oncotreeFilter) {
+                this._populateOncotreeSelect?.('paramOncotreeFilter', meta.lineageFilter || '', meta.subLineageFilter || '');
+                const oncEl = document.getElementById('paramOncotreeFilter');
+                if (oncEl) {
+                    if (![...oncEl.options].some(o => o.value === meta.oncotreeFilter)) {
+                        const o = document.createElement('option');
+                        o.value = meta.oncotreeFilter;
+                        o.textContent = meta.oncotreeFilter;
+                        oncEl.appendChild(o);
+                    }
+                    oncEl.value = meta.oncotreeFilter;
+                }
+            }
             // Run mutation analysis, then open gene inspect after results load
             this.runAnalysis();
             const waitForResults = () => {
@@ -25893,6 +25937,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 nWT: mr?.nWT, nMutated: mr?.nMut, pValueThreshold: mr?.pThreshold,
                 plotType: 'mutation_table', stratification: mr?.hotspotGene,
                 lineageFilter: mr?.lineageFilter || '', subLineageFilter: mr?.subLineageFilter || '',
+                oncotreeFilter: mr?.oncotreeFilter || '', oncotreeFilterMulti: mr?.oncotreeFilterMulti || null,
                 excludedTissues: excludedList,
                 additionalHotspot: mr?.additionalHotspot && mr?.additionalHotspotLevel !== 'all'
                     ? `${mr.additionalHotspot} ${mr.additionalHotspotLevel}` : '',
@@ -33608,12 +33653,28 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         sel.innerHTML = '<option value="">All diseases</option>'
             + entries.map(([n, k]) => `<option value="${this.esc(n)}">${this.esc(n)} (n=${k})</option>`).join('');
         if (entries.some(([n]) => n === keep)) sel.value = keep;
+        else if (keep === '__mr_multi__' && this.mutationResults?.oncotreeFilterMulti?.length) {
+            // The multi-disease sentinel survives rescoping: it stands for
+            // the analysis' disease set, not for one list entry.
+            const o = document.createElement('option');
+            o.value = '__mr_multi__';
+            o.textContent = `${this.mutationResults.oncotreeFilterMulti.join(' + ')} (from analysis)`;
+            sel.appendChild(o);
+            sel.value = '__mr_multi__';
+        }
     }
 
     // Does this cell line pass a panel's disease selector?
+    // The sentinel '__mr_multi__' stands for the SET of diseases the mutation
+    // analysis was run with (several Tissue-split picks), which a single-value
+    // select cannot hold directly.
     _passesOncotree(cellLineId, selectId) {
         const v = document.getElementById(selectId)?.value;
         if (!v) return true;
+        if (v === '__mr_multi__') {
+            const multi = this.mutationResults?.oncotreeFilterMulti;
+            return !multi?.length || multi.includes(this.cellLineMetadata?.oncotreeSubtype?.[cellLineId] || '');
+        }
         return (this.cellLineMetadata?.oncotreeSubtype?.[cellLineId] || '') === v;
     }
 
@@ -34303,6 +34364,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         const oncoMulti = spec.oncotree === 'paramOncotreeFilter' ? this._paramDiseaseMulti : null;
         if (oncoMulti?.length) parts.push(chip('oncotree', oncoMulti.map(d => this.esc(d)).join(' · '), 'background:#ecfeff;color:#155e75;', 'Click to remove this filter'));
+        else if (onco === '__mr_multi__') {
+            const mrMulti = this.mutationResults?.oncotreeFilterMulti || [];
+            parts.push(chip('oncotree', mrMulti.map(d => this.esc(d)).join(' · ') || 'analysis diseases', 'background:#ecfeff;color:#155e75;', 'Click to remove this filter'));
+        }
         else if (onco) parts.push(chip('oncotree', this.esc(onco), 'background:#ecfeff;color:#155e75;', 'Click to remove this filter'));
         if (spec.sex && val(spec.sex)) {
             const m = {
