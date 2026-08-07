@@ -2162,6 +2162,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.93 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>"How it works" rewritten around the three tools.</b> Correlate is presented as a multi-omics platform centred on CRISPR screen data: Gene set analysis (connections within a set, extended networks), Mutation analysis (mutation-specific vulnerabilities) and the Cell Line Browser (finding cell lines with the features a project needs), with the correlation explainer framed as the machinery behind Gene set analysis.</li>
+                </ul>
                 <p><strong>v.85.92 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Hover cards wait longer and stop lingering.</b> Cell-line cards now appear after 450 ms instead of 180 ms, and opening any popout closes leftover hover cards and the network's Settings panel, which used to stay on top of the new view.</li>
@@ -5378,7 +5382,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.92</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.93</a>
         </span>
     </div>
 
@@ -7150,7 +7154,7 @@
             <div class="modal-header" style="background: linear-gradient(135deg, #3b5e23, #5d9239); color: white; border-radius: 16px 16px 0 0; padding: 24px 28px;">
                 <div>
                     <h3 style="margin: 0; font-size: 22px; font-weight: 700; color: white;">How Correlate Works</h3>
-                    <p style="margin: 6px 0 0; font-size: 13px; opacity: 0.85; font-weight: 400; color: white;">Discovering functional gene relationships from CRISPR screen data</p>
+                    <p style="margin: 6px 0 0; font-size: 13px; opacity: 0.85; font-weight: 400; color: white;">A multi-omics platform built around CRISPR screen data</p>
                 </div>
                 <button class="modal-close" id="closeInfoGraphic" style="color: white; opacity: 0.8;">&times;</button>
             </div>
@@ -7160,14 +7164,42 @@
                 <div style="padding: 24px 28px; background: #f3faee; border-bottom: 1px solid #cdebb9;">
                     <h4 style="margin: 0 0 10px; color: #3b5e23; font-size: 16px;">What is Correlate?</h4>
                     <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
-                        Correlate analyzes <strong>gene effect scores</strong> (CRISPR knockout fitness) across <strong>1,100+ cancer cell lines</strong> from the DepMap project.
-                        Genes whose knockout produces correlated fitness effects across cell lines are likely to share <strong>functional relationships</strong>: shared pathways, protein complexes, or regulatory dependencies.
+                        Correlate is a <strong>multi-omics platform</strong> centred on <strong>CRISPR screen data</strong>: gene effect scores (knockout fitness) across <strong>1,100+ human cancer cell lines</strong> from the DepMap project,
+                        integrated with mRNA expression, hotspot mutations, driver fusions and copy-number data for the same lines.
+                        Three tools cover the main uses: <strong>Gene set analysis</strong> to discover and present the connections within a gene set and extend it into wider networks,
+                        <strong>Mutation analysis</strong> to find mutation-specific vulnerabilities, and the <strong>Cell Line Browser</strong> to identify cell lines with the features a project needs.
                     </p>
+                </div>
+
+                <!-- Section 1b: The three tools -->
+                <div style="padding: 24px 28px; border-bottom: 1px solid #e5e7eb;">
+                    <h4 style="margin: 0 0 14px; color: #3b5e23; font-size: 16px;">Three Tools</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px;">
+                        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
+                            <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🕸 Gene set analysis</div>
+                            <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.55;">
+                                Paste a gene set (screen hits, a pathway, a complex) and see how its members connect: pairwise correlations of knockout fitness drawn as an interactive network, with clusters, statistics and per-pair scatter plots.
+                                <em>Expand my set</em> reaches beyond the input to discover new correlated partners, extending the set into a wider network.
+                            </p>
+                        </div>
+                        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
+                            <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🧬 Mutation analysis</div>
+                            <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.55;">
+                                Split the cell lines by an alteration (hotspot mutation, driver fusion, functional loss or amplification) and rank every gene in the screen by how much its knockout effect, or its expression, differs between altered and wild-type lines: the mutation-specific vulnerabilities.
+                            </p>
+                        </div>
+                        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
+                            <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">📊 Cell Line Browser</div>
+                            <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.55;">
+                                Find human cell lines with the features that matter for a project: filter by tissue, disease, sex, mutations, fusions, copy number, expression or dependency, then read each line's Wiki page for a curated overview before choosing a model.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Section 2: Understanding Correlations -->
                 <div style="padding: 24px 28px; border-bottom: 1px solid #e5e7eb;">
-                    <h4 style="margin: 0 0 14px; color: #3b5e23; font-size: 16px;">Understanding Gene&ndash;Gene Correlation</h4>
+                    <h4 style="margin: 0 0 14px; color: #3b5e23; font-size: 16px;">Inside Gene Set Analysis: Gene&ndash;Gene Correlation</h4>
                     <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #333;">
                         Each gene pair is compared by their gene effect scores across all cell lines. The <strong>Pearson correlation (r)</strong> measures how similarly two gene knockouts affect cell fitness:
                     </p>
@@ -7240,41 +7272,20 @@
                     </div>
                 </div>
 
-                <!-- Section 4: Analysis & Hypothesis Generation -->
+                <!-- Section 4: Connected tools -->
                 <div style="padding: 24px 28px; background: #f3faee; border-bottom: 1px solid #cdebb9;">
-                    <h4 style="margin: 0 0 10px; color: #3b5e23; font-size: 16px;">From Screen Data to Hypotheses</h4>
-                    <p style="margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: #333;">
-                        Correlate is designed for two complementary purposes: <strong>analyzing screen data</strong> (e.g. CRISPR hits, gene lists) and <strong>generating new hypotheses</strong> using its built-in tools:
-                    </p>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
-                        <!-- Design Mode -->
+                    <h4 style="margin: 0 0 10px; color: #3b5e23; font-size: 16px;">Connected Tools</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
                         <div style="background: white; border: 1px solid #cdebb9; border-radius: 10px; padding: 14px;">
-                            <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🔍 Expand my set</div>
-                            <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
-                                Enter seed genes and discover what <em>correlates</em> with them. Expand beyond your input list to find unexpected functional partners.
-                            </p>
-                        </div>
-                        <!-- Mutation Analysis -->
-                        <div style="background: white; border: 1px solid #cdebb9; border-radius: 10px; padding: 14px;">
-                            <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🧬 Mutation Analysis</div>
-                            <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
-                                Compare gene effect in cells with specific <em>hotspot mutations</em>, <em>validated driver fusions</em>, <em>functional loss</em>, or <em>focal copy-number amplification</em> vs wild-type. Identify genes with differential dependency in altered backgrounds.
-                            </p>
-                        </div>
-                        <!-- Cell Line Browser -->
-                        <div style="background: white; border: 1px solid #cdebb9; border-radius: 10px; padding: 14px;">
-                            <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">📊 Cell Line Browser</div>
-                            <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
-                                Explore individual cell lines: filter by tissue, mutation, or gene effect. View top dependencies and select cell line subsets for focused analyzes.
-                            </p>
-                        </div>
-                    </div>
-                    <!-- Enrichr centered below -->
-                    <div style="display: flex; justify-content: center; margin-top: 12px;">
-                        <div style="background: white; border: 1px solid #cdebb9; border-radius: 10px; padding: 14px; max-width: 340px; width: 100%; text-align: center;">
                             <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🧪 Enrichr Integration</div>
                             <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
                                 Send any gene list to <em>Enrichr</em> for pathway enrichment analysis. Available from correlations, clusters, mutation results, and cell line views.
+                            </p>
+                        </div>
+                        <div style="background: white; border: 1px solid #cdebb9; border-radius: 10px; padding: 14px;">
+                            <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🤖 Export for AI</div>
+                            <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
+                                Package the current view, its data and its settings as one file made for a language model, so an AI assistant can analyse exactly what is on screen.
                             </p>
                         </div>
                     </div>
@@ -7912,6 +7923,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_92"></script>
+    <script src="app.js?v=v85_93"></script>
 </body>
 </html>
