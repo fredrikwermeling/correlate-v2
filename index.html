@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.101 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Disconnected sub-networks are laid out apart.</b> A separate pair or cluster could settle across another component's edges (a TSC1&ndash;TSC2 pair lying over the TP53 cluster). After the layout settles, and after every Shuffle, components are now moved side by side with clear space between them.</li>
+                </ul>
                 <p><strong>v.85.100 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>The network's arrow buttons move the network the way they point.</b> They used to pan the camera, so pressing left slid the picture right. Each arrow now shows, and does, the direction the network itself moves.</li>
@@ -5442,7 +5446,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.100</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.101</a>
         </span>
     </div>
 
@@ -7978,6 +7982,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_100"></script>
+    <script src="app.js?v=v85_101"></script>
 </body>
 </html>

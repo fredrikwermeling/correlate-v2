@@ -10637,6 +10637,7 @@ class CorrelationExplorer {
         // After stabilization: resolve edge crossings, then lock large networks
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
+            this._separateNetworkComponents();
             this.network.fit({ animation: false });
             // The settled, fitted layout is the reference Spread works from, and
             // it is by definition the 100 setting: the network exactly fills the
@@ -13461,6 +13462,48 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         setActive('net_ts_labelItalic', this._netLabelItalic !== false);
     }
 
+    // Disconnected sub-networks are moved apart after the layout settles, so
+    // one component never lies across another's edges. The solver alone does
+    // not guarantee this: components repel only weakly and can end up
+    // interleaved (a TSC1-TSC2 pair across the TP53 cluster, for example).
+    _separateNetworkComponents() {
+        if (!this.network || !this.networkData) return;
+        const nodes = this.networkData.nodes.get();
+        const edges = this.networkData.edges.get();
+        if (nodes.length < 3) return;
+        const parent = new Map(nodes.map(n => [n.id, n.id]));
+        const find = (x) => { while (parent.get(x) !== x) { parent.set(x, parent.get(parent.get(x))); x = parent.get(x); } return x; };
+        edges.forEach(e => { const ra = find(e.from), rb = find(e.to); if (ra !== rb) parent.set(ra, rb); });
+        const groups = new Map();
+        nodes.forEach(n => { const r = find(n.id); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(n.id); });
+        if (groups.size < 2) return;
+        const positions = this.network.getPositions();
+        const comps = [...groups.values()].map(ids => {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            ids.forEach(id => { const p = positions[id]; if (!p) return;
+                minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+                minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
+            return { ids, minX, maxX, minY, maxY, w: maxX - minX, h: maxY - minY };
+        }).sort((a, b) => (b.w * b.h) - (a.w * a.h));
+        // Placing nodes needs the solver stopped (a settled solver will not
+        // re-expand, so the arrangement survives being released).
+        const physicsWas = this.physicsEnabled !== false;
+        if (physicsWas) this.network.setOptions({ physics: { enabled: false } });
+        const PAD = 120 + (this._netSpringLength || 150) * 0.4;
+        const main = comps[0];
+        let cursorX = main.maxX + PAD;
+        const rowMidY = (main.minY + main.maxY) / 2;
+        for (let i = 1; i < comps.length; i++) {
+            const c = comps[i];
+            const dx = cursorX - c.minX;
+            const dy = (rowMidY - c.h / 2) - c.minY;
+            c.ids.forEach(id => { const p = positions[id]; if (p) this.network.moveNode(id, p.x + dx, p.y + dy); });
+            cursorX += c.w + PAD;
+        }
+        if (physicsWas) this.network.setOptions({ physics: { enabled: true } });
+        this.network.redraw();
+    }
+
     // Re-roll the layout from fresh random starting positions, so the user can
     // click until the arrangement looks right. Runs the same settle, untangle,
     // fit and re-baseline sequence a newly drawn network goes through, and
@@ -13482,6 +13525,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         this.physicsEnabled = true;
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
+            this._separateNetworkComponents();
             this.network.fit({ animation: false });
             this._netBasePositions = this.network.getPositions();
             this._netBaseSpread = 100;
