@@ -3000,10 +3000,14 @@ class CorrelationExplorer {
         if (currentVal) select.value = currentVal;
     }
 
-    _oncoprintClearGene(gene) {
+    // `reopen` redraws the grid, which is what the grid's own clear button
+    // wants. Removing the filter from its chip does not: the grid is not on
+    // screen at that point, and popping it open was neither asked for nor
+    // useful.
+    _oncoprintClearGene(gene, reopen = true) {
         delete this._oncoprintFilters[gene];
         this._oncoprintSyncFilters();
-        this.showOncoprint(this._oncoprintContext);
+        if (reopen) this.showOncoprint(this._oncoprintContext);
     }
 
     _oncoprintClearAll() {
@@ -4467,6 +4471,27 @@ class CorrelationExplorer {
         return 'Effect';
     }
 
+    // The sets the Test Genes button cycles through.
+    _TEST_GENE_SETS() {
+        return [
+            // p53 axis and its regulators, plus the TSC1/TSC2 pair
+            ['TP53', 'MDM2', 'MDM4', 'CDKN1A', 'CDKN2A', 'RB1', 'E2F1', 'ATM', 'ATR',
+             'CHEK1', 'CHEK2', 'PPM1D', 'USP7', 'TP53BP1', 'TSC1', 'TSC2', 'MTOR', 'RPTOR'],
+            // Homologous recombination and the rest of the DNA-damage response
+            ['BRCA1', 'BRCA2', 'PALB2', 'RAD51', 'RAD51B', 'RAD51C', 'RAD51D', 'BARD1',
+             'BRIP1', 'FANCA', 'FANCD2', 'FANCI', 'ATM', 'ATR', 'CHEK1', 'PARP1', 'POLQ'],
+            // RAS / MAPK and the receptors feeding it
+            ['KRAS', 'NRAS', 'HRAS', 'BRAF', 'RAF1', 'MAP2K1', 'MAP2K2', 'MAPK1', 'MAPK3',
+             'EGFR', 'ERBB2', 'ERBB3', 'SHC1', 'GRB2', 'SOS1', 'PTPN11', 'NF1'],
+            // PI3K / AKT / mTOR
+            ['PIK3CA', 'PIK3CB', 'PIK3R1', 'PTEN', 'AKT1', 'AKT2', 'MTOR', 'RICTOR', 'RPTOR',
+             'TSC1', 'TSC2', 'RHEB', 'RPS6KB1', 'EIF4EBP1', 'INPP4B', 'PDK1'],
+            // Chromatin remodelling and the paralog pairs within it
+            ['SMARCA2', 'SMARCA4', 'SMARCB1', 'ARID1A', 'ARID1B', 'ARID2', 'PBRM1', 'BRD4',
+             'BRD9', 'EZH2', 'EED', 'SUZ12', 'KMT2A', 'KMT2D', 'CREBBP', 'EP300'],
+        ];
+    }
+
     setupUI() {
         // Tab switching
         document.querySelectorAll('.nav-link').forEach(tab => {
@@ -4517,10 +4542,13 @@ class CorrelationExplorer {
                     'Myc', 'Kras', 'Braf', 'Akt1', 'Bcl2', 'mTOR',
                     'CD8a', 'Foxp3', 'PD-1', 'PD-L1', 'CTLA4'];
             } else {
-                testGenes = ['TP53', 'BRCA1', 'BRCA2', 'MYC', 'KRAS', 'EGFR', 'PTEN',
-                    'RB1', 'APC', 'CDKN2A', 'NOTCH1', 'PIK3CA', 'BRAF',
-                    'ATM', 'ERBB2', 'CDK4', 'MDM2', 'NRAS', 'TSC1', 'TSC2',
-                    'BCR', 'ABL1'];
+                // Press again for a different set. Each one is a coherent piece of
+                // biology rather than a grab-bag, so the network it produces has
+                // something to show. The p53 axis comes first, with TSC1/TSC2
+                // alongside as a second, clearly separate cluster.
+                testGenes = this._TEST_GENE_SETS()[
+                    this._testGeneSetIdx = ((this._testGeneSetIdx ?? -1) + 1) % this._TEST_GENE_SETS().length
+                ];
             }
             document.getElementById('geneTextarea').value = testGenes.join('\n');
             this.updateGeneCount();
@@ -15102,23 +15130,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
 
         // The stat lines, in their own block just under the heading.
+        // The subtitle sits above the plot, under the heading. Both offsets are
+        // in pixels converted to paper units off the real plot height, so the
+        // gap holds at any plot size. Measuring against a control that may not
+        // exist gave a nonsense offset, which is what put the statistics lines
+        // through the heading and into the chart.
         const _titleRows = _fitsOneLine ? 1 : 2;
+        const _plotPx = Math.max(160, parseInt(document.getElementById('plotHeight')?.value, 10)
+            || document.getElementById('scatterPlot')?.clientHeight || 400);
+        const _subSizePx = Math.round(subSize * 0.85);
+        // Heading block height plus a clear gap, then the subtitle's own lines.
+        const _titleBlockPx = _titleRows * titleFontSize * 1.25 + 8;
+        const _subBlockPx = _subLines.length * _subSizePx * 1.35;
+        const _baseY = 1 + (_subBlockPx + 6) / _plotPx;
+        titleAnnotation.y = this._userTitlePosition ? this._userTitlePosition.y
+            : _baseY + _titleBlockPx / _plotPx;
         const subtitleAnnotation = _subLines.length ? {
             x: titleAnnotation.x,
-            y: (this._userTitlePosition ? this._userTitlePosition.y : 1.04)
-               - (_titleRows * titleFontSize * 1.15) / Math.max(120, (parseInt(document.getElementById('plotHeight')?.value, 10) || 400)),
+            y: _baseY,
             xref: 'paper', yref: 'paper',
             xanchor: titleAnnotation.xanchor, yanchor: 'bottom',
             text: _subLines.join('<br>'),
             showarrow: false,
-            font: { size: Math.round(subSize * 0.85) },
+            font: { size: _subSizePx },
             _tsRole: 'subtitle'
         } : null;
 
         // Room for the title block. A wrapped pair label is spaced by the title
         // size, so the reserve has to follow the same number.
-        const _lineLead = _fitsOneLine ? Math.max(subSize * 1.2, 14) : Math.max(titleFontSize * 1.2, 14);
-        const topMargin = 94 + (titleLines.length * _lineLead);
+        const topMargin = 60 + _titleBlockPx + _subBlockPx;
 
         const showZero = document.getElementById('showZeroLines')?.checked !== false;
 
@@ -33405,7 +33445,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return this._simpleChipMenu(anchorEl, [
                 { label: 'Keep altered lines', act: () => { this._oncoprintFilters[gene] = 'mut'; this._oncoprintSyncFilters?.(); } },
                 { label: 'Keep wild-type lines', act: () => { this._oncoprintFilters[gene] = 'wt'; this._oncoprintSyncFilters?.(); } },
-                { label: 'Remove this filter', danger: true, act: () => this._oncoprintClearGene?.(gene) },
+                { label: 'Remove this filter', danger: true, act: () => this._oncoprintClearGene?.(gene, false) },
             ], after);
         }
 
