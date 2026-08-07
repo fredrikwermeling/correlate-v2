@@ -1149,6 +1149,7 @@ class CorrelationExplorer {
             if (this.excludedTissues?.size) { const lin = this.cellLineMetadata?.lineage?.[cl]; if (lin && this.excludedTissues.has(lin)) continue; }
             if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) continue;
             if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) continue;
+            if (!this._paramOncotreePasses(cl)) continue;
             if (kind !== 'hotspot' && hsMuts) { const l = hsMuts[cl] || 0; if (hotspotLevel === '0' && l !== 0) continue; if (hotspotLevel === '1' && l !== 1) continue; if (hotspotLevel === '2' && l < 2) continue; if (hotspotLevel === '1+2' && l < 1) continue; }
             if (kind !== 'fusion' && fusionActive) {
                 const callable = this._fusionCallable(cl);
@@ -1193,6 +1194,7 @@ class CorrelationExplorer {
             if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== subLineageFilter) {
                 return;
             }
+            if (!this._paramOncotreePasses(cellLine)) return;
 
             const level = mutations[cellLine] || 0;
             if (level === 0) n0++;
@@ -1256,6 +1258,7 @@ class CorrelationExplorer {
         cellLines.forEach(cellLine => {
             if (lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== lineageFilter) return;
             if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== subLineageFilter) return;
+            if (!this._paramOncotreePasses(cellLine)) return;
             if (this._geFusionPasses(cellLine, raw)) { nFused++; return; }
             // Never established either way, so not a negative.
             if (!this._fusionCallable(cellLine)) { nNoCall++; return; }
@@ -1540,6 +1543,7 @@ class CorrelationExplorer {
             ? cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                if (!this._paramOncotreePasses(cl)) return false;
                 if (hasExcluded) {
                     const lin = this.cellLineMetadata?.lineage?.[cl];
                     if (lin && this.excludedTissues.has(lin)) return false;
@@ -1589,6 +1593,7 @@ class CorrelationExplorer {
             ? cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                if (!this._paramOncotreePasses(cl)) return false;
                 if (hasExcluded) {
                     const lin = this.cellLineMetadata?.lineage?.[cl];
                     if (lin && this.excludedTissues.has(lin)) return false;
@@ -1650,6 +1655,7 @@ class CorrelationExplorer {
             ? cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                if (!this._paramOncotreePasses(cl)) return false;
                 if (hasExcluded) {
                     const lin = this.cellLineMetadata?.lineage?.[cl];
                     if (lin && this.excludedTissues.has(lin)) return false;
@@ -2521,6 +2527,7 @@ class CorrelationExplorer {
             filteredCLs = this.metadata.cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
                 if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subLineageFilter) return false;
+                if (!this._paramOncotreePasses(cl)) return false;
                 if (this.excludedTissues && this.excludedTissues.size > 0) {
                     const lin = this.cellLineMetadata?.lineage?.[cl];
                     if (lin && this.excludedTissues.has(lin)) return false;
@@ -3030,20 +3037,20 @@ class CorrelationExplorer {
             ? filters.map(([gene, state]) => ({ gene, state, kind: this._oncoprintFilterKinds?.[gene] || filterKind }))
             : null;
 
-        // Update param hotspot filter UI, gray out when oncoprint has multi-gene filters
+        // Show which grid picks are in force. The controls STAY interactive:
+        // graying them out here read as the hotspot filter being broken, and
+        // combining a picked gene with more from the grid is a supported flow.
         const controls = document.getElementById('paramHotspotControls');
         const label = document.getElementById('oncoprintFilterLabel');
         if (controls && label) {
+            controls.style.opacity = '';
+            controls.style.pointerEvents = '';
             if (filters.length > 0) {
-                controls.style.opacity = '0.3';
-                controls.style.pointerEvents = 'none';
                 const parts = filters.map(([gene, state]) => `${gene} ${state === 'mut' ? 'Mut' : 'WT'}`);
-                label.innerHTML = `Oncoprint filter: ${parts.join(', ')} <span style="font-size:9px;color:#9ca3af;">(click to clear)</span>`;
+                label.innerHTML = `Grid filter: ${parts.join(', ')} <span style="font-size:9px;color:#9ca3af;">(click to clear)</span>`;
                 label.style.display = '';
                 label.onclick = () => { this._oncoprintClearAll(); };
             } else {
-                controls.style.opacity = '';
-                controls.style.pointerEvents = '';
                 label.style.display = 'none';
             }
         }
@@ -4300,6 +4307,21 @@ class CorrelationExplorer {
         return full ? `${lead}. ${this._problemDetail(p)}` : `${p.category}`;
     }
 
+    // Does this cell line pass the front page's disease (Oncotree) filter?
+    // The mutation / gene-set cohort loops call this beside their lineage and
+    // subtype checks, so the third tissue level is honoured everywhere.
+    _paramOncotreePasses(cl) {
+        const v = document.getElementById('paramOncotreeFilter')?.value || '';
+        return !v || (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') === v;
+    }
+
+    // Same, but against the disease filter STORED with the mutation analysis,
+    // so inspect and compare views reproduce the run's cohort.
+    _mrOncotreePasses(cl) {
+        const v = this.mutationResults?.oncotreeFilter || '';
+        return !v || (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') === v;
+    }
+
     // The curated fusion entry for a cell line, if there is one.
     _curatedFusionEntry(cellLine) {
         return this.curatedFusions?.byCellLine?.[cellLine] || null;
@@ -5219,7 +5241,7 @@ class CorrelationExplorer {
         });
         document.getElementById('networkAaBtn')?.addEventListener('click', () => this.openNetworkTextSettings());
         document.getElementById('shuffleNetworkBtn')?.addEventListener('click', () => this.shuffleNetworkLayout());
-        document.getElementById('highlightNetworkBtn')?.addEventListener('click', () => this._openNetworkHighlightPopup());
+        document.getElementById('highlightNetworkBtn')?.addEventListener('click', () => this.toggleNetworkHighlightMode());
         document.getElementById('resetNetworkControls')?.addEventListener('click', () => this.resetNetworkControls());
         document.getElementById('networkNodeBorder')?.addEventListener('change', (e) => this.toggleNetworkBorder(e.target.checked));
         document.getElementById('fitNetwork').addEventListener('click', () => {
@@ -5842,9 +5864,7 @@ class CorrelationExplorer {
         document.getElementById('geCompareByHotspotBtn')?.addEventListener('click', () => this.showInlineCompareByHotspot());
         document.getElementById('geCompareByTranslocationBtn')?.addEventListener('click', () => this.showInlineCompareByCuratedFusion());
         document.getElementById('geCompareByCnBtn')?.addEventListener('click', () => this.showInlineCompareByCn());
-        document.getElementById('geInlineCompareClose')?.addEventListener('click', () => {
-            document.getElementById('geInlineCompareTable').style.display = 'none';
-        });
+        document.getElementById('geInlineCompareClose')?.addEventListener('click', () => this._closeInlineCompare());
         document.getElementById('geRestartBtn')?.addEventListener('click', () => this.restartGE());
         document.getElementById('geResetFiltersBtn')?.addEventListener('click', () => {
             this._resetGEFilters();
@@ -7199,6 +7219,7 @@ class CorrelationExplorer {
                     return;
                 }
             }
+            if (!this._paramOncotreePasses(cellLine)) return;
 
             // Check hotspot mutation filter
             if (mutationData && hotspotLevel !== 'all') {
@@ -7539,6 +7560,7 @@ class CorrelationExplorer {
                     minN,
                     lineageFilter,
                     subLineageFilter,
+                    oncotreeFilter: document.getElementById('paramOncotreeFilter')?.value || '',
                     additionalHotspot,
                     additionalHotspotLevel,
                     additionalTransGene,
@@ -7847,6 +7869,7 @@ class CorrelationExplorer {
             if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== subLineageFilter) {
                 return;
             }
+            if (!this._paramOncotreePasses(cellLine)) return;
 
             // Check additional hotspot filter
             if (additionalMutData && additionalHotspotLevel !== 'all') {
@@ -8029,6 +8052,7 @@ class CorrelationExplorer {
             }
             if (lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== lineageFilter) return;
             if (subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== subLineageFilter) return;
+            if (!this._paramOncotreePasses(cellLine)) return;
 
             if (additionalMutData && additionalHotspotLevel !== 'all') {
                 const addMutLevel = additionalMutData.mutations[cellLine] || 0;
@@ -8517,6 +8541,7 @@ class CorrelationExplorer {
             }
             settingsText += ` | Lineage: ${lineageText}`;
         }
+        if (mr.oncotreeFilter) settingsText += ` | Disease: ${mr.oncotreeFilter}`;
         // Collect all mutation filters into one label
         const mutFilterParts = [];
         const shownGenes = new Set();
@@ -8927,6 +8952,7 @@ class CorrelationExplorer {
             if (!inspectTissueFilter && !inspectSubtype && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) {
                 return;
             }
+            if (!inspectTissueFilter && !inspectSubtype && !this._mrOncotreePasses(cellLine)) return;
 
             // Check inspect-level subtype filter
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease) {
@@ -9418,6 +9444,7 @@ class CorrelationExplorer {
                     if (lin && mr.excludedTissues.has(lin)) continue;
                 }
                 if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) continue;
+                if (!this._mrOncotreePasses(cl)) continue;
                 eligibleCL.add(cl);
             }
             // Current stratifier type, so the right option stays selected.
@@ -9604,6 +9631,7 @@ class CorrelationExplorer {
                 if (lin && mr.excludedTissues.has(lin)) continue;
             }
             if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) continue;
+            if (!this._mrOncotreePasses(cl)) continue;
             this.currentGeneEffect.data.push({
                 cellLineId: cl,
                 cellLineName: this.getCellLineName(cl),
@@ -10566,6 +10594,12 @@ class CorrelationExplorer {
 
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0];
+
+                // Highlight Mode: toggle the purple ring on the clicked gene
+                if (this.highlightMode) {
+                    this._toggleNodeHighlight(nodeId);
+                    return;
+                }
 
                 // Select Mode: toggle gene selection and update input gene box
                 if (this.selectMode) {
@@ -13328,7 +13362,34 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         });
     }
 
+    // Highlight mode: click nodes to give them the purple export-ready ring.
+    toggleNetworkHighlightMode() {
+        // Leave the other click modes first, they own the same click.
+        if (this.selectMode) this.toggleSelectMode();
+        if (this.removeMode) this.toggleRemoveMode();
+        this.highlightMode = !this.highlightMode;
+        const btn = document.getElementById('highlightNetworkBtn');
+        const helpText = document.getElementById('networkHelpText');
+        if (this.highlightMode) {
+            if (btn) { btn.classList.add('btn-active'); btn.style.backgroundColor = '#7c3aed'; btn.style.borderColor = '#7c3aed'; btn.style.color = 'white'; }
+            if (helpText) helpText.textContent = 'Click nodes to highlight them (purple ring, kept in exports). Click Highlight again to finish.';
+        } else {
+            if (btn) { btn.classList.remove('btn-active'); btn.style.backgroundColor = ''; btn.style.borderColor = ''; btn.style.color = ''; }
+            if (helpText) helpText.textContent = 'Double-click node for Gene Effect, edge for Correlation';
+        }
+    }
+
+    // Flip one node's highlight ring, keeping _netHighlightText in step so the
+    // Settings box and exports agree with what is on screen.
+    _toggleNodeHighlight(nodeId) {
+        const current = new Set(String(this._netHighlightText || '').toUpperCase().split(/[\s,;]+/).filter(Boolean));
+        const key = String(nodeId).toUpperCase();
+        if (current.has(key)) current.delete(key); else current.add(key);
+        this.applyNetworkHighlight([...current].join(', '));
+    }
+
     toggleRemoveMode() {
+        if (this.highlightMode) this.toggleNetworkHighlightMode();
         // Deactivate select mode if active (without re-entering toggleRemoveMode)
         if (this.selectMode) {
             this.selectMode = false;
@@ -13358,6 +13419,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
     }
 
     toggleSelectMode() {
+        if (this.highlightMode) this.toggleNetworkHighlightMode();
         // Deactivate remove mode if active (without re-entering toggleSelectMode)
         if (this.removeMode) {
             this.removeMode = false;
@@ -15116,10 +15178,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     resetAllInspectFilters() {
-        // Reset cancer type and subtype filters
+        // Reset cancer type, subtype and disease filters
         document.getElementById('scatterCancerFilter').value = '';
         document.getElementById('scatterSubtypeFilter').value = '';
-        document.getElementById('scatterSubtypeFilter').value = '';
+        const oncReset = document.getElementById('scatterOncotreeFilter');
+        if (oncReset) oncReset.value = '';
+
+        // Genes picked from the alteration grid are filters too.
+        this._oncoprintFilters = {};
+        this._activeOncoprintFilters = null;
+        this._oncoprintSyncFilters?.();
 
         // Reset mutation filters (gene cleared = filter off; level back to default)
         document.getElementById('mutationFilterGene').value = '';
@@ -25566,6 +25634,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.metadata.cellLines.forEach(cl => {
                 if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== mr.lineageFilter) return;
                 if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) return;
+                if (!this._mrOncotreePasses(cl)) return;
                 if (mr.excludedTissues?.size > 0 && mr.excludedTissues.has(this.cellLineMetadata?.lineage?.[cl])) return;
                 if (this._activeOncoprintFilters?.length > 0 && !this._cellLinePassesOncoprintFilters(cl)) return;
                 if (this._customCellLineFilter && !this._customCellLineFilter.has(cl)) return;
@@ -26740,11 +26809,46 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 'BEFORE DOING ANY ANALYSIS, open your reply with these two short paragraphs:\n\n' +
                 '1) A one-line description of what the user was looking at. Derive it from the `context` field, `type` tells you the view, `description` is a ready-to-use summary, and `gene1/gene2/xType/yType/filters/gateA/gateB/etc.` give the specifics. xType/yType codes: "ge" = gene effect, "expr" = expression.\n\n' +
                 '2) "You asked:" followed by a verbatim quote of the `question` field. If `question` is missing or empty, skip this paragraph.\n\n' +
-                'Then proceed with the analysis per `_analysisInstructions`.'
+                'Then proceed with the analysis per `_analysisInstructions`. Keep the write-up brief: lead with the biological answer in a short paragraph, support it with the two or three most decisive checks, and leave out routine confirmations and intermediate numbers unless the user asks for the full workings.'
             ),
             cellLineOrder: cellLines,
             cellLineMetadata: clMeta
         };
+        // Alteration status for the focal gene(s): hotspot-mutation level and
+        // relative copy number per cell line, so the model can check whether
+        // e.g. TSC1/TSC2-mutant lines behave as its hypothesis predicts.
+        const focalGenes = [context.gene1, context.gene2, analysisGene, context.hotspotGene].filter(Boolean);
+        if (focalGenes.length) {
+            const alt = {};
+            for (const g of new Set(focalGenes.map(x => String(x).toUpperCase()))) {
+                const entry = {};
+                const muts = this.mutations?.geneData?.[g]?.mutations;
+                if (muts) entry.hotspotMutationLevel = Object.fromEntries(cellLines.map(cl => [cl, muts[cl] || 0]));
+                if (this.cnLoaded && typeof this.getCnValue === 'function') {
+                    const cnVals = {};
+                    let anyCn = false;
+                    for (const cl of cellLines) {
+                        const v = this.getCnValue(g, cl);
+                        if (v != null && !isNaN(v)) { cnVals[cl] = Math.round(v * 100) / 100; anyCn = true; }
+                    }
+                    if (anyCn) entry.copyNumber = cnVals;
+                }
+                if (Object.keys(entry).length) alt[g] = entry;
+            }
+            if (Object.keys(alt).length) {
+                exportData.focalGeneAlterations = alt;
+                exportData.dataStructure = exportData.dataStructure || {};
+                exportData.dataStructure.focalGeneAlterations = 'Per focal gene: hotspotMutationLevel (0 = WT, 1 = one copy, 2 = both copies, keyed by cell line) and copyNumber (DepMap relative CN, 1.0 = diploid). Use to test whether lines altered in the focal gene behave as expected.';
+            }
+        }
+        // Assay context the model would otherwise have to guess at.
+        exportData.assayNotes = {
+            geneEffectProcessing: 'Gene effect scores are Chronos-processed and already copy-number-corrected by DepMap; do not re-correct for CN or attribute correlations between genes on different chromosomes to shared CN artifacts.',
+            correlationCalibration: 'Calibration for Pearson r between two genes\' gene-effect profiles across this panel: random gene pairs have median |r| around 0.05; catalogued complex or pathway partners typically reach |r| 0.3-0.6; |r| above about 0.7 approaches the reliability ceiling of the assay for well-measured genes, i.e. the two profiles agree to within screen noise.'
+        };
+        exportData.dataStructure = exportData.dataStructure || {};
+        exportData.dataStructure.assayNotes = 'Facts about the assay to use directly instead of re-deriving: CN correction status and how to judge the size of a correlation.';
+
         // Conditional fields, omit when not applicable instead of emitting null.
         if (question) exportData.question = question;
         if (Object.keys(cellLineGroups).length > 0) exportData.cellLineGroups = cellLineGroups;
@@ -27665,6 +27769,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
             if (!activeTissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (!activeTissueFilter && !this._mrOncotreePasses(cellLine)) return;
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations.geneData[mr.additionalHotspot];
@@ -27771,6 +27876,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
             if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (!tissueFilter && !this._mrOncotreePasses(cellLine)) return;
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
@@ -27873,6 +27979,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
             if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (!tissueFilter && !this._mrOncotreePasses(cellLine)) return;
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
@@ -27978,6 +28085,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
             if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (!tissueFilter && !this._mrOncotreePasses(cellLine)) return;
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
@@ -28112,6 +28220,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Filter / control bar above the table.
         let html = `<div style="font-size:11px; color:#374151; margin-bottom:4px; display:flex; align-items:center; gap:10px;">
+            <button class="btn btn-primary btn-sm" onclick="app._closeInlineCompare()" style="font-size:11px; padding:2px 10px;">&larr; Back to Graph</button>
             <label style="display:inline-flex; align-items:center; gap:4px;">Hide rows with &lt;
                 <span style="display:inline-flex; align-items:center; gap:2px;">
                     <button type="button" onclick="app.adjustNumber('inlineCompareMinN', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
@@ -28183,6 +28292,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         html += '</tbody></table>';
         bodyEl.innerHTML = html;
         container.style.display = '';
+        // Swap the table in for the plot, matching the scatter's compare view
+        // (the table used to stack below the plot, easy to miss).
+        const plotView = document.getElementById('geByTissueView');
+        if (plotView) plotView.style.display = 'none';
+    }
+
+    _closeInlineCompare() {
+        document.getElementById('geInlineCompareTable').style.display = 'none';
+        const plotView = document.getElementById('geByTissueView');
+        if (plotView) plotView.style.display = 'block';
     }
 
     setInlineCompareMinN(v) {
@@ -28202,33 +28321,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const lineages = this.cellLineMetadata?.lineage ? new Set(Object.values(this.cellLineMetadata.lineage)) : new Set();
             if (!lineages.has(tissue)) {
                 document.getElementById('geSubtypeFilter').value = tissue;
-                this._keepInlineCompare = true;
+                this._closeInlineCompare();
                 this.showGeneEffectDistribution(this.currentGeneEffectGene);
                 return;
             }
         }
         document.getElementById('geTissueFilter').value = tissue;
         this.updateGeSubtypeFilter();
-        this._keepInlineCompare = true;
+        this._closeInlineCompare();
         this.showGeneEffectDistribution(this.currentGeneEffectGene);
     }
 
     onInlineCompareHotspotClick(hotspot) {
         document.getElementById('geHotspotFilter').value = hotspot;
-        this._keepInlineCompare = true;
+        this._closeInlineCompare();
         this.showGeneEffectDistribution(this.currentGeneEffectGene);
     }
 
     onInlineCompareFusionClick(fusion) {
         document.getElementById('geFusionFilter').value = fusion;
-        this._keepInlineCompare = true;
+        this._closeInlineCompare();
         this.showGeneEffectDistribution(this.currentGeneEffectGene);
     }
 
     onInlineCompareCnClick(cn) {
         const el = document.getElementById('geCnFilter');
         if (el) el.value = cn;
-        this._keepInlineCompare = true;
+        this._closeInlineCompare();
         this.showGeneEffectDistribution(this.currentGeneEffectGene);
     }
 
@@ -28643,6 +28762,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
             if (!inspectTissueFilter && mr?.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (!inspectTissueFilter && !this._mrOncotreePasses(cellLine)) return;
             if (mr?.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations.geneData[mr.additionalHotspot];
                 if (addMutData) {
@@ -28912,6 +29032,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         if (mr.excludedTissues && mr.excludedTissues.size > 0 && mr.excludedTissues.has(lineage)) continue;
                     }
                     if (!inspectTissueFilter && mr?.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) continue;
+                    if (!inspectTissueFilter && !this._mrOncotreePasses(cellLine)) continue;
                 }
 
                 // Still apply additional hotspot filter
@@ -29163,6 +29284,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Apply lineage/sublineage filters from analysis params
             if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
             if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (!this._mrOncotreePasses(cellLine)) return;
             if (mr.excludedTissues && mr.excludedTissues.size > 0) {
                 const lineage = this.cellLineMetadata?.lineage?.[cellLine];
                 if (lineage && mr.excludedTissues.has(lineage)) return;
@@ -29245,6 +29367,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         cellLines.forEach((cellLine, idx) => {
             if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
             if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (!this._mrOncotreePasses(cellLine)) return;
             if (mr.excludedTissues && mr.excludedTissues.size > 0) {
                 const lineage = this.cellLineMetadata?.lineage?.[cellLine];
                 if (lineage && mr.excludedTissues.has(lineage)) return;
@@ -29322,6 +29445,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         cellLines.forEach((cellLine, idx) => {
             if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cellLine] !== mr.lineageFilter) return;
             if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
+            if (!this._mrOncotreePasses(cellLine)) return;
             if (mr.excludedTissues && mr.excludedTissues.size > 0) {
                 const lineage = this.cellLineMetadata?.lineage?.[cellLine];
                 if (lineage && mr.excludedTissues.has(lineage)) return;
@@ -34128,6 +34252,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         host.innerHTML = parts.join(' ');
         host.style.display = parts.length ? 'flex' : 'none';
+        // The scatter's chips live in their own labelled box; show it only
+        // when there is something to show.
+        if (host.id === 'scatterActiveFilters') {
+            const box = document.getElementById('scatterFiltersBox');
+            if (box) box.style.display = parts.length ? '' : 'none';
+        }
         host.querySelectorAll('[data-chip]').forEach(el => {
             el.addEventListener('click', (e) => {
                 if (e.target.closest('[data-clear-collection]')) return;

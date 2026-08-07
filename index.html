@@ -1181,13 +1181,19 @@
             border: 1px solid var(--gray-200);
             border-radius: 8px;
             margin-bottom: 15px;
-            align-items: start;
+            /* Columns stretch to the tallest one, so the Appearance box
+               matches View controls and Export in height. */
+            align-items: stretch;
         }
+        .network-controls-grid .control-box { height: 100%; box-sizing: border-box; }
 
-        /* Make buttons in network controls smaller */
+        /* Make buttons in network controls smaller. Every view-control /
+           export button shares one height, so the single-word second row
+           (Settings, Shuffle, ...) lines up with the two-line first row. */
         .network-controls-grid .btn {
             padding: 4px 8px;
             font-size: 11px;
+            min-height: 42px;
         }
 
         .control-column {
@@ -2162,6 +2168,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.94 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>The Tissue split's finer levels now reach the analysis.</b> Selecting a subtype or exact disease in the split popup set the filters, but Run only honoured the lineage, so the WT / mutated counts disagreed with the popup. The disease level is now applied in the analysis, its inspect views and compares, and shown in the results header.</li>
+                    <li><b>Grid picks no longer lock the alteration filters.</b> Applying e.g. TP53 Mut from a grid grayed out the hotspot filter widget; it stays usable, so a picked gene and further grid picks combine.</li>
+                    <li><b>Highlight is click-to-highlight.</b> The network's Highlight button now works like Select Mode: click it, then click genes to give them the purple ring (kept in exports); no typing needed. The two button rows share one height, and the Appearance box stretches to match its neighbours.</li>
+                    <li><b>Mutation-inspect compares match the scatter.</b> The compare row reads Compare: Tissue / Hotspot / Amp/Del / Fusion, and the table now replaces the plot with a Back to Graph button instead of appearing below it. Clicking a row applies the filter and returns to the graph.</li>
+                    <li><b>Scatter: filters separated from Compare, and Reset resets.</b> Filter chips live in their own "Active filters" box with the Reset button, which now also clears the disease filter and grid picks (it previously left both).</li>
+                    <li><b>Mutation analysis toolbar on one row.</b> Search, Enrichr and the exports share a row; Compare by Tissue is removed (the Tissue split in box 1 covers the per-tissue view). The two p-value controls explain their different jobs on hover.</li>
+                    <li><b>AI export upgraded.</b> Exports now carry the focal genes' own mutation and copy-number status, a note that gene effect is Chronos-processed and already copy-number-corrected, and a calibration guide for judging correlation sizes; the reply instructions ask for a brief write-up that leads with the biological answer instead of narrating every check.</li>
+                </ul>
                 <p><strong>v.85.93 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>"How it works" rewritten around the three tools.</b> Correlate is presented as a multi-omics platform centred on CRISPR screen data: Gene set analysis (connections within a set, extended networks), Mutation analysis (mutation-specific vulnerabilities) and the Cell Line Browser (finding cell lines with the features a project needs), with the correlation explainer framed as the machinery behind Gene set analysis.</li>
@@ -5382,7 +5398,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.93</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.94</a>
         </span>
     </div>
 
@@ -5575,8 +5591,8 @@
                             </div>
                         </div>
                         <div class="form-group" id="pValueThresholdGroup" style="display:none; flex:1;">
-                            <label class="form-label" style="font-size:11px; margin-bottom:2px;">P-value:</label>
-                            <input type="text" inputmode="decimal" id="pValueThreshold" class="form-control" value="0.001" style="width:100%; font-size:12px; padding:3px 6px;">
+                            <label class="form-label" style="font-size:11px; margin-bottom:2px;" title="Genes enter the results table only when at least one of their comparisons is below this threshold. The looser p < 0.05 box above the table then narrows the view to genes significant on the primary mutant-vs-WT comparison.">P-value cutoff (table): <span style="cursor:help; color:#9ca3af;">?</span></label>
+                            <input type="text" inputmode="decimal" id="pValueThreshold" class="form-control" value="0.001" title="Genes enter the results table only when at least one comparison is below this threshold" style="width:100%; font-size:12px; padding:3px 6px;">
                         </div>
                     </div>
 
@@ -6048,19 +6064,17 @@
                             <button type="button" class="btn btn-outline btn-sm" data-mut-metric="ge" onclick="app.setMutAnalysisMetric('ge')" style="font-size:10px; padding:2px 8px; background:#f0fdf4; border-color:#6ba544; color:#4c782e; font-weight:700;" title="Compare CRISPR knockout effect between the mutant and wild-type groups">Gene effect</button>
                             <button type="button" class="btn btn-outline btn-sm" data-mut-metric="expr" onclick="app.setMutAnalysisMetric('expr')" style="font-size:10px; padding:2px 8px;" title="Compare mRNA expression between the mutant and wild-type groups, for example which genes are expressed differently in BRAF-mutant versus BRAF wild-type lines">mRNA expression</button>
                         </span>
-                        <label style="font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Show only genes whose primary comparison (mutated 1+2 vs wild-type) is significant at p < 0.05. Off = also show genes that only reach significance on a secondary comparison (e.g. 2 vs 0).">
-                            <input type="checkbox" id="mutPvalueFilter" checked> only p &lt; 0.05 (mutant vs WT)
+                        <label style="font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="View filter on the table below: show only genes whose PRIMARY comparison (mutated 1+2 vs wild-type) reaches p < 0.05. This is separate from the P-value cutoff in box 1, which decides what enters the table at all (any comparison). Off = also show genes that only reach significance on a secondary comparison (e.g. 2 vs 0).">
+                            <input type="checkbox" id="mutPvalueFilter" checked> only p &lt; 0.05 (mutant vs WT) <span style="cursor:help; color:#9ca3af;">?</span>
                         </label>
                     </div>
-                    <!-- Row 1: Search + Compare -->
+                    <!-- One toolbar row: search, Enrichr and the exports together.
+                         Compare by Tissue removed (it stratified WT vs mutated per
+                         tissue, which read as comparing hotspots; the Tissue split
+                         button in box 1 covers the per-tissue view). All three
+                         compare functions are kept in app.js for restore. -->
                     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;">
                         <input type="text" id="mutationSearch" class="form-control" placeholder="Search genes..." style="width: 160px; font-size: 12px; padding: 4px 8px;">
-                        <button class="btn btn-secondary btn-sm" id="mutCompareByTissueBtn" title="Compare mutation effect across cancer types">Compare by Tissue</button>
-                        <!-- Compare by Hotspot / Compare by Fusion removed in v.84.33 to
-                             simplify the mutation analysis. showMutationCompareByHotspot()
-                             and showMutationCompareByFusion() are kept in app.js so they
-                             can be restored. -->
-                        <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
                         <!-- The gene-scope choice used to sit in a bare dropdown next to
                              the button, with no indication it belonged to Enrichr. It is
                              now asked for when you press Enrichr. The select is kept
@@ -6093,9 +6107,7 @@
                             <option value="diff_pos">Δ GE &gt; 0</option>
                             <option value="filtered">Visible</option>
                         </select>
-                    </div>
-                    <!-- Row 2: Export -->
-                    <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                        <span style="border-left: 1px solid #d1d5db; height: 16px; margin: 0 2px;"></span>
                         <span style="font-size: 10px; color: #9ca3af;">Export:</span>
                         <button class="btn btn-outline btn-sm" id="downloadMutationResults" title="Download table as CSV spreadsheet">.csv</button>
                         <button class="btn btn-outline btn-sm" id="mutAnalyzeWithAI" style="font-size:10px;" title="Package this view as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
@@ -6297,8 +6309,17 @@
                                     <button class="btn btn-secondary btn-sm" id="compareAllMutationsBtn" style="font-size:10px; padding:2px 5px;">Hotspot</button>
                                     <button class="btn btn-secondary btn-sm" id="compareAllCnBtn" style="font-size:10px; padding:2px 5px; display:none;">Amp/Del</button>
                                     <button class="btn btn-secondary btn-sm" id="compareAllTranslocationsBtn" style="font-size:10px; padding:2px 5px; display:none;">Fusion</button>
-                                    <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size:10px; padding:2px 5px;">Reset</button>
-                                    <div id="scatterActiveFilters" class="clb-active-filters" style="display:none; width:100%;"></div>
+                                </div>
+                            </div>
+                            <!-- Active filters live in their own box: they are not part
+                                 of Compare, and the chips used to inflate that box and
+                                 float oddly among its buttons. Hidden until a filter is
+                                 set; Reset clears every filter. -->
+                            <div class="control-box-compact" id="scatterFiltersBox" style="grid-column: span 2; display:none;">
+                                <span class="control-label" style="font-size:10px;">Active filters</span>
+                                <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+                                    <div id="scatterActiveFilters" class="clb-active-filters" style="display:none;"></div>
+                                    <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size:10px; padding:2px 8px;" title="Clear every filter: tissue, subtype, disease, hotspot, fusion, copy number, grid picks and custom lists">Reset</button>
                                 </div>
                             </div>
                         </div>
@@ -6552,12 +6573,15 @@
                             <button class="btn btn-sm btn-outline" id="geClearGatesBtn" style="font-size: 10px; padding: 2px 8px; display: none;">Clear</button>
                             <span id="geGateStatus" style="font-size: 10px; color: #6b7280;"></span>
                         </span>
+                        <!-- Same look and wording as the scatter's Compare row; the
+                             table swaps in for the plot, with Back to Graph. -->
                         <span id="geCompareButtons" style="display: none;">
                             <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 2px;"></span>
-                            <button class="btn btn-secondary btn-sm" id="geCompareByTissueBtn" title="Show Δ GE per tissue for this gene">Δ Tissue</button>
-                            <button class="btn btn-secondary btn-sm" id="geCompareByHotspotBtn" title="Show Δ GE per additional hotspot for this gene">Δ Hotspot</button>
-                            <button class="btn btn-secondary btn-sm" id="geCompareByCnBtn" title="Show the difference in gene effect within each focal amplification or deletion from the curated panel" style="display: none;">Δ Amp/Del</button>
-                            <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Show Δ GE for each fusion" style="display: none;">Δ Fusion</button>
+                            <label style="font-size: 12px; font-weight: 600; color: #374151; white-space: nowrap;">Compare:</label>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByTissueBtn" title="Δ GE per tissue for this gene, shown in place of the plot">Tissue</button>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByHotspotBtn" title="Δ GE per additional hotspot for this gene, shown in place of the plot">Hotspot</button>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByCnBtn" title="Δ GE within each focal amplification or deletion from the curated panel, shown in place of the plot" style="display: none;">Amp/Del</button>
+                            <button class="btn btn-secondary btn-sm" id="geCompareByTranslocationBtn" title="Δ GE for each curated fusion, shown in place of the plot" style="display: none;">Fusion</button>
                         </span>
                     </div>
                     <!-- Row 3: Custom Cell Line Filter (hidden on phones) -->
@@ -7168,6 +7192,7 @@
                         integrated with mRNA expression, hotspot mutations, driver fusions and copy-number data for the same lines.
                         Three tools cover the main uses: <strong>Gene set analysis</strong> to discover and present the connections within a gene set and extend it into wider networks,
                         <strong>Mutation analysis</strong> to find mutation-specific vulnerabilities, and the <strong>Cell Line Browser</strong> to identify cell lines with the features a project needs.
+                        Outside tools are integrated for further analysis: any gene list can be sent to <strong>Enrichr</strong> for pathway enrichment, and every view has an <strong>Export for AI</strong> that packages its data and settings into one file an AI assistant can analyse.
                     </p>
                 </div>
 
@@ -7267,25 +7292,6 @@
                             <p style="margin: 8px 0 0; font-size: 12px; color: #666; line-height: 1.4;">
                                 <strong>Example network:</strong> Genes cluster by functional relationships. TSC1&ndash;TSC2 (thick blue edge) share a complex; TP53&ndash;MDM2 (red edge) show opposing fitness effects.
                                 <br>Double-click a <strong>node</strong> to see its gene effect profile, or an <strong>edge</strong> to view the scatter plot.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 4: Connected tools -->
-                <div style="padding: 24px 28px; background: #f3faee; border-bottom: 1px solid #cdebb9;">
-                    <h4 style="margin: 0 0 10px; color: #3b5e23; font-size: 16px;">Connected Tools</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
-                        <div style="background: white; border: 1px solid #cdebb9; border-radius: 10px; padding: 14px;">
-                            <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🧪 Enrichr Integration</div>
-                            <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
-                                Send any gene list to <em>Enrichr</em> for pathway enrichment analysis. Available from correlations, clusters, mutation results, and cell line views.
-                            </p>
-                        </div>
-                        <div style="background: white; border: 1px solid #cdebb9; border-radius: 10px; padding: 14px;">
-                            <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🤖 Export for AI</div>
-                            <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5;">
-                                Package the current view, its data and its settings as one file made for a language model, so an AI assistant can analyse exactly what is on screen.
                             </p>
                         </div>
                     </div>
@@ -7923,6 +7929,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_93"></script>
+    <script src="app.js?v=v85_94"></script>
 </body>
 </html>
