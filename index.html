@@ -2146,6 +2146,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.90 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Compare-by-Hotspot numbers match what clicking shows.</b> The correlation popout's hotspot comparison computed its groups from 2-copy mutants only, while clicking a row filtered the scatter to 1+2-copy mutants, so n and r changed on the way. The table now uses the same 1+2 split as the click.</li>
+                    <li><b>Find correlates: separate cutoffs for GE and Expression.</b> Expression-vs-GE correlations run weaker, so one shared 0.3 cutoff left the expression panel almost always empty. The expression list now defaults to |r| ≥ 0.1, adjustable on its own.</li>
+                    <li><b>A disease can be chosen first.</b> Picking e.g. Ewing sarcoma with no tissue set now narrows the tissue and subtype lists to where it belongs, in the parameters, correlation, gene-effect, correlation-analysis and cell-line-browser panels. All three selectors scale to each other in both directions.</li>
+                    <li><b>Mutation analysis cleanup.</b> Its own Run button (box 2 is hidden in this mode and took the Run button with it); the boxes now read 1 and 2; the Network / Correlations / Clusters tabs leave with the mode; the per-alteration tissue button is renamed "Tissue split" so it cannot be confused with the general Tissues selector; the Disease dropdown looks and opens like Lineage and Subtype.</li>
+                </ul>
                 <p><strong>v.85.89 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>The mutation-inspect y-axis title stays on the canvas.</b> It could disappear in two ways: the plot's width is unknown while the popout is still opening, which mis-placed the rotated label (sometimes fully off the canvas), and long group labels pushed it past the reserved margin. It is now placed in pixels from the plot edge and clamped inside the margin. A dragged label position also no longer carries over to a different gene or stratifier.</li>
@@ -5334,7 +5341,7 @@
                 <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
             </span>
         </span>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.89</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.90</a>
     </div>
 
     <div class="main-content">
@@ -5489,7 +5496,7 @@
                                 <select id="mutationHotspotSelect" class="form-control" style="flex: 1;">
                                     <option value="">Select hotspot gene...</option>
                                 </select>
-                                <button id="tissueBreakdownBtn" type="button" style="display: none; padding: 3px 8px; font-size: 11px; background: #6ba544; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this mutation">Tissues</button>
+                                <button id="tissueBreakdownBtn" type="button" style="display: none; padding: 3px 8px; font-size: 11px; background: #6ba544; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="How the wild-type / mutated split falls per tissue for this gene, with counts. Tick tissues to filter the analysis.">Tissue split</button>
                             </div>
                         </div>
                         <div id="translocationAnalysisControls" style="display: none;">
@@ -5498,7 +5505,7 @@
                                 <select id="translocationHotspotSelect" class="form-control" style="flex: 1;">
                                     <option value="">Select fusion...</option>
                                 </select>
-                                <button id="translocationTissueBreakdownBtn" type="button" style="display: none; padding: 3px 8px; font-size: 11px; background: #6ba544; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this fusion">Tissues</button>
+                                <button id="translocationTissueBreakdownBtn" type="button" style="display: none; padding: 3px 8px; font-size: 11px; background: #6ba544; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="How the fused / not-fused split falls per tissue for this fusion, with counts. Tick tissues to filter the analysis.">Tissue split</button>
                             </div>
                         </div>
                         <div id="damagingAnalysisControls" style="display: none;">
@@ -5507,9 +5514,13 @@
                                 <select id="damagingHotspotSelect" class="form-control" style="flex: 1;">
                                     <option value="">Select gene...</option>
                                 </select>
-                                <button id="damagingTissueBreakdownBtn" type="button" style="display: none; padding: 3px 8px; font-size: 11px; background: #6ba544; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="Show tissue breakdown for this functional loss">Tissues</button>
+                                <button id="damagingTissueBreakdownBtn" type="button" style="display: none; padding: 3px 8px; font-size: 11px; background: #6ba544; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;" title="How the lost / intact split falls per tissue for this gene, with counts. Tick tissues to filter the analysis.">Tissue split</button>
                             </div>
                         </div>
+                        <!-- Mutation analysis reads no gene list, so box 2 (which holds
+                             the main Run button) is hidden in this mode. It needs its
+                             own Run. -->
+                        <button class="btn btn-success" id="runMutationAnalysisBtn" disabled style="width:100%; margin-top:10px; font-size:14px;" title="Split the cell lines into altered and wild-type for the gene chosen above, then rank every gene in the screen by how much its gene effect differs between the two groups.">Run Mutation Analysis</button>
                     </div>
 
                     <div style="display:flex; gap:8px;" id="minCellLinesPvalRow">
@@ -7852,6 +7863,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_89"></script>
+    <script src="app.js?v=v85_90"></script>
 </body>
 </html>

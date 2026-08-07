@@ -741,6 +741,8 @@ class CorrelationExplorer {
 
         // Enable run button
         document.getElementById('runAnalysis').disabled = false;
+        const runMutBtn = document.getElementById('runMutationAnalysisBtn');
+        if (runMutBtn) runMutBtn.disabled = false;
         // findBestFilterBtn stays disabled until genes are entered
 
         // Populate lineage filter if available
@@ -827,6 +829,12 @@ class CorrelationExplorer {
 
         // Populate parameter translocation filter
         this.populateParamTranslocationFilter();
+
+        // Fill the disease selectors up front. They used to fill only once a
+        // chip strip re-rendered, so on a fresh page the params Disease list
+        // was empty until some other filter was touched, and a disease could
+        // not be the FIRST thing chosen.
+        try { this._syncOncotreeSelectors(); } catch (e) { /* selectors optional */ }
     }
 
     // Subtype options for one panel: scoped by that panel's tissue AND its
@@ -870,8 +878,9 @@ class CorrelationExplorer {
     updateSubLineageFilter() {
         const lineage = document.getElementById('lineageFilter').value;
         const subSelect = document.getElementById('subLineageFilter');
+        const diseaseVal = document.getElementById('paramOncotreeFilter')?.value || '';
 
-        if (!lineage) {
+        if (!lineage && !diseaseVal) {
             // The block stays on screen with nothing chosen. Showing and hiding
             // it as a lineage is picked made the whole panel jump.
             subSelect.innerHTML = '<option value="">All subtypes</option>';
@@ -881,8 +890,10 @@ class CorrelationExplorer {
             return;
         }
 
-        const { items, total } = this._subtypeOptionsFor(lineage,
-            document.getElementById('paramOncotreeFilter')?.value || '');
+        // A disease alone is enough to scope the subtype list: picking Ewing
+        // sarcoma first shows which subtype (and via the tissue list, which
+        // lineage) it belongs to.
+        const { items, total } = this._subtypeOptionsFor(lineage, diseaseVal);
 
         if (items.length > 0) {
             this._fillSubtypeSelect(subSelect, items, total);
@@ -909,8 +920,9 @@ class CorrelationExplorer {
     updateScatterSubtypeFilter() {
         const lineage = document.getElementById('scatterCancerFilter').value;
         const subSelect = document.getElementById('scatterSubtypeFilter');
+        const diseaseVal = document.getElementById('scatterOncotreeFilter')?.value || '';
 
-        if (!lineage || !this.currentInspect?.data) {
+        if ((!lineage && !diseaseVal) || !this.currentInspect?.data) {
             // Stays on screen with nothing chosen. Appearing and disappearing as
             // a tissue is picked made the panel jump.
             subSelect.innerHTML = '<option value="">All subtypes</option>';
@@ -918,10 +930,10 @@ class CorrelationExplorer {
             return;
         }
 
-        // Subtypes for this lineage from current inspect data, scoped by the
-        // panel's disease pick so the two selectors stay consistent.
-        const { items, total } = this._subtypeOptionsFor(lineage,
-            document.getElementById('scatterOncotreeFilter')?.value || '',
+        // Subtypes from current inspect data, scoped by the panel's lineage
+        // AND disease picks (a disease alone is enough) so the selectors stay
+        // consistent with each other.
+        const { items, total } = this._subtypeOptionsFor(lineage, diseaseVal,
             this.currentInspect.data.map(d => d.cellLineId));
 
         if (items.length > 1 || (items.length === 1 && items[0].name !== lineage)) {
@@ -1032,18 +1044,18 @@ class CorrelationExplorer {
         const lineage = document.getElementById('geTissueFilter')?.value;
         const subSelect = document.getElementById('geSubtypeFilter');
         if (!subSelect) return;
+        const diseaseVal = document.getElementById('geOncotreeFilter')?.value || '';
 
-        if (!lineage || !this.cellLineMetadata?.primaryDisease) {
+        if ((!lineage && !diseaseVal) || !this.cellLineMetadata?.primaryDisease) {
             // Stays on screen with nothing chosen, so the panel does not jump.
             subSelect.innerHTML = '<option value="">All subtypes</option>';
             subSelect.value = '';
             return;
         }
 
-        // Subtype counts for this lineage, scoped by the panel's disease pick
-        // so the two selectors stay consistent with each other.
-        const { items, total } = this._subtypeOptionsFor(lineage,
-            document.getElementById('geOncotreeFilter')?.value || '');
+        // Subtype counts scoped by the panel's lineage AND disease picks (a
+        // disease alone is enough) so the selectors stay consistent.
+        const { items, total } = this._subtypeOptionsFor(lineage, diseaseVal);
 
         if (items.length > 1 || (items.length === 1 && items[0].name !== lineage)) {
             this._fillSubtypeSelect(subSelect, items, total);
@@ -3055,10 +3067,15 @@ class CorrelationExplorer {
         if (!select || !this.cellLineMetadata?.lineage) return;
         const currentVal = select.value;
         const cellLines = this.metadata.cellLines;
+        // The tissue list scales to the disease pick too: choosing Ewing
+        // sarcoma first leaves only the tissues that carry it, with counts.
+        const oncVal = document.getElementById('paramOncotreeFilter')?.value || '';
+        const oncMap = this.cellLineMetadata?.oncotreeSubtype || {};
         const counts = {};
         let total = 0;
         for (const cl of cellLines) {
             if (!this._cellLinePassesOncoprintFilters(cl)) continue;
+            if (oncVal && oncMap[cl] !== oncVal) continue;
             if (this.excludedTissues && this.excludedTissues.size > 0) {
                 const lin = this.cellLineMetadata.lineage[cl];
                 if (lin && this.excludedTissues.has(lin)) continue;
@@ -4554,9 +4571,14 @@ class CorrelationExplorer {
         // filter use the full scatter cohort. Always rebuilding also fixes the
         // stale count left over after Reset.
         const cohort = mutActive ? this._inspectCohortExcluding('tissue') : null;
+        // The disease pick scopes the tissue list too, so choosing a disease
+        // first shows which tissues carry it.
+        const scOncVal = document.getElementById('scatterOncotreeFilter')?.value || '';
+        const scOncMap = this.cellLineMetadata?.oncotreeSubtype || {};
         const counts = {}; let total = 0;
         for (const d of this.currentInspect.data) {
             if (cohort && !cohort.has(d.cellLineId)) continue;
+            if (scOncVal && scOncMap[d.cellLineId] !== scOncVal) continue;
             total++;
             if (d.lineage) counts[d.lineage] = (counts[d.lineage] || 0) + 1;
         }
@@ -4578,11 +4600,15 @@ class CorrelationExplorer {
             || !!document.getElementById('caCnFilter')?.value;
         const cur = sel.value;
         // Count within the active cohort when a filter is on, else the full data
-        // (also restores correct counts after Reset).
+        // (also restores correct counts after Reset). Scoped by the disease
+        // pick too, so choosing a disease first shows which tissues carry it.
         const cohort = mutActive ? this._caCohortExcluding('tissue') : null;
+        const caOncVal = document.getElementById('caOncotreeFilter')?.value || '';
+        const caOncMap = this.cellLineMetadata?.oncotreeSubtype || {};
         const counts = {}; let total = 0;
         for (const p of this._corrAnalysisData.data) {
             if (cohort && !cohort.has(p.cellLineId)) continue;
+            if (caOncVal && caOncMap[p.cellLineId] !== caOncVal) continue;
             total++;
             if (p.lineage) counts[p.lineage] = (counts[p.lineage] || 0) + 1;
         }
@@ -4594,6 +4620,40 @@ class CorrelationExplorer {
         this.updateCaSubtypeFilter();
     }
 
+    // Rebuild a tissue <select> from per-lineage counts over the given points
+    // ({cellLineId, lineage}), scoped by a disease pick, keeping the current
+    // choice. Shared by the scatter and gene-effect popouts so choosing a
+    // disease first shows which tissues carry it.
+    _rescopeTissueSelect(selectId, points, diseaseVal, allLabel = 'All tissues') {
+        const sel = document.getElementById(selectId);
+        if (!sel || !Array.isArray(points)) return;
+        const onc = this.cellLineMetadata?.oncotreeSubtype || {};
+        const counts = {};
+        let total = 0;
+        for (const p of points) {
+            if (diseaseVal && onc[p.cellLineId] !== diseaseVal) continue;
+            total++;
+            if (p.lineage) counts[p.lineage] = (counts[p.lineage] || 0) + 1;
+        }
+        const cur = sel.value;
+        const lineages = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        sel.innerHTML = `<option value="">${allLabel} (n=${total})</option>`
+            + lineages.map(l => `<option value="${l}">${l} (n=${counts[l]})</option>`).join('');
+        if (cur && lineages.includes(cur)) sel.value = cur;
+    }
+
+    // Re-fill one panel's tissue selector scoped by its disease pick.
+    _refreshTissueSelector(ctxName) {
+        try {
+            if (ctxName === 'params') this._updateLineageFilterCounts();
+            else if (ctxName === 'scatter') this._updateScatterTissueOptions();
+            else if (ctxName === 'ge') this._rescopeTissueSelect('geTissueFilter',
+                this.currentGeneEffect?.data, document.getElementById('geOncotreeFilter')?.value || '');
+            else if (ctxName === 'ca') this._updateCaTissueOptions();
+            // clb: renderCellLineList -> updateClbFilterCounts already rescopes.
+        } catch (e) { /* selector may not be mounted */ }
+    }
+
     // Fill the correlation-analysis subtype selector: scoped by the panel's
     // tissue and disease picks, counted within the analysis cohort, ranked by
     // count. This select was in the markup but never populated, so it always
@@ -4602,14 +4662,14 @@ class CorrelationExplorer {
         const subSelect = document.getElementById('caSubtypeFilter');
         if (!subSelect) return;
         const tissue = document.getElementById('caTissueFilter')?.value || '';
+        const diseaseVal = document.getElementById('caOncotreeFilter')?.value || '';
         const data = this._corrAnalysisData?.data;
-        if (!tissue || !Array.isArray(data)) {
+        if ((!tissue && !diseaseVal) || !Array.isArray(data)) {
             subSelect.innerHTML = '<option value="">All subtypes</option>';
             subSelect.value = '';
             return;
         }
-        const { items, total } = this._subtypeOptionsFor(tissue,
-            document.getElementById('caOncotreeFilter')?.value || '',
+        const { items, total } = this._subtypeOptionsFor(tissue, diseaseVal,
             data.map(p => p.cellLineId));
         if (items.length > 1 || (items.length === 1 && items[0].name !== tissue)) {
             this._fillSubtypeSelect(subSelect, items, total);
@@ -4868,6 +4928,7 @@ class CorrelationExplorer {
 
         // Run analysis
         document.getElementById('runAnalysis').addEventListener('click', () => this.runAnalysis());
+        document.getElementById('runMutationAnalysisBtn')?.addEventListener('click', () => this.runAnalysis());
 
         // Reset App button
         document.getElementById('resetAppBtn')?.addEventListener('click', () => location.reload());
@@ -16502,9 +16563,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         mutationGenes.forEach(mutGene => {
             const mutations = this.mutations.geneData[mutGene].mutations;
 
-            // Split data by mutation status for this gene
+            // Split data by mutation status for this gene. Mutated means 1+2
+            // copies, the same group clicking the row then filters to; the
+            // table used to compare 2-copy mutants only, so its n and r did
+            // not match the plot the click produced.
             const wt = filteredData.filter(d => (mutations[d.cellLineId] || 0) === 0);
-            const mut2 = filteredData.filter(d => (mutations[d.cellLineId] || 0) >= 2);
+            const mut2 = filteredData.filter(d => (mutations[d.cellLineId] || 0) >= 1);
 
             // Need at least 3 samples in each group
             if (wt.length >= 3 && mut2.length >= 3) {
@@ -16553,7 +16617,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             </div>
             ${filterInfo}
             <p style="font-size: 11px; color: #666; margin-bottom: 6px;">
-                Comparing WT (0 mutations) vs Mutant (2+ mutations). Sorted by p-value.
+                Comparing WT (0 mutations) vs Mutant (1+2 mutations), the same split clicking a row applies. Sorted by p-value.
             </p>
             <p style="font-size: 10px; color: #0c4a6e; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; margin-bottom: 8px;">
                 <b>Statistics:</b> p(Δr) uses Fisher z-transformation to test if correlations differ significantly between WT and mutant cells.
@@ -17054,8 +17118,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Hard display cap guards the DOM when the user drops the threshold
         // near zero, Enrichr still receives the full thresholded list.
+        // GE and expression get separate cutoffs: expression-vs-GE r values
+        // run much weaker, and one shared 0.3 left that panel almost always
+        // empty.
         const DISPLAY_CAP = 500;
-        const defaultThreshold = 0.3;
+        const defaultThresholdGe = 0.3;
+        const defaultThresholdExpr = 0.1;
 
         // Per-list sort state. Default matches the pre-sort order: |r| desc.
         // `col` is 'gene' | 'r' | 'absR'; `asc` is the direction.
@@ -17065,8 +17133,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         document.getElementById('inspectCorrelatesBody').innerHTML = `
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:8px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:10px;">
-                <label style="font-weight:600; color:#374151;">|r| ≥
-                    <input type="text" inputmode="decimal" id="icThreshold" value="${defaultThreshold}" min="0" max="1" step="0.05" style="width:64px; margin-left:6px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
+                <label style="font-weight:600; color:#374151;" title="Cutoff for the GE correlate list">GE |r| ≥
+                    <input type="text" inputmode="decimal" id="icThreshold" value="${defaultThresholdGe}" min="0" max="1" step="0.05" style="width:52px; margin-left:6px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
+                </label>
+                <label style="font-weight:600; color:#374151;" title="Cutoff for the Expression correlate list. Expression-vs-GE correlations run weaker, so the default is lower.">Expr |r| ≥
+                    <input type="text" inputmode="decimal" id="icThresholdExpr" value="${defaultThresholdExpr}" min="0" max="1" step="0.05" style="width:52px; margin-left:6px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
                 </label>
                 <label style="font-weight:600; color:#374151;">Search
                     <input type="text" id="icSearch" placeholder="Gene symbol…" style="width:140px; margin-left:6px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
@@ -17130,12 +17201,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
 
         const renderLists = () => {
-            const t = this.numInput('icThreshold', NaN);
-            const thr = isFinite(t) && t >= 0 ? t : 0;
+            const tGe = this.numInput('icThreshold', NaN);
+            const thrGe = isFinite(tGe) && tGe >= 0 ? tGe : 0;
+            const tEx = this.numInput('icThresholdExpr', NaN);
+            const thrExpr = isFinite(tEx) && tEx >= 0 ? tEx : 0;
             const q = (document.getElementById('icSearch')?.value || '').trim().toUpperCase();
             const nameMatch = (h) => !q || h.gene.toUpperCase().includes(q);
-            const geFiltered = filterByThreshold(geHits, thr).filter(nameMatch);
-            const exprFiltered = filterByThreshold(exprHits, thr).filter(nameMatch);
+            const geFiltered = filterByThreshold(geHits, thrGe).filter(nameMatch);
+            const exprFiltered = filterByThreshold(exprHits, thrExpr).filter(nameMatch);
             this._inspectCorrelatesState.geFiltered = geFiltered;
             this._inspectCorrelatesState.exprFiltered = exprFiltered;
 
@@ -17227,6 +17300,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
 
         document.getElementById('icThreshold').addEventListener('input', renderLists);
+        document.getElementById('icThresholdExpr').addEventListener('input', renderLists);
         document.getElementById('icSearch').addEventListener('input', renderLists);
         document.getElementById('icEnrichrGe').addEventListener('click', () => this._runInspectCorrelatesEnrichr('ge'));
         document.getElementById('icEnrichrExpr').addEventListener('click', () => this._runInspectCorrelatesEnrichr('expr'));
@@ -20402,6 +20476,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             tabBtn.classList.add('active');
             tabPane.classList.add('active');
         }
+
+        // The network / correlations / clusters tabs describe a gene-set run
+        // and mean nothing in mutation analysis, so they leave with it; the
+        // Mutation Analysis tab does the same in reverse.
+        ['network', 'correlations', 'clusters'].forEach(t => {
+            const b = document.querySelector(`.nav-link[data-tab="${t}"]`);
+            if (b) b.style.display = isMutation ? 'none' : '';
+        });
+        const mutTabBtn = document.getElementById('mutationTab');
+        if (mutTabBtn && !isMutation) mutTabBtn.style.display = 'none';
+
+        // With box 2 hidden, the boxes on screen are 1 and Results, so the
+        // Results card is numbered 2 in this mode.
+        const resultsTitle = document.querySelector('#resultsCard .card-title');
+        if (resultsTitle) resultsTitle.textContent = isMutation ? '2. Results' : '3. Results';
     }
 
     // Gray out / enable boxes 1 (Set Parameters), 2 (Input Gene Set) and
@@ -33536,21 +33625,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const keepClbSub = subSelect.value;
         subSelect.style.display = '';
         subSelect.innerHTML = '<option value="">All subtypes</option>';
+        const clbDisease = document.getElementById('clbOncotreeFilter')?.value || '';
 
-        if (!tissue) {
+        if (!tissue && !clbDisease) {
             subSelect.disabled = true;
-            subSelect.title = 'Choose a tissue first to narrow by subtype';
+            subSelect.title = 'Choose a tissue or disease first to narrow by subtype';
             return;
         }
 
-        // Ranked by count and scoped by the disease pick, matching every other
-        // panel's subtype selector.
-        const { items } = this._subtypeOptionsFor(tissue,
-            document.getElementById('clbOncotreeFilter')?.value || '');
+        // Ranked by count and scoped by the tissue AND disease picks (a
+        // disease alone is enough), matching every other panel.
+        const { items } = this._subtypeOptionsFor(tissue, clbDisease);
 
         if (items.length === 0) {
             subSelect.disabled = true;
-            subSelect.title = `No subtypes recorded for ${tissue}`;
+            subSelect.title = `No subtypes recorded for ${tissue || clbDisease}`;
             return;
         }
 
@@ -33663,9 +33752,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!sel._wired) {
                 sel._wired = true;
                 sel.addEventListener('change', () => {
-                    // The subtype list is scoped by the disease as well, so a
-                    // disease pick rescopes it (the reverse of the wiring
-                    // below): the two selectors scale to each other.
+                    // The tissue and subtype lists are scoped by the disease
+                    // as well, so a disease pick rescopes both (the reverse of
+                    // the wiring below): the three selectors scale to each
+                    // other, and a disease can be chosen first.
+                    this._refreshTissueSelector(ctx);
                     this._refreshSubtypeSelector(ctx);
                     this._renderFilterChips(ctx);
                     this._filterCtx(ctx)?.apply?.();
@@ -43337,8 +43428,9 @@ window.addEventListener('blur', () => { if (window.app) window.app._shiftHeld = 
 
 document.addEventListener('DOMContentLoaded', () => {
     // Long tissue lists: the native menu runs off-screen and cannot be
-    // scrolled back down.
-    ['lineageFilter', 'subLineageFilter'].forEach(id => window.app?._enhanceSelect(id));
+    // scrolled back down. The disease selector joins so all three levels of
+    // the lineage-and-disease block look and open identically.
+    ['lineageFilter', 'subLineageFilter', 'paramOncotreeFilter'].forEach(id => window.app?._enhanceSelect(id));
 });
 
 document.addEventListener('DOMContentLoaded', () => {
