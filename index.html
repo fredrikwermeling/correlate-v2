@@ -2127,6 +2127,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.81 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>A wrapped title is no longer cut off at the top.</b> The space reserved above the plot covered the gap to the heading but not the heading's own height, so the first line of a two-line title sat outside the visible area. Both blocks are now measured from the top of the plot and the reserve covers the whole stack.</li>
+                </ul>
                 <p><strong>v.85.80 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Title and subtitle no longer collide, or run into the plot.</b> Splitting them in the previous version left the statistics lines positioned off a control that does not always exist, so they landed on the heading and over the chart. Both blocks are now placed from the real plot height, with the space above reserved to match.</li>
@@ -5268,7 +5272,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.80</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.81</a>
     </div>
 
     <div class="main-content">
@@ -7781,6 +7785,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_80"></script>
+    <script src="app.js?v=v85_81"></script>
 </body>
 </html>

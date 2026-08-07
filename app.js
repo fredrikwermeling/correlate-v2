@@ -15139,12 +15139,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const _plotPx = Math.max(160, parseInt(document.getElementById('plotHeight')?.value, 10)
             || document.getElementById('scatterPlot')?.clientHeight || 400);
         const _subSizePx = Math.round(subSize * 0.85);
-        // Heading block height plus a clear gap, then the subtitle's own lines.
-        const _titleBlockPx = _titleRows * titleFontSize * 1.25 + 8;
+        // Measured from the top of the plot upwards, in pixels, then converted.
+        // Both blocks are anchored by their bottom edge, so the reserve above the
+        // plot has to cover the whole stack: the subtitle, the gap, and the full
+        // height of the heading. Leaving out that last part is what clipped the
+        // top line of a wrapped heading.
         const _subBlockPx = _subLines.length * _subSizePx * 1.35;
-        const _baseY = 1 + (_subBlockPx + 6) / _plotPx;
+        const _titleBlockPx = _titleRows * titleFontSize * 1.3;
+        const _subBottomPx = 8;
+        const _titleBottomPx = _subBottomPx + _subBlockPx + 10;
+        const _baseY = 1 + _subBottomPx / _plotPx;
         titleAnnotation.y = this._userTitlePosition ? this._userTitlePosition.y
-            : _baseY + _titleBlockPx / _plotPx;
+            : 1 + _titleBottomPx / _plotPx;
         const subtitleAnnotation = _subLines.length ? {
             x: titleAnnotation.x,
             y: _baseY,
@@ -15158,7 +15164,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Room for the title block. A wrapped pair label is spaced by the title
         // size, so the reserve has to follow the same number.
-        const topMargin = 60 + _titleBlockPx + _subBlockPx;
+        const topMargin = _titleBottomPx + _titleBlockPx + 16;
 
         const showZero = document.getElementById('showZeroLines')?.checked !== false;
 
