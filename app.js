@@ -968,6 +968,9 @@ class CorrelationExplorer {
                 filteredData = filteredData.filter(d =>
                     this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
             }
+            if (document.getElementById('scatterOncotreeFilter')?.value) {
+                filteredData = filteredData.filter(d => this._passesOncotree(d.cellLineId, 'scatterOncotreeFilter'));
+            }
             if (this._customCellLineFilter) {
                 filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
             }
@@ -4849,7 +4852,10 @@ class CorrelationExplorer {
             if (kind !== 'tissue') {
                 if (tissue && d.lineage !== tissue) continue;
                 if (subtype && this.cellLineMetadata?.primaryDisease?.[cl] !== subtype) continue;
-                if (geOncEx && (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') !== geOncEx) continue;
+                // _passesOncotree, not a raw compare: the '__mr_multi__'
+                // sentinel stands for a SET of diseases, and comparing it as
+                // a literal emptied every context-aware option count.
+                if (geOncEx && !this._passesOncotree(cl, 'geOncotreeFilter')) continue;
             }
             const wantWT = (id) => document.getElementById(id)?.value === 'wt';
             if (kind !== 'hotspot' && hotspot) {
@@ -14711,11 +14717,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     _applyNetworkFiltersToInspect() {
-        // Apply lineage filter
+        // Apply lineage filter, and the subtype and disease levels under it:
+        // carrying only the tissue showed the scatter with off-subtype and
+        // off-disease lines the analysis itself had excluded.
         const lineage = document.getElementById('lineageFilter')?.value;
         if (lineage) {
             const scatterFilter = document.getElementById('scatterCancerFilter');
             if (scatterFilter) scatterFilter.value = lineage;
+            this.updateScatterSubtypeFilter?.();
+            const paramSub = document.getElementById('subLineageFilter')?.value;
+            const scatterSub = document.getElementById('scatterSubtypeFilter');
+            if (paramSub && scatterSub && [...scatterSub.options].some(o => o.value === paramSub)) {
+                scatterSub.value = paramSub;
+            }
+        }
+        const paramOnc = document.getElementById('paramOncotreeFilter')?.value;
+        if (paramOnc && paramOnc !== '__mr_multi__') {
+            this._prefillOncotreeSelect('scatterOncotreeFilter', lineage,
+                document.getElementById('scatterSubtypeFilter')?.value, paramOnc);
         }
         // Apply param hotspot as scatter hotspot overlay
         const paramHotspot = document.getElementById('paramHotspotGene')?.value;
@@ -14842,9 +14861,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const mutData = mutFilterGene ? (this.mutations?.geneData?.[mutFilterGene]?.mutations || this.damagingMutations?.geneData?.[mutFilterGene]?.mutations || {}) : null;
         const transData = transFilterGene ? (this.translocations?.geneData?.[transFilterGene]?.translocations || {}) : null;
         const out = [];
+        const cnFilterVal = document.getElementById('scatterCnFilter')?.value || '';
+        const oncActive = !!document.getElementById('scatterOncotreeFilter')?.value;
         for (const cl of cells) {
             if (cancerFilter && this.cellLineMetadata?.lineage?.[cl] !== cancerFilter) continue;
             if (subtypeFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subtypeFilter) continue;
+            if (oncActive && !this._passesOncotree(cl, 'scatterOncotreeFilter')) continue;
             if (mutData && mutFilterLevel !== 'all') {
                 const ml = mutData[cl] || 0;
                 if (mutFilterLevel === '0' && ml !== 0) continue;
@@ -14857,6 +14879,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (transFilterLevel === '0' && fl !== 0) continue;
                 if (transFilterLevel === '1+2' && fl < 1) continue;
             }
+            if (cnFilterVal && !this._cellLinePassesCnFilter(cl, cnFilterVal)) continue;
             if (this._customCellLineFilter && !this._customCellLineFilter.has(cl)) continue;
             out.push(cl);
         }
@@ -15109,6 +15132,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const paramSubtype = document.getElementById('subLineageFilter')?.value;
                 if (paramSubtype) {
                     document.getElementById('scatterSubtypeFilter').value = paramSubtype;
+                }
+                // The disease level under tissue+subtype comes along too;
+                // dropping it left the scatter broader than the analysis.
+                const paramOnc = document.getElementById('paramOncotreeFilter')?.value;
+                if (paramOnc && paramOnc !== '__mr_multi__') {
+                    this._prefillOncotreeSelect('scatterOncotreeFilter',
+                        paramLineageFilter, paramSubtype, paramOnc);
                 }
             } else {
                 document.getElementById('scatterSubtypeFilter').innerHTML = '<option value="">All subtypes</option>';
@@ -17206,6 +17236,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             );
         }
 
+        // Disease level too, so the table is computed over the same cell
+        // lines the scatter shows.
+        if (document.getElementById('scatterOncotreeFilter')?.value) {
+            filteredData = filteredData.filter(d => this._passesOncotree(d.cellLineId, 'scatterOncotreeFilter'));
+        }
+
         // Apply mutation filter
         if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
             const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
@@ -17429,9 +17465,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
         if (cnFilterVal) fd = fd.filter(d => this._cellLinePassesCnFilter(d.cellLineId, cnFilterVal));
+        const oncVal = document.getElementById('scatterOncotreeFilter')?.value;
+        if (oncVal) fd = fd.filter(d => this._passesOncotree(d.cellLineId, 'scatterOncotreeFilter'));
         if (this._customCellLineFilter) fd = fd.filter(d => this._customCellLineFilter.has(d.cellLineId));
         const parts = [];
         if (cancerFilter) parts.push(`Cancer: ${cancerFilter}${subtypeFilter ? ` (${subtypeFilter})` : ''}`);
+        if (oncVal) parts.push(`Disease: ${oncVal === '__mr_multi__' ? (this.mutationResults?.oncotreeFilterMulti || []).join(' + ') : oncVal}`);
         if (mutFilterGene && mutFilterLevel !== 'all') parts.push(`${mutFilterGene}: ${mutFilterLevel}`);
         if (transFilterGene) parts.push(`Fusion: ${this._stripFusionFilterDecoration(transFilterGene)}`);
         if (cnFilterVal) parts.push(`CN: ${this._stripCnFilterDecoration(cnFilterVal)}`);
@@ -23443,6 +23482,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
         }
+        // Disease filter (from parameter section or CLB) rides along with the
+        // tissue and subtype; dropping it opened the popout on a broader
+        // cohort than the context it came from.
+        const carriedOnc = document.getElementById('paramOncotreeFilter')?.value
+            || document.getElementById('clbOncotreeFilter')?.value;
+        if (carriedOnc && carriedOnc !== '__mr_multi__') {
+            this._prefillOncotreeSelect('geOncotreeFilter',
+                document.getElementById('geTissueFilter')?.value,
+                document.getElementById('geSubtypeFilter')?.value, carriedOnc);
+        }
         // Hotspot/translocation, skip if oncoprint handles multi-gene filtering
         if (!this._activeOncoprintFilters || this._activeOncoprintFilters.length === 0) {
             // Hotspot mutation filter, check param section first, then CLB filter
@@ -28225,6 +28274,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!activeTissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
             if (!activeTissueFilter && !this._mrOncotreePasses(cellLine)) return;
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
+            if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations.geneData[mr.additionalHotspot];
                 if (addMutData) {
@@ -28332,6 +28382,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
             if (!tissueFilter && !this._mrOncotreePasses(cellLine)) return;
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
+            if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
@@ -28435,6 +28486,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
             if (!tissueFilter && !this._mrOncotreePasses(cellLine)) return;
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
+            if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
@@ -28541,6 +28593,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!tissueFilter && mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
             if (!tissueFilter && !this._mrOncotreePasses(cellLine)) return;
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
+            if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
                 if (addMutData) {
@@ -29181,6 +29234,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hotspotGene = mr?.hotspotGene;
         const isTranslocation = mr?.isTranslocation;
         const isDamaging = mr?.isDamaging;
+        // _lossAxisData reads _cnAxisMode, which follows the sub-type RADIO;
+        // re-sync it to the results being inspected, or flipping the radio
+        // without re-running silently swaps in the wrong call matrix.
+        if (isDamaging) this._cnAxisMode = mr.cnMode || null;
         const mutationData = mr ? (isTranslocation
             ? this._fusionAxisData?.geneData?.[hotspotGene]
             : isDamaging
@@ -29203,6 +29260,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Read inspect-level tissue filter (overrides analysis lineage filter, same as showGeneEffectDistribution)
         const inspectTissueFilter = document.getElementById('geTissueFilter')?.value || '';
+        const geSub = document.getElementById('geSubtypeFilter')?.value || '';
 
         cellLines.forEach((cellLine, idx) => {
             // Apply tissue/lineage filters (same logic as showGeneEffectDistribution)
@@ -29218,6 +29276,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             if (!inspectTissueFilter && mr?.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cellLine] !== mr.subLineageFilter) return;
             if (!inspectTissueFilter && !this._mrOncotreePasses(cellLine)) return;
+            // The popout's own subtype and disease picks scope the plot above
+            // this panel, so the correlates run on the same cell lines.
+            if (geSub && this.cellLineMetadata?.primaryDisease?.[cellLine] !== geSub) return;
+            if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
             if (mr?.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
                 const addMutData = this.mutations.geneData[mr.additionalHotspot];
                 if (addMutData) {
@@ -34002,6 +34064,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return !multi?.length || multi.includes(this.cellLineMetadata?.oncotreeSubtype?.[cellLineId] || '');
         }
         return (this.cellLineMetadata?.oncotreeSubtype?.[cellLineId] || '') === v;
+    }
+
+    // Carry a disease value into a popout's disease selector: scope the list to
+    // the tissue/subtype, then select the value, adding it as an option when
+    // the scoped list does not contain it. Only fills an empty selector; a
+    // value the user picked there stays.
+    _prefillOncotreeSelect(selectId, tissue, subtype, value) {
+        const sel = document.getElementById(selectId);
+        if (!sel || !value) return;
+        if (sel.value) return;
+        this._populateOncotreeSelect(selectId, tissue || '', subtype || '');
+        if (![...sel.options].some(o => o.value === value)) {
+            const o = document.createElement('option');
+            o.value = value;
+            o.textContent = value;
+            sel.appendChild(o);
+        }
+        sel.value = value;
     }
 
     populateClbOncotreeFilter() {
