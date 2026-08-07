@@ -13654,8 +13654,21 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                 this.physicsEnabled = false;
                 if (lockBtn) { lockBtn.textContent = 'Unlock'; lockBtn.classList.add('btn-active'); }
             } else {
+                // The separation stopped the solver; give the nodes back to it
+                // (setting the flag alone left the network silently locked
+                // under an unlocked button, and skipping the solver's relax
+                // pass left the crossing-resolver's strained edges in place).
+                // Re-frame once it settles, unless the user took hold.
+                this.network.setOptions({ physics: { enabled: true } });
                 this.physicsEnabled = true;
                 if (lockBtn) { lockBtn.textContent = 'Lock'; lockBtn.classList.remove('btn-active'); }
+                let shUserTouched = false;
+                const shMarkTouched = () => { shUserTouched = true; };
+                this.network.once('dragStart', shMarkTouched);
+                this.network.once('zoom', shMarkTouched);
+                this.network.once('stabilized', () => {
+                    if (!shUserTouched) this.network.fit({ animation: false });
+                });
             }
             this._ensureNetworkInView();
         });

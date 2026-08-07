@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.111 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Shuffle no longer leaves the network secretly locked.</b> The shuffle stopped the solver to separate sub-networks but never handed the nodes back, so the network behaved locked under an unlocked button, and the layout kept its strained, compressed look instead of relaxing to even spacing. The solver now gets the nodes back after every shuffle (when unlocked), with a re-fit once it settles.</li>
+                </ul>
                 <p><strong>v.85.110 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Shuffle keeps Spread at 100.</b> Rolling a random Spread with each shuffle made the layout look compressed more often than good, so a shuffle now only re-rolls the arrangement at full spacing; the Spread slider stays yours to adjust afterwards.</li>
@@ -5487,7 +5491,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.110</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.111</a>
         </span>
     </div>
 
@@ -8023,6 +8027,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_110"></script>
+    <script src="app.js?v=v85_111"></script>
 </body>
 </html>
