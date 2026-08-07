@@ -2173,6 +2173,31 @@ class CorrelationExplorer {
         return Object.values(tissueMap).sort((a, b) => b.nMut - a.nMut);
     }
 
+    // Any fixed popup becomes movable by its header. Small screens put these
+    // popups low or partly off-screen; dragging is the escape hatch.
+    _makePopupDraggable(popup, handle) {
+        if (!popup || !handle) return;
+        handle.style.cursor = 'move';
+        handle.style.userSelect = 'none';
+        handle.addEventListener('mousedown', (e) => {
+            if (e.target.closest('button, input, select, a')) return;
+            const rect = popup.getBoundingClientRect();
+            popup.style.top = rect.top + 'px';
+            popup.style.left = rect.left + 'px';
+            popup.style.right = 'auto';
+            popup.style.bottom = 'auto';
+            const dx = e.clientX - rect.left, dy = e.clientY - rect.top;
+            const onMove = (e2) => {
+                popup.style.left = Math.max(0, Math.min(e2.clientX - dx, window.innerWidth - 60)) + 'px';
+                popup.style.top = Math.max(0, Math.min(e2.clientY - dy, window.innerHeight - 40)) + 'px';
+            };
+            const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+            e.preventDefault();
+        });
+    }
+
     showTissueBreakdownPopup(type) {
         this.hideTissueBreakdownPopup();
         const isTransloc = type === 'translocation';
@@ -2358,6 +2383,7 @@ class CorrelationExplorer {
 
         popup.innerHTML = html;
         document.body.appendChild(popup);
+        this._makePopupDraggable(popup, popup.firstElementChild);
 
         // Row click: toggle checkbox, or expand sub-tissues if clicking the tissue name
         popup.querySelectorAll('.tb-row').forEach(row => {
@@ -3414,9 +3440,22 @@ class CorrelationExplorer {
             }
         }
 
-        // Third level: an exact disease pick sets all three filters at once.
-        // Mirrors the subtype rule above: applied when a single disease is
-        // chosen; several are only reported in the label.
+        // Third level: disease picks set all three filters at once. One
+        // disease goes into the selector; several travel as a multi-filter
+        // (_paramDiseaseMulti), since the selector holds a single value.
+        this._paramDiseaseMulti = null;
+        if (selectedDiseases.length > 1) {
+            this._paramDiseaseMulti = selectedDiseases.map(d => d.disease);
+            const lins = [...new Set(selectedDiseases.map(d => d.lin))];
+            if (lins.length === 1) {
+                lineageSelect.value = lins[0];
+                lineageSelect.disabled = false;
+                lineageSelect.style.opacity = '';
+                this.excludedTissues = new Set();
+            }
+            const oncSelMulti = document.getElementById('paramOncotreeFilter');
+            if (oncSelMulti) oncSelMulti.value = '';
+        }
         if (selectedDiseases.length === 1) {
             const d = selectedDiseases[0];
             lineageSelect.value = d.lin;
@@ -3589,6 +3628,7 @@ class CorrelationExplorer {
         </div>`;
         popup.innerHTML = html;
         document.body.appendChild(popup);
+        this._makePopupDraggable(popup, popup.firstElementChild);
 
         // Row click: toggle checkbox or expand subtypes
         popup.querySelectorAll('.tb-row').forEach(row => {
@@ -4311,15 +4351,23 @@ class CorrelationExplorer {
     // The mutation / gene-set cohort loops call this beside their lineage and
     // subtype checks, so the third tissue level is honoured everywhere.
     _paramOncotreePasses(cl) {
+        const dis = this.cellLineMetadata?.oncotreeSubtype?.[cl] || '';
+        // Several diseases ticked in a Tissue split popup travel as one
+        // multi-filter (the select itself is single-valued).
+        const multi = this._paramDiseaseMulti;
+        if (multi && multi.length) return multi.includes(dis);
         const v = document.getElementById('paramOncotreeFilter')?.value || '';
-        return !v || (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') === v;
+        return !v || dis === v;
     }
 
     // Same, but against the disease filter STORED with the mutation analysis,
     // so inspect and compare views reproduce the run's cohort.
     _mrOncotreePasses(cl) {
+        const dis = this.cellLineMetadata?.oncotreeSubtype?.[cl] || '';
+        const multi = this.mutationResults?.oncotreeFilterMulti;
+        if (multi && multi.length) return multi.includes(dis);
         const v = this.mutationResults?.oncotreeFilter || '';
-        return !v || (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') === v;
+        return !v || dis === v;
     }
 
     // The curated fusion entry for a cell line, if there is one.
@@ -4572,6 +4620,7 @@ class CorrelationExplorer {
         const tfl = document.getElementById('translocationFilterLevel')?.value || '1+2';
         const cnv = document.getElementById('scatterCnFilter')?.value || '';
         const cnl = document.getElementById('scatterCnLevel')?.value || 'altered';
+        const scOnc = document.getElementById('scatterOncotreeFilter')?.value || '';
         const set = new Set();
         for (const d of data) {
             const cl = d.cellLineId;
@@ -4579,6 +4628,7 @@ class CorrelationExplorer {
             if (kind !== 'tissue') {
                 if (cancer && d.lineage !== cancer) continue;
                 if (subtype && this.cellLineMetadata?.primaryDisease?.[cl] !== subtype) continue;
+                if (scOnc && (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') !== scOnc) continue;
             }
             if (kind !== 'hotspot' && mfg) {
                 const mm = (this.mutations?.geneData?.[mfg] || this.damagingMutations?.geneData?.[mfg])?.mutations;
@@ -4733,9 +4783,11 @@ class CorrelationExplorer {
         const cn = document.getElementById('caCnFilter')?.value || '';
         const cnLvl = document.getElementById('caCnLevel')?.value || 'altered';
         const set = new Set();
+        const caOnc = document.getElementById('caOncotreeFilter')?.value || '';
         for (const p of data) {
             const cl = p.cellLineId;
             if (kind !== 'tissue' && tissue && p.lineage !== tissue) continue;
+            if (kind !== 'tissue' && caOnc && (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') !== caOnc) continue;
             if (kind !== 'hotspot' && hot) { const mm = this.mutations?.geneData?.[hot]?.mutations || this.damagingMutations?.geneData?.[hot]?.mutations; const l = mm ? (mm[cl] || 0) : 0; if (hotLvl === '0' ? l !== 0 : hotLvl === '1' ? l !== 1 : hotLvl === '2' ? l < 2 : l < 1) continue; }
             if (kind !== 'fusion' && fus) { const has = this._geFusionPasses(cl, fus); if (fusLvl === '0' ? has : !has) continue; }
             if (kind !== 'cn' && cn) { const has = this._cellLinePassesCnFilter(cl, cn); if (cnLvl === 'wt' ? has : !has) continue; }
@@ -4754,11 +4806,13 @@ class CorrelationExplorer {
         const fus = document.getElementById('geFusionFilter')?.value || '';
         const cn = document.getElementById('geCnFilter')?.value || '';
         const set = new Set();
+        const geOncEx = document.getElementById('geOncotreeFilter')?.value || '';
         for (const d of data) {
             const cl = d.cellLineId;
             if (kind !== 'tissue') {
                 if (tissue && d.lineage !== tissue) continue;
                 if (subtype && this.cellLineMetadata?.primaryDisease?.[cl] !== subtype) continue;
+                if (geOncEx && (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') !== geOncEx) continue;
             }
             const wantWT = (id) => document.getElementById(id)?.value === 'wt';
             if (kind !== 'hotspot' && hotspot) {
@@ -7561,6 +7615,7 @@ class CorrelationExplorer {
                     lineageFilter,
                     subLineageFilter,
                     oncotreeFilter: document.getElementById('paramOncotreeFilter')?.value || '',
+                    oncotreeFilterMulti: this._paramDiseaseMulti ? [...this._paramDiseaseMulti] : null,
                     additionalHotspot,
                     additionalHotspotLevel,
                     additionalTransGene,
@@ -8406,23 +8461,26 @@ class CorrelationExplorer {
         const tip = 'title="Click to sort. Ctrl/Cmd+click to copy column."';
         const arrow = (col) => col === sortCol ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
         const sortAttr = (col) => col === sortCol ? ` data-sort-dir="${sortDir}"` : '';
+        // The measure named in the headers follows the metric: Δ GE for gene
+        // effect, Δ Expr when the table ranks mRNA expression.
+        const unit = mr.metric === 'expr' ? 'Expr' : 'GE';
         const cols = [
             { col: 'gene', label: 'Gene', style: '' },
             { col: 'n_wt', label: `N (${wtLabel})`, style: 'border-left: 2px solid #2563eb;' },
-            { col: 'mean_wt', label: `Mean GE (${wtLabel})`, style: '' },
+            { col: 'mean_wt', label: `Mean ${unit} (${wtLabel})`, style: '' },
             { col: 'n_mut', label: `N (${mutLbl}${isD ? '' : ' 1+2'})`, style: 'border-left: 2px solid #f97316;' },
-            { col: 'mean_mut', label: `Mean GE (${mutLbl}${isD ? '' : ' 1+2'})`, style: '' },
-            { col: 'diff_mut', label: 'Δ GE (1+2v0)', style: 'border-left: 2px solid #d1d5db;' },
+            { col: 'mean_mut', label: `Mean ${unit} (${mutLbl}${isD ? '' : ' 1+2'})`, style: '' },
+            { col: 'diff_mut', label: `Δ ${unit} (1+2v0)`, style: 'border-left: 2px solid #d1d5db;' },
             { col: 'p_mut', label: 'p-value', style: '' },
         ];
         // Only show het/hom columns for non-damaging mutations (damaging is binary)
         if (!isD) {
             cols.push(
                 { col: 'n_2', label: `N (${mutLbl} 2${isT ? '+' : ''})`, style: 'border-left: 2px solid #dc2626;', cls: 'mut2-col' },
-                { col: 'mean_2', label: `Mean GE (${mutLbl} 2${isT ? '+' : ''})`, style: '', cls: 'mut2-col' },
-                { col: 'diff_2', label: 'Δ GE (2v0)', style: 'border-left: 2px solid #d1d5db;', cls: 'mut2-col' },
+                { col: 'mean_2', label: `Mean ${unit} (${mutLbl} 2${isT ? '+' : ''})`, style: '', cls: 'mut2-col' },
+                { col: 'diff_2', label: `Δ ${unit} (2v0)`, style: 'border-left: 2px solid #d1d5db;', cls: 'mut2-col' },
                 { col: 'p_2', label: 'p-value (2v0)', style: '', cls: 'mut2-col' },
-                { col: 'diff_2v1', label: 'Δ GE (2v1)', style: 'border-left: 2px solid #d1d5db;', cls: 'mut2-col' },
+                { col: 'diff_2v1', label: `Δ ${unit} (2v1)`, style: 'border-left: 2px solid #d1d5db;', cls: 'mut2-col' },
                 { col: 'p_2v1', label: 'p (2v1)', style: '', cls: 'mut2-col' }
             );
         }
@@ -8433,8 +8491,8 @@ class CorrelationExplorer {
         if (hasFusion) {
             const fusionCols = [
                 { col: 'n_fused', label: 'N (Fused)', style: 'border-left: 2px solid #8b5cf6;' },
-                { col: 'mean_fused', label: 'Mean GE (F)', style: '' },
-                { col: 'diff_fused', label: 'Δ GE (F)', style: 'border-left: 2px solid #d1d5db;' },
+                { col: 'mean_fused', label: `Mean ${unit} (F)`, style: '' },
+                { col: 'diff_fused', label: `Δ ${unit} (F)`, style: 'border-left: 2px solid #d1d5db;' },
                 { col: 'p_fused', label: 'p (F)', style: '' }
             ];
             fusionCols.forEach(c => {
@@ -8443,6 +8501,13 @@ class CorrelationExplorer {
         }
         headerHTML += '</tr>';
         thead.innerHTML = headerHTML;
+
+        const blurbEl = document.getElementById('mutStatsBlurb');
+        if (blurbEl) {
+            const measureWord = mr.metric === 'expr' ? 'mRNA expression (log2 TPM+1)' : 'gene effect scores';
+            const dWord = mr.metric === 'expr' ? 'Δ Expr' : 'Δ GE';
+            blurbEl.textContent = `p-values are calculated using Welch's t-test comparing ${measureWord} between wild-type (WT, 0 mutations) and mutated cells (1+2 or 2 mutations). ${dWord} = Mean(mutated) − Mean(WT).`;
+        }
 
         const polymorphicCaveat = this._polymorphicCaveatText();
         // Rows where the gene is measured in fewer cell lines than the cohort
@@ -8541,7 +8606,8 @@ class CorrelationExplorer {
             }
             settingsText += ` | Lineage: ${lineageText}`;
         }
-        if (mr.oncotreeFilter) settingsText += ` | Disease: ${mr.oncotreeFilter}`;
+        if (mr.oncotreeFilterMulti?.length) settingsText += ` | Diseases: ${mr.oncotreeFilterMulti.join(', ')}`;
+        else if (mr.oncotreeFilter) settingsText += ` | Disease: ${mr.oncotreeFilter}`;
         // Collect all mutation filters into one label
         const mutFilterParts = [];
         const shownGenes = new Set();
@@ -9000,6 +9066,8 @@ class CorrelationExplorer {
             if (inspectFusion && !this._geFusionPasses(cellLine, inspectFusion)) return;
             // Check inspect-level focal-CN filter (amp / deep-del)
             if (inspectCn && !this._cellLinePassesCnFilter(cellLine, inspectCn)) return;
+            // Check inspect-level disease (Oncotree) filter
+            if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
 
             // Check custom cell line filter (GE modal)
             if (this._customCellLineFilterGE && !this._customCellLineFilterGE.has(cellLine)) return;
@@ -9404,6 +9472,25 @@ class CorrelationExplorer {
                 tHtml += `<option value="${l}"${sel}>${l} (n=${tCounts[l]})</option>`;
             }
             tissueFilterEl.innerHTML = tHtml;
+            // Surface the analysis' disease level in the inspect filters, so
+            // the popout states what the run was filtered to and lets the
+            // user change or clear it. Only fills an empty selector, a value
+            // the user picked stays.
+            const geOncPre = document.getElementById('geOncotreeFilter');
+            if (geOncPre) {
+                this._populateOncotreeSelect('geOncotreeFilter',
+                    inspectTissueFilter || mr.lineageFilter || '',
+                    inspectSubtype || mr.subLineageFilter || '');
+                if (!geOncPre.value && mr.oncotreeFilter) {
+                    if (![...geOncPre.options].some(o => o.value === mr.oncotreeFilter)) {
+                        const o = document.createElement('option');
+                        o.value = mr.oncotreeFilter;
+                        o.textContent = mr.oncotreeFilter;
+                        geOncPre.appendChild(o);
+                    }
+                    geOncPre.value = mr.oncotreeFilter;
+                }
+            }
 
             // Pre-select lineage filter from analysis params if no inspect override
             if (!inspectTissueFilter && mr.lineageFilter) {
@@ -11130,7 +11217,7 @@ class CorrelationExplorer {
                 <button onclick="app._netTsHighlightClear()" style="font-size:10px;padding:2px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">Clear</button>
                 <span id="net_ts_highlightCount" style="font-size:10px;color:#b45309;"></span>
             </div>
-            <div style="font-size:9px;color:#9ca3af;margin-top:3px;">Highlighted genes get a purple ring and keep it in Export image and Copy network.</div>
+            <div style="font-size:9px;color:#9ca3af;margin-top:3px;">Highlighted genes get a thick dashed ring and keep it in Export image and Copy network.</div>
         `;
 
         panel.style.display = 'block';
@@ -13177,9 +13264,9 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                     _cvHl: true,
                     _cvPrevBorder: n._cvHl ? n._cvPrevBorder : (n.color?.border ?? '#000000'),
                     _cvPrevBorderWidth: n._cvHl ? n._cvPrevBorderWidth : (n.borderWidth ?? 2),
-                    borderWidth: 5,
-                    color: { ...(n.color || {}), border: '#7c3aed' },
-                    shadow: { enabled: true, color: 'rgba(124,58,237,0.5)', size: 20, x: 0, y: 0 }
+                    borderWidth: 4,
+                    color: { ...(n.color || {}), border: n._cvHl ? n._cvPrevBorder : (n.color?.border ?? '#000000') },
+                    shapeProperties: { borderDashes: [6, 4] }
                 });
             } else if (n._cvHl) {
                 updates.push({
@@ -13187,7 +13274,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                     _cvHl: false,
                     borderWidth: n._cvPrevBorderWidth ?? 2,
                     color: { ...(n.color || {}), border: n._cvPrevBorder ?? '#000000' },
-                    shadow: { enabled: false }
+                    shapeProperties: { borderDashes: false }
                 });
             }
         });
@@ -13214,9 +13301,9 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             <div style="display:flex; gap:6px; align-items:center; margin-top:8px;">
                 <button id="netHlApply" style="font-size:11px; padding:3px 14px; border:none; border-radius:4px; cursor:pointer; background:#6ba544; color:white; font-weight:500;">Apply</button>
                 <button id="netHlClear" style="font-size:11px; padding:3px 12px; border:1px solid #d1d5db; border-radius:4px; cursor:pointer; background:#f9fafb;">Clear</button>
-                <span id="netHlCount" style="font-size:11px; color:#7c3aed;"></span>
+                <span id="netHlCount" style="font-size:11px; color:#374151;"></span>
             </div>
-            <div style="font-size:10px; color:#9ca3af; margin-top:6px;">Purple ring on the named genes, kept in Export image and Copy network. Separate several genes with spaces or commas.</div>`;
+            <div style="font-size:10px; color:#9ca3af; margin-top:6px;">Thick dashed ring on the named genes, kept in Export image and Copy network. Separate several genes with spaces or commas.</div>`;
         document.body.appendChild(pop);
         const input = pop.querySelector('#netHlInput');
         const count = pop.querySelector('#netHlCount');
@@ -13371,8 +13458,8 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         const btn = document.getElementById('highlightNetworkBtn');
         const helpText = document.getElementById('networkHelpText');
         if (this.highlightMode) {
-            if (btn) { btn.classList.add('btn-active'); btn.style.backgroundColor = '#7c3aed'; btn.style.borderColor = '#7c3aed'; btn.style.color = 'white'; }
-            if (helpText) helpText.textContent = 'Click nodes to highlight them (purple ring, kept in exports). Click Highlight again to finish.';
+            if (btn) { btn.classList.add('btn-active'); btn.style.backgroundColor = '#374151'; btn.style.borderColor = '#374151'; btn.style.color = 'white'; }
+            if (helpText) helpText.textContent = 'Click nodes to highlight them (thick dashed ring, kept in exports). Click Highlight again to finish.';
         } else {
             if (btn) { btn.classList.remove('btn-active'); btn.style.backgroundColor = ''; btn.style.borderColor = ''; btn.style.color = ''; }
             if (helpText) helpText.textContent = 'Double-click node for Gene Effect, edge for Correlation';
@@ -23243,12 +23330,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return ctx.measureText(text).width * SAFETY;
         };
 
+        // The subtitle size is fixed, so the title may wrap-and-shrink only
+        // down to comfortably ABOVE it; shrinking past the subtitle made the
+        // gene name smaller than the stats line, which read as the two having
+        // swapped places.
+        const subFontSize = subFontSizeOverride || Math.round(baseFontSize * 0.6);
+        const titleFloor = Math.max(12, subFontSize + 3);
         let fontSize = baseFontSize;
         let lines = [titleText];
 
         if (measure(titleText, fontSize) > maxTitleWidth) {
             lines = this._wrapTextGreedy(titleText, fontSize, maxTitleWidth, measure);
-            while (fontSize > 12 && lines.some(l => measure(l, fontSize) > maxTitleWidth)) {
+            while (fontSize > titleFloor && lines.some(l => measure(l, fontSize) > maxTitleWidth)) {
                 fontSize -= 1;
                 lines = this._wrapTextGreedy(titleText, fontSize, maxTitleWidth, measure);
             }
@@ -23258,7 +23351,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Wrap each subtitle line too (it was previously emitted unwrapped, so a long
         // stats line, "WT: n=… · Mut: n=…", would overflow and clip on the right).
-        const subFontSize = subFontSizeOverride || Math.round(baseFontSize * 0.6);
         let subtitleHtml = '';
         let subLines = 0;
         if (subtitleText) {
@@ -34143,6 +34235,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!sel._wired) {
                 sel._wired = true;
                 sel.addEventListener('change', () => {
+                    if (ctx === 'params') this._paramDiseaseMulti = null;
                     // The tissue and subtype lists are scoped by the disease
                     // as well, so a disease pick rescopes both (the reverse of
                     // the wiring below): the three selectors scale to each
@@ -34208,7 +34301,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             parts.push(chip('tissue', this.esc(tissue) + (subtype ? ' · ' + this.esc(subtype) : ''),
                 'background:var(--earth-50);color:var(--earth-700);', 'Click to remove this filter'));
         }
-        if (onco) parts.push(chip('oncotree', this.esc(onco), 'background:#ecfeff;color:#155e75;', 'Click to remove this filter'));
+        const oncoMulti = spec.oncotree === 'paramOncotreeFilter' ? this._paramDiseaseMulti : null;
+        if (oncoMulti?.length) parts.push(chip('oncotree', oncoMulti.map(d => this.esc(d)).join(' · '), 'background:#ecfeff;color:#155e75;', 'Click to remove this filter'));
+        else if (onco) parts.push(chip('oncotree', this.esc(onco), 'background:#ecfeff;color:#155e75;', 'Click to remove this filter'));
         if (spec.sex && val(spec.sex)) {
             const m = {
                 ann_male: 'Male (annotation)', ann_female: 'Female (annotation)', ann_unknown: 'Sex unknown (annotation)',
@@ -34252,11 +34347,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         host.innerHTML = parts.join(' ');
         host.style.display = parts.length ? 'flex' : 'none';
-        // The scatter's chips live in their own labelled box; show it only
-        // when there is something to show.
+        // The scatter's chip box is always on screen (no layout jumps); a
+        // small "none" note stands in when nothing is filtered.
         if (host.id === 'scatterActiveFilters') {
-            const box = document.getElementById('scatterFiltersBox');
-            if (box) box.style.display = parts.length ? '' : 'none';
+            const note = document.getElementById('scatterNoFiltersNote');
+            if (note) note.style.display = parts.length ? 'none' : '';
         }
         host.querySelectorAll('[data-chip]').forEach(el => {
             el.addEventListener('click', (e) => {
@@ -34288,7 +34383,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         if (kind === 'oncotree') {
             return this._simpleChipMenu(anchorEl, [{
-                label: 'Remove this filter', danger: true, act: () => setVal(spec.oncotree, ''),
+                label: 'Remove this filter', danger: true,
+                act: () => { this._paramDiseaseMulti = null; setVal(spec.oncotree, ''); },
             }], after);
         }
         if (kind === 'sex') {
@@ -43095,12 +43191,12 @@ ${clone.innerHTML}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Font Sizes &amp; Visibility</div>
             ${sizeRow('Title', 'ts_title', titleSize, 6, 48, 'ts_titleVis', this._tsVisible.title)}
-            ${subtitleText ? sizeRow('Subtitle', 'ts_subtitle', subtitleSize, 6, 30, subtitleAnn ? 'ts_subtitleVis' : null, this._tsVisible.subtitle) : ''}
+            ${subtitleText ? sizeRow('Subtitle', 'ts_subtitle', subtitleSize, 6, 30, 'ts_subtitleVis', this._tsVisible.subtitle) : ''}
             ${sizeRow('X Label', 'ts_xlabel', xLabelSize, 6, 36, 'ts_xLabelVis', this._tsVisible.xLabel)}
             ${sizeRow('Y Label', 'ts_ylabel', yLabelSize, 6, 36, 'ts_yLabelVis', this._tsVisible.yLabel)}
             ${panelAnns.length ? sizeRow('Panels', 'ts_panelSize', panelSize, 6, 30, 'ts_panelVis', this._tsVisible.panels) : ''}
-            ${sizeRow('X Tick', 'ts_xtick', xTickSize, 6, 30, null, true)}
-            ${sizeRow('Y Tick', 'ts_ytick', yTickSize, 6, 30, null, true)}
+            ${sizeRow('X Tick', 'ts_xtick', xTickSize, 6, 30, 'ts_xTickVis', layout.xaxis?.showticklabels !== false)}
+            ${sizeRow('Y Tick', 'ts_ytick', yTickSize, 6, 30, 'ts_yTickVis', layout.yaxis?.showticklabels !== false)}
             ${sizeRow('Legend', 'ts_legend', legendSize, 6, 30, 'ts_legendVis', this._tsVisible.legend)}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Markers</div>
@@ -43363,6 +43459,26 @@ ${clone.innerHTML}
             const idx = this._tsFindAnn(plotEl, 'subtitle');
             if (idx >= 0) {
                 Plotly.relayout(plotEl, { [`annotations[${idx}].visible`]: checked });
+            } else {
+                // Inline subtitle (lives inside the title annotation): cut the
+                // sized sub-span out to hide, splice it back to show.
+                const tIdx = this._tsFindAnn(plotEl, 'title');
+                const useIdx = tIdx >= 0 ? tIdx : 0;
+                const ann = (plotEl.layout.annotations || [])[useIdx];
+                if (!ann) return;
+                if (!checked) {
+                    const raw = ann.text || '';
+                    const parts = raw.split(/<br\s*\/?>/i);
+                    let firstSub = 1;
+                    while (firstSub < parts.length && !/font-size:/i.test(parts[firstSub])) firstSub++;
+                    if (firstSub < parts.length) {
+                        ann._cvHiddenSub = parts.slice(firstSub).join('<br>');
+                        Plotly.relayout(plotEl, { [`annotations[${useIdx}].text`]: parts.slice(0, firstSub).join('<br>') });
+                    }
+                } else if (ann._cvHiddenSub) {
+                    Plotly.relayout(plotEl, { [`annotations[${useIdx}].text`]: (ann.text || '') + '<br>' + ann._cvHiddenSub });
+                    delete ann._cvHiddenSub;
+                }
             }
         } else if (checkboxId === 'ts_xLabelVis') {
             const idx = this._tsFindAnn(plotEl, 'xlabel');
@@ -43386,6 +43502,10 @@ ${clone.innerHTML}
                 if (/^panel\d+$/.test(a._tsRole || '')) updates[`annotations[${i}].visible`] = checked;
             });
             if (Object.keys(updates).length) Plotly.relayout(plotEl, updates);
+        } else if (checkboxId === 'ts_xTickVis') {
+            Plotly.relayout(plotEl, { 'xaxis.showticklabels': checked });
+        } else if (checkboxId === 'ts_yTickVis') {
+            Plotly.relayout(plotEl, { 'yaxis.showticklabels': checked });
         } else if (checkboxId === 'ts_legendVis') {
             Plotly.relayout(plotEl, { showlegend: checked });
         }

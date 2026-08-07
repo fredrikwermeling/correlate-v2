@@ -2168,6 +2168,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.95 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>The disease filter reaches everywhere.</b> Inspect opened from a mutation analysis now shows the run's disease in its filter row and applies it; several diseases ticked in a Tissue split (e.g. melanoma + cutaneous melanoma) now filter the run as a set, are shown in the header and chips, and clear together; the filter-menu counts in the popouts also respect the disease pick.</li>
+                    <li><b>Popups can be moved.</b> The Tissue split and general tissue popups drag by their header, so nothing is stuck half off-screen on a small laptop.</li>
+                    <li><b>Highlight ring restyled.</b> A thick dashed ring in the node's own colours instead of the purple one.</li>
+                    <li><b>Text settings: every element on the plot can be switched off.</b> X and Y tick labels gained on/off boxes like the title, labels and legend.</li>
+                    <li><b>The mutation table names its measure.</b> Columns and the statistics note read Δ Expr / mean Expr when the analysis ranks mRNA expression, instead of always saying GE.</li>
+                    <li><b>Scatter polish.</b> The Active filters box is always present (no layout jump) with Reset on its header row; the alteration filter menus respect the disease pick.</li>
+                    <li><b>"How it works" polish.</b> Tighter wording, a redrawn pathway figure (now including RHEB), numbered figures, and the platform described as multi-omics analysis of human cancer cell lines built around CRISPR screens.</li>
+                </ul>
                 <p><strong>v.85.94 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>The Tissue split's finer levels now reach the analysis.</b> Selecting a subtype or exact disease in the split popup set the filters, but Run only honoured the lineage, so the WT / mutated counts disagreed with the popup. The disease level is now applied in the analysis, its inspect views and compares, and shown in the results header.</li>
@@ -5398,7 +5408,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.94</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.95</a>
         </span>
     </div>
 
@@ -5919,7 +5929,7 @@
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
                                 <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;" title="Fonts, label and node colors, node border, legend size and other appearance settings for the network and its exports.">Settings</button>
                                 <button class="btn btn-secondary" id="shuffleNetworkBtn" title="Re-roll the layout from new random starting positions. Click until the arrangement looks right.">Shuffle</button>
-                                <button class="btn btn-secondary" id="highlightNetworkBtn" title="Highlight one or several genes with a purple ring. The ring stays in Export image and Copy network.">Highlight</button>
+                                <button class="btn btn-secondary" id="highlightNetworkBtn" title="Click, then click genes to give them a thick dashed ring that stays in Export image and Copy network. Click again to finish.">Highlight</button>
                                 <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network, font / node / edge size, colors, label options and node border, back to defaults">Reset</button>
                                 <!-- Hidden master switch for the node border; several renderers read
                                      its state. The visible control lives in the Settings popout. -->
@@ -6312,14 +6322,16 @@
                                 </div>
                             </div>
                             <!-- Active filters live in their own box: they are not part
-                                 of Compare, and the chips used to inflate that box and
-                                 float oddly among its buttons. Hidden until a filter is
-                                 set; Reset clears every filter. -->
-                            <div class="control-box-compact" id="scatterFiltersBox" style="grid-column: span 2; display:none;">
-                                <span class="control-label" style="font-size:10px;">Active filters</span>
-                                <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+                                 of Compare. Always present so the layout never jumps;
+                                 Reset sits on the label row, clears every filter. -->
+                            <div class="control-box-compact" id="scatterFiltersBox" style="grid-column: span 2;">
+                                <div style="display:flex; align-items:center; justify-content:space-between;">
+                                    <span class="control-label" style="font-size:10px; margin:0;">Active filters</span>
+                                    <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size:10px; padding:1px 8px;" title="Clear every filter: tissue, subtype, disease, hotspot, fusion, copy number, grid picks and custom lists">Reset</button>
+                                </div>
+                                <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center; min-height:16px;">
                                     <div id="scatterActiveFilters" class="clb-active-filters" style="display:none;"></div>
-                                    <button class="btn btn-outline btn-sm" id="resetAllFilters" style="font-size:10px; padding:2px 8px;" title="Clear every filter: tissue, subtype, disease, hotspot, fusion, copy number, grid picks and custom lists">Reset</button>
+                                    <span id="scatterNoFiltersNote" style="font-size:9px; color:#9ca3af;">none</span>
                                 </div>
                             </div>
                         </div>
@@ -7178,7 +7190,7 @@
             <div class="modal-header" style="background: linear-gradient(135deg, #3b5e23, #5d9239); color: white; border-radius: 16px 16px 0 0; padding: 24px 28px;">
                 <div>
                     <h3 style="margin: 0; font-size: 22px; font-weight: 700; color: white;">How Correlate Works</h3>
-                    <p style="margin: 6px 0 0; font-size: 13px; opacity: 0.85; font-weight: 400; color: white;">A multi-omics platform built around CRISPR screen data</p>
+                    <p style="margin: 6px 0 0; font-size: 13px; opacity: 0.85; font-weight: 400; color: white;">Multi-omics analysis of human cancer cell lines, built around CRISPR screens</p>
                 </div>
                 <button class="modal-close" id="closeInfoGraphic" style="color: white; opacity: 0.8;">&times;</button>
             </div>
@@ -7188,8 +7200,7 @@
                 <div style="padding: 24px 28px; background: #f3faee; border-bottom: 1px solid #cdebb9;">
                     <h4 style="margin: 0 0 10px; color: #3b5e23; font-size: 16px;">What is Correlate?</h4>
                     <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
-                        Correlate is a <strong>multi-omics platform</strong> centred on <strong>CRISPR screen data</strong>: gene effect scores (knockout fitness) across <strong>1,100+ human cancer cell lines</strong> from the DepMap project,
-                        integrated with mRNA expression, hotspot mutations, driver fusions and copy-number data for the same lines.
+                        Correlate is an analysis platform built around <strong>CRISPR knockout screens</strong> of more than <strong>1,100 human cancer cell lines</strong> (DepMap), and it integrates <strong>multi-omics data</strong> for the same lines, mRNA expression, hotspot mutations, driver fusions and copy number.
                         Three tools cover the main uses: <strong>Gene set analysis</strong> to discover and present the connections within a gene set and extend it into wider networks,
                         <strong>Mutation analysis</strong> to find mutation-specific vulnerabilities, and the <strong>Cell Line Browser</strong> to identify cell lines with the features a project needs.
                         Outside tools are integrated for further analysis: any gene list can be sent to <strong>Enrichr</strong> for pathway enrichment, and every view has an <strong>Export for AI</strong> that packages its data and settings into one file an AI assistant can analyse.
@@ -7210,7 +7221,7 @@
                         <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
                             <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🧬 Mutation analysis</div>
                             <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.55;">
-                                Split the cell lines by an alteration (hotspot mutation, driver fusion, functional loss or amplification) and rank every gene in the screen by how much its knockout effect, or its expression, differs between altered and wild-type lines: the mutation-specific vulnerabilities.
+                                Pick an alteration, a hotspot mutation, a driver fusion, a functional loss or an amplification. Correlate splits the cell lines into carriers and wild-type, then scans the whole screen for the genes carriers depend on more, or express differently. What comes out is a ranked list of mutation-specific vulnerabilities, candidate targets that matter only in the altered background.
                             </p>
                         </div>
                         <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
@@ -7234,7 +7245,7 @@
                             <div style="font-size: 32px; margin-bottom: 4px;">↗</div>
                             <div style="font-weight: 700; color: #3182ce; font-size: 15px;">Positive (r &gt; 0)</div>
                             <p style="font-size: 12px; color: #555; margin: 6px 0 0; line-height: 1.5;">
-                                Knockout of both genes affects the <strong>same</strong> cell lines <strong>in the same way</strong>, suggesting shared pathway or complex membership.
+                                Knockout of the two genes shifts fitness in a <strong>similar way across the cell lines</strong>, suggesting shared pathway or complex membership.
                             </p>
                         </div>
                         <!-- No correlation -->
@@ -7260,17 +7271,17 @@
                             <img src="scatter_example.svg" alt="TSC1 vs TSC2 scatter plot showing strong positive correlation (r=0.90)" style="max-width: 100%; height: auto; border-radius: 6px;">
                             <div style="margin-top: auto; padding-top: 8px; border-top: 1px solid #f0f0f0;">
                                 <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">
-                                    <strong>Example:</strong> TSC1 vs TSC2 gene effect across 1,186 cell lines (r = 0.90). Knockout of either gene produces nearly identical fitness effects, yet the impact is highly context-dependent: some cell lines thrive while others are depleted.
+                                    <strong>Fig 1:</strong> TSC1 vs TSC2 gene effect across 1,186 cell lines (r = 0.90). Knockout of either gene produces nearly identical fitness effects, yet the impact is highly context-dependent: some cell lines thrive while others are depleted.
                                 </p>
                             </div>
                         </div>
                         <div style="background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; flex: 0 0 auto; max-width: 280px; display: flex; flex-direction: column;">
                             <div style="flex: 1; display: flex; align-items: center;">
-                                <img src="tsc_pathway.svg" alt="TSC1/TSC2 signaling pathway" style="max-width: 100%; height: auto; border-radius: 6px;">
+                                <img src="tsc_pathway.svg?v=2" alt="TSC1/TSC2 signaling pathway" style="max-width: 100%; height: auto; border-radius: 6px;">
                             </div>
                             <div style="margin-top: auto; padding-top: 8px; border-top: 1px solid #f0f0f0;">
                                 <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">
-                                    The strong correlation reveals that TSC1 and TSC2 function as an obligate complex, without prior knowledge of the pathway. This is the power of unbiased correlation analysis: it discovers functional relationships directly from the data.
+                                    <strong>Fig 2:</strong> The strong correlation reveals that TSC1 and TSC2 work as one complex, discovered directly from the data without any prior knowledge of the pathway.
                                 </p>
                                 <p style="margin: 4px 0 0; font-size: 10px; color: #999; font-style: italic;">
                                     Pathway adapted from Huang &amp; Manning, Cell Res (2008) 18:62&ndash;69
@@ -7290,7 +7301,7 @@
                         <div style="background: white; border: 1px solid #e5e7eb; border-radius: 10px; display: inline-block; padding: 10px; max-width: 520px;">
                             <img src="network_example.svg" alt="Correlation network showing gene relationships" style="max-width: 100%; height: auto; border-radius: 6px;">
                             <p style="margin: 8px 0 0; font-size: 12px; color: #666; line-height: 1.4;">
-                                <strong>Example network:</strong> Genes cluster by functional relationships. TSC1&ndash;TSC2 (thick blue edge) share a complex; TP53&ndash;MDM2 (red edge) show opposing fitness effects.
+                                <strong>Fig 3:</strong> Genes cluster by functional relationships. TSC1&ndash;TSC2 (thick blue edge) share a complex; TP53&ndash;MDM2 (red edge) show opposing fitness effects.
                                 <br>Double-click a <strong>node</strong> to see its gene effect profile, or an <strong>edge</strong> to view the scatter plot.
                             </p>
                         </div>
@@ -7929,6 +7940,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_94"></script>
+    <script src="app.js?v=v85_95"></script>
 </body>
 </html>
