@@ -149,6 +149,25 @@
             text-decoration: underline;
         }
 
+        /* The tree makes the logo image asymmetric: the wordmark's centre sits
+           9.55% of the image width left of the image centre. Shift the tagline
+           and the nav links onto that axis so both centre under the visible
+           text, with "Green Listed" pinned to the exact middle of the row. */
+        :root { --logo-axis-shift: calc(min(550px, 100vw - 40px) * -0.0955); }
+        .logo-tagline { transform: translateX(var(--logo-axis-shift)); }
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            transform: translateX(var(--logo-axis-shift));
+        }
+        .nav-side { flex: 1 1 0; white-space: nowrap; }
+        .nav-side-l { text-align: right; }
+        .nav-side-r { text-align: left; }
+        @media (max-width: 640px) {
+            :root { --logo-axis-shift: calc(min(550px, 100vw - 20px) * -0.0955); }
+        }
+
         /* Main content area */
         .main-content {
             padding: 0 20px 20px 20px;
@@ -2116,7 +2135,7 @@
     <!-- Logo Header -->
     <div class="logo-header">
         <img src="web_data/correlate_logo.png" alt="Correlate - a Gene Effect Analysis Tool">
-        <div style="font-size:14px; font-style:italic; color:#6b9e5a; letter-spacing:2px; font-family:'Georgia',serif; margin-top:-14px; margin-bottom:12px;">— extended version —</div>
+        <div class="logo-tagline" style="font-size:14px; font-style:italic; color:#6b9e5a; letter-spacing:2px; font-family:'Georgia',serif; margin-top:-14px; margin-bottom:12px;">— extended version —</div>
     </div>
 
     <!-- Changelog Modal (development only) -->
@@ -2127,6 +2146,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.84 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>The header lines up on the logo.</b> The tree makes the logo image wider than its text, so "extended version" and the links below centred on the page but sat visibly right of the wordmark. Both now centre under the visible text, with "Green Listed" pinned to the exact middle of the row; the version badge stays on the right, outside the centring.</li>
+                    <li><b>Copy beside every image export.</b> The Gene Effect chart, the expression-correlate scatter, the correlation analysis chart, the UMAP / PCA plot, the mutation grid and the UpSet plot now have the same Copy button the correlation scatter and network already had: one click puts the picture on the clipboard, ready to paste into an email or slide. The grid copies in full, not just the part scrolled into view.</li>
+                </ul>
                 <p><strong>v.85.83 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Fusion counts agree everywhere.</b> The fusion grid and the filter menus counted only the fusion caller's output, while selecting a fusion also included cell lines whose fusion is documented in the literature but that the caller could not read (most Ewing sarcoma lines, for example: the grid said 14 EWSR1-FLI1 lines, selecting it gave 23). All counts now include the published calls; in the grid they are drawn as high-confidence.</li>
@@ -5277,12 +5301,18 @@
 
     <!-- Navigation Bar -->
     <div class="nav-bar">
-        <a href="#" id="showInfoGraphic">How it works</a>
-        <a href="#" id="showReferenceData">Reference Data</a>
-        <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
-        <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
-        <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.83</a>
+        <span class="nav-links">
+            <span class="nav-side nav-side-l">
+                <a href="#" id="showInfoGraphic">How it works</a>
+                <a href="#" id="showReferenceData">Reference Data</a>
+            </span>
+            <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
+            <span class="nav-side nav-side-r">
+                <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
+                <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
+            </span>
+        </span>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.84</a>
     </div>
 
     <div class="main-content">
@@ -6613,6 +6643,7 @@
                     </select>
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
                     <button class="btn btn-outline btn-sm mobile-hide" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
+                    <button class="btn btn-outline btn-sm mobile-hide" onclick="app.copyPlotToClipboard('geneEffectPlot', 'Chart')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                     <button class="btn btn-sm btn-outline" id="geExpandFullBtn" title="Show the full analysis (filters + statistics table)" style="font-size:11px;">⤢ Full view</button>
                     <span style="font-size: 12px; color: #6b7280; margin-left: 15px; margin-right: 5px;">Export CSV:</span>
                     <button class="btn btn-outline btn-sm" id="downloadGETableCSV" title="Download the table above as a CSV file">By Group</button>
@@ -6693,6 +6724,7 @@
                                 <button class="btn btn-sm btn-outline" id="backToExprResults" style="border-color: #6ba544; color: #5d9239;">← Back to results</button>
                                 <div style="display: flex; gap: 6px;">
                                     <button class="btn btn-outline btn-sm mobile-hide" id="downloadExprScatterPNG" style="border-color: #6ba544; color: #5d9239;" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
+                                    <button class="btn btn-outline btn-sm mobile-hide" style="border-color: #6ba544; color: #5d9239;" onclick="app.copyPlotToClipboard('exprCorrelateScatterPlot', 'Scatter')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                                 </div>
                             </div>
                             <div id="exprScatterGeneInputs" style="display:flex; gap:12px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
@@ -6851,6 +6883,7 @@
                 <div class="mobile-hide" style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                     <span style="font-size: 12px; color: #6b7280; margin-right: 5px;">Export Chart:</span>
                     <button class="btn btn-outline btn-sm mobile-hide" id="downloadCorrAnalysisPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
+                    <button class="btn btn-outline btn-sm mobile-hide" onclick="app.copyPlotToClipboard(app._caView === 'tissue' ? 'corrAnalysisTissuePlot' : 'corrAnalysisHotspotPlot', 'Chart')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                     <span style="font-size: 12px; color: #6b7280; margin-left: 15px; margin-right: 5px;">Export CSV:</span>
                     <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisCSV" title="Download the table above as a CSV file">By Group</button>
                     <button class="btn btn-outline btn-sm" id="downloadCACellLineCSV" title="Download the per-cell-line values behind this view as a CSV file">By Cell Line</button>
@@ -7526,6 +7559,7 @@
                 </select>
                 <span class="clb-umap-spacer"></span>
                 <button id="clbUmapPngBtn" class="clb-umap-btn" title="Choose format, print size and resolution">Export image</button>
+                <button class="clb-umap-btn mobile-hide" onclick="app.copyPlotToClipboard('clbUmapPlot', 'Plot')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                 <button id="clbUmapAaBtn" class="clb-umap-btn" title="Settings">Settings</button>
                 <span class="clb-umap-sep"></span>
                 <button id="clbUmapRunBtn" class="clb-umap-btn" style="background:#5d9239; color:white; border-color:#5d9239;">Run Analysis</button>
@@ -7795,6 +7829,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_83"></script>
+    <script src="app.js?v=v85_84"></script>
 </body>
 </html>

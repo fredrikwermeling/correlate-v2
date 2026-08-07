@@ -1917,6 +1917,7 @@ class CorrelationExplorer {
         html += `<label style="font-size:10px;cursor:pointer;color:#374151;"><input type="checkbox" id="upsetShowNames" ${this._upsetShowNames ? 'checked' : ''} onchange="app._upsetToggle('names')" style="margin:0 3px 0 0;vertical-align:middle;"> Names</label>`;
         html += `<span style="border-left:1px solid #d1d5db;height:14px;"></span>`;
         html += `<button onclick="app._upsetExport()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;" title="Choose format, print size and resolution">Export image...</button>`;
+        html += `<button onclick="app.copyPlotToClipboard('upsetPlotDiv', 'UpSet plot')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>`;
         html += `</div>`;
         popup.innerHTML = html;
         document.body.appendChild(popup);
@@ -2662,6 +2663,7 @@ class CorrelationExplorer {
         html += `</div>`; // close inner padding div
         html += `<div style="display:flex; gap:4px; padding:6px 10px; border-top:1px solid #e5e7eb;">`;
         html += `<button onclick="app._oncoprintExport('image')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;" title="Choose format, print size and resolution">Export image...</button>`;
+        html += `<button onclick="app._oncoprintCopy()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;" title="Copy the whole grid as an image to the clipboard, ready to paste into an email or slide">Copy</button>`;
         html += `<button onclick="app._oncoprintExport('csv')" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;" title="The gene x cell line matrix as data">Export data (CSV)</button>`;
         html += `<span style="border-left:1px solid #d1d5db;height:16px;margin:0 2px;"></span>`;
         html += `<button onclick="app._showUpsetSetup()" style="font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f0fdf4;color:#5d9239;font-weight:500;" title="Pick which genes to compare, then draw the UpSet plot">UpSet...</button>`;
@@ -3124,6 +3126,37 @@ class CorrelationExplorer {
             return;
         }
 
+    }
+
+    // Copy the whole grid to the clipboard. Renders the same standalone SVG
+    // the image export uses, so the copy covers every cell line rather than
+    // what happens to be scrolled into view.
+    async _oncoprintCopy() {
+        const data = this._oncoprintData;
+        if (!data) return;
+        if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+            this.showCopyNotification?.('This browser cannot copy images to the clipboard. Use Export image instead.');
+            return;
+        }
+        this.showCopyNotification?.('Copying…');
+        try {
+            const w = data.leftW + data.gridW, h = data.gridH;
+            const url = URL.createObjectURL(new Blob([this._oncoprintSvgString()], { type: 'image/svg+xml' }));
+            const img = new Image();
+            await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+            const canvas = document.createElement('canvas');
+            canvas.width = w * 2; canvas.height = h * 2;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+            const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            this.showCopyNotification?.('Grid copied, paste it anywhere');
+        } catch (e) {
+            console.warn('Copy to clipboard failed:', e);
+            this.showCopyNotification?.('Copy failed. Use Export image instead.');
+        }
     }
 
     // The oncoprint as a standalone SVG string, drawn from the stored data so
@@ -31692,7 +31725,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         this.showCopyNotification?.('Copying…');
         try {
-            const plot = el.classList?.contains('js-plotly-plot') ? el : el.querySelector('.js-plotly-plot');
+            // A container holding several panels (the split WT / Mut UMAP, for
+            // example) must be captured whole, not reduced to its first panel.
+            const inner = el.classList?.contains('js-plotly-plot') ? [el] : [...el.querySelectorAll('.js-plotly-plot')];
+            const plot = inner.length === 1 ? inner[0] : null;
             let blob;
             if (plot && typeof Plotly !== 'undefined') {
                 // 2x for a crisp paste; Plotly's own PNG writer keeps the fonts.
