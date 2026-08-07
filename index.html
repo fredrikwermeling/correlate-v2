@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.15 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>Copy sweep across the whole app.</b> Typos fixed ("analyses", a garbled sentence in the Cell Line Browser help), stale text updated (the first-run hint now names "2. Input Gene Set", the Synonyms tab explains Find Synonyms, the Summary tab uses the current mode names), "cells" is now "cell lines" wherever the unit is cell lines, spelling standardized to American English (color, tumor, ortholog, leukemia…), the same feature now has one name everywhere (Custom cell lines, By hotspot mutation, Min Cell Lines, Gene 1/Gene 2), and legend/heading capitalization is consistent.</li>
+                </ul>
                 <p><strong>v.86.14 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>Copy-number analyses no longer restore as Functional Loss.</b> Opening a CN amplification / deep-deletion inspect in a new tab, or restoring one from an exported image, silently re-ran it as a functional-loss analysis with different groups and p-values; the sub-type is now carried and restored exactly. Expression correlates and the AI export also re-align their call matrix to the results on display, so flipping the sub-type radio without re-running can no longer swap in the wrong data.</li>
@@ -5505,7 +5509,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.14</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.15</a>
         </span>
     </div>
 
@@ -5906,7 +5910,7 @@
                     <li><button class="nav-link active" data-tab="network">Network</button></li>
                     <li><button class="nav-link" data-tab="correlations">Correlations</button></li>
                     <li><button class="nav-link" data-tab="clusters">Clusters</button></li>
-                    <li><button class="nav-link" data-tab="mutation" style="display: none;" id="mutationTab">Mutation Analysis</button></li>
+                    <li><button class="nav-link" data-tab="mutation" style="display: none;" id="mutationTab">Mutation analysis</button></li>
                     <li><button class="nav-link" data-tab="synonyms" style="display: none;" id="synonymsTab">Synonyms/Orthologs</button></li>
                     <li><button class="nav-link" data-tab="summary">Summary</button></li>
                     <!-- Reset lives at the end of the tab row, away from the
@@ -5969,7 +5973,7 @@
                         <!-- Column 2: Gene Effect + Gene Statistics -->
                         <div class="control-column control-box">
                             <!-- Gene Effect options (always shown) -->
-                            <label class="panel-heading">Labels and colour</label>
+                            <label class="panel-heading">Labels and color</label>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
                                 <label><input type="checkbox" id="showUncorrelatedGenes"> Show all input genes in network</label>
                             </div>
@@ -6062,7 +6066,7 @@
                             <div style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; height: 100%; padding-top: 10%; color: var(--gray-500); text-align: center; line-height: 1.8;">
                                 <div>New to Correlate?</div>
                                 <div style="margin-top: 8px;">Click <span style="color: #5d9239; font-weight: 600;">Test Genes</span> and then <span style="color: #5d9239; font-weight: 600;">Run ▶</span></div>
-                                <div style="font-size: 0.9em;">(both in "2. Input Genes")</div>
+                                <div style="font-size: 0.9em;">(both in "2. Input Gene Set")</div>
                                 <div style="margin-top: 14px; font-size: 0.85em; line-height: 1.6; max-width: 380px;">Next, double-click nodes and edges in the generated network for more functions. Decrease correlation cutoff and press Run again to identify interactions of weaker strength.</div>
                             </div>
                         </div>
@@ -6075,7 +6079,7 @@
                             <div class="legend-item"><span class="legend-line" style="background: #e53e3e;"></span> Negative</div>
                         </div>
                         <div class="legend-section" id="legendEdgeThickness">
-                            <strong>Edge Thickness:</strong>
+                            <strong>Edge thickness:</strong>
                             <div class="legend-item" style="padding-left:15px;"><span class="legend-line" style="background: #666; height: 1px;"></span> r=0.5</div>
                             <div class="legend-item" style="padding-left:15px;"><span class="legend-line" style="background: #666; height: 4px;"></span> r=0.7</div>
                             <div class="legend-item" style="padding-left:15px;"><span class="legend-line" style="background: #666; height: 8px;"></span> r=1.0</div>
@@ -6085,12 +6089,12 @@
                             <div id="nodeColorLegendContent"></div>
                         </div>
                         <div class="legend-section" id="legendNodeType" style="display: none;">
-                            <strong>Node Type:</strong>
+                            <strong>Node type:</strong>
                             <div class="legend-item"><span class="legend-dot" style="background: #6ba544;"></span> Input gene</div>
                             <div class="legend-item"><span class="legend-dot" style="background: #b2dd95;"></span> Correlated gene</div>
                         </div>
                         <div class="legend-section" id="legendSynonym" style="display: none;">
-                            <strong>*</strong> = synonym/orthologue used
+                            <strong>*</strong> = synonym/ortholog used
                         </div>
                     </div>
                 </div>
@@ -6098,7 +6102,7 @@
                 <!-- Correlations Tab -->
                 <div class="tab-content" id="tab-correlations">
                     <div class="tip-box">
-                        <strong>Tip:</strong> Click <strong>Correlation</strong> to open the plot for a pair (By Tissue and By genetic change are reachable from there). Ctrl/Cmd+click a column header to copy that column. Use <strong>Filters</strong> to set numeric cutoffs on columns.
+                        <strong>Tip:</strong> Click <strong>Correlation</strong> to open the plot for a pair (By Tissue and By hotspot mutation are reachable from there). Ctrl/Cmd+click a column header to copy that column. Use <strong>Filters</strong> to set numeric cutoffs on columns.
                     </div>
                     <div class="table-controls">
                         <input type="text" class="table-search" id="correlationsSearch" placeholder="Search...">
@@ -6113,8 +6117,8 @@
                         <table class="data-table" id="correlationsTable">
                             <thead>
                                 <tr>
-                                    <th data-sort="gene1">Gene1</th>
-                                    <th data-sort="gene2">Gene2</th>
+                                    <th data-sort="gene1">Gene 1</th>
+                                    <th data-sort="gene2">Gene 2</th>
                                     <th data-sort="correlation">Correlation</th>
                                     <th data-sort="slope">Slope</th>
                                     <th data-sort="n">N</th>
@@ -6284,7 +6288,7 @@
                                 </tr>
                             </thead>
                             <tbody id="synonymsTableBody">
-                                <tr><td colspan="6" style="padding: 40px; color: var(--gray-500);">Select "Synonym/Ortholog Lookup" mode and click Run</td></tr>
+                                <tr><td colspan="6" style="padding: 40px; color: var(--gray-500);">Click Find Synonyms after entering genes to see matches here</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -6477,7 +6481,7 @@
                                 <div id="colorByLegend" style="display:none; margin-top:2px; max-height:20vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:3px; padding:2px;"></div>
                             </div>
                             <div class="control-box-compact mobile-hide" id="customCellLineFilterBox" style="flex:1;">
-                                <span class="control-label" style="font-size:10px;">Custom Cell Lines</span>
+                                <span class="control-label" style="font-size:10px;">Custom cell lines</span>
                                 <textarea id="customCellLineFilter" placeholder="Paste IDs or names..." style="font-size:10px; width:100%; height:28px; max-height:60px; resize:vertical; border:1px solid #d1d5db; border-radius:3px; padding:2px; box-sizing:border-box;"></textarea>
                                 <div style="display:flex; gap:3px; margin-top:2px;">
                                     <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilter()" style="font-size:9px; flex:1; padding:1px;">Apply</button>
@@ -6699,7 +6703,7 @@
                     </div>
                     <!-- Row 3: Custom Cell Line Filter (hidden on phones) -->
                     <div class="mobile-hide" style="display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap;">
-                        <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Custom CLs:</span>
+                        <span style="font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;">Custom cell lines:</span>
                         <textarea id="customCellLineFilterGE" placeholder="Paste cell line IDs or names..." style="font-size:10px; width:260px; height:32px; resize:vertical; border:1.5px solid #d1d5db; border-radius:6px; padding:4px;"></textarea>
                         <button class="btn btn-sm btn-outline" onclick="app.applyCustomCellLineFilterGE()" style="font-size:10px; padding:3px 8px;">Apply</button>
                         <button class="btn btn-sm btn-outline" onclick="app.clearCustomCellLineFilterGE()" style="font-size:10px; padding:3px 8px;">Clear</button>
@@ -6773,7 +6777,7 @@
                                     <input type="checkbox" id="geScanCnAll">
                                 </span>
                                 <span style="border-left:1px solid #d1d5db; height:14px;"></span>
-                                <span style="display:flex; align-items:center; gap:4px; white-space:nowrap;" title="Only include changes present in at least this many cell lines">Min cell lines
+                                <span style="display:flex; align-items:center; gap:4px; white-space:nowrap;" title="Only include changes present in at least this many cell lines">Min Cell Lines
                                     <button onclick="app.adjustNumber('geScanMinN', -1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
                                     <input type="number" id="geScanMinN" value="3" min="1" max="500" style="width:46px; font-size:11px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px; text-align:center;" onchange="app.setGEScanMinN(this.value)">
                                     <button onclick="app.adjustNumber('geScanMinN', 1)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
@@ -7048,7 +7052,7 @@
                         <input type="text" id="caCellLineSearch" class="form-control mobile-hide" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
                         <button class="btn btn-sm" id="caViewTissue" style="background: #6ba544; color: white;">By Tissue</button>
-                        <button class="btn btn-sm btn-secondary" id="caViewHotspot">By Hotspot</button>
+                        <button class="btn btn-sm btn-secondary" id="caViewHotspot" title="Scan how each hotspot mutation shifts this gene's effect, comparing the cell lines carrying it against those without it">By hotspot mutation</button>
                     </div>
                 </div>
 
@@ -7336,7 +7340,7 @@
 
                 <!-- Section 2: Understanding Correlations -->
                 <div style="padding: 24px 28px; border-bottom: 1px solid #e5e7eb;">
-                    <h4 style="margin: 0 0 14px; color: #3b5e23; font-size: 16px;">Inside Gene Set Analysis: Gene&ndash;Gene Correlation</h4>
+                    <h4 style="margin: 0 0 14px; color: #3b5e23; font-size: 16px;">Inside gene set analysis: gene-gene correlation</h4>
                     <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #333;">
                         Each gene pair is compared by their gene effect scores across all cell lines. The <strong>Pearson correlation (r)</strong> measures how similarly two gene knockouts affect cell fitness:
                     </p>
@@ -7503,8 +7507,8 @@
           <ul style="margin:4px 0 10px 20px;">
             <li><b>Identity disputed</b> (36 lines): the line is contaminated, misidentified, or a derivative of another line, so a result attributed to it may belong to something else. MKN28 is a MKN74 derivative; KP-1N is a PANC-1 derivative.</li>
             <li><b>Cancer type disputed</b> (4 lines): the line is itself, but its recorded disease or tissue is genuinely unresolved, so any tissue-grouped analysis may place it incorrectly.</li>
-            <li><b>Earlier classification corrected</b> (16 lines): the type shown here is already the corrected one, so this is background rather than a warning and carries no marker in the list. SK-N-MC was called a neuroblastoma for years and is an Ewing-family tumour; KE-97 was filed as gastric and is a B-lymphoblastoid line.</li>
-            <li>Both sets are available as quick filters, to exclude or to inspect. Nothing is hidden: a flagged line can still be a good experimental model, it just cannot be evidence about the tumour type on its label. Calls Cellosaurus states as possible rather than settled say so.</li>
+            <li><b>Earlier classification corrected</b> (16 lines): the type shown here is already the corrected one, so this is background rather than a warning and carries no marker in the list. SK-N-MC was called a neuroblastoma for years and is an Ewing-family tumor; KE-97 was filed as gastric and is a B-lymphoblastoid line.</li>
+            <li>Both sets are available as quick filters, to exclude or to inspect. Nothing is hidden: a flagged line can still be a good experimental model, it just cannot be evidence about the tumor type on its label. Calls that Cellosaurus states as possible rather than settled say so.</li>
           </ul>
           <p style="margin-top:14px;"><strong>Selecting cell lines</strong>: tick lines (or <b>Select Visible</b>) to build a set for Inspect / Export. <b>Show only my N</b> collapses the list to just your ticked lines and carries the count; it is greyed out until something is ticked, and turns off on Deselect All / Reset. The list fills <b>column by column</b> (down the first column in sort order, then the next).</p>
 
@@ -7796,7 +7800,7 @@
                 <button onclick="app.adjustNumber('clbUmapPlotHeight', 20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">+</button>
                 <span class="clb-umap-sep"></span>
                 <button id="clbUmapTopGenesBtn" class="clb-umap-btn" title="Show top genes correlated with axes">Top Genes</button>
-                <button id="clbUmapClusterStatsBtn" class="clb-umap-btn" title="Rank tissues by how tightly they cluster in this projection (silhouette score). Click a tissue in the table to highlight its cells.">Cluster stats</button>
+                <button id="clbUmapClusterStatsBtn" class="clb-umap-btn" title="Rank tissues by how tightly they cluster in this projection (silhouette score). Click a tissue in the table to highlight its cell lines.">Cluster stats</button>
                 <button id="clbUmapClearLabelsBtn" class="clb-umap-btn" title="Remove all cell-line labels from the plot" style="display:none;">Clear labels</button>
                 <label id="clbUmapLoadingsToggle" class="clb-umap-lbl" style="display:none; cursor:pointer;">
                     <input type="checkbox" id="clbUmapShowLoadings" style="vertical-align:middle;"> Loadings
@@ -7853,7 +7857,7 @@
                     <button onclick="app._closeUmapClusterStats()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#6b7280;line-height:1;">&times;</button>
                 </div>
                 <div style="font-size:10px; color:#6b7280; margin-bottom:6px; line-height:1.35;">
-                    Mean silhouette score per group in the current 2D projection. Higher values = points in that group sit closer to each other than to the nearest other group (max +1). Values near 0 indicate overlap; negative values indicate the group is more similar to points outside it. Click a row to highlight those cells in green; click again (or use <em>Clear highlight</em>) to return to tissue coloring.
+                    Mean silhouette score per group in the current 2D projection. Higher values = points in that group sit closer to each other than to the nearest other group (max +1). Values near 0 indicate overlap; negative values indicate the group is more similar to points outside it. Click a row to highlight those cell lines in green; click again (or use <em>Clear highlight</em>) to return to tissue coloring.
                 </div>
                 <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
                     <span style="font-size:10px; color:#6b7280;">Group by</span>
@@ -8041,6 +8045,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_14"></script>
+    <script src="app.js?v=v86_15"></script>
 </body>
 </html>

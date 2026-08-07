@@ -6385,7 +6385,7 @@ class CorrelationExplorer {
                     ).join(' or ');
                     return `<div style="margin-top:3px;"><b>${this.esc(mg.token)}</b> &rarr; ${links}`
                         + `<span style="color:#9ca3af;"> (was ${mg.wasAlias.map(a => this.esc(a)).join(' / ')})</span>`
-                        + (mg.candidates.length > 1 ? `<span style="color:#b45309;"> &mdash; two genes shared that name, pick the one you meant</span>` : '')
+                        + (mg.candidates.length > 1 ? `<span style="color:#b45309;"> : two genes shared that name, pick the one you meant</span>` : '')
                         + `</div>`;
                 }).join('');
                 excelHtml = `<div class="status-box status-warning" style="margin-bottom:6px;">
@@ -10955,7 +10955,7 @@ class CorrelationExplorer {
         const _colorByStatsActive = document.getElementById('colorByStats')?.checked;
         if (this.results.mode === 'design' && !_colorByGEActive && !_colorByStatsActive) {
             legendNodeType.innerHTML = `
-                <strong>Node Type:</strong>
+                <strong>Node type:</strong>
                 <span class="legend-item"><span class="legend-dot" style="background: #6ba544;"></span> Input</span>
                 <span class="legend-item"><span class="legend-dot" style="background: #b2dd95;"></span> Correlated</span>
             `;
@@ -11629,7 +11629,7 @@ class CorrelationExplorer {
             : '';
 
         legendEl.innerHTML = `
-            <strong>Edge Thickness:</strong>${zoomHint}
+            <strong>Edge thickness:</strong>${zoomHint}
             <div class="legend-item"><span class="legend-line" style="background: #666; height: ${scaled(widthMin)}px;"></span> r=${minCorr.toFixed(1)}</div>
             <div class="legend-item"><span class="legend-line" style="background: #666; height: ${scaled(widthMid)}px;"></span> r=${midCorr.toFixed(1)}</div>
             <div class="legend-item"><span class="legend-line" style="background: #666; height: ${scaled(widthMax)}px;"></span> r=${maxCorr.toFixed(1)}</div>
@@ -11686,7 +11686,7 @@ class CorrelationExplorer {
             const cutoff = this.results.cutoff;
             const sep = document.createElement('tr');
             sep.innerHTML = `<td colspan="7" style="background:#f9fafb; border-top:2px solid #9ca3af; border-bottom:1px solid #e5e7eb; padding:6px 8px; font-size:11px; color:#6b7280;">`
-                + `Below the ${typeof cutoff === 'number' ? cutoff.toFixed(2) : cutoff} cutoff &mdash; shown for context only. `
+                + `Below the ${typeof cutoff === 'number' ? cutoff.toFixed(2) : cutoff} cutoff, shown for context only. `
                 + `These pairs are not in the network and have no cluster.</td>`;
             tbody.appendChild(sep);
             below.forEach(c => addRow(c, true));
@@ -11949,7 +11949,7 @@ ${this.genesNotFound.join(', ')}
 ================================
 Run: ${dateTimeStr}
 
-Analysis Mode: ${this.results.mode === 'analysis' ? 'Analysis (within gene list)' : this.results.mode === 'design' ? 'Design (find correlated genes)' : this.results.mode === 'mutation' ? 'Mutation Analysis' : this.results.mode}
+Analysis Mode: ${this.results.mode === 'analysis' ? 'Correlate genes within my set' : this.results.mode === 'design' ? 'Expand my set to find correlated genes' : this.results.mode === 'mutation' ? 'Mutation Analysis' : this.results.mode}
 Correlation Cutoff: ${this.results.cutoff}
 Minimum Cell Lines: ${document.getElementById('minCellLines').value}
 Minimum Slope: ${document.getElementById('minSlope').value}
@@ -12036,7 +12036,7 @@ Results:
 
             // Add filter info as comments
             csv = `# Clusters Export\n`;
-            csv += `# Analysis mode: ${this.results.mode === 'design' ? 'Design (find correlated genes)' : 'Analysis (within gene list)'}\n`;
+            csv += `# Analysis mode: ${this.results.mode === 'design' ? 'Expand my set to find correlated genes' : 'Correlate genes within my set'}\n`;
             csv += `# Lineage filter: ${lineage}\n`;
             if (subLineage) csv += `# Subtype filter: ${subLineage}\n`;
             csv += `# Filtered cell lines: ${this.results.nCellLines}\n`;
@@ -12503,7 +12503,7 @@ Results:
 
         // Edge thickness legend - use actual data values
         ctx.font = titleFont;
-        ctx.fillText('Edge Thickness:', legendX, legendY);
+        ctx.fillText('Edge thickness:', legendX, legendY);
         ctx.font = textFont;
         ctx.strokeStyle = '#666';
 
@@ -12543,7 +12543,7 @@ Results:
         if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) {
             ctx.font = titleFont;
             ctx.fillStyle = '#333';
-            ctx.fillText('Node Type:', legendX, legendY);
+            ctx.fillText('Node type:', legendX, legendY);
             ctx.font = textFont;
 
             // Input gene
@@ -12724,7 +12724,7 @@ Results:
         if (this.hasSynonymsInNetwork) {
             ctx.font = textFont;
             ctx.fillStyle = '#333';
-            ctx.fillText('* = synonym/orthologue used', legendX, legendY + 25);
+            ctx.fillText('* = synonym/ortholog used', legendX, legendY + 25);
         }
 
         return canvas;
@@ -12899,7 +12899,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         const edgeWidthBase = parseInt(document.getElementById('netEdgeWidth').value) || 3;
         const legendVals = this.edgeLegendValues || { minCorr: 0.5, midCorr: 0.75, maxCorr: 1.0 };
 
-        svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Edge Thickness:</text>\n`;
+        svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Edge thickness:</text>\n`;
 
         const width1 = Math.max(0.75, (1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match edges
         const width2 = Math.max(0.75, (1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match edges
@@ -12916,7 +12916,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
 
         // Node type legend (for design mode, hidden when color by GE/stats)
         if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) {
-            svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Node Type:</text>\n`;
+            svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Node type:</text>\n`;
             svg += `  <circle cx="${legendX + 12}" cy="${legendY + 25}" r="10" fill="#6ba544"/>\n`;
             svg += `  <text x="${legendX + 28}" y="${legendY + 30}" class="legend-text">Input</text>\n`;
             svg += `  <circle cx="${legendX + 12}" cy="${legendY + 52}" r="10" fill="#b2dd95"/>\n`;
@@ -13017,7 +13017,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
 
         // Synonym legend
         if (this.hasSynonymsInNetwork) {
-            svg += `  <text x="${legendX}" y="${legendY + 25}" class="legend-text">* = synonym/orthologue used</text>\n`;
+            svg += `  <text x="${legendX}" y="${legendY + 25}" class="legend-text">* = synonym/ortholog used</text>\n`;
         }
 
         // Embed metadata
@@ -14146,7 +14146,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         }
         const summary = `Gene Correlation Analysis Summary
 ================================
-Analysis Mode: ${this.results.mode === 'analysis' ? 'Analysis (within gene list)' : 'Design (find correlated genes)'}
+Analysis Mode: ${this.results.mode === 'analysis' ? 'Correlate genes within my set' : 'Expand my set to find correlated genes'}
 Correlation Cutoff: ${this.results.cutoff}
 Minimum Cell Lines: ${document.getElementById('minCellLines').value}
 Minimum Slope: ${document.getElementById('minSlope').value}
@@ -14278,7 +14278,7 @@ Results:
 
         // Edge thickness legend - use actual data values
         ctx.font = titleFont;
-        ctx.fillText('Edge Thickness:', legendX, legendY);
+        ctx.fillText('Edge thickness:', legendX, legendY);
         ctx.font = textFont;
         ctx.strokeStyle = '#666';
 
@@ -14318,7 +14318,7 @@ Results:
         if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) {
             ctx.font = titleFont;
             ctx.fillStyle = '#333';
-            ctx.fillText('Node Type:', legendX, legendY);
+            ctx.fillText('Node type:', legendX, legendY);
             ctx.font = textFont;
 
             // Input gene
@@ -14496,7 +14496,7 @@ Results:
         if (this.hasSynonymsInNetwork) {
             ctx.font = textFont;
             ctx.fillStyle = '#333';
-            ctx.fillText('* = synonym/orthologue used', legendX, legendY + 25);
+            ctx.fillText('* = synonym/ortholog used', legendX, legendY + 25);
         }
 
         return canvas.toDataURL('image/png');
@@ -14617,7 +14617,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const edgeWidthBase = parseInt(document.getElementById('netEdgeWidth').value) || 3;
         const legendVals = this.edgeLegendValues || { minCorr: 0.5, midCorr: 0.75, maxCorr: 1.0 };
 
-        svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Edge Thickness:</text>\n`;
+        svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Edge thickness:</text>\n`;
 
         const width1 = Math.max(0.75, (1 + (legendVals.minCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match edges
         const width2 = Math.max(0.75, (1 + (legendVals.midCorr - cutoff) / (1 - cutoff) * (edgeWidthBase * 3)) * ((this.network && this.network.getScale) ? this.network.getScale() : 1)); // zoom-scaled to match edges
@@ -14634,7 +14634,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Node type legend (for design mode, hidden when color by GE/stats)
         if (this.results?.mode === 'design' && !document.getElementById('colorByGeneEffect')?.checked && !document.getElementById('colorByStats')?.checked) {
-            svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Node Type:</text>\n`;
+            svg += `  <text x="${legendX}" y="${legendY}" class="legend-title">Node type:</text>\n`;
             svg += `  <circle cx="${legendX + 12}" cy="${legendY + 25}" r="10" fill="#6ba544"/>\n`;
             svg += `  <text x="${legendX + 28}" y="${legendY + 30}" class="legend-text">Input</text>\n`;
             svg += `  <circle cx="${legendX + 12}" cy="${legendY + 52}" r="10" fill="#b2dd95"/>\n`;
@@ -14735,7 +14735,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Synonym legend
         if (this.hasSynonymsInNetwork) {
-            svg += `  <text x="${legendX}" y="${legendY + 25}" class="legend-text">* = synonym/orthologue used</text>\n`;
+            svg += `  <text x="${legendX}" y="${legendY + 25}" class="legend-text">* = synonym/ortholog used</text>\n`;
         }
 
         svg += '</svg>';
@@ -15310,7 +15310,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const yLbl = yType === 'geneset' ? 'Set' : yType === 'growth' ? 'Growth' : yType === 'expr' ? 'Expr' : 'GE';
         const typeTag = (xType !== 'ge' || yType !== 'ge') ? ` [${xLbl}/${yLbl}]` : '';
         document.getElementById('inspectTitle').textContent =
-            `${c.gene1} vs ${c.gene2}${typeTag} | r=${this.formatNum(allCellsStats.correlation)}, slope=${this.formatNum(allCellsStats.slope)}, n=${plotData.length} (all cells)`;
+            `${c.gene1} vs ${c.gene2}${typeTag} | r=${this.formatNum(allCellsStats.correlation)}, slope=${this.formatNum(allCellsStats.slope)}, n=${plotData.length} (all cell lines)`;
 
         // Show modal and render plot
         document.getElementById('inspectModal').classList.add('active');
@@ -15467,7 +15467,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     <button type="button" id="analysisSubsetClear" title="Use all cell lines again" style="border:none; background:#dcfce7; color:#4c782e; border-radius:50%; width:16px; height:16px; line-height:1; cursor:pointer; font-size:12px; padding:0;">&times;</button>
                 </span>
             </div>
-            <div style="font-size:10px; color:#9ca3af; margin-top:3px;">Only these cell lines are analysed. Any lineage or alteration filter narrows within them.</div>`;
+            <div style="font-size:10px; color:#9ca3af; margin-top:3px;">Only these cell lines are analyzed. Any lineage or alteration filter narrows within them.</div>`;
         document.getElementById('analysisSubsetClear')?.addEventListener('click', () => {
             this.clearAnalysisCellLineSubset();
             this.showCopyNotification?.('Back to all cell lines. Run the analysis again to update it.');
@@ -17053,7 +17053,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     ? (md.primaryDisease?.[d.cellLineId] || '')
                     : (d.lineage || md.lineage?.[d.cellLineId] || '')))
                 .map(d => d.cellLineName || this.getCellLineName(d.cellLineId));
-            this.copyNamesToClipboard(names, 'coloured');
+            this.copyNamesToClipboard(names, 'colored');
         });
 
         // Click chip to toggle
@@ -18593,7 +18593,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 document.getElementById('setGateABtn').textContent = `Gate A (n=${cells.length})`;
                 document.getElementById('setGateABtn').style.opacity = '0.7';
                 document.getElementById('setGateBBtn').disabled = false;
-                document.getElementById('gateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
+                document.getElementById('gateStatus').textContent = `Gate A: ${cells.length} cell lines. Now set Gate B.`;
                 document.getElementById('gateStatus').style.color = '#5d9239';
                 document.getElementById('clearGatesBtn').style.display = '';
             } else {
@@ -18671,7 +18671,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 statusEl.textContent = `Gate A: ${this._gateA.length}, Gate B: ${this._gateB.length}. Click Compare to refresh.`;
                 statusEl.style.color = '#5d9239';
             } else if (statusEl && this._gateA) {
-                statusEl.textContent = `Gate A: ${this._gateA.length} cells. Now set Gate B.`;
+                statusEl.textContent = `Gate A: ${this._gateA.length} cell lines. Now set Gate B.`;
                 statusEl.style.color = '#5d9239';
             }
         }
@@ -19347,7 +19347,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const layout = {
                 title: { text: `${gene}, Mutation Frequency (Δ%=${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}, p=${fmtP(pValue)})`, font: { size: 13 } },
                 barmode: 'stack',
-                yaxis: { title: '% of cells', range: [0, 105] },
+                yaxis: { title: '% of cell lines', range: [0, 105] },
                 width: 300,
                 height: 300,
                 margin: { t: 40, b: 60, l: 60, r: 30 },
@@ -19553,7 +19553,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 document.getElementById('geSetGateABtn').textContent = `Gate A (n=${cells.length})`;
                 document.getElementById('geSetGateABtn').style.opacity = '0.7';
                 document.getElementById('geSetGateBBtn').disabled = false;
-                document.getElementById('geGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
+                document.getElementById('geGateStatus').textContent = `Gate A: ${cells.length} cell lines. Now set Gate B.`;
                 document.getElementById('geGateStatus').style.color = '#5d9239';
                 document.getElementById('geClearGatesBtn').style.display = 'inline-block';
             } else {
@@ -19621,7 +19621,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 statusEl.textContent = `Gate A: ${this._geGateA.length}, Gate B: ${this._geGateB.length}. Click Compare to refresh.`;
                 statusEl.style.color = '#5d9239';
             } else if (statusEl && this._geGateA) {
-                statusEl.textContent = `Gate A: ${this._geGateA.length} cells. Now set Gate B.`;
+                statusEl.textContent = `Gate A: ${this._geGateA.length} cell lines. Now set Gate B.`;
                 statusEl.style.color = '#5d9239';
             }
         }
@@ -20237,7 +20237,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const pValueMut = chi2P(mutA, mutB, wtA, wtB);
             Plotly.newPlot(plotDiv, traces, {
                 title: { text: `${gene} \u2014 Mutation Frequency (\u0394%=${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}, p=${fmtP(pValueMut)})`, font: { size: 13 } },
-                barmode: 'stack', yaxis: { title: '% of cells', range: [0, 105] },
+                barmode: 'stack', yaxis: { title: '% of cell lines', range: [0, 105] },
                 width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 },
                 showlegend: true, legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 9 } }
             }, { displayModeBar: false, responsive: true });
@@ -22939,7 +22939,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Calculate stats for ALL cells (unfiltered) for the title
         const allCellsStats = this.pearsonWithSlope(data.map(d => d.x), data.map(d => d.y));
         document.getElementById('inspectTitle').textContent =
-            `${gene1} vs ${gene2} | r=${this.formatNum(allCellsStats.correlation)}, slope=${this.formatNum(allCellsStats.slope)}, n=${data.length} (all cells)`;
+            `${gene1} vs ${gene2} | r=${this.formatNum(allCellsStats.correlation)}, slope=${this.formatNum(allCellsStats.slope)}, n=${data.length} (all cell lines)`;
 
         // Show the scatter plot and hide compareTable
         document.getElementById('scatterPlot').style.display = 'block';
@@ -23710,7 +23710,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 document.getElementById('geSetGateABtn').style.opacity = '0.7';
                 document.getElementById('geSetGateBBtn').disabled = false;
                 document.getElementById('geClearGatesBtn').style.display = 'inline-block';
-                document.getElementById('geGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
+                document.getElementById('geGateStatus').textContent = `Gate A: ${cells.length} cell lines. Now set Gate B.`;
             } else {
                 this._geGateB = cells;
                 document.getElementById('geSetGateBBtn').textContent = `Gate B (n=${cells.length})`;
@@ -27919,7 +27919,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // is not. Anything the curated knowledge base does not expect for this
     // cancer type is marked atypical, since an off-lineage driver is usually
     // the interesting thing about a line rather than a detail. Then
-    // tumour-suppressor loss, focal deletion, and genome-wide state.
+    // tumor-suppressor loss, focal deletion, and genome-wide state.
     // Ploidy on its own is not a finding, so it is not reported here.
     _cellLineSummaryText(cellLineId) {
         const m = this.cellLineMetadata || {};
@@ -27978,7 +27978,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         //
         // Only driver fusions and oncogene hotspots are judged this way. Those
         // are lineage-specific, so a gene missing from the list is a real
-        // signal. Tumour-suppressor loss, focal deletion and amplification of a
+        // signal. Tumor-suppressor loss, focal deletion and amplification of a
         // common oncogene are not: TP53, CDKN2A/B, NF1 and MYC turn up across
         // most cancers, and the curated lists name only each disease's
         // headline genes, so absence there would flag half the cohort.
@@ -28252,7 +28252,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             .filter(a => a._dotLabel)
             .map(a => ({ id: a._dotLabel, name: this.getCellLineName(a._dotLabel) || a._dotLabel }));
         if (!names.length) { host.innerHTML = ''; return; }
-        host.innerHTML = `<span style="font-size:10px; color:#6b7280; font-weight:600;">Labelled (${names.length}):</span> `
+        host.innerHTML = `<span style="font-size:10px; color:#6b7280; font-weight:600;">Labeled (${names.length}):</span> `
             + names.map(x => `<span class="clb-chip" data-lbl="${this.esc(x.id)}" title="Click to remove this label" `
                 + `style="background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:600;">`
                 + `${this.esc(x.name)} &times;</span>`).join(' ')
@@ -30716,7 +30716,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             problematic_identity: {
                 label: 'Identity disputed (contaminated / misidentified)',
                 category: 'Provenance',
-                description: '<b>Inclusion:</b> cell lines Cellosaurus flags as contaminated, misidentified, or a derivative of another line. <b>Why it matters:</b> a dependency measured in one of these lines may belong to a different line entirely, so anything attributed to the name on the label is unsafe. <b>Use:</b> exclude this collection to work with a clean panel, or include it to see which of your hits rest on disputed lines. <b>Caveat:</b> flagged is not the same as useless. A contaminated line can still be a perfectly good experimental model; what it cannot be is evidence about the tumour type on its label.'
+                description: '<b>Inclusion:</b> cell lines Cellosaurus flags as contaminated, misidentified, or a derivative of another line. <b>Why it matters:</b> a dependency measured in one of these lines may belong to a different line entirely, so anything attributed to the name on the label is unsafe. <b>Use:</b> exclude this collection to work with a clean panel, or include it to see which of your hits rest on disputed lines. <b>Caveat:</b> flagged is not the same as useless. A contaminated line can still be a perfectly good experimental model; what it cannot be is evidence about the tumor type on its label.'
             },
             problematic_classification: {
                 label: 'Cancer type disputed (misclassified)',
@@ -30766,17 +30766,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             tnbc: {
                 label: 'Triple-negative breast (measured)',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Selects:</b> breast lines with no focal ERBB2 amplification, ESR1 below 3.0 and PGR below 1.0 log&#8322;-TPM, so no ER, PR or HER2 signal. <b>Approximates</b> clinical triple-negative breast cancer. <b>The clinical test is different:</b> ER and PR status are read by immunohistochemistry on protein, and HER2 by immunohistochemistry with in-situ hybridisation (FISH) used to count <i>ERBB2</i> gene copies when the staining is equivocal. Transcript level and copy number are stand-ins for that, and they do not always agree with it.'
+                description: '<b>Selects:</b> breast lines with no focal ERBB2 amplification, ESR1 below 3.0 and PGR below 1.0 log&#8322;-TPM, so no ER, PR or HER2 signal. <b>Approximates</b> clinical triple-negative breast cancer. <b>The clinical test is different:</b> ER and PR status are read by immunohistochemistry on protein, and HER2 by immunohistochemistry with in-situ hybridization (FISH) used to count <i>ERBB2</i> gene copies when the staining is equivocal. Transcript level and copy number are stand-ins for that, and they do not always agree with it.'
             },
             hr_pos_breast: {
                 label: 'HR+ / luminal breast (measured)',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Selects:</b> breast lines expressing ESR1 at 3.0 or above, or PGR at 1.0 or above (log&#8322;-TPM), without a focal ERBB2 amplification. HER2 takes precedence when both apply, as in clinical subtyping. <b>Approximates</b> ER+ / PR+, HER2&minus; luminal A/B breast cancer. Contains the recognised ER+ luminal models such as MCF7, T-47D and ZR-75-1. <b>The clinical test is different:</b> ER and PR are scored by immunohistochemistry on protein, positive at 1 % or more of tumour nuclei staining. Transcript level is a stand-in for that.'
+                description: '<b>Selects:</b> breast lines expressing ESR1 at 3.0 or above, or PGR at 1.0 or above (log&#8322;-TPM), without a focal ERBB2 amplification. HER2 takes precedence when both apply, as in clinical subtyping. <b>Approximates</b> ER+ / PR+, HER2&minus; luminal A/B breast cancer. Contains the recognized ER+ luminal models such as MCF7, T-47D and ZR-75-1. <b>The clinical test is different:</b> ER and PR are scored by immunohistochemistry on protein, positive at 1 % or more of tumor nuclei staining. Transcript level is a stand-in for that.'
             },
             her2_pos_breast: {
                 label: 'HER2+ breast (copy number)',
                 category: 'Breast, receptor subtype (measured)',
-                description: '<b>Selects:</b> breast lines carrying a focal amplification of <b>ERBB2</b>. <b>Why copy number:</b> clinically, HER2 is scored by immunohistochemistry on protein, and an equivocal result is resolved by in-situ hybridisation (FISH), which counts <i>ERBB2</i> gene copies. Copy number is the closest available match to that second test. <b>Limit:</b> a tumour that stains strongly for HER2 protein without gene amplification is HER2-positive clinically but is not detected here.'
+                description: '<b>Selects:</b> breast lines carrying a focal amplification of <b>ERBB2</b>. <b>Why copy number:</b> clinically, HER2 is scored by immunohistochemistry on protein, and an equivocal result is resolved by in-situ hybridization (FISH), which counts <i>ERBB2</i> gene copies. Copy number is the closest available match to that second test. <b>Limit:</b> a tumor that stains strongly for HER2 protein without gene amplification is HER2-positive clinically but is not detected here.'
             },
             breast_receptor_conflict: {
                 label: 'Breast: published and measured calls disagree',
@@ -30791,7 +30791,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             wgd_positive: {
                 label: 'WGD-positive (whole-genome doubled)',
                 category: 'Genome, ploidy / instability',
-                description: '<b>Inclusion:</b> cell lines flagged WGD-positive by PureCN. <b>Why:</b> whole-genome doubling is a common cancer evolutionary event (~58 % of lines in the panel). WGD-positive lines are systematically different in many gene-effect analyzes, so it is often useful to compare WGD+ vs WGD− separately. <b>Caveat:</b> WGD status is a binary call from a continuous signal; near-tetraploid lines without WGD and near-triploid lines with WGD both exist.'
+                description: '<b>Inclusion:</b> cell lines flagged WGD-positive by PureCN. <b>Why:</b> whole-genome doubling is a common cancer evolutionary event (~58 % of lines in the panel). WGD-positive lines are systematically different in many gene-effect analyses, so it is often useful to compare WGD+ vs WGD− separately. <b>Caveat:</b> WGD status is a binary call from a continuous signal; near-tetraploid lines without WGD and near-triploid lines with WGD both exist.'
             },
             high_aneuploidy: {
                 label: 'High aneuploidy',
@@ -30848,7 +30848,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             nf1_loss: {
                 label: 'NF1 functional loss',
                 category: 'Tumor-suppressor functional loss',
-                description: '<b>Inclusion:</b> cell lines with inferred NF1 functional loss. <b>Pathway effect:</b> MAPK pathway active via loss of the RAS-GAP brake (RAS stays GTP-bound). <b>Use:</b> behaves similarly to KRAS-mutant lines for MEK-inhibitor analyzes; useful when looking at RAS-pathway dependency outside of the canonical KRAS/NRAS/HRAS hotspots.'
+                description: '<b>Inclusion:</b> cell lines with inferred NF1 functional loss. <b>Pathway effect:</b> MAPK pathway active via loss of the RAS-GAP brake (RAS stays GTP-bound). <b>Use:</b> behaves similarly to KRAS-mutant lines for MEK-inhibitor analyses; useful when looking at RAS-pathway dependency outside of the canonical KRAS/NRAS/HRAS hotspots.'
             },
             smad4_loss: {
                 label: 'SMAD4 functional loss',
@@ -31022,7 +31022,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             setd2_del: {
                 label: 'SETD2 focal deletion',
                 category: 'Focal deletions',
-                description: '<b>Inclusion:</b> focal CN deletion of <b>SETD2</b>. <b>Mechanism:</b> H3K36 trimethyltransferase; loss impairs transcription-coupled repair and splicing fidelity. <b>Disease:</b> clear-cell renal cell carcinoma (3p, alongside VHL / PBRM1 / BAP1), some leukaemias. <b>Therapy:</b> investigational, loss creates replication-stress and WEE1 sensitivity in models.'
+                description: '<b>Inclusion:</b> focal CN deletion of <b>SETD2</b>. <b>Mechanism:</b> H3K36 trimethyltransferase; loss impairs transcription-coupled repair and splicing fidelity. <b>Disease:</b> clear-cell renal cell carcinoma (3p, alongside VHL / PBRM1 / BAP1), some leukemias. <b>Therapy:</b> investigational, loss creates replication-stress and WEE1 sensitivity in models.'
             },
             fat1_del: {
                 label: 'FAT1 focal deletion',
@@ -31176,7 +31176,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             fusion_bcr_abl1: {
                 label: 'BCR-ABL1+ (CML / Ph+ ALL)',
                 category: 'Disease-defining fusions',
-                description: '<b>Inclusion:</b> clinical-fusion call BCR-ABL1 (Philadelphia chromosome). <b>Disease:</b> chronic myeloid leukaemia, Ph+ acute lymphoblastic leukaemia. <b>Therapy:</b> ABL TKIs (imatinib, dasatinib, nilotinib, ponatinib for T315I).'
+                description: '<b>Inclusion:</b> clinical-fusion call BCR-ABL1 (Philadelphia chromosome). <b>Disease:</b> chronic myeloid leukemia, Ph+ acute lymphoblastic leukemia. <b>Therapy:</b> ABL TKIs (imatinib, dasatinib, nilotinib, ponatinib for T315I).'
             },
             fusion_ewsr1_fli1: {
                 label: 'EWSR1-FLI1+ (Ewing sarcoma)',
@@ -31191,7 +31191,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             fusion_pml_rara: {
                 label: 'PML-RARA+ (APL)',
                 category: 'Disease-defining fusions',
-                description: '<b>Inclusion:</b> clinical-fusion call PML-RARA. <b>Disease:</b> acute promyelocytic leukaemia (AML M3). <b>Therapy:</b> all-trans retinoic acid (ATRA) + arsenic trioxide (ATO), the rare AML curable without chemotherapy.'
+                description: '<b>Inclusion:</b> clinical-fusion call PML-RARA. <b>Disease:</b> acute promyelocytic leukemia (AML M3). <b>Therapy:</b> all-trans retinoic acid (ATRA) + arsenic trioxide (ATO), the rare AML curable without chemotherapy.'
             },
             fusion_ss18_ssx: {
                 label: 'SS18-SSX1 / SS18-SSX2+ (synovial sarcoma)',
@@ -31201,7 +31201,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             fusion_pax3_foxo1: {
                 label: 'PAX3-FOXO1+ (alveolar RMS)',
                 category: 'Disease-defining fusions',
-                description: '<b>Inclusion:</b> clinical-fusion call PAX3-FOXO1 (also PAX7-FOXO1 if present). <b>Disease:</b> alveolar rhabdomyosarcoma, paediatric / AYA. <b>Mechanism:</b> chimeric transcription factor that drives a myogenic-stalled oncogenic program (super-enhancer remodelling). <b>Therapy:</b> CDK4/6, BRD4, MEK inhibitors in trials; targeting the fusion-TF axis remains an unmet need.'
+                description: '<b>Inclusion:</b> clinical-fusion call PAX3-FOXO1 (also PAX7-FOXO1 if present). <b>Disease:</b> alveolar rhabdomyosarcoma, pediatric / AYA. <b>Mechanism:</b> chimeric transcription factor that drives a myogenic-stalled oncogenic program (super-enhancer remodelling). <b>Therapy:</b> CDK4/6, BRD4, MEK inhibitors in trials; targeting the fusion-TF axis remains an unmet need.'
             },
             fusion_tmprss2_erg: {
                 label: 'TMPRSS2-ERG+ (prostate)',
@@ -31211,7 +31211,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             fusion_npm1_alk: {
                 label: 'NPM1-ALK+ (ALCL)',
                 category: 'Disease-defining fusions',
-                description: '<b>Inclusion:</b> clinical-fusion call NPM1-ALK. <b>Disease:</b> anaplastic large-cell lymphoma (ALK+ ALCL, paediatric / young-adult T-cell lymphoma). <b>Mechanism:</b> constitutively active ALK kinase fused to NPM1 nucleolar localisation signal, drives STAT3 / PI3K / MAPK. <b>Therapy:</b> ALK inhibitors (crizotinib for paediatric ALCL; lorlatinib in relapsed disease); brentuximab vedotin for CD30+ ALCL.'
+                description: '<b>Inclusion:</b> clinical-fusion call NPM1-ALK. <b>Disease:</b> anaplastic large-cell lymphoma (ALK+ ALCL, pediatric / young-adult T-cell lymphoma). <b>Mechanism:</b> constitutively active ALK kinase fused to NPM1 nucleolar localisation signal, drives STAT3 / PI3K / MAPK. <b>Therapy:</b> ALK inhibitors (crizotinib for pediatric ALCL; lorlatinib in relapsed disease); brentuximab vedotin for CD30+ ALCL.'
             },
 
             // === Additional DNA-repair / mutation-burden contexts ===
@@ -31238,7 +31238,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             braf_mutant: {
                 label: 'BRAF-mutant',
                 category: 'Driver oncogene mutations',
-                description: '<b>Inclusion:</b> hotspot mutation in <b>BRAF</b> (V600E/V600K, occasionally non-V600 class II/III mutations). <b>Mechanism:</b> constitutively active BRAF kinase drives MAPK signaling. <b>Disease:</b> melanoma (~50 %), thyroid, colorectal, hairy-cell leukaemia. <b>Therapy:</b> BRAF + MEK inhibitor combinations for V600 (vemurafenib + cobimetinib, dabrafenib + trametinib, encorafenib + binimetinib). Non-V600 is vemurafenib-resistant. Mutation-only, see "<i>BRAF-addicted</i>" for the CRISPR-confirmed subset.'
+                description: '<b>Inclusion:</b> hotspot mutation in <b>BRAF</b> (V600E/V600K, occasionally non-V600 class II/III mutations). <b>Mechanism:</b> constitutively active BRAF kinase drives MAPK signaling. <b>Disease:</b> melanoma (~50 %), thyroid, colorectal, hairy-cell leukemia. <b>Therapy:</b> BRAF + MEK inhibitor combinations for V600 (vemurafenib + cobimetinib, dabrafenib + trametinib, encorafenib + binimetinib). Non-V600 is vemurafenib-resistant. Mutation-only, see "<i>BRAF-addicted</i>" for the CRISPR-confirmed subset.'
             },
             egfr_mutant: {
                 label: 'EGFR-mutant',
@@ -31272,8 +31272,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Clinical-oncology age groupings, computed from the numeric `age`
             // field in the DepMap Model table (not the coarse ageCategory which
             // is just Adult / Pediatric / Unknown / Fetus). Useful because
-            // paediatric, AYA, and adult cancers have very different driver
-            // biology, paediatrics enriched for fusions and chromatin / IDH
+            // pediatric, AYA, and adult cancers have very different driver
+            // biology, pediatrics enriched for fusions and chromatin / IDH
             // mutations, AYA for sarcomas and lymphomas, adults for the
             // canonical SNV-driven solid tumors.
             age_infant: {
@@ -31282,14 +31282,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 description: '<b>Inclusion:</b> patient age at diagnosis &le; 1 year. <b>Why:</b> congenital and very-early-onset cancers (e.g. infant ALL with KMT2A rearrangements, neuroblastoma stage MS, congenital fibrosarcoma) have distinct genetics from older-onset versions of the same disease, typically simpler genomes with one strong driver and little chromosomal instability.'
             },
             age_pediatric: {
-                label: 'Paediatric (≤ 14 years)',
+                label: 'Pediatric (≤ 14 years)',
                 category: 'Patient age at diagnosis',
-                description: '<b>Inclusion:</b> patient age at diagnosis &le; 14 years (includes infant). <b>Why:</b> standard paediatric-oncology definition. Paediatric cancers are enriched for driver fusions (Ewing sarcoma, alveolar RMS, ALK+ ALCL), chromatin / polycomb mutations (DIPG, ATRT), IDH-mutant gliomas, and embryonal histologies, relatively few SNV-driven adult-style carcinomas. Useful contrast cohort for adult-onset comparisons.'
+                description: '<b>Inclusion:</b> patient age at diagnosis &le; 14 years (includes infant). <b>Why:</b> standard pediatric-oncology definition. Pediatric cancers are enriched for driver fusions (Ewing sarcoma, alveolar RMS, ALK+ ALCL), chromatin / polycomb mutations (DIPG, ATRT), IDH-mutant gliomas, and embryonal histologies, relatively few SNV-driven adult-style carcinomas. Useful contrast cohort for adult-onset comparisons.'
             },
             age_aya: {
                 label: 'Adolescent & young adult / AYA (15–39 years)',
                 category: 'Patient age at diagnosis',
-                description: '<b>Inclusion:</b> patient age at diagnosis 15–39 years (NCI AYA definition). <b>Why:</b> AYA is the clinical bucket between paediatric and adult oncology, Ewing sarcoma, osteosarcoma, testicular GCT, T-ALL, Hodgkin lymphoma, melanoma, and some thyroid / CNS cancers cluster here. Often falls between paediatric and adult clinical-trial pathways, which is why it is increasingly recognized as a distinct cohort.'
+                description: '<b>Inclusion:</b> patient age at diagnosis 15–39 years (NCI AYA definition). <b>Why:</b> AYA is the clinical bucket between pediatric and adult oncology, Ewing sarcoma, osteosarcoma, testicular GCT, T-ALL, Hodgkin lymphoma, melanoma, and some thyroid / CNS cancers cluster here. Often falls between pediatric and adult clinical-trial pathways, which is why it is increasingly recognized as a distinct cohort.'
             },
             age_adult: {
                 label: 'Adult (40–64 years)',
@@ -31299,7 +31299,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             age_elderly: {
                 label: 'Elderly (≥ 65 years)',
                 category: 'Patient age at diagnosis',
-                description: '<b>Inclusion:</b> patient age at diagnosis &ge; 65 years. <b>Why:</b> elderly-onset cancers (myelodysplastic syndromes, secondary AML, late-stage prostate, chronic lymphocytic leukaemia, glioblastoma in older patients) often have distinct mutational backgrounds, higher TMB from accumulated UV/aging exposure, TP53 mutations, chromothripsis. Worth segregating from middle-aged adults for some analyzes.'
+                description: '<b>Inclusion:</b> patient age at diagnosis &ge; 65 years. <b>Why:</b> elderly-onset cancers (myelodysplastic syndromes, secondary AML, late-stage prostate, chronic lymphocytic leukemia, glioblastoma in older patients) often have distinct mutational backgrounds, higher TMB from accumulated UV/aging exposure, TP53 mutations, chromothripsis. Worth segregating from middle-aged adults for some analyses.'
             }
         };
 
@@ -31524,7 +31524,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Patient age at diagnosis, five clinical buckets (infant /
-        // paediatric / AYA / adult / elderly). Reads from cellLineMetadata.age
+        // pediatric / AYA / adult / elderly). Reads from cellLineMetadata.age
         // which is stored as a string like "44.0" or "0.0"; parseFloat handles
         // both. Lines with missing or unparseable age are excluded from all
         // five sets (the existing ageCategory has an Unknown bucket worth ~16 %
@@ -32025,10 +32025,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'Active expression programs': 'Each set marks lines where the pathway is transcriptionally active (mean z > +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.',
             'Tumor-suppressor functional loss': 'A gene is "functionally lost" when DepMap\'s integrated call (CN, mutation, expression) says it is, catches deletions and silenced loci that the damaging-mutation list alone would miss.',
             'Focal amplifications': 'Curated oncogene amplifications from the clinical CN panel, gain-of-function dosage events that point mutations cannot produce.',
-            'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called, Philadelphia-positive leukaemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL, synovial sarcoma, alveolar RMS, prostate, ALCL.',
+            'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called, Philadelphia-positive leukemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL, synovial sarcoma, alveolar RMS, prostate, ALCL.',
             'DNA repair / damage response': 'One consolidated category for DNA-repair-deficiency contexts (MMR, HR, polymerase proofreading, ATM) and the related mutation-burden state (hypermutated). All overlap clinically, MMR-deficient lines are usually hypermutated, POLE-deficient lines are ultramutated, HR-deficient lines often have elevated LoH.',
             'TNBC molecular subtypes (Lehmann)': 'Lehmann 2011 / 2016 four-class refined TNBC molecular subtypes (BL1, BL2, M, LAR) for the ~22 TNBC overlap cell lines.',
-            'Patient age at diagnosis': 'Clinical-oncology age buckets computed from the numeric patient-age field. Paediatric (≤ 14), AYA (15–39), Adult (40–64), Elderly (≥ 65), Infant (≤ 1) as subsets. Useful because driver biology differs sharply with age, fusions and chromatin mutations dominate paediatric cancers, SNV-driven solid tumors dominate adult.'
+            'Patient age at diagnosis': 'Clinical-oncology age buckets computed from the numeric patient-age field. Pediatric (≤ 14), AYA (15–39), Adult (40–64), Elderly (≥ 65), Infant (≤ 1) as subsets. Useful because driver biology differs sharply with age, fusions and chromatin mutations dominate pediatric cancers, SNV-driven solid tumors dominate adult.'
         };
         const CATEGORY_ORDER = [
             'Disease-defining fusions',
@@ -32232,10 +32232,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'Active expression programs': 'Each set marks lines where the pathway is transcriptionally active (mean z > +0.75 across a curated gene panel). Reflects what the cell is doing, not just what is mutated.',
             'Tumor-suppressor functional loss': 'A gene is "functionally lost" when DepMap\'s integrated call (CN, mutation, expression) says it is, catches deletions and silenced loci that the damaging-mutation list alone would miss.',
             'Focal amplifications': 'Curated oncogene amplifications from the clinical CN panel, gain-of-function dosage events that point mutations cannot produce.',
-            'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called, Philadelphia-positive leukaemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL, synovial sarcoma, alveolar RMS, prostate, ALCL.',
+            'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called, Philadelphia-positive leukemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL, synovial sarcoma, alveolar RMS, prostate, ALCL.',
             'DNA repair / damage response': 'One consolidated category for DNA-repair-deficiency contexts (MMR, HR, polymerase proofreading, ATM) and the related mutation-burden state (hypermutated). All overlap clinically, MMR-deficient lines are usually hypermutated, POLE-deficient lines are ultramutated, HR-deficient lines often have elevated LoH.',
             'TNBC molecular subtypes (Lehmann)': 'Lehmann 2011 / 2016 four-class refined TNBC molecular subtypes (BL1, BL2, M, LAR) for the ~22 TNBC overlap cell lines.',
-            'Patient age at diagnosis': 'Clinical-oncology age buckets computed from the numeric patient-age field. Paediatric (≤ 14), AYA (15–39), Adult (40–64), Elderly (≥ 65), Infant (≤ 1) as subsets. Useful because driver biology differs sharply with age, fusions and chromatin mutations dominate paediatric cancers, SNV-driven solid tumors dominate adult.'
+            'Patient age at diagnosis': 'Clinical-oncology age buckets computed from the numeric patient-age field. Pediatric (≤ 14), AYA (15–39), Adult (40–64), Elderly (≥ 65), Infant (≤ 1) as subsets. Useful because driver biology differs sharply with age, fusions and chromatin mutations dominate pediatric cancers, SNV-driven solid tumors dominate adult.'
         };
 
         // Logical order of categories, drivers first, then disease subtypes,
@@ -32522,9 +32522,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cols = [];
         // slot = how far the drawing code advances; drawn = what it actually paints
         cols.push({ slot: 160, drawn: Math.max(meas('Correlation:', titleFont), 42 + meas('Negative', textFont)) });
-        cols.push({ slot: 160, drawn: Math.max(meas('Edge Thickness:', titleFont), 78 + meas('r = 1.00', textFont)) });
+        cols.push({ slot: 160, drawn: Math.max(meas('Edge thickness:', titleFont), 78 + meas('r = 1.00', textFont)) });
         if (this.results?.mode === 'design' && !byGE && !byStats) {
-            cols.push({ slot: 140, drawn: Math.max(meas('Node Type:', titleFont), 28 + meas('Correlated', textFont)) });
+            cols.push({ slot: 140, drawn: Math.max(meas('Node type:', titleFont), 28 + meas('Correlated', textFont)) });
         }
         if (byGE && this.results?.clusters) {
             const signed = (document.querySelector('input[name="colorGEType"]:checked')?.value || 'signed') === 'signed';
@@ -33041,7 +33041,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         ? (md.primaryDisease?.[d.cellLineId] || '')
                         : (d.lineage || md.lineage?.[d.cellLineId] || '')))
                     .map(d => d.cellLineName || this.getCellLineName(d.cellLineId));
-                this.copyNamesToClipboard(names, 'coloured');
+                this.copyNamesToClipboard(names, 'colored');
                 return;
             }
             const btn = e.target.closest('[data-chip-action="group"]');
@@ -35749,7 +35749,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
 Ploidy: average chromosome copy number. Normal = 2 (diploid). Above 3 = triploid. Above 4 = tetraploid.
 
-WGD (whole-genome doubling): at some point in the cell line's history, all chromosomes doubled. About 58% of cancer cell lines are WGD-positive, and these lines behave systematically differently from non-WGD lines in many analyzes.
+WGD (whole-genome doubling): at some point in the cell line's history, all chromosomes doubled. About 58% of cancer cell lines are WGD-positive, and these lines behave systematically differently from non-WGD lines in many analyses.
 
 Aneuploidy: how many chromosome arms have been gained or lost. Ben-David 2021 score, scale 0–39 (higher = more abnormal).
 
@@ -36532,7 +36532,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             'Epigenetic writers':       { genes: ['KMT2A', 'KMT2B', 'KMT2C', 'KMT2D', 'CREBBP', 'EP300', 'EZH2', 'DNMT3A', 'TET2', 'ASXL1', 'IDH1', 'IDH2'], ts: ['KMT2C', 'KMT2D', 'CREBBP', 'EP300', 'TET2', 'ASXL1'], note: 'Histone and DNA methylation machinery. Dysregulation is especially common in hematological cancers.' },
             'Homologous recombination repair': { genes: ['BRCA1', 'BRCA2', 'PALB2', 'ATM', 'ATR', 'CHEK1', 'CHEK2', 'RAD51', 'RAD51C', 'RAD51D', 'FANCA', 'FANCC', 'FANCD2', 'BRIP1', 'BARD1'], ts: ['BRCA1', 'BRCA2', 'PALB2', 'ATM', 'ATR', 'CHEK1', 'CHEK2', 'RAD51C', 'RAD51D', 'FANCA', 'FANCC', 'FANCD2', 'BRIP1', 'BARD1'], note: 'High-fidelity DNA double-strand break repair. Loss leads to PARP-inhibitor sensitivity.' },
             'Mismatch repair':          { genes: ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'], ts: ['MLH1', 'MSH2', 'MSH6', 'PMS2', 'EPCAM'], note: 'Corrects DNA replication errors. Loss causes microsatellite instability and a hypermutated genome, classic checkpoint-immunotherapy responder.' },
-            'NOTCH':                    { genes: ['NOTCH1', 'NOTCH2', 'NOTCH3', 'FBXW7', 'MAML2'], ts: ['FBXW7'], note: 'Cell-fate signaling. Activating mutations in T-cell leukaemia; inactivating in squamous cancers.' },
+            'NOTCH':                    { genes: ['NOTCH1', 'NOTCH2', 'NOTCH3', 'FBXW7', 'MAML2'], ts: ['FBXW7'], note: 'Cell-fate signaling. Activating mutations in T-cell leukemia; inactivating in squamous cancers.' },
             'Hematopoietic transcription / JAK-STAT': { genes: ['RUNX1', 'CEBPA', 'GATA2', 'IKZF1', 'PAX5', 'EBF1', 'IL7R', 'CRLF2', 'JAK1', 'JAK2', 'JAK3', 'STAT3', 'STAT5B'], ts: ['RUNX1', 'CEBPA', 'GATA2', 'IKZF1', 'PAX5', 'EBF1'], note: 'Transcription factors and cytokine signaling that govern blood-cell identity and survival.' },
             'Telomere maintenance':     { genes: ['TERT', 'TERC', 'POT1', 'ATRX', 'DAXX'], ts: ['POT1', 'ATRX', 'DAXX'], note: 'Maintains chromosome ends. Cancers reactivate telomerase (TERT promoter mutations) or use the alternative ALT mechanism.' },
             'TGF-beta / SMAD':          { genes: ['SMAD2', 'SMAD3', 'SMAD4', 'TGFBR1', 'TGFBR2', 'ACVR1B', 'ACVR2A'], ts: ['SMAD2', 'SMAD3', 'SMAD4', 'TGFBR1', 'TGFBR2', 'ACVR1B', 'ACVR2A'], note: 'Growth-inhibitory signal in normal epithelium. Loss removes a brake on proliferation early in pancreatic and colorectal cancer; later in tumor evolution the same pathway can instead promote invasion and immune escape.' },
@@ -37121,7 +37121,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     </div>`;
                 }).join('');
                 receptorHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; otherwise the measurement stands in, and where the two disagree both are shown. The measured rule: <b>HER2+</b> on focal <i>ERBB2</i> amplification, otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels, placed in the gap between the expressing and non-expressing groups visible in these histograms. <b>None of this is the clinical test.</b> Clinically, ER and PR are scored by immunohistochemistry on protein, and HER2 by immunohistochemistry with in-situ hybridisation (FISH) counting <i>ERBB2</i> gene copies where the staining is equivocal. Transcript level and copy number stand in for those, and a cell line can read differently from the tumour it came from.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; otherwise the measurement stands in, and where the two disagree both are shown. The measured rule: <b>HER2+</b> on focal <i>ERBB2</i> amplification, otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels, placed in the gap between the expressing and non-expressing groups visible in these histograms. <b>None of this is the clinical test.</b> Clinically, ER and PR are scored by immunohistochemistry on protein, and HER2 by immunohistochemistry with in-situ hybridization (FISH) counting <i>ERBB2</i> gene copies where the staining is equivocal. Transcript level and copy number stand in for those, and a cell line can read differently from the tumor it came from.</p>
                     ${conflictHtml}
                     <div style="margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <span>Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span>${callBasis ? `<span style="color:#6b7280; font-size:10px; margin-left:6px;">${callBasis}</span>` : ''}</span>
@@ -38299,7 +38299,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     : '<em style="color:#9ca3af;">No genes with sufficient cohort variance to rank.</em>';
                 // Uniquely LOW. A gene silenced here but expressed across the
                 // cohort is as informative as one over-expressed: lost lineage
-                // markers, deleted tumour suppressors, immune-evasion losses.
+                // markers, deleted tumor suppressors, immune-evasion losses.
                 // The cohort has to actually express it, otherwise "low" just
                 // means the gene is off everywhere.
                 const topLowExpr = zScored
@@ -38640,7 +38640,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'DepMap 25Q3 Model table (Oncotree lineage / subtype / code, patient-tumor features).'),
             receptorHtml ? section('Receptor status <span style="font-size:11px; color:#6b7280;">, expression surrogate for ER / PR / HER2</span>',
                 receptorHtml,
-                'DepMap 25Q3 OmicsExpressionTPMLogp1 (log₂-TPM+1) for ESR1 / PGR / ERBB2, plus DepMap focal copy number for ERBB2. Published TNBC calls from Lehmann JCI 2011 / PLOS ONE 2016. Measured rule: focal ERBB2 amplification for HER2+, otherwise ESR1 ≥ 3.0 or PGR ≥ 1.0 for HR+, otherwise triple-negative. Clinically, ER and PR are scored by immunohistochemistry on protein and HER2 by immunohistochemistry, with in-situ hybridisation (FISH) counting ERBB2 gene copies where staining is equivocal; transcript and copy number are approximations of that.') : '',
+                'DepMap 25Q3 OmicsExpressionTPMLogp1 (log₂-TPM+1) for ESR1 / PGR / ERBB2, plus DepMap focal copy number for ERBB2. Published TNBC calls from Lehmann JCI 2011 / PLOS ONE 2016. Measured rule: focal ERBB2 amplification for HER2+, otherwise ESR1 ≥ 3.0 or PGR ≥ 1.0 for HR+, otherwise triple-negative. Clinically, ER and PR are scored by immunohistochemistry on protein and HER2 by immunohistochemistry, with in-situ hybridization (FISH) counting ERBB2 gene copies where staining is equivocal; transcript and copy number are approximations of that.') : '',
             section('Patient & sample origin',
                 originHtml,
                 'DepMap 25Q3 Model table, donor demographics and tissue collection metadata.'),
@@ -39307,7 +39307,7 @@ ${clone.innerHTML}
         const names = ids.map(cl => this.getCellLineName(cl) || cl).join('\n');
         try {
             await navigator.clipboard.writeText(names);
-            this.showCopyNotification(`Copied ${ids.length} ${source} cell line name${ids.length === 1 ? '' : 's'}, paste into Custom CLs`);
+            this.showCopyNotification(`Copied ${ids.length} ${source} cell line name${ids.length === 1 ? '' : 's'}, paste into Custom cell lines`);
         } catch (e) {
             const ta = document.createElement('textarea');
             ta.value = names;
@@ -39389,7 +39389,7 @@ ${clone.innerHTML}
         const saveBtn = document.getElementById('selectionInspectSave');
         if (saveBtn) saveBtn.style.display = '';
         document.getElementById('selectionInspectTitle').textContent = `Inspect Correlations, ${selected.length} selected cell lines (restored)`;
-        document.getElementById('selectionInspectSubtitle').textContent = `Loaded from a saved file. Left: top correlations in the selection. Right: largest Δ vs all cells. Click any row to open the correlation inspect; cutoffs and Network buttons work as before.`;
+        document.getElementById('selectionInspectSubtitle').textContent = `Loaded from a saved file. Left: top correlations in the selection. Right: largest Δ vs all cell lines. Click any row to open the correlation inspect; cutoffs and Network buttons work as before.`;
         document.getElementById('selectionInspectBody').innerHTML = `
             <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
                 <div style="flex:1; min-width:0;">
@@ -40036,7 +40036,7 @@ ${clone.innerHTML}
         const cancelBtn = document.getElementById('progressCancelBtn');
         const onCancel = () => { this._corrInspectCanceled = true; };
         cancelBtn.onclick = onCancel;
-        this._showProgress('Computing correlations', 'Centring gene vectors…', 0);
+        this._showProgress('Computing correlations', 'Centering gene vectors…', 0);
 
         // Center each gene's vector within each subset so pairwise correlation
         // is just dot(centered_i, centered_j) / (norm_i × norm_j).
@@ -40078,7 +40078,7 @@ ${clone.innerHTML}
         // selections, so we cache them on the instance for the lifetime of
         // the page, subsequent inspect-correlation runs skip this cost.
         if (!this._corrCacheAll) {
-            this._showProgress('Computing correlations', 'Centring gene vectors (all cells, one-time)…', 2);
+            this._showProgress('Computing correlations', 'Centering gene vectors (all cell lines, one-time)…', 2);
             await _yield();
             this._corrCacheAll = buildCentered(allIdx);
         }
@@ -40086,7 +40086,7 @@ ${clone.innerHTML}
         await _yield();
         if (this._corrInspectCanceled) { this._hideProgress(); return; }
 
-        this._showProgress('Computing correlations', 'Centring gene vectors (selection)…', 4);
+        this._showProgress('Computing correlations', 'Centering gene vectors (selection)…', 4);
         await _yield();
         const selData = buildCentered(selIdx);
         await _yield();
@@ -41238,7 +41238,7 @@ ${clone.innerHTML}
         // Otherwise, set flag and switch to lasso mode for next selection
         this._umapGateSelecting = gate;
         const status = document.getElementById('clbUmapGateStatus');
-        status.textContent = `Lasso/box-select cells for Gate ${gate}`;
+        status.textContent = `Lasso/box-select cell lines for Gate ${gate}`;
         status.style.color = gate === 'A' ? '#2563eb' : '#dc2626';
         const plotDiv = document.getElementById('clbUmapPlot');
         Plotly.relayout(plotDiv, { dragmode: 'lasso' });
@@ -41251,7 +41251,7 @@ ${clone.innerHTML}
             document.getElementById('clbUmapSetGateB').disabled = false;
             document.getElementById('clbUmapClearGates').style.display = '';
             document.getElementById('clbUmapUmapFromGate').style.display = cells.length >= 15 ? '' : 'none';
-            document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
+            document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${cells.length} cell lines. Now set Gate B.`;
             document.getElementById('clbUmapGateStatus').style.color = '#5d9239';
         } else {
             this._umapGateB = cells;
@@ -41294,7 +41294,7 @@ ${clone.innerHTML}
                 document.getElementById('clbUmapSetGateB').disabled = false;
                 document.getElementById('clbUmapClearGates').style.display = '';
                 document.getElementById('clbUmapUmapFromGate').style.display = cells.length >= 15 ? '' : 'none';
-                document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${cells.length} cells. Now set Gate B.`;
+                document.getElementById('clbUmapGateStatus').textContent = `Gate A: ${cells.length} cell lines. Now set Gate B.`;
                 document.getElementById('clbUmapGateStatus').style.color = '#5d9239';
             } else {
                 if (this._umapGateBShapeIndex != null && this._umapGateBShapeIndex !== currentShapes.length - 1) {
@@ -41342,7 +41342,7 @@ ${clone.innerHTML}
         if ((gateAUpdated || gateBUpdated) && this._umapGateA) {
             const msg = this._umapGateB
                 ? `Gate A: ${this._umapGateA.length}, Gate B: ${this._umapGateB.length}. Click Compare to refresh.`
-                : `Gate A: ${this._umapGateA.length} cells. Now set Gate B.`;
+                : `Gate A: ${this._umapGateA.length} cell lines. Now set Gate B.`;
             document.getElementById('clbUmapGateStatus').textContent = msg;
         }
     }
@@ -41892,7 +41892,7 @@ ${clone.innerHTML}
             ];
             Plotly.newPlot(plotDiv, traces, {
                 title: { text: `${gene}, Mutation Frequency (Δ%=${(pctMutA - pctMutB > 0 ? '+' : '')}${(pctMutA - pctMutB).toFixed(1)}, p=${fmtP(pValue)})`, font: { size: 13 } },
-                barmode: 'stack', yaxis: { title: '% of cells', range: [0, 105] },
+                barmode: 'stack', yaxis: { title: '% of cell lines', range: [0, 105] },
                 width: 300, height: 300, margin: { t: 40, b: 60, l: 60, r: 30 },
                 showlegend: true, legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 9 } }
             }, { displayModeBar: false, responsive: true });
@@ -43356,7 +43356,7 @@ ${clone.innerHTML}
 
         if (colorType === 'ge') {
             const geneIdx = this.geneIndex.get(gene);
-            if (geneIdx === undefined) { statusEl.textContent = `Gene "${gene}" not found in GE data.`; return; }
+            if (geneIdx === undefined) { statusEl.textContent = `Gene "${gene}" not found in gene effect data.`; return; }
             for (const cl of cellLines) {
                 const clIdx = this.metadata.cellLines.indexOf(cl);
                 if (clIdx === -1) { values.push(null); continue; }
