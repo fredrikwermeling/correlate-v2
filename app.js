@@ -13547,6 +13547,16 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             this.network.fit({ animation: false });
             this._netBasePositions = this.network.getPositions();
             this._netBaseSpread = 100;
+            // Each roll also draws a new Spread (60-100), so consecutive
+            // shuffles offer visibly different densities to choose from. The
+            // slider and its bubble follow, so the value can be kept or tuned.
+            const spreadEl = document.getElementById('netSpread');
+            if (spreadEl) {
+                const v = 60 + Math.round(Math.random() * 8) * 5;
+                spreadEl.value = v;
+                const bb = document.getElementById('spreadBubble');
+                if (bb) bb.textContent = v;
+            }
             this._applyNetworkSpread({ releaseAfter: !wasLocked && !multiComp });
             if (wasLocked || multiComp) {
                 this.network.setOptions({ physics: { enabled: false } });
