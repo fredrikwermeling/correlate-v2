@@ -15058,7 +15058,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         titleLines.push(`<span style="font-size:${subSize}px;">n=${filteredData.length}, r=${this.formatNum(allStats.correlation)}, ${this.formatPClause(allStats.pValue)}, slope=${this.formatNum(allStats.slope)}</span>`);
         titleLines.push(`<span style="font-size:${subSize}px;">mean (X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)}) median (X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})</span>`);
         if (this.currentInspect?.sparseNote) {
-            titleLines.push(`<span style="font-size:${Math.round(subSize * 0.85)}px; color:#b45309;">&#9888; ${this.currentInspect.sparseNote}</span>`);
+            // The note is a full sentence and easily wider than the canvas,
+            // which clips it at both ends. Wrap it on words to the plot width
+            // (plus the margins the centred annotation can spill into).
+            const noteSize = Math.round(subSize * 0.85);
+            const noteBudget = Math.max(240, _plotW + 60);
+            const noteLines = [];
+            let noteLine = '';
+            for (const w of `&#9888; ${this.currentInspect.sparseNote}`.split(' ')) {
+                const cand = noteLine ? noteLine + ' ' + w : w;
+                if (noteLine && cand.replace(/&#\d+;/g, 'x').length * noteSize * 0.55 > noteBudget) { noteLines.push(noteLine); noteLine = w; }
+                else noteLine = cand;
+            }
+            if (noteLine) noteLines.push(noteLine);
+            for (const ln of noteLines) {
+                titleLines.push(`<span style="font-size:${noteSize}px; color:#b45309;">${ln}</span>`);
+            }
         }
 
         // The overlay read-out runs long (three groups, each with n and r) and
@@ -32194,7 +32209,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbWikiBody')?.addEventListener('click', (e) => {
             const link = e.target.closest('.clb-gene-link');
             if (!link) return;
-            this._geHighlightCellLine = this._clbInspectedCellLine;
+            // Highlight the wiki's own cell line, not the browser's inspected
+            // one: the wiki also opens from shift-click in correlation popouts,
+            // where _clbInspectedCellLine is unset or points at another line.
+            this._geHighlightCellLine = this._wikiCellLineId || this._clbInspectedCellLine;
             // If the gene was clicked inside the Expression-profile section, open
             // the popout on the Expression data type; otherwise Gene Effect.
             const secTitle = link.closest('section')?.querySelector('h3')?.textContent || '';
@@ -42163,6 +42181,7 @@ ${clone.innerHTML}
         // Track visibility states
         this._tsVisible = {
             title: ann0?.visible !== false && (usesAnnotationTitle || !!titleText),
+            subtitle: subtitleAnn ? subtitleAnn.visible !== false : !!subtitleText,
             xLabel: !!xLabel,
             yLabel: !!yLabel,
             legend: hasLegend
@@ -42230,7 +42249,7 @@ ${clone.innerHTML}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Font Sizes &amp; Visibility</div>
             ${sizeRow('Title', 'ts_title', titleSize, 6, 48, 'ts_titleVis', this._tsVisible.title)}
-            ${subtitleText ? sizeRow('Subtitle', 'ts_subtitle', subtitleSize, 6, 30, null, true) : ''}
+            ${subtitleText ? sizeRow('Subtitle', 'ts_subtitle', subtitleSize, 6, 30, subtitleAnn ? 'ts_subtitleVis' : null, this._tsVisible.subtitle) : ''}
             ${sizeRow('X Label', 'ts_xlabel', xLabelSize, 6, 36, 'ts_xLabelVis', this._tsVisible.xLabel)}
             ${sizeRow('Y Label', 'ts_ylabel', yLabelSize, 6, 36, 'ts_yLabelVis', this._tsVisible.yLabel)}
             ${sizeRow('X Tick', 'ts_xtick', xTickSize, 6, 30, null, true)}
@@ -42492,6 +42511,11 @@ ${clone.innerHTML}
                 Plotly.relayout(plotEl, { 'annotations[0].visible': checked });
             } else {
                 Plotly.relayout(plotEl, { 'title.text': checked ? (this._tsOriginal.titleText || ' ') : '' });
+            }
+        } else if (checkboxId === 'ts_subtitleVis') {
+            const idx = this._tsFindAnn(plotEl, 'subtitle');
+            if (idx >= 0) {
+                Plotly.relayout(plotEl, { [`annotations[${idx}].visible`]: checked });
             }
         } else if (checkboxId === 'ts_xLabelVis') {
             const idx = this._tsFindAnn(plotEl, 'xlabel');

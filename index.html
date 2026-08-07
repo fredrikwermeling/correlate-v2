@@ -2127,6 +2127,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.82 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Wiki gene plots mark the Wiki's own cell line again.</b> Opening a Wiki by shift-clicking a point in a correlation plot and then clicking a gene showed the gene-effect or expression plot without the arrow marking that cell line. The plot was told to mark the cell line inspected in the Cell Line Browser, which is empty or a different line when the Wiki comes from a plot.</li>
+                    <li><b>The sparse-data warning no longer runs off the plot.</b> The orange note about a gene measured in few lines was one long line, cut off at both ends on narrower plots. It now wraps to the plot width.</li>
+                    <li><b>The subtitle can be switched off in the correlation plot's text settings.</b> The Subtitle row under Font Sizes &amp; Visibility now has an on/off box like the title, axis labels and legend.</li>
+                </ul>
                 <p><strong>v.85.81 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>A wrapped title is no longer cut off at the top.</b> The space reserved above the plot covered the gap to the heading but not the heading's own height, so the first line of a two-line title sat outside the visible area. Both blocks are now measured from the top of the plot and the reserve covers the whole stack.</li>
@@ -5272,7 +5278,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.81</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.82</a>
     </div>
 
     <div class="main-content">
@@ -7785,6 +7791,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_81"></script>
+    <script src="app.js?v=v85_82"></script>
 </body>
 </html>
