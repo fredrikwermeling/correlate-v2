@@ -13614,12 +13614,14 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
 
     // Re-roll the layout from fresh random starting positions, so the user can
     // click until the arrangement looks right. Runs the same settle, untangle
-    // and fit sequence a newly drawn network goes through, rolls a random
-    // Spread on top, and ends locked so the solver cannot undo the roll.
+    // and fit sequence a newly drawn network goes through, at full Spread
+    // (rolling a random Spread per click looked compressed more often than
+    // good), and leaves the Lock state as it found it.
     shuffleNetworkLayout() {
         if (!this.network || !this.networkData?.nodes) return;
         const nodes = this.networkData.nodes.get();
         if (!nodes.length) return;
+        const wasLocked = this.physicsEnabled === false;
         // Scatter within a disc sized to the graph, so the solver starts from a
         // genuinely different configuration each time. Also unpin everything:
         // satellites pinned by an earlier separation must join the re-roll.
@@ -13634,32 +13636,27 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
             this._separateNetworkComponents();
-            // Frame the fully settled layout first: that framed picture is the
-            // Spread-100 reference the roll compacts from.
             this.network.fit({ animation: false });
+            // The freshly settled full-panel layout is the Spread-100
+            // reference; the slider follows, since a leftover reading from
+            // before the shuffle would compact the new layout from the start.
             this._netBasePositions = this.network.getPositions();
             this._netBaseSpread = 100;
-            // Roll a Spread (60-100) and compact the layout towards its centre
-            // at the zoom the fit just chose. The order matters: fitting AFTER
-            // the compaction re-zoomed to the shrunken content, and releasing
-            // the solver let it re-expand to its spring equilibrium; both
-            // quietly cancelled the roll, which made Spread look ineffective.
-            // So the compaction comes last and the network stays locked; the
-            // Unlock button restores the full layout as always.
             const spreadEl = document.getElementById('netSpread');
             if (spreadEl) {
-                const v = 60 + Math.round(Math.random() * 8) * 5;
-                spreadEl.value = v;
+                spreadEl.value = '100';
                 const bb = document.getElementById('spreadBubble');
-                if (bb) bb.textContent = v;
+                if (bb) bb.textContent = '100';
             }
-            this._applyNetworkSpread({ releaseAfter: false });
-            // A roll of exactly 100 skips the freeze inside the spread apply,
-            // so make the lock explicit either way.
-            this.network.setOptions({ physics: { enabled: false } });
-            this.physicsEnabled = false;
             const lockBtn = document.getElementById('togglePhysics');
-            if (lockBtn) { lockBtn.textContent = 'Unlock'; lockBtn.classList.add('btn-active'); }
+            if (wasLocked) {
+                this.network.setOptions({ physics: { enabled: false } });
+                this.physicsEnabled = false;
+                if (lockBtn) { lockBtn.textContent = 'Unlock'; lockBtn.classList.add('btn-active'); }
+            } else {
+                this.physicsEnabled = true;
+                if (lockBtn) { lockBtn.textContent = 'Lock'; lockBtn.classList.remove('btn-active'); }
+            }
             this._ensureNetworkInView();
         });
         this.network.stabilize();
