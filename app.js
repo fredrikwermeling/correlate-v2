@@ -12169,6 +12169,12 @@ Results:
         if (lineage) {
             parts.push(subLineage ? `${lineage} / ${subLineage}` : lineage);
         }
+        // The disease level narrows the cohort like the two above it, so a
+        // banner naming only tissue/subtype under-described what was run.
+        const paramDisease = this._paramDiseaseMulti?.length
+            ? this._paramDiseaseMulti.join(' + ')
+            : document.getElementById('paramOncotreeFilter')?.value;
+        if (paramDisease && paramDisease !== '__mr_multi__') parts.push(paramDisease);
         if (this.excludedTissues && this.excludedTissues.size > 0) {
             parts.push(`${this.excludedTissues.size} tissue${this.excludedTissues.size > 1 ? 's' : ''} excluded`);
         }
@@ -24022,6 +24028,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cn = document.getElementById('geCnFilter')?.value;
         if (tissue) parts.push(tissue);
         if (subtype) parts.push(subtype);
+        const geOnc = document.getElementById('geOncotreeFilter')?.value;
+        if (geOnc === '__mr_multi__') {
+            const multi = this.mutationResults?.oncotreeFilterMulti;
+            if (multi?.length) parts.push(multi.join(' + '));
+        } else if (geOnc) parts.push(geOnc);
         // Say which side of each filter is in view, now that WT can be chosen.
         const isWT = (id) => document.getElementById(id)?.value === 'wt';
         if (hotspot) parts.push(`${hotspot} ${isWT('geHotspotLevel') ? 'WT' : 'mutated'}`);

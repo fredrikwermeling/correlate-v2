@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.16 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>Cohort descriptions name the disease level.</b> The network filter banner and the Gene Effect popout's filter description now list an applied disease filter alongside tissue and subtype, so what was run is fully stated.</li>
+                </ul>
                 <p><strong>v.86.15 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>Copy sweep across the whole app.</b> Typos fixed ("analyses", a garbled sentence in the Cell Line Browser help), stale text updated (the first-run hint now names "2. Input Gene Set", the Synonyms tab explains Find Synonyms, the Summary tab uses the current mode names), "cells" is now "cell lines" wherever the unit is cell lines, spelling standardized to American English (color, tumor, ortholog, leukemia…), the same feature now has one name everywhere (Custom cell lines, By hotspot mutation, Min Cell Lines, Gene 1/Gene 2), and legend/heading capitalization is consistent.</li>
@@ -5509,7 +5513,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.15</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.16</a>
         </span>
     </div>
 
@@ -8045,6 +8049,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_15"></script>
+    <script src="app.js?v=v86_16"></script>
 </body>
 </html>
