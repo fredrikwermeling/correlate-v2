@@ -6837,7 +6837,8 @@ class CorrelationExplorer {
             }
 
             // Check oncoprint multi-gene filters
-            if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
+            if (!this._passesOncotree(cellLine, 'paramOncotreeFilter')) return;
+        if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
 
             // A subset handed over from the browser's inspect. Every other
             // filter still applies on top, so a lineage picked afterwards
@@ -14538,6 +14539,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             );
         }
 
+        // Disease (Oncotree entity), the third level under lineage and subtype.
+        if (document.getElementById('scatterOncotreeFilter')?.value) {
+            filteredData = filteredData.filter(d => this._passesOncotree(d.cellLineId, 'scatterOncotreeFilter'));
+        }
+
         // Genes picked from an alteration grid filter here too, so the grid
         // button beside these filters does the same thing it does everywhere else.
         if (this._activeOncoprintFilters?.length) {
@@ -20809,6 +20815,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             filtered = filtered.filter(p => p.lineage === tissueVal);
         }
 
+        // Subtype and disease, so this panel offers the same three levels the
+        // others do rather than tissue alone.
+        const caSub = document.getElementById('caSubtypeFilter')?.value;
+        if (caSub) filtered = filtered.filter(p => this.cellLineMetadata?.primaryDisease?.[p.cellLineId] === caSub);
+        if (document.getElementById('caOncotreeFilter')?.value) {
+            filtered = filtered.filter(p => this._passesOncotree(p.cellLineId, 'caOncotreeFilter'));
+        }
+
         // Genes picked from an alteration grid, so the grid button beside these
         // filters behaves the same here as everywhere else.
         if (this._activeOncoprintFilters?.length) {
@@ -22685,6 +22699,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         // Oncoprint multi-gene filters
         if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
+        if (document.getElementById('geOncotreeFilter')?.value) {
+            data = data.filter(d => this._passesOncotree(d.cellLineId, 'geOncotreeFilter'));
+        }
             data = data.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId));
         }
         // Custom cell-line list (paste IDs/names): restrict to just those lines.
@@ -32549,6 +32566,41 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // only the skin diseases to choose from, with counts that match what the
     // list will actually show. Scoped by the others but not by itself, or
     // choosing a disease would leave that disease as the only option.
+    // Fill any panel's disease selector from the Oncotree entity field, so the
+    // three levels (lineage, subtype, disease) are offered everywhere filters
+    // are, not only in the Cell Line Browser. Counts follow the tissue and
+    // subtype already chosen in that panel, so the list never offers a disease
+    // that would empty the view.
+    _populateOncotreeSelect(selectId, tissue = '', subtype = '') {
+        const sel = document.getElementById(selectId);
+        if (!sel || !this.cellLineMetadata) return;
+        const onc = this.cellLineMetadata.oncotreeSubtype || {};
+        const lin = this.cellLineMetadata.lineage || {};
+        const pd = this.cellLineMetadata.primaryDisease || {};
+        const counts = new Map();
+        for (const cl of (this.metadata?.cellLines || [])) {
+            if (tissue && lin[cl] !== tissue) continue;
+            if (subtype && pd[cl] !== subtype) continue;
+            const v = onc[cl];
+            if (v) counts.set(v, (counts.get(v) || 0) + 1);
+        }
+        const entries = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        const sig = entries.map(([n, k]) => n + ':' + k).join('|');
+        if (sel._oncSig === sig) return;
+        sel._oncSig = sig;
+        const keep = sel.value;
+        sel.innerHTML = '<option value="">All diseases</option>'
+            + entries.map(([n, k]) => `<option value="${this.esc(n)}">${this.esc(n)} (n=${k})</option>`).join('');
+        if (entries.some(([n]) => n === keep)) sel.value = keep;
+    }
+
+    // Does this cell line pass a panel's disease selector?
+    _passesOncotree(cellLineId, selectId) {
+        const v = document.getElementById(selectId)?.value;
+        if (!v) return true;
+        return (this.cellLineMetadata?.oncotreeSubtype?.[cellLineId] || '') === v;
+    }
+
     populateClbOncotreeFilter() {
         const sel = document.getElementById('clbOncotreeFilter');
         if (!sel) return;
@@ -33104,28 +33156,28 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 apply: () => this.renderCellLineList(),
             },
             params: {
-                tissue: 'lineageFilter', subtype: 'subLineageFilter', chips: 'paramActiveFilters',
+                tissue: 'lineageFilter', subtype: 'subLineageFilter', oncotree: 'paramOncotreeFilter', chips: 'paramActiveFilters',
                 hotspot: { geneId: 'paramHotspotGene', levelId: 'paramHotspotLevel', options: opts(HOT, ['1+2', '1', '2', '0']) },
                 fusion:  { geneId: 'paramTranslocationGene', levelId: 'paramTranslocationLevel', options: opts(FUS, ['1+2', '0']) },
                 cn:      { geneId: 'paramCnFilter', levelId: 'paramCnLevel', options: opts(CN, ['altered', 'wt']) },
                 apply: () => { this._updateLineageFilterCounts?.(); this._refreshParamFilterDependents?.(); },
             },
             scatter: {
-                tissue: 'scatterCancerFilter', subtype: 'scatterSubtypeFilter', chips: 'scatterActiveFilters',
+                tissue: 'scatterCancerFilter', subtype: 'scatterSubtypeFilter', oncotree: 'scatterOncotreeFilter', chips: 'scatterActiveFilters',
                 hotspot: { geneId: 'mutationFilterGene', levelId: 'mutationFilterLevel', options: opts(HOT, ['1+2', '1', '2', '0']) },
                 fusion:  { geneId: 'translocationFilterGene', levelId: 'translocationFilterLevel', options: opts(FUS, ['1+2', '0', 'nocall']) },
                 cn:      { geneId: 'scatterCnFilter', levelId: 'scatterCnLevel', options: opts(CN, ['altered', 'wt']) },
                 apply: () => this.updateInspectPlot(),
             },
             ge: {
-                tissue: 'geTissueFilter', subtype: 'geSubtypeFilter', chips: 'geActiveFilters',
+                tissue: 'geTissueFilter', subtype: 'geSubtypeFilter', oncotree: 'geOncotreeFilter', chips: 'geActiveFilters',
                 hotspot: { geneId: 'geHotspotFilter', levelId: 'geHotspotLevel', options: opts(HOT, ['altered', 'wt']) },
                 fusion:  { geneId: 'geFusionFilter', levelId: 'geFusionLevel', options: opts(FUS, ['altered', 'wt']) },
                 cn:      { geneId: 'geCnFilter', levelId: 'geCnLevel', options: opts(CN, ['altered', 'wt']) },
                 apply: () => this._reapplyGeneEffectFilters?.(),
             },
             ca: {
-                tissue: 'caTissueFilter', chips: 'caActiveFilters',
+                tissue: 'caTissueFilter', subtype: 'caSubtypeFilter', oncotree: 'caOncotreeFilter', chips: 'caActiveFilters',
                 hotspot: { geneId: 'caHotspotFilter', levelId: 'caHotspotLevel', options: opts(HOT, ['1+2', '1', '2', '0']) },
                 fusion:  { geneId: 'caFusionFilter', levelId: 'caFusionLevel', options: opts(FUS, ['1+2', '0', 'nocall']) },
                 cn:      { geneId: 'caCnFilter', levelId: 'caCnLevel', options: opts(CN, ['altered', 'wt']) },
@@ -33136,6 +33188,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     _filterCtx(name) { return this._FILTER_BAR_SPEC()[name] || null; }
+
+    // Refill each panel's disease selector from the tissue and subtype chosen in
+    // that same panel, and wire the selectors once so they re-apply on change.
+    _syncOncotreeSelectors() {
+        const ctxs = [
+            ['params', 'lineageFilter', 'subLineageFilter', 'paramOncotreeFilter'],
+            ['scatter', 'scatterCancerFilter', 'scatterSubtypeFilter', 'scatterOncotreeFilter'],
+            ['ge', 'geTissueFilter', 'geSubtypeFilter', 'geOncotreeFilter'],
+            ['ca', 'caTissueFilter', 'caSubtypeFilter', 'caOncotreeFilter'],
+        ];
+        for (const [ctx, tId, sId, oId] of ctxs) {
+            const sel = document.getElementById(oId);
+            if (!sel) continue;
+            this._populateOncotreeSelect(oId,
+                document.getElementById(tId)?.value || '',
+                document.getElementById(sId)?.value || '');
+            if (!sel._wired) {
+                sel._wired = true;
+                sel.addEventListener('change', () => {
+                    this._renderFilterChips(ctx);
+                    this._filterCtx(ctx)?.apply?.();
+                });
+                [tId, sId].forEach(id => document.getElementById(id)?.addEventListener('change', () =>
+                    this._populateOncotreeSelect(oId,
+                        document.getElementById(tId)?.value || '',
+                        document.getElementById(sId)?.value || '')));
+            }
+        }
+    }
 
     // Re-run whatever the main page shows off the back of its filters. The
     // analysis itself is not re-run, only the counts and labels that describe
@@ -33171,6 +33252,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     _renderFilterChips(ctxName) {
         const spec = this._filterCtx(ctxName);
         if (!spec) return;
+        try { this._syncOncotreeSelectors(); } catch (e) { /* selectors are optional */ }
         const host = document.getElementById(spec.chips);
         if (!host) return;
         const val = (id) => (id && document.getElementById(id)?.value) || '';
