@@ -4514,15 +4514,25 @@ class CorrelationExplorer {
         input._mutFilterWired = true;
         const render = kind === 'hotspot' ? '_renderHotspotFilterDropdown'
             : kind === 'fusion' ? '_renderFusionFilterDropdown' : '_renderCnFilterDropdown';
-        const open = () => {
+        const open = (isFocus) => {
             const cf = input._mutCohortFn;
             const cohort = cf ? cf() : null;
-            const items = cohort ? this._buildFilterItems(kind, cohort) : (this._ensureGlobalFilterItems()[kind] || []);
-            this[render](input.value, { inputId, dropdownId, items, onSelect: () => input._mutOnChange && input._mutOnChange() });
+            // An EMPTY cohort means the panel has no data behind it right now
+            // (e.g. the mutation-inspect view, which is not driven by
+            // currentGeneEffect). Suggest from the whole panel then, rather
+            // than showing a blank list.
+            const cohortN = cohort ? (cohort.size ?? cohort.length ?? 0) : 0;
+            const items = cohortN ? this._buildFilterItems(kind, cohort) : (this._ensureGlobalFilterItems()[kind] || []);
+            // On focus, the box's value is the APPLIED pick, not a search
+            // term: offer the full list so the filter can be changed. Using
+            // the value as a query narrowed the list to the pick itself,
+            // which read as the widget being locked. Typing still narrows.
+            const q = isFocus ? '' : input.value;
+            this[render](q, { inputId, dropdownId, items, onSelect: () => input._mutOnChange && input._mutOnChange() });
             dd.style.display = 'block';
         };
-        input.addEventListener('focus', open);
-        input.addEventListener('input', () => { open(); if (!input.value && input._mutOnChange) input._mutOnChange(); });
+        input.addEventListener('focus', () => open(true));
+        input.addEventListener('input', () => { open(false); if (!input.value && input._mutOnChange) input._mutOnChange(); });
         document.addEventListener('click', (e) => {
             if (e.target !== input && !dd.contains(e.target)) dd.style.display = 'none';
         });
@@ -5209,6 +5219,7 @@ class CorrelationExplorer {
         });
         document.getElementById('networkAaBtn')?.addEventListener('click', () => this.openNetworkTextSettings());
         document.getElementById('shuffleNetworkBtn')?.addEventListener('click', () => this.shuffleNetworkLayout());
+        document.getElementById('highlightNetworkBtn')?.addEventListener('click', () => this._openNetworkHighlightPopup());
         document.getElementById('resetNetworkControls')?.addEventListener('click', () => this.resetNetworkControls());
         document.getElementById('networkNodeBorder')?.addEventListener('change', (e) => this.toggleNetworkBorder(e.target.checked));
         document.getElementById('fitNetwork').addEventListener('click', () => {
@@ -8410,17 +8421,26 @@ class CorrelationExplorer {
         thead.innerHTML = headerHTML;
 
         const polymorphicCaveat = this._polymorphicCaveatText();
+        // Rows where the gene is measured in fewer cell lines than the cohort
+        // get a * on their N columns, so a smaller group is attributed to the
+        // data rather than to a filter.
+        const maxRowN = results.reduce((m, r) => Math.max(m, (r.n_wt || 0) + (r.n_mut || 0)), 0);
+        const lowNTitle = 'This gene has data in fewer cell lines than the rest of the cohort, so its groups are smaller.';
+        let anyLowN = false;
         results.forEach(r => {
             const row = document.createElement('tr');
             const polymorphicMark = this._isPolymorphicLocus(r.gene)
                 ? ` <span style="color:#b45309; cursor:help;" title="${polymorphicCaveat.replace(/"/g, '&quot;')}">⚠</span>`
                 : '';
+            const lowN = ((r.n_wt || 0) + (r.n_mut || 0)) < maxRowN;
+            if (lowN) anyLowN = true;
+            const star = lowN ? `<span style="color:#b45309; cursor:help;" title="${lowNTitle}">*</span>` : '';
             let html = `
                 <td><a href="#" class="inspect-link" onclick="app.showGeneEffectDistribution('${r.gene}'); return false;">Inspect</a></td>
                 <td class="gene-hover" data-gene="${r.gene}"><a href="#" style="color: var(--green-700); text-decoration: none; cursor: pointer;" onclick="app.openGeneEffectModal('${r.gene}', 'tissue', {dataType:'${this._mutAnalysisMetric === 'expr' ? 'expr' : 'ge'}'}); return false;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${r.gene}</a>${polymorphicMark}</td>
-                <td style="border-left: 2px solid #2563eb;">${r.n_wt}</td>
+                <td style="border-left: 2px solid #2563eb;">${r.n_wt}${star}</td>
                 <td>${r.mean_wt.toFixed(2)}</td>
-                <td style="border-left: 2px solid #f97316;">${r.n_mut}</td>
+                <td style="border-left: 2px solid #f97316;">${r.n_mut}${star}</td>
                 <td>${r.mean_mut.toFixed(2)}</td>
                 <td class="${r.diff_mut < 0 ? 'negative' : 'positive'}">${r.diff_mut.toFixed(2)}</td>
                 <td>${this.formatPValue(r.p_mut)}</td>
@@ -8446,6 +8466,13 @@ class CorrelationExplorer {
             row.innerHTML = html;
             tbody.appendChild(row);
         });
+
+        // Footnote for the * on low-coverage genes, only when one is shown.
+        if (anyLowN) {
+            const note = document.createElement('tr');
+            note.innerHTML = `<td colspan="99" style="font-size:10px; color:#b45309; padding:4px 8px; border-top:1px solid #e5e7eb;">* gene measured in fewer cell lines than the rest of the cohort, so its groups are smaller</td>`;
+            tbody.appendChild(note);
+        }
 
         // Build settings summary
         const _L = this._mutAxisLabels(mr);
@@ -8843,6 +8870,10 @@ class CorrelationExplorer {
         // from the mRNA table used to plot knockout effect, so the numbers on
         // screen had nothing to do with the row that was clicked.
         const useExpr = this._mutAnalysisMetric === 'expr' && this.expressionLoaded && this.expressionData;
+        // Keep the popout's GE / Expression selector honest: it used to keep
+        // saying GE while the plot showed mRNA data.
+        const geDtSel = document.getElementById('geDataType');
+        if (geDtSel) geDtSel.value = useExpr ? 'expr' : 'ge';
         const exprGeneIdx = useExpr ? this.expressionGeneIndex?.get(gene.toUpperCase()) : undefined;
         const exprCellIdx = useExpr
             ? new Map(this.expressionMetadata.cellLines.map((cl, i) => [cl, i]))
@@ -11065,7 +11096,7 @@ class CorrelationExplorer {
                 <button onclick="app._netTsHighlightClear()" style="font-size:10px;padding:2px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">Clear</button>
                 <span id="net_ts_highlightCount" style="font-size:10px;color:#b45309;"></span>
             </div>
-            <div style="font-size:9px;color:#9ca3af;margin-top:3px;">Highlighted genes get an orange ring and keep it in Export image and Copy network.</div>
+            <div style="font-size:9px;color:#9ca3af;margin-top:3px;">Highlighted genes get a purple ring and keep it in Export image and Copy network.</div>
         `;
 
         panel.style.display = 'block';
@@ -13113,8 +13144,8 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                     _cvPrevBorder: n._cvHl ? n._cvPrevBorder : (n.color?.border ?? '#000000'),
                     _cvPrevBorderWidth: n._cvHl ? n._cvPrevBorderWidth : (n.borderWidth ?? 2),
                     borderWidth: 5,
-                    color: { ...(n.color || {}), border: '#f59e0b' },
-                    shadow: { enabled: true, color: 'rgba(245,158,11,0.6)', size: 20, x: 0, y: 0 }
+                    color: { ...(n.color || {}), border: '#7c3aed' },
+                    shadow: { enabled: true, color: 'rgba(124,58,237,0.5)', size: 20, x: 0, y: 0 }
                 });
             } else if (n._cvHl) {
                 updates.push({
@@ -13129,6 +13160,46 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         if (updates.length) this.networkData.nodes.update(updates);
         this._netHighlightText = String(text || '');
         return matched;
+    }
+
+    // Small anchored popup for the View-controls Highlight button: easier to
+    // reach than the same box inside Settings (which stays as well).
+    _openNetworkHighlightPopup() {
+        document.getElementById('networkHighlightPopup')?.remove();
+        const btn = document.getElementById('highlightNetworkBtn');
+        if (!btn) return;
+        const rect = btn.getBoundingClientRect();
+        const pop = document.createElement('div');
+        pop.id = 'networkHighlightPopup';
+        pop.style.cssText = `position:fixed; z-index:10000; top:${Math.round(rect.bottom + 6)}px; `
+            + `left:${Math.round(Math.max(10, Math.min(rect.left - 100, window.innerWidth - 330)))}px; width:300px; `
+            + `background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15); padding:10px 12px;`;
+        pop.innerHTML = `
+            <div style="font-weight:600; font-size:12px; color:#1f2937; margin-bottom:6px;">Highlight genes</div>
+            <input type="text" id="netHlInput" placeholder="e.g. TP53, MDM2" value="${this._escapeAttr(this._netHighlightText || '')}" style="width:100%; border:1px solid #d1d5db; border-radius:4px; padding:4px 8px; font-size:12px; box-sizing:border-box;">
+            <div style="display:flex; gap:6px; align-items:center; margin-top:8px;">
+                <button id="netHlApply" style="font-size:11px; padding:3px 14px; border:none; border-radius:4px; cursor:pointer; background:#6ba544; color:white; font-weight:500;">Apply</button>
+                <button id="netHlClear" style="font-size:11px; padding:3px 12px; border:1px solid #d1d5db; border-radius:4px; cursor:pointer; background:#f9fafb;">Clear</button>
+                <span id="netHlCount" style="font-size:11px; color:#7c3aed;"></span>
+            </div>
+            <div style="font-size:10px; color:#9ca3af; margin-top:6px;">Purple ring on the named genes, kept in Export image and Copy network. Separate several genes with spaces or commas.</div>`;
+        document.body.appendChild(pop);
+        const input = pop.querySelector('#netHlInput');
+        const count = pop.querySelector('#netHlCount');
+        const apply = () => {
+            const n = this.applyNetworkHighlight(input.value);
+            count.textContent = n ? `${n} highlighted` : (input.value.trim() ? 'no match' : '');
+        };
+        pop.querySelector('#netHlApply').addEventListener('click', apply);
+        pop.querySelector('#netHlClear').addEventListener('click', () => { input.value = ''; apply(); });
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') apply(); });
+        input.focus();
+        setTimeout(() => {
+            const close = (e) => {
+                if (!pop.contains(e.target) && e.target !== btn) { pop.remove(); document.removeEventListener('mousedown', close); }
+            };
+            document.addEventListener('mousedown', close);
+        }, 0);
     }
 
     _netTsHighlightApply() {
@@ -14449,6 +14520,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     openInspect(c) {
+        // A popout opening over the network is a context switch: the network's
+        // settings panel and any hover card belong to the picture underneath,
+        // so they close rather than lingering on top of the new view.
+        const tsp = document.getElementById('textSettingsPanel');
+        if (tsp && this._textSettingsPlotId === '__network__') tsp.style.display = 'none';
+        this.hideCellLineTooltip?.();
+        this.hideGeneTooltip?.();
+
         // Clear any instruction text from direct access
         const scatterEl = document.getElementById('scatterPlot');
         if (scatterEl && !scatterEl.data) scatterEl.innerHTML = '';
@@ -20073,7 +20152,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!md) return;
             const ev = { clientX: eventData.event?.clientX, clientY: eventData.event?.clientY };
             clearTimeout(scatterHoverTimer);
-            scatterHoverTimer = setTimeout(() => this.showCellLineTooltip(ev, md.cellLineId, 'Click to mark · Shift-click to open its Wiki'), 180);
+            scatterHoverTimer = setTimeout(() => this.showCellLineTooltip(ev, md.cellLineId, 'Click to mark · Shift-click to open its Wiki'), 450);
         });
         hoverEl.on('plotly_unhover', () => { clearTimeout(scatterHoverTimer); this.hideCellLineTooltip(); });
 
@@ -22451,6 +22530,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // ============================================================
 
     openGeneEffectModal(gene, view = 'tissue', opts = {}) {
+        // Close leftovers from the view underneath (network settings panel,
+        // hover cards) so they don't linger on top of this popout.
+        const geTsp = document.getElementById('textSettingsPanel');
+        if (geTsp && this._textSettingsPlotId === '__network__') geTsp.style.display = 'none';
+        this.hideCellLineTooltip?.();
+        this.hideGeneTooltip?.();
         // Reset the lineage switch; the caller re-arms it when it applies.
         if (!opts._keepScopeToggle) { this._geScopeLineage = ''; this._syncGeScopeToggle?.(); }
         const geneUpper = gene.toUpperCase();
@@ -23300,11 +23385,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     _resetGEFilters() {
         document.getElementById('geTissueFilter').value = '';
         document.getElementById('geSubtypeFilter').value = '';
+        // Stays visible (reading "All subtypes") so the filter row always
+        // shows all three levels.
         const geSubEl = document.getElementById('geSubtypeFilter');
-        if (geSubEl) geSubEl.style.display = 'none';
+        if (geSubEl) geSubEl.style.display = '';
+        const geOncClear = document.getElementById('geOncotreeFilter'); if (geOncClear) geOncClear.value = '';
         document.getElementById('geHotspotFilter').value = '';
         document.getElementById('geFusionFilter').value = '';
         const geCnClear = document.getElementById('geCnFilter'); if (geCnClear) geCnClear.value = '';
+        // Grid picks are filters too.
+        this._oncoprintFilters = {};
+        this._activeOncoprintFilters = null;
+        this._oncoprintSyncFilters?.();
         document.getElementById('gePvalueFilter').checked = false;
         this.clearGEGates();
         this._indivGeneOrder = null;
@@ -27437,7 +27529,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (typeof id !== 'string' || !id) return;
             const ev = { clientX: eventData.event?.clientX, clientY: eventData.event?.clientY };
             clearTimeout(hoverTimer);
-            hoverTimer = setTimeout(() => this.showCellLineTooltip(ev, id, hint), 180);
+            hoverTimer = setTimeout(() => this.showCellLineTooltip(ev, id, hint), 450);
         });
         el.on('plotly_unhover', () => { clearTimeout(hoverTimer); this.hideCellLineTooltip(); });
     }
@@ -29107,7 +29199,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             cols.push({ label: group, wtIdx: data.wt, mutIdx: data.mut, totalCells: data.total, nWT: data.wt.length, nMut: data.mut.length, tissue: group });
         });
 
-        const typeLabel = isTranslocation ? 'Translocation/Fusion' : 'Hotspot Mutational';
+        // Name the split by what it actually is: the old title said "Hotspot
+        // Mutational Analysis" even for fusion / functional-loss / CN splits,
+        // which read as the wrong window having opened.
+        const L = this._mutAxisLabels(mr);
         const groupLabel = groupBySubtype ? this._geSplitLabel() : 'Tissue';
         // Store data for rendering
         this._compareModalData = {
@@ -29115,7 +29210,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             genes: mr.significantResults.map(r => r.gene),
             hotspotGene,
             mode: 'tissue',
-            title: `Compare by ${groupLabel}, ${hotspotGene} ${typeLabel} Analysis`,
+            title: `Compare by ${groupLabel}: ${hotspotGene} ${L.carrier} vs ${L.ref}, within each ${groupLabel.toLowerCase()}`,
             isTranslocation
         };
         this._compareModalMode = 'tissue';

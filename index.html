@@ -2162,6 +2162,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.92 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Hover cards wait longer and stop lingering.</b> Cell-line cards now appear after 450 ms instead of 180 ms, and opening any popout closes leftover hover cards and the network's Settings panel, which used to stay on top of the new view.</li>
+                    <li><b>Filter widgets no longer look locked.</b> Clicking a filter box that already holds a pick (e.g. TP53) used to search for that text and offer nothing else; it now shows the full list so the pick can be changed. In the mutation-inspect view the same boxes suggested nothing at all; they now fall back to the whole panel's genes.</li>
+                    <li><b>Reset clears the disease filter everywhere.</b> The gene-effect popout's reset also kept the subtype select hidden and grid picks alive; all cleared now.</li>
+                    <li><b>Network highlight: purple, and its own button.</b> The ring is purple instead of orange, and a Highlight button sits in View controls (two rows of four) with a small popup, no need to dig into Settings.</li>
+                    <li><b>Mutation analysis polish.</b> Genes measured in fewer cell lines get a * on their N columns with a footnote (e.g. INTS4); Enrichr sits on the same row as Compare by Tissue; the compare window is titled by what it splits (e.g. "MTAP lost vs intact") instead of always saying "Hotspot Mutational Analysis"; opening Inspect from an mRNA table now sets the GE/Expression selector to Expression.</li>
+                    <li><b>Mutation-inspect filters reorganized.</b> Two labelled rows, "Lineage and disease" and "Genetic alterations" (the same group names the front page and the Cell Line Browser use), with compact boxes instead of full-width ones.</li>
+                </ul>
                 <p><strong>v.85.91 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>The header centres over the app.</b> The logo image is shifted so its visible text sits on the page's centre line; the tagline and links centre beneath it, and the distance from the page edge to "How it works" now equals the distance to "YouTube". The version badge floats just after YouTube without taking part in the centring.</li>
@@ -5369,7 +5378,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.91</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.92</a>
         </span>
     </div>
 
@@ -5890,6 +5899,7 @@
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
                                 <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;" title="Fonts, label and node colors, node border, legend size and other appearance settings for the network and its exports.">Settings</button>
                                 <button class="btn btn-secondary" id="shuffleNetworkBtn" title="Re-roll the layout from new random starting positions. Click until the arrangement looks right.">Shuffle</button>
+                                <button class="btn btn-secondary" id="highlightNetworkBtn" title="Highlight one or several genes with a purple ring. The ring stays in Export image and Copy network.">Highlight</button>
                                 <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network, font / node / edge size, colors, label options and node border, back to defaults">Reset</button>
                                 <!-- Hidden master switch for the node border; several renderers read
                                      its state. The visible control lives in the Settings popout. -->
@@ -6051,7 +6061,10 @@
                              the button, with no indication it belonged to Enrichr. It is
                              now asked for when you press Enrichr. The select is kept
                              (hidden) because _getFilteredMutationGenes() reads it. -->
-                        <div class="filter-input-wrap" style="position:relative; display:inline-block;">
+                        <!-- position:relative anchors the menu; the filter-input-wrap
+                             class must NOT be used here: its calc() width forced this
+                             onto its own row, away from Compare by Tissue. -->
+                        <div style="position:relative; display:inline-block;">
                             <button class="btn btn-secondary btn-sm" id="mutEnrichrBtn" aria-haspopup="true" aria-expanded="false" title="Pathway enrichment analysis via Enrichr">Enrichr &#9662;</button>
                             <div id="mutEnrichrMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1500; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.14); min-width:190px; padding:4px;">
                                 <div style="font-size:10px; color:#9ca3af; padding:3px 10px 4px;">Which genes to send?</div>
@@ -6477,9 +6490,10 @@
                         <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
                         <button class="btn btn-sm btn-outline" id="geRestartBtn" title="Reset the Gene Effect analysis: clear the gene, filters and view and start over">&#8634; Reset</button>
                     </div>
-                    <!-- Row 2: Filters -->
-                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Filters:</label>
+                    <!-- Row 2: Lineage and disease (same group title as the main
+                         parameters and the Cell Line Browser) -->
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;">
+                        <label style="font-size: 12px; font-weight: 600; color: #374151; white-space: nowrap;">Lineage and disease:</label>
                         <button class="btn btn-sm btn-outline" id="geShowAllBtn" style="display: none;">← Show All</button>
                         <select id="geTissueFilter" class="form-control filter-level-select" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
                             <option value="">All tissues</option>
@@ -6488,20 +6502,26 @@
                             <option value="">All subtypes</option>
                         </select>
                             <select id="geOncotreeFilter" class="form-control filter-level-select" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
-                        <div id="geHotspotFilterWrap" class="filter-input-wrap" style="position:relative; display:none;">
+                    </div>
+                    <!-- Row 3: Genetic alterations (compact boxes; the wrap class's
+                         full-width calc is overridden inline, it made these span
+                         the whole row) -->
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-size: 12px; font-weight: 600; color: #374151; white-space: nowrap;">Genetic alterations:</label>
+                        <div id="geHotspotFilterWrap" class="filter-input-wrap" style="position:relative; display:none; width:150px;">
                             <input type="text" id="geHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
                             <div id="geHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
                         <select id="geHotspotLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this mutation, or only those without it" style="display:none;"><option value="altered" selected>Mutated</option><option value="wt">Only WT</option></select>
 <button id="geGridHotspotBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Mutation grid for the cell lines shown, click a gene to require it mutated or wild-type">&#9638;</button>
                         <span id="geHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Filtering on a gene&#39;s status, mutated or wild-type, can introduce bias: these alterations are often concentrated in particular cancer types, so the two groups may differ by cancer type as much as by the alteration.">&#9888;</span>
-                        <div id="geFusionFilterWrap" class="filter-input-wrap" style="position:relative; display:none;">
+                        <div id="geFusionFilterWrap" class="filter-input-wrap" style="position:relative; display:none; width:150px;">
                             <input type="text" id="geFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
                             <div id="geFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
                         <select id="geFusionLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this fusion, or only those without it" style="display:none;"><option value="altered" selected>Fused</option><option value="wt">Only WT</option></select>
 <button id="geGridFusionBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Fusion grid for the cell lines shown, click a gene to require it fused or not fused">&#9638;</button>
-                        <div id="geCnFilterWrap" class="filter-input-wrap" style="position:relative; display:none;">
+                        <div id="geCnFilterWrap" class="filter-input-wrap" style="position:relative; display:none; width:150px;">
                             <input type="text" id="geCnFilter" class="form-control" placeholder="Amp / deletion..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal copy-number filter: amplifications (▲) and deletions (▼) from the curated panel. Deletions include single-copy loss, not only homozygous.">
                             <div id="geCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
@@ -7892,6 +7912,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_91"></script>
+    <script src="app.js?v=v85_92"></script>
 </body>
 </html>
