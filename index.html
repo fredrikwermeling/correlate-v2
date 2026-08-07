@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.102 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Pathway figure cleaned up.</b> The complex label overflowed its box; the TSC card now holds the two subunits with a small caption underneath, everything inside its border.</li>
+                </ul>
                 <p><strong>v.85.101 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Disconnected sub-networks are laid out apart.</b> A separate pair or cluster could settle across another component's edges (a TSC1&ndash;TSC2 pair lying over the TP53 cluster). After the layout settles, and after every Shuffle, components are now moved side by side with clear space between them.</li>
@@ -5446,7 +5450,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.101</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.102</a>
         </span>
     </div>
 
@@ -7319,7 +7323,7 @@
                         </div>
                         <div style="background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; flex: 0 0 auto; max-width: 280px; display: flex; flex-direction: column;">
                             <div style="flex: 1; display: flex; align-items: center;">
-                                <img src="tsc_pathway.svg?v=2" alt="TSC1/TSC2 signaling pathway" style="max-width: 100%; height: auto; border-radius: 6px;">
+                                <img src="tsc_pathway.svg?v=3" alt="TSC1/TSC2 signaling pathway" style="max-width: 100%; height: auto; border-radius: 6px;">
                             </div>
                             <div style="margin-top: auto; padding-top: 8px; border-top: 1px solid #f0f0f0;">
                                 <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">
@@ -7982,6 +7986,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_101"></script>
+    <script src="app.js?v=v85_102"></script>
 </body>
 </html>
