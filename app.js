@@ -42416,8 +42416,10 @@ ${clone.innerHTML}
             subtitle: subtitleAnn ? subtitleAnn.visible !== false : !!subtitleText,
             xLabel: !!xLabel,
             yLabel: !!yLabel,
-            legend: hasLegend
+            legend: hasLegend,
+            panels: panelAnns.length > 0 && panelAnns[0].visible !== false
         };
+        const panelSize = panelAnns[0]?.font?.size || 13;
         // Store original texts for restore
         this._tsOriginal = { titleText, subtitleText, subtitleSize, xLabel, yLabel, usesAnnotationTitle };
 
@@ -42484,6 +42486,7 @@ ${clone.innerHTML}
             ${subtitleText ? sizeRow('Subtitle', 'ts_subtitle', subtitleSize, 6, 30, subtitleAnn ? 'ts_subtitleVis' : null, this._tsVisible.subtitle) : ''}
             ${sizeRow('X Label', 'ts_xlabel', xLabelSize, 6, 36, 'ts_xLabelVis', this._tsVisible.xLabel)}
             ${sizeRow('Y Label', 'ts_ylabel', yLabelSize, 6, 36, 'ts_yLabelVis', this._tsVisible.yLabel)}
+            ${panelAnns.length ? sizeRow('Panels', 'ts_panelSize', panelSize, 6, 30, 'ts_panelVis', this._tsVisible.panels) : ''}
             ${sizeRow('X Tick', 'ts_xtick', xTickSize, 6, 30, null, true)}
             ${sizeRow('Y Tick', 'ts_ytick', yTickSize, 6, 30, null, true)}
             ${sizeRow('Legend', 'ts_legend', legendSize, 6, 30, 'ts_legendVis', this._tsVisible.legend)}
@@ -42763,6 +42766,14 @@ ${clone.innerHTML}
             } else {
                 Plotly.relayout(plotEl, { 'yaxis.title.text': checked ? this._tsOriginal.yLabel : '' });
             }
+        } else if (checkboxId === 'ts_panelVis') {
+            // One switch for every per-panel heading in the split views.
+            const anns = plotEl.layout.annotations || [];
+            const updates = {};
+            anns.forEach((a, i) => {
+                if (/^panel\d+$/.test(a._tsRole || '')) updates[`annotations[${i}].visible`] = checked;
+            });
+            if (Object.keys(updates).length) Plotly.relayout(plotEl, updates);
         } else if (checkboxId === 'ts_legendVis') {
             Plotly.relayout(plotEl, { showlegend: checked });
         }
@@ -42960,6 +42971,19 @@ ${clone.innerHTML}
             if (yLabelSize) updates[`annotations[${yLabelIdx}].font.size`] = yLabelSize;
         } else {
             if (yLabelSize) updates['yaxis.title.font.size'] = yLabelSize;
+        }
+
+        // Per-panel headings share one size control. The medians line inside
+        // each heading carries its own inline size; scale it in proportion.
+        const panelSize = getVal('ts_panelSize');
+        if (panelSize) {
+            anns.forEach((a, i) => {
+                if (!/^panel\d+$/.test(a._tsRole || '')) return;
+                updates[`annotations[${i}].font.size`] = panelSize;
+                const t = a.text || '';
+                const scaled = t.replace(/font-size:\s*\d+px/g, `font-size:${Math.max(6, Math.round(panelSize * 0.77))}px`);
+                if (scaled !== t) updates[`annotations[${i}].text`] = scaled;
+            });
         }
 
         Plotly.relayout(plotEl, updates);
