@@ -10665,9 +10665,19 @@ class CorrelationExplorer {
             } else {
                 // Default is UNLOCKED. The satellites are pinned individually,
                 // so releasing the solver cannot drag them out of the frame;
-                // the main cluster is settled and does not re-step.
+                // but the crossing-resolver and spread may have nudged the
+                // main cluster off its equilibrium, so the released solver
+                // can still adjust it. Re-frame once it settles, unless the
+                // user has already taken hold of the view.
                 this.network.setOptions({ physics: { enabled: true } });
                 this.physicsEnabled = true;
+                let runUserTouched = false;
+                const runMarkTouched = () => { runUserTouched = true; };
+                this.network.once('dragStart', runMarkTouched);
+                this.network.once('zoom', runMarkTouched);
+                this.network.once('stabilized', () => {
+                    if (!runUserTouched) this.network.fit({ animation: false });
+                });
             }
             // Frame everything as the last step, whatever moved above.
             this.network.fit({ animation: false });
