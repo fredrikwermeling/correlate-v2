@@ -132,6 +132,9 @@
             padding: 0 20px 5px 20px;
             background: white;
             margin-bottom: 8px;
+            /* The version badge is taken out of the flow below, so the links
+               centre on the logo rather than being pushed left by its width. */
+            position: relative;
         }
 
         .nav-bar a {
@@ -1172,6 +1175,19 @@
             gap: 6px;
         }
 
+        /* One heading style for every block of controls above the network.
+           Two of the four columns had a heading and two had none, and the ones
+           that did set their own size and weight inline. */
+        .panel-heading {
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--green-700, #4c782e);
+            margin: 0 0 5px 0;
+            display: block;
+        }
+
         .slider-group {
             display: flex;
             flex-direction: column;
@@ -1595,8 +1611,25 @@
         }
         .modal-header .btn-sm { height: var(--clb-ctl-h); box-sizing: border-box; display: inline-flex; align-items: center; font-size: 11px; }
         /* Filter chips are buttons: click to change side or remove. */
-        .clb-chip { cursor: pointer; border: 1px solid transparent; }
-        .clb-chip:hover { filter: brightness(0.96); border-color: rgba(0,0,0,0.18); }
+        /* One chip everywhere. Size, weight, radius and border live here rather
+           than in each call site, so a filter chip looks the same in the browser,
+           the analysis panel and every popout. Colour still comes from the call
+           site, since it carries which kind of filter it is. */
+        .clb-chip {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.5;
+            padding: 2px 9px !important;
+            border-radius: 11px !important;
+            border: 1px solid rgba(0,0,0,0.14);
+            box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+            white-space: nowrap;
+        }
+        .clb-chip:hover { filter: brightness(0.95); border-color: rgba(0,0,0,0.3); }
         /* Two-line action buttons keep the row height rather than growing it. */
         .clb-tall-btn { height: calc(var(--clb-ctl-h) + 12px) !important; line-height: 1.15; flex-direction: column; gap: 0; padding: 0 10px !important; }
         .clb-tall-btn span { font-size: 9px; font-weight: normal; }
@@ -1610,8 +1643,26 @@
         }
         /* Always occupies its line, so adding a filter chip never moves the row. */
         .clb-active-filters {
-            display: flex; width: 100%; min-height: 18px; font-size: 10px;
-            color: #374151; gap: 4px; flex-wrap: wrap; align-items: center;
+            display: flex; width: 100%; font-size: 10px;
+            color: #374151; gap: 5px; flex-wrap: wrap; align-items: center;
+        }
+        /* When there are chips, set the row apart from the controls above it so
+           it does not read as another line of label text. */
+        .clb-active-filters:not(:empty) {
+            margin-top: 6px;
+            padding: 5px 7px;
+            background: #f8faf7;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+        .clb-active-filters:not(:empty)::before {
+            content: 'Active:';
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-right: 1px;
         }
         .clb-content {
             display: flex;
@@ -2032,7 +2083,7 @@
     <!-- Logo Header -->
     <div class="logo-header">
         <img src="web_data/correlate_logo.png" alt="Correlate - a Gene Effect Analysis Tool">
-        <div style="font-size:14px; font-style:italic; color:#6b9e5a; letter-spacing:2px; font-family:'Georgia',serif; margin-top:-8px;">— extended version —</div>
+        <div style="font-size:14px; font-style:italic; color:#6b9e5a; letter-spacing:2px; font-family:'Georgia',serif; margin-top:-14px; margin-bottom:12px;">— extended version —</div>
     </div>
 
     <!-- Changelog Modal (development only) -->
@@ -2043,6 +2094,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.77 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>The header sits straight.</b> The version badge was part of the centred row, so the five links were pushed left of the logo. It is now placed on the right independently and the links centre on the logo exactly. &ldquo;Extended version&rdquo; has been tucked up under the tagline, clear of the links below.</li>
+                    <li><b>One heading style above the network.</b> Two of the four blocks of controls had a heading and two had none, and the ones that did set their own size and weight. All four now read the same: <i>Appearance</i>, <i>Labels and colour</i>, <i>View controls</i>, <i>Export</i>.</li>
+                    <li><b>One chip everywhere.</b> Filter chips had their own size, weight and radius in each place they were built. Size, shape and border now come from one rule, so a chip looks the same in the browser, the analysis panel and every popout. The row of them sits in its own panel labelled <i>Active</i>, rather than reading as another line of small text.</li>
+                    <li><b>Subtype and disease are always on screen</b> in the analysis panel instead of appearing once a lineage is picked, so choosing a tissue no longer makes the panel jump. The new disease selectors also match their neighbours instead of standing out white.</li>
+                </ul>
                 <p><strong>v.85.76 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Lineage, subtype and disease everywhere.</b> Only the Cell Line Browser offered all three levels; the analysis panel and the gene effect popout stopped at subtype and the correlation analysis panel had tissue alone. All four now have a <i>Disease</i> selector using the same Oncotree entities, and the correlation analysis panel gains a subtype selector too. Each disease list follows the tissue and subtype already chosen in that panel, so it never offers a disease that would empty the view, and the choice appears as a chip like every other filter.</li>
@@ -5156,7 +5214,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.76</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.77</a>
     </div>
 
     <div class="main-content">
@@ -5368,7 +5426,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group" id="subLineageFilterGroup" style="display: none;">
+                    <div class="form-group" id="subLineageFilterGroup">
                         <label class="form-label">Subtype:</label>
                         <select id="subLineageFilter" class="form-control">
                             <option value="">All subtypes</option>
@@ -5570,6 +5628,8 @@
                 <div class="tab-content active" id="tab-network">
                     <div class="network-controls-grid">
                         <!-- Column 1: Sliders, two per row to keep the panel short -->
+                        <div class="control-column">
+                            <label class="panel-heading">Appearance</label>
                         <div class="slider-grid">
                             <div class="slider-group">
                                 <div class="slider-head"><label>Font</label><span class="slider-bubble" id="fontSizeBubble">20</span></div>
@@ -5608,10 +5668,12 @@
                                 <div class="slider-ticks slider-ticks-plain"><span>packed</span><span>full panel</span></div>
                             </div>
                         </div>
+                        </div>
 
                         <!-- Column 2: Gene Effect + Gene Statistics -->
                         <div class="control-column control-box">
                             <!-- Gene Effect options (always shown) -->
+                            <label class="panel-heading">Labels and colour</label>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
                                 <label><input type="checkbox" id="showUncorrelatedGenes"> Show all input genes in network</label>
                             </div>
@@ -5658,7 +5720,7 @@
 
                         <!-- Column 3: View Controls + Export -->
                         <div class="control-column control-box">
-                            <label style="font-weight: 600; margin-bottom: 4px; display: block;">View Controls:</label>
+                            <label class="panel-heading">View controls</label>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
                                 <button class="btn btn-secondary" id="fitNetwork" title="Zoom and center so the whole network fits in view. Does not change the analysis.">Fit</button>
                                 <button class="btn btn-secondary" id="toggleSelectMode" title="Click nodes to add them to a selection, then open Gene Effect or Correlation Analysis for that group. Click again to leave the mode.">Select Mode</button>
@@ -5681,7 +5743,7 @@
                                 <span style="font-weight: 600;">Removed:</span> <span id="removedNodesText"></span>
                                 <button class="btn btn-sm" id="restoreAllNodes" title="Bring back every node hidden with Remove Mode" style="padding: 1px 4px; font-size: 8px; margin-left: 4px;">Restore All</button>
                             </div>
-                            <label style="font-weight: 600; margin-bottom: 4px; display: block;">Export:</label>
+                            <label class="panel-heading">Export</label>
                             <div class="button-group-horizontal">
                                 <button class="btn btn-secondary mobile-hide" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                                 <button class="btn btn-secondary mobile-hide" onclick="app.copyNetworkToClipboard()" title="Copy the network as an image to the clipboard, legend included, ready to paste into an email or slide">Copy network</button>
@@ -6010,7 +6072,7 @@
                             <span class="control-label" style="font-size:9px;">Tissue Filter</span>
                             <select id="scatterCancerFilter" class="form-control" style="font-size: 10px; padding: 2px 4px;"><option value="">All tissues</option></select>
                             <select id="scatterSubtypeFilter" class="form-control" style="margin-top: 2px; display: none; font-size: 10px; padding: 2px 4px;"><option value="">All subtypes</option></select>
-                                        <select id="scatterOncotreeFilter" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
+                                        <select id="scatterOncotreeFilter" class="form-control" style="font-size: 10px; padding: 2px 4px;" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
                         </div>
                         <div class="control-box-compact" id="mutationFilterBox" style="display: none; overflow: visible;">
                             <span class="control-label" style="font-size:9px;">Hotspot Filter</span>
@@ -6264,7 +6326,7 @@
                         <select id="geSubtypeFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px; display: none;" title="Filter by disease subtype">
                             <option value="">All subtypes</option>
                         </select>
-                            <select id="geOncotreeFilter" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
+                            <select id="geOncotreeFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
                         <div id="geHotspotFilterWrap" style="position:relative; display:none;">
                             <input type="text" id="geHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
                             <div id="geHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
@@ -6626,8 +6688,8 @@
                         <select id="caTissueFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Filter by tissue/cancer type">
                             <option value="">All tissues</option>
                         </select>
-                            <select id="caSubtypeFilter" title="Sublineage / subtype"><option value="">All subtypes</option></select>
-                            <select id="caOncotreeFilter" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
+                            <select id="caSubtypeFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Sublineage / subtype"><option value="">All subtypes</option></select>
+                            <select id="caOncotreeFilter" class="form-control" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
                         <div id="caHotspotFilterWrap" style="display:none;">
                             <div style="position:relative;">
                                 <input type="text" id="caHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
@@ -7665,6 +7727,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_76"></script>
+    <script src="app.js?v=v85_77"></script>
 </body>
 </html>

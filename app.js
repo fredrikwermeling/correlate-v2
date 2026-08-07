@@ -835,8 +835,10 @@ class CorrelationExplorer {
         const isMutationMode = document.querySelector('input[name="analysisMode"]:checked')?.value === 'mutation';
 
         if (!lineage) {
-            document.getElementById('subLineageFilterGroup').style.display = 'none';
+            // The block stays on screen with nothing chosen. Showing and hiding
+            // it as a lineage is picked made the whole panel jump.
             subSelect.innerHTML = '<option value="">All subtypes</option>';
+            subSelect.value = '';
             // Update hotspot counts for all lineages
             this.updateHotspotCountsForCurrentFilters();
             return;
@@ -861,7 +863,6 @@ class CorrelationExplorer {
                 option.textContent = `${sub} (n=${subLineages[sub]})`;
                 subSelect.appendChild(option);
             });
-            document.getElementById('subLineageFilterGroup').style.display = 'block';
 
             // Add listener for sub-lineage changes (only add once)
             if (!subSelect.hasAttribute('data-listener-attached')) {
@@ -874,7 +875,6 @@ class CorrelationExplorer {
             // Hiding the control is not enough: its previous value stays in the
             // DOM and every filter chain still reads it, so a subtype from the
             // lineage you just left kept narrowing the results invisibly.
-            document.getElementById('subLineageFilterGroup').style.display = 'none';
             subSelect.innerHTML = '<option value="">All subtypes</option>';
             subSelect.value = '';
         }
@@ -1311,7 +1311,7 @@ class CorrelationExplorer {
             // Restore filters if data is loaded
             if (this.cellLineMetadata && this.cellLineMetadata.lineage) {
                 document.getElementById('lineageFilterGroup').style.display = 'block';
-                // Ensure subtype filter is shown if a lineage is already selected
+                document.getElementById('subLineageFilterGroup').style.display = '';
                 this.updateSubLineageFilter();
             }
             if (this.mutations && this.mutations.geneData) {
