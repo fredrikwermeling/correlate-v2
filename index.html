@@ -2177,6 +2177,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.109 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>An empty result says why.</b> When Run returns nothing, both analyses now state the specific reason: too few cell lines under the current filters for the Min Cell Lines setting (with the numbers), or genes tested but none passing the cutoff, each with the fix to try.</li>
+                    <li><b>Mutation analysis defaults to Min Cell Lines 3</b> (was 5).</li>
+                    <li><b>The Shuffle's rolled Spread now visibly takes effect.</b> The roll was being cancelled twice over: the final re-fit zoomed to the compacted content and the released solver re-expanded it to its spring spacing. The shuffle now frames the settled layout first, compacts it by the rolled Spread at that zoom, and ends Locked so the layout keeps its density; Unlock restores the full spacing as always.</li>
+                    <li><b>The "nodes outside the view" warning clears itself.</b> It used to stay up after the view had already been rescued; it now keeps re-checking while shown and disappears the moment everything is back inside. The automatic rescue also uses the same fit test as the warning, so the two can no longer disagree.</li>
+                </ul>
                 <p><strong>v.85.108 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>The network can no longer end up outside the view after Run or Shuffle.</b> Event-based re-fitting proved unreliable against the solver's last micro-adjustments; for a few seconds after every Run and Shuffle a guard now watches the frame and re-fits the moment anything strays, stopping as soon as you take hold of the view.</li>
@@ -5476,7 +5483,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.108</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.109</a>
         </span>
     </div>
 
@@ -8012,6 +8019,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_108"></script>
+    <script src="app.js?v=v85_109"></script>
 </body>
 </html>

@@ -1389,7 +1389,7 @@ class CorrelationExplorer {
         // Set default min cell lines based on mode
         const minCellLinesInput = document.getElementById('minCellLines');
         if (isMutationMode) {
-            minCellLinesInput.value = '5';
+            minCellLinesInput.value = '3';
             this.populateMutationHotspotSelector();
             this.populateTranslocationHotspotSelector();
             this.updateMutAnalysisTypeUI();
@@ -8700,9 +8700,26 @@ class CorrelationExplorer {
             }
         }
 
+        // An empty table states its reason: a group below the Min Cell Lines
+        // cutoff means nothing could be tested at all, which reads very
+        // differently from "tested, nothing significant".
+        let emptyWhy = '';
+        if (results.length === 0) {
+            const L0 = this._mutAxisLabels(mr);
+            if ((mr.nMut ?? 0) < mr.minN) {
+                emptyWhy = `Only ${mr.nMut ?? 0} ${L0.countVerb} cell line${(mr.nMut ?? 0) === 1 ? '' : 's'} under the current filters, below the Min Cell Lines setting of ${mr.minN}, so no gene could be tested. Widen the filters or lower Min Cell Lines.`;
+            } else if ((mr.nWT ?? 0) < mr.minN) {
+                emptyWhy = `Only ${mr.nWT ?? 0} ${L0.ref === 'WT' ? 'WT' : L0.ref.toLowerCase()} cell line${(mr.nWT ?? 0) === 1 ? '' : 's'} under the current filters, below the Min Cell Lines setting of ${mr.minN}, so no gene could be tested. Widen the filters or lower Min Cell Lines.`;
+            } else if (pFilterOn) {
+                emptyWhy = `Genes were tested (${mr.nMut} vs ${mr.nWT} cells), but none reached p < 0.05 on the primary mutant-vs-WT comparison. Untick the p < 0.05 box to see genes significant on other comparisons, or raise the P-value cutoff.`;
+            } else {
+                emptyWhy = `Genes were tested (${mr.nMut} vs ${mr.nWT} cells), but none reached p < ${mr.pThreshold} on any comparison. Raise the P-value cutoff in box 1 and run again.`;
+            }
+        }
         document.getElementById('mutationResultsCount').innerHTML =
             `<strong>${results.length} genes</strong> ${pFilterOn ? 'with primary p &lt; 0.05 (mutant vs WT)' : `passing p &lt; ${mr.pThreshold} on any comparison`}<br>
-            <small style="color: #666;">${settingsText}</small>`;
+            <small style="color: #666;">${settingsText}</small>`
+            + (emptyWhy ? `<div style="margin-top:8px; padding:8px 12px; background:#fffbeb; border:1px solid #f59e0b; border-radius:6px; font-size:12px; color:#92400e;"><b>Why no results:</b> ${emptyWhy}</div>` : '');
 
         // Store for sorting
         this.mutationTableData = results;
@@ -10052,7 +10069,15 @@ class CorrelationExplorer {
         }
 
         if (correlations.length === 0) {
-            return { success: false, error: `No correlations found (cutoff: ${cutoff}, min slope: ${minSlope}, min cells: ${minN}). Try lowering thresholds or adjusting filters.` };
+            // Say WHY there is nothing, not just that there is nothing.
+            const cohortN = cellLineIndices.length;
+            let why;
+            if (cohortN < minN) {
+                why = `The current filters leave only ${cohortN} cell line${cohortN === 1 ? '' : 's'}, below the Min Cell Lines setting of ${minN}, so no gene pair could be tested. Widen the filters or lower Min Cell Lines.`;
+            } else {
+                why = `Gene pairs were tested across ${cohortN} cell lines, but none reached the Correlation Cutoff of ${cutoff} with Min Slope ${minSlope}. Lower the cutoff and run again.`;
+            }
+            return { success: false, error: `No results. ${why}` };
         }
 
         // Assign clusters using simple connected components
@@ -11088,6 +11113,21 @@ class CorrelationExplorer {
             note.innerHTML = `<span>${outside} node${outside === 1 ? '' : 's'} outside the view</span>`
                 + `<button type="button" style="border:1px solid #b45309; background:#fff; color:#92400e; border-radius:4px; padding:1px 8px; font-size:10px; cursor:pointer;">Fit</button>`;
             note.querySelector('button').onclick = () => { this.network.fit(); note.remove(); };
+            // The view can come right on its own after this fired (the guard
+            // re-fits, the solver settles, the user pans), which used to leave
+            // the warning up over a perfectly fine picture. While the note is
+            // showing, keep re-checking and take it down the moment it stops
+            // being true.
+            clearInterval(this._fitWarnRecheck);
+            this._fitWarnRecheck = setInterval(() => {
+                const n = document.getElementById('netFitWarning');
+                if (!n || !this.network) { clearInterval(this._fitWarnRecheck); return; }
+                let now = 0;
+                try { now = this._networkNodesOutOfView().length; } catch (e) { return; }
+                if (!now) { n.remove(); clearInterval(this._fitWarnRecheck); return; }
+                const span = n.querySelector('span');
+                if (span) span.textContent = `${now} node${now === 1 ? '' : 's'} outside the view`;
+            }, 500);
         }, 260);
     }
 
@@ -13562,7 +13602,10 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             for (const id of Object.keys(pos)) {
                 const d = this.network.canvasToDOM(pos[id]);
                 if (d.x < 30 || d.x > c.clientWidth - 30 || d.y < 30 || d.y > c.clientHeight - 45) {
-                    this.network.fit({ animation: false });
+                    // Same fixer the fit-warning judges by (radius and label
+                    // included), so a rescue never leaves the warning's own
+                    // check still failing on a picture that looks fine.
+                    this._zoomOutUntilNetworkFits();
                     return;
                 }
             }
@@ -13570,14 +13613,13 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
     }
 
     // Re-roll the layout from fresh random starting positions, so the user can
-    // click until the arrangement looks right. Runs the same settle, untangle,
-    // fit and re-baseline sequence a newly drawn network goes through, and
-    // leaves the Lock state as it found it.
+    // click until the arrangement looks right. Runs the same settle, untangle
+    // and fit sequence a newly drawn network goes through, rolls a random
+    // Spread on top, and ends locked so the solver cannot undo the roll.
     shuffleNetworkLayout() {
         if (!this.network || !this.networkData?.nodes) return;
         const nodes = this.networkData.nodes.get();
         if (!nodes.length) return;
-        const wasLocked = this.physicsEnabled === false;
         // Scatter within a disc sized to the graph, so the solver starts from a
         // genuinely different configuration each time. Also unpin everything:
         // satellites pinned by an earlier separation must join the re-roll.
@@ -13591,10 +13633,19 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         this.physicsEnabled = true;
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
-            // Each roll also draws a new Spread (60-100). It is applied to the
-            // settled layout BEFORE the components are packed: scaling the
-            // packed arrangement instead squeezed the satellites back over
-            // the main cluster, which is what made some rolls look wrong.
+            this._separateNetworkComponents();
+            // Frame the fully settled layout first: that framed picture is the
+            // Spread-100 reference the roll compacts from.
+            this.network.fit({ animation: false });
+            this._netBasePositions = this.network.getPositions();
+            this._netBaseSpread = 100;
+            // Roll a Spread (60-100) and compact the layout towards its centre
+            // at the zoom the fit just chose. The order matters: fitting AFTER
+            // the compaction re-zoomed to the shrunken content, and releasing
+            // the solver let it re-expand to its spring equilibrium; both
+            // quietly cancelled the roll, which made Spread look ineffective.
+            // So the compaction comes last and the network stays locked; the
+            // Unlock button restores the full layout as always.
             const spreadEl = document.getElementById('netSpread');
             if (spreadEl) {
                 const v = 60 + Math.round(Math.random() * 8) * 5;
@@ -13602,35 +13653,13 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                 const bb = document.getElementById('spreadBubble');
                 if (bb) bb.textContent = v;
             }
-            this._netBasePositions = this.network.getPositions();
-            this._netBaseSpread = 100;
             this._applyNetworkSpread({ releaseAfter: false });
-            this._separateNetworkComponents();
-            // The packed, scaled layout at the rolled Spread is the new
-            // reference, so moving the slider afterwards behaves normally.
-            this._netBasePositions = this.network.getPositions();
-            this._netBaseSpread = parseInt(spreadEl?.value, 10) || 100;
-            if (wasLocked) {
-                this.network.setOptions({ physics: { enabled: false } });
-                this.physicsEnabled = false;
-            } else {
-                this.network.setOptions({ physics: { enabled: true } });
-                this.physicsEnabled = true;
-                // A rolled Spread below 100 compresses the cluster under its
-                // spring equilibrium, so the released solver re-expands it a
-                // little. Re-frame once it settles, unless the user has
-                // already taken hold of the view.
-                let userTouched = false;
-                const markTouched = () => { userTouched = true; };
-                this.network.once('dragStart', markTouched);
-                this.network.once('zoom', markTouched);
-                this.network.once('stabilized', () => {
-                    if (!userTouched) this.network.fit({ animation: false });
-                });
-            }
-            // Frame everything as the last step, and keep it framed through
-            // the solver's final micro-adjustments.
-            this.network.fit({ animation: false });
+            // A roll of exactly 100 skips the freeze inside the spread apply,
+            // so make the lock explicit either way.
+            this.network.setOptions({ physics: { enabled: false } });
+            this.physicsEnabled = false;
+            const lockBtn = document.getElementById('togglePhysics');
+            if (lockBtn) { lockBtn.textContent = 'Unlock'; lockBtn.classList.add('btn-active'); }
             this._ensureNetworkInView();
         });
         this.network.stabilize();
