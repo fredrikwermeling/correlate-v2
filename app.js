@@ -829,10 +829,47 @@ class CorrelationExplorer {
         this.populateParamTranslocationFilter();
     }
 
+    // Subtype options for one panel: scoped by that panel's tissue AND its
+    // disease pick, counted and ranked by count. The disease list is already
+    // scoped by the subtype; this is the reverse half of the two selectors
+    // scaling to each other. Pass cellLines to count within a panel's own
+    // cohort (the scatter and correlation-analysis popouts) instead of the
+    // whole panel.
+    _subtypeOptionsFor(tissue, diseaseVal, cellLines = null) {
+        const lin = this.cellLineMetadata?.lineage || {};
+        const pd = this.cellLineMetadata?.primaryDisease || {};
+        const onc = this.cellLineMetadata?.oncotreeSubtype || {};
+        const counts = new Map();
+        let total = 0;
+        for (const cl of (cellLines || this.metadata?.cellLines || [])) {
+            if (tissue && lin[cl] !== tissue) continue;
+            if (diseaseVal && onc[cl] !== diseaseVal) continue;
+            total++;
+            const s = pd[cl];
+            if (s) counts.set(s, (counts.get(s) || 0) + 1);
+        }
+        const items = [...counts.entries()].map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+        return { items, total };
+    }
+
+    // Fill a subtype <select> from _subtypeOptionsFor, keeping the current
+    // choice when it survives the rescoping.
+    _fillSubtypeSelect(subSelect, items, total) {
+        const keep = subSelect.value;
+        subSelect.innerHTML = `<option value="">All subtypes (n=${total})</option>`;
+        items.forEach(s => {
+            const option = document.createElement('option');
+            option.value = s.name;
+            option.textContent = `${s.name} (n=${s.count})`;
+            subSelect.appendChild(option);
+        });
+        if (keep && items.some(s => s.name === keep)) subSelect.value = keep;
+    }
+
     updateSubLineageFilter() {
         const lineage = document.getElementById('lineageFilter').value;
         const subSelect = document.getElementById('subLineageFilter');
-        const isMutationMode = document.querySelector('input[name="analysisMode"]:checked')?.value === 'mutation';
 
         if (!lineage) {
             // The block stays on screen with nothing chosen. Showing and hiding
@@ -844,25 +881,11 @@ class CorrelationExplorer {
             return;
         }
 
-        // Find sub-lineages for this lineage
-        const subLineages = {};
-        Object.keys(this.subLineageCounts).forEach(key => {
-            if (key.startsWith(lineage + '|')) {
-                const subLineage = key.split('|')[1];
-                subLineages[subLineage] = this.subLineageCounts[key];
-            }
-        });
+        const { items, total } = this._subtypeOptionsFor(lineage,
+            document.getElementById('paramOncotreeFilter')?.value || '');
 
-        if (Object.keys(subLineages).length > 0) {
-            const lineageCount = this.lineageCounts[lineage];
-            subSelect.innerHTML = `<option value="">All subtypes (n=${lineageCount})</option>`;
-
-            Object.keys(subLineages).sort((a, b) => subLineages[b] - subLineages[a]).forEach(sub => {
-                const option = document.createElement('option');
-                option.value = sub;
-                option.textContent = `${sub} (n=${subLineages[sub]})`;
-                subSelect.appendChild(option);
-            });
+        if (items.length > 0) {
+            this._fillSubtypeSelect(subSelect, items, total);
 
             // Add listener for sub-lineage changes (only add once)
             if (!subSelect.hasAttribute('data-listener-attached')) {
@@ -895,25 +918,14 @@ class CorrelationExplorer {
             return;
         }
 
-        // Find subtypes for this lineage from current inspect data
-        const subtypeCounts = {};
-        this.currentInspect.data.forEach(d => {
-            if (d.lineage === lineage) {
-                const subtype = this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || '';
-                if (subtype) {
-                    subtypeCounts[subtype] = (subtypeCounts[subtype] || 0) + 1;
-                }
-            }
-        });
+        // Subtypes for this lineage from current inspect data, scoped by the
+        // panel's disease pick so the two selectors stay consistent.
+        const { items, total } = this._subtypeOptionsFor(lineage,
+            document.getElementById('scatterOncotreeFilter')?.value || '',
+            this.currentInspect.data.map(d => d.cellLineId));
 
-        const subtypes = Object.keys(subtypeCounts).sort((a, b) => subtypeCounts[b] - subtypeCounts[a]);
-        if (subtypes.length > 1) {
-            const lineageCount = this.currentInspect.data.filter(d => d.lineage === lineage).length;
-            subSelect.innerHTML = `<option value="">All subtypes (n=${lineageCount})</option>`;
-            subtypes.forEach(sub => {
-                subSelect.innerHTML += `<option value="${sub}">${sub} (n=${subtypeCounts[sub]})</option>`;
-            });
-            
+        if (items.length > 1 || (items.length === 1 && items[0].name !== lineage)) {
+            this._fillSubtypeSelect(subSelect, items, total);
         } else {
             subSelect.value = '';
             subSelect.innerHTML = '<option value="">All subtypes</option>';
@@ -1028,25 +1040,13 @@ class CorrelationExplorer {
             return;
         }
 
-        // Gather primaryDisease counts from ALL cell lines in this lineage
-        const cellLines = this.metadata?.cellLines || [];
-        const subtypeCounts = {};
-        let lineageTotal = 0;
-        cellLines.forEach(cl => {
-            if ((this.cellLineMetadata?.lineage?.[cl] || '') !== lineage) return;
-            lineageTotal++;
-            const subtype = this.cellLineMetadata.primaryDisease[cl] || '';
-            if (subtype) {
-                subtypeCounts[subtype] = (subtypeCounts[subtype] || 0) + 1;
-            }
-        });
+        // Subtype counts for this lineage, scoped by the panel's disease pick
+        // so the two selectors stay consistent with each other.
+        const { items, total } = this._subtypeOptionsFor(lineage,
+            document.getElementById('geOncotreeFilter')?.value || '');
 
-        const subtypes = Object.keys(subtypeCounts).sort((a, b) => subtypeCounts[b] - subtypeCounts[a]);
-        if (subtypes.length > 1) {
-            subSelect.innerHTML = `<option value="">All subtypes (n=${lineageTotal})</option>`;
-            subtypes.forEach(sub => {
-                subSelect.innerHTML += `<option value="${sub}">${sub} (n=${subtypeCounts[sub]})</option>`;
-            });
+        if (items.length > 1 || (items.length === 1 && items[0].name !== lineage)) {
+            this._fillSubtypeSelect(subSelect, items, total);
         } else {
             subSelect.innerHTML = '<option value="">All subtypes</option>';
             subSelect.value = '';
@@ -4590,6 +4590,33 @@ class CorrelationExplorer {
         const lineages = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
         sel.innerHTML = `<option value="">All tissues (n=${total})</option>` + lineages.map(l => `<option value="${l}">${l} (n=${counts[l]})</option>`).join('');
         sel.value = cur;
+        // Keep the subtype list in step with the (possibly restored) tissue.
+        this.updateCaSubtypeFilter();
+    }
+
+    // Fill the correlation-analysis subtype selector: scoped by the panel's
+    // tissue and disease picks, counted within the analysis cohort, ranked by
+    // count. This select was in the markup but never populated, so it always
+    // read "All subtypes" no matter the tissue.
+    updateCaSubtypeFilter() {
+        const subSelect = document.getElementById('caSubtypeFilter');
+        if (!subSelect) return;
+        const tissue = document.getElementById('caTissueFilter')?.value || '';
+        const data = this._corrAnalysisData?.data;
+        if (!tissue || !Array.isArray(data)) {
+            subSelect.innerHTML = '<option value="">All subtypes</option>';
+            subSelect.value = '';
+            return;
+        }
+        const { items, total } = this._subtypeOptionsFor(tissue,
+            document.getElementById('caOncotreeFilter')?.value || '',
+            data.map(p => p.cellLineId));
+        if (items.length > 1 || (items.length === 1 && items[0].name !== tissue)) {
+            this._fillSubtypeSelect(subSelect, items, total);
+        } else {
+            subSelect.innerHTML = '<option value="">All subtypes</option>';
+            subSelect.value = '';
+        }
     }
 
     // Cells passing all active Correlation-Analysis filters EXCEPT the named kind.
@@ -5798,6 +5825,11 @@ class CorrelationExplorer {
             this.filterCATable(e.target.value);
         });
         document.getElementById('caTissueFilter')?.addEventListener('change', () => {
+            this.updateCaSubtypeFilter();
+            this._showCAResetBtn();
+            this.switchCorrAnalysisView(this._caView || 'tissue');
+        });
+        document.getElementById('caSubtypeFilter')?.addEventListener('change', () => {
             this._showCAResetBtn();
             this.switchCorrAnalysisView(this._caView || 'tissue');
         });
@@ -5817,6 +5849,8 @@ class CorrelationExplorer {
         });
         document.getElementById('caResetFiltersBtn')?.addEventListener('click', () => {
             document.getElementById('caTissueFilter').value = '';
+            const caSubR = document.getElementById('caSubtypeFilter'); if (caSubR) { caSubR.innerHTML = '<option value="">All subtypes</option>'; caSubR.value = ''; }
+            const caOncR = document.getElementById('caOncotreeFilter'); if (caOncR) caOncR.value = '';
             document.getElementById('caHotspotFilter').value = '';
             document.getElementById('caFusionFilter').value = '';
             const caCnR = document.getElementById('caCnFilter'); if (caCnR) caCnR.value = '';
@@ -32402,7 +32436,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.renderCellLineList();
         });
 
-        document.getElementById('clbOncotreeFilter')?.addEventListener('change', () => this.renderCellLineList());
+        document.getElementById('clbOncotreeFilter')?.addEventListener('change', () => {
+            // The subtype list is scoped by the disease pick too, so rescope it.
+            this.updateClbSubtypeFilter();
+            this.renderCellLineList();
+        });
         document.getElementById('clbGridHotspotBtn')?.addEventListener('click', () => this.showOncoprint('clb', 'hotspot'));
         document.getElementById('clbGridFusionBtn')?.addEventListener('click', () => this.showOncoprint('clb', 'fusion'));
         document.getElementById('clbGridCnBtn')?.addEventListener('click', () => this.showOncoprint('clb', 'cn'));
@@ -33472,6 +33510,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Always present, never hidden. Showing it only once a tissue was chosen
         // made the whole toolbar jump sideways at the moment of clicking.
+        const keepClbSub = subSelect.value;
         subSelect.style.display = '';
         subSelect.innerHTML = '<option value="">All subtypes</option>';
 
@@ -33481,13 +33520,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return;
         }
 
-        const prefix = `${tissue}|`;
-        const subtypes = Object.keys(this.subLineageCounts)
-            .filter(k => k.startsWith(prefix))
-            .map(k => ({ name: k.slice(prefix.length), count: this.subLineageCounts[k] }))
-            .sort((a, b) => a.name.localeCompare(b.name));
+        // Ranked by count and scoped by the disease pick, matching every other
+        // panel's subtype selector.
+        const { items } = this._subtypeOptionsFor(tissue,
+            document.getElementById('clbOncotreeFilter')?.value || '');
 
-        if (subtypes.length === 0) {
+        if (items.length === 0) {
             subSelect.disabled = true;
             subSelect.title = `No subtypes recorded for ${tissue}`;
             return;
@@ -33495,12 +33533,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         subSelect.disabled = false;
         subSelect.title = 'Narrow to one subtype within the chosen tissue';
-        subtypes.forEach(s => {
+        items.forEach(s => {
             const opt = document.createElement('option');
             opt.value = s.name;
             opt.textContent = `${s.name} (n=${s.count})`;
             subSelect.appendChild(opt);
         });
+        if (keepClbSub && items.some(s => s.name === keepClbSub)) subSelect.value = keepClbSub;
     }
 
     // Options behind each filter chip. The level select still holds the value
@@ -33572,6 +33611,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     _filterCtx(name) { return this._FILTER_BAR_SPEC()[name] || null; }
 
+    // Re-fill one panel's subtype selector (each panel has its own updater).
+    _refreshSubtypeSelector(ctxName) {
+        try {
+            if (ctxName === 'params') this.updateSubLineageFilter();
+            else if (ctxName === 'scatter') this.updateScatterSubtypeFilter();
+            else if (ctxName === 'ge') this.updateGeSubtypeFilter();
+            else if (ctxName === 'ca') this.updateCaSubtypeFilter();
+            else if (ctxName === 'clb') this.updateClbSubtypeFilter();
+        } catch (e) { /* selector may not be mounted */ }
+    }
+
     // Refill each panel's disease selector from the tissue and subtype chosen in
     // that same panel, and wire the selectors once so they re-apply on change.
     _syncOncotreeSelectors() {
@@ -33590,6 +33640,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!sel._wired) {
                 sel._wired = true;
                 sel.addEventListener('change', () => {
+                    // The subtype list is scoped by the disease as well, so a
+                    // disease pick rescopes it (the reverse of the wiring
+                    // below): the two selectors scale to each other.
+                    this._refreshSubtypeSelector(ctx);
                     this._renderFilterChips(ctx);
                     this._filterCtx(ctx)?.apply?.();
                 });
@@ -33986,6 +34040,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     updateClbFilterCounts() {
         const tissue = document.getElementById('clbTissueFilter').value;
         const subtype = document.getElementById('clbSubtypeFilter').value;
+        const oncotreeVal = document.getElementById('clbOncotreeFilter')?.value || '';
         const sexFilter = document.getElementById('clbSexFilter')?.value || '';
         const hotspotGene = document.getElementById('clbHotspotFilter').value;
         const transGene = document.getElementById('clbTranslocationFilter').value;
@@ -34019,6 +34074,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return allCls.filter(cl => {
                 if (excludeFilter !== 'tissue' && tissue && this.getCellLineLineage(cl) !== tissue) return false;
                 if (excludeFilter !== 'subtype' && subtype && this.getCellLineSublineage(cl) !== subtype) return false;
+                if (excludeFilter !== 'oncotree' && oncotreeVal && (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') !== oncotreeVal) return false;
                 if (excludeFilter !== 'collection' && collectionStates.size > 0 && !passesCollections(cl)) return false;
                 if (excludeFilter !== 'sex' && sexFilter && !this._cellLineMatchesSexFilter(cl, sexFilter)) return false;
                 if (excludeFilter !== 'hotspot' && hotspotMuts && !hotspotPass(cl)) return false;

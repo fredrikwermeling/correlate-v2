@@ -2146,6 +2146,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.88 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Subtype and disease selectors scale to each other, everywhere.</b> The disease list was already narrowed by the chosen subtype; picking a disease now narrows the subtype list in return, in the parameters, correlation, gene-effect, correlation-analysis and cell-line-browser panels. Every subtype list is ranked by count with the count shown, and a still-valid choice is kept when the list rescopes.</li>
+                    <li><b>The correlation-analysis subtype filter works.</b> The control was in the panel but never filled, so it always read "All subtypes" whatever the tissue.</li>
+                </ul>
                 <p><strong>v.85.87 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Shuffle button for the network layout.</b> Next to Reset in View controls: each click re-rolls the layout from new random starting positions and lets it settle, so you can keep clicking until the arrangement looks right. The Lock state is left as it was.</li>
@@ -5325,7 +5330,7 @@
                 <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
             </span>
         </span>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.87</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.88</a>
     </div>
 
     <div class="main-content">
@@ -7843,6 +7848,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_87"></script>
+    <script src="app.js?v=v85_88"></script>
 </body>
 </html>
