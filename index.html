@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.107 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Fix: the AI export could name the wrong gene.</b> Exporting from a mutation-inspect view read the gene from the normal gene-effect view's state, which can hold a stale gene from an earlier analysis, so the file (its label, its precomputed summaries and its filename) described a different gene than the plot. The export now reads the plotted gene, and also records the disease filter and whether the view showed gene effect or mRNA expression.</li>
+                </ul>
                 <p><strong>v.85.106 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Run re-frames after the solver's final settle</b>, the same guard Shuffle got: the released solver could still nudge the cluster after the fit, leaving a node half outside the view.</li>
@@ -5467,7 +5471,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.106</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.107</a>
         </span>
     </div>
 
@@ -8003,6 +8007,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_106"></script>
+    <script src="app.js?v=v85_107"></script>
 </body>
 </html>

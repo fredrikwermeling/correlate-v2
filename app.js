@@ -26058,14 +26058,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const mr = this.mutationResults;
 
         if (source === 'ge') {
-            const gene = this.currentGeneEffect?.gene || this.currentGeneEffectGene || '';
+            // In mutation-inspect mode the plotted gene lives in
+            // currentGeneEffectGene; currentGeneEffect belongs to the normal
+            // GE view and can hold a STALE gene from an earlier analysis.
+            // Reading it first exported the wrong focal gene (and computed
+            // every derived summary for it), while the plot showed another.
+            const gene = (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene)
+                ? this.currentGeneEffectGene
+                : (this.currentGeneEffect?.gene || this.currentGeneEffectGene || '');
             const tissueF = document.getElementById('geTissueFilter')?.value || '';
             const subtypeF = document.getElementById('geSubtypeFilter')?.value || '';
             const hotspotF = document.getElementById('geHotspotFilter')?.value || '';
+            const geOncF = document.getElementById('geOncotreeFilter')?.value || '';
+            const oncotreeF = geOncF === '__mr_multi__'
+                ? (mr?.oncotreeFilterMulti || []).join(' + ')
+                : geOncF;
             context = {
                 type: 'gene_effect_analysis', gene, plotType: this.currentGEView || 'tissue',
                 stratification: hotspotF || (this.geneEffectViewMode === 'mutation' && mr?.hotspotGene) || 'tissue',
-                tissueFilter: tissueF, subtypeFilter: subtypeF, hotspotFilter: hotspotF
+                measure: (this.geneEffectViewMode === 'mutation' && mr?.metric === 'expr') ? 'mRNA expression' : 'gene effect',
+                tissueFilter: tissueF, subtypeFilter: subtypeF, oncotreeFilter: oncotreeF, hotspotFilter: hotspotF
             };
             // Cell line groups (#1)
             if (this.geneEffectViewMode === 'mutation' && mr?.hotspotGene) {
