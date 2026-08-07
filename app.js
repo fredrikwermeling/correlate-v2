@@ -3131,6 +3131,17 @@ class CorrelationExplorer {
             this.renderCellLineList();
         }
 
+        // Refresh whichever popouts are open: the scatter, gene-effect and
+        // correlation-analysis chains all consume these filters, but nothing
+        // redrew them, so a grid pick from those panels looked like it did
+        // nothing.
+        try {
+            const vis = (id) => { const el = document.getElementById(id); return el && el.style.display !== 'none' && el.style.display !== ''; };
+            if (vis('inspectModal') && this.currentInspect) this.updateInspectPlot();
+            if (vis('geneEffectModal') && this.currentGeneEffect) this._rerenderCurrentGEView?.();
+            if (vis('corrAnalysisModal') && this._corrAnalysisData) this.switchCorrAnalysisView(this._caView || 'tissue');
+        } catch (e) { /* keep the filter applied even if a redraw fails */ }
+
         // Run analysis if in mutation mode
         const mode = document.querySelector('input[name="analysisMode"]:checked')?.value;
         if (mode === 'mutation') {
@@ -5170,6 +5181,9 @@ class CorrelationExplorer {
         // Network controls with slider bubble updates
         document.getElementById('netFontSize').addEventListener('input', (e) => {
             document.getElementById('fontSizeBubble').textContent = e.target.value;
+            // Keep the settings panel's Gene Names size in step when it is open.
+            const gs = document.getElementById('net_ts_geneSize');
+            if (gs) gs.value = e.target.value;
             this.updateNetworkStyle();
             this._checkNetworkFits();
         });
@@ -5390,11 +5404,21 @@ class CorrelationExplorer {
             // Clear filters
             document.getElementById('scatterCancerFilter').value = '';
             const subF = document.getElementById('scatterSubtypeFilter');
-            if (subF) { subF.value = ''; subF.style.display = 'none'; }
+            if (subF) { subF.value = ''; subF.style.display = ''; }
+            const oncF = document.getElementById('scatterOncotreeFilter');
+            if (oncF) oncF.value = '';
             document.getElementById('mutationFilterGene').value = '';
             document.getElementById('mutationFilterLevel').value = '1+2';
             document.getElementById('translocationFilterGene').value = '';
             document.getElementById('translocationFilterLevel').value = '1+2';
+            const cnF = document.getElementById('scatterCnFilter');
+            if (cnF) cnF.value = '';
+            const cnL = document.getElementById('scatterCnLevel');
+            if (cnL) cnL.value = 'altered';
+            // Genes picked from the alteration grid are filters too.
+            this._oncoprintFilters = {};
+            this._activeOncoprintFilters = null;
+            this._oncoprintSyncFilters?.();
             // Clear overlays
             document.getElementById('hotspotGene').value = '';
             document.getElementById('hotspotMode').value = 'color';
@@ -10134,7 +10158,7 @@ class CorrelationExplorer {
 
             // Add * to label if synonym
             const isGrowthRate = gene === '⚡ Growth Rate';
-            const label = isGrowthRate ? 'Growth Rate' : isSynonym ? `${gene}*` : gene;
+            const label = isGrowthRate ? 'Growth Rate' : this._decorateNodeLabel(isSynonym ? `${gene}*` : gene);
 
             nodes.push({
                 id: gene,
@@ -10166,7 +10190,7 @@ class CorrelationExplorer {
 
                     const originalName = synonymLookup.get(gene.toUpperCase());
                     const isSynonym = !!originalName;
-                    const label = isSynonym ? `${gene}*` : gene;
+                    const label = this._decorateNodeLabel(isSynonym ? `${gene}*` : gene);
 
                     let titleLines = [gene];
                     if (isSynonym) titleLines.push(`(synonym of ${originalName})`);
@@ -10222,7 +10246,10 @@ class CorrelationExplorer {
                 },
                 font: {
                     size: fontSize,
-                    color: '#333'
+                    color: '#333',
+                    // Labels may carry <b>/<i> markup (gene names default to
+                    // italics, toggleable in Settings).
+                    multi: 'html'
                 }
             },
             edges: {
@@ -10686,6 +10713,13 @@ class CorrelationExplorer {
         // Node border back on
         const nb = document.getElementById('networkNodeBorder'); if (nb) nb.checked = true;
 
+        // Label style back to the default (italic gene names, no bold) and any
+        // highlight rings off.
+        this._netLabelBold = false;
+        this._netLabelItalic = undefined;
+        this.applyNetworkHighlight('');
+        this.updateNetworkLabelsWithStats?.();
+
         // GE / stats label + color options off
         ['showGeneEffect', 'showGeneEffectSD', 'colorByGeneEffect', 'colorByStats'].forEach(id => {
             const el = document.getElementById(id); if (el) el.checked = false;
@@ -11011,9 +11045,31 @@ class CorrelationExplorer {
             <label style="font-size:11px;color:#374151;display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:4px;" title="Draw a black outline around each node. Turn off for a flatter look in figures.">
                 <input type="checkbox" id="net_ts_nodeBorder" ${document.getElementById('networkNodeBorder')?.checked !== false ? 'checked' : ''} onchange="app._netTsNodeBorder(this.checked)"> Node border
             </label>
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Gene Names</div>
+            ${sizeRow('Size', 'net_ts_geneSize', parseInt(document.getElementById('netFontSize')?.value, 10) || 20, 6, 40)}
+            <div style="display:flex;align-items:center;margin-bottom:5px;gap:4px;">
+                <span style="width:15px;"></span>
+                <span style="color:#374151;flex:1;min-width:55px;font-size:11px;">Style</span>
+                <span style="display:inline-flex;gap:2px;">
+                    <button id="net_ts_labelBold" onclick="app._netTsToggleLabelStyle('bold')" style="width:22px;height:22px;border:1px solid #d1d5db;border-radius:3px;cursor:pointer;font-weight:bold;font-size:11px;background:#f9fafb;line-height:1;" title="Bold gene names">B</button>
+                    <button id="net_ts_labelItalic" onclick="app._netTsToggleLabelStyle('italic')" style="width:22px;height:22px;border:1px solid #d1d5db;border-radius:3px;cursor:pointer;font-style:italic;font-size:11px;background:#f9fafb;line-height:1;" title="Italic gene names (gene symbols are conventionally italic)">I</button>
+                </span>
+            </div>
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">Size is the same control as the Font slider above the network; the two stay in step.</div>
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Highlight Genes</div>
+            <input type="text" id="net_ts_highlight" placeholder="e.g. TP53, MDM2" value="${this._escapeAttr(this._netHighlightText || '')}" style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:3px 6px;font-size:11px;box-sizing:border-box;" onkeydown="if(event.key==='Enter')app._netTsHighlightApply()">
+            <div style="display:flex;gap:4px;align-items:center;margin-top:4px;">
+                <button onclick="app._netTsHighlightApply()" style="font-size:10px;padding:2px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f0fdf4;color:#5d9239;font-weight:500;">Apply</button>
+                <button onclick="app._netTsHighlightClear()" style="font-size:10px;padding:2px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;">Clear</button>
+                <span id="net_ts_highlightCount" style="font-size:10px;color:#b45309;"></span>
+            </div>
+            <div style="font-size:9px;color:#9ca3af;margin-top:3px;">Highlighted genes get an orange ring and keep it in Export image and Copy network.</div>
         `;
 
         panel.style.display = 'block';
+        this._netTsSyncLabelStyleButtons();
     }
 
     // The visible node-border control lives in the Settings popout; the hidden
@@ -11044,6 +11100,19 @@ class CorrelationExplorer {
         this._netLabelColor = labelColor;
         this._netNodeColor = nodeColor;
 
+        // The settings-panel Gene Names size and the Font slider above the
+        // network are the same control: write the panel value through to the
+        // slider (and its bubble) before reading it, so they stay in step.
+        const geneSizeEl = document.getElementById('net_ts_geneSize');
+        const geneSize = geneSizeEl ? parseInt(geneSizeEl.value, 10) : NaN;
+        if (Number.isFinite(geneSize) && geneSize > 0) {
+            const slider = document.getElementById('netFontSize');
+            if (slider && parseInt(slider.value, 10) !== geneSize) {
+                slider.value = geneSize;
+                const bubble = document.getElementById('fontSizeBubble');
+                if (bubble) bubble.textContent = geneSize;
+            }
+        }
         // Sync node font from slider (slider still controls node label size)
         const fontSize = parseInt(document.getElementById('netFontSize').value) || 16;
 
@@ -11972,7 +12041,26 @@ Results:
             hiRes = await this._renderNetworkAtScale(renderScale);
         }
         const src = hiRes || networkCanvas;
-        ctx.drawImage(src, 0, 0, src.width, src.height, 0, headerH, cssWidth, cssHeight);
+        // Centre the network over the legend: the legend centres on the canvas
+        // below, but the nodes sit wherever the user last panned them, so a
+        // node-color legend (or any wide legend) made the two visibly
+        // misaligned after the whitespace trim. Shift the network image so the
+        // nodes' bounding-box centre lands on the canvas centre.
+        let netOffsetX = 0;
+        try {
+            const positions = this.network.getPositions();
+            const ids = Object.keys(positions);
+            if (ids.length) {
+                let minX = Infinity, maxX = -Infinity;
+                for (const id of ids) {
+                    const p = this.network.canvasToDOM(positions[id]);
+                    if (p.x < minX) minX = p.x;
+                    if (p.x > maxX) maxX = p.x;
+                }
+                netOffsetX = totalWidth / 2 - (minX + maxX) / 2;
+            }
+        } catch (e) { /* fall back to no shift */ }
+        ctx.drawImage(src, 0, 0, src.width, src.height, netOffsetX, headerH, cssWidth, cssHeight);
 
         // Draw legend frame only when the user opted in via the dialog —
         // the previous default of a gray-filled box was visually noisy on
@@ -12646,8 +12734,9 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
 
         this.networkData.nodes.forEach(node => {
             const cluster = this.results?.clusters?.find(c => c.gene === node.id);
-            // Add * suffix if this is a synonym
-            const baseName = node.isSynonym ? `${node.id}*` : node.id;
+            // Add * suffix if this is a synonym; the gene name itself carries
+            // the bold/italic decoration, the GE line stays plain.
+            const baseName = this._decorateNodeLabel(node.isSynonym ? `${node.id}*` : node.id);
             let label = baseName;
 
             if (showGE && cluster) {
@@ -12694,7 +12783,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             }
 
             // Add * suffix if this is a synonym
-            const baseName = node.isSynonym ? `${node.id}*` : node.id;
+            const baseName = this._decorateNodeLabel(node.isSynonym ? `${node.id}*` : node.id);
             let label = baseName;
 
             // Add gene effect if checked
@@ -12994,6 +13083,85 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         this.network.setOptions({ physics: { enabled: false } });
         const btn = document.getElementById('togglePhysics');
         if (btn) { btn.textContent = 'Unlock'; btn.classList.add('btn-active'); }
+    }
+
+    // Gene names in the network are italic by default (standard for gene
+    // symbols); bold and italic are toggleable in Settings. Labels use
+    // vis-network's multi:'html' markup.
+    _decorateNodeLabel(text) {
+        let t = text;
+        if (this._netLabelBold) t = `<b>${t}</b>`;
+        if (this._netLabelItalic !== false) t = `<i>${t}</i>`;
+        return t;
+    }
+
+    // Highlight one or several genes with an orange ring and glow. The styling
+    // lives on the node data, so Export image and Copy network (which draw
+    // from the same nodes) carry it automatically. Returns how many matched.
+    applyNetworkHighlight(text) {
+        if (!this.networkData?.nodes) return 0;
+        const wanted = new Set(String(text || '').toUpperCase().split(/[\s,;]+/).filter(Boolean));
+        const updates = [];
+        let matched = 0;
+        this.networkData.nodes.get().forEach(n => {
+            const on = wanted.has(String(n.id).toUpperCase());
+            if (on) {
+                matched++;
+                updates.push({
+                    id: n.id,
+                    _cvHl: true,
+                    _cvPrevBorder: n._cvHl ? n._cvPrevBorder : (n.color?.border ?? '#000000'),
+                    _cvPrevBorderWidth: n._cvHl ? n._cvPrevBorderWidth : (n.borderWidth ?? 2),
+                    borderWidth: 5,
+                    color: { ...(n.color || {}), border: '#f59e0b' },
+                    shadow: { enabled: true, color: 'rgba(245,158,11,0.6)', size: 20, x: 0, y: 0 }
+                });
+            } else if (n._cvHl) {
+                updates.push({
+                    id: n.id,
+                    _cvHl: false,
+                    borderWidth: n._cvPrevBorderWidth ?? 2,
+                    color: { ...(n.color || {}), border: n._cvPrevBorder ?? '#000000' },
+                    shadow: { enabled: false }
+                });
+            }
+        });
+        if (updates.length) this.networkData.nodes.update(updates);
+        this._netHighlightText = String(text || '');
+        return matched;
+    }
+
+    _netTsHighlightApply() {
+        const input = document.getElementById('net_ts_highlight');
+        const n = this.applyNetworkHighlight(input?.value || '');
+        const lbl = document.getElementById('net_ts_highlightCount');
+        if (lbl) lbl.textContent = n ? `${n} highlighted` : (input?.value?.trim() ? 'no match' : '');
+    }
+
+    _netTsHighlightClear() {
+        const input = document.getElementById('net_ts_highlight');
+        if (input) input.value = '';
+        this.applyNetworkHighlight('');
+        const lbl = document.getElementById('net_ts_highlightCount');
+        if (lbl) lbl.textContent = '';
+    }
+
+    _netTsToggleLabelStyle(which) {
+        if (which === 'bold') this._netLabelBold = !this._netLabelBold;
+        else this._netLabelItalic = this._netLabelItalic === false;
+        this._netTsSyncLabelStyleButtons();
+        this.updateNetworkLabelsWithStats();
+    }
+
+    _netTsSyncLabelStyleButtons() {
+        const setActive = (id, on) => {
+            const b = document.getElementById(id);
+            if (!b) return;
+            b.style.background = on ? '#dbeafe' : '#f9fafb';
+            b.style.borderColor = on ? '#3b82f6' : '#d1d5db';
+        };
+        setActive('net_ts_labelBold', !!this._netLabelBold);
+        setActive('net_ts_labelItalic', this._netLabelItalic !== false);
     }
 
     // Re-roll the layout from fresh random starting positions, so the user can
@@ -14572,8 +14740,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         ['scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax'].forEach(id => set(id, ''));
         set('scatterCancerFilter', '');
         set('scatterSubtypeFilter', '');
+        set('scatterOncotreeFilter', '');
+        // Keep the subtype select visible (reading "All subtypes"): hiding it
+        // here made the Tissue Filter box show two levels after a reset and
+        // three otherwise, which read as broken.
         const sub = document.getElementById('scatterSubtypeFilter');
-        if (sub) sub.style.display = 'none';
+        if (sub) sub.style.display = '';
         set('mutationFilterGene', ''); set('mutationFilterLevel', '1+2');
         set('hotspotGene', ''); set('hotspotMode', 'color');
         set('translocationFilterGene', ''); set('translocationFilterLevel', '1+2');
@@ -15055,7 +15227,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         if (mutFilterGene) {
             const lvl = mutFilterLevel || '1+2';
-            const levelText = lvl === '0' ? 'WT' : lvl === '1' ? '1 mut' : lvl === '2' ? '2 mut' : '1+2 mut';
+            const levelText = lvl === '0' ? 'hotspot WT' : lvl === '1' ? 'hotspot mut (1 copy)' : lvl === '2' ? 'hotspot mut (2 copies)' : 'hotspot mut (1+2)';
             filterParts.push(`${mutFilterGene}: ${levelText}`);
         }
         if (transFilterGene) {
@@ -16533,9 +16705,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             filterParts.push(cancerText);
         }
         if (mutFilterGene && mutFilterLevel !== 'all') {
-            const levelText = mutFilterLevel === '0' ? 'WT' :
-                              mutFilterLevel === '1' ? '1 mut' :
-                              mutFilterLevel === '2' ? '2 mut' : '1+2 mut';
+            const levelText = mutFilterLevel === '0' ? 'hotspot WT' :
+                              mutFilterLevel === '1' ? 'hotspot mut (1 copy)' :
+                              mutFilterLevel === '2' ? 'hotspot mut (2 copies)' : 'hotspot mut (1+2)';
             filterParts.push(`${mutFilterGene}: ${levelText}`);
         }
         if (this._customCellLineFilter) {
@@ -17513,9 +17685,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Build filter description
         let filterParts = [];
         if (mutFilterGene && mutFilterLevel !== 'all') {
-            const levelText = mutFilterLevel === '0' ? 'WT' :
-                              mutFilterLevel === '1' ? '1 mut' :
-                              mutFilterLevel === '2' ? '2 mut' : '1+2 mut';
+            const levelText = mutFilterLevel === '0' ? 'hotspot WT' :
+                              mutFilterLevel === '1' ? 'hotspot mut (1 copy)' :
+                              mutFilterLevel === '2' ? 'hotspot mut (2 copies)' : 'hotspot mut (1+2)';
             filterParts.push(`${mutFilterGene}: ${levelText}`);
         }
         if (this._customCellLineFilter) {
@@ -21441,7 +21613,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hot = document.getElementById('caHotspotFilter')?.value;
         if (hot) {
             const lvl = document.getElementById('caHotspotLevel')?.value || '1+2';
-            parts.push(`${hot}: ${lvl === '0' ? 'WT' : lvl === '1' ? '1 mut' : lvl === '2' ? '2 mut' : '1+2 mut'}`);
+            parts.push(`${hot}: ${lvl === '0' ? 'hotspot WT' : lvl === '1' ? 'hotspot mut (1 copy)' : lvl === '2' ? 'hotspot mut (2 copies)' : 'hotspot mut (1+2)'}`);
         }
         const fus = document.getElementById('caFusionFilter')?.value;
         if (fus) {
@@ -33831,7 +34003,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (hotGene) {
             const lvl = val(spec.hotspot.levelId) || spec.hotspot.options[0].v;
             const wt = this._filterIsWildType('hotspot', lvl);
-            const word = { '1+2': 'mutated', altered: 'mutated', '1': 'one copy mutated', '2': 'both copies mutated', '0': 'WT', wt: 'WT' }[lvl] || 'mutated';
+            const word = { '1+2': 'hotspot-mutated', altered: 'hotspot-mutated', '1': 'hotspot-mutated (one copy)', '2': 'hotspot-mutated (both copies)', '0': 'hotspot WT', wt: 'hotspot WT' }[lvl] || 'hotspot-mutated';
             parts.push(chip('hotspot', `${this.esc(hotGene)} ${word}`, wt ? gray : 'background:#e6efde;color:#5a7d35;', editTitle));
         }
         const fusGene = this._stripFusionFilterDecoration(val(spec.fusion?.geneId));

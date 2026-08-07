@@ -149,23 +149,34 @@
             text-decoration: underline;
         }
 
-        /* The tree makes the logo image asymmetric: the wordmark's centre sits
-           9.55% of the image width left of the image centre. Shift the tagline
-           and the nav links onto that axis so both centre under the visible
-           text, with "Green Listed" pinned to the exact middle of the row. */
-        :root { --logo-axis-shift: calc(min(550px, 100vw - 40px) * -0.0955); }
-        .logo-tagline { transform: translateX(var(--logo-axis-shift)); }
+        /* The tree makes the logo image asymmetric: its visible text sits
+           9.55% of the image width left of the image centre. Shift the IMAGE
+           right so the text centres over the app; the tagline and the link
+           row then centre normally, and the distance from the page's left
+           edge to "How it works" equals the distance from the right edge to
+           "YouTube". The version badge hangs off the row's right end without
+           taking part in the centring. */
+        .logo-header img { transform: translateX(calc(min(550px, 100vw - 40px) * 0.0955)); }
+        /* The transformed image paints above later in-flow text, and the
+           tagline tucks up under it (negative top margin), so lift the
+           tagline into its own layer or the image covers it. */
+        .logo-tagline { position: relative; z-index: 1; }
         .nav-links {
-            display: flex;
-            justify-content: center;
+            position: relative;
+            display: inline-flex;
             align-items: baseline;
-            transform: translateX(var(--logo-axis-shift));
         }
-        .nav-side { flex: 1 1 0; white-space: nowrap; }
-        .nav-side-l { text-align: right; }
-        .nav-side-r { text-align: left; }
+        .nav-side { white-space: nowrap; }
+        #versionBadge {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 10px;
+            white-space: nowrap;
+        }
         @media (max-width: 640px) {
-            :root { --logo-axis-shift: calc(min(550px, 100vw - 20px) * -0.0955); }
+            .logo-header img { transform: translateX(calc(min(550px, 100vw - 20px) * 0.0955)); }
         }
 
         /* Main content area */
@@ -1274,7 +1285,7 @@
 
         /* Word labels under a slider, without the tick marks. */
         .slider-ticks-plain span::before { display: none; }
-        .slider-ticks-plain { padding: 0 4px; margin-top: 0; }
+        .slider-ticks-plain { padding: 0 28px; margin-top: 0; }
 
         .slider-group label {
             font-weight: 600;
@@ -1313,7 +1324,10 @@
             justify-content: space-between;
             font-size: 8px;
             color: var(--gray-500);
-            padding: 0 4px;
+            /* Inset by the width of the − / + steppers plus their gap, so the
+               first and last tick sit under the ends of the green track rather
+               than under the buttons. */
+            padding: 0 28px;
             margin-top: -2px;
         }
 
@@ -1339,7 +1353,9 @@
             -webkit-appearance: none;
             appearance: none;
             height: 6px;
-            background: linear-gradient(to right, var(--green-400), var(--green-200));
+            /* Lighter at the low end, denser green toward the high end, so the
+               track itself hints which way the value grows. */
+            background: linear-gradient(to right, var(--green-200), var(--green-400));
             border-radius: 3px;
             outline: none;
         }
@@ -2146,6 +2162,17 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.91 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>The header centres over the app.</b> The logo image is shifted so its visible text sits on the page's centre line; the tagline and links centre beneath it, and the distance from the page edge to "How it works" now equals the distance to "YouTube". The version badge floats just after YouTube without taking part in the centring.</li>
+                    <li><b>Network gene names are italic</b>, as gene symbols conventionally are, with Bold / Italic toggles in Settings. Settings also gains the gene-name size (the same control as the Font slider above the network; the two stay in step) and a <b>Highlight genes</b> box: type one or more genes and they get an orange ring that carries into Export image and Copy network.</li>
+                    <li><b>Appearance slider polish.</b> The tick numbers now sit under the ends of the green track instead of under the − / + buttons, and the track runs light-to-dark green so it hints which way the value grows.</li>
+                    <li><b>Exported networks centre over their legend.</b> The legend centres on the image, but the nodes sat wherever they were last panned, visibly off-centre with wider legends (e.g. with a node colour scale). The network is now shifted so its content centres over the legend.</li>
+                    <li><b>The correlation popout always shows all three tissue filters.</b> A reset hid the subtype select, so the box sometimes showed two levels and sometimes three.</li>
+                    <li><b>Grid picks now redraw the open popout.</b> Ticking include / exclude in an alteration grid opened from the correlation, gene-effect or correlation-analysis panel applied the filter but nothing refreshed, so it looked like the grid did nothing. The grid is also how several hotspot genes are combined: pick one in the filter box and add more from the grid.</li>
+                    <li><b>Scatter Reset clears every filter.</b> The disease pick, the copy-number filter and grid picks survived a reset; now nothing does.</li>
+                    <li><b>Hotspot filters say "hotspot".</b> Chips and filter summaries read e.g. "TP53 hotspot-mutated" / "TP53: hotspot mut (1+2)" instead of the ambiguous "TP53: 1+2 mut".</li>
+                </ul>
                 <p><strong>v.85.90 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Compare-by-Hotspot numbers match what clicking shows.</b> The correlation popout's hotspot comparison computed its groups from 2-copy mutants only, while clicking a row filtered the scatter to 1+2-copy mutants, so n and r changed on the way. The table now uses the same 1+2 split as the click.</li>
@@ -5340,8 +5367,10 @@
                 <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
                 <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
             </span>
+            <!-- Positioned off the row's right end (see #versionBadge CSS), so
+                 it sits next to YouTube without moving the centred links. -->
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.91</a>
         </span>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.90</a>
     </div>
 
     <div class="main-content">
@@ -7863,6 +7892,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_90"></script>
+    <script src="app.js?v=v85_91"></script>
 </body>
 </html>
