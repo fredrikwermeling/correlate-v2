@@ -11,7 +11,8 @@
 -in mutation analsysis inspect. if i change between GE and expression in the upper left corner, it automatically goes to gene effect by tissue, instead of staying in the mutationa anlysis mode. if i swithch back to amutation anaylsis it doesnt remmeber the gene modification that shuold be starified of on the y axis. also, often the mutational analysi inpspect deoesnt have a legend on the y axis. 
 -when im in the mtation inspect in GE mode and click the inspect, it goes to the inspect with GE selected in the upper left. if i do it with mRNA, the seltcor in the upper left still states GE (but probaly show the expression data).
 - everywhere ther are filters (network, corrleat, gene effect etc) there should be a lineage, subtype and disease 
-
+-the spread function works strange. if i move around a node in the lock fucntion and then lower the spread number, the nodes moves back to the first position (before i moved them around).
+-
 
 
 
