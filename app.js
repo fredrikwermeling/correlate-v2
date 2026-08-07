@@ -2365,9 +2365,10 @@ class CorrelationExplorer {
                             const disTotal = dc.nMut + dc.nWT;
                             const disPct = disTotal > 0 ? (dc.nMut / disTotal * 100).toFixed(1) : '0.0';
                             const disBarW = maxMut > 0 ? (dc.nMut / maxMut * 100) : 0;
+                            const nfs = dis === sub ? ` <span style="color:#b45309; cursor:help;" title="These lines are typed only to the subtype level: no finer disease is recorded. They are not a separate entity from the finer entries beside them, just less specified.">*</span>` : '';
                             html += `<tr class="tb-dis-row" data-parent-lin="${t.lineage}" data-parent-sub="${sub}" style="display:none; cursor:pointer; background:#f5f5f4;" onmouseenter="this.style.background='#ececeb'" onmouseleave="this.style.background='#f5f5f4'">
                                 <td style="padding: 2px 8px 2px 24px;"><input type="checkbox" class="tb-dis-check" value="${dis}" data-parent-lin="${t.lineage}" data-parent-sub="${sub}"></td>
-                                <td style="padding: 2px 4px 2px 14px; font-size:10px; color:#9ca3af;">${dis}</td>
+                                <td style="padding: 2px 4px 2px 14px; font-size:10px; color:#9ca3af;">${dis}${nfs}</td>
                                 <td style="padding: 2px 6px; text-align: right; color: #dc2626; font-size:10px;">${dc.nMut}</td>
                                 <td style="padding: 2px 6px; text-align: right; color: #9ca3af; font-size:10px;">${dc.nWT}</td>
                                 <td style="padding: 2px 8px;"><div style="background: #fee2e2; border-radius: 2px; height: 6px; width: 100%;"><div style="background: #fca5a5; border-radius: 2px; height: 6px; width: ${disBarW}%;"></div></div></td>
@@ -2382,6 +2383,7 @@ class CorrelationExplorer {
         html += `</tbody></table></div>`;
 
         // Footer
+        html += `<div style="padding: 4px 14px 0; font-size: 9px; color: #9ca3af;">* typed only to the subtype level, no finer disease recorded</div>`;
         html += `<div style="padding: 8px 14px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
             <span id="tbSelectionCount" style="font-size: 11px; color: #6b7280;">0 selected</span>
             <div style="display: flex; gap: 6px;">
@@ -3629,9 +3631,10 @@ class CorrelationExplorer {
                         disEntries.sort((a, b) => b[1] - a[1]);
                         disEntries.forEach(([dis, dcount]) => {
                             const disBarW = maxMut > 0 ? (dcount / maxMut * 100) : 0;
+                            const nfs = dis === sub ? ` <span style="color:#b45309; cursor:help;" title="These lines are typed only to the subtype level: no finer disease is recorded. They are not a separate entity from the finer entries beside them, just less specified.">*</span>` : '';
                             html += `<tr class="tb-dis-row" data-parent-lin="${t.lineage}" data-parent-sub="${sub}" style="display:none; cursor:pointer; background:#f5f5f4;">
                                 <td style="padding: 2px 8px 2px 24px;"><input type="checkbox" class="tb-dis-check" value="${dis}" data-parent-lin="${t.lineage}" data-parent-sub="${sub}"></td>
-                                <td style="padding: 2px 4px 2px 14px; font-size:10px; color:#9ca3af;">${dis}</td>
+                                <td style="padding: 2px 4px 2px 14px; font-size:10px; color:#9ca3af;">${dis}${nfs}</td>
                                 <td style="padding: 2px 6px; text-align: right; font-size:10px; color:#9ca3af;">${dcount}</td>
                                 <td style="padding: 2px 8px;"><div style="background: #e6f6dc; border-radius: 2px; height: 6px; width: 100%;"><div style="background: #bbf7d0; border-radius: 2px; height: 6px; width: ${disBarW}%;"></div></div></td>
                             </tr>`;
@@ -3642,6 +3645,7 @@ class CorrelationExplorer {
         });
 
         html += `</tbody></table></div>`;
+        html += `<div style="padding: 4px 14px 0; font-size: 9px; color: #9ca3af;">* typed only to the subtype level, no finer disease recorded</div>`;
         html += `<div style="padding: 8px 14px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
             <span id="tbSelectionCount" style="font-size: 11px; color: #6b7280;">0 selected</span>
             <div style="display: flex; gap: 6px;">
@@ -33697,19 +33701,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const lin = this.cellLineMetadata.lineage || {};
         const pd = this.cellLineMetadata.primaryDisease || {};
         const counts = new Map();
+        // A line can be typed only as far as its subtype, in which case its
+        // Oncotree entry repeats the subtype name (e.g. "Melanoma" beside
+        // "Cutaneous Melanoma"). Mark those so they read as "not further
+        // specified" rather than as a distinct disease.
+        const parentLevel = new Map();
         for (const cl of (this.metadata?.cellLines || [])) {
             if (tissue && lin[cl] !== tissue) continue;
             if (subtype && pd[cl] !== subtype) continue;
             const v = onc[cl];
-            if (v) counts.set(v, (counts.get(v) || 0) + 1);
+            if (!v) continue;
+            counts.set(v, (counts.get(v) || 0) + 1);
+            if (!parentLevel.has(v)) parentLevel.set(v, true);
+            if (pd[cl] !== v) parentLevel.set(v, false);
         }
         const entries = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-        const sig = entries.map(([n, k]) => n + ':' + k).join('|');
+        const sig = entries.map(([n, k]) => n + ':' + k + (parentLevel.get(n) ? 'P' : '')).join('|');
         if (sel._oncSig === sig) return;
         sel._oncSig = sig;
         const keep = sel.value;
         sel.innerHTML = '<option value="">All diseases</option>'
-            + entries.map(([n, k]) => `<option value="${this.esc(n)}">${this.esc(n)} (n=${k})</option>`).join('');
+            + entries.map(([n, k]) => `<option value="${this.esc(n)}">${this.esc(n)}${parentLevel.get(n) ? ', no finer subtype recorded' : ''} (n=${k})</option>`).join('');
         if (entries.some(([n]) => n === keep)) sel.value = keep;
         else if (keep === '__mr_multi__' && this.mutationResults?.oncotreeFilterMulti?.length) {
             // The multi-disease sentinel survives rescoping: it stands for

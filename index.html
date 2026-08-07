@@ -2168,6 +2168,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.99 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>"Not further specified" diseases are marked.</b> Some lines are typed only to the subtype level, so their disease entry repeats the subtype name ("Melanoma" beside "Cutaneous Melanoma"), which read as a separate entity. Disease menus now say "Melanoma, no finer subtype recorded (n=…)" (as the Cell Line Browser already did), and the Tissue split popups mark such rows with a * and a footnote.</li>
+                </ul>
                 <p><strong>v.85.98 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Mutation-inspect chips and header show the tissue and disease.</b> The chip strip was drawn before the filters were filled in, so it missed them; it now redraws after, and the plot's header line names the disease level alongside lineage and subtype.</li>
@@ -5424,7 +5428,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.98</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.99</a>
         </span>
     </div>
 
@@ -7960,6 +7964,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_98"></script>
+    <script src="app.js?v=v85_99"></script>
 </body>
 </html>
