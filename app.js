@@ -4659,6 +4659,13 @@ class CorrelationExplorer {
         document.getElementById('paramGridHotspotBtn')?.addEventListener('click', () => this.showOncoprint(null, 'hotspot'));
         document.getElementById('paramGridFusionBtn')?.addEventListener('click', () => this.showOncoprint(null, 'fusion'));
         document.getElementById('paramGridCnBtn')?.addEventListener('click', () => this.showOncoprint(null, 'cn'));
+        // The same three buttons in the popouts. They share the main cohort's
+        // grid, which every one of these panels now filters on.
+        [['geGridHotspotBtn','hotspot'],['geGridFusionBtn','fusion'],['geGridCnBtn','cn'],
+         ['scatterGridHotspotBtn','hotspot'],['scatterGridFusionBtn','fusion'],['scatterGridCnBtn','cn'],
+         ['caGridHotspotBtn','hotspot'],['caGridFusionBtn','fusion'],['caGridCnBtn','cn']]
+            .forEach(([id, kind]) => document.getElementById(id)
+                ?.addEventListener('click', () => this.showOncoprint(null, kind)));
         document.getElementById('mutationHotspotSelect').addEventListener('change', () => {
             const hasVal = document.getElementById('mutationHotspotSelect').value;
             document.getElementById('tissueBreakdownBtn').style.display = hasVal ? 'inline-block' : 'none';
@@ -10053,6 +10060,12 @@ class CorrelationExplorer {
                 // Only count as drag if moved more than 5 pixels
                 if (distance > 5) {
                     isDragging = true;
+                    // Spread scales from a stored copy of the settled layout. A
+                    // node the user has dragged is not in that copy, so the next
+                    // spread change snapped it back to where the solver had left
+                    // it. Fold the new position into the stored layout, undoing
+                    // the current spread factor, so dragging survives.
+                    this._rebaseDraggedNodes(params.nodes);
                 } else {
                     isDragging = false;
                 }
@@ -10380,11 +10393,14 @@ class CorrelationExplorer {
     // with something already cut off; zooming in afterwards is the user's call.
     _zoomOutUntilNetworkFits() {
         if (!this.network) return;
-        for (let i = 0; i < 12; i++) {
+        // Recentre first: a node can sit outside because the view is off-centre
+        // rather than because it is too zoomed in, and shrinking would not fix that.
+        try { this.network.fit({ animation: false }); } catch (e) {}
+        for (let i = 0; i < 40; i++) {
             if (!this._networkNodesOutOfView().length) return;
-            const s = this.network.getScale();
-            if (s < 0.05) return;
-            this.network.moveTo({ scale: s * 0.92, animation: false });
+            const sc = this.network.getScale();
+            if (sc < 0.03) return;
+            this.network.moveTo({ scale: sc * 0.94, animation: false });
         }
     }
 
@@ -10429,6 +10445,27 @@ class CorrelationExplorer {
     // that genuinely changes on-screen spacing is not refitting, and that only
     // works downwards, because going wider than the panel pushes nodes out of
     // sight. So downwards is what this offers.
+    // Write nodes the user has moved back into the stored layout that Spread
+    // scales from, converting out of the current spread factor so the node
+    // stays put when the slider next moves.
+    _rebaseDraggedNodes(ids) {
+        const base = this._netBasePositions;
+        if (!this.network || !base || !ids || !ids.length) return;
+        const keys = Object.keys(base);
+        if (!keys.length) return;
+        const factor = Math.min(1, ((parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100)
+                                 / ((this._netBaseSpread || 100) / 100)) || 1;
+        let cx = 0, cy = 0;
+        for (const k of keys) { cx += base[k].x; cy += base[k].y; }
+        cx /= keys.length; cy /= keys.length;
+        const now = this.network.getPositions(ids);
+        for (const id of ids) {
+            const p = now[id];
+            if (!p || !base[id]) continue;
+            base[id] = { x: cx + (p.x - cx) / factor, y: cy + (p.y - cy) / factor };
+        }
+    }
+
     _applyNetworkSpread(opts = {}) {
         if (!this.network) return;
         let base = this._netBasePositions;
@@ -10468,12 +10505,19 @@ class CorrelationExplorer {
         this.network.redraw();
         // Used when a network first opens: the spacing is applied, then the
         // solver takes the nodes back so the Lock button starts off unpressed.
-        if (opts.releaseAfter) this._zoomOutUntilNetworkFits();
         if (opts.releaseAfter && wasRunning && this.physicsEnabled === false) {
             this.physicsEnabled = true;
             this.network.setOptions({ physics: { enabled: true } });
             const btn = document.getElementById('togglePhysics');
             if (btn) { btn.textContent = 'Lock'; btn.classList.remove('btn-active'); }
+        }
+        if (opts.releaseAfter) {
+            // Zoom to fit only once the solver has had the nodes back and stopped
+            // moving them. Doing it before the hand-back was pointless: the
+            // solver nudged a node out again straight afterwards, which is how a
+            // freshly run network still came up with a label over the edge.
+            clearTimeout(this._fitAfterRun);
+            this._fitAfterRun = setTimeout(() => this._zoomOutUntilNetworkFits(), 450);
         }
         clearTimeout(this._spreadSettle);
         this._spreadSettle = setTimeout(() => this._checkNetworkFits(), 250);
@@ -12848,7 +12892,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         slider('netFontSize', 'fontSizeBubble', 20);
         slider('netNodeSize', 'nodeSizeBubble', 25);
         slider('netEdgeWidth', 'edgeWidthBubble', 3);
-        slider('netSpread', 'spreadBubble', 65);
+        slider('netSpread', 'spreadBubble', 100);
 
         // Reset checkboxes
         document.getElementById('showGeneEffect').checked = false;
@@ -14492,6 +14536,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             filteredData = filteredData.filter(d =>
                 this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter
             );
+        }
+
+        // Genes picked from an alteration grid filter here too, so the grid
+        // button beside these filters does the same thing it does everywhere else.
+        if (this._activeOncoprintFilters?.length) {
+            filteredData = filteredData.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId));
         }
 
         // Apply mutation filter (separate from overlay). Selecting a gene always
@@ -20757,6 +20807,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const tissueVal = document.getElementById('caTissueFilter')?.value;
         if (tissueVal) {
             filtered = filtered.filter(p => p.lineage === tissueVal);
+        }
+
+        // Genes picked from an alteration grid, so the grid button beside these
+        // filters behaves the same here as everywhere else.
+        if (this._activeOncoprintFilters?.length) {
+            filtered = filtered.filter(p => this._cellLinePassesOncoprintFilters(p.cellLineId));
         }
 
         // Hotspot filter (mutated 1+2 by default), with WT / 1 / 2 / 1+2 levels.

@@ -1163,24 +1163,27 @@
             gap: 8px;
         }
 
-        /* One slider per row, but the whole control on a single line: name,
-           current value, then the track. Keeps each one readable at full width
-           while taking a quarter of the height the stacked version did. */
+        /* The original stacked layout, name above the value above the track,
+           at roughly 70% of its old size. The single-line version that replaced
+           it briefly was too cramped to read at a glance. */
         .slider-grid {
             display: flex;
             flex-direction: column;
-            gap: 7px;
+            gap: 6px;
         }
 
         .slider-group {
-            display: grid;
-            grid-template-columns: 52px 34px 1fr;
-            align-items: center;
-            column-gap: 6px;
-            row-gap: 1px;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
         }
 
-        .slider-head { display: contents; }
+        .slider-head {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
 
         .slider-row {
             display: flex;
@@ -1203,7 +1206,7 @@
 
         /* Word labels under a slider, without the tick marks. */
         .slider-ticks-plain span::before { display: none; }
-        .slider-ticks-plain { padding: 0 2px; grid-column: 3; margin-top: 0; }
+        .slider-ticks-plain { padding: 0 4px; margin-top: 0; }
 
         .slider-group label {
             font-weight: 600;
@@ -1240,9 +1243,9 @@
         .slider-ticks {
             display: flex;
             justify-content: space-between;
-            font-size: 9px;
+            font-size: 8px;
             color: var(--gray-500);
-            padding: 0 6px;
+            padding: 0 4px;
             margin-top: -2px;
         }
 
@@ -1257,9 +1260,9 @@
             content: '';
             display: block;
             width: 1px;
-            height: 8px;
+            height: 5px;
             background-color: #999;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
         }
 
         .slider-group input[type="range"] {
@@ -2040,6 +2043,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.75 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>The network never opens with anything cut off.</b> Running an analysis could still leave a node or its label over the edge. The fit was being applied before the layout engine got the nodes back, and it then nudged one out again. It now runs after the layout has settled, and recentres before zooming out.</li>
+                    <li><b>Spread starts at 100 again</b>, and the sliders are back to their original stacked look with their scales, at about 70% of the old size. The single-line version was too cramped.</li>
+                    <li><b>No more wild-type / mutated dropdown beside the alteration filters.</b> Picking a gene assumes altered, as in the Cell Line Browser; click the chip that appears to switch it to wild-type or a specific copy count, or use the grid button. Applies to the analysis panel, the correlation scatter, the gene effect popout and the correlation analysis panel.</li>
+                    <li><b>A grid button beside every alteration filter, everywhere.</b> The correlation scatter and correlation analysis panels also honour genes picked from a grid now, which they previously ignored.</li>
+                    <li><b>Dragging a node no longer gets undone by the Spread slider.</b> Spread scales from a stored copy of the settled layout, which did not include nodes you had moved by hand, so they snapped back. Moved nodes are now folded into that copy.</li>
+                </ul>
                 <p><strong>v.85.74 (2026-08-06)</strong></p>
                 <ul>
                     <li><b>A suggested spelling goes into the box you typed in.</b> When a gene is not found the &ldquo;Did you mean&rdquo; suggestions used to copy to the clipboard, leaving you to find the box and paste it, which is the work the suggestion was there to save. Clicking one now replaces the misspelling where it was typed, whichever gene box that was, and re-runs whatever depended on it. If nothing on screen still holds the typo it falls back to copying.</li>
@@ -5141,7 +5152,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.74</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="margin-left:auto; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.75</a>
     </div>
 
     <div class="main-content">
@@ -5380,7 +5391,7 @@
                                 <input type="text" id="paramHotspotGene" class="form-control" placeholder="Gene..." title="Search a hotspot-mutated gene" autocomplete="off">
                                 <div id="paramHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
-                            <select id="paramHotspotLevel" class="form-control" style="flex:1 1 44%; min-width:0;">
+                            <select id="paramHotspotLevel" class="form-control" style="display:none;flex:1 1 44%; min-width:0;">
                                 <option value="1+2" selected>Mutated (either copy)</option>
                                 <option value="1">One copy mutated</option>
                                 <option value="2">Both copies mutated</option>
@@ -5398,7 +5409,7 @@
                                 <input type="text" id="paramCnFilter" class="form-control" placeholder="Gene..." title="Search a gene with a focal amplification (&#9650;) or deletion (&#9660;) from the curated panel. Deletions include single-copy loss, not only homozygous." autocomplete="off">
                                 <div id="paramCnDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
-                            <select id="paramCnLevel" class="form-control" style="flex:1 1 44%; min-width:0;">
+                            <select id="paramCnLevel" class="form-control" style="display:none;flex:1 1 44%; min-width:0;">
                                 <option value="altered" selected>Event present</option>
                                 <option value="wt">No event</option>
                             </select>
@@ -5413,7 +5424,7 @@
                                 <input type="text" id="paramTranslocationGene" class="form-control" placeholder="Fusion..." title="Search a fusion; &#9733; marks curated clinical driver pairs" autocomplete="off">
                                 <div id="paramTranslocationDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
-                            <select id="paramTranslocationLevel" class="form-control" style="flex:1 1 44%; min-width:0;">
+                            <select id="paramTranslocationLevel" class="form-control" style="display:none;flex:1 1 44%; min-width:0;">
                                 <option value="1+2" selected>Fused</option>
                                 <option value="0">Not fused</option>
                             </select>
@@ -5561,6 +5572,7 @@
                                     <input type="range" id="netFontSize" min="10" max="40" value="20" step="1">
                                     <button type="button" class="slider-step" onclick="app.adjustNumber('netFontSize', 1)">+</button>
                                 </div>
+                                <div class="slider-ticks"><span>10</span><span>16</span><span>22</span><span>28</span><span>34</span><span>40</span></div>
                             </div>
                             <div class="slider-group">
                                 <div class="slider-head"><label>Node</label><span class="slider-bubble" id="nodeSizeBubble">25</span></div>
@@ -5569,6 +5581,7 @@
                                     <input type="range" id="netNodeSize" min="10" max="60" value="25" step="1">
                                     <button type="button" class="slider-step" onclick="app.adjustNumber('netNodeSize', 1)">+</button>
                                 </div>
+                                <div class="slider-ticks"><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span></div>
                             </div>
                             <div class="slider-group">
                                 <div class="slider-head"><label>Edge</label><span class="slider-bubble" id="edgeWidthBubble">3</span></div>
@@ -5577,12 +5590,13 @@
                                     <input type="range" id="netEdgeWidth" min="1" max="10" value="3" step="1">
                                     <button type="button" class="slider-step" onclick="app.adjustNumber('netEdgeWidth', 1)">+</button>
                                 </div>
+                                <div class="slider-ticks"><span>1</span><span>3</span><span>5</span><span>7</span><span>10</span></div>
                             </div>
                             <div class="slider-group">
-                                <div class="slider-head"><label>Spread</label><span class="slider-bubble" id="spreadBubble">65</span></div>
+                                <div class="slider-head"><label>Spread</label><span class="slider-bubble" id="spreadBubble">100</span></div>
                                 <div class="slider-row">
                                     <button type="button" class="slider-step" onclick="app.adjustNumber('netSpread', -5)">&minus;</button>
-                                    <input type="range" id="netSpread" min="30" max="100" value="65" step="5" title="How far apart the nodes sit, at the same node, font and edge size. 100 is as far apart as they can sit with the whole network still in view; lower packs them closer together.">
+                                    <input type="range" id="netSpread" min="30" max="100" value="100" step="5" title="How far apart the nodes sit, at the same node, font and edge size. 100 is as far apart as they can sit with the whole network still in view; lower packs them closer together.">
                                     <button type="button" class="slider-step" onclick="app.adjustNumber('netSpread', 5)">+</button>
                                 </div>
                                 <div class="slider-ticks slider-ticks-plain"><span>packed</span><span>full panel</span></div>
@@ -5997,9 +6011,10 @@
                                 <input type="text" id="mutationFilterGene" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="font-size: 10px; padding: 2px 4px;">
                                 <div id="mutationFilterDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
-                            <select id="mutationFilterLevel" class="form-control" style="margin-top: 2px; font-size: 10px; padding: 2px 4px;">
+                            <select id="mutationFilterLevel" class="form-control" style="display:none;margin-top: 2px; font-size: 10px; padding: 2px 4px;">
                                 <option value="1+2" selected>Mutated (1+2)</option><option value="1">Only 1 mut</option><option value="2">Only 2 mut</option><option value="0">Only WT (0)</option>
                             </select>
+<button id="scatterGridHotspotBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Mutation grid for the cell lines shown, click a gene to require it mutated or wild-type">&#9638;</button>
                         </div>
                         <div class="control-box-compact" id="scatterCnFilterBox" style="display: none; overflow: visible;">
                             <span class="control-label" style="font-size:9px;">CN amp/del Filter</span>
@@ -6007,9 +6022,10 @@
                                 <input type="text" id="scatterCnFilter" class="form-control" placeholder="Amp / deletion..." autocomplete="off" style="font-size: 10px; padding: 2px 4px;">
                                 <div id="scatterCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
-                            <select id="scatterCnLevel" class="form-control" style="margin-top: 2px; font-size: 10px; padding: 2px 4px;">
+                            <select id="scatterCnLevel" class="form-control" style="display:none;margin-top: 2px; font-size: 10px; padding: 2px 4px;">
                                 <option value="altered" selected>With event</option><option value="wt">Only WT</option>
                             </select>
+<button id="scatterGridCnBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Copy-number grid for the cell lines shown, click a gene to require the event present or absent">&#9638;</button>
                         </div>
                         <!-- Fusion Filter + Compare. display:contents makes both
                              direct grid items so their position is set by the
@@ -6022,9 +6038,10 @@
                                     <datalist id="translocationFilterGeneList"></datalist>
                                     <div id="translocationFilterDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                                 </div>
-                                <select id="translocationFilterLevel" class="form-control" style="margin-top: 2px; font-size: 10px; padding: 2px 4px;">
+                                <select id="translocationFilterLevel" class="form-control" style="display:none;margin-top: 2px; font-size: 10px; padding: 2px 4px;">
                                     <option value="1+2" selected>Fused</option><option value="0">Only WT (called)</option><option value="nocall">No fusion data</option>
                                 </select>
+<button id="scatterGridFusionBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Fusion grid for the cell lines shown, click a gene to require it fused or not fused">&#9638;</button>
                             </div>
                             <div class="control-box-compact" id="compareBox" style="grid-column: span 2;">
                                 <span class="control-label" style="font-size:10px;">Compare</span>
@@ -6244,18 +6261,21 @@
                             <input type="text" id="geHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
                             <div id="geHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
-                        <select id="geHotspotLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this mutation, or only those without it"><option value="altered" selected>Mutated</option><option value="wt">Only WT</option></select>
+                        <select id="geHotspotLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this mutation, or only those without it" style="display:none;"><option value="altered" selected>Mutated</option><option value="wt">Only WT</option></select>
+<button id="geGridHotspotBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Mutation grid for the cell lines shown, click a gene to require it mutated or wild-type">&#9638;</button>
                         <span id="geHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Filtering on a gene&#39;s status, mutated or wild-type, can introduce bias: these alterations are often concentrated in particular cancer types, so the two groups may differ by cancer type as much as by the alteration.">&#9888;</span>
                         <div id="geFusionFilterWrap" style="position:relative; display:none;">
                             <input type="text" id="geFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
                             <div id="geFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
-                        <select id="geFusionLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this fusion, or only those without it"><option value="altered" selected>Fused</option><option value="wt">Only WT</option></select>
+                        <select id="geFusionLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this fusion, or only those without it" style="display:none;"><option value="altered" selected>Fused</option><option value="wt">Only WT</option></select>
+<button id="geGridFusionBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Fusion grid for the cell lines shown, click a gene to require it fused or not fused">&#9638;</button>
                         <div id="geCnFilterWrap" style="position:relative; display:none;">
                             <input type="text" id="geCnFilter" class="form-control" placeholder="Amp / deletion..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal copy-number filter: amplifications (▲) and deletions (▼) from the curated panel. Deletions include single-copy loss, not only homozygous.">
                             <div id="geCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
-                        <select id="geCnLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this copy-number event, or only those without it"><option value="altered" selected>With event</option><option value="wt">Only WT</option></select>
+                        <select id="geCnLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this copy-number event, or only those without it" style="display:none;"><option value="altered" selected>With event</option><option value="wt">Only WT</option></select>
+<button id="geGridCnBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Copy-number grid for the cell lines shown, click a gene to require the event present or absent">&#9638;</button>
                         <span class="mobile-hide" style="display:inline-flex; align-items:center; gap:8px;">
                             <span style="font-size:10px; color:#6b7280; white-space:nowrap;" title="Minimum cell lines per tissue group to display">Min n:</span>
                             <button onclick="app.adjustNumber('geMinGroupSize', -1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
@@ -6603,9 +6623,10 @@
                                 <input type="text" id="caHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
                                 <div id="caHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
-                            <select id="caHotspotLevel" class="form-control" style="width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
+                            <select id="caHotspotLevel" class="form-control" style="display:none;width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
                                 <option value="1+2" selected>Mutated (1+2)</option><option value="1">Only 1 mut</option><option value="2">Only 2 mut</option><option value="0">Only WT</option>
                             </select>
+<button id="caGridHotspotBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Mutation grid for the cell lines shown, click a gene to require it mutated or wild-type">&#9638;</button>
                         </div>
                         <span id="caHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Filtering on a gene&#39;s status, mutated or wild-type, can introduce bias: these alterations are often concentrated in particular cancer types, so the two groups may differ by cancer type as much as by the alteration.">&#9888;</span>
                         <div id="caFusionFilterWrap" style="display:none;">
@@ -6613,18 +6634,20 @@
                                 <input type="text" id="caFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
                                 <div id="caFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
-                            <select id="caFusionLevel" class="form-control" style="width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
+                            <select id="caFusionLevel" class="form-control" style="display:none;width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
                                 <option value="1+2" selected>Fused</option><option value="0">Only WT (called)</option><option value="nocall">No fusion data</option>
                             </select>
+<button id="caGridFusionBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Fusion grid for the cell lines shown, click a gene to require it fused or not fused">&#9638;</button>
                         </div>
                         <div id="caCnFilterWrap" style="display:none;">
                             <div style="position:relative;">
                                 <input type="text" id="caCnFilter" class="form-control" placeholder="Amp / deletion..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal copy-number filter: amplifications (▲) and deletions (▼) from the curated panel. Deletions include single-copy loss, not only homozygous.">
                                 <div id="caCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                             </div>
-                            <select id="caCnLevel" class="form-control" style="width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
+                            <select id="caCnLevel" class="form-control" style="display:none;width:140px; font-size:10px; padding:2px 4px; margin-top:2px;">
                                 <option value="altered" selected>With event</option><option value="wt">Only WT</option>
                             </select>
+<button id="caGridCnBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Copy-number grid for the cell lines shown, click a gene to require the event present or absent">&#9638;</button>
                         </div>
                         <input type="text" id="caCellLineSearch" class="form-control mobile-hide" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
@@ -7632,6 +7655,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_74"></script>
+    <script src="app.js?v=v85_75"></script>
 </body>
 </html>
