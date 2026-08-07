@@ -2497,9 +2497,22 @@ class CorrelationExplorer {
                 let n = 0;
                 for (const cl of clsToShow) {
                     const call = cells[cl];
-                    if (!call) continue;
-                    muts[cl] = call.tier === 'high' ? 2 : 1;
-                    n++;
+                    if (call) {
+                        muts[cl] = call.tier === 'high' ? 2 : 1;
+                        n++;
+                        continue;
+                    }
+                    // The caller's pair file misses lines it could not read;
+                    // the per-line curated record carries their published
+                    // calls (TC32 and most Ewing lines, for example). The
+                    // include / exclude filter already counts them, so the
+                    // row count has to as well or the two disagree.
+                    const cur = this._curatedFusionEntry(cl);
+                    if (cur && Array.isArray(cur.fusions)
+                        && cur.fusions.some(f => this._sameFusion(f, name))) {
+                        muts[cl] = 2;
+                        n++;
+                    }
                 }
                 if (n > 0) geneCounts.push({ gene: name, n, muts });
             }
@@ -2635,7 +2648,7 @@ class CorrelationExplorer {
         html += `</div>`;
         html += `<div style="padding:6px 10px; overflow-y:auto; overflow-x:hidden; flex:1;">`;
         const legendWords = gridKind === 'fusion'
-            ? ['called', 'high-confidence call', 'not called']
+            ? ['called', 'high-confidence or published call', 'not called']
             : gridKind === 'cn'
                 ? ['single-copy change', 'deep change', 'no event']
                 : ['1 mut', '2 mut', 'WT'];
@@ -4076,6 +4089,28 @@ class CorrelationExplorer {
         return this.curatedFusions?.byCellLine?.[cellLine] || null;
     }
 
+    _normFusionKey(s) {
+        return String(s || '').toUpperCase().replace(/[^A-Z0-9]+/g, '-');
+    }
+
+    // Which cell lines each curated pair is published in, keyed by normalized
+    // pair name. Lets count displays include the published calls the same way
+    // the filters (_geFusionPasses) already do. Cached for the session.
+    _curatedFusionLinesByPair() {
+        if (this._curatedFusionPairMap) return this._curatedFusionPairMap;
+        const map = new Map();
+        for (const [cl, cur] of Object.entries(this.curatedFusions?.byCellLine || {})) {
+            if (!Array.isArray(cur?.fusions)) continue;
+            for (const f of cur.fusions) {
+                const k = this._normFusionKey(f);
+                if (!map.has(k)) map.set(k, new Set());
+                map.get(k).add(cl);
+            }
+        }
+        this._curatedFusionPairMap = map;
+        return map;
+    }
+
     // A cell line's status for one fusion: the caller's level when it has one,
     // otherwise the published call, otherwise 'nocall'. Every consumer goes
     // through here so the counts cannot disagree between views.
@@ -4162,9 +4197,15 @@ class CorrelationExplorer {
         // "any fusion involving this gene" list was mostly noise, so it's dropped.
         const fusion = [];
         if (this.clinicalFusions?.fusionData) {
+            // The per-line curated record adds published calls for lines the
+            // caller could not read. Selecting a fusion counts them (via
+            // _geFusionPasses), so the menu's number has to include them too.
+            const curated = this._curatedFusionLinesByPair();
             const pairs = [];
             for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
-                const n = Object.keys(fd.cellLines || {}).length;
+                const lines = new Set(Object.keys(fd.cellLines || {}));
+                for (const cl of (curated.get(this._normFusionKey(fname)) || [])) lines.add(cl);
+                const n = lines.size;
                 if (n > 0) pairs.push({ value: fname, kind: 'clinical', primary: `★ ${fname}`, count: n, secondary: fd.diseaseContext || 'clinically relevant' });
             }
             pairs.sort((a, b) => b.count - a.count);
@@ -4194,16 +4235,7 @@ class CorrelationExplorer {
             const m = this.mutations?.geneData?.[f.hotspot]?.mutations || this.damagingMutations?.geneData?.[f.hotspot]?.mutations;
             if (!m || !(m[cl] >= 1)) return false;
         }
-        if (f.fusion) {
-            const key = this._stripFusionFilterDecoration(f.fusion);
-            const clinicalPairCells = this.clinicalFusions?.fusionData?.[key]?.cellLines;
-            if (clinicalPairCells) {
-                if (!(cl in clinicalPairCells)) return false;
-            } else {
-                const t = this.translocations?.geneData?.[key]?.translocations;
-                if (!t || !(t[cl] >= 1)) return false;
-            }
-        }
+        if (f.fusion && !this._geFusionPasses(cl, f.fusion)) return false;
         if (f.cn && !this._cellLinePassesCnFilter(cl, f.cn)) return false;
         return true;
     }
@@ -4228,8 +4260,12 @@ class CorrelationExplorer {
         }
         if (kind === 'fusion') {
             const pairs = [];
+            const curated = this._curatedFusionLinesByPair();
             if (this.clinicalFusions?.fusionData) for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
-                const cells = fd.cellLines || {}; let n = 0; for (const cl in cells) if (cohortSet.has(cl)) n++;
+                const lines = new Set();
+                for (const cl in (fd.cellLines || {})) if (cohortSet.has(cl)) lines.add(cl);
+                for (const cl of (curated.get(this._normFusionKey(fname)) || [])) if (cohortSet.has(cl)) lines.add(cl);
+                const n = lines.size;
                 if (n > 0) pairs.push({ value: fname, kind: 'clinical', primary: `★ ${fname}`, count: n, secondary: fd.diseaseContext || 'clinically relevant' });
             }
             pairs.sort((a, b) => b.count - a.count);
@@ -33888,11 +33924,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // (a) Clinically relevant fusion pairs first, with disease context.
                 if (this.clinicalFusions?.fusionData) {
                     const pairCounts = [];
+                    const curated = this._curatedFusionLinesByPair();
                     for (const [fname, fd] of Object.entries(this.clinicalFusions.fusionData)) {
-                        let n = 0;
+                        const lines = new Set();
                         for (const cl of Object.keys(fd.cellLines || {})) {
-                            if (transBaseSet.has(cl)) n++;
+                            if (transBaseSet.has(cl)) lines.add(cl);
                         }
+                        for (const cl of (curated.get(this._normFusionKey(fname)) || [])) {
+                            if (transBaseSet.has(cl)) lines.add(cl);
+                        }
+                        const n = lines.size;
                         if (n > 0) {
                             pairCounts.push({
                                 fname, n,

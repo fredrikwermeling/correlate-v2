@@ -2127,6 +2127,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.83 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Fusion counts agree everywhere.</b> The fusion grid and the filter menus counted only the fusion caller's output, while selecting a fusion also included cell lines whose fusion is documented in the literature but that the caller could not read (most Ewing sarcoma lines, for example: the grid said 14 EWSR1-FLI1 lines, selecting it gave 23). All counts now include the published calls; in the grid they are drawn as high-confidence.</li>
+                </ul>
                 <p><strong>v.85.82 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Wiki gene plots mark the Wiki's own cell line again.</b> Opening a Wiki by shift-clicking a point in a correlation plot and then clicking a gene showed the gene-effect or expression plot without the arrow marking that cell line. The plot was told to mark the cell line inspected in the Cell Line Browser, which is empty or a different line when the Wiki comes from a plot.</li>
@@ -5278,7 +5282,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.82</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.83</a>
     </div>
 
     <div class="main-content">
@@ -7791,6 +7795,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_82"></script>
+    <script src="app.js?v=v85_83"></script>
 </body>
 </html>
