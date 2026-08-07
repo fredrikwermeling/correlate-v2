@@ -2177,6 +2177,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.108 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>The network can no longer end up outside the view after Run or Shuffle.</b> Event-based re-fitting proved unreliable against the solver's last micro-adjustments; for a few seconds after every Run and Shuffle a guard now watches the frame and re-fits the moment anything strays, stopping as soon as you take hold of the view.</li>
+                    <li><b>Every AI export now verifies itself against the visible title.</b> The correlation, gene-effect, gates, mutation and expression-correlate exports record a check of their focal gene(s) against the title on screen, and warn before download if the two disagree, so a stale-state mismatch like the one just fixed cannot pass silently anywhere.</li>
+                </ul>
                 <p><strong>v.85.107 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Fix: the AI export could name the wrong gene.</b> Exporting from a mutation-inspect view read the gene from the normal gene-effect view's state, which can hold a stale gene from an earlier analysis, so the file (its label, its precomputed summaries and its filename) described a different gene than the plot. The export now reads the plotted gene, and also records the disease filter and whether the view showed gene effect or mRNA expression.</li>
@@ -5471,7 +5476,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.107</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.108</a>
         </span>
     </div>
 
@@ -8007,6 +8012,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_107"></script>
+    <script src="app.js?v=v85_108"></script>
 </body>
 </html>

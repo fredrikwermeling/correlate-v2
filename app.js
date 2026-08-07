@@ -10679,8 +10679,10 @@ class CorrelationExplorer {
                     if (!runUserTouched) this.network.fit({ animation: false });
                 });
             }
-            // Frame everything as the last step, whatever moved above.
+            // Frame everything as the last step, whatever moved above, and
+            // keep it framed through the solver's final micro-adjustments.
             this.network.fit({ animation: false });
+            this._ensureNetworkInView();
         });
 
         // Track state for click vs double-click vs drag
@@ -13539,6 +13541,34 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         return true;
     }
 
+    // Declarative view guard for the window right after Run / Shuffle: for a
+    // few seconds, if any node strays outside the visible field (the released
+    // solver still micro-adjusts, and event timing proved unreliable), re-fit.
+    // Cancelled the moment the user takes hold of the view.
+    _ensureNetworkInView(duration = 4000) {
+        clearInterval(this._netViewGuardTimer);
+        if (!this.network) return;
+        let cancelled = false;
+        const cancel = () => { cancelled = true; clearInterval(this._netViewGuardTimer); };
+        this.network.once('dragStart', cancel);
+        this.network.once('zoom', cancel);
+        const t0 = Date.now();
+        this._netViewGuardTimer = setInterval(() => {
+            if (cancelled || !this.network) { clearInterval(this._netViewGuardTimer); return; }
+            if (Date.now() - t0 > duration) { clearInterval(this._netViewGuardTimer); return; }
+            const c = document.getElementById('networkPlot');
+            if (!c || !c.clientWidth) return;
+            const pos = this.network.getPositions();
+            for (const id of Object.keys(pos)) {
+                const d = this.network.canvasToDOM(pos[id]);
+                if (d.x < 30 || d.x > c.clientWidth - 30 || d.y < 30 || d.y > c.clientHeight - 45) {
+                    this.network.fit({ animation: false });
+                    return;
+                }
+            }
+        }, 400);
+    }
+
     // Re-roll the layout from fresh random starting positions, so the user can
     // click until the arrangement looks right. Runs the same settle, untangle,
     // fit and re-baseline sequence a newly drawn network goes through, and
@@ -13598,8 +13628,10 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                     if (!userTouched) this.network.fit({ animation: false });
                 });
             }
-            // Frame everything as the last step.
+            // Frame everything as the last step, and keep it framed through
+            // the solver's final micro-adjustments.
             this.network.fit({ animation: false });
+            this._ensureNetworkInView();
         });
         this.network.stabilize();
     }
@@ -25995,6 +26027,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return [];
     }
 
+    // Cross-check the export's focal gene(s) against the VISIBLE title of the
+    // view being exported. Catches any stale-state mismatch of the kind the
+    // mutation-inspect export had: the result is recorded in the file and the
+    // user is warned on a mismatch.
+    _aiVerifyExportContext(source, context) {
+        const textOf = (id) => document.getElementById(id)?.textContent || '';
+        let title = '', genes = [];
+        if (source === 'ge') {
+            title = textOf('geneEffectTitle');
+            genes = [context.gene];
+        } else if (source === 'scatter' || source === 'gates') {
+            title = textOf('inspectTitle');
+            genes = [context.gene1, context.gene2];
+        } else if (source === 'mutation') {
+            title = textOf('mutationResultsCount');
+            genes = [context.hotspotGene];
+        } else if (source === 'exprCorrelates') {
+            title = textOf('exprCorrelatesTargetGene');
+            genes = [context.targetGene];
+        } else {
+            return { checked: false };
+        }
+        genes = genes.filter(Boolean).map(g => String(g).toUpperCase());
+        if (!genes.length || !title.trim()) return { checked: false };
+        const t = title.toUpperCase();
+        const missingFromTitle = genes.filter(g => !t.includes(g));
+        return { checked: true, visibleTitle: title.trim().slice(0, 160), genes, matchesVisibleTitle: missingFromTitle.length === 0, missingFromTitle };
+    }
+
     async exportFullAIAnalysis() {
         const statusEl = document.getElementById('aiExportStatus');
         const setStatus = (msg) => { if (statusEl) statusEl.textContent = msg; };
@@ -26395,6 +26456,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
         context.description = description;
+        // Record the visible-title cross-check in the export; warn on mismatch.
+        const viewCheck = this._aiVerifyExportContext(source, context);
+        if (viewCheck.checked) {
+            context.viewCheck = viewCheck;
+            if (!viewCheck.matchesVisibleTitle) {
+                this.showCopyNotification?.(
+                    `Warning: the export names ${viewCheck.missingFromTitle.join(', ')} but the visible title reads "${viewCheck.visibleTitle}". Exported anyway - please verify the view.`);
+            }
+        }
         context.nCellLines = n;
         context.app = 'Correlate V2';
         context.dataSource = 'DepMap 25Q3';
