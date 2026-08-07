@@ -14929,6 +14929,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             highlightData.forEach(d => {
                 const saved = this._userLabelPositions.get(d.cellLineName);
                 highlightAnnotations.push({
+                    // Lets a click on the label find the cell line it names, so
+                    // the label can be taken off by clicking it, as in the gene
+                    // effect popout.
+                    _cellLabel: d.cellLineName,
+                    captureevents: true,
+                    hovertext: `Click to remove the ${d.cellLineName} label`,
                     x: d.x, y: d.y,
                     xref: 'x', yref: 'y',
                     text: d.cellLineName,
@@ -15066,6 +15072,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
 
+        // Title and subtitle are drawn as two annotations, not one. Plotly spaces
+        // every line of an annotation by that annotation's own font size, so a
+        // 25px heading and 15px stat lines in one block have to share a spacing:
+        // tight enough for the stats made the heading collide, and loose enough
+        // for the heading pushed the stats far apart. Split, each gets its own.
+        const _titleOnly = titleLines[0];
+        const _subLines = titleLines.slice(1);
         const titleText = titleLines.join('<br>');
 
         // On phones the desktop left margin (96px) + 17-20px y-axis fonts ate a
@@ -15082,13 +15095,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             xref: 'paper', yref: 'paper',
             xanchor: this._userTitlePosition ? 'auto' : 'center',
             yanchor: this._userTitlePosition ? 'auto' : 'bottom',
-            text: titleText,
+            text: _titleOnly,
             showarrow: false,
-            // One line of big text sits fine above smaller ones; two do not,
-            // unless the block is spaced for the big one.
-            font: { size: _fitsOneLine ? Math.round(subSize * 0.85) : titleFontSize },
+            font: { size: titleFontSize },
             _tsRole: 'title'
         };
+
+        // The stat lines, in their own block just under the heading.
+        const _titleRows = _fitsOneLine ? 1 : 2;
+        const subtitleAnnotation = _subLines.length ? {
+            x: titleAnnotation.x,
+            y: (this._userTitlePosition ? this._userTitlePosition.y : 1.04)
+               - (_titleRows * titleFontSize * 1.15) / Math.max(120, (parseInt(document.getElementById('plotHeight')?.value, 10) || 400)),
+            xref: 'paper', yref: 'paper',
+            xanchor: titleAnnotation.xanchor, yanchor: 'bottom',
+            text: _subLines.join('<br>'),
+            showarrow: false,
+            font: { size: Math.round(subSize * 0.85) },
+            _tsRole: 'subtitle'
+        } : null;
 
         // Room for the title block. A wrapped pair label is spaced by the title
         // size, so the reserve has to follow the same number.
@@ -15141,7 +15166,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             _tsRole: 'ylabel'
         };
 
-        const annotations = [titleAnnotation, xLabelAnnotation, yLabelAnnotation, ...highlightAnnotations];
+        const annotations = [titleAnnotation, ...(subtitleAnnotation ? [subtitleAnnotation] : []),
+            xLabelAnnotation, yLabelAnnotation, ...highlightAnnotations];
 
         const layout = {
             xaxis: {
@@ -19398,6 +19424,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // "Highlighted" overlay, so clicked/labeled dots are hoverable too.
         const hoverEl = document.getElementById('scatterPlot');
         try { Plotly.restyle('scatterPlot', { hoverinfo: 'none', hovertemplate: null }); } catch (e) {}
+
+        // Click a cell-line label to take it off, the same gesture the gene
+        // effect popout uses. Labels were only removable from the chip row
+        // below the plot, which meant hunting for the name you had just
+        // clicked onto the chart.
+        hoverEl.removeAllListeners?.('plotly_clickannotation');
+        hoverEl.on('plotly_clickannotation', (ev) => {
+            const name = ev?.annotation?._cellLabel;
+            if (!name) return;
+            ev.event?.preventDefault?.();
+            this.removeHighlight(name);
+        });
         let scatterHoverTimer = null;
         hoverEl.removeAllListeners?.('plotly_hover');
         hoverEl.removeAllListeners?.('plotly_unhover');

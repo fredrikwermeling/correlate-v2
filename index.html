@@ -1192,19 +1192,17 @@
         }
 
         /* The grid button sits beside its gene box rather than on its own row. */
-        /* Gene box and its grid button share one row. The button follows a
-           hidden level select in the markup, so it is pulled back up onto the
-           box's line rather than starting a new one. */
-        .filter-input-wrap { display: inline-block; width: calc(100% - 30px); vertical-align: top; }
-        .control-box-compact > .clb-icon-btn,
-        .form-group > .clb-icon-btn {
-            display: inline-flex;
-            vertical-align: top;
-            margin-left: 4px;
-            margin-top: -22px;
-            position: relative;
-            z-index: 1;
-        }
+        /* Gene box and its grid button share one row, the button beside the box
+           and clear of it. Pulling it up with a negative margin put it on top of
+           the input and hid the start of the placeholder text. The box itself
+           becomes the row, with the label taking a full line above. */
+        /* The grid button sits under its gene box rather than on top of it. An
+           earlier attempt pulled it up with a negative margin, which covered the
+           start of the placeholder text. Putting the whole box into a flex row
+           squashed the Apply / Clear buttons in the neighbouring boxes, so for
+           now the button keeps its own line, clear of the input. */
+        .filter-input-wrap { min-width: 0; }
+        .control-box-compact > .clb-icon-btn { margin-top: 3px; }
 
         .panel-heading {
             font-weight: 700;
@@ -2122,6 +2120,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.79 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Click a cell line's label on the correlation plot to take it off.</b> The same gesture the gene effect popout uses, with a &ldquo;click to remove&rdquo; hint on hover. Until now labels could only be removed from the chip row under the plot, which meant hunting for the name you had just clicked onto the chart.</li>
+                    <li><b>Title and subtitle no longer stretch apart on the expression view.</b> They are drawn as two separate blocks, so the heading keeps its size and the statistics lines under it keep their tight spacing. Previously they shared one block and therefore one line height: tight enough for the statistics made the heading collide, loose enough for the heading pushed the statistics far apart.</li>
+                    <li><b>The grid button no longer sits on top of the gene box.</b> It was covering the start of the placeholder text.</li>
+                </ul>
                 <p><strong>v.85.78 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>The title keeps its size when an axis switches to expression.</b> A longer label made the heading shrink from 25px to 17px to stay on one line. It now keeps the size it is set to and wraps instead, with the two lines spaced so they cannot collide.</li>
@@ -5250,7 +5254,7 @@
         <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a>
         <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>
         <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.78</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.79</a>
     </div>
 
     <div class="main-content">
@@ -6363,20 +6367,20 @@
                             <option value="">All subtypes</option>
                         </select>
                             <select id="geOncotreeFilter" class="form-control filter-level-select" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Exact disease entity from Oncotree. Finer than tissue and subtype."><option value="">All diseases</option></select>
-                        <div id="geHotspotFilterWrap" style="position:relative; display:none;">
+                        <div id="geHotspotFilterWrap" class="filter-input-wrap" style="position:relative; display:none;">
                             <input type="text" id="geHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Hotspot filter, only show cell lines mutated in this gene">
                             <div id="geHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
                         <select id="geHotspotLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this mutation, or only those without it" style="display:none;"><option value="altered" selected>Mutated</option><option value="wt">Only WT</option></select>
 <button id="geGridHotspotBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Mutation grid for the cell lines shown, click a gene to require it mutated or wild-type">&#9638;</button>
                         <span id="geHotspotBiasWarning" class="mobile-hide" style="display: none; font-size: 9px; color: #92400e;" title="Filtering on a gene&#39;s status, mutated or wild-type, can introduce bias: these alterations are often concentrated in particular cancer types, so the two groups may differ by cancer type as much as by the alteration.">&#9888;</span>
-                        <div id="geFusionFilterWrap" style="position:relative; display:none;">
+                        <div id="geFusionFilterWrap" class="filter-input-wrap" style="position:relative; display:none;">
                             <input type="text" id="geFusionFilter" class="form-control" placeholder="Fusion / gene..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Fusion filter, driver pairs (★) and validated fusion genes">
                             <div id="geFusionDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
                         <select id="geFusionLevel" class="form-control" style="width:96px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this fusion, or only those without it" style="display:none;"><option value="altered" selected>Fused</option><option value="wt">Only WT</option></select>
 <button id="geGridFusionBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Fusion grid for the cell lines shown, click a gene to require it fused or not fused">&#9638;</button>
-                        <div id="geCnFilterWrap" style="position:relative; display:none;">
+                        <div id="geCnFilterWrap" class="filter-input-wrap" style="position:relative; display:none;">
                             <input type="text" id="geCnFilter" class="form-control" placeholder="Amp / deletion..." autocomplete="off" style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Focal copy-number filter: amplifications (▲) and deletions (▼) from the curated panel. Deletions include single-copy loss, not only homozygous.">
                             <div id="geCnDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:280px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                         </div>
@@ -7763,6 +7767,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_78"></script>
+    <script src="app.js?v=v85_79"></script>
 </body>
 </html>
