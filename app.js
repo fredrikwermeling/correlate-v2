@@ -2236,8 +2236,10 @@ class CorrelationExplorer {
                 <th style="position: sticky; top: 0; z-index: 1; background: #f9fafb; padding: 4px 8px; text-align: right; width: 44px;">%</th>
             </tr></thead><tbody>`;
 
-        // Pre-compute sub-tissue breakdown for each tissue
+        // Pre-compute sub-tissue and disease breakdowns for each tissue, so
+        // the popup can drill lineage -> subtype -> exact Oncotree disease.
         const subBreakdowns = {};
+        const disBreakdowns = {};
         if (this.cellLineMetadata?.primaryDisease) {
             const cellLines = this.metadata.cellLines;
             const mutSource = isTransloc ? this._fusionAxisData?.geneData?.[gene]?.translocations
@@ -2250,13 +2252,19 @@ class CorrelationExplorer {
                     if (!lin || !sub) return;
                     if (!subBreakdowns[lin]) subBreakdowns[lin] = {};
                     if (!subBreakdowns[lin][sub]) subBreakdowns[lin][sub] = { nMut: 0, nWT: 0, nNoCall: 0 };
+                    let bucket;
                     if (isTransloc) {
                         const st = this._fusionStatus(cl, gene, mutSource);
-                        if (st === null) subBreakdowns[lin][sub].nNoCall++;
-                        else if (st >= 1) subBreakdowns[lin][sub].nMut++;
-                        else subBreakdowns[lin][sub].nWT++;
-                    } else if (mutSource[cl] > 0) subBreakdowns[lin][sub].nMut++;
-                    else subBreakdowns[lin][sub].nWT++;
+                        bucket = st === null ? 'nNoCall' : st >= 1 ? 'nMut' : 'nWT';
+                    } else bucket = mutSource[cl] > 0 ? 'nMut' : 'nWT';
+                    subBreakdowns[lin][sub][bucket]++;
+                    const dis = this.cellLineMetadata.oncotreeSubtype?.[cl];
+                    if (dis) {
+                        if (!disBreakdowns[lin]) disBreakdowns[lin] = {};
+                        if (!disBreakdowns[lin][sub]) disBreakdowns[lin][sub] = {};
+                        if (!disBreakdowns[lin][sub][dis]) disBreakdowns[lin][sub][dis] = { nMut: 0, nWT: 0, nNoCall: 0 };
+                        disBreakdowns[lin][sub][dis][bucket]++;
+                    }
                 });
             }
         }
@@ -2286,14 +2294,35 @@ class CorrelationExplorer {
                     const subTotal = counts.nMut + counts.nWT;
                     const subPct = subTotal > 0 ? (counts.nMut / subTotal * 100).toFixed(1) : '0.0';
                     const subBarW = maxMut > 0 ? (counts.nMut / maxMut * 100) : 0;
+                    // Third level: the exact Oncotree disease entities under this
+                    // subtype. Only offered when they refine it (more than one,
+                    // or a single entity finer than the subtype name itself).
+                    const disEntries = Object.entries(disBreakdowns[t.lineage]?.[sub] || {});
+                    const hasDis = disEntries.length > 1 || (disEntries.length === 1 && disEntries[0][0] !== sub);
                     html += `<tr class="tb-sub-row" data-parent="${t.lineage}" data-subtype="${sub}" style="display:none; cursor:pointer; background:#fafafa;" onmouseenter="this.style.background='#f0f0f0'" onmouseleave="this.style.background='#fafafa'">
                         <td style="padding: 2px 8px 2px 16px;"><input type="checkbox" class="tb-sub-check" value="${sub}" data-parent="${t.lineage}"></td>
-                        <td style="padding: 2px 4px 2px 8px; font-size:11px; color:#6b7280;">${sub}</td>
+                        <td style="padding: 2px 4px 2px 8px; font-size:11px; color:#6b7280;">${hasDis ? '<span class="tb-sub-expand" style="font-size:8px;color:#9ca3af;margin-right:2px;">▶</span>' : ''}${sub}</td>
                         <td style="padding: 2px 6px; text-align: right; color: #dc2626; font-size:11px;">${counts.nMut}</td>
                         <td style="padding: 2px 6px; text-align: right; color: #6b7280; font-size:11px;">${counts.nWT}</td>
                         <td style="padding: 2px 8px;"><div style="background: #fee2e2; border-radius: 2px; height: 8px; width: 100%;"><div style="background: #f87171; border-radius: 2px; height: 8px; width: ${subBarW}%;"></div></div></td>
                         <td style="padding: 2px 8px; text-align: right; color: #9ca3af; font-size: 10px;">${subPct}%</td>
                     </tr>`;
+                    if (hasDis) {
+                        disEntries.sort((a, b) => b[1].nMut - a[1].nMut);
+                        disEntries.forEach(([dis, dc]) => {
+                            const disTotal = dc.nMut + dc.nWT;
+                            const disPct = disTotal > 0 ? (dc.nMut / disTotal * 100).toFixed(1) : '0.0';
+                            const disBarW = maxMut > 0 ? (dc.nMut / maxMut * 100) : 0;
+                            html += `<tr class="tb-dis-row" data-parent-lin="${t.lineage}" data-parent-sub="${sub}" style="display:none; cursor:pointer; background:#f5f5f4;" onmouseenter="this.style.background='#ececeb'" onmouseleave="this.style.background='#f5f5f4'">
+                                <td style="padding: 2px 8px 2px 24px;"><input type="checkbox" class="tb-dis-check" value="${dis}" data-parent-lin="${t.lineage}" data-parent-sub="${sub}"></td>
+                                <td style="padding: 2px 4px 2px 14px; font-size:10px; color:#9ca3af;">${dis}</td>
+                                <td style="padding: 2px 6px; text-align: right; color: #dc2626; font-size:10px;">${dc.nMut}</td>
+                                <td style="padding: 2px 6px; text-align: right; color: #9ca3af; font-size:10px;">${dc.nWT}</td>
+                                <td style="padding: 2px 8px;"><div style="background: #fee2e2; border-radius: 2px; height: 6px; width: 100%;"><div style="background: #fca5a5; border-radius: 2px; height: 6px; width: ${disBarW}%;"></div></div></td>
+                                <td style="padding: 2px 8px; text-align: right; color: #9ca3af; font-size: 9px;">${disPct}%</td>
+                            </tr>`;
+                        });
+                    }
                 });
             }
         });
@@ -2325,6 +2354,12 @@ class CorrelationExplorer {
                     const isExpanded = subRows[0]?.style.display !== 'none';
                     subRows.forEach(sr => sr.style.display = isExpanded ? 'none' : '');
                     expandArrow.textContent = isExpanded ? '▶' : '▼';
+                    // Collapsing a tissue folds its disease rows too, and resets
+                    // the subtype arrows so reopening starts from a clean state.
+                    if (isExpanded) {
+                        popup.querySelectorAll(`.tb-dis-row[data-parent-lin="${tissue}"]`).forEach(dr => dr.style.display = 'none');
+                        subRows.forEach(sr => { const a = sr.querySelector('.tb-sub-expand'); if (a) a.textContent = '▶'; });
+                    }
                     return;
                 }
 
@@ -2339,10 +2374,19 @@ class CorrelationExplorer {
             cb.addEventListener('change', () => this.updateTBSelectionCount());
         });
 
-        // Sub-tissue row click
+        // Sub-tissue row click: the name cell drills into diseases when there
+        // are any; everywhere else toggles the checkbox.
         popup.querySelectorAll('.tb-sub-row').forEach(row => {
             row.addEventListener('click', (e) => {
                 if (e.target.type === 'checkbox') return;
+                const arrow = row.querySelector('.tb-sub-expand');
+                if (arrow && (e.target.closest('td') === row.cells[1])) {
+                    const disRows = popup.querySelectorAll(`.tb-dis-row[data-parent-lin="${row.dataset.parent}"][data-parent-sub="${row.dataset.subtype}"]`);
+                    const isExpanded = disRows[0]?.style.display !== 'none';
+                    disRows.forEach(dr => dr.style.display = isExpanded ? 'none' : '');
+                    arrow.textContent = isExpanded ? '▶' : '▼';
+                    return;
+                }
                 const cb = row.querySelector('.tb-sub-check');
                 cb.checked = !cb.checked;
                 this.updateTBSelectionCount();
@@ -2352,10 +2396,23 @@ class CorrelationExplorer {
             cb.addEventListener('change', () => this.updateTBSelectionCount());
         });
 
+        // Disease row click
+        popup.querySelectorAll('.tb-dis-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (e.target.type === 'checkbox') return;
+                const cb = row.querySelector('.tb-dis-check');
+                cb.checked = !cb.checked;
+                this.updateTBSelectionCount();
+            });
+        });
+        popup.querySelectorAll('.tb-dis-check').forEach(cb => {
+            cb.addEventListener('change', () => this.updateTBSelectionCount());
+        });
+
         // Select all
         document.getElementById('tbSelectAll').addEventListener('change', (e) => {
             popup.querySelectorAll('.tb-check').forEach(cb => { cb.checked = e.target.checked; });
-            popup.querySelectorAll('.tb-sub-check').forEach(cb => { cb.checked = false; }); // clear sub-selections
+            popup.querySelectorAll('.tb-sub-check, .tb-dis-check').forEach(cb => { cb.checked = false; }); // clear finer selections
             this.updateTBSelectionCount();
         });
 
@@ -2364,7 +2421,7 @@ class CorrelationExplorer {
 
         // Clear button
         document.getElementById('tbClearBtn').addEventListener('click', () => {
-            popup.querySelectorAll('.tb-check').forEach(cb => { cb.checked = false; });
+            popup.querySelectorAll('.tb-check, .tb-sub-check, .tb-dis-check').forEach(cb => { cb.checked = false; });
             document.getElementById('tbSelectAll').checked = false;
             this.updateTBSelectionCount();
         });
@@ -2376,7 +2433,12 @@ class CorrelationExplorer {
                 subtype: cb.value,
                 parent: cb.dataset.parent
             }));
-            this.applyTissueBreakdownSelection(selectedTissues, selectedSubtypes);
+            const selectedDiseases = [...popup.querySelectorAll('.tb-dis-check:checked')].map(cb => ({
+                disease: cb.value,
+                sub: cb.dataset.parentSub,
+                lin: cb.dataset.parentLin
+            }));
+            this.applyTissueBreakdownSelection(selectedTissues, selectedSubtypes, selectedDiseases);
             this.hideTissueBreakdownPopup();
         });
 
@@ -3211,14 +3273,16 @@ class CorrelationExplorer {
         if (!popup) return;
         const tissueCount = popup.querySelectorAll('.tb-check:checked').length;
         const subCount = popup.querySelectorAll('.tb-sub-check:checked').length;
+        const disCount = popup.querySelectorAll('.tb-dis-check:checked').length;
         const label = document.getElementById('tbSelectionCount');
         const parts = [];
         if (tissueCount > 0) parts.push(`${tissueCount} tissue${tissueCount > 1 ? 's' : ''}`);
         if (subCount > 0) parts.push(`${subCount} subtype${subCount > 1 ? 's' : ''}`);
+        if (disCount > 0) parts.push(`${disCount} disease${disCount > 1 ? 's' : ''}`);
         if (label) label.textContent = parts.length === 0 ? '0 selected' : parts.join(', ');
     }
 
-    applyTissueBreakdownSelection(selectedTissues, selectedSubtypes = []) {
+    applyTissueBreakdownSelection(selectedTissues, selectedSubtypes = [], selectedDiseases = []) {
         const lineageSelect = document.getElementById('lineageFilter');
         const lineageGroup = document.getElementById('lineageFilterGroup');
         const selectedSet = new Set(selectedTissues);
@@ -3232,6 +3296,11 @@ class CorrelationExplorer {
             document.querySelectorAll('#tissueExcludeList input[type="checkbox"]').forEach(cb => {
                 cb.checked = false;
             });
+            // A cleared tissue selection clears the finer disease pick with it.
+            if (selectedDiseases.length === 0) {
+                const oncSel = document.getElementById('paramOncotreeFilter');
+                if (oncSel && oncSel.value) { oncSel.value = ''; oncSel.dispatchEvent(new Event('change', { bubbles: true })); }
+            }
             // Remove override label
             const overrideLabel = lineageGroup?.querySelector('.tb-override-label');
             if (overrideLabel) overrideLabel.remove();
@@ -3310,6 +3379,35 @@ class CorrelationExplorer {
             }
         }
 
+        // Third level: an exact disease pick sets all three filters at once.
+        // Mirrors the subtype rule above: applied when a single disease is
+        // chosen; several are only reported in the label.
+        if (selectedDiseases.length === 1) {
+            const d = selectedDiseases[0];
+            lineageSelect.value = d.lin;
+            lineageSelect.disabled = false;
+            lineageSelect.style.opacity = '';
+            this.excludedTissues = new Set();
+            this._pendingSubtypeSelection = [d.sub];
+            this._pendingDiseaseSelection = d;
+        }
+        if (selectedDiseases.length > 0) {
+            let overrideLabel = lineageGroup?.querySelector('.tb-override-label');
+            if (!overrideLabel && lineageGroup) {
+                overrideLabel = document.createElement('div');
+                overrideLabel.className = 'tb-override-label';
+                overrideLabel.style.cssText = 'font-size: 11px; color: #5d9239; margin-top: 2px; cursor: pointer;';
+                overrideLabel.title = 'Click to clear tissue selection';
+                overrideLabel.addEventListener('click', () => {
+                    this.applyTissueBreakdownSelection([]);
+                });
+                lineageGroup.appendChild(overrideLabel);
+            }
+            if (overrideLabel) {
+                overrideLabel.textContent = `Disease: ${selectedDiseases.map(d => d.disease).join(', ')} (click to clear)`;
+            }
+        }
+
         // Trigger UI updates
         this.updateSubLineageFilter();
 
@@ -3320,6 +3418,19 @@ class CorrelationExplorer {
                 subSelect.value = this._pendingSubtypeSelection[0];
             }
             this._pendingSubtypeSelection = null;
+        }
+
+        // Apply pending disease pick once tissue and subtype are in place, so
+        // the disease list is scoped (and its option exists) before selecting.
+        if (this._pendingDiseaseSelection) {
+            const d = this._pendingDiseaseSelection;
+            this._pendingDiseaseSelection = null;
+            const oncSel = document.getElementById('paramOncotreeFilter');
+            if (oncSel) {
+                this._populateOncotreeSelect('paramOncotreeFilter', d.lin, d.sub);
+                oncSel.value = d.disease;
+                oncSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
         }
 
         this.updateHotspotCountsForCurrentFilters();
@@ -3346,8 +3457,9 @@ class CorrelationExplorer {
         if (breakdown.length === 0) return;
         const maxMut = Math.max(...breakdown.map(t => t.nMut));
 
-        // Build sub-tissue breakdown
+        // Build sub-tissue and exact-disease breakdowns (three-level drill-down)
         const subBreakdowns = {};
+        const disBreakdowns = {};
         if (this.cellLineMetadata?.primaryDisease) {
             cellLines.forEach(cl => {
                 const lin = this.cellLineMetadata.lineage?.[cl];
@@ -3355,6 +3467,12 @@ class CorrelationExplorer {
                 if (!lin || !sub) return;
                 if (!subBreakdowns[lin]) subBreakdowns[lin] = {};
                 subBreakdowns[lin][sub] = (subBreakdowns[lin][sub] || 0) + 1;
+                const dis = this.cellLineMetadata.oncotreeSubtype?.[cl];
+                if (dis) {
+                    if (!disBreakdowns[lin]) disBreakdowns[lin] = {};
+                    if (!disBreakdowns[lin][sub]) disBreakdowns[lin][sub] = {};
+                    disBreakdowns[lin][sub][dis] = (disBreakdowns[lin][sub][dis] || 0) + 1;
+                }
             });
         }
 
@@ -3402,12 +3520,26 @@ class CorrelationExplorer {
                 const subs = Object.entries(subBreakdowns[t.lineage]).sort((a, b) => b[1] - a[1]);
                 subs.forEach(([sub, count]) => {
                     const subBarW = maxMut > 0 ? (count / maxMut * 100) : 0;
-                    html += `<tr class="tb-sub-row" data-parent="${t.lineage}" style="display:none; cursor:pointer; background:#fafafa;">
+                    const disEntries = Object.entries(disBreakdowns[t.lineage]?.[sub] || {});
+                    const hasDis = disEntries.length > 1 || (disEntries.length === 1 && disEntries[0][0] !== sub);
+                    html += `<tr class="tb-sub-row" data-parent="${t.lineage}" data-subtype="${sub}" style="display:none; cursor:pointer; background:#fafafa;">
                         <td style="padding: 2px 8px 2px 16px;"><input type="checkbox" class="tb-sub-check" value="${sub}" data-parent="${t.lineage}"></td>
-                        <td style="padding: 2px 4px 2px 8px; font-size:11px; color:#6b7280;">${sub}</td>
+                        <td style="padding: 2px 4px 2px 8px; font-size:11px; color:#6b7280;">${hasDis ? '<span class="tb-sub-expand" style="font-size:8px;color:#9ca3af;margin-right:2px;">▶</span>' : ''}${sub}</td>
                         <td style="padding: 2px 6px; text-align: right; font-size:11px;">${count}</td>
                         <td style="padding: 2px 8px;"><div style="background: #e6f6dc; border-radius: 2px; height: 8px; width: 100%;"><div style="background: #86efac; border-radius: 2px; height: 8px; width: ${subBarW}%;"></div></div></td>
                     </tr>`;
+                    if (hasDis) {
+                        disEntries.sort((a, b) => b[1] - a[1]);
+                        disEntries.forEach(([dis, dcount]) => {
+                            const disBarW = maxMut > 0 ? (dcount / maxMut * 100) : 0;
+                            html += `<tr class="tb-dis-row" data-parent-lin="${t.lineage}" data-parent-sub="${sub}" style="display:none; cursor:pointer; background:#f5f5f4;">
+                                <td style="padding: 2px 8px 2px 24px;"><input type="checkbox" class="tb-dis-check" value="${dis}" data-parent-lin="${t.lineage}" data-parent-sub="${sub}"></td>
+                                <td style="padding: 2px 4px 2px 14px; font-size:10px; color:#9ca3af;">${dis}</td>
+                                <td style="padding: 2px 6px; text-align: right; font-size:10px; color:#9ca3af;">${dcount}</td>
+                                <td style="padding: 2px 8px;"><div style="background: #e6f6dc; border-radius: 2px; height: 6px; width: 100%;"><div style="background: #bbf7d0; border-radius: 2px; height: 6px; width: ${disBarW}%;"></div></div></td>
+                            </tr>`;
+                        });
+                    }
                 });
             }
         });
@@ -3434,6 +3566,10 @@ class CorrelationExplorer {
                     const isExpanded = subRows[0]?.style.display !== 'none';
                     subRows.forEach(sr => sr.style.display = isExpanded ? 'none' : '');
                     expandArrow.textContent = isExpanded ? '▶' : '▼';
+                    if (isExpanded) {
+                        popup.querySelectorAll(`.tb-dis-row[data-parent-lin="${tissue}"]`).forEach(dr => dr.style.display = 'none');
+                        subRows.forEach(sr => { const a = sr.querySelector('.tb-sub-expand'); if (a) a.textContent = '▶'; });
+                    }
                     return;
                 }
                 const cb = row.querySelector('.tb-check');
@@ -3444,21 +3580,37 @@ class CorrelationExplorer {
         popup.querySelectorAll('.tb-sub-row').forEach(row => {
             row.addEventListener('click', (e) => {
                 if (e.target.type === 'checkbox') return;
+                const arrow = row.querySelector('.tb-sub-expand');
+                if (arrow && (e.target.closest('td') === row.cells[1])) {
+                    const disRows = popup.querySelectorAll(`.tb-dis-row[data-parent-lin="${row.dataset.parent}"][data-parent-sub="${row.dataset.subtype}"]`);
+                    const isExpanded = disRows[0]?.style.display !== 'none';
+                    disRows.forEach(dr => dr.style.display = isExpanded ? 'none' : '');
+                    arrow.textContent = isExpanded ? '▶' : '▼';
+                    return;
+                }
                 const cb = row.querySelector('.tb-sub-check');
                 cb.checked = !cb.checked;
                 this.updateTBSelectionCount();
             });
         });
-        popup.querySelectorAll('.tb-check, .tb-sub-check').forEach(cb => {
+        popup.querySelectorAll('.tb-dis-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (e.target.type === 'checkbox') return;
+                const cb = row.querySelector('.tb-dis-check');
+                cb.checked = !cb.checked;
+                this.updateTBSelectionCount();
+            });
+        });
+        popup.querySelectorAll('.tb-check, .tb-sub-check, .tb-dis-check').forEach(cb => {
             cb.addEventListener('change', () => this.updateTBSelectionCount());
         });
         document.getElementById('tbSelectAll').addEventListener('change', (e) => {
             popup.querySelectorAll('.tb-check').forEach(cb => { cb.checked = e.target.checked; });
-            popup.querySelectorAll('.tb-sub-check').forEach(cb => { cb.checked = false; });
+            popup.querySelectorAll('.tb-sub-check, .tb-dis-check').forEach(cb => { cb.checked = false; });
             this.updateTBSelectionCount();
         });
         document.getElementById('tbClearBtn').addEventListener('click', () => {
-            popup.querySelectorAll('.tb-check, .tb-sub-check').forEach(cb => { cb.checked = false; });
+            popup.querySelectorAll('.tb-check, .tb-sub-check, .tb-dis-check').forEach(cb => { cb.checked = false; });
             document.getElementById('tbSelectAll').checked = false;
             this.updateTBSelectionCount();
         });
@@ -3467,7 +3619,10 @@ class CorrelationExplorer {
             const selectedSubtypes = [...popup.querySelectorAll('.tb-sub-check:checked')].map(cb => ({
                 subtype: cb.value, parent: cb.dataset.parent
             }));
-            this.applyTissueBreakdownSelection(selectedTissues, selectedSubtypes);
+            const selectedDiseases = [...popup.querySelectorAll('.tb-dis-check:checked')].map(cb => ({
+                disease: cb.value, sub: cb.dataset.parentSub, lin: cb.dataset.parentLin
+            }));
+            this.applyTissueBreakdownSelection(selectedTissues, selectedSubtypes, selectedDiseases);
             this.hideTissueBreakdownPopup();
         });
 
