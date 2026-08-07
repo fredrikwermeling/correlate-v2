@@ -3193,16 +3193,26 @@ class CorrelationExplorer {
         document.getElementById('oncoprintPopup')?.remove();
     }
 
-    // Mark the mutation-analysis Run button when a cohort-affecting filter
-    // changes after results exist, so the table's staleness is visible.
-    // Returns true when the marker was applied.
+    // Mark the current mode's Run button when a cohort-affecting filter
+    // changes after results exist, so the staleness of what is on screen is
+    // visible. Covers mutation analysis AND gene set analysis.
+    // Returns true when a marker was applied.
     _markMutationRunStale() {
         const mode = document.querySelector('input[name="analysisMode"]:checked')?.value;
-        if (mode !== 'mutation' || !this.mutationResults) return false;
-        const btn = document.getElementById('runMutationAnalysisBtn');
-        if (btn) {
-            btn.textContent = 'Run Mutation Analysis (filters changed)';
-            btn.style.background = '#b45309';
+        if (mode === 'mutation') {
+            if (!this.mutationResults) return false;
+            const btn = document.getElementById('runMutationAnalysisBtn');
+            if (btn) {
+                btn.textContent = 'Run Mutation Analysis (filters changed)';
+                btn.style.background = '#b45309';
+            }
+            return true;
+        }
+        if (!this.results) return false;
+        const runBtn = document.getElementById('runAnalysis');
+        if (runBtn) {
+            runBtn.textContent = 'Run ▶ (filters changed)';
+            runBtn.style.background = '#b45309';
         }
         return true;
     }
@@ -7471,6 +7481,12 @@ class CorrelationExplorer {
     }
 
     runAnalysis() {
+        // Clear the "filters changed" marker on the gene-set Run button.
+        const runStaleBtn = document.getElementById('runAnalysis');
+        if (runStaleBtn) {
+            runStaleBtn.textContent = 'Run ▶';
+            runStaleBtn.style.background = '';
+        }
         // Any analysis run reveals boxes 1/2/3 (safety net for programmatic runs).
         this._setAnalysisLocked(false);
         // Reset network settings to defaults when running new analysis
