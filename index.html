@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.103 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Run and Shuffle always leave the whole network in view.</b> After the components were separated, the solver was handed the nodes back and drifted them out of the fitted frame, clipping nodes and labels at the edges. A hand-arranged multi-component layout now stays locked (unlock to release it), many small components wrap into rows instead of one wide strip, and the view is re-fitted as the very last step.</li>
+                </ul>
                 <p><strong>v.85.102 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Pathway figure cleaned up.</b> The complex label overflowed its box; the TSC card now holds the two subunits with a small caption underneath, everything inside its border.</li>
@@ -5450,7 +5454,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.102</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.103</a>
         </span>
     </div>
 
@@ -7986,6 +7990,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_102"></script>
+    <script src="app.js?v=v85_103"></script>
 </body>
 </html>

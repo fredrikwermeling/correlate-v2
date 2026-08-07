@@ -10637,7 +10637,8 @@ class CorrelationExplorer {
         // After stabilization: resolve edge crossings, then lock large networks
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
-            this._separateNetworkComponents();
+            const multiComp = this._separateNetworkComponents();
+            this._sepMultiComp = multiComp;
             this.network.fit({ animation: false });
             // The settled, fitted layout is the reference Spread works from, and
             // it is by definition the 100 setting: the network exactly fills the
@@ -10652,10 +10653,13 @@ class CorrelationExplorer {
             // the solver so a new network does not open in the locked state.
             // Placing nodes needs the solver stopped, but it will not re-expand
             // an already-settled layout, so the spacing survives being released.
-            this._applyNetworkSpread({ releaseAfter: true });
+            this._applyNetworkSpread({ releaseAfter: !this._sepMultiComp });
             clearTimeout(this._networkLoadingFallback);
             this._hideNetworkLoading();
-            if (nodeCount > 30) {
+            // A hand-separated multi-component arrangement is not a solver
+            // equilibrium: releasing physics would drift it out of the fitted
+            // view, so it stays locked (like large networks always did).
+            if (nodeCount > 30 || this._sepMultiComp) {
                 this.network.setOptions({ physics: { enabled: false } });
                 this.physicsEnabled = false;
                 if (physicsBtn) {
@@ -10663,6 +10667,8 @@ class CorrelationExplorer {
                     physicsBtn.classList.add('btn-active');
                 }
             }
+            // Frame everything as the last step, whatever moved above.
+            this.network.fit({ animation: false });
         });
 
         // Track state for click vs double-click vs drag
@@ -13476,7 +13482,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         edges.forEach(e => { const ra = find(e.from), rb = find(e.to); if (ra !== rb) parent.set(ra, rb); });
         const groups = new Map();
         nodes.forEach(n => { const r = find(n.id); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(n.id); });
-        if (groups.size < 2) return;
+        if (groups.size < 2) return false;
         const positions = this.network.getPositions();
         const comps = [...groups.values()].map(ids => {
             let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -13485,23 +13491,35 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                 minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
             return { ids, minX, maxX, minY, maxY, w: maxX - minX, h: maxY - minY };
         }).sort((a, b) => (b.w * b.h) - (a.w * a.h));
-        // Placing nodes needs the solver stopped (a settled solver will not
-        // re-expand, so the arrangement survives being released).
-        const physicsWas = this.physicsEnabled !== false;
-        if (physicsWas) this.network.setOptions({ physics: { enabled: false } });
-        const PAD = 120 + (this._netSpringLength || 150) * 0.4;
+        // Hand-placing nodes needs the solver stopped; the caller decides
+        // whether it ever comes back (a released solver would drift this
+        // arrangement out of the fitted view).
+        this.network.setOptions({ physics: { enabled: false } });
+        this.physicsEnabled = false;
+        const PAD = 100 + (this._netSpringLength || 150) * 0.35;
         const main = comps[0];
+        // Satellites wrap into rows beside the main component, so many small
+        // pairs form a block rather than one very wide strip.
+        const maxRowW = Math.max(main.w, 500);
         let cursorX = main.maxX + PAD;
-        const rowMidY = (main.minY + main.maxY) / 2;
+        let rowTop = main.minY;
+        let rowH = 0;
+        const rowStartX = main.maxX + PAD;
         for (let i = 1; i < comps.length; i++) {
             const c = comps[i];
+            if (cursorX > rowStartX && (cursorX + c.w) > (rowStartX + maxRowW)) {
+                rowTop += rowH + PAD;
+                rowH = 0;
+                cursorX = rowStartX;
+            }
             const dx = cursorX - c.minX;
-            const dy = (rowMidY - c.h / 2) - c.minY;
+            const dy = rowTop - c.minY;
             c.ids.forEach(id => { const p = positions[id]; if (p) this.network.moveNode(id, p.x + dx, p.y + dy); });
             cursorX += c.w + PAD;
+            rowH = Math.max(rowH, c.h);
         }
-        if (physicsWas) this.network.setOptions({ physics: { enabled: true } });
         this.network.redraw();
+        return true;
     }
 
     // Re-roll the layout from fresh random starting positions, so the user can
@@ -13525,15 +13543,21 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         this.physicsEnabled = true;
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
-            this._separateNetworkComponents();
+            const multiComp = this._separateNetworkComponents();
             this.network.fit({ animation: false });
             this._netBasePositions = this.network.getPositions();
             this._netBaseSpread = 100;
-            this._applyNetworkSpread({ releaseAfter: !wasLocked });
-            if (wasLocked) {
+            this._applyNetworkSpread({ releaseAfter: !wasLocked && !multiComp });
+            if (wasLocked || multiComp) {
                 this.network.setOptions({ physics: { enabled: false } });
                 this.physicsEnabled = false;
+                if (multiComp && !wasLocked) {
+                    const pb = document.getElementById('togglePhysics');
+                    if (pb) { pb.textContent = 'Unlock Nodes'; pb.classList.add('btn-active'); }
+                }
             }
+            // Frame everything as the last step.
+            this.network.fit({ animation: false });
         });
         this.network.stabilize();
     }
