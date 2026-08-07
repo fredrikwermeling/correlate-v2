@@ -2177,6 +2177,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.105 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Run leaves the network unlocked again, safely.</b> Instead of locking everything, only the separated side-components are pinned individually (they can still be dragged by hand); the main cluster stays live as before, and unlocking no longer reforms the picture out of view.</li>
+                    <li><b>Shuffle rolls look right again.</b> The rolled Spread is now applied before the components are packed; scaling the packed arrangement squeezed side-components back over the main cluster, which is what made some rolls look strange.</li>
+                </ul>
                 <p><strong>v.85.104 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Shuffle also rolls the spacing.</b> Each click draws a new Spread between 60 and 100 alongside the new layout, so consecutive shuffles offer different densities; the slider follows the drawn value and can be tuned from there.</li>
@@ -5458,7 +5463,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.104</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.105</a>
         </span>
     </div>
 
@@ -7994,6 +7999,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_104"></script>
+    <script src="app.js?v=v85_105"></script>
 </body>
 </html>

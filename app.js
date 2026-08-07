@@ -10637,8 +10637,7 @@ class CorrelationExplorer {
         // After stabilization: resolve edge crossings, then lock large networks
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
-            const multiComp = this._separateNetworkComponents();
-            this._sepMultiComp = multiComp;
+            this._separateNetworkComponents();
             this.network.fit({ animation: false });
             // The settled, fitted layout is the reference Spread works from, and
             // it is by definition the 100 setting: the network exactly fills the
@@ -10653,19 +10652,22 @@ class CorrelationExplorer {
             // the solver so a new network does not open in the locked state.
             // Placing nodes needs the solver stopped, but it will not re-expand
             // an already-settled layout, so the spacing survives being released.
-            this._applyNetworkSpread({ releaseAfter: !this._sepMultiComp });
+            this._applyNetworkSpread({ releaseAfter: false });
             clearTimeout(this._networkLoadingFallback);
             this._hideNetworkLoading();
-            // A hand-separated multi-component arrangement is not a solver
-            // equilibrium: releasing physics would drift it out of the fitted
-            // view, so it stays locked (like large networks always did).
-            if (nodeCount > 30 || this._sepMultiComp) {
+            if (nodeCount > 30) {
                 this.network.setOptions({ physics: { enabled: false } });
                 this.physicsEnabled = false;
                 if (physicsBtn) {
                     physicsBtn.textContent = 'Unlock Nodes';
                     physicsBtn.classList.add('btn-active');
                 }
+            } else {
+                // Default is UNLOCKED. The satellites are pinned individually,
+                // so releasing the solver cannot drag them out of the frame;
+                // the main cluster is settled and does not re-step.
+                this.network.setOptions({ physics: { enabled: true } });
+                this.physicsEnabled = true;
             }
             // Frame everything as the last step, whatever moved above.
             this.network.fit({ animation: false });
@@ -13515,6 +13517,11 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             const dx = cursorX - c.minX;
             const dy = rowTop - c.minY;
             c.ids.forEach(id => { const p = positions[id]; if (p) this.network.moveNode(id, p.x + dx, p.y + dy); });
+            // Pin the satellites: their placement is hand-made, not a solver
+            // equilibrium, so a released solver would drag them back across
+            // the main cluster. Pinned nodes ignore physics but can still be
+            // dragged by hand.
+            this.networkData.nodes.update(c.ids.map(id => ({ id, fixed: { x: true, y: true } })));
             cursorX += c.w + PAD;
             rowH = Math.max(rowH, c.h);
         }
@@ -13532,24 +13539,22 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         if (!nodes.length) return;
         const wasLocked = this.physicsEnabled === false;
         // Scatter within a disc sized to the graph, so the solver starts from a
-        // genuinely different configuration each time.
+        // genuinely different configuration each time. Also unpin everything:
+        // satellites pinned by an earlier separation must join the re-roll.
         const R = Math.max(250, Math.sqrt(nodes.length) * ((this._netSpringLength || 150) / 2));
         this.networkData.nodes.update(nodes.map(nd => {
             const a = Math.random() * 2 * Math.PI;
             const r = R * Math.sqrt(Math.random());
-            return { id: nd.id, x: Math.cos(a) * r, y: Math.sin(a) * r };
+            return { id: nd.id, x: Math.cos(a) * r, y: Math.sin(a) * r, fixed: false };
         }));
         this.network.setOptions({ physics: { enabled: true } });
         this.physicsEnabled = true;
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
-            const multiComp = this._separateNetworkComponents();
-            this.network.fit({ animation: false });
-            this._netBasePositions = this.network.getPositions();
-            this._netBaseSpread = 100;
-            // Each roll also draws a new Spread (60-100), so consecutive
-            // shuffles offer visibly different densities to choose from. The
-            // slider and its bubble follow, so the value can be kept or tuned.
+            // Each roll also draws a new Spread (60-100). It is applied to the
+            // settled layout BEFORE the components are packed: scaling the
+            // packed arrangement instead squeezed the satellites back over
+            // the main cluster, which is what made some rolls look wrong.
             const spreadEl = document.getElementById('netSpread');
             if (spreadEl) {
                 const v = 60 + Math.round(Math.random() * 8) * 5;
@@ -13557,14 +13562,31 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                 const bb = document.getElementById('spreadBubble');
                 if (bb) bb.textContent = v;
             }
-            this._applyNetworkSpread({ releaseAfter: !wasLocked && !multiComp });
-            if (wasLocked || multiComp) {
+            this._netBasePositions = this.network.getPositions();
+            this._netBaseSpread = 100;
+            this._applyNetworkSpread({ releaseAfter: false });
+            this._separateNetworkComponents();
+            // The packed, scaled layout at the rolled Spread is the new
+            // reference, so moving the slider afterwards behaves normally.
+            this._netBasePositions = this.network.getPositions();
+            this._netBaseSpread = parseInt(spreadEl?.value, 10) || 100;
+            if (wasLocked) {
                 this.network.setOptions({ physics: { enabled: false } });
                 this.physicsEnabled = false;
-                if (multiComp && !wasLocked) {
-                    const pb = document.getElementById('togglePhysics');
-                    if (pb) { pb.textContent = 'Unlock Nodes'; pb.classList.add('btn-active'); }
-                }
+            } else {
+                this.network.setOptions({ physics: { enabled: true } });
+                this.physicsEnabled = true;
+                // A rolled Spread below 100 compresses the cluster under its
+                // spring equilibrium, so the released solver re-expands it a
+                // little. Re-frame once it settles, unless the user has
+                // already taken hold of the view.
+                let userTouched = false;
+                const markTouched = () => { userTouched = true; };
+                this.network.once('dragStart', markTouched);
+                this.network.once('zoom', markTouched);
+                this.network.once('stabilized', () => {
+                    if (!userTouched) this.network.fit({ animation: false });
+                });
             }
             // Frame everything as the last step.
             this.network.fit({ animation: false });
