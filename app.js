@@ -8744,6 +8744,16 @@ class CorrelationExplorer {
         this._geScopeLineage = '';
         this._syncGeScopeToggle?.();
 
+        // A dragged axis-label position belongs to the plot it was dragged on.
+        // Carrying it onto a different gene / stratifier put the label at a
+        // spot computed for another layout, sometimes off the canvas entirely.
+        const distKey = `${gene}::${hotspotGene}::${isTranslocation ? 'f' : isDamaging ? 'd' : 'h'}${this._cnAxisMode || ''}`;
+        if (this._lastGEDistKey !== distKey) {
+            this._geUserXLabelPos = null;
+            this._geUserYLabelPos = null;
+        }
+        this._lastGEDistKey = distKey;
+
         // Follow the measure the results table is showing. Opening Inspect
         // from the mRNA table used to plot knockout effect, so the numbers on
         // screen had nothing to do with the row that was clicked.
@@ -9195,10 +9205,14 @@ class CorrelationExplorer {
             _tsRole: 'xlabel'
         };
 
+        // Placed in pixels (xshift) off the plot-area's left edge rather than
+        // as a paper fraction: the fraction was computed from clientWidth,
+        // which reads 0 while the modal is still hidden, so the label could
+        // land outside the canvas and silently disappear.
         const geYLabelAnn = {
             text: yAxisTitle,
             xref: 'paper', yref: 'paper',
-            x: this._geUserYLabelPos ? this._geUserYLabelPos.x : yFit.labelX,
+            x: this._geUserYLabelPos ? this._geUserYLabelPos.x : 0,
             y: this._geUserYLabelPos ? this._geUserYLabelPos.y : 0.5,
             xanchor: this._geUserYLabelPos ? 'auto' : 'center',
             yanchor: this._geUserYLabelPos ? 'auto' : 'middle',
@@ -9207,6 +9221,7 @@ class CorrelationExplorer {
             textangle: -90,
             _tsRole: 'ylabel'
         };
+        if (!this._geUserYLabelPos) geYLabelAnn.xshift = -yFit.labelShiftPx;
 
         const showZero = document.getElementById('geShowZeroLine')?.checked !== false;
         const layout = {
@@ -22956,11 +22971,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const plotAreaWidth = Math.max(50, containerWidth - marginL - marginR);
 
         // Center the rotated label at tickPx + gapTickLabel + labelPx/2 pixels
-        // left of plot-area left edge.
-        const labelPxOffset = tickPx + gapTickLabel + labelPx / 2;
+        // left of plot-area left edge, but never outside the reserved margin:
+        // long tick labels hit the margin ceiling above, and an unclamped
+        // offset then pushed the label off the canvas entirely, which read as
+        // "the y-axis title is missing".
+        const labelPxOffset = Math.min(tickPx + gapTickLabel + labelPx / 2,
+            marginL - labelPx / 2 - 2);
         const labelX = -labelPxOffset / plotAreaWidth;
 
-        return { marginL, labelX };
+        // labelShiftPx positions the label in PIXELS (via annotation xshift),
+        // which stays correct even when this runs while the modal is hidden
+        // and clientWidth reads 0; the paper-fraction labelX is kept for
+        // callers that still use it.
+        return { marginL, labelX, labelShiftPx: labelPxOffset };
     }
 
     // Single source of truth for "is there a plot to show vs the placeholder?"
