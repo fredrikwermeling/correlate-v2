@@ -5305,6 +5305,11 @@ class CorrelationExplorer {
         document.getElementById('networkAaBtn')?.addEventListener('click', () => this.openNetworkTextSettings());
         document.getElementById('shuffleNetworkBtn')?.addEventListener('click', () => this.shuffleNetworkLayout());
         document.getElementById('highlightNetworkBtn')?.addEventListener('click', () => this.toggleNetworkHighlightMode());
+        document.getElementById('clearHighlightedNodes')?.addEventListener('click', () => this.applyNetworkHighlight(''));
+        document.getElementById('highlightedNodesText')?.addEventListener('click', (e) => {
+            const el = e.target.closest('[data-hl-gene]');
+            if (el) this._toggleNodeHighlight(el.dataset.hlGene);
+        });
         document.getElementById('resetNetworkControls')?.addEventListener('click', () => this.resetNetworkControls());
         document.getElementById('networkNodeBorder')?.addEventListener('change', (e) => this.toggleNetworkBorder(e.target.checked));
         document.getElementById('fitNetwork').addEventListener('click', () => {
@@ -13308,7 +13313,22 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         });
         if (updates.length) this.networkData.nodes.update(updates);
         this._netHighlightText = String(text || '');
+        this.updateHighlightedNodesList();
         return matched;
+    }
+
+    // The highlighted genes are listed under View controls like Select Mode's
+    // selection: click a name to un-highlight it, Clear removes them all.
+    updateHighlightedNodesList() {
+        const box = document.getElementById('highlightedNodesList');
+        const txt = document.getElementById('highlightedNodesText');
+        if (!box || !txt) return;
+        const names = String(this._netHighlightText || '').split(/[\s,;]+/).filter(Boolean);
+        if (!names.length) { box.style.display = 'none'; txt.innerHTML = ''; return; }
+        txt.innerHTML = names.map(n =>
+            `<span data-hl-gene="${this._escapeAttr(n)}" title="Click to remove this highlight" style="cursor:pointer; text-decoration:underline; margin-right:4px;">${this.esc(n)}</span>`
+        ).join('');
+        box.style.display = '';
     }
 
     // Small anchored popup for the View-controls Highlight button: easier to
@@ -43099,6 +43119,7 @@ ${clone.innerHTML}
     openTextSettings(plotDivId) {
         const panel = document.getElementById('textSettingsPanel');
         const body = document.getElementById('textSettingsBody');
+        if (this._textSettingsPlotId !== plotDivId) this._tsInlineState = null;
         this._textSettingsPlotId = plotDivId;
 
         const plotEl = document.getElementById(plotDivId);
@@ -43506,6 +43527,44 @@ ${clone.innerHTML}
         return anns.findIndex(a => a._tsRole === role);
     }
 
+    // Split a combined title+subtitle annotation at the first sized span.
+    _tsInlineSplit(ann) {
+        const raw = ann.text || '';
+        const parts = raw.split(/<br\s*\/?>/i);
+        let firstSub = parts.length;
+        for (let i = 1; i < parts.length; i++) { if (/font-size:/i.test(parts[i])) { firstSub = i; break; } }
+        return { titleHtml: parts.slice(0, firstSub).join('<br>'), subHtml: parts.slice(firstSub).join('<br>') };
+    }
+
+    // The stored pieces live on the app, not the annotation: Plotly replaces
+    // annotation objects on relayout, which silently dropped flags kept there.
+    _tsGetInlineState(plotEl, idx) {
+        const ann = (plotEl.layout.annotations || [])[idx];
+        const key = `${this._textSettingsPlotId}:${idx}`;
+        if (!this._tsInlineState || this._tsInlineState.key !== key) {
+            const pcs = this._tsInlineSplit(ann);
+            this._tsInlineState = { key, titleHtml: pcs.titleHtml, subHtml: pcs.subHtml, titleHidden: false, subHidden: false };
+        } else if (!this._tsInlineState.titleHidden && !this._tsInlineState.subHidden) {
+            // Both visible: the live text is authoritative (size edits rewrite it).
+            const pcs = this._tsInlineSplit(ann);
+            this._tsInlineState.titleHtml = pcs.titleHtml;
+            this._tsInlineState.subHtml = pcs.subHtml;
+        }
+        return this._tsInlineState;
+    }
+
+    // Rebuild the combined annotation from the stored pieces and hide flags,
+    // so title and subtitle switch independently while sharing one annotation.
+    _tsSetInlineHeader(plotEl, idx, st) {
+        const t = st.titleHidden ? '' : (st.titleHtml || '');
+        const su = st.subHidden ? '' : (st.subHtml || '');
+        const text = [t, su].filter(Boolean).join('<br>');
+        Plotly.relayout(plotEl, {
+            [`annotations[${idx}].text`]: text || ' ',
+            [`annotations[${idx}].visible`]: !!text
+        });
+    }
+
     _tsToggle(checkboxId) {
         const plotEl = document.getElementById(this._textSettingsPlotId);
         if (!plotEl?.layout) return;
@@ -43513,10 +43572,20 @@ ${clone.innerHTML}
 
         if (checkboxId === 'ts_titleVis') {
             const idx = this._tsFindAnn(plotEl, 'title');
-            if (idx >= 0) {
-                Plotly.relayout(plotEl, { [`annotations[${idx}].visible`]: checked });
-            } else if (this._tsOriginal.usesAnnotationTitle && plotEl.layout.annotations?.length > 0) {
-                Plotly.relayout(plotEl, { 'annotations[0].visible': checked });
+            const subIdx = this._tsFindAnn(plotEl, 'subtitle');
+            const anns = plotEl.layout.annotations || [];
+            const useIdx = idx >= 0 ? idx : (this._tsOriginal.usesAnnotationTitle && anns.length > 0 ? 0 : -1);
+            const combined = useIdx >= 0 && subIdx < 0
+                && (/font-size:/i.test((anns[useIdx].text || '').split(/<br\s*\/?>/i).slice(1).join('<br>'))
+                    || this._tsInlineState?.key === `${this._textSettingsPlotId}:${useIdx}`);
+            if (combined) {
+                // Combined title+subtitle annotation: hide only the title part,
+                // the subtitle keeps its own switch.
+                const st = this._tsGetInlineState(plotEl, useIdx);
+                st.titleHidden = !checked;
+                this._tsSetInlineHeader(plotEl, useIdx, st);
+            } else if (useIdx >= 0) {
+                Plotly.relayout(plotEl, { [`annotations[${useIdx}].visible`]: checked });
             } else {
                 Plotly.relayout(plotEl, { 'title.text': checked ? (this._tsOriginal.titleText || ' ') : '' });
             }
@@ -43525,25 +43594,14 @@ ${clone.innerHTML}
             if (idx >= 0) {
                 Plotly.relayout(plotEl, { [`annotations[${idx}].visible`]: checked });
             } else {
-                // Inline subtitle (lives inside the title annotation): cut the
-                // sized sub-span out to hide, splice it back to show.
+                // Inline subtitle (lives inside the title annotation): rebuild
+                // from stored pieces so this switch never touches the title.
                 const tIdx = this._tsFindAnn(plotEl, 'title');
                 const useIdx = tIdx >= 0 ? tIdx : 0;
-                const ann = (plotEl.layout.annotations || [])[useIdx];
-                if (!ann) return;
-                if (!checked) {
-                    const raw = ann.text || '';
-                    const parts = raw.split(/<br\s*\/?>/i);
-                    let firstSub = 1;
-                    while (firstSub < parts.length && !/font-size:/i.test(parts[firstSub])) firstSub++;
-                    if (firstSub < parts.length) {
-                        ann._cvHiddenSub = parts.slice(firstSub).join('<br>');
-                        Plotly.relayout(plotEl, { [`annotations[${useIdx}].text`]: parts.slice(0, firstSub).join('<br>') });
-                    }
-                } else if (ann._cvHiddenSub) {
-                    Plotly.relayout(plotEl, { [`annotations[${useIdx}].text`]: (ann.text || '') + '<br>' + ann._cvHiddenSub });
-                    delete ann._cvHiddenSub;
-                }
+                if (!(plotEl.layout.annotations || [])[useIdx]) return;
+                const st = this._tsGetInlineState(plotEl, useIdx);
+                st.subHidden = !checked;
+                this._tsSetInlineHeader(plotEl, useIdx, st);
             }
         } else if (checkboxId === 'ts_xLabelVis') {
             const idx = this._tsFindAnn(plotEl, 'xlabel');

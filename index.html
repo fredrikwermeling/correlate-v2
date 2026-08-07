@@ -2168,6 +2168,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.97 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Title and subtitle switch independently everywhere.</b> On plots where the two share one annotation (gene-effect tissue view, UMAP), the Title box used to hide both; each part now has its own switch that leaves the other alone.</li>
+                    <li><b>Highlighted genes are listed under View controls</b>, like Select Mode's selection: click a name to remove that highlight, or Clear to remove them all.</li>
+                </ul>
                 <p><strong>v.85.96 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Grid picks no longer run the analysis by themselves.</b> Applying a grid filter silently re-ran the mutation analysis, which made pressing Run afterwards look dead. The table now stays as it is, the Run button turns amber reading "filters changed", and you run when ready.</li>
@@ -5414,7 +5419,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.96</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.97</a>
         </span>
     </div>
 
@@ -5949,6 +5954,10 @@
                             <div id="removedNodesList" style="display: none; font-size: 9px; margin-bottom: 6px; padding: 4px; background: #fef3c7; border-radius: 3px;">
                                 <span style="font-weight: 600;">Removed:</span> <span id="removedNodesText"></span>
                                 <button class="btn btn-sm" id="restoreAllNodes" title="Bring back every node hidden with Remove Mode" style="padding: 1px 4px; font-size: 8px; margin-left: 4px;">Restore All</button>
+                            </div>
+                            <div id="highlightedNodesList" style="display: none; font-size: 9px; margin-bottom: 6px; padding: 4px; background: #f3f4f6; border-radius: 3px;">
+                                <span style="font-weight: 600;">Highlighted:</span> <span id="highlightedNodesText"></span>
+                                <button class="btn btn-sm" id="clearHighlightedNodes" title="Remove every highlight" style="padding: 1px 4px; font-size: 8px; margin-left: 4px;">Clear</button>
                             </div>
                             <label class="panel-heading">Export</label>
                             <div class="button-group-horizontal">
@@ -7251,7 +7260,7 @@
                             <div style="font-size: 32px; margin-bottom: 4px;">↗</div>
                             <div style="font-weight: 700; color: #3182ce; font-size: 15px;">Positive (r &gt; 0)</div>
                             <p style="font-size: 12px; color: #555; margin: 6px 0 0; line-height: 1.5;">
-                                Knockout of the two genes shifts fitness in a <strong>similar way across the cell lines</strong>, suggesting shared pathway or complex membership.
+                                Knockout of the two genes shifts fitness in a <strong>similar</strong> way across the cell lines, suggesting shared pathway or complex membership.
                             </p>
                         </div>
                         <!-- No correlation -->
@@ -7946,6 +7955,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_96"></script>
+    <script src="app.js?v=v85_97"></script>
 </body>
 </html>
