@@ -2177,6 +2177,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.14 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>Copy-number analyses no longer restore as Functional Loss.</b> Opening a CN amplification / deep-deletion inspect in a new tab, or restoring one from an exported image, silently re-ran it as a functional-loss analysis with different groups and p-values; the sub-type is now carried and restored exactly. Expression correlates and the AI export also re-align their call matrix to the results on display, so flipping the sub-type radio without re-running can no longer swap in the wrong data.</li>
+                    <li><b>Every mutation-analysis view now speaks the words of its sub-type.</b> A sweep found many places that said "mutated vs WT" for fusion / functional-loss / copy-number results: the statistics line, the p&lt;0.05 filter label, the results header, the empty-result explanation, the inspect legend, the expression-correlate scatter and subgroup choices, the comparison tables and their tooltips, the UpSet plot, and every CSV header. They now say fused vs no fusion, lost vs intact, amplified vs neutral, and so on. CSV columns on an mRNA run now say Expr instead of GE, and the AI export groups cell lines under type-correct names instead of calling neutral lines "WT".</li>
+                </ul>
                 <p><strong>v.86.13 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>The disease filter now reaches everywhere the tissue and subtype filters do.</b> A deep audit found the newest filter level silently dropped in several places; all now respect it: the inspect scatter opened from an analysis or from the network (the disease pick carries over with the tissue), the Gene Effect popout opened with first-page or Cell Line Browser filters, the "compare all" mutation/fusion/copy-number tables in the inspect scatter (they are computed over exactly the plotted cell lines), the popout comparison tables (By tissue and the Δ tables), Find correlates run before the plot is built (also gained the copy-number filter), Expression correlates (also now honours the popout's subtype pick), and the option counts in filter dropdowns.</li>
@@ -5500,7 +5505,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.13</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.14</a>
         </span>
     </div>
 
@@ -6161,7 +6166,7 @@
                         <strong>Note:</strong> Differential gene effects may reflect selection bias (e.g., mutations enriched in certain cancer types) rather than direct functional consequences of the mutation. Consider filtering by lineage to control for tissue-specific effects.
                     </div>
                     <div style="margin-bottom: 10px; font-size: 11px; color: #6b7280;">
-                        <strong>Statistics:</strong> <span id="mutStatsBlurb">p-values are calculated using Welch's t-test comparing gene effect scores between wild-type (WT, 0 mutations) and mutated cells (1+2 or 2 mutations). Δ GE = Mean(mutated) − Mean(WT).</span>
+                        <strong>Statistics:</strong> <span id="mutStatsBlurb">p-values are calculated using Welch's t-test comparing gene effect scores between wild-type (WT, 0 mutations) and mutated cell lines (1+2 or 2 mutations). Δ GE = Mean(mutated) − Mean(WT).</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom: 10px;">
                         <span id="mutationResultsCount">0 genes with p < 0.001</span>
@@ -6171,7 +6176,7 @@
                             <button type="button" class="btn btn-outline btn-sm" data-mut-metric="expr" onclick="app.setMutAnalysisMetric('expr')" style="font-size:10px; padding:2px 8px;" title="Compare mRNA expression between the mutant and wild-type groups, for example which genes are expressed differently in BRAF-mutant versus BRAF wild-type lines">mRNA expression</button>
                         </span>
                         <label style="font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="View filter on the table below: show only genes whose PRIMARY comparison (mutated 1+2 vs wild-type) reaches p < 0.05. This is separate from the P-value cutoff in box 1, which decides what enters the table at all (any comparison). Off = also show genes that only reach significance on a secondary comparison (e.g. 2 vs 0).">
-                            <input type="checkbox" id="mutPvalueFilter" checked> only p &lt; 0.05 (mutant vs WT) <span style="cursor:help; color:#9ca3af;">?</span>
+                            <input type="checkbox" id="mutPvalueFilter" checked> <span id="mutPvalueFilterLabel">only p &lt; 0.05 (mutated vs WT)</span> <span style="cursor:help; color:#9ca3af;">?</span>
                         </label>
                     </div>
                     <!-- One toolbar row: search, Enrichr and the exports together.
@@ -6887,17 +6892,17 @@
                     </div>
                     <div style="padding: 15px;">
                         <div style="background: #f3faee; border: 1px solid #b2dd95; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; color: #3b5e23;">
-                            Find gene expression patterns that correlate with the gene effect of <strong id="exprCorrelatesTargetGene">-</strong> within a mutation subgroup.
+                            Find gene expression patterns that correlate with the gene effect of <strong id="exprCorrelatesTargetGene">-</strong> within a <span id="exprSubgroupNoun">mutation</span> subgroup.
                         </div>
 
                         <!-- Controls row -->
                         <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
                             <div>
                                 <label style="font-size: 12px; font-weight: 600; color: #374151; margin-right: 6px;">Subgroup:</label>
-                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="0" style="accent-color: #6ba544;"> WT (0)</label>
-                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="1" style="accent-color: #6ba544;"> Mut (1)</label>
-                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="1+2" checked style="accent-color: #6ba544;"> Mutated (1+2)</label>
-                                <label style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="2" style="accent-color: #6ba544;"> High (2)</label>
+                                <label id="exprSubgroupLab0" style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="0" style="accent-color: #6ba544;"> <span id="exprSubgroupLbl0">WT (0)</span></label>
+                                <label id="exprSubgroupLab1" style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="1" style="accent-color: #6ba544;"> <span id="exprSubgroupLbl1">Mut (1)</span></label>
+                                <label id="exprSubgroupLab12" style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="1+2" checked style="accent-color: #6ba544;"> <span id="exprSubgroupLbl12">Mutated (1+2)</span></label>
+                                <label id="exprSubgroupLab2" style="font-size: 12px; margin-right: 8px;"><input type="radio" name="exprSubgroup" value="2" style="accent-color: #6ba544;"> <span id="exprSubgroupLbl2">High (2)</span></label>
                                 <label style="font-size: 12px;"><input type="radio" name="exprSubgroup" value="all" style="accent-color: #6ba544;"> All</label>
                             </div>
                             <button class="btn btn-sm" id="runExprCorrelatesBtn" style="background: #6ba544; color: white;">Run</button>
@@ -8036,6 +8041,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_13"></script>
+    <script src="app.js?v=v86_14"></script>
 </body>
 </html>

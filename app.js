@@ -433,6 +433,9 @@ class CorrelationExplorer {
             hotspotGene: mr.hotspotGene,
             isTranslocation: mr.isTranslocation || false,
             isDamaging: mr.isDamaging || false,
+            // amp/del ride the damaging path; without this a CN inspect
+            // restored as a Functional Loss analysis (wrong call matrix).
+            cnMode: mr.cnMode || null,
             lineageFilter: mr.lineageFilter || '',
             subLineageFilter: mr.subLineageFilter || '',
             oncotreeFilter: mr.oncotreeFilter || '',
@@ -1480,6 +1483,49 @@ class CorrelationExplorer {
         return T[key];
     }
 
+    // Type-aware statistics blurb under the mutation results table. The old
+    // hardcoded hotspot wording described fusion / loss / CN results as
+    // "mutated cells (1+2 or 2 mutations)".
+    _mutStatsBlurbText(f, metric) {
+        const measureWord = metric === 'expr' ? 'mRNA expression (log2 TPM+1)' : 'gene effect scores';
+        const dWord = metric === 'expr' ? 'Δ Expr' : 'Δ GE';
+        const exprNote = metric === 'expr' ? ' Cell lines without expression data are left out of both groups.' : '';
+        const isHotspot = !f?.isTranslocation && !f?.isDamaging;
+        if (isHotspot) {
+            return `p-values are calculated using Welch's t-test comparing ${measureWord} between wild-type (WT, 0 mutations) and mutated cell lines (1+2 or 2 mutations). ${dWord} = Mean(mutated) − Mean(WT).${exprNote}`;
+        }
+        const L = this._mutAxisLabels(f);
+        const refWord = L.ref === 'WT' ? 'WT' : L.ref.toLowerCase();
+        return `p-values are calculated using Welch's t-test comparing ${measureWord} between ${refWord} and ${L.countVerb} cell lines. ${dWord} = Mean(${L.countVerb}) − Mean(${refWord}).${exprNote}`;
+    }
+
+    // Plain-language name of the alteration for AI-export descriptions.
+    _aiAlterationWord(mr) {
+        if (mr?.isTranslocation) return 'fusion';
+        if (mr?.cnMode === 'amp') return 'copy-number amplification';
+        if (mr?.cnMode === 'del') return 'deep deletion';
+        if (mr?.isDamaging) return 'functional loss';
+        return 'hotspot mutation';
+    }
+
+    // Group cell lines by call level under type-correct key names, so the
+    // exported JSON never labels Neutral/Intact cells "WT" or amplified cells
+    // "mut". Binary axes collapse to two groups; hotspot keeps three.
+    _aiMutationGroups(mData, cellLines, mr) {
+        const names = mr?.isTranslocation ? ['noFusion', 'fused', 'fused']
+            : mr?.cnMode === 'amp' ? ['neutral', 'amplified', 'amplified']
+            : mr?.cnMode === 'del' ? ['neutral', 'deepDeleted', 'deepDeleted']
+            : mr?.isDamaging ? ['intact', 'lost', 'lost']
+            : ['WT', 'mut1', 'mut2'];
+        const groups = {};
+        names.forEach(n => { if (!groups[n]) groups[n] = []; });
+        cellLines.forEach(cl => {
+            const ml = mData[cl] || 0;
+            groups[names[ml === 0 ? 0 : ml === 1 ? 1 : 2]].push(cl);
+        });
+        return groups;
+    }
+
     // Subgroup (mutation-level) labels for the detailed / compare views. Binary
     // axes (fusion, functional loss, CN amp/del) collapse the 0/1/2 levels into
     // reference vs carrier; hotspot keeps the graded levels.
@@ -1870,7 +1916,9 @@ class CorrelationExplorer {
                 if (upsetGenes.length >= nGenesSel) break;
                 if (!used.has(g.gene)) { upsetGenes.push(g); used.add(g.gene); }
             }
-            upsetLabel = hotspotGene ? `${hotspotGene} + Top ${upsetGenes.length - 1}` : `Top ${upsetGenes.length} most mutated`;
+            const kindWord = this._oncoprintKind === 'fusion' ? 'by fusion count'
+                : this._oncoprintKind === 'cn' ? 'by event count' : 'most mutated';
+            upsetLabel = hotspotGene ? `${hotspotGene} + Top ${upsetGenes.length - 1}` : `Top ${upsetGenes.length} ${kindWord}`;
         }
         if (upsetGenes.length < 2) {
             this._showUpsetSetup();
@@ -2002,7 +2050,11 @@ class CorrelationExplorer {
                 dotX.push(col);
                 dotY.push(-(row + 1));
                 dotColor.push(b === '1' ? '#374151' : '#d1d5db');
-                dotText.push(`${upsetGenes[row].gene}: ${b === '1' ? 'Mutated' : 'WT'}`);
+                const upKind = this._oncoprintKind;
+                const upHit = upKind === 'fusion' ? (b === '1' ? 'Fusion called' : 'No fusion called')
+                    : upKind === 'cn' ? (b === '1' ? 'Event present' : 'No event')
+                    : (b === '1' ? 'Mutated' : 'WT');
+                dotText.push(`${upsetGenes[row].gene}: ${upHit}`);
             });
         }
         matrixTraces.push({
@@ -6149,7 +6201,7 @@ class CorrelationExplorer {
             selection: 'the cell lines you selected, and for every gene its mean in that selection, its mean across the other cell lines, and the difference between them',
             ge: 'the gene-effect values for the gene on screen, its per-tissue summary, and the stratification currently applied',
             scatter: 'the x and y values for both genes per cell line, the correlation statistics, and any gates you have drawn',
-            mutation: 'the differential gene-effect table (mutant vs wild-type) with p-values, and the mutation calls that defined the groups',
+            mutation: 'the differential gene-effect table (altered vs reference group) with p-values, and the alteration calls that defined the groups',
             gates: 'the membership of both gates and the differential gene-effect and expression tables between them',
             correlations: 'the correlation table for your input gene set, with r, slope and n per pair',
             clusters: 'the network edges above the cutoff, the cluster assignments, and the gene-effect values for every gene in the network',
@@ -8320,9 +8372,7 @@ class CorrelationExplorer {
         this._mutAnalysisMetric = want;
         const blurb = document.getElementById('mutStatsBlurb');
         if (blurb) {
-            blurb.textContent = want === 'expr'
-                ? "p-values are Welch's t-test on mRNA expression (log2 TPM+1) between wild-type (0 mutations) and mutated cells. \u0394 = Mean(mutated) \u2212 Mean(WT). Cell lines without expression data are left out of both groups."
-                : "p-values are calculated using Welch's t-test comparing gene effect scores between wild-type (WT, 0 mutations) and mutated cells (1+2 or 2 mutations). \u0394 GE = Mean(mutated) \u2212 Mean(WT).";
+            blurb.textContent = this._mutStatsBlurbText(this.mutationResults, want);
         }
         document.querySelectorAll('[data-mut-metric]').forEach(b => {
             const on = b.dataset.mutMetric === want;
@@ -8563,11 +8613,7 @@ class CorrelationExplorer {
         thead.innerHTML = headerHTML;
 
         const blurbEl = document.getElementById('mutStatsBlurb');
-        if (blurbEl) {
-            const measureWord = mr.metric === 'expr' ? 'mRNA expression (log2 TPM+1)' : 'gene effect scores';
-            const dWord = mr.metric === 'expr' ? 'Δ Expr' : 'Δ GE';
-            blurbEl.textContent = `p-values are calculated using Welch's t-test comparing ${measureWord} between wild-type (WT, 0 mutations) and mutated cells (1+2 or 2 mutations). ${dWord} = Mean(mutated) − Mean(WT).`;
-        }
+        if (blurbEl) blurbEl.textContent = this._mutStatsBlurbText(mr, mr.metric);
 
         const polymorphicCaveat = this._polymorphicCaveatText();
         // Rows where the gene is measured in fewer cell lines than the cohort
@@ -8717,15 +8763,23 @@ class CorrelationExplorer {
             } else if ((mr.nWT ?? 0) < mr.minN) {
                 emptyWhy = `Only ${mr.nWT ?? 0} ${L0.ref === 'WT' ? 'WT' : L0.ref.toLowerCase()} cell line${(mr.nWT ?? 0) === 1 ? '' : 's'} under the current filters, below the Min Cell Lines setting of ${mr.minN}, so no gene could be tested. Widen the filters or lower Min Cell Lines.`;
             } else if (pFilterOn) {
-                emptyWhy = `Genes were tested (${mr.nMut} vs ${mr.nWT} cells), but none reached p < 0.05 on the primary mutant-vs-WT comparison. Untick the p < 0.05 box to see genes significant on other comparisons, or raise the P-value cutoff.`;
+                emptyWhy = `Genes were tested (${mr.nMut} vs ${mr.nWT} cell lines), but none reached p < 0.05 on the primary ${L0.countVerb}-vs-${L0.ref === 'WT' ? 'WT' : L0.ref.toLowerCase()} comparison. Untick the p < 0.05 box to see genes significant on other comparisons, or raise the P-value cutoff.`;
             } else {
-                emptyWhy = `Genes were tested (${mr.nMut} vs ${mr.nWT} cells), but none reached p < ${mr.pThreshold} on any comparison. Raise the P-value cutoff in box 1 and run again.`;
+                emptyWhy = `Genes were tested (${mr.nMut} vs ${mr.nWT} cell lines), but none reached p < ${mr.pThreshold} on any comparison. Raise the P-value cutoff in box 1 and run again.`;
             }
         }
         document.getElementById('mutationResultsCount').innerHTML =
-            `<strong>${results.length} genes</strong> ${pFilterOn ? 'with primary p &lt; 0.05 (mutant vs WT)' : `passing p &lt; ${mr.pThreshold} on any comparison`}<br>
+            `<strong>${results.length} genes</strong> ${pFilterOn ? `with primary p &lt; 0.05 (${this._mutAxisLabels(mr).countVerb} vs ${this._mutAxisLabels(mr).ref === 'WT' ? 'WT' : this._mutAxisLabels(mr).ref.toLowerCase()})` : `passing p &lt; ${mr.pThreshold} on any comparison`}<br>
             <small style="color: #666;">${settingsText}</small>`
             + (emptyWhy ? `<div style="margin-top:8px; padding:8px 12px; background:#fffbeb; border:1px solid #f59e0b; border-radius:6px; font-size:12px; color:#92400e;"><b>Why no results:</b> ${emptyWhy}</div>` : '');
+
+        // The p-filter checkbox names the comparison; keep it in the words of
+        // the sub-type on display (fused vs no fusion, amplified vs neutral…).
+        const pfLabel = document.getElementById('mutPvalueFilterLabel');
+        if (pfLabel) {
+            const Lpf = this._mutAxisLabels(mr);
+            pfLabel.textContent = `only p < 0.05 (${Lpf.countVerb} vs ${Lpf.ref === 'WT' ? 'WT' : Lpf.ref.toLowerCase()})`;
+        }
 
         // Store for sorting
         this.mutationTableData = results;
@@ -8904,11 +8958,13 @@ class CorrelationExplorer {
         const results = mr.significantResults;
 
         // Build settings header
-        let csv = '# Mutation Analysis Results\n';
-        csv += `# Hotspot Mutation: ${mr.hotspotGene}\n`;
-        csv += `# WT cells (0 mutations): ${mr.nWT}\n`;
-        csv += `# Mutated cells (1+2 mutations): ${mr.nMut}\n`;
-        csv += `# Cells with 2 mutations: ${mr.n2}\n`;
+        const Lcsv = this._mutAxisLabels(mr);
+        const refCsv = Lcsv.ref === 'WT' ? 'WT' : Lcsv.ref;
+        let csv = `# ${Lcsv.analysis} Analysis Results\n`;
+        csv += `# ${Lcsv.selectLabel}: ${mr.hotspotGene}\n`;
+        csv += `# ${refCsv} cell lines: ${mr.nWT}\n`;
+        csv += `# ${Lcsv.countVerb.charAt(0).toUpperCase() + Lcsv.countVerb.slice(1)} cell lines: ${mr.nMut}\n`;
+        if (!mr.isTranslocation && !mr.isDamaging) csv += `# Cell lines with 2 mutations: ${mr.n2}\n`;
         csv += `# Min cell lines: ${mr.minN}\n`;
         csv += `# P-value threshold: ${mr.pThreshold}\n`;
         if (mr.excludedTissues && mr.excludedTissues.size > 0) {
@@ -8945,11 +9001,14 @@ class CorrelationExplorer {
         csv += '#\n';
 
         const hasFusion = mr.hasFusionData && mr.isTranslocation;
-        let headers = ['Gene', 'N_WT', 'Mean_GE_WT', 'N_1+2', 'Mean_GE_1+2', 'Delta_GE', 'pValue_1+2_vs_0',
-                        'N_2', 'Mean_GE_2', 'Delta_GE_2vs0', 'pValue_2_vs_0',
-                        'Delta_GE_2vs1', 'pValue_2_vs_1'];
+        // Column names carry the measure actually analysed: GE columns on an
+        // mRNA run mislabeled every number in the file.
+        const M = mr.metric === 'expr' ? 'Expr' : 'GE';
+        let headers = ['Gene', 'N_WT', `Mean_${M}_WT`, 'N_1+2', `Mean_${M}_1+2`, `Delta_${M}`, 'pValue_1+2_vs_0',
+                        'N_2', `Mean_${M}_2`, `Delta_${M}_2vs0`, 'pValue_2_vs_0',
+                        `Delta_${M}_2vs1`, 'pValue_2_vs_1'];
         if (hasFusion) {
-            headers.push('N_Fused', 'Mean_GE_Fused', 'Delta_GE_Fused', 'pValue_Fused');
+            headers.push('N_Fused', `Mean_${M}_Fused`, `Delta_${M}_Fused`, 'pValue_Fused');
         }
 
         csv += headers.join(',') + '\n';
@@ -9217,7 +9276,7 @@ class CorrelationExplorer {
                 y: wtY,
                 mode: 'markers',
                 type: 'scatter',
-                name: `WT (n=${data.wt.length})`,
+                name: `${L.ref} (n=${data.wt.length})`,
                 marker: { color: '#888888', size: 8, opacity: 0.7 },
                 text: data.wt.map(d => makeHoverText(d)),
                 customdata: data.wt.map(d => d.cellLine),
@@ -9888,6 +9947,7 @@ class CorrelationExplorer {
                 hotspotGene: this.mutationResults?.hotspotGene,
                 isTranslocation: this.mutationResults?.isTranslocation || false,
                 isDamaging: this.mutationResults?.isDamaging || false,
+                cnMode: this.mutationResults?.cnMode || null,
                 lineageFilter: this.mutationResults?.lineageFilter || '',
                 subLineageFilter: this.mutationResults?.subLineageFilter || '',
                 oncotreeFilter: this.mutationResults?.oncotreeFilter || '',
@@ -9911,9 +9971,10 @@ class CorrelationExplorer {
         if (!this.currentGeneEffectData || !this.currentGeneEffectGene) return;
 
         const mr = this.mutationResults;
+        const Lge = this._mutAxisLabels(mr);
         let csv = `# Gene Effect Distribution Data\n`;
         csv += `# Gene: ${this.currentGeneEffectGene}\n`;
-        csv += `# Hotspot Mutation: ${mr.hotspotGene}\n`;
+        csv += `# ${Lge.selectLabel}: ${mr.hotspotGene}\n`;
         if (mr.excludedTissues && mr.excludedTissues.size > 0) {
             const allLineages = this.cellLineMetadata?.lineage
                 ? [...new Set(Object.values(this.cellLineMetadata.lineage))].sort()
@@ -9931,7 +9992,7 @@ class CorrelationExplorer {
         }
         csv += `# Date: ${new Date().toISOString().slice(0, 10)}\n`;
         csv += '#\n';
-        csv += 'CellLine,CellLineName,Lineage,GeneEffect,MutationLevel\n';
+        csv += `CellLine,CellLineName,Lineage,GeneEffect,${mr.isTranslocation ? 'FusionLevel' : mr.isDamaging ? `${Lge.status.replace(/[^A-Za-z]/g, '')}Level` : 'MutationLevel'}\n`;
 
         this.currentGeneEffectData.forEach(d => {
             csv += `${d.cellLine},${d.cellName},${d.lineage},${d.ge.toFixed(2)},${d.mutLevel}\n`;
@@ -21387,7 +21448,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const sel = document.getElementById('translocationHotspotSelect');
                 if (sel) sel.value = meta.hotspotGene;
             } else if (meta.isDamaging) {
-                const radio = document.querySelector('input[name="mutAnalysisType"][value="damaging"]');
+                // CN amp / deep-del ride the damaging path; restore to the
+                // right sub-type radio, or the re-run uses the functional-loss
+                // call matrix for what was a copy-number analysis.
+                const subType = meta.cnMode === 'amp' ? 'cn_amp' : meta.cnMode === 'del' ? 'cn_del' : 'damaging';
+                const radio = document.querySelector(`input[name="mutAnalysisType"][value="${subType}"]`);
                 if (radio) { radio.checked = true; this.updateMutationAnalysisType?.(); }
                 const sel = document.getElementById('damagingHotspotSelect');
                 if (sel) sel.value = meta.hotspotGene;
@@ -26234,17 +26299,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             context = {
                 type: 'gene_effect_analysis', gene, plotType: this.currentGEView || 'tissue',
                 stratification: hotspotF || (this.geneEffectViewMode === 'mutation' && mr?.hotspotGene) || 'tissue',
+                stratificationKind: this.geneEffectViewMode === 'mutation' ? this._aiAlterationWord(mr) : null,
                 measure: (this.geneEffectViewMode === 'mutation' && mr?.metric === 'expr') ? 'mRNA expression' : 'gene effect',
                 tissueFilter: tissueF, subtypeFilter: subtypeF, oncotreeFilter: oncotreeF, hotspotFilter: hotspotF
             };
             // Cell line groups (#1)
             if (this.geneEffectViewMode === 'mutation' && mr?.hotspotGene) {
                 const hg = mr.hotspotGene;
+                // The CN-axis getter follows the sub-type radio; align it with
+                // the results being exported before reading the call matrix.
+                if (mr.isDamaging) this._cnAxisMode = mr.cnMode || null;
                 const mData = (mr.isTranslocation ? this._fusionAxisData?.geneData?.[hg]?.translocations : mr.isDamaging ? this._lossAxisData?.geneData?.[hg]?.mutations : this.mutations?.geneData?.[hg]?.mutations) || {};
-                cellLineGroups = { WT: [], mut1: [], mut2: [] };
-                cellLines.forEach(cl => { const ml = mData[cl] || 0; if (ml === 0) cellLineGroups.WT.push(cl); else if (ml === 1) cellLineGroups.mut1.push(cl); else cellLineGroups.mut2.push(cl); });
+                cellLineGroups = this._aiMutationGroups(mData, cellLines, mr);
                 const filterParts = [tissueF, subtypeF].filter(Boolean).join(', ');
-                description = `${gene} gene effect stratified by ${hg} ${mr.isTranslocation ? 'fusion' : mr.isDamaging ? 'functional loss' : 'hotspot mutation'} count${filterParts ? ' in ' + filterParts : ''} cell lines.`;
+                description = `${gene} gene effect stratified by ${hg} ${this._aiAlterationWord(mr)}${filterParts ? ' in ' + filterParts : ''} cell lines.`;
             } else {
                 description = `${gene} gene effect across ${tissueF || 'all'} cell lines${subtypeF ? ' (' + subtypeF + ')' : ''}.`;
             }
@@ -26291,6 +26359,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             context = {
                 type: 'mutation_analysis', hotspotGene: mr?.hotspotGene,
                 isTranslocation: mr?.isTranslocation || false, isDamaging: mr?.isDamaging || false,
+                cnMode: mr?.cnMode || null,
                 nWT: mr?.nWT, nMutated: mr?.nMut, pValueThreshold: mr?.pThreshold,
                 plotType: 'mutation_table', stratification: mr?.hotspotGene,
                 lineageFilter: mr?.lineageFilter || '', subLineageFilter: mr?.subLineageFilter || '',
@@ -26304,12 +26373,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Cell line groups for mutation analysis
             if (mr?.hotspotGene) {
                 const hg = mr.hotspotGene;
+                if (mr.isDamaging) this._cnAxisMode = mr.cnMode || null;
                 const mData = (mr.isTranslocation ? this._fusionAxisData?.geneData?.[hg]?.translocations : mr.isDamaging ? this._lossAxisData?.geneData?.[hg]?.mutations : this.mutations?.geneData?.[hg]?.mutations) || {};
-                cellLineGroups = { WT: [], mut1: [], mut2: [] };
-                cellLines.forEach(cl => { const ml = mData[cl] || 0; if (ml === 0) cellLineGroups.WT.push(cl); else if (ml === 1) cellLineGroups.mut1.push(cl); else cellLineGroups.mut2.push(cl); });
+                cellLineGroups = this._aiMutationGroups(mData, cellLines, mr);
             }
             const filterParts = [mr?.lineageFilter, mr?.subLineageFilter].filter(Boolean).join(', ');
-            description = `Differential gene effect analysis for ${mr?.hotspotGene} ${mr?.isTranslocation ? 'fusion' : mr?.isDamaging ? 'functional loss' : 'hotspot mutation'}${filterParts ? ' in ' + filterParts : ''}.`;
+            description = `Differential gene effect analysis for ${mr?.hotspotGene} ${this._aiAlterationWord(mr)}${filterParts ? ' in ' + filterParts : ''}.`;
             // Source-specific extras: per-gene differential analysis results.
             if (mr?.allResults) {
                 extras = {
@@ -28312,6 +28381,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Build rows
         const rows = [];
         const mutLabel = isTranslocation ? 'Fused' : isDamaging ? this._mutAxisLabels(mr).carrier : 'Mut';
+        const refLabel = this._mutAxisLabels(mr).ref;
         if (allWT.length > 0 && allMut.length > 0) {
             const meanWT = allWT.reduce((a, b) => a + b, 0) / allWT.length;
             const meanMut = allMut.reduce((a, b) => a + b, 0) / allMut.length;
@@ -28331,10 +28401,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const groupLabel = groupBySubtype ? this._geSplitLabel() : 'Tissue';
         this._inlineCompareData = {
-            title: `${gene} GE, comparison of ${hotspotGene} ${mutLabel} vs WT, repeated within each ${groupLabel.toLowerCase()} subset`,
+            title: `${gene} GE, comparison of ${hotspotGene} ${mutLabel} vs ${refLabel}, repeated within each ${groupLabel.toLowerCase()} subset`,
             subsetLabel: groupLabel,
             subsetCountHeader: `N (in ${groupLabel.toLowerCase()})`,
             mainGene: hotspotGene,
+            refLabel,
             mutLabel,
             refRows: allRow,
             sortableRows: otherRows,
@@ -28403,6 +28474,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const rows = [];
         const mutLabel = isTranslocation ? 'Fused' : isDamaging ? this._mutAxisLabels(mr).carrier : 'Mut';
+        const refLabel = this._mutAxisLabels(mr).ref;
         const noneWT = baseCells.filter(c => c.mainMut === 0).map(c => c.ge);
         const noneMut = baseCells.filter(c => c.mainMut >= 1).map(c => c.ge);
         if (noneWT.length > 0 && noneMut.length > 0) {
@@ -28434,10 +28506,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const typeLabel = isTranslocation ? 'Fusion' : isDamaging ? this._mutAxisLabels(mr).noun : 'Hotspot';
         this._inlineCompareData = {
-            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs WT, repeated within each additional-${typeLabel.toLowerCase()} subset`,
+            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs ${refLabel}, repeated within each additional-${typeLabel.toLowerCase()} subset`,
             subsetLabel: `Additional ${typeLabel}`,
             subsetCountHeader: `N (with ${typeLabel.toLowerCase()})`,
             mainGene: mainHotspot,
+            refLabel,
             mutLabel,
             refRows: refRow,
             sortableRows: otherRows,
@@ -28507,6 +28580,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const rows = [];
         const mutLabel = isTranslocation ? 'Fused' : isDamaging ? this._mutAxisLabels(mr).carrier : 'Mut';
+        const refLabel = this._mutAxisLabels(mr).ref;
         const noneWT = baseCells.filter(c => c.mainMut === 0).map(c => c.ge);
         const noneMut = baseCells.filter(c => c.mainMut >= 1).map(c => c.ge);
         if (noneWT.length > 0 && noneMut.length > 0) {
@@ -28543,10 +28617,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const otherRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
         this._inlineCompareData = {
-            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs WT, repeated within each fusion subset`,
+            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs ${refLabel}, repeated within each fusion subset`,
             subsetLabel: 'Fusion partner',
             subsetCountHeader: 'N (with fusion)',
             mainGene: mainHotspot,
+            refLabel,
             mutLabel,
             refRows: refRow,
             sortableRows: otherRows,
@@ -28610,7 +28685,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             baseCells.push({ cellLine, idx, ge, mainMut: mainLevel });
         });
         const mutLabel = isTranslocation ? 'Fused' : isDamaging ? this._mutAxisLabels(mr).carrier : 'Mut';
-        return { mr, gene, mainHotspot, mutLabel, baseCells };
+        const refLabel = this._mutAxisLabels(mr).ref;
+        return { mr, gene, mainHotspot, mutLabel, refLabel, baseCells };
     }
 
     // Helper: given a base-cell list and a subset predicate, build a Δ-compare
@@ -28632,7 +28708,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const ctx = this._geCompareBaseCells();
         if (!ctx) return;
         this._inlineSortCol = null; this._inlineSortAsc = true;
-        const { gene, mainHotspot, mutLabel, baseCells } = ctx;
+        const { gene, mainHotspot, mutLabel, refLabel, baseCells } = ctx;
         const rows = [];
         const ref = this._geCompareRow(baseCells, () => true, 'None (no extra filter)', { isRef: true, fusion: '' });
         if (ref) rows.push(ref);
@@ -28644,8 +28720,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const refRows = rows.filter(r => r.isRef);
         const sortableRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
         this._inlineCompareData = {
-            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs WT, repeated within each fusion`,
-            subsetLabel: 'Fusion', subsetCountHeader: 'N (with fusion)', mainGene: mainHotspot, mutLabel,
+            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs ${refLabel}, repeated within each fusion`,
+            subsetLabel: 'Fusion', subsetCountHeader: 'N (with fusion)', mainGene: mainHotspot, mutLabel, refLabel,
             refRows, sortableRows, mode: 'fusion'
         };
         this._renderInlineCompareTable();
@@ -28658,7 +28734,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const ctx = this._geCompareBaseCells();
         if (!ctx) return;
         this._inlineSortCol = null; this._inlineSortAsc = true;
-        const { gene, mainHotspot, mutLabel, baseCells } = ctx;
+        const { gene, mainHotspot, mutLabel, refLabel, baseCells } = ctx;
         const rows = [];
         const ref = this._geCompareRow(baseCells, () => true, 'None (no extra filter)', { isRef: true, cn: '' });
         if (ref) rows.push(ref);
@@ -28671,8 +28747,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const refRows = rows.filter(r => r.isRef);
         const sortableRows = rows.filter(r => !r.isRef).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
         this._inlineCompareData = {
-            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs WT, repeated within each focal CN event`,
-            subsetLabel: 'Focal CN event', subsetCountHeader: 'N (with event)', mainGene: mainHotspot, mutLabel,
+            title: `${gene} GE, comparison of ${mainHotspot} ${mutLabel} vs ${refLabel}, repeated within each focal CN event`,
+            subsetLabel: 'Focal CN event', subsetCountHeader: 'N (with event)', mainGene: mainHotspot, mutLabel, refLabel,
             refRows, sortableRows, mode: 'cn'
         };
         this._renderInlineCompareTable();
@@ -28703,6 +28779,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (!this._inlineCompareData) return;
         const d = this._inlineCompareData;
         const { title, subsetLabel, subsetCountHeader, mainGene, mutLabel, refRows, sortableRows, mode } = d;
+        const refL = d.refLabel || 'WT';
 
         const container = document.getElementById('geInlineCompareTable');
         const titleEl = document.getElementById('geInlineCompareTitle');
@@ -28736,7 +28813,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 </span>
                 cells in either group</label>
             ${hiddenByMinN > 0 ? `<span style="color:#9ca3af;">${hiddenByMinN} row${hiddenByMinN === 1 ? '' : 's'} hidden</span>` : ''}
-            <span style="color:#9ca3af; font-size:10px;">N column = how many cells share this ${(subsetLabel || 'subset').toLowerCase()}; the WT / ${mutLabel || 'Mut'} columns are <b>${mainGene || 'main gene'}</b> stratification <em>within</em> that subset.</span>
+            <span style="color:#9ca3af; font-size:10px;">N column = how many cell lines share this ${(subsetLabel || 'subset').toLowerCase()}; the ${refL} / ${mutLabel || 'Mut'} columns are <b>${mainGene || 'main gene'}</b> stratification <em>within</em> that subset.</span>
         </div>`;
 
         html += '<table style="border-collapse:collapse; font-size:11px;">';
@@ -28750,8 +28827,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         html += '</tr>';
         html += '<tr>';
         const subHeaders = [
-            { label: 'N(WT)', sortIdx: 2, align: 'right' },
-            { label: 'GE(WT)', sortIdx: 3, align: 'right' },
+            { label: `N(${refL})`, sortIdx: 2, align: 'right' },
+            { label: `GE(${refL})`, sortIdx: 3, align: 'right' },
             { label: `N(${mutLabel || 'Mut'})`, sortIdx: 4, align: 'right' },
             { label: `GE(${mutLabel || 'Mut'})`, sortIdx: 5, align: 'right' },
             { label: 'Δ GE', sortIdx: 6, align: 'right' },
@@ -29201,8 +29278,43 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (this.currentGeneEffectGene) {
                 document.getElementById('exprCorrelatesTargetGene').textContent = this.currentGeneEffectGene.toUpperCase();
             }
+            this._relabelExprSubgroups();
         } else {
             panel.style.display = 'none';
+        }
+    }
+
+    // The subgroup radios ship with hotspot wording; put them in the words of
+    // the analysis on display. Binary axes (fusion partners aside, a line is
+    // either a carrier or not) hide the meaningless 1 / 2 levels.
+    _relabelExprSubgroups() {
+        const mr = this.mutationResults;
+        const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+        const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+        set('exprSubgroupNoun', this._aiAlterationWord(mr || {}));
+        if (mr?.isTranslocation) {
+            set('exprSubgroupLbl0', 'No fusion (0)');
+            set('exprSubgroupLbl1', '1 partner');
+            set('exprSubgroupLbl12', 'Fused (1+2)');
+            set('exprSubgroupLbl2', '2+ partners');
+            show('exprSubgroupLab1', true); show('exprSubgroupLab2', true);
+        } else if (mr?.isDamaging) {
+            const L = this._mutAxisLabels(mr);
+            set('exprSubgroupLbl0', L.ref);
+            set('exprSubgroupLbl12', L.carrier);
+            show('exprSubgroupLab1', false); show('exprSubgroupLab2', false);
+            // A hidden level may still be the checked one from a previous run.
+            const checked = document.querySelector('input[name="exprSubgroup"]:checked')?.value;
+            if (checked === '1' || checked === '2') {
+                const def = document.querySelector('input[name="exprSubgroup"][value="1+2"]');
+                if (def) def.checked = true;
+            }
+        } else {
+            set('exprSubgroupLbl0', 'WT (0)');
+            set('exprSubgroupLbl1', 'Mut (1)');
+            set('exprSubgroupLbl12', 'Mutated (1+2)');
+            set('exprSubgroupLbl2', 'High (2)');
+            show('exprSubgroupLab1', true); show('exprSubgroupLab2', true);
         }
     }
 
@@ -29377,6 +29489,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             hotspotGene,
             mutationData,
             isTranslocation,
+            isDamaging,
+            cnMode: mr?.cnMode || null,
             subgroup,
             subgroupIndices,
             inspectTissueFilter
@@ -29472,6 +29586,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const nExprCellLines = this.expressionMetadata.nCellLines;
         const mutationData = ctx.mutationData;
         const isTranslocation = ctx.isTranslocation;
+        const isDamaging = ctx.isDamaging;
+        // Labels in the words of the sub-type: damaging/CN results used to
+        // show hotspot wording ("WT (0)", "1 mutation") here.
+        const Lx = this._mutAxisLabels({ isTranslocation, isDamaging, cnMode: ctx.cnMode });
 
         // Read expand checkbox states
         const expandGenotypes = document.getElementById('exprScatterAllGenotypes')?.checked || false;
@@ -29589,8 +29707,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Extra points as background traces
         if (allExtraPoints.length > 0) {
             const bgLabel = isTranslocation ? 'fus' : 'mut';
-            const extraGroups = [
-                { data: extraPoints.wt, name: 'WT (bg)', color: '#cccccc' },
+            const refWord = Lx.ref === 'WT' ? 'WT' : Lx.ref;
+            const extraGroups = isDamaging ? [
+                { data: extraPoints.wt, name: `${refWord} (bg)`, color: '#cccccc' },
+                { data: extraPoints.mut1, name: `${Lx.carrier} (bg)`, color: '#93c5fd' },
+                { data: extraPoints.mut2, name: `${Lx.carrier} 2 (bg)`, color: '#fca5a5' }
+            ] : [
+                { data: extraPoints.wt, name: `${refWord} (bg)`, color: '#cccccc' },
                 { data: extraPoints.mut1, name: `1 ${bgLabel} (bg)`, color: '#93c5fd' },
                 { data: extraPoints.mut2, name: `2 ${bgLabel} (bg)`, color: '#fca5a5' }
             ];
@@ -29611,10 +29734,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Core points on top
-        const fgLabel1 = isTranslocation ? '1 fusion partner' : '1 mutation';
-        const fgLabel2 = isTranslocation ? '2+ fusion partners' : '2 mutations';
+        const fgLabel1 = isTranslocation ? '1 fusion partner' : isDamaging ? Lx.carrier : '1 mutation';
+        const fgLabel2 = isTranslocation ? '2+ fusion partners' : isDamaging ? `${Lx.carrier} 2` : '2 mutations';
         const groups = [
-            { data: points.wt, name: 'WT (0)', color: '#888888' },
+            { data: points.wt, name: (isTranslocation || isDamaging) ? Lx.ref : 'WT (0)', color: '#888888' },
             { data: points.mut1, name: fgLabel1, color: '#3b82f6' },
             { data: points.mut2, name: fgLabel2, color: '#dc2626' }
         ];
@@ -29758,7 +29881,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         let csv = `# Expression Correlates\n`;
         csv += `# Target Gene: ${ctx?.targetGene || '-'}\n`;
-        csv += `# Hotspot: ${ctx?.hotspotGene || '-'}\n`;
+        csv += `# ${this._mutAxisLabels(this.mutationResults || {}).selectLabel}: ${ctx?.hotspotGene || '-'}\n`;
         csv += `# Subgroup: ${subgroupLabels[ctx?.subgroup] || '-'}\n`;
         csv += `# Cell lines: ${ctx?.subgroupIndices?.length || '-'}\n`;
         if (ctx?.inspectTissueFilter) csv += `# Tissue filter: ${ctx.inspectTissueFilter}\n`;
@@ -29850,7 +29973,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             hotspotGene,
             mode: 'tissue',
             title: `Compare by ${groupLabel}: ${hotspotGene} ${L.carrier} vs ${L.ref}, within each ${groupLabel.toLowerCase()}`,
-            isTranslocation
+            isTranslocation,
+            isDamaging: mr.isDamaging || false,
+            cnMode: mr.cnMode || null
         };
         this._compareModalMode = 'tissue';
         this._compareSortCol = null;
@@ -29930,7 +30055,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             hotspotGene: mainHotspot,
             mode: 'hotspot',
             title: `Compare by Hotspot, ${mainHotspot} ${typeLabel} Analysis`,
-            isTranslocation
+            isTranslocation,
+            isDamaging: mr.isDamaging || false,
+            cnMode: mr.cnMode || null
         };
         this._compareModalMode = 'hotspot';
         this._compareSortCol = null;
@@ -30024,7 +30151,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             hotspotGene: mainHotspot,
             mode: 'hotspot',
             title: `Compare by Fusion, ${mainHotspot} ${typeLabel} Analysis`,
-            isTranslocation
+            isTranslocation,
+            isDamaging: mr.isDamaging || false,
+            cnMode: mr.cnMode || null
         };
         this._compareModalMode = 'hotspot';
         this._compareSortCol = null;
@@ -30090,15 +30219,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Title and info
         document.getElementById('mutCompareModalTitle').textContent = d.title;
         const isTrans = d.isTranslocation;
-        const mutLabel = isTrans ? 'fused' : 'mutated';
-        const mutNoun = isTrans ? 'fusion' : 'mutation';
-        const mutAbbr = isTrans ? 'Fus' : 'Mut';
+        // Words of the sub-type on display: the info line used to say
+        // "mutated vs WT" under a title correctly reading e.g. "Amp vs Neutral".
+        const Lcm = this._mutAxisLabels(d);
+        const mutLabel = Lcm.countVerb;
+        const refWord = Lcm.ref === 'WT' ? 'WT' : Lcm.ref.toLowerCase();
+        const mutNoun = this._aiAlterationWord(d);
+        const mutAbbr = Lcm.carrier;
         const modeLabel = d.mode === 'tissue' ? 'tissue/cancer type' : (isTrans ? 'fusion gene' : 'hotspot mutation');
         document.getElementById('mutCompareModalInfo').innerHTML =
-            `<b>Δ GE = Mean GE(${mutLabel}) − Mean GE(WT)</b> for ${d.hotspotGene} ${mutNoun}, stratified by ${modeLabel}. ` +
+            `<b>Δ GE = Mean GE(${mutLabel}) − Mean GE(${refWord})</b> for ${d.hotspotGene} ${mutNoun}, stratified by ${modeLabel}. ` +
             `<span style="color:#dc2626;">Red = more essential when ${mutLabel}</span>, <span style="color:#5d9239;">Green = less essential</span>. ` +
-            `${geneRows.length} genes × ${filteredCols.length} ${d.mode === 'tissue' ? 'tissues' : 'hotspots'} | Min ${mutLabel} cells: ${minN} | ` +
-            `Click cell to inspect, hover column header for N(WT)/N(${mutAbbr})`;
+            `${geneRows.length} genes × ${filteredCols.length} ${d.mode === 'tissue' ? 'tissues' : 'hotspots'} | Min ${mutLabel} cell lines: ${minN} | ` +
+            `Click cell to inspect, hover column header for N(${refWord})/N(${mutAbbr})`;
 
         // Build table HTML
         let html = '<table style="border-collapse:collapse; font-size:11px; width:auto; max-width:100%; margin:0 auto;">';
@@ -30172,7 +30305,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Build CSV
         const colLabels = filteredCols.map(c => c.label);
-        let csv = `# Compare by ${d.mode === 'tissue' ? 'Tissue' : 'Hotspot'}, ${d.hotspotGene} Mutation\n`;
+        let csv = `# Compare by ${d.mode === 'tissue' ? 'Tissue' : 'Hotspot'}, ${d.hotspotGene} ${this._mutAxisLabels(d).noun}\n`;
         csv += `# Min N: ${minN}\n`;
         csv += `# Date: ${new Date().toISOString().slice(0, 10)}\n`;
         csv += '#\n';
@@ -30202,8 +30335,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const tooltip = document.createElement('div');
         tooltip.id = 'columnTooltip';
         tooltip.style.cssText = 'position:fixed; z-index:10001; background:white; border:1px solid #d1d5db; border-radius:8px; padding:8px 12px; max-width:250px; box-shadow:0 4px 12px rgba(0,0,0,0.15); font-size:11px; line-height:1.5;';
-        const mutAbbr = this._compareModalData?.isTranslocation ? 'Fus' : 'Mut';
-        tooltip.innerHTML = `<b>${col.label}</b><br>Total cell lines: ${col.totalCells}<br>N(WT): ${col.nWT}<br>N(${mutAbbr}): ${col.nMut}`;
+        const Lct = this._mutAxisLabels(this._compareModalData || {});
+        tooltip.innerHTML = `<b>${col.label}</b><br>Total cell lines: ${col.totalCells}<br>N(${Lct.ref}): ${col.nWT}<br>N(${Lct.carrier}): ${col.nMut}`;
         const x = Math.min(event.clientX + 10, window.innerWidth - 270);
         const y = Math.min(event.clientY + 10, window.innerHeight - 100);
         tooltip.style.left = x + 'px';
