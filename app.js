@@ -11176,6 +11176,16 @@ class CorrelationExplorer {
             base = this._netBasePositions = this.network.getPositions();
             this._netBaseSpread = 100;
         }
+        const wasRunning = this.physicsEnabled !== false;
+        // A live solver means the picture on screen is its equilibrium, which
+        // is by definition the Spread-100 layout. Scale from THAT. The stored
+        // baseline predates the solver's last adjustments, and scaling it
+        // visibly snapped the network to an older shape instead of just
+        // changing the distances of the layout being looked at.
+        if (wasRunning) {
+            base = this._netBasePositions = this.network.getPositions();
+            this._netBaseSpread = 100;
+        }
         const ids = Object.keys(base);
         if (!ids.length) return;
         const factor = Math.min(1, ((parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100)
@@ -11189,7 +11199,6 @@ class CorrelationExplorer {
         // the nodes are ours to place. It stays frozen, because giving them back
         // to the solver just lets it pull them to its own equilibrium again. The
         // Lock button flips to Unlock so the state is visible and reversible.
-        const wasRunning = this.physicsEnabled !== false;
         if (factor !== 1 && wasRunning) this._freezeNetworkLayout();
         let cx = 0, cy = 0;
         for (const id of ids) { cx += base[id].x; cy += base[id].y; }
