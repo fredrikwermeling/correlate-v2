@@ -823,6 +823,7 @@ class CorrelationExplorer {
             select.addEventListener('change', () => {
                 this.updateSubLineageFilter();
                 this._refreshFilteredSelectors();
+                this._markMutationRunStale();
             });
         }
 
@@ -906,6 +907,7 @@ class CorrelationExplorer {
             if (!subSelect.hasAttribute('data-listener-attached')) {
                 subSelect.addEventListener('change', () => {
                     this._refreshFilteredSelectors();
+                    this._markMutationRunStale();
                 });
                 subSelect.setAttribute('data-listener-attached', 'true');
             }
@@ -1106,6 +1108,7 @@ class CorrelationExplorer {
                     if (document.getElementById('paramHotspotGene').value) document.getElementById('paramHotspotLevel').value = '1+2';
                     this.updateParamHotspotLevelCounts();
                     this._renderFilterChips('params');
+                    this._markMutationRunStale();
                 },
                 () => this._paramCohortExcluding('hotspot'));
             this.updateParamHotspotLevelCounts();
@@ -1122,6 +1125,7 @@ class CorrelationExplorer {
                 // Selecting a CN event defaults to "with event" (vs WT).
                 if (document.getElementById('paramCnFilter').value) document.getElementById('paramCnLevel').value = 'altered';
                 this._renderFilterChips('params');
+                this._markMutationRunStale();
             },
             () => this._paramCohortExcluding('cn'));
     }
@@ -1230,6 +1234,7 @@ class CorrelationExplorer {
                 () => {
                     if (document.getElementById('paramTranslocationGene').value) document.getElementById('paramTranslocationLevel').value = '1+2';
                     this.updateParamTranslocationLevelCounts();
+                    this._markMutationRunStale();
                 },
                 () => this._paramCohortExcluding('fusion'));
             this.updateParamTranslocationLevelCounts();
@@ -3180,16 +3185,24 @@ class CorrelationExplorer {
         // In mutation mode the table is NOT re-run automatically: the silent
         // auto-run made pressing Run afterwards look dead. The Run button is
         // marked instead, and the user runs when ready.
-        const mode = document.querySelector('input[name="analysisMode"]:checked')?.value;
-        if (mode === 'mutation' && this.mutationResults) {
-            const runBtn = document.getElementById('runMutationAnalysisBtn');
-            if (runBtn) {
-                runBtn.textContent = 'Run Mutation Analysis (filters changed)';
-                runBtn.style.background = '#b45309';
-            }
+        if (this._markMutationRunStale()) {
             this.showStatus('info', 'Grid filter applied. Press Run to update the results.');
         }
         document.getElementById('oncoprintPopup')?.remove();
+    }
+
+    // Mark the mutation-analysis Run button when a cohort-affecting filter
+    // changes after results exist, so the table's staleness is visible.
+    // Returns true when the marker was applied.
+    _markMutationRunStale() {
+        const mode = document.querySelector('input[name="analysisMode"]:checked')?.value;
+        if (mode !== 'mutation' || !this.mutationResults) return false;
+        const btn = document.getElementById('runMutationAnalysisBtn');
+        if (btn) {
+            btn.textContent = 'Run Mutation Analysis (filters changed)';
+            btn.style.background = '#b45309';
+        }
+        return true;
     }
 
     // Check if a cell line passes all active oncoprint filters
@@ -3517,6 +3530,7 @@ class CorrelationExplorer {
         }
 
         this.updateHotspotCountsForCurrentFilters();
+        this._markMutationRunStale();
     }
 
     showGeneralTissueBreakdownPopup() {
@@ -9276,6 +9290,14 @@ class CorrelationExplorer {
         if (inspectSubtype && !inspectTissueFilter) {
             filterInfo.push(`Subtype: ${inspectSubtype}`);
         }
+        {
+            // The disease level belongs in the header like lineage and subtype.
+            const dv = document.getElementById('geOncotreeFilter')?.value || '';
+            if (dv === '__mr_multi__' && mr.oncotreeFilterMulti?.length) filterInfo.push(`Disease: ${mr.oncotreeFilterMulti.join(' + ')}`);
+            else if (dv) filterInfo.push(`Disease: ${dv}`);
+            else if (mr.oncotreeFilterMulti?.length) filterInfo.push(`Disease: ${mr.oncotreeFilterMulti.join(' + ')}`);
+            else if (mr.oncotreeFilter) filterInfo.push(`Disease: ${mr.oncotreeFilter}`);
+        }
         if (mr.excludedTissues && mr.excludedTissues.size > 0 && !inspectTissueFilter) {
             const allLineages = this.cellLineMetadata?.lineage
                 ? [...new Set(Object.values(this.cellLineMetadata.lineage))].sort()
@@ -9487,11 +9509,23 @@ class CorrelationExplorer {
             for (const cl of cellLines) { const lin = this.cellLineMetadata?.lineage?.[cl]; if (lin) tCounts[lin] = (tCounts[lin] || 0) + 1; }
             const allLineages = Object.keys(tCounts).sort((a, b) => tCounts[b] - tCounts[a] || a.localeCompare(b));
             let tHtml = `<option value="">All tissues (n=${cellLines.length})</option>`;
+            // Like the disease selector below, an empty tissue select is
+            // prefilled from the analysis, so the filter row (and its chips)
+            // state the run's lineage rather than silently applying it.
+            const wantTissue = inspectTissueFilter || mr.lineageFilter || '';
             for (const l of allLineages) {
-                const sel = l === inspectTissueFilter ? ' selected' : '';
+                const sel = l === wantTissue ? ' selected' : '';
                 tHtml += `<option value="${l}"${sel}>${l} (n=${tCounts[l]})</option>`;
             }
             tissueFilterEl.innerHTML = tHtml;
+            // Subtype follows the same rule.
+            if (!inspectSubtype && mr.subLineageFilter) {
+                this.updateGeSubtypeFilter?.();
+                const subPre = document.getElementById('geSubtypeFilter');
+                if (subPre && [...subPre.options].some(o => o.value === mr.subLineageFilter)) {
+                    subPre.value = mr.subLineageFilter;
+                }
+            }
             // Surface the analysis' disease level in the inspect filters, so
             // the popout states what the run was filtered to and lets the
             // user change or clear it. Only fills an empty selector, a value
@@ -9522,6 +9556,9 @@ class CorrelationExplorer {
                     geOncPre.value = mr.oncotreeFilter;
                 }
             }
+            // The chip strip was drawn from the selects BEFORE this prefill,
+            // so redraw it now that tissue and disease are filled in.
+            this._updateGEActiveFilters();
 
             // Pre-select lineage filter from analysis params if no inspect override
             if (!inspectTissueFilter && mr.lineageFilter) {
@@ -28516,6 +28553,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 this.excludedTissues.add(cb.value);
             }
         });
+        this._markMutationRunStale();
     }
 
     populateTissueExcludeList() {
@@ -34316,7 +34354,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (!sel._wired) {
                 sel._wired = true;
                 sel.addEventListener('change', () => {
-                    if (ctx === 'params') this._paramDiseaseMulti = null;
+                    if (ctx === 'params') { this._paramDiseaseMulti = null; this._markMutationRunStale(); }
                     // The tissue and subtype lists are scoped by the disease
                     // as well, so a disease pick rescopes both (the reverse of
                     // the wiring below): the three selectors scale to each

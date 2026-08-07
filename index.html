@@ -2168,6 +2168,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.98 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Mutation-inspect chips and header show the tissue and disease.</b> The chip strip was drawn before the filters were filled in, so it missed them; it now redraws after, and the plot's header line names the disease level alongside lineage and subtype.</li>
+                    <li><b>Run marks itself stale on any filter change.</b> Changing lineage, subtype, disease, excluded tissues, a Tissue split or any genetic-alteration filter after a run turns the Run button amber ("filters changed"), same as grid picks.</li>
+                </ul>
                 <p><strong>v.85.97 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>Title and subtitle switch independently everywhere.</b> On plots where the two share one annotation (gene-effect tissue view, UMAP), the Title box used to hide both; each part now has its own switch that leaves the other alone.</li>
@@ -5419,7 +5424,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.97</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.85.98</a>
         </span>
     </div>
 
@@ -7955,6 +7960,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_97"></script>
+    <script src="app.js?v=v85_98"></script>
 </body>
 </html>
