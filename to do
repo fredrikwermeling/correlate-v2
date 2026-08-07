@@ -1,3 +1,5 @@
+should we update files to the latests depmapfiles?
+
 -are you in the setting where you can work in chrome? if not stop and tell me what to cahnge to activate this.
 -make the spread starting at 100. also the settings for the font size, edge node sliders etc are too small. revert to the orignial look and try to shrink about 30%.
 -in network, corrleate, gene effect and mutation inspect for filters dont include the boxes where sellecting wt or mutated. look how it is done in cell line browser. by defult when selecting an alteration, it is selected as mutated, and the user can then can then change it. Also add the oncoprint button (grid button) next to all genetic alteration filter as in the cell line browser.
