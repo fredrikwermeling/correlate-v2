@@ -5106,6 +5106,7 @@ class CorrelationExplorer {
             this.updateNetworkStyle();
         });
         document.getElementById('networkAaBtn')?.addEventListener('click', () => this.openNetworkTextSettings());
+        document.getElementById('shuffleNetworkBtn')?.addEventListener('click', () => this.shuffleNetworkLayout());
         document.getElementById('resetNetworkControls')?.addEventListener('click', () => this.resetNetworkControls());
         document.getElementById('networkNodeBorder')?.addEventListener('change', (e) => this.toggleNetworkBorder(e.target.checked));
         document.getElementById('fitNetwork').addEventListener('click', () => {
@@ -10897,9 +10898,20 @@ class CorrelationExplorer {
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Colors</div>
             ${colorRow('Node Label', 'net_ts_labelColor', labelColor)}
             ${colorRow('Node Fill', 'net_ts_nodeColor', nodeColor)}
+            <label style="font-size:11px;color:#374151;display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:4px;" title="Draw a black outline around each node. Turn off for a flatter look in figures.">
+                <input type="checkbox" id="net_ts_nodeBorder" ${document.getElementById('networkNodeBorder')?.checked !== false ? 'checked' : ''} onchange="app._netTsNodeBorder(this.checked)"> Node border
+            </label>
         `;
 
         panel.style.display = 'block';
+    }
+
+    // The visible node-border control lives in the Settings popout; the hidden
+    // #networkNodeBorder input stays the master switch every renderer reads.
+    _netTsNodeBorder(checked) {
+        const master = document.getElementById('networkNodeBorder');
+        if (master) master.checked = checked;
+        this.toggleNetworkBorder(checked);
     }
 
     _netTsStep(id, dir) {
@@ -12872,6 +12884,39 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         this.network.setOptions({ physics: { enabled: false } });
         const btn = document.getElementById('togglePhysics');
         if (btn) { btn.textContent = 'Unlock'; btn.classList.add('btn-active'); }
+    }
+
+    // Re-roll the layout from fresh random starting positions, so the user can
+    // click until the arrangement looks right. Runs the same settle, untangle,
+    // fit and re-baseline sequence a newly drawn network goes through, and
+    // leaves the Lock state as it found it.
+    shuffleNetworkLayout() {
+        if (!this.network || !this.networkData?.nodes) return;
+        const nodes = this.networkData.nodes.get();
+        if (!nodes.length) return;
+        const wasLocked = this.physicsEnabled === false;
+        // Scatter within a disc sized to the graph, so the solver starts from a
+        // genuinely different configuration each time.
+        const R = Math.max(250, Math.sqrt(nodes.length) * ((this._netSpringLength || 150) / 2));
+        this.networkData.nodes.update(nodes.map(nd => {
+            const a = Math.random() * 2 * Math.PI;
+            const r = R * Math.sqrt(Math.random());
+            return { id: nd.id, x: Math.cos(a) * r, y: Math.sin(a) * r };
+        }));
+        this.network.setOptions({ physics: { enabled: true } });
+        this.physicsEnabled = true;
+        this.network.once('stabilizationIterationsDone', () => {
+            this.resolveEdgeCrossings();
+            this.network.fit({ animation: false });
+            this._netBasePositions = this.network.getPositions();
+            this._netBaseSpread = 100;
+            this._applyNetworkSpread({ releaseAfter: !wasLocked });
+            if (wasLocked) {
+                this.network.setOptions({ physics: { enabled: false } });
+                this.physicsEnabled = false;
+            }
+        });
+        this.network.stabilize();
     }
 
     togglePhysics() {

@@ -2146,6 +2146,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.85.87 (2026-08-07)</strong></p>
+                <ul>
+                    <li><b>Shuffle button for the network layout.</b> Next to Reset in View controls: each click re-rolls the layout from new random starting positions and lets it settle, so you can keep clicking until the arrangement looks right. The Lock state is left as it was.</li>
+                    <li><b>Node border moved into Settings.</b> The checkbox now sits with the other appearance controls in the network's Settings popout instead of crowding the toolbar.</li>
+                </ul>
                 <p><strong>v.85.86 (2026-08-07)</strong></p>
                 <ul>
                     <li><b>The three-panel view's headings have their own settings row.</b> Text settings now shows a Panels row under Font Sizes &amp; Visibility: one checkbox switches all three panel headings on or off (like the title's), and one size control resizes them together, medians line included.</li>
@@ -5320,7 +5325,7 @@
                 <a href="https://www.youtube.com/@fredrikwermeling1330" target="_blank">YouTube</a>
             </span>
         </span>
-        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.86</a>
+        <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); margin:0; font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db;">v.85.87</a>
     </div>
 
     <div class="main-content">
@@ -5834,11 +5839,12 @@
                                 <button class="btn btn-secondary" id="togglePhysics" title="Freeze the layout so nodes stop drifting and stay where you put them. Click again to let them settle freely.">Lock</button>
                             </div>
                             <div class="button-group-horizontal" style="margin-bottom: 4px;">
-                                <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;" title="Fonts, label and node colors, legend size and other appearance settings for the network and its exports.">Settings</button>
+                                <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;" title="Fonts, label and node colors, node border, legend size and other appearance settings for the network and its exports.">Settings</button>
+                                <button class="btn btn-secondary" id="shuffleNetworkBtn" title="Re-roll the layout from new random starting positions. Click until the arrangement looks right.">Shuffle</button>
                                 <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network, font / node / edge size, colors, label options and node border, back to defaults">Reset</button>
-                                <label style="font-size: 10px; display: flex; align-items: center; gap: 3px; cursor: pointer;">
-                                    <input type="checkbox" id="networkNodeBorder" checked title="Draw a black outline around each node. Turn off for a flatter look in figures."> Node border
-                                </label>
+                                <!-- Hidden master switch for the node border; several renderers read
+                                     its state. The visible control lives in the Settings popout. -->
+                                <input type="checkbox" id="networkNodeBorder" checked style="display:none;">
                             </div>
                             <p class="help-text" id="networkHelpText" style="font-size: 9px; margin-bottom: 6px;">Double-click node for Gene Effect, edge for Correlation</p>
                             <div id="selectedNodesList" style="display: none; font-size: 9px; margin-bottom: 6px; padding: 4px; background: #dbeafe; border-radius: 3px;">
@@ -7837,6 +7843,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v85_86"></script>
+    <script src="app.js?v=v85_87"></script>
 </body>
 </html>
