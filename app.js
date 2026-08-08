@@ -10904,37 +10904,23 @@ class CorrelationExplorer {
             // nodes off the canvas.
             this._netBasePositions = this.network.getPositions();
             this._netBaseSpread = 100;
-            // Apply the default spacing, then hand the nodes straight back to
-            // the solver so a new network does not open in the locked state.
-            // Placing nodes needs the solver stopped, but it will not re-expand
-            // an already-settled layout, so the spacing survives being released.
-            this._applyNetworkSpread({ releaseAfter: false });
             clearTimeout(this._networkLoadingFallback);
             this._hideNetworkLoading();
-            if (nodeCount > 30) {
-                this.network.setOptions({ physics: { enabled: false } });
-                this.physicsEnabled = false;
-                if (physicsBtn) {
-                    physicsBtn.textContent = 'Unlock Nodes';
-                    physicsBtn.classList.add('btn-active');
-                }
-            } else {
-                // Default is UNLOCKED. The satellites are pinned individually,
-                // so releasing the solver cannot drag them out of the frame;
-                // but the crossing-resolver and spread may have nudged the
-                // main cluster off its equilibrium, so the released solver
-                // can still adjust it. Re-frame once it settles, unless the
-                // user has already taken hold of the view.
-                this.network.setOptions({ physics: { enabled: true } });
-                this.physicsEnabled = true;
-                let runUserTouched = false;
-                const runMarkTouched = () => { runUserTouched = true; };
-                this.network.once('dragStart', runMarkTouched);
-                this.network.once('zoom', runMarkTouched);
-                this.network.once('stabilized', () => {
-                    if (!runUserTouched) this.network.fit({ animation: false });
-                });
-            }
+            // Always UNLOCKED, at any size: nodes float unless the user
+            // presses Lock. The solver sleeps once settled, so an idle big
+            // network costs nothing; the crossing-resolver and separation may
+            // have nudged things off equilibrium, so the released solver can
+            // still adjust. Re-frame once it settles, unless the user has
+            // already taken hold of the view.
+            this.network.setOptions({ physics: { enabled: true } });
+            this.physicsEnabled = true;
+            let runUserTouched = false;
+            const runMarkTouched = () => { runUserTouched = true; };
+            this.network.once('dragStart', runMarkTouched);
+            this.network.once('zoom', runMarkTouched);
+            this.network.once('stabilized', () => {
+                if (!runUserTouched) this.network.fit({ animation: false });
+            });
             // Frame everything as the last step, whatever moved above, and
             // keep it framed through the solver's final micro-adjustments.
             this.network.fit({ animation: false });
@@ -11427,67 +11413,63 @@ class CorrelationExplorer {
         }
     }
 
-    _applyNetworkSpread(opts = {}) {
+    _applyNetworkSpread() {
         if (!this.network) return;
+        const spreadVal = (parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100;
+
+        if (this.physicsEnabled !== false) {
+            // Live solver: change the physics itself and let the nodes float
+            // to the new equilibrium, no lock, no camera move, no fit. Spring
+            // length sets the spacing of connected nodes and the repulsion
+            // sets the spacing of unconnected ones, so scaling both contracts
+            // the cluster uniformly while everything keeps floating. The
+            // historical failures here came from re-fitting the camera after
+            // a spring change, which cancels it on screen exactly (v.85.59
+            // measurements); holding the zoom is what makes it visible.
+            const spring = this._recomputeSpring();
+            this._netSpringLength = spring;
+            this.network.setOptions({ physics: { forceAtlas2Based: {
+                springLength: spring,
+                gravitationalConstant: -60 * spreadVal
+            } } });
+            // The solver sleeps once stabilized; wake it so it walks to the
+            // new equilibrium visibly. startSimulation alone is not enough in
+            // this vis build: with the render hook still attached it leaves
+            // the stabilized flag set and the step short-circuits, so clear
+            // the flag by hand (measured: without it the layout stays frozen).
+            try {
+                if (this.network.physics) this.network.physics.stabilized = false;
+                this.network.startSimulation();
+                // startSimulation skips _startRendering when its step hook is
+                // still attached from an earlier run, and with the render loop
+                // parked nothing ever steps: the redraw kick restarts the loop
+                // (measured: without it the layout stays exactly frozen).
+                this.network.redraw();
+            } catch (e) {}
+            clearTimeout(this._spreadSettle);
+            this._spreadSettle = setTimeout(() => this._checkNetworkFits(), 700);
+            return;
+        }
+
+        // Locked by the user: the nodes are ours, scale them in place about
+        // the point being looked at (the view centre) and leave the camera
+        // alone. Scaling about the node-mass centroid and re-centring on it
+        // panned the view whenever satellites sat off to one side.
         let base = this._netBasePositions;
         if (!base || !Object.keys(base).length) {
             base = this._netBasePositions = this.network.getPositions();
             this._netBaseSpread = 100;
         }
-        const wasRunning = this.physicsEnabled !== false;
-        // A live solver means the picture on screen is its equilibrium, which
-        // is by definition the Spread-100 layout. Scale from THAT. The stored
-        // baseline predates the solver's last adjustments, and scaling it
-        // visibly snapped the network to an older shape instead of just
-        // changing the distances of the layout being looked at.
-        if (wasRunning) {
-            base = this._netBasePositions = this.network.getPositions();
-            this._netBaseSpread = 100;
-        }
         const ids = Object.keys(base);
         if (!ids.length) return;
-        const factor = Math.min(1, ((parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100)
+        const factor = Math.min(1, (spreadVal)
                                  / ((this._netBaseSpread || 100) / 100));
-
-        // A running physics simulation owns the node positions. The renderer
-        // draws the solver's bodies, so moveNode() writes a value that
-        // getPositions() will hand back while the picture on screen does not
-        // change: the setting measured as working and visibly did nothing, and
-        // it only behaved once the layout was locked by hand. Freeze it here so
-        // the nodes are ours to place. It stays frozen, because giving them back
-        // to the solver just lets it pull them to its own equilibrium again. The
-        // Lock button flips to Unlock so the state is visible and reversible.
-        if (factor !== 1 && wasRunning) this._freezeNetworkLayout();
-        // Scale about the point the user is looking at (the view centre) and
-        // leave the camera alone. Scaling about the node-mass centroid and
-        // re-centring the camera on it panned the view whenever the centroid
-        // sat away from the fitted centre, which is guaranteed once satellite
-        // clusters are packed off to one side: a single press of the minus
-        // button threw the network partly out of the visible field.
-        // Deliberately no fit() either: holding the zoom steady is what makes
-        // the nodes visibly close up relative to their own size and labels.
         const view = this.network.getViewPosition();
         this._netSpreadAnchor = { x: view.x, y: view.y };
         for (const id of ids) {
             this.network.moveNode(id, view.x + (base[id].x - view.x) * factor, view.y + (base[id].y - view.y) * factor);
         }
         this.network.redraw();
-        // Used when a network first opens: the spacing is applied, then the
-        // solver takes the nodes back so the Lock button starts off unpressed.
-        if (opts.releaseAfter && wasRunning && this.physicsEnabled === false) {
-            this.physicsEnabled = true;
-            this.network.setOptions({ physics: { enabled: true } });
-            const btn = document.getElementById('togglePhysics');
-            if (btn) { btn.textContent = 'Lock'; btn.classList.remove('btn-active'); }
-        }
-        if (opts.releaseAfter) {
-            // Zoom to fit only once the solver has had the nodes back and stopped
-            // moving them. Doing it before the hand-back was pointless: the
-            // solver nudged a node out again straight afterwards, which is how a
-            // freshly run network still came up with a label over the edge.
-            clearTimeout(this._fitAfterRun);
-            this._fitAfterRun = setTimeout(() => this._zoomOutUntilNetworkFits(), 450);
-        }
         clearTimeout(this._spreadSettle);
         this._spreadSettle = setTimeout(() => this._checkNetworkFits(), 250);
     }
@@ -13658,6 +13640,11 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         if (!this.network) return;
         this.physicsEnabled = false;
         this.network.setOptions({ physics: { enabled: false } });
+        // The frozen Spread path scales from the layout as it stood at lock
+        // time; capture it here so the reference is never stale.
+        this._netBasePositions = this.network.getPositions();
+        this._netBaseSpread = parseInt(document.getElementById('netSpread')?.value, 10) || 100;
+        this._netSpreadAnchor = null;
         const btn = document.getElementById('togglePhysics');
         if (btn) { btn.textContent = 'Unlock'; btn.classList.add('btn-active'); }
     }
@@ -13843,11 +13830,13 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             const dx = cursorX - c.minX;
             const dy = rowTop - c.minY;
             c.ids.forEach(id => { const p = positions[id]; if (p) this.network.moveNode(id, p.x + dx, p.y + dy); });
-            // Pin the satellites: their placement is hand-made, not a solver
-            // equilibrium, so a released solver would drag them back across
-            // the main cluster. Pinned nodes ignore physics but can still be
-            // dragged by hand.
-            this.networkData.nodes.update(c.ids.map(id => ({ id, fixed: { x: true, y: true } })));
+            // Deliberately NOT pinned (v.86.23): pinning kept the solver from
+            // towing satellites back over the main cluster, but it also meant
+            // part of the network never floated, which read as broken. The
+            // low central gravity (constant force, 0.008) means unpinned
+            // satellites drift only slowly, and repulsion + avoidOverlap stop
+            // them from ever sitting on top of the main cluster's nodes.
+            // Fredrik's call: floating beats guaranteed non-overlap.
             cursorX += c.w + PAD;
             rowH = Math.max(rowH, c.h);
         }
@@ -13982,12 +13971,20 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             // 60 was worse than cosmetic: the next compaction measured from a
             // stale baseline, and 60 then behaved like the old 100.
             this._resetNetworkSpreadBaseline();
+            // The slider is back at 100; put the solver's spring and repulsion
+            // back to their natural values so the released layout matches it.
+            this._applyNetworkSpread();
             // Releasing the nodes can leave one, or its label, over the edge.
             // Bring the view back so everything is visible again, once the
             // solver has finished moving them.
             clearTimeout(this._fitAfterUnlock);
             this._fitAfterUnlock = setTimeout(() => this._zoomOutUntilNetworkFits(), 450);
         } else {
+            // Locking: capture the layout as the frozen Spread path's
+            // reference, exactly as _freezeNetworkLayout does.
+            this._netBasePositions = this.network.getPositions();
+            this._netBaseSpread = parseInt(document.getElementById('netSpread')?.value, 10) || 100;
+            this._netSpreadAnchor = null;
             btn.textContent = 'Unlock';
             btn.classList.add('btn-active');
         }
@@ -37004,7 +37001,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // arm brakes CDK4/6, its p14ARF arm restrains MDM2 and so guards
             // p53's regulation, which the verdict wording distinguishes from
             // losing TP53 itself.
-            'p53 / apoptosis':          { genes: ['TP53', 'MDM2', 'MDM4', 'CDKN2A'], ts: ['TP53', 'CDKN2A'], note: 'Controls apoptosis and genome stability after damage. Loss is one of the commonest events in cancer. CDKN2A counts here through its p14ARF product, which restrains MDM2; losing it deregulates p53 without touching TP53 itself.' },
+            'p53 (damage response)':          { genes: ['TP53', 'MDM2', 'MDM4', 'CDKN2A'], ts: ['TP53', 'CDKN2A'], note: 'Controls apoptosis and genome stability after damage. Loss is one of the commonest events in cancer. CDKN2A counts here through its p14ARF product, which restrains MDM2; losing it deregulates p53 without touching TP53 itself.' },
             'Cell cycle (RB / CDK4/6)': { genes: ['RB1', 'CDK4', 'CDK6', 'CCND1', 'CCND2', 'CCNE1', 'CDKN1B', 'CDKN2A', 'CDKN2B'], ts: ['RB1', 'CDKN1B', 'CDKN2A', 'CDKN2B'], note: 'G1/S cell-cycle brake. CDKN2A (p16) and CDKN2B (p15) are the INK4 inhibitors of CDK4/6, so their 9p21 deletion releases this brake. Many tumors release it one way or another; CDK4/6 inhibitors target this axis.' },
             'RAS / MAPK':               { genes: ['KRAS', 'NRAS', 'HRAS', 'BRAF', 'MAP2K1', 'MAP2K2', 'NF1', 'PTPN11', 'RAF1'], ts: ['NF1'], note: 'Major proliferation-signaling cascade. Targetable with MEK or RAF inhibitors.' },
             'PI3K / AKT / mTOR':        { genes: ['PIK3CA', 'PIK3CB', 'PIK3R1', 'PTEN', 'AKT1', 'AKT2', 'TSC1', 'TSC2', 'MTOR', 'STK11'], ts: ['PTEN', 'TSC1', 'TSC2', 'STK11', 'PIK3R1'], note: 'Survival and growth signaling. Targetable with PI3K, AKT, or mTOR inhibitors.' },
@@ -38075,7 +38072,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // The interpreted blocks were written with their own names; map them onto
         // the panel names so their CRISPR read-out lands on the right card.
         const RICH_ALIAS = {
-            'p53 tumor-suppressor pathway': 'p53 / apoptosis',
+            'p53 tumor-suppressor pathway': 'p53 (damage response)',
             'Cell cycle (RB / CDK4/6)': 'Cell cycle (RB / CDK4/6)',
             'RAS / MAPK signaling': 'RAS / MAPK',
             'PI3K / AKT survival pathway': 'PI3K / AKT / mTOR',
@@ -38125,7 +38122,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // arm) deregulates p53 without touching TP53: the CRISPR readout
             // in such lines typically shows active p53 (TP53 knockout helps,
             // MDM2 knockout hurts). Saying "brake lost" there overstated it.
-            const p53RegOnly = pname === 'p53 / apoptosis' && brakeLost
+            const p53RegOnly = pname === 'p53 (damage response)' && brakeLost
                 && lostBrakes.every(g => g === 'CDKN2A' || g === 'CDKN2B');
             if (driverOn && brakeLost) { verdict = 'Driver activated, brake lost'; tone = '#b91c1c'; }
             else if (driverOn) { verdict = 'Driver activated'; tone = '#b91c1c'; }

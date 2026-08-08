@@ -2177,6 +2177,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.23 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>The network floats unless you lock it.</b> All the automatic locking is gone: big networks no longer open locked, separated clusters are no longer pinned in place, and the Spread control no longer freezes the layout. Nodes belong to the physics engine at all times unless you press Lock.</li>
+                    <li><b>Spread now changes the physics itself.</b> Lowering it shortens the springs and softens the repulsion, so the cluster visibly floats into a tighter arrangement and settles at a real equilibrium with even spacing, exactly like the layouts the solver produces on its own. Raising it back re-expands the same way. The camera never moves. If you have locked the layout, the slider instead scales the frozen picture in place, as before.</li>
+                    <li><b>Trade-off, made deliberately:</b> without pinning, a disconnected small cluster can slowly drift toward the main network and settle beside it. Node-on-node overlap is still prevented by the repulsion, and everything stays draggable. The guarantee that Run and Shuffle never leave nodes or labels outside the visible area is unchanged.</li>
+                    <li><b>Wiki: the p53 panel is now called "p53 (damage response)".</b></li>
+                </ul>
                 <p><strong>v.86.22 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>The Spread buttons no longer throw the network sideways.</b> The spacing change re-centered the camera on the average node position, which sits away from the middle whenever a separate small cluster is parked to one side, so one press shifted the whole picture. Spacing now changes around the point you are looking at and the camera stays put.</li>
@@ -5542,7 +5549,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.22</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.23</a>
         </span>
     </div>
 
@@ -8078,6 +8085,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_22"></script>
+    <script src="app.js?v=v86_23"></script>
 </body>
 </html>
