@@ -16346,6 +16346,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // once is unreadable; picking a handful is the useful case.
             const picked3 = this._colorByPickedSet(colorByCategories);
             this.renderColorByChips(picked3 ? [...picked3] : [], CorrelationExplorer.CATEGORY_COLORS);
+            // Each legend entry carries the group's own correlation, so the
+            // legend doubles as a per-tissue (or per-subtype) r table. Below
+            // 3 points r is noise, so it is left off there.
+            const groupR = (arr) => {
+                if (arr.length < 3) return '';
+                const r = this.pearsonWithSlope(arr.map(d => d.x), arr.map(d => d.y)).correlation;
+                return isNaN(r) ? '' : `, r=${r.toFixed(2)}`;
+            };
             if (picked3) {
                 const restData = [];
                 colorByCategories.filter(c => !picked3.has(c)).forEach(c => restData.push(...categoryMap[c]));
@@ -16359,7 +16367,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         text: restData.map(d => `${d.cellLineName}<br>${this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown'}`),
                         hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                         marker: { color: '#d1d5db', size: 8, opacity: 0.55 },
-                        name: `${this.OTHER_GROUP_LABEL} (${restData.length})`,
+                        name: `${this.OTHER_GROUP_LABEL} (${restData.length}${groupR(restData)})`,
                         legendgroup: this.OTHER_GROUP_LABEL,
                         showlegend: true
                     });
@@ -16367,11 +16375,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             colorByColors = CorrelationExplorer.CATEGORY_COLORS;
             // Reserve enough width per legend entry for its full label (name +
-            // count) so entries never overlap; long subtype names end up ~1 per
-            // row, short ones share a row. Plotly under-measures Open Sans, so
-            // we pad generously.
+            // count + group r) so entries never overlap; long subtype names end
+            // up ~1 per row, short ones share a row. Plotly under-measures Open
+            // Sans, so we pad generously.
             const _lf = this._savedScatterTextSettings?.legendSize || 17;
-            const _maxLabel = colorByCategories.reduce((m, c) => Math.max(m, (`${c} (${categoryMap[c].length})`).length), 0);
+            const _maxLabel = colorByCategories.reduce((m, c) => Math.max(m, (`${c} (${categoryMap[c].length}, r=-0.00)`).length), 0);
             this._colorByLegendEntryW = Math.min(470, Math.max(150, Math.round(_maxLabel * _lf * 0.55 + 36)));
             colorByCategories.forEach((cat, i) => {
                 const catData = categoryMap[cat];
@@ -16385,7 +16393,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     text: catData.map(d => `${d.cellLineName}<br>${cat}`),
                     hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                     marker: CorrelationExplorer.categoryMarker(i, 10, 0.8),
-                    name: `${cat} (${catData.length})`,
+                    name: `${cat} (${catData.length}${groupR(catData)})`,
                     legendgroup: cat,
                     showlegend: true
                 });
