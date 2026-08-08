@@ -10895,15 +10895,16 @@ class CorrelationExplorer {
             this.resolveEdgeCrossings();
             this._separateNetworkComponents();
             this.network.fit({ animation: false });
-            // The settled, fitted layout is the reference Spread works from, and
-            // it is by definition the 100 setting: the network exactly fills the
-            // panel there, so 100 is as far apart as the nodes can sit and still
-            // all be visible. Recording the slider's own value here instead used
-            // to make the reference whatever the slider happened to say from a
-            // previous run, which is how a factor above 1 crept in and pushed
-            // nodes off the canvas.
+            // The settled, fitted layout is the reference Spread works from.
+            // The solver ran with the spring and gravity of the slider's
+            // current setting, so record the baseline at that value (as Lock
+            // and Shuffle do): the meter then describes the picture instead
+            // of a leftover reading. Factors above 1 are capped where the
+            // factor is computed, so a sub-100 baseline cannot push nodes
+            // off the canvas.
             this._netBasePositions = this.network.getPositions();
-            this._netBaseSpread = 100;
+            this._netBaseSpread = parseInt(document.getElementById('netSpread')?.value, 10) || 100;
+            this._netSpreadAnchor = null;
             clearTimeout(this._networkLoadingFallback);
             this._hideNetworkLoading();
             // Always UNLOCKED, at any size: nodes float unless the user
@@ -11223,6 +11224,12 @@ class CorrelationExplorer {
         setSlider('netFontSize', 20, 'fontSizeBubble');
         setSlider('netNodeSize', 25, 'nodeSizeBubble');
         setSlider('netEdgeWidth', 3, 'edgeWidthBubble');
+        // Spread goes back to 100 through its own apply path (same as the Fit
+        // button), so the layout actually widens instead of the meter just
+        // relabelling itself over an unchanged picture.
+        const spreadWas = document.getElementById('netSpread')?.value;
+        setSlider('netSpread', 100, 'spreadBubble');
+        if (spreadWas && spreadWas !== '100') this._applyNetworkSpread();
 
         // Aa text settings -> defaults
         this._netFontFamily = 'Arial, sans-serif';
@@ -13877,9 +13884,9 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
 
     // Re-roll the layout from fresh random starting positions, so the user can
     // click until the arrangement looks right. Runs the same settle, untangle
-    // and fit sequence a newly drawn network goes through, at full Spread
-    // (rolling a random Spread per click looked compressed more often than
-    // good), and leaves the Lock state as it found it.
+    // and fit sequence a newly drawn network goes through, keeps the user's
+    // style settings (font/node/edge/Spread) as they are, and leaves the Lock
+    // state as it found it.
     shuffleNetworkLayout() {
         if (!this.network || !this.networkData?.nodes) return;
         const nodes = this.networkData.nodes.get();
@@ -13900,17 +13907,15 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             this.resolveEdgeCrossings();
             this._separateNetworkComponents();
             this.network.fit({ animation: false });
-            // The freshly settled full-panel layout is the Spread-100
-            // reference; the slider follows, since a leftover reading from
-            // before the shuffle would compact the new layout from the start.
+            // The solver settled under the physics of the current Spread
+            // setting, so the freshly fitted layout IS that setting's
+            // picture: record it as the baseline at the slider's own value
+            // (same as locking does) and leave the meter alone. Forcing the
+            // slider back to 100 here showed a reading the layout didn't
+            // match.
             this._netBasePositions = this.network.getPositions();
-            this._netBaseSpread = 100;
-            const spreadEl = document.getElementById('netSpread');
-            if (spreadEl) {
-                spreadEl.value = '100';
-                const bb = document.getElementById('spreadBubble');
-                if (bb) bb.textContent = '100';
-            }
+            this._netBaseSpread = parseInt(document.getElementById('netSpread')?.value, 10) || 100;
+            this._netSpreadAnchor = null;
             const lockBtn = document.getElementById('togglePhysics');
             if (wasLocked) {
                 this.network.setOptions({ physics: { enabled: false } });

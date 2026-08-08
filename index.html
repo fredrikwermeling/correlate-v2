@@ -2177,6 +2177,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.24 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>The Spread meter always tells the truth.</b> Shuffle keeps all your settings (font, node, edge, Spread) but the meter used to jump back to 100 while the layout kept the old spacing; it now stays at the value the layout was settled with. The Reset button, which left Spread untouched, now returns it to 100 and actually widens the layout.</li>
+                    <li><b>"How it works" refocused on the two main tools.</b> Gene set analysis and the Cell Line Browser carry the intro and the tool cards; Mutation analysis is a one-line pointer under Options &rarr; Other.</li>
+                </ul>
                 <p><strong>v.86.23 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>The network floats unless you lock it.</b> All the automatic locking is gone: big networks no longer open locked, separated clusters are no longer pinned in place, and the Spread control no longer freezes the layout. Nodes belong to the physics engine at all times unless you press Lock.</li>
@@ -5549,7 +5554,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.23</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.24</a>
         </span>
     </div>
 
@@ -7346,15 +7351,15 @@
                     <h4 style="margin: 0 0 10px; color: #3b5e23; font-size: 16px;">What is Correlate?</h4>
                     <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
                         Correlate is an analysis platform built around <strong>CRISPR knockout screens</strong> of more than <strong>1,100 human cancer cell lines</strong> (DepMap), and it integrates <strong>multi-omics data</strong> for the same lines, mRNA expression, hotspot mutations, driver fusions and copy number.
-                        Three tools cover the main uses: <strong>Gene set analysis</strong> to discover and present the connections within a gene set and extend it into wider networks,
-                        <strong>Mutation analysis</strong> to find mutation-specific vulnerabilities, and the <strong>Cell Line Browser</strong> to identify cell lines with the features a project needs.
+                        Two tools cover the main uses: <strong>Gene set analysis</strong> to discover and present the connections within a gene set and extend it into wider networks,
+                        and the <strong>Cell Line Browser</strong> to identify cell lines with the features a project needs.
                         Outside tools are integrated for further analysis: any gene list can be sent to <strong>Enrichr</strong> for pathway enrichment, and every view has an <strong>Export for AI</strong> that packages its data and settings into one file an AI assistant can analyse.
                     </p>
                 </div>
 
                 <!-- Section 1b: The three tools -->
                 <div style="padding: 24px 28px; border-bottom: 1px solid #e5e7eb;">
-                    <h4 style="margin: 0 0 14px; color: #3b5e23; font-size: 16px;">Three Tools</h4>
+                    <h4 style="margin: 0 0 14px; color: #3b5e23; font-size: 16px;">Two Tools</h4>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px;">
                         <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
                             <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🕸 Gene set analysis</div>
@@ -7364,18 +7369,15 @@
                             </p>
                         </div>
                         <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
-                            <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🧬 Mutation analysis</div>
-                            <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.55;">
-                                Pick an alteration, a hotspot mutation, a driver fusion, a functional loss or an amplification. Correlate splits the cell lines into carriers and wild-type, then scans the whole screen for the genes carriers depend on more, or express differently. What comes out is a ranked list of mutation-specific vulnerabilities, candidate targets that matter only in the altered background. Found under <b>Options &rarr; Other</b>.
-                            </p>
-                        </div>
-                        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
                             <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">📊 Cell Line Browser</div>
                             <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.55;">
                                 Find human cell lines with the features that matter for a project: filter by tissue, disease, sex, mutations, fusions, copy number, expression or dependency, then read each line's Wiki page for a curated overview before choosing a model.
                             </p>
                         </div>
                     </div>
+                    <p style="font-size: 12px; color: #777; margin: 12px 0 0; line-height: 1.55;">
+                        More under <b>Options &rarr; Other</b>: <b>Mutation analysis</b> splits the cell lines by a chosen alteration (hotspot mutation, driver fusion, functional loss or amplification) and ranks the genes carriers depend on more, or express differently.
+                    </p>
                 </div>
 
                 <!-- Section 2: Understanding Correlations -->
@@ -8085,6 +8087,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_23"></script>
+    <script src="app.js?v=v86_24"></script>
 </body>
 </html>
