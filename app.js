@@ -327,7 +327,18 @@ class CorrelationExplorer {
     _DEPENDENT_CONTROLS() {
         return {
             geTissueFilter: () => this.updateGeSubtypeFilter(),
-            scatterCancerFilter: () => this.updateScatterSubtypeFilter()
+            scatterCancerFilter: () => this.updateScatterSubtypeFilter(),
+            caTissueFilter: () => this.updateCaSubtypeFilter()
+        };
+    }
+
+    // Disease (Oncotree) selects hold options scoped to the tissue/subtype pair
+    // they sit under; the map's own values provide that scope on restore.
+    _ONCOTREE_CONTROL_SCOPE() {
+        return {
+            scatterOncotreeFilter: ['scatterCancerFilter', 'scatterSubtypeFilter'],
+            geOncotreeFilter: ['geTissueFilter', 'geSubtypeFilter'],
+            caOncotreeFilter: ['caTissueFilter', 'caSubtypeFilter']
         };
     }
 
@@ -340,9 +351,23 @@ class CorrelationExplorer {
             ...this._GE_NEWTAB_CONTROLS(), ...this._SCATTER_NEWTAB_CONTROLS(),
             ...this._CA_NEWTAB_CONTROLS(), ...Object.keys(this._DEPENDENT_CONTROLS()),
         ]);
+        const oncScope = this._ONCOTREE_CONTROL_SCOPE();
         const setOne = (id, v) => {
             const el = document.getElementById(id);
             if (!el) return;
+            // Disease selects: rebuild the scoped option list first, and add the
+            // saved value as an option when the rescoped list lacks it, else the
+            // assignment silently drops and the restored cohort widens.
+            if (oncScope[id] && v) {
+                const [tissueId, subtypeId] = oncScope[id];
+                try { this._populateOncotreeSelect(id, map[tissueId] || '', map[subtypeId] || ''); } catch (e) {}
+                if (![...el.options].some(o => o.value === v)) {
+                    const o = document.createElement('option');
+                    o.value = v;
+                    o.textContent = v;
+                    el.appendChild(o);
+                }
+            }
             if (el.type === 'checkbox') el.checked = !!v;
             else el.value = v;
         };
@@ -354,13 +379,18 @@ class CorrelationExplorer {
             try { repopulate(); } catch (e) { console.warn(`Could not repopulate options for ${parentId}:`, e); }
         });
         Object.entries(map).forEach(([id, v]) => { if (allowed.has(id)) setOne(id, v); });
+        // The custom cell-line filter applies as a parsed Set, not as the raw
+        // textarea text; re-derive it exactly as the Apply button does.
+        if (map.customCellLineFilter && allowed.has('customCellLineFilter')) {
+            try { this.applyCustomCellLineFilter(); } catch (e) {}
+        }
     }
 
     // Filter/setting controls captured for "Open in new tab" so the new tab
     // reproduces the same view (not just the gene/pair).
-    _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geHotspotFilter', 'geHotspotLevel', 'geFusionFilter', 'geFusionLevel', 'geCnFilter', 'geCnLevel', 'geMinGroupSize', 'geCellLineSearch']; }
-    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterCnLevel', 'scatterFontSize', 'hotspotGene', 'translocationGene', 'colorByCategory', 'colorByPicked']; }
-    _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caHotspotFilter', 'caFusionFilter', 'caCnFilter', 'caCellLineSearch']; }
+    _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geOncotreeFilter', 'geHotspotFilter', 'geHotspotLevel', 'geFusionFilter', 'geFusionLevel', 'geCnFilter', 'geCnLevel', 'geMinGroupSize', 'geCellLineSearch']; }
+    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'scatterOncotreeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterCnLevel', 'scatterFontSize', 'hotspotGene', 'hotspotMode', 'translocationGene', 'translocationMode', 'colorByCategory', 'colorByPicked', 'scatterCellSearch', 'customCellLineFilter']; }
+    _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caSubtypeFilter', 'caOncotreeFilter', 'caHotspotFilter', 'caHotspotLevel', 'caFusionFilter', 'caFusionLevel', 'caCnFilter', 'caCnLevel', 'caCellLineSearch']; }
 
     // Snapshot the underlying analysis/network so a new tab can rebuild the
     // whole app (genes, mode, cutoff, filters, network settings), not just the
@@ -373,8 +403,81 @@ class CorrelationExplorer {
             cutoff: this.results?.cutoff,
             nCellLines: this.results?.nCellLines,
             networkSettings: this._captureNetworkSettings(),
+            paramFilters: this._captureParamFilters(),
             oncoprintFilters: this._activeOncoprintFilters || null
         };
+    }
+
+    // Box-1 cohort filters the analysis reads beyond the lineage pair already in
+    // networkSettings. Without these a restored network silently recomputes on a
+    // different set of cell lines than the exported figure.
+    _captureParamFilters() {
+        const val = (id) => document.getElementById(id)?.value || '';
+        return {
+            paramOncotreeFilter: val('paramOncotreeFilter'),
+            paramDiseaseMulti: this._paramDiseaseMulti?.length ? [...this._paramDiseaseMulti] : null,
+            paramHotspotGene: val('paramHotspotGene'),
+            paramHotspotLevel: val('paramHotspotLevel'),
+            paramTranslocationGene: val('paramTranslocationGene'),
+            paramTranslocationLevel: val('paramTranslocationLevel'),
+            paramCnFilter: val('paramCnFilter'),
+            paramCnLevel: val('paramCnLevel'),
+            excludedTissues: this.excludedTissues?.size ? [...this.excludedTissues] : null,
+            analysisCellLineSubset: this._analysisCellLineSubset?.size ? [...this._analysisCellLineSubset] : null,
+            analysisSubsetLabel: this._analysisSubsetLabel || ''
+        };
+    }
+
+    // Reapply captured box-1 cohort filters before the restore's re-run.
+    _applyParamFilters(pf) {
+        if (!pf) return;
+        const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+        // Tissue exclusions first: their apply path rewrites the lineage
+        // dropdown state that the rest of the filters sit next to.
+        if (pf.excludedTissues?.length) this._applyRestoredExcludedTissues(pf.excludedTissues);
+        set('paramHotspotGene', pf.paramHotspotGene);
+        set('paramHotspotLevel', pf.paramHotspotLevel);
+        set('paramTranslocationGene', pf.paramTranslocationGene);
+        set('paramTranslocationLevel', pf.paramTranslocationLevel);
+        set('paramCnFilter', pf.paramCnFilter);
+        set('paramCnLevel', pf.paramCnLevel);
+        this._paramDiseaseMulti = pf.paramDiseaseMulti?.length ? [...pf.paramDiseaseMulti] : null;
+        if (pf.paramOncotreeFilter) {
+            this._populateOncotreeSelect?.('paramOncotreeFilter',
+                document.getElementById('lineageFilter')?.value || '',
+                document.getElementById('subLineageFilter')?.value || '');
+            const oncEl = document.getElementById('paramOncotreeFilter');
+            if (oncEl) {
+                if (![...oncEl.options].some(o => o.value === pf.paramOncotreeFilter)) {
+                    const o = document.createElement('option');
+                    o.value = pf.paramOncotreeFilter;
+                    o.textContent = pf.paramOncotreeFilter;
+                    oncEl.appendChild(o);
+                }
+                oncEl.value = pf.paramOncotreeFilter;
+            }
+        }
+        if (pf.analysisCellLineSubset?.length) {
+            this.setAnalysisCellLineSubset(pf.analysisCellLineSubset, pf.analysisSubsetLabel);
+        }
+    }
+
+    // Restore a saved tissue-exclusion set through the same path the tissue
+    // breakdown popup uses, so the checkbox list, the disabled lineage dropdown
+    // and the override label all match the applied state instead of the
+    // exclusions applying invisibly.
+    _applyRestoredExcludedTissues(excluded) {
+        if (!excluded?.length) return;
+        const all = this.cellLineMetadata?.lineage
+            ? [...new Set(Object.values(this.cellLineMetadata.lineage))]
+            : [];
+        const excludeSet = new Set(excluded);
+        const included = all.filter(t => !excludeSet.has(t));
+        if (included.length && included.length < all.length) {
+            this.applyTissueBreakdownSelection(included);
+        } else {
+            this.excludedTissues = new Set(excluded);
+        }
     }
 
     // Build the full recreate-metadata for one popout: the underlying analysis/
@@ -390,7 +493,7 @@ class CorrelationExplorer {
         const textSettings = extraTs || (TS_PLOT[kind] ? this._capturePlotTextSettings(TS_PLOT[kind]) : null);
         let popout;
         if (kind === 'gene_effect') {
-            popout = { kind, gene: this.currentGeneEffect?.gene || this._geGene, view: this.currentGEView || 'tissue', dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS()), textSettings };
+            popout = { kind, gene: this.currentGeneEffect?.gene || this._geGene, view: this.currentGEView || 'tissue', dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS()), geChartWidthRatio: this.geChartWidthRatio || 1.0, textSettings };
         } else if (kind === 'scatter') {
             popout = { kind, gene1: this.currentInspect && this.currentInspect.gene1, gene2: this.currentInspect && this.currentInspect.gene2, controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS()), textSettings };
         } else if (kind === 'correlation_analysis') {
@@ -440,6 +543,16 @@ class CorrelationExplorer {
             subLineageFilter: mr.subLineageFilter || '',
             oncotreeFilter: mr.oncotreeFilter || '',
             oncotreeFilterMulti: mr.oncotreeFilterMulti || null,
+            // The analysis-level "additional" filters, tissue exclusions, group
+            // minimum and metric were part of the saved cohort too; without them
+            // the re-run splits a different set of cell lines.
+            additionalHotspot: mr.additionalHotspot || '',
+            additionalHotspotLevel: mr.additionalHotspotLevel || 'all',
+            additionalTransGene: mr.additionalTransGene || '',
+            additionalTransLevel: mr.additionalTransLevel || 'all',
+            excludedTissues: mr.excludedTissues?.size ? [...mr.excludedTissues] : null,
+            minCellLines: mr.minN ?? null,
+            metric: mr.metric || 'ge',
             controls: this._captureControls(this._GE_NEWTAB_CONTROLS()),
             textSettings: this._capturePlotTextSettings('geneEffectPlot'),
             geChartWidthRatio: this.geChartWidthRatio || 1.0,
@@ -459,7 +572,7 @@ class CorrelationExplorer {
         const ts = popout.textSettings || null;
         if (popout.kind === 'gene_effect' && popout.gene) {
             this.openGeneEffectModal(popout.gene, popout.view || 'tissue', popout.dataType ? { dataType: popout.dataType } : {});
-            this._restorePopoutControls(popout.controls, 'geTissueFilter', () => { this._savedScatterTextSettings = ts; this.switchGeneEffectView(popout.view || 'tissue'); });
+            this._restorePopoutControls(popout.controls, 'geTissueFilter', () => { this._savedScatterTextSettings = ts; if (popout.geChartWidthRatio) this.geChartWidthRatio = popout.geChartWidthRatio; this.switchGeneEffectView(popout.view || 'tissue'); });
         } else if (popout.kind === 'correlation_analysis' && popout.gene1 && popout.gene2) {
             this.openCorrelationAnalysisModal(popout.gene1, popout.gene2, popout.view || 'tissue');
             this._restorePopoutControls(popout.controls, 'caTissueFilter', () => { this._savedScatterTextSettings = ts; this.switchCorrAnalysisView(popout.view || 'tissue'); });
@@ -513,8 +626,10 @@ class CorrelationExplorer {
     _applyRestoreMeta(meta) {
         if (!meta || typeof meta !== 'object') return;
         const popoutDataType = meta.popout?.dataType || meta.dataType;
-        const pc = meta.popout?.controls || {};
-        const needsExpr = popoutDataType === 'expr' || pc.xAxisDataType === 'expr' || pc.yAxisDataType === 'expr' || meta.graphType === 'expr_correlate';
+        // mutation_inspect (and other flat payloads) carry controls top-level,
+        // not under .popout; without this the expr-view preload never fired.
+        const pc = meta.popout?.controls || meta.controls || {};
+        const needsExpr = popoutDataType === 'expr' || pc.geDataType === 'expr' || pc.xAxisDataType === 'expr' || pc.yAxisDataType === 'expr' || meta.metric === 'expr' || meta.graphType === 'expr_correlate';
         const needsCn = pc.xAxisDataType === 'cn' || pc.yAxisDataType === 'cn';
         const run = () => this._doApplyRestoreMeta(meta);
         const pre = [];
@@ -526,6 +641,10 @@ class CorrelationExplorer {
 
     _doApplyRestoreMeta(meta) {
         try {
+            // A restore opened in a working tab must not inherit that tab's
+            // filters: anything the payload doesn't carry stays at its default,
+            // not at whatever the current session had dialed in.
+            this._resetForRestore();
             if (meta.network && meta.network.geneList && meta.network.geneList.length) {
                 // Composite: rebuild the whole analysis/network first, then drop
                 // the popout on top once results are ready, so the restore is a
@@ -9939,20 +10058,10 @@ class CorrelationExplorer {
             h: plotEl._fullLayout?.height || plotEl.offsetHeight,
             format,
             filename: `gene_effect_${this.currentGeneEffectGene}_${this.mutationResults.hotspotGene}`,
-            meta: this._buildExportMetadata('mutation_inspect', {
-                gene: this.currentGeneEffectGene,
-                hotspotGene: this.mutationResults?.hotspotGene,
-                isTranslocation: this.mutationResults?.isTranslocation || false,
-                isDamaging: this.mutationResults?.isDamaging || false,
-                cnMode: this.mutationResults?.cnMode || null,
-                lineageFilter: this.mutationResults?.lineageFilter || '',
-                subLineageFilter: this.mutationResults?.subLineageFilter || '',
-                oncotreeFilter: this.mutationResults?.oncotreeFilter || '',
-                oncotreeFilterMulti: this.mutationResults?.oncotreeFilterMulti || null,
-                textSettings: this._capturePlotTextSettings('geneEffectPlot'),
-                geChartWidthRatio: this.geChartWidthRatio || 1.0,
-                oncoprintFilters: this._activeOncoprintFilters || null
-            })
+            // Same builder as "Open in new tab", so an image restore carries the
+            // inspect-level filter controls too (the inline copy here omitted
+            // them, and restore-from-PNG silently lost those filters).
+            meta: this._buildMutationInspectMeta()
         });
     }
 
@@ -12336,6 +12445,7 @@ Results:
             cutoff: this.results?.cutoff,
             nCellLines: this.results?.nCellLines,
             networkSettings: this._captureNetworkSettings(),
+            paramFilters: this._captureParamFilters(),
             oncoprintFilters: this._activeOncoprintFilters || null
         });
         // PNG / TIFF / PDF / PPTX all come from this composed canvas; SVG uses
@@ -13030,6 +13140,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             cutoff: this.results?.cutoff,
             nCellLines: this.results?.nCellLines,
             networkSettings: this._captureNetworkSettings(),
+            paramFilters: this._captureParamFilters(),
             oncoprintFilters: this._activeOncoprintFilters || null
         });
         svg += `<metadata><correlate-meta>${JSON.stringify(meta)}</correlate-meta></metadata>`;
@@ -21318,15 +21429,43 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         resetEl('paramTranslocationLevel', '1+2');
         resetEl('paramCnFilter', '');
         resetEl('paramCnLevel', 'altered');
+        resetEl('paramOncotreeFilter', '');
+        this._paramDiseaseMulti = null;
+        // Tissue exclusions and the UI that mirrors them (checkbox list,
+        // disabled lineage dropdown, override label under it).
+        this.excludedTissues = new Set();
+        document.querySelectorAll('#tissueExcludeList input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+        const linSel = document.getElementById('lineageFilter');
+        if (linSel) { linSel.disabled = false; linSel.style.opacity = ''; }
+        document.querySelector('#lineageFilterGroup .tb-override-label')?.remove();
+        // Alteration-grid picks and the cell-line subset chip are cohort
+        // filters too; the analysis reads them off the instance directly.
+        this._activeOncoprintFilters = null;
+        this._oncoprintFilters = {};
+        this._oncoprintSyncFilters?.();
+        this.clearAnalysisCellLineSubset?.();
+        this._mutAnalysisMetric = 'ge';
+        // Scatter-side filters/overlays.
         resetEl('scatterCancerFilter', '');
+        resetEl('scatterSubtypeFilter', '');
+        resetEl('scatterOncotreeFilter', '');
         resetEl('scatterCellSearch', '');
         resetEl('hotspotGene', '');
-        resetEl('hotspotMode', 'none');
+        resetEl('hotspotMode', 'color');
         resetEl('translocationGene', '');
         resetEl('translocationMode', 'none');
         resetEl('mutationFilterGene', '');
-        resetEl('mutationFilterLevel', 'all');
-        resetEl('colorBySelect', '');
+        resetEl('mutationFilterLevel', '1+2');
+        resetEl('translocationFilterGene', '');
+        resetEl('translocationFilterLevel', '1+2');
+        resetEl('scatterCnFilter', '');
+        resetEl('scatterCnLevel', 'altered');
+        resetEl('colorByCategory', '');
+        resetEl('colorByPicked', '');
+        resetEl('customCellLineFilter', '');
+        this._customCellLineFilter = null;
+        const customCnt = document.getElementById('customCLFilterCount');
+        if (customCnt) customCnt.textContent = '';
         const zeroCb = document.getElementById('showZeroLines');
         if (zeroCb) zeroCb.checked = true;
         const corrCb = document.getElementById('showCorrelationLine');
@@ -21346,6 +21485,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         if (meta.graphType === 'oncoprint' || meta.graphType === 'upset') {
             return this._restoreOncoprintMeta(meta);
+        }
+
+        // By-tissue chart exports → restore the inspect scatter it sits on,
+        // then open the by-tissue view (previously the graphType was ignored
+        // and the file restored as a plain scatter).
+        if (meta.graphType === 'tissue_chart' && meta.gene1 && meta.gene2) {
+            this._restoreFromState(meta);
+            // The inspect scatter applies its settings ~300 ms after opening;
+            // the by-tissue modal reads currentInspect, so follow after that.
+            setTimeout(() => { if (this.currentInspect) this.showByTissueModal(); }, 700);
+            return;
         }
 
         // Scatter-like exports with gene pair → restore inspect view
@@ -21420,6 +21570,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // once the rerun below has drawn the network.
                 this._pendingNetworkSettings = ns;
             }
+            // Restore the box-1 cohort filters (disease level, hotspot/fusion/CN
+            // gene+level, tissue exclusions, cell-line subset) the re-run reads.
+            this._applyParamFilters(meta.paramFilters);
             // Restore oncoprint filters
             if (meta.oncoprintFilters && meta.oncoprintFilters.length > 0) {
                 this._activeOncoprintFilters = meta.oncoprintFilters;
@@ -21433,103 +21586,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Mutation inspect exports → run mutation analysis then open gene inspect
         if (meta.graphType === 'mutation_inspect' && meta.gene && meta.hotspotGene) {
-            // Set mutation analysis mode
-            const mutRadio = document.querySelector('input[name="analysisMode"][value="mutation"]');
-            if (mutRadio) mutRadio.checked = true;
-            this._syncAnalysisModeButtons();
-            // Switch to mutation tab so UI is visible
-            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            const mutTab = document.querySelector('[data-tab="mutation"]');
-            if (mutTab) mutTab.classList.add('active');
-            const mutContent = document.getElementById('tab-mutation');
-            if (mutContent) mutContent.classList.add('active');
-            // Set mutation sub-type and populate selector before setting value
-            if (meta.isTranslocation) {
-                const radio = document.querySelector('input[name="mutAnalysisType"][value="translocation"]');
-                if (radio) { radio.checked = true; this.updateMutationAnalysisType?.(); }
-                const sel = document.getElementById('translocationHotspotSelect');
-                if (sel) sel.value = meta.hotspotGene;
-            } else if (meta.isDamaging) {
-                // CN amp / deep-del ride the damaging path; restore to the
-                // right sub-type radio, or the re-run uses the functional-loss
-                // call matrix for what was a copy-number analysis.
-                const subType = meta.cnMode === 'amp' ? 'cn_amp' : meta.cnMode === 'del' ? 'cn_del' : 'damaging';
-                const radio = document.querySelector(`input[name="mutAnalysisType"][value="${subType}"]`);
-                if (radio) { radio.checked = true; this.updateMutationAnalysisType?.(); }
-                const sel = document.getElementById('damagingHotspotSelect');
-                if (sel) sel.value = meta.hotspotGene;
-            } else {
-                const radio = document.querySelector('input[name="mutAnalysisType"][value="hotspot"]');
-                if (radio) { radio.checked = true; this.updateMutationAnalysisType?.(); }
-                // Populate hotspot selector so the value can be set
-                this.populateMutationHotspotSelector?.();
-                const sel = document.getElementById('mutationHotspotSelect');
-                if (sel) sel.value = meta.hotspotGene;
-            }
-            // Restore tissue filter if stored. Populate the sub-lineage options
-            // for the restored lineage BEFORE setting the sub value, else the
-            // option doesn't exist yet and the sub-filter silently fails to stick.
-            if (meta.lineageFilter) {
-                document.getElementById('lineageFilter').value = meta.lineageFilter;
-            }
-            if (meta.subLineageFilter) {
-                this.updateSubLineageFilter?.();
-                const subEl = document.getElementById('subLineageFilter');
-                if (subEl) subEl.value = meta.subLineageFilter;
-            }
-            // Restore the disease level too, single pick or the Tissue split's
-            // multi-set, so the re-run reproduces the saved cohort.
-            this._paramDiseaseMulti = meta.oncotreeFilterMulti?.length ? [...meta.oncotreeFilterMulti] : null;
-            if (meta.oncotreeFilter) {
-                this._populateOncotreeSelect?.('paramOncotreeFilter', meta.lineageFilter || '', meta.subLineageFilter || '');
-                const oncEl = document.getElementById('paramOncotreeFilter');
-                if (oncEl) {
-                    if (![...oncEl.options].some(o => o.value === meta.oncotreeFilter)) {
-                        const o = document.createElement('option');
-                        o.value = meta.oncotreeFilter;
-                        o.textContent = meta.oncotreeFilter;
-                        oncEl.appendChild(o);
-                    }
-                    oncEl.value = meta.oncotreeFilter;
-                }
-            }
-            // Grid include/exclude picks were part of the saved cohort; the
-            // analysis checks _cellLinePassesOncoprintFilters, so without
-            // this the re-run used different WT/altered groups than the
-            // exported figure (stored-but-never-applied, like cnMode was).
-            this._activeOncoprintFilters = meta.oncoprintFilters?.length
-                ? meta.oncoprintFilters.map(f => ({ ...f }))
-                : null;
-            // Run mutation analysis, then open gene inspect after results load
-            this.runAnalysis();
-            const waitForResults = () => {
-                if (this.mutationResults && this.mutationResults.hotspotGene === meta.hotspotGene) {
-                    if (meta.geChartWidthRatio) this.geChartWidthRatio = meta.geChartWidthRatio;
-                    // The first render is what populates the inspect-level filter
-                    // dropdowns (tissue etc.) from the cohort, so saved control
-                    // values can only be applied after it. Replay them through the
-                    // same poll-then-apply-then-rerender helper the ordinary
-                    // gene-effect restore uses, otherwise the value is assigned to
-                    // an empty <select> and silently drops.
-                    this.showGeneEffectDistribution(meta.gene);
-                    if (meta.controls) {
-                        this._restorePopoutControls(meta.controls, 'geTissueFilter', () => {
-                            this._savedScatterTextSettings = meta.textSettings || null;
-                            this.showGeneEffectDistribution(meta.gene);
-                        });
-                    } else if (meta.textSettings) {
-                        setTimeout(() => {
-                            this._savedScatterTextSettings = meta.textSettings;
-                            if (meta.geChartWidthRatio) this.geChartWidthRatio = meta.geChartWidthRatio;
-                        }, 200);
-                    }
-                } else {
-                    setTimeout(waitForResults, 200);
-                }
-            };
-            setTimeout(waitForResults, 300);
-            return;
+            return this._restoreMutationInspectMeta(meta);
         }
 
         // Gene effect exports → open gene effect modal
@@ -21545,9 +21602,40 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return;
         }
 
-        // Expression correlate → open scatter inspect with the gene pair
+        // Expression correlate, new payload shape (carries the full mutation
+        // analysis behind it): re-run the analysis, reopen the inspect, run the
+        // correlates and land on the exact expression-vs-GE scatter. The old
+        // shape (no exprGene) falls through to the plain-scatter fallback.
+        if (meta.graphType === 'expr_correlate' && meta.exprGene && meta.gene && meta.hotspotGene) {
+            return this._restoreMutationInspectMeta(meta, async () => {
+                const sub = document.querySelector(`input[name="exprSubgroup"][value="${meta.subgroup || 'all'}"]`);
+                if (sub) sub.checked = true;
+                const btn = document.getElementById('toggleExprCorrelatesBtn');
+                if (btn) btn.style.display = '';
+                const panel = document.getElementById('exprCorrelatesPanel');
+                if (panel) panel.style.display = 'block';
+                await this.runExpressionCorrelates();
+                if (!this._exprCorrelateContext) return;
+                // The scatter's own gene box can retarget the GE gene away from
+                // the inspected one; put the saved target back.
+                if (meta.targetGene) {
+                    const tIdx = this.geneIndex?.get(String(meta.targetGene).toUpperCase());
+                    if (tIdx !== undefined) {
+                        this._exprCorrelateContext.targetGene = String(meta.targetGene).toUpperCase();
+                        this._exprCorrelateContext.targetGeneIdx = tIdx;
+                    }
+                }
+                const expGeno = document.getElementById('exprScatterAllGenotypes');
+                if (expGeno) expGeno.checked = !!meta.expandGenotypes;
+                const expTis = document.getElementById('exprScatterAllTissues');
+                if (expTis) expTis.checked = !!meta.expandTissues;
+                this.showExpressionCorrelateScatter(meta.exprGene);
+            });
+        }
+
+        // Expression correlate, old payload shape → open the gene pair as a
+        // plain scatter (the best the stored fields allow).
         if (meta.graphType === 'expr_correlate' && meta.targetGene) {
-            // Best we can do: open the target gene pair as a scatter
             if (meta.gene && meta.targetGene) {
                 this.openInspect({ gene1: meta.targetGene, gene2: meta.gene, correlation: null });
             }
@@ -21596,6 +21684,162 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (meta.date) details.push(`Exported: ${meta.date.slice(0, 10)}`);
         const info = details.length ? '\n' + details.join('\n') : '';
         alert(`Correlate export: ${label}${info}\n\nRestore not yet supported for this graph type.`);
+    }
+
+    // Rebuild a Mutation-Inspect distribution from its export metadata: re-run
+    // the mutation analysis with the saved cohort, reopen the gene's inspect and
+    // replay the inspect-level filter controls. `onOpened` (optional) runs once
+    // the distribution is on screen with its controls applied; the
+    // expr_correlate restore continues from there.
+    _restoreMutationInspectMeta(meta, onOpened) {
+        // The inspect (geDataType) and the analysis metric can both sit on
+        // expression; load it up front so the re-run reads real values. Entry
+        // via drag-and-dropped images comes straight here, bypassing the
+        // preload in _applyRestoreMeta.
+        const needsExpr = meta.metric === 'expr' || meta.controls?.geDataType === 'expr';
+        if (needsExpr && !this.expressionLoaded) {
+            this.loadExpressionData().catch(() => {}).then(() => this._doRestoreMutationInspectMeta(meta, onOpened));
+            return;
+        }
+        this._doRestoreMutationInspectMeta(meta, onOpened);
+    }
+
+    _doRestoreMutationInspectMeta(meta, onOpened) {
+        // Set mutation analysis mode
+        const mutRadio = document.querySelector('input[name="analysisMode"][value="mutation"]');
+        if (mutRadio) mutRadio.checked = true;
+        this._syncAnalysisModeButtons();
+        // Switch to mutation tab so UI is visible
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        const mutTab = document.querySelector('[data-tab="mutation"]');
+        if (mutTab) mutTab.classList.add('active');
+        const mutContent = document.getElementById('tab-mutation');
+        if (mutContent) mutContent.classList.add('active');
+        // Set mutation sub-type and populate selector before setting value
+        if (meta.isTranslocation) {
+            const radio = document.querySelector('input[name="mutAnalysisType"][value="translocation"]');
+            if (radio) { radio.checked = true; this.updateMutationAnalysisType?.(); }
+            const sel = document.getElementById('translocationHotspotSelect');
+            if (sel) sel.value = meta.hotspotGene;
+        } else if (meta.isDamaging) {
+            // CN amp / deep-del ride the damaging path; restore to the
+            // right sub-type radio, or the re-run uses the functional-loss
+            // call matrix for what was a copy-number analysis.
+            const subType = meta.cnMode === 'amp' ? 'cn_amp' : meta.cnMode === 'del' ? 'cn_del' : 'damaging';
+            const radio = document.querySelector(`input[name="mutAnalysisType"][value="${subType}"]`);
+            if (radio) { radio.checked = true; this.updateMutationAnalysisType?.(); }
+            const sel = document.getElementById('damagingHotspotSelect');
+            if (sel) sel.value = meta.hotspotGene;
+        } else {
+            const radio = document.querySelector('input[name="mutAnalysisType"][value="hotspot"]');
+            if (radio) { radio.checked = true; this.updateMutationAnalysisType?.(); }
+            // Populate hotspot selector so the value can be set
+            this.populateMutationHotspotSelector?.();
+            const sel = document.getElementById('mutationHotspotSelect');
+            if (sel) sel.value = meta.hotspotGene;
+        }
+        // Tissue exclusions before the lineage pair: the two are mutually
+        // exclusive states of the same control group.
+        if (meta.excludedTissues?.length) this._applyRestoredExcludedTissues(meta.excludedTissues);
+        // Restore tissue filter if stored. Populate the sub-lineage options
+        // for the restored lineage BEFORE setting the sub value, else the
+        // option doesn't exist yet and the sub-filter silently fails to stick.
+        if (meta.lineageFilter) {
+            document.getElementById('lineageFilter').value = meta.lineageFilter;
+        }
+        if (meta.subLineageFilter) {
+            this.updateSubLineageFilter?.();
+            const subEl = document.getElementById('subLineageFilter');
+            if (subEl) subEl.value = meta.subLineageFilter;
+        }
+        // Restore the disease level too, single pick or the Tissue split's
+        // multi-set, so the re-run reproduces the saved cohort.
+        this._paramDiseaseMulti = meta.oncotreeFilterMulti?.length ? [...meta.oncotreeFilterMulti] : null;
+        if (meta.oncotreeFilter) {
+            this._populateOncotreeSelect?.('paramOncotreeFilter', meta.lineageFilter || '', meta.subLineageFilter || '');
+            const oncEl = document.getElementById('paramOncotreeFilter');
+            if (oncEl) {
+                if (![...oncEl.options].some(o => o.value === meta.oncotreeFilter)) {
+                    const o = document.createElement('option');
+                    o.value = meta.oncotreeFilter;
+                    o.textContent = meta.oncotreeFilter;
+                    oncEl.appendChild(o);
+                }
+                oncEl.value = meta.oncotreeFilter;
+            }
+        }
+        // The analysis-level "additional" filters, group minimum and metric
+        // were stored-but-never-applied, so the re-run split a different
+        // cohort than the exported figure.
+        const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+        if (meta.additionalHotspot != null) {
+            set('paramHotspotGene', meta.additionalHotspot);
+            set('paramHotspotLevel', meta.additionalHotspotLevel || 'all');
+        }
+        if (meta.additionalTransGene != null) {
+            set('paramTranslocationGene', meta.additionalTransGene);
+            set('paramTranslocationLevel', meta.additionalTransLevel || 'all');
+        }
+        if (meta.minCellLines != null) set('minCellLines', meta.minCellLines);
+        if (meta.metric === 'expr') this._mutAnalysisMetric = 'expr';
+        // The cohort filters above re-populate the gene selectors with counts
+        // scoped to the restored cohort; reassert the analysis gene and add it
+        // as an option if the rescoped list dropped it.
+        const hsSel = document.getElementById(meta.isTranslocation ? 'translocationHotspotSelect'
+            : meta.isDamaging ? 'damagingHotspotSelect' : 'mutationHotspotSelect');
+        if (hsSel && hsSel.value !== meta.hotspotGene) {
+            if (![...hsSel.options].some(o => o.value === meta.hotspotGene)) {
+                const o = document.createElement('option');
+                o.value = meta.hotspotGene;
+                o.textContent = meta.hotspotGene;
+                hsSel.appendChild(o);
+            }
+            hsSel.value = meta.hotspotGene;
+        }
+        // Grid include/exclude picks were part of the saved cohort; the
+        // analysis checks _cellLinePassesOncoprintFilters, so without
+        // this the re-run used different WT/altered groups than the
+        // exported figure (stored-but-never-applied, like cnMode was).
+        this._activeOncoprintFilters = meta.oncoprintFilters?.length
+            ? meta.oncoprintFilters.map(f => ({ ...f }))
+            : null;
+        // Run mutation analysis, then open gene inspect after results load.
+        // Drop any results the current tab already had first: with the same
+        // gene selected, the poll below would otherwise catch the stale run
+        // (old cohort) before the re-run lands.
+        this.mutationResults = null;
+        this.runAnalysis();
+        const waitForResults = () => {
+            if (this.mutationResults && this.mutationResults.hotspotGene === meta.hotspotGene) {
+                if (meta.geChartWidthRatio) this.geChartWidthRatio = meta.geChartWidthRatio;
+                // The first render is what populates the inspect-level filter
+                // dropdowns (tissue etc.) from the cohort, so saved control
+                // values can only be applied after it. Replay them through the
+                // same poll-then-apply-then-rerender helper the ordinary
+                // gene-effect restore uses, otherwise the value is assigned to
+                // an empty <select> and silently drops.
+                this.showGeneEffectDistribution(meta.gene);
+                if (meta.controls) {
+                    this._restorePopoutControls(meta.controls, 'geTissueFilter', () => {
+                        this._savedScatterTextSettings = meta.textSettings || null;
+                        this.showGeneEffectDistribution(meta.gene);
+                        if (onOpened) setTimeout(onOpened, 250);
+                    });
+                } else {
+                    if (meta.textSettings) {
+                        setTimeout(() => {
+                            this._savedScatterTextSettings = meta.textSettings;
+                            if (meta.geChartWidthRatio) this.geChartWidthRatio = meta.geChartWidthRatio;
+                        }, 200);
+                    }
+                    if (onOpened) setTimeout(onOpened, 400);
+                }
+            } else {
+                setTimeout(waitForResults, 200);
+            }
+        };
+        setTimeout(waitForResults, 300);
     }
 
     async _restoreFromState(state) {
@@ -21654,7 +21898,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (state.mutFilterGene) document.getElementById('mutationFilterGene').value = state.mutFilterGene;
             if (state.mutFilterLevel) document.getElementById('mutationFilterLevel').value = state.mutFilterLevel;
             if (state.colorBy) {
-                const colorByEl = document.getElementById('colorBySelect');
+                // Older exports wrote colorBySelect, an element that no longer
+                // exists; the color-by mode lives in colorByCategory now.
+                const colorByEl = document.getElementById('colorByCategory');
                 if (colorByEl) colorByEl.value = state.colorBy;
             }
             if (state.showZeroLines != null) document.getElementById('showZeroLines').checked = state.showZeroLines;
@@ -21819,10 +22065,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             paramTranslocationLevel: val('paramTranslocationLevel'),
             paramCnFilter: val('paramCnFilter'),
             paramCnLevel: val('paramCnLevel'),
+            paramOncotreeFilter: val('paramOncotreeFilter'),
+            paramDiseaseMulti: this._paramDiseaseMulti?.length ? [...this._paramDiseaseMulti] : null,
             mutationHotspotSelect: val('mutationHotspotSelect'),
             excludedTissues: this.excludedTissues ? [...this.excludedTissues] : [],
             extraGenes: this._oncoprintExtraGenes ? [...this._oncoprintExtraGenes] : [],
             oncoprintFilters: { ...(this._oncoprintFilters || {}) },
+            // Which grid this is (hotspot/fusion/CN) and which grid each filter
+            // pick was made in; without these a fusion or CN grid restored as
+            // the hotspot grid.
+            oncoprintKind: this._oncoprintKind || 'hotspot',
+            oncoprintFilterKinds: { ...(this._oncoprintFilterKinds || {}) },
             context: this._oncoprintContext || null
         };
     }
@@ -21848,18 +22101,39 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         set('paramTranslocationLevel', c.paramTranslocationLevel);
         set('paramCnFilter', c.paramCnFilter);
         set('paramCnLevel', c.paramCnLevel);
+        this._paramDiseaseMulti = c.paramDiseaseMulti?.length ? [...c.paramDiseaseMulti] : null;
+        if (c.paramOncotreeFilter) {
+            this._populateOncotreeSelect?.('paramOncotreeFilter', c.lineageFilter || '', c.subLineageFilter || '');
+            const oncEl = document.getElementById('paramOncotreeFilter');
+            if (oncEl) {
+                if (![...oncEl.options].some(o => o.value === c.paramOncotreeFilter)) {
+                    const o = document.createElement('option');
+                    o.value = c.paramOncotreeFilter;
+                    o.textContent = c.paramOncotreeFilter;
+                    oncEl.appendChild(o);
+                }
+                oncEl.value = c.paramOncotreeFilter;
+            }
+        }
         set('mutationHotspotSelect', c.mutationHotspotSelect);
         this.excludedTissues = new Set(c.excludedTissues || []);
         this._oncoprintFilters = { ...(c.oncoprintFilters || {}) };
+        // Each filter pick remembers which grid it was made in; older files
+        // without the field fall back to the grid's own kind below.
+        this._oncoprintFilterKinds = { ...(c.oncoprintFilterKinds || {}) };
+        // Kind before sync: the sync stamps each pick with the current grid
+        // kind when the per-gene map has no entry for it.
+        if (c.oncoprintKind) this._oncoprintKind = c.oncoprintKind;
         // Writing the checkbox state alone leaves _activeOncoprintFilters
         // null, so the grid and every downstream cohort ignored the saved
         // include/exclude picks while the checkboxes looked applied.
         this._oncoprintSyncFilters?.();
-        this.showOncoprint(c.context || undefined);
+        // Pass the saved grid kind, or a fusion / CN grid reopens as hotspot.
+        this.showOncoprint(c.context || undefined, c.oncoprintKind || undefined);
         // showOncoprint clears the added genes, so put them back and redraw.
         if (c.extraGenes && c.extraGenes.length) {
             this._oncoprintExtraGenes = new Set(c.extraGenes);
-            this.showOncoprint(c.context || undefined);
+            this.showOncoprint(c.context || undefined, c.oncoprintKind || undefined);
         }
         if (meta.graphType === 'upset' && meta.upsetGenes && meta.upsetGenes.length >= 2) {
             this._upsetSelectedGenes = meta.upsetGenes;
@@ -29888,7 +30162,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             h: plotEl._fullLayout?.height || plotEl.offsetHeight || 600,
             format,
             filename: `expr_correlate_${gene}_vs_${ctx?.targetGene || 'target'}`,
-            meta: this._buildExportMetadata('expr_correlate', { gene, targetGene: ctx?.targetGene, hotspotGene: ctx?.hotspotGene })
+            // Carry the whole mutation analysis behind the scatter (same fields
+            // as a mutation-inspect export) plus the correlate-specific picks,
+            // so a restore rebuilds this exact plot instead of a bare GE-vs-GE
+            // scatter. Old-shape fields (gene/targetGene) remain for fallback.
+            meta: this.mutationResults ? {
+                ...this._buildMutationInspectMeta(),
+                graphType: 'expr_correlate',
+                exprGene: gene,
+                targetGene: ctx?.targetGene || this.currentGeneEffectGene,
+                subgroup: ctx?.subgroup || 'all',
+                expandGenotypes: !!document.getElementById('exprScatterAllGenotypes')?.checked,
+                expandTissues: !!document.getElementById('exprScatterAllTissues')?.checked
+            } : this._buildExportMetadata('expr_correlate', { gene, targetGene: ctx?.targetGene, hotspotGene: ctx?.hotspotGene })
         });
     }
 
