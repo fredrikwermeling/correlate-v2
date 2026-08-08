@@ -2177,6 +2177,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.22 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>The Spread buttons no longer throw the network sideways.</b> The spacing change re-centered the camera on the average node position, which sits away from the middle whenever a separate small cluster is parked to one side, so one press shifted the whole picture. Spacing now changes around the point you are looking at and the camera stays put.</li>
+                    <li><b>Separated clusters can be dragged again.</b> Their nodes are pinned so the physics engine cannot pull them back across the main network, but pinning also blocked hand-dragging. Grabbing a pinned node now unpins it for the drag and re-pins it where you drop it.</li>
+                    <li><b>The scatter's alteration grids now actually filter the scatter, and only the scatter.</b> Picks made from the grid buttons in the scatter apply to that plot immediately and never touch the analysis: no "filters changed" marker on the network's Run button, and the scatter's Reset clears only its own picks. The grid also shows the cells currently in the plot. Grid picks from the analysis side still carry into an open scatter as before, and a separate bug is fixed where those picks never refreshed an open scatter at all.</li>
+                    <li><b>Dot color joins the scatter settings.</b> The cell-line dot color can now be changed both in the Plot size box and in the Aa settings dialog (the two stay in step), the settings section is called "Cell line dots" instead of "Markers", and Scale All sits directly above Font Sizes &amp; Visibility.</li>
+                    <li><b>Gene Effect: a subtype pick divides the chart into diseases</b>, the same way a tissue pick divides it into subtypes. Applies to the tissue view and the inline compare tables.</li>
+                    <li><b>Wiki: the p53 panel no longer calls the brake lost when only 9p21 is deleted.</b> CDKN2A and CDKN2B are lost together in one 9p21 deletion but were listed as two independent hits; they now merge into one CDKN2A/B entry. CDKN2B (p15, a CDK4/6 inhibitor with no p53 role) moved to the cell-cycle panel, where the deletion correctly reads "Brake lost". When the p53 panel's only loss is CDKN2A, the verdict reads "Regulation lost, TP53 intact": the p14ARF arm of that locus restrains MDM2, so p53 is deregulated upstream while TP53 itself is unaltered, which matches the CRISPR readout in such lines (TP53 knockout helps, MDM2 knockout hurts).</li>
+                </ul>
                 <p><strong>v.86.21 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>Options focused on the app's two pillars.</b> The row now reads Gene set analysis, Cell Line Browser, Other, Reset all. Mutation analysis moved into the Other menu; while it is the active mode the Other button itself turns green and reads "Mutation analysis", so the current mode stays visible and the way back is the same menu. Reset all moved up from the results tab row into the freed slot.</li>
@@ -5533,7 +5542,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.21</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.22</a>
         </span>
     </div>
 
@@ -8069,6 +8078,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_21"></script>
+    <script src="app.js?v=v86_22"></script>
 </body>
 </html>

@@ -495,7 +495,7 @@ class CorrelationExplorer {
         if (kind === 'gene_effect') {
             popout = { kind, gene: this.currentGeneEffect?.gene || this._geGene, view: this.currentGEView || 'tissue', dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS()), geChartWidthRatio: this.geChartWidthRatio || 1.0, textSettings };
         } else if (kind === 'scatter') {
-            popout = { kind, gene1: this.currentInspect && this.currentInspect.gene1, gene2: this.currentInspect && this.currentInspect.gene2, controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS()), textSettings };
+            popout = { kind, gene1: this.currentInspect && this.currentInspect.gene1, gene2: this.currentInspect && this.currentInspect.gene2, controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS()), scatterGridFilters: this._scatterGridActive?.map(f => ({ ...f })) || null, textSettings };
         } else if (kind === 'correlation_analysis') {
             popout = { kind, gene1: this._caGene1, gene2: this._caGene2, view: this._caView || 'tissue', controls: this._captureControls(this._CA_NEWTAB_CONTROLS()), textSettings };
         } else {
@@ -582,6 +582,11 @@ class CorrelationExplorer {
             const c = popout.controls || {};
             const setAxis = (id) => { const el = document.getElementById(id); if (el && c[id] != null) el.value = c[id]; };
             setAxis('xAxisDataType'); setAxis('yAxisDataType');
+            // The scatter's own grid picks travel with it (scoped state, not a
+            // form control, so the controls replay does not cover them).
+            this._scatterGridActive = popout.scatterGridFilters?.length ? popout.scatterGridFilters.map(f => ({ ...f })) : null;
+            this._scatterGridMap = {};
+            (popout.scatterGridFilters || []).forEach(f => { this._scatterGridMap[f.gene] = f.state; });
             this.openInspectByGenes(popout.gene1, popout.gene2);
             this._restorePopoutControls(popout.controls, 'scatterCancerFilter', () => { this._savedScatterTextSettings = ts; this.updateInspectPlot(); });
         }
@@ -2724,6 +2729,12 @@ class CorrelationExplorer {
             filteredCLs = [...this._clbVisibleCellLines];
             const clbTissue = document.getElementById('clbTissueFilter')?.value;
             if (clbTissue) filterLabel = clbTissue;
+        } else if (context === 'scatter' && this.currentInspect?.data) {
+            // The scatter's grid works on the cells the plot shows, minus its
+            // own grid picks (so a pick can be widened or removed again).
+            filteredCLs = this._applyScatterFilters(this.currentInspect.data, { skipGrid: true })
+                .map(d => d.cellLineId);
+            filterLabel = document.getElementById('scatterCancerFilter')?.value || 'cells in the scatter';
         } else {
             const lineageFilter = document.getElementById('lineageFilter')?.value || '';
             const subLineageFilter = document.getElementById('subLineageFilter')?.value || '';
@@ -3036,7 +3047,7 @@ class CorrelationExplorer {
             topGenes.forEach((g, rowIdx) => {
                 const y = rowIdx * cellH;
                 const isSelected = g.gene === currentHotspot;
-                const filterState = self._oncoprintFilters[g.gene] || 'none';
+                const filterState = self._gridFilterMap()[g.gene] || 'none';
                 const bx1 = 2;
                 const bx2 = 2 + boxW + boxGap;
                 const by = y + 2;
@@ -3103,7 +3114,7 @@ class CorrelationExplorer {
         this._oncoprintPaint = { paintLabels, paintGrid, leftW, gridW, gridH };
 
         const updateStatus = () => {
-            const activeFilters = Object.entries(self._oncoprintFilters).filter(([, v]) => v !== 'none');
+            const activeFilters = Object.entries(self._gridFilterMap()).filter(([, v]) => v !== 'none');
             const statusEl = document.getElementById('oncoprintStatus');
             if (!statusEl) return;
             if (activeFilters.length === 0) {
@@ -3170,15 +3181,16 @@ class CorrelationExplorer {
 
             if (!this._oncoprintFilterKinds) this._oncoprintFilterKinds = {};
             this._oncoprintFilterKinds[gene] = gridKind;
+            const pickMap = this._gridFilterMap();
             if (x >= bx1 && x <= bx1 + boxW) {
-                if (this._oncoprintFilters[gene] === 'mut') delete this._oncoprintFilters[gene];
-                else this._oncoprintFilters[gene] = 'mut';
-                this._oncoprintSyncFilters();
+                if (pickMap[gene] === 'mut') delete pickMap[gene];
+                else pickMap[gene] = 'mut';
+                this._gridSyncScope();
                 drawOncoprint();
             } else if (x >= bx2 && x <= bx2 + boxW) {
-                if (this._oncoprintFilters[gene] === 'wt') delete this._oncoprintFilters[gene];
-                else this._oncoprintFilters[gene] = 'wt';
-                this._oncoprintSyncFilters();
+                if (pickMap[gene] === 'wt') delete pickMap[gene];
+                else pickMap[gene] = 'wt';
+                this._gridSyncScope();
                 drawOncoprint();
             }
         });
@@ -3192,9 +3204,9 @@ class CorrelationExplorer {
             const g = topGenes[rowIdx];
             const bx1 = 2, bx2 = 2 + boxW + boxGap;
             if (x >= bx1 && x <= bx1 + boxW) {
-                labelCanvas.title = `${g.gene}, ${this._oncoprintFilters[g.gene] === 'mut' ? 'remove include filter' : 'require mutated'}`;
+                labelCanvas.title = `${g.gene}, ${this._gridFilterMap()[g.gene] === 'mut' ? 'remove include filter' : 'require mutated'}`;
             } else if (x >= bx2 && x <= bx2 + boxW) {
-                labelCanvas.title = `${g.gene}, ${this._oncoprintFilters[g.gene] === 'wt' ? 'remove exclude filter' : 'exclude mutated'}`;
+                labelCanvas.title = `${g.gene}, ${this._gridFilterMap()[g.gene] === 'wt' ? 'remove exclude filter' : 'exclude mutated'}`;
             } else {
                 labelCanvas.title = `${g.gene}, mutated in ${g.n} of ${sortedCLs.length} cell lines`;
             }
@@ -3315,19 +3327,34 @@ class CorrelationExplorer {
     // screen at that point, and popping it open was neither asked for nor
     // useful.
     _oncoprintClearGene(gene, reopen = true) {
-        delete this._oncoprintFilters[gene];
-        this._oncoprintSyncFilters();
+        delete this._gridFilterMap()[gene];
+        this._gridSyncScope();
         if (reopen) this.showOncoprint(this._oncoprintContext);
     }
 
     _oncoprintClearAll() {
-        this._oncoprintFilters = {};
-        this._oncoprintSyncFilters();
+        if (this._oncoprintContext === 'scatter') this._scatterGridMap = {};
+        else this._oncoprintFilters = {};
+        this._gridSyncScope();
         this.showOncoprint(this._oncoprintContext);
     }
 
+    // Rebuild the active filter list of whichever scope the open grid edits:
+    // the scatter's own set, or the main set everything else shares.
+    _gridSyncScope() {
+        if (this._oncoprintContext === 'scatter') {
+            const filters = Object.entries(this._scatterGridMap || {}).filter(([, v]) => v !== 'none');
+            const kind = this._oncoprintKind || 'hotspot';
+            this._scatterGridActive = filters.length
+                ? filters.map(([gene, state]) => ({ gene, state, kind: this._oncoprintFilterKinds?.[gene] || kind }))
+                : null;
+            return;
+        }
+        this._oncoprintSyncFilters();
+    }
+
     _oncoprintApplyFilters() {
-        const filters = Object.entries(this._oncoprintFilters || {}).filter(([, v]) => v !== 'none');
+        const filters = Object.entries(this._gridFilterMap()).filter(([, v]) => v !== 'none');
         if (filters.length === 0) return;
 
         // Store filters, applied via _cellLinePassesOncoprintFilters, don't touch hotspot selector.
@@ -3335,9 +3362,20 @@ class CorrelationExplorer {
         // copy-number row was looked up among hotspot mutations, matched
         // nothing, and filtered the list down to zero.
         const filterKind = this._oncoprintKind || 'hotspot';
-        this._activeOncoprintFilters = filters.map(([gene, state]) => ({
+        const activeList = filters.map(([gene, state]) => ({
             gene, state, kind: this._oncoprintFilterKinds?.[gene] || filterKind,
         }));
+
+        // A grid opened from the scatter applies to that plot only: no Run
+        // staleness, no browser-list redraw, nothing fed back to the network.
+        if (this._oncoprintContext === 'scatter') {
+            this._scatterGridActive = activeList;
+            if (this.currentInspect) { try { this.updateInspectPlot(); } catch (e) {} }
+            document.getElementById('oncoprintPopup')?.remove();
+            return;
+        }
+
+        this._activeOncoprintFilters = activeList;
 
         // Redraw the browser list straight away. Without this the list still
         // showed every cell line while the filter was already in force, so
@@ -3352,7 +3390,10 @@ class CorrelationExplorer {
         // redrew them, so a grid pick from those panels looked like it did
         // nothing.
         try {
-            const vis = (id) => { const el = document.getElementById(id); return el && el.style.display !== 'none' && el.style.display !== ''; };
+            // The inspect modal opens via the 'active' class, the other two via
+            // inline display; testing inline display alone always read the
+            // inspect modal as closed, so a grid pick never refreshed it.
+            const vis = (id) => { const el = document.getElementById(id); return el && (el.classList.contains('active') || (el.style.display && el.style.display !== 'none')); };
             if (vis('inspectModal') && this.currentInspect) this.updateInspectPlot();
             if (vis('geneEffectModal') && this.currentGeneEffect) this._rerenderCurrentGEView?.();
             if (vis('corrAnalysisModal') && this._corrAnalysisData) this.switchCorrAnalysisView(this._caView || 'tissue');
@@ -3413,14 +3454,26 @@ class CorrelationExplorer {
         return this.mutations?.geneData?.[label]?.mutations?.[cellLine] > 0;
     }
 
-    _cellLinePassesOncoprintFilters(cellLine) {
-        if (!this._activeOncoprintFilters || this._activeOncoprintFilters.length === 0) return true;
-        for (const { gene, state, kind } of this._activeOncoprintFilters) {
+    _cellLinePassesOncoprintFilters(cellLine, filterList = this._activeOncoprintFilters) {
+        if (!filterList || filterList.length === 0) return true;
+        for (const { gene, state, kind } of filterList) {
             const isMut = this._oncoprintRowHit(gene, cellLine, kind || 'hotspot');
             if (state === 'mut' && !isMut) return false;
             if (state === 'wt' && isMut) return false;
         }
         return true;
+    }
+
+    // The pick-map the open grid edits. The scatter's grid keeps its own picks
+    // (applied to that plot only); every other entry point shares the main set
+    // the analysis and the other panels read.
+    _gridFilterMap() {
+        if (this._oncoprintContext === 'scatter') {
+            if (!this._scatterGridMap) this._scatterGridMap = {};
+            return this._scatterGridMap;
+        }
+        if (!this._oncoprintFilters) this._oncoprintFilters = {};
+        return this._oncoprintFilters;
     }
 
     async _oncoprintExport(format) {
@@ -3515,7 +3568,7 @@ class CorrelationExplorer {
         parts.push(`<rect x="${leftW}" y="0" width="${gridW}" height="${gridH}" fill="url(#wtCell)"/>\n`);
         tg.forEach((g, rowIdx) => {
             const y = rowIdx * cH;
-            const fs = this._oncoprintFilters[g.gene] || 'none';
+            const fs = this._gridFilterMap()[g.gene] || 'none';
             // Include box
             parts.push(`<rect x="2" y="${y + 2}" width="${bw}" height="${cH - 4}" fill="${fs === 'mut' ? '#5d9239' : '#e5e7eb'}" stroke="#9ca3af" stroke-width="0.5"/>\n`);
             // Exclude box
@@ -5315,10 +5368,14 @@ class CorrelationExplorer {
         // The same three buttons in the popouts. They share the main cohort's
         // grid, which every one of these panels now filters on.
         [['geGridHotspotBtn','hotspot'],['geGridFusionBtn','fusion'],['geGridCnBtn','cn'],
-         ['scatterGridHotspotBtn','hotspot'],['scatterGridFusionBtn','fusion'],['scatterGridCnBtn','cn'],
          ['caGridHotspotBtn','hotspot'],['caGridFusionBtn','fusion'],['caGridCnBtn','cn']]
             .forEach(([id, kind]) => document.getElementById(id)
                 ?.addEventListener('click', () => this.showOncoprint(null, kind)));
+        // The scatter's grid is its own scope: it shows the cells in the plot
+        // and its picks apply to the plot only, never back to the analysis.
+        [['scatterGridHotspotBtn','hotspot'],['scatterGridFusionBtn','fusion'],['scatterGridCnBtn','cn']]
+            .forEach(([id, kind]) => document.getElementById(id)
+                ?.addEventListener('click', () => this.showOncoprint('scatter', kind)));
         document.getElementById('mutationHotspotSelect').addEventListener('change', () => {
             const hasVal = document.getElementById('mutationHotspotSelect').value;
             document.getElementById('tissueBreakdownBtn').style.display = hasVal ? 'inline-block' : 'none';
@@ -5721,10 +5778,11 @@ class CorrelationExplorer {
             if (cnF) cnF.value = '';
             const cnL = document.getElementById('scatterCnLevel');
             if (cnL) cnL.value = 'altered';
-            // Genes picked from the alteration grid are filters too.
-            this._oncoprintFilters = {};
-            this._activeOncoprintFilters = null;
-            this._oncoprintSyncFilters?.();
+            // Genes picked from the scatter's own grid are filters too. Only
+            // the scatter's set is cleared: the analysis' grid picks are not
+            // the scatter's to reset.
+            this._scatterGridMap = {};
+            this._scatterGridActive = null;
             // Clear overlays
             document.getElementById('hotspotGene').value = '';
             document.getElementById('hotspotMode').value = 'color';
@@ -10896,10 +10954,29 @@ class CorrelationExplorer {
             clearTimeout(this._networkTooltipTimer);
             clearTimeout(this._networkQuickTooltipTimer);
             this.hideGeneTooltip();
+            // Pinned satellites must still follow the hand: vis-network does
+            // not drag a fixed node, so unpin the grabbed ones for the drag
+            // (vis snapshots the fixed state after emitting dragStart, so this
+            // is early enough) and re-pin them on drop.
+            if (params.nodes?.length && this.networkData?.nodes) {
+                this._dragUnpinned = params.nodes.filter(id => {
+                    const n = this.networkData.nodes.get(id);
+                    return n && n.fixed && (n.fixed === true || n.fixed.x || n.fixed.y);
+                });
+                if (this._dragUnpinned.length) {
+                    this.networkData.nodes.update(this._dragUnpinned.map(id => ({ id, fixed: false })));
+                }
+            }
         });
 
         // Track drag end
         this.network.on('dragEnd', (params) => {
+            // Hand-placed satellites go back on their pin wherever they were
+            // dropped, so a later solver release cannot tow them away.
+            if (this._dragUnpinned?.length && this.networkData?.nodes) {
+                this.networkData.nodes.update(this._dragUnpinned.map(id => ({ id, fixed: { x: true, y: true } })));
+                this._dragUnpinned = null;
+            }
             // Check if actually moved (more than 5 pixels)
             if (dragStartPos) {
                 const dx = params.pointer.canvas.x - dragStartPos.x;
@@ -11331,9 +11408,17 @@ class CorrelationExplorer {
         if (!keys.length) return;
         const factor = Math.min(1, ((parseInt(document.getElementById('netSpread')?.value, 10) || 100) / 100)
                                  / ((this._netBaseSpread || 100) / 100)) || 1;
-        let cx = 0, cy = 0;
-        for (const k of keys) { cx += base[k].x; cy += base[k].y; }
-        cx /= keys.length; cy /= keys.length;
+        // Invert about the same anchor the spread was applied around (the view
+        // centre at apply time); the centroid is only the fallback for a drag
+        // before any spread has been applied.
+        let cx, cy;
+        if (this._netSpreadAnchor) {
+            ({ x: cx, y: cy } = this._netSpreadAnchor);
+        } else {
+            cx = 0; cy = 0;
+            for (const k of keys) { cx += base[k].x; cy += base[k].y; }
+            cx /= keys.length; cy /= keys.length;
+        }
         const now = this.network.getPositions(ids);
         for (const id of ids) {
             const p = now[id];
@@ -11373,20 +11458,19 @@ class CorrelationExplorer {
         // to the solver just lets it pull them to its own equilibrium again. The
         // Lock button flips to Unlock so the state is visible and reversible.
         if (factor !== 1 && wasRunning) this._freezeNetworkLayout();
-        let cx = 0, cy = 0;
-        for (const id of ids) { cx += base[id].x; cy += base[id].y; }
-        cx /= ids.length; cy /= ids.length;
+        // Scale about the point the user is looking at (the view centre) and
+        // leave the camera alone. Scaling about the node-mass centroid and
+        // re-centring the camera on it panned the view whenever the centroid
+        // sat away from the fitted centre, which is guaranteed once satellite
+        // clusters are packed off to one side: a single press of the minus
+        // button threw the network partly out of the visible field.
+        // Deliberately no fit() either: holding the zoom steady is what makes
+        // the nodes visibly close up relative to their own size and labels.
+        const view = this.network.getViewPosition();
+        this._netSpreadAnchor = { x: view.x, y: view.y };
         for (const id of ids) {
-            this.network.moveNode(id, cx + (base[id].x - cx) * factor, cy + (base[id].y - cy) * factor);
+            this.network.moveNode(id, view.x + (base[id].x - view.x) * factor, view.y + (base[id].y - view.y) * factor);
         }
-        // Deliberately no fit(). Scaling every position and then refitting is a
-        // no-op on screen: the view zooms by the same factor and the network
-        // looks identical, which is why the slider appeared to do nothing even
-        // once the positions really were moving. Holding the zoom steady and
-        // only recentring is what makes the nodes visibly close up or spread
-        // out relative to their own size and labels.
-        const scale = this.network.getScale();
-        this.network.moveTo({ position: { x: cx, y: cy }, scale, animation: false });
         this.network.redraw();
         // Used when a network first opens: the spacing is applied, then the
         // solver takes the nodes back so the Lock button starts off unpressed.
@@ -15055,6 +15139,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (transFilterLevel === '1+2' && fl < 1) continue;
             }
             if (cnFilterVal && !this._cellLinePassesCnFilter(cl, cnFilterVal)) continue;
+            // Grid picks: the shared set and the scatter's own, same as the plot.
+            if (this._activeOncoprintFilters?.length && !this._cellLinePassesOncoprintFilters(cl)) continue;
+            if (this._scatterGridActive?.length && !this._cellLinePassesOncoprintFilters(cl, this._scatterGridActive)) continue;
             if (this._customCellLineFilter && !this._customCellLineFilter.has(cl)) continue;
             out.push(cl);
         }
@@ -15771,10 +15858,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const oncReset = document.getElementById('scatterOncotreeFilter');
         if (oncReset) oncReset.value = '';
 
-        // Genes picked from the alteration grid are filters too.
-        this._oncoprintFilters = {};
-        this._activeOncoprintFilters = null;
-        this._oncoprintSyncFilters?.();
+        // Genes picked from the scatter's own grid are filters too. Only the
+        // scatter's set is cleared: the analysis' grid picks are not the
+        // scatter's to reset.
+        this._scatterGridMap = {};
+        this._scatterGridActive = null;
 
         // Reset mutation filters (gene cleared = filter off; level back to default)
         document.getElementById('mutationFilterGene').value = '';
@@ -15810,6 +15898,73 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._styleActiveFilters();
         // Update the plot
         this.updateInspectPlot();
+    }
+
+    // Every filter the scatter applies, in one place: the plot, the overlay
+    // counts and the grid opened from the scatter all use this same chain.
+    // skipGrid leaves out the scatter's own grid picks; the grid needs the
+    // cohort those picks act on, or a pick could never be widened or removed.
+    _applyScatterFilters(data, { skipGrid = false } = {}) {
+        const cancerFilter = document.getElementById('scatterCancerFilter')?.value || '';
+        const subtypeFilter = document.getElementById('scatterSubtypeFilter')?.value || '';
+        let filteredData = cancerFilter ? data.filter(d => d.lineage === cancerFilter) : data;
+        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
+            filteredData = filteredData.filter(d =>
+                this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
+        }
+        // Disease (Oncotree entity), the third level under lineage and subtype.
+        if (document.getElementById('scatterOncotreeFilter')?.value) {
+            filteredData = filteredData.filter(d => this._passesOncotree(d.cellLineId, 'scatterOncotreeFilter'));
+        }
+        // Grid picks inherited from the analysis (main set) still scope a
+        // scatter opened on top of it, so plot and network agree.
+        if (this._activeOncoprintFilters?.length) {
+            filteredData = filteredData.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId));
+        }
+        // Picks made in the scatter's own grid: scoped to this plot only,
+        // never fed back into the analysis.
+        if (!skipGrid && this._scatterGridActive?.length) {
+            filteredData = filteredData.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId, this._scatterGridActive));
+        }
+        // Mutation filter (separate from overlay). Selecting a gene always
+        // filters (default level = mutated 1+2); clear the gene to turn it off.
+        const mutFilterGene = document.getElementById('mutationFilterGene')?.value || '';
+        const mutFilterLevel = document.getElementById('mutationFilterLevel')?.value || '1+2';
+        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])) {
+            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
+            const lvl = mutFilterLevel || '1+2';
+            filteredData = filteredData.filter(d => {
+                const mutLevel = filterMutations[d.cellLineId] || 0;
+                if (lvl === '0') return mutLevel === 0;
+                if (lvl === '1') return mutLevel === 1;
+                if (lvl === '2') return mutLevel >= 2;
+                return mutLevel >= 1; // 1+2
+            });
+        }
+        // Fusion filter (curated ★ driver pairs / validated genes), WT or
+        // fused. Uses _geFusionPasses so pairs and genes are handled the same way.
+        const transFilterGene = document.getElementById('translocationFilterGene')?.value || '';
+        if (transFilterGene) {
+            const lvl = document.getElementById('translocationFilterLevel')?.value || '1+2';
+            filteredData = filteredData.filter(d => {
+                const has = this._geFusionPasses(d.cellLineId, transFilterGene);
+                return lvl === '0' ? !has : has;
+            });
+        }
+        // Focal CN (amp / deep-del) filter, with event or WT.
+        const cnFilterVal = document.getElementById('scatterCnFilter')?.value || '';
+        if (cnFilterVal) {
+            const cnLvl = document.getElementById('scatterCnLevel')?.value || 'altered';
+            filteredData = filteredData.filter(d => {
+                const has = this._cellLinePassesCnFilter(d.cellLineId, cnFilterVal);
+                return cnLvl === 'wt' ? !has : has;
+            });
+        }
+        // Custom cell line list (paste IDs/names).
+        if (this._customCellLineFilter) {
+            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
+        }
+        return filteredData;
     }
 
     updateInspectPlot() {
@@ -15848,66 +16003,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             cautionEl.style.display = (hotspotGene && hotspotMode !== 'none') ? 'block' : 'none';
         }
 
-        // Filter by cancer type
-        let filteredData = cancerFilter ?
-            data.filter(d => d.lineage === cancerFilter) : data;
-
-        // Filter by subtype
-        if (subtypeFilter && this.cellLineMetadata?.primaryDisease) {
-            filteredData = filteredData.filter(d =>
-                this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter
-            );
-        }
-
-        // Disease (Oncotree entity), the third level under lineage and subtype.
-        if (document.getElementById('scatterOncotreeFilter')?.value) {
-            filteredData = filteredData.filter(d => this._passesOncotree(d.cellLineId, 'scatterOncotreeFilter'));
-        }
-
-        // Genes picked from an alteration grid filter here too, so the grid
-        // button beside these filters does the same thing it does everywhere else.
-        if (this._activeOncoprintFilters?.length) {
-            filteredData = filteredData.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId));
-        }
-
-        // Apply mutation filter (separate from overlay). Selecting a gene always
-        // filters (default level = mutated 1+2); clear the gene to turn it off.
-        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])) {
-            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
-            const lvl = mutFilterLevel || '1+2';
-            filteredData = filteredData.filter(d => {
-                const mutLevel = filterMutations[d.cellLineId] || 0;
-                if (lvl === '0') return mutLevel === 0;
-                if (lvl === '1') return mutLevel === 1;
-                if (lvl === '2') return mutLevel >= 2;
-                return mutLevel >= 1; // 1+2
-            });
-        }
-
-        // Apply fusion filter (curated ★ driver pairs / validated genes), WT or
-        // fused. Uses _geFusionPasses so pairs and genes are handled the same way.
-        if (transFilterGene) {
-            const lvl = transFilterLevel || '1+2';
-            filteredData = filteredData.filter(d => {
-                const has = this._geFusionPasses(d.cellLineId, transFilterGene);
-                return lvl === '0' ? !has : has;
-            });
-        }
-
-        // Apply focal CN (amp / deep-del) filter, with event or WT.
-        const cnFilterVal = document.getElementById('scatterCnFilter')?.value || '';
-        if (cnFilterVal) {
-            const cnLvl = document.getElementById('scatterCnLevel')?.value || 'altered';
-            filteredData = filteredData.filter(d => {
-                const has = this._cellLinePassesCnFilter(d.cellLineId, cnFilterVal);
-                return cnLvl === 'wt' ? !has : has;
-            });
-        }
-
-        // Apply custom cell line filter
-        if (this._customCellLineFilter) {
-            filteredData = filteredData.filter(d => this._customCellLineFilter.has(d.cellLineId));
-        }
+        // One chain for every consumer of the scatter cohort (plot, overlay
+        // counts, the grid opened from the scatter).
+        let filteredData = this._applyScatterFilters(data);
 
         // What survived every filter. The color-by group picker and the overlay
         // gene counts read this, so both describe exactly what is plotted.
@@ -15968,11 +16066,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const lvl = transFilterLevel || '1+2';
             filterParts.push(`${this._stripFusionFilterDecoration(transFilterGene)}: ${lvl === '0' ? 'no fusion' : 'fused'}`);
         }
+        const cnFilterVal = document.getElementById('scatterCnFilter')?.value || '';
         if (cnFilterVal) {
             const cnLvl = document.getElementById('scatterCnLevel')?.value || 'altered';
             const cnLabel = this._stripCnFilterDecoration(cnFilterVal).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del');
             filterParts.push(`${cnLabel}${cnLvl === 'wt' ? ' (WT)' : ''}`);
         }
+        // The scatter's own grid picks are cohort filters too, so the title
+        // names them alongside the rest.
+        (this._scatterGridActive || []).forEach(f => filterParts.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`));
         const filterDesc = filterParts.length > 0 ? filterParts.join(' | ') : '';
 
         // Show/hide plot and table based on mode
@@ -16709,7 +16811,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
     }
 
+    // Dot color changed from the Aa settings dialog: keep the Plot-size box's
+    // picker in step (same setting, two places) and recolor the plot.
+    _tsDotColor(color) {
+        const boxPicker = document.getElementById('scatterDotColor');
+        if (boxPicker) boxPicker.value = color;
+        this.applyScatterDotColor(color);
+    }
+
     applyScatterDotColor(color) {
+        // Keep the settings-dialog picker in step when the change came from
+        // the Plot-size box (the two are the same setting).
+        const tsPicker = document.getElementById('ts_dotColor');
+        if (tsPicker && tsPicker.value !== color) tsPicker.value = color;
         const plotEl = document.getElementById('scatterPlot');
         if (!plotEl?.data) return;
         const indices = [];
@@ -17642,6 +17756,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (cnFilterVal) fd = fd.filter(d => this._cellLinePassesCnFilter(d.cellLineId, cnFilterVal));
         const oncVal = document.getElementById('scatterOncotreeFilter')?.value;
         if (oncVal) fd = fd.filter(d => this._passesOncotree(d.cellLineId, 'scatterOncotreeFilter'));
+        // Grid picks: the shared set and the scatter's own, same as the plot.
+        if (this._activeOncoprintFilters?.length) fd = fd.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId));
+        if (this._scatterGridActive?.length) fd = fd.filter(d => this._cellLinePassesOncoprintFilters(d.cellLineId, this._scatterGridActive));
         if (this._customCellLineFilter) fd = fd.filter(d => this._customCellLineFilter.has(d.cellLineId));
         const parts = [];
         if (cancerFilter) parts.push(`Cancer: ${cancerFilter}${subtypeFilter ? ` (${subtypeFilter})` : ''}`);
@@ -17649,6 +17766,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (mutFilterGene && mutFilterLevel !== 'all') parts.push(`${mutFilterGene}: ${mutFilterLevel}`);
         if (transFilterGene) parts.push(`Fusion: ${this._stripFusionFilterDecoration(transFilterGene)}`);
         if (cnFilterVal) parts.push(`CN: ${this._stripCnFilterDecoration(cnFilterVal)}`);
+        (this._scatterGridActive || []).forEach(f => parts.push(`${f.gene} ${f.state === 'mut' ? 'Mut' : 'WT'}`));
         if (this._customCellLineFilter) parts.push(`Custom: ${this._customCellLineFilter.size} CLs`);
         return { filteredData: fd, filterDesc: parts.join(' | ') };
     }
@@ -21460,6 +21578,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._activeOncoprintFilters = null;
         this._oncoprintFilters = {};
         this._oncoprintSyncFilters?.();
+        // The scatter's own grid picks are separate state, cleared with it.
+        this._scatterGridMap = {};
+        this._scatterGridActive = null;
         this.clearAnalysisCellLineSubset?.();
         this._mutAnalysisMetric = 'ge';
         // Scatter-side filters/overlays.
@@ -23760,7 +23881,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     _geGroupOf(cellLineId) {
         const m = this.cellLineMetadata || {};
-        const primary = this._geSplitByOncotree
+        // With a subtype picked, the next level down is the disease, the same
+        // way a tissue pick divides the chart into subtypes.
+        const subtypeActive = !!document.getElementById('geSubtypeFilter')?.value;
+        const primary = (this._geSplitByOncotree || subtypeActive)
             ? (m.oncotreeSubtype?.[cellLineId] || m.primaryDisease?.[cellLineId])
             : m.primaryDisease?.[cellLineId];
         return primary || 'Unknown';
@@ -24403,9 +24527,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const isGrowth = gene === 'Growth Rate';
         const isGeneSet = !isGrowth && !this.geneIndex.has(gene?.toUpperCase?.());
 
-        // Determine if we should group by subtype (when a lineage filter is active)
+        // Group by the next level down from the active filter: a tissue pick
+        // divides into subtypes, a subtype pick divides into diseases
+        // (_geGroupOf switches to the disease level when a subtype is picked).
         const tissueFilter = document.getElementById('geTissueFilter')?.value;
-        const groupBySubtype = !!tissueFilter && !!this.cellLineMetadata?.primaryDisease;
+        const geSubtypePicked = document.getElementById('geSubtypeFilter')?.value;
+        const groupBySubtype = !!(tissueFilter || geSubtypePicked) && !!this.cellLineMetadata?.primaryDisease;
 
         // Get all gene effects for comparison
         const allEffects = data.map(d => d.geneEffect);
@@ -28631,10 +28758,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const inspectCn = document.getElementById('geCnFilter')?.value || '';
         const inspectSubtype = document.getElementById('geSubtypeFilter')?.value || '';
 
-        // Determine if we should group by subtype (when a lineage filter is active)
+        // Group by the next level down from the active filter (tissue pick →
+        // subtype groups, subtype pick → disease groups via _geGroupOf).
         const activeTissueFilter = document.getElementById('geTissueFilter')?.value || '';
         const activeLineage = activeTissueFilter || mr.lineageFilter;
-        const groupBySubtype = !!activeLineage && !!this.cellLineMetadata?.primaryDisease;
+        const groupBySubtype = !!(activeLineage || inspectSubtype || mr.subLineageFilter) && !!this.cellLineMetadata?.primaryDisease;
 
         // Gather cell lines respecting all filters
         const groupMap = {};
@@ -30237,8 +30365,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const cellLines = this.metadata.cellLines;
 
-        // Determine if we should group by subtype (when a lineage filter is active)
-        const groupBySubtype = !!(mr.lineageFilter) && !!this.cellLineMetadata?.primaryDisease;
+        // Group by the next level down from the analysis filter (tissue →
+        // subtype groups, subtype → disease groups via _geGroupOf).
+        const groupBySubtype = !!(mr.lineageFilter || mr.subLineageFilter) && !!this.cellLineMetadata?.primaryDisease;
 
         // Build group -> { cellLine indices by mutation status } map
         const groupMap = {};
@@ -35270,6 +35399,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 + ` style="background:${on ? '#dcfce7' : '#fef2f2'};color:${on ? '#5d9239' : '#dc2626'};padding:1px 6px;border-radius:10px;cursor:pointer;">`
                 + `${this.esc(f.gene)} ${on ? 'Mut' : 'WT'} &#9662;</span>`);
         }
+        // The scatter's own grid picks, scoped to that plot alone.
+        if (ctxName === 'scatter') {
+            for (const f of (this._scatterGridActive || [])) {
+                if (f.gene === hotGene || f.gene === fusGene) continue;
+                const on = f.state === 'mut';
+                parts.push(`<span class="clb-chip" data-chip="sgrid" data-grid-gene="${this.esc(f.gene)}" title="Grid pick for this scatter only. Click to switch side or remove"`
+                    + ` style="background:${on ? '#dcfce7' : '#fef2f2'};color:${on ? '#5d9239' : '#dc2626'};padding:1px 6px;border-radius:10px;cursor:pointer;">`
+                    + `${this.esc(f.gene)} ${on ? 'Mut' : 'WT'} &#9662;</span>`);
+            }
+        }
 
         host.innerHTML = parts.join(' ');
         host.style.display = parts.length ? 'flex' : 'none';
@@ -35328,7 +35467,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return this._simpleChipMenu(anchorEl, [
                 { label: 'Keep altered lines', act: () => { this._oncoprintFilters[gene] = 'mut'; this._oncoprintSyncFilters?.(); } },
                 { label: 'Keep wild-type lines', act: () => { this._oncoprintFilters[gene] = 'wt'; this._oncoprintSyncFilters?.(); } },
-                { label: 'Remove this filter', danger: true, act: () => this._oncoprintClearGene?.(gene, false) },
+                { label: 'Remove this filter', danger: true, act: () => { delete this._oncoprintFilters[gene]; this._oncoprintSyncFilters?.(); } },
+            ], after);
+        }
+        // Scatter-scoped grid picks: same menu, but against the scatter's own
+        // set, so nothing here touches the analysis cohort.
+        if (kind === 'sgrid') {
+            const gene = anchorEl.dataset.gridGene;
+            const syncScatter = () => {
+                const filters = Object.entries(this._scatterGridMap || {}).filter(([, v]) => v !== 'none');
+                const gk = this._oncoprintKind || 'hotspot';
+                this._scatterGridActive = filters.length
+                    ? filters.map(([g, state]) => ({ gene: g, state, kind: this._oncoprintFilterKinds?.[g] || gk }))
+                    : null;
+            };
+            return this._simpleChipMenu(anchorEl, [
+                { label: 'Keep altered lines', act: () => { (this._scatterGridMap ||= {})[gene] = 'mut'; syncScatter(); } },
+                { label: 'Keep wild-type lines', act: () => { (this._scatterGridMap ||= {})[gene] = 'wt'; syncScatter(); } },
+                { label: 'Remove this filter', danger: true, act: () => { if (this._scatterGridMap) delete this._scatterGridMap[gene]; syncScatter(); } },
             ], after);
         }
 
@@ -36843,8 +36999,13 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
     _WIKI_PATHWAYS() {
         return {
-            'p53 / apoptosis':          { genes: ['TP53', 'MDM2', 'MDM4', 'CDKN2A', 'CDKN2B'], ts: ['TP53', 'CDKN2A', 'CDKN2B'], note: 'Controls apoptosis and genome stability after damage. Loss is one of the commonest events in cancer.' },
-            'Cell cycle (RB / CDK4/6)': { genes: ['RB1', 'CDK4', 'CDK6', 'CCND1', 'CCND2', 'CCNE1', 'CDKN1B'], ts: ['RB1', 'CDKN1B'], note: 'G1/S cell-cycle brake. Many tumors release this brake; CDK4/6 inhibitors target this axis.' },
+            // CDKN2B (p15) is a pure INK4 / CDK4-6 gene and belongs to the
+            // cell-cycle panel, not here. CDKN2A stays in both panels: its p16
+            // arm brakes CDK4/6, its p14ARF arm restrains MDM2 and so guards
+            // p53's regulation, which the verdict wording distinguishes from
+            // losing TP53 itself.
+            'p53 / apoptosis':          { genes: ['TP53', 'MDM2', 'MDM4', 'CDKN2A'], ts: ['TP53', 'CDKN2A'], note: 'Controls apoptosis and genome stability after damage. Loss is one of the commonest events in cancer. CDKN2A counts here through its p14ARF product, which restrains MDM2; losing it deregulates p53 without touching TP53 itself.' },
+            'Cell cycle (RB / CDK4/6)': { genes: ['RB1', 'CDK4', 'CDK6', 'CCND1', 'CCND2', 'CCNE1', 'CDKN1B', 'CDKN2A', 'CDKN2B'], ts: ['RB1', 'CDKN1B', 'CDKN2A', 'CDKN2B'], note: 'G1/S cell-cycle brake. CDKN2A (p16) and CDKN2B (p15) are the INK4 inhibitors of CDK4/6, so their 9p21 deletion releases this brake. Many tumors release it one way or another; CDK4/6 inhibitors target this axis.' },
             'RAS / MAPK':               { genes: ['KRAS', 'NRAS', 'HRAS', 'BRAF', 'MAP2K1', 'MAP2K2', 'NF1', 'PTPN11', 'RAF1'], ts: ['NF1'], note: 'Major proliferation-signaling cascade. Targetable with MEK or RAF inhibitors.' },
             'PI3K / AKT / mTOR':        { genes: ['PIK3CA', 'PIK3CB', 'PIK3R1', 'PTEN', 'AKT1', 'AKT2', 'TSC1', 'TSC2', 'MTOR', 'STK11'], ts: ['PTEN', 'TSC1', 'TSC2', 'STK11', 'PIK3R1'], note: 'Survival and growth signaling. Targetable with PI3K, AKT, or mTOR inhibitors.' },
             'Receptor tyrosine kinases':{ genes: ['EGFR', 'ERBB2', 'ERBB3', 'MET', 'KIT', 'PDGFRA', 'PDGFRB', 'FGFR1', 'FGFR2', 'FGFR3', 'FGFR4', 'ALK', 'ROS1', 'RET', 'NTRK1', 'NTRK2', 'NTRK3', 'FLT3'], ts: [], note: 'Cell-surface receptors. Often the upstream cause of MAPK or PI3K activation. Many have approved inhibitors. The mutation panel below misses gene amplification and fusions, both are common driver mechanisms here, so a clean panel does not rule the pathway out.' },
@@ -37929,6 +38090,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const tsSet = new Set(info.ts || []);
             const ev = [];
             let brakeLost = false, driverOn = false;
+            const lostBrakes = [];
             for (const g of info.genes) {
                 const bits = [];
                 // A hotspot in a tumor suppressor is not "activating"; TP53
@@ -37942,13 +38104,32 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 if (!bits.length) continue;
                 const isLoss = damHit(g) || lofHit(g) || (cn && cn.dir === 'del');
                 const isGain = hotHit(g) || (cn && cn.dir === 'amp') || fusionPartnerSet.has(g);
-                if (tsSet.has(g) && isLoss) brakeLost = true;
+                if (tsSet.has(g) && isLoss) { brakeLost = true; lostBrakes.push(g); }
                 if (!tsSet.has(g) && isGain) driverOn = true;
                 ev.push({ gene: g, bits, isTs: tsSet.has(g) });
             }
+            // CDKN2A and CDKN2B sit 40 kb apart at 9p21 and go in one
+            // deletion; the two layers that call them (inferred functional
+            // loss for CDKN2A, the curated CN panel for CDKN2B) made one
+            // event read as two independent hits. Merge them into one entry.
+            const iA = ev.findIndex(e => e.gene === 'CDKN2A');
+            const iB = ev.findIndex(e => e.gene === 'CDKN2B');
+            if (iA !== -1 && iB !== -1) {
+                const merged = [...new Set([...ev[iA].bits, ...ev[iB].bits])];
+                merged.push('one 9p21 deletion covers both genes');
+                ev[iA] = { gene: 'CDKN2A', label: 'CDKN2A/B', bits: merged, isTs: true };
+                ev.splice(iB, 1);
+            }
             let verdict, tone;
+            // In the p53 panel, a loss carried only by CDKN2A (the p14ARF
+            // arm) deregulates p53 without touching TP53: the CRISPR readout
+            // in such lines typically shows active p53 (TP53 knockout helps,
+            // MDM2 knockout hurts). Saying "brake lost" there overstated it.
+            const p53RegOnly = pname === 'p53 / apoptosis' && brakeLost
+                && lostBrakes.every(g => g === 'CDKN2A' || g === 'CDKN2B');
             if (driverOn && brakeLost) { verdict = 'Driver activated, brake lost'; tone = '#b91c1c'; }
             else if (driverOn) { verdict = 'Driver activated'; tone = '#b91c1c'; }
+            else if (p53RegOnly) { verdict = 'Regulation lost, TP53 intact'; tone = '#b45309'; }
             else if (brakeLost) { verdict = 'Brake lost'; tone = '#b45309'; }
             else if (ev.length) { verdict = 'Altered'; tone = '#b45309'; }
             else { verdict = 'No alteration found'; tone = '#9ca3af'; }
@@ -37960,10 +38141,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
         pathwayCards.sort((a, b) => (a.rank - b.rank) || (b.ev.length - a.ev.length) || a.name.localeCompare(b.name));
 
-        const pwChip = (e) => `<span class="gene-hover wiki-chip${e.isTs ? ' wiki-chip-ts' : ' wiki-chip-onc'}" data-gene="${e.gene}" data-why="Flagged in this pathway: ${this.esc(e.bits.join(', '))}">${e.gene}</span>`;
+        const pwChip = (e) => `<span class="gene-hover wiki-chip${e.isTs ? ' wiki-chip-ts' : ' wiki-chip-onc'}" data-gene="${e.gene}" data-why="Flagged in this pathway: ${this.esc(e.bits.join(', '))}">${e.label || e.gene}</span>`;
         const pwCard = (c) => {
             const chips = c.ev.map(pwChip).join('');
-            const detail = c.ev.map(e => `${e.gene} ${e.bits.join(' + ')}`).join('; ');
+            const detail = c.ev.map(e => `${e.label || e.gene} ${e.bits.join(' + ')}`).join('; ');
             const richLines = c.rich
                 ? `<ul class="wiki-pw-rich">${c.rich.lines.map(l => `<li>${l}</li>`).join('')}</ul>`
                   + `<div class="wiki-pw-synth">${c.rich.synthesis}</div>`
@@ -38354,7 +38535,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             <div style="margin-top:12px; padding-top:10px; border-top:1px solid #e5e7eb;">
                 <div class="wiki-sub-h">Pathways that may have contributed to transformation</div>
                 <p class="wiki-sub-p">Alterations in this cell line that fall inside 25 pathways commonly subverted in cancer. <b>These are hypotheses, not conclusions</b>: an alteration in a pathway does not establish that it drove transformation, and the pathway that mattered may not be listed here at all.
-                <br><br><b>What the two labels mean.</b> <b>Driver active</b>, a gene that normally promotes growth carries an activating hotspot mutation, a focal amplification, or sits in a curated fusion. <b>Brake lost</b>, a tumor suppressor in the pathway carries a damaging mutation, an inferred functional loss, or a focal deletion. Both labels describe the <i>alteration</i> found, not a measurement of pathway activity.
+                <br><br><b>What the labels mean.</b> <b>Driver active</b>, a gene that normally promotes growth carries an activating hotspot mutation, a focal amplification, or sits in a curated fusion. <b>Brake lost</b>, a tumor suppressor in the pathway carries a damaging mutation, an inferred functional loss, or a focal deletion. <b>Regulation lost, TP53 intact</b>, the p53 panel's only loss is CDKN2A/B: the p14ARF product of that locus restrains MDM2, so p53 is deregulated upstream while TP53 itself is unaltered, and such lines usually still have working p53 (the CRISPR readout below typically shows TP53 knockout helping and MDM2 knockout hurting). All labels describe the <i>alteration</i> found, not a measurement of pathway activity.
                 <br><br><b>What was checked.</b> Damaging mutations across ~8,900 genes, inferred functional loss, the curated focal copy-number panel, and curated driver fusions. Activating hotspots are called from a 49-gene panel, so an activating point mutation in a gene outside that panel will not appear. Where a CRISPR knockout read-out exists it is shown underneath, and that <i>is</i> a functional measurement: 0 = no effect, &minus;0.5 = selectively essential, &minus;1 &asymp; a typical strongly-essential gene.</p>
                 ${pathwayStatusHtml}
             </div>`;
@@ -44089,13 +44270,6 @@ ${clone.innerHTML}
         const currentFont = layout.font?.family || layout.title?.font?.family || 'Arial, Helvetica, sans-serif';
 
         body.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <span style="font-weight:600;color:#1f2937;font-size:11px;">Scale All</span>
-                <div style="display:flex;align-items:center;gap:2px;">
-                    <button onclick="app._tsScaleAll(-1)" style="width:24px;height:22px;border:1px solid #d1d5db;background:#f0fdf4;border-radius:4px 0 0 4px;cursor:pointer;font-size:13px;font-weight:bold;">−</button>
-                    <button onclick="app._tsScaleAll(1)" style="width:24px;height:22px;border:1px solid #d1d5db;background:#f0fdf4;border-radius:0 4px 4px 0;cursor:pointer;font-size:13px;font-weight:bold;">+</button>
-                </div>
-            </div>
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
                 <span style="font-weight:600;color:#1f2937;font-size:11px;">Font</span>
                 <select id="ts_fontFamily" onchange="app._tsApplyFont()" style="flex:1;font-size:11px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;">
@@ -44116,6 +44290,13 @@ ${clone.innerHTML}
             ${textRow('Y Axis', 'ts_yLabelText', yLabel)}
             ${panelAnns.map((a, i) => textRow(`Panel ${i + 1}`, `ts_panelText${i}`, stripHtml(a.text))).join('')}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-weight:600;color:#1f2937;font-size:11px;">Scale All</span>
+                <div style="display:flex;align-items:center;gap:2px;">
+                    <button onclick="app._tsScaleAll(-1)" style="width:24px;height:22px;border:1px solid #d1d5db;background:#f0fdf4;border-radius:4px 0 0 4px;cursor:pointer;font-size:13px;font-weight:bold;">−</button>
+                    <button onclick="app._tsScaleAll(1)" style="width:24px;height:22px;border:1px solid #d1d5db;background:#f0fdf4;border-radius:0 4px 4px 0;cursor:pointer;font-size:13px;font-weight:bold;">+</button>
+                </div>
+            </div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Font Sizes &amp; Visibility</div>
             ${sizeRow('Title', 'ts_title', titleSize, 6, 48, 'ts_titleVis', this._tsVisible.title)}
             ${subtitleText ? sizeRow('Subtitle', 'ts_subtitle', subtitleSize, 6, 30, 'ts_subtitleVis', this._tsVisible.subtitle) : ''}
@@ -44126,8 +44307,14 @@ ${clone.innerHTML}
             ${sizeRow('Y Tick', 'ts_ytick', yTickSize, 6, 30, 'ts_yTickVis', layout.yaxis?.showticklabels !== false)}
             ${sizeRow('Legend', 'ts_legend', legendSize, 6, 30, 'ts_legendVis', this._tsVisible.legend)}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
-            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Markers</div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Cell line dots</div>
             ${sizeRow('Size', 'ts_marker', markerSize, 1, 40, null, true)}
+            ${plotDivId === 'scatterPlot' ? `
+            <div style="display:flex;align-items:center;margin-bottom:5px;gap:4px;">
+                <span style="width:15px;"></span>
+                <span style="color:#374151;flex:1;min-width:55px;font-size:11px;">Color</span>
+                <input type="color" id="ts_dotColor" value="${document.getElementById('scatterDotColor')?.value || '#6b9fcf'}" onchange="app._tsDotColor(this.value)" style="width:44px;height:22px;border:1px solid #d1d5db;border-radius:4px;padding:1px;cursor:pointer;" title="Color of the cell line dots (same setting as in the Plot size box)">
+            </div>` : ''}
             ${this._tsHasBoxTraces(plotEl) ? `
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Box Color Scheme</div>
