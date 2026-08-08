@@ -29426,7 +29426,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const chip = (d, isAmp) => {
             const known = d.known ? 'border:1px solid #1e40af; color:#1e3a8a; background:#dbeafe;' : 'border:1px solid #d1d5db; color:#374151; background:#f9fafb;';
             const cop = isAmp ? (d.copies === '>20' ? ' >20c' : ` ~${d.copies}c`) : '';
-            return `<span class="gene-hover" data-gene="${d.gene}" style="cursor:help; font-size:10px; font-weight:600; border-radius:8px; padding:1px 7px; margin:0 4px 4px 0; display:inline-block; ${known}" title="relative CN ${d.cn.toFixed(2)}${d.known ? ' · curated cancer gene' : ''}">${d.gene}${cop}</span>`;
+            return `<span class="gene-hover" data-gene="${d.gene}" style="cursor:help; font-size:10px; font-weight:600; border-radius:8px; padding:1px 7px; margin:0 4px 4px 0; display:inline-block; ${known}" data-why="relative CN ${d.cn.toFixed(2)}${d.known ? ' · curated cancer gene' : ''}">${d.gene}${cop}</span>`;
         };
         const ampRow = (a) => `<div style="margin-bottom:6px;"><b style="color:#1e3a8a;">${a.band} amplification</b> <span style="font-size:10px; color:#6b7280;">(up to ${a.maxCopies} copies; ${a.nAmp} amplified gene${a.nAmp === 1 ? '' : 's'} in the band)</span><br>${a.drivers.map(d => chip(d, true)).join('')}</div>`;
         const delRow = (a) => `<div style="margin-bottom:6px;"><b style="color:#991b1b;">${a.band} loss</b> <span style="font-size:10px; color:#6b7280;">(min rel-CN ${a.minCN.toFixed(2)}, i.e. relative to this line's own baseline rather than to two copies; ${a.nDel} gene${a.nDel === 1 ? '' : 's'} in the band)</span><br>${a.drivers.map(d => chip(d, false)).join('')}</div>`;
@@ -37943,7 +37943,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
         pathwayCards.sort((a, b) => (a.rank - b.rank) || (b.ev.length - a.ev.length) || a.name.localeCompare(b.name));
 
-        const pwChip = (e) => `<span class="gene-hover wiki-chip${e.isTs ? ' wiki-chip-ts' : ' wiki-chip-onc'}" data-gene="${e.gene}" title="${this.esc(e.bits.join(', '))}">${e.gene}</span>`;
+        const pwChip = (e) => `<span class="gene-hover wiki-chip${e.isTs ? ' wiki-chip-ts' : ' wiki-chip-onc'}" data-gene="${e.gene}" data-why="Flagged in this pathway: ${this.esc(e.bits.join(', '))}">${e.gene}</span>`;
         const pwCard = (c) => {
             const chips = c.ev.map(pwChip).join('');
             const detail = c.ev.map(e => `${e.gene} ${e.bits.join(' + ')}`).join('; ');

@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.20 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>One tooltip per gene chip.</b> Copy-number gene chips and the wiki's pathway chips showed two overlapping popups on hover: the browser's own tooltip and the gene info card. The chip's context (relative copy number, why the pathway flags it) now appears inside the single gene card instead.</li>
+                </ul>
                 <p><strong>v.86.19 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>Saved views restore the full cohort, not just the picture.</b> A field-by-field audit of every export/restore path found many settings the app used but never saved, or saved but never re-applied. Network exports now carry the disease-level pick, hotspot/fusion/CN parameter filters, tissue exclusions and the cell-line subset, and re-apply them on restore. Mutation Inspect exports carry the additional analysis filters, tissue exclusions, group minimum and the GE/expression metric. Scatter restores keep the disease filter, overlay view modes, highlighted cells and the custom cell-line list; the gene-effect and pair-correlation popouts keep their disease and level filters. Alteration-grid exports remember whether they were a hotspot, fusion or CN grid. An expression-correlate scatter now restores as itself, mutation analysis and all, instead of as a bare scatter, and a by-tissue chart reopens as the by-tissue view. Opening a saved file in a working tab also resets all of this state first, so the current session's filters no longer bleed into the restored view.</li>
@@ -5525,7 +5529,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.19</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.20</a>
         </span>
     </div>
 
@@ -8061,6 +8065,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_19"></script>
+    <script src="app.js?v=v86_20"></script>
 </body>
 </html>
