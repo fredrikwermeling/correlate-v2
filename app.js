@@ -7743,8 +7743,11 @@ class CorrelationExplorer {
         // A best-filter search still stepping through lineages from the last
         // run must not keep computing under this one.
         this._bestFilterToken = (this._bestFilterToken || 0) + 1;
-        // Reset network settings to defaults when running new analysis
-        this.resetNetworkSettings();
+        // Reset network settings to defaults when running new analysis, UNLESS
+        // this run is recreating a saved figure: the restore just wrote the
+        // saved font/node/edge/color settings into these controls, and the
+        // reset was silently erasing them before the network drew.
+        if (!this._pendingNetworkSettings) this.resetNetworkSettings();
 
         // Auto-load manual stats if the manual textarea has content (beyond default header)
         const manualTextarea = document.getElementById('manualStatsTextarea');
@@ -10526,8 +10529,9 @@ class CorrelationExplorer {
     }
 
     displayResults() {
-        // Reset network settings to defaults
-        this.resetNetworkSettings();
+        // Reset network settings to defaults, except when recreating a saved
+        // figure (the restore already set the controls to the saved values).
+        if (!this._pendingNetworkSettings) this.resetNetworkSettings();
 
         // Switch to network tab FIRST so vis.js can calculate layout in visible container
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
@@ -10551,6 +10555,21 @@ class CorrelationExplorer {
                 if (ns.showGeneEffect || ns.statsLabelDisplay !== 'none') {
                     this.updateNetworkLabels?.();
                     this.updateNetworkLabelsWithStats?.();
+                }
+                // Highlight rings and the legend/banner styling are applied to
+                // the DOM by their own panels, which nothing opens here.
+                if (ns.highlight) this.applyNetworkHighlight?.(ns.highlight);
+                const legendEl = document.getElementById('networkLegend');
+                if (legendEl && (ns.legendFontSize || ns.legendColor || ns.fontFamily)) {
+                    if (ns.legendFontSize) legendEl.style.fontSize = ns.legendFontSize + 'px';
+                    if (ns.legendColor) legendEl.style.color = ns.legendColor;
+                    if (ns.fontFamily) legendEl.style.fontFamily = ns.fontFamily;
+                }
+                const banner = document.querySelector('.network-filter-banner');
+                if (banner && (ns.bannerFontSize || ns.bannerColor || ns.fontFamily)) {
+                    if (ns.bannerFontSize) banner.style.fontSize = ns.bannerFontSize + 'px';
+                    if (ns.bannerColor) banner.style.color = ns.bannerColor;
+                    if (ns.fontFamily) banner.style.fontFamily = ns.fontFamily;
                 }
             }, 150);
         }
@@ -21769,9 +21788,30 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Restore network visual settings
             const ns = meta.networkSettings;
             if (ns) {
-                if (ns.fontSize) document.getElementById('netFontSize').value = ns.fontSize;
-                if (ns.nodeSize) document.getElementById('netNodeSize').value = ns.nodeSize;
-                if (ns.edgeWidth) document.getElementById('netEdgeWidth').value = ns.edgeWidth;
+                // Sliders and their value bubbles together; the run skips its
+                // usual settings reset when a restore is pending, so what is
+                // written here is what the network draws with.
+                const setSlider = (id, bubbleId, v) => {
+                    if (v == null) return;
+                    const el = document.getElementById(id); if (el) el.value = v;
+                    const bb = document.getElementById(bubbleId); if (bb) bb.textContent = String(v);
+                };
+                setSlider('netFontSize', 'fontSizeBubble', ns.fontSize);
+                setSlider('netNodeSize', 'nodeSizeBubble', ns.nodeSize);
+                setSlider('netEdgeWidth', 'edgeWidthBubble', ns.edgeWidth);
+                setSlider('netSpread', 'spreadBubble', ns.spread);
+                // Aa text settings and label style, defaulted when the export
+                // predates them so a reopen is deterministic either way.
+                this._netFontFamily = ns.fontFamily || 'Arial, sans-serif';
+                this._netLabelColor = ns.labelColor || '#333333';
+                this._netNodeColor = ns.nodeColor || '#6ba544';
+                this._netLegendFontSize = ns.legendFontSize || 15;
+                this._netLegendColor = ns.legendColor || '#374151';
+                this._netBannerFontSize = ns.bannerFontSize || 20;
+                this._netBannerColor = ns.bannerColor || '#374151';
+                this._netBannerCustomText = ns.bannerText || null;
+                this._netLabelBold = !!ns.labelBold;
+                this._netLabelItalic = (ns.labelItalic === null || ns.labelItalic === undefined) ? undefined : ns.labelItalic;
                 if (ns.minSlope) document.getElementById('minSlope').value = ns.minSlope;
                 if (ns.minCellLines) document.getElementById('minCellLines').value = ns.minCellLines;
                 if (ns.lineageFilter) document.getElementById('lineageFilter').value = ns.lineageFilter;
@@ -22253,6 +22293,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             fontSize: parseInt(document.getElementById('netFontSize')?.value) || 16,
             nodeSize: parseInt(document.getElementById('netNodeSize')?.value) || 25,
             edgeWidth: parseInt(document.getElementById('netEdgeWidth')?.value) || 3,
+            spread: parseInt(document.getElementById('netSpread')?.value) || 100,
+            // Aa text settings + label style + highlight rings, so a reopened
+            // figure looks like the exported one, not just the same graph.
+            fontFamily: this._netFontFamily || null,
+            labelColor: this._netLabelColor || null,
+            nodeColor: this._netNodeColor || null,
+            legendFontSize: this._netLegendFontSize || null,
+            legendColor: this._netLegendColor || null,
+            bannerFontSize: this._netBannerFontSize || null,
+            bannerColor: this._netBannerColor || null,
+            bannerText: this._netBannerCustomText || null,
+            labelBold: !!this._netLabelBold,
+            labelItalic: this._netLabelItalic === undefined ? null : this._netLabelItalic,
+            highlight: this._netHighlightText || '',
             colorByGeneEffect: document.getElementById('colorByGeneEffect')?.checked || false,
             colorGEType: document.querySelector('input[name="colorGEType"]:checked')?.value || 'signed',
             colorByStats: document.getElementById('colorByStats')?.checked || false,
