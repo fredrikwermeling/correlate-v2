@@ -7650,8 +7650,8 @@ class CorrelationExplorer {
     }
 
     findBestFilter() {
-        const geneList = this.getGeneList();
-        if (geneList.length < 2) {
+        const inputGenes = this.getGeneList();
+        if (inputGenes.length < 2) {
             this.showStatus('error', 'Need at least 2 genes to find best filter.');
             return;
         }
@@ -7659,44 +7659,36 @@ class CorrelationExplorer {
         const btn = document.getElementById('findBestFilterBtn');
         if (btn) { btn.textContent = 'Searching...'; btn.disabled = true; }
 
-        setTimeout(() => {
-            const mode = document.querySelector('input[name="analysisMode"]:checked').value;
-            const cutoff = parseFloat(document.getElementById('correlationCutoff').value);
-            const minN = parseInt(document.getElementById('minCellLines').value);
+        const mode = document.querySelector('input[name="analysisMode"]:checked').value;
+        const cutoff = parseFloat(document.getElementById('correlationCutoff').value);
+        const minN = parseInt(document.getElementById('minCellLines').value);
 
-            // Get all unique lineages
-            const lineages = [...new Set(Object.values(this.cellLineMetadata?.lineage || {}))].sort();
+        // In Expand mode this used to re-run the full genome scan once per
+        // lineage, ~30 scans in one synchronous block: the page froze for
+        // 30-60s after every run, the network's settle animation starved into
+        // lurches, and the off-screen view guard expired without ever firing.
+        // The dropdown's question, "which tissue keeps this network most
+        // connected", is about the genes the run produced, so rank lineages
+        // by the pairwise correlations within those genes instead: same
+        // ranking, hundreds of times cheaper. Capped for very large expanded
+        // networks.
+        let geneList = inputGenes;
+        if (mode === 'design') {
+            const resultGenes = (this.results?.success ? this.results.clusters.map(c => c.gene) : [])
+                .filter(g => this.geneIndex.has(g));
+            if (resultGenes.length >= 2) geneList = resultGenes.slice(0, 100);
+        }
 
-            const results = [];
+        // One lineage per timeout, so the page keeps painting while the
+        // search runs; a newer search (or a new Run) supersedes this one via
+        // the token instead of queueing behind it.
+        const token = (this._bestFilterToken = (this._bestFilterToken || 0) + 1);
+        const lineages = [...new Set(Object.values(this.cellLineMetadata?.lineage || {}))].sort();
+        const jobs = ['__all__', ...lineages];
+        const results = [];
 
-            // Test "All" (no filter)
-            const allIndices = [];
-            for (let i = 0; i < this.nCellLines; i++) allIndices.push(i);
-            const allResult = this.calculateCorrelations(geneList, mode === 'design' ? 'design' : 'analysis', cutoff, minN, 0, allIndices);
-            if (allResult.success) {
-                const genes = new Set(); allResult.correlations.forEach(c => { genes.add(c.gene1); genes.add(c.gene2); });
-                results.push({ filter: 'All tissues', n: allIndices.length, nGenes: genes.size });
-            }
-
-            // Test each lineage
-            for (const lineage of lineages) {
-                const indices = [];
-                for (let i = 0; i < this.nCellLines; i++) {
-                    const cl = this.metadata.cellLines[i];
-                    if (this.cellLineMetadata?.lineage?.[cl] === lineage) indices.push(i);
-                }
-                if (indices.length < minN) continue;
-
-                const result = this.calculateCorrelations(geneList, mode === 'design' ? 'design' : 'analysis', cutoff, minN, 0, indices);
-                if (result.success && result.correlations.length > 0) {
-                    const genes = new Set(); result.correlations.forEach(c => { genes.add(c.gene1); genes.add(c.gene2); });
-                    results.push({ filter: lineage, n: indices.length, nGenes: genes.size });
-                }
-            }
-
+        const finish = () => {
             results.sort((a, b) => b.nGenes - a.nGenes);
-
-            // Show as a simple select dropdown
             let html = '<div style="margin-top:4px; font-size:10px;">';
             html += '<select id="bestFilterSelect" class="form-control" style="font-size:10px; padding:2px 4px;" onchange="if(this.value!==\'_none\'){document.getElementById(\'lineageFilter\').value=this.value;app.updateSubLineageFilter();}">';
             const allEntry = results.find(r => r.filter === 'All tissues');
@@ -7707,12 +7699,30 @@ class CorrelationExplorer {
                 html += `<option value="${filterVal}">${r.filter}, ${r.nGenes} genes (n=${r.n})</option>`;
             });
             html += '</select></div>';
-
             const statusEl = document.getElementById('analysisStatus');
             statusEl.innerHTML = html;
-
             if (btn) { btn.textContent = 'Best Filter'; btn.disabled = false; }
-        }, 50);
+        };
+
+        const step = (k) => {
+            if (token !== this._bestFilterToken) return;
+            if (k >= jobs.length) { finish(); return; }
+            const job = jobs[k];
+            const indices = [];
+            for (let i = 0; i < this.nCellLines; i++) {
+                const cl = this.metadata.cellLines[i];
+                if (job === '__all__' || this.cellLineMetadata?.lineage?.[cl] === job) indices.push(i);
+            }
+            if (indices.length >= minN) {
+                const result = this.calculateCorrelations(geneList, 'analysis', cutoff, minN, 0, indices);
+                if (result.success && result.correlations.length > 0) {
+                    const genes = new Set(); result.correlations.forEach(c => { genes.add(c.gene1); genes.add(c.gene2); });
+                    results.push({ filter: job === '__all__' ? 'All tissues' : job, n: indices.length, nGenes: genes.size });
+                }
+            }
+            setTimeout(() => step(k + 1), 0);
+        };
+        setTimeout(() => step(0), 50);
     }
 
     runAnalysis() {
@@ -7724,6 +7734,9 @@ class CorrelationExplorer {
         }
         // Any analysis run reveals boxes 1/2/3 (safety net for programmatic runs).
         this._setAnalysisLocked(false);
+        // A best-filter search still stepping through lineages from the last
+        // run must not keep computing under this one.
+        this._bestFilterToken = (this._bestFilterToken || 0) + 1;
         // Reset network settings to defaults when running new analysis
         this.resetNetworkSettings();
 
@@ -13877,9 +13890,12 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
     _ensureNetworkInView(duration) {
         clearInterval(this._netViewGuardTimer);
         if (!this.network) return;
-        // A released big network drifts for far longer than a small one, and a
-        // guard that quits at 4s let it float out of frame afterwards.
-        if (duration == null) duration = (this.networkData?.nodes?.length || 0) > 100 ? 12000 : 4000;
+        // The network floats indefinitely by design (v.86.23), so any short
+        // watch window eventually loses: the picture drifted out of frame the
+        // moment the guard stopped looking. Watch until the user takes hold
+        // of the view instead (any drag or zoom cancels), with a long cap as
+        // a backstop; the check itself is a cheap per-node bounds test.
+        if (duration == null) duration = 60000;
         let cancelled = false;
         const cancel = () => { cancelled = true; clearInterval(this._netViewGuardTimer); };
         this.network.once('dragStart', cancel);
