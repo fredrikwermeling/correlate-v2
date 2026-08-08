@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.21 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>Options focused on the app's two pillars.</b> The row now reads Gene set analysis, Cell Line Browser, Other, Reset all. Mutation analysis moved into the Other menu; while it is the active mode the Other button itself turns green and reads "Mutation analysis", so the current mode stays visible and the way back is the same menu. Reset all moved up from the results tab row into the freed slot.</li>
+                </ul>
                 <p><strong>v.86.20 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>One tooltip per gene chip.</b> Copy-number gene chips and the wiki's pathway chips showed two overlapping popups on hover: the browser's own tooltip and the gene info card. The chip's context (relative copy number, why the pathway flags it) now appears inside the single gene card instead.</li>
@@ -5529,7 +5533,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.20</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.21</a>
         </span>
     </div>
 
@@ -5542,22 +5546,27 @@
                  Button labels wrap to two lines to fit the 415px sidebar on one
                  row. Gene set analysis is the default mode (boxes 1/2/3 are live
                  on load), so it renders filled to show it's the current mode.
-                 The less-used tools sit behind "Other" so the height is fixed. -->
+                 The app's two pillars (gene set analysis + Cell Line Browser)
+                 get the top-level buttons; Mutation analysis and the other
+                 tools sit behind "Other". While Mutation analysis is the active
+                 mode the "Other" button itself carries the mode (filled green,
+                 renamed), see _syncAnalysisModeButtons. -->
             <div class="card" id="optionsCard">
                 <div class="card-title">Options</div>
                 <div class="card-content">
                     <div id="optionsRow">
                         <button class="btn btn-success btn-sm" id="modeGeneSetBtn" title="Correlate the gene-effect profiles of a set of genes, and optionally expand it to find correlated genes">Gene set<br>analysis</button>
-                        <button class="btn btn-outline btn-sm" id="modeMutationBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Split the cohort into altered vs wild-type lines for a chosen gene and rank the genes whose gene effect differs most">Mutation<br>analysis</button>
                         <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="color:var(--green-700); border-color:var(--green-400);" title="Browse, filter and compare the cell lines behind the data">Cell Line<br>Browser</button>
                         <div style="position:relative; display:flex;">
-                            <button class="btn btn-outline btn-sm" id="optionsOtherBtn" aria-haspopup="true" aria-expanded="false" style="color:var(--green-700); border-color:var(--green-400);" title="Gene Effect, Correlation and opening a saved figure">Other &#9662;</button>
+                            <button class="btn btn-outline btn-sm" id="optionsOtherBtn" aria-haspopup="true" aria-expanded="false" style="color:var(--green-700); border-color:var(--green-400); flex:1 1 0; min-width:0;" title="Mutation analysis, Gene Effect, Correlation and opening a saved figure">Other &#9662;</button>
                             <div id="optionsOtherMenu" style="display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:1200; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.12); min-width:180px; padding:4px;">
+                                <button class="options-menu-item" id="modeMutationBtn" title="Split the cohort into altered vs wild-type lines for a chosen gene and rank the genes whose gene effect differs most">Mutation analysis</button>
                                 <button class="options-menu-item" id="showGeneEffectDirect">Gene Effect</button>
                                 <button class="options-menu-item" id="showCorrelationDirect">Correlation</button>
                                 <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure...</label>
                             </div>
                         </div>
+                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid rgba(17,24,39,0.55); background:var(--green-600); color:#fff; font-weight:700;" title="Clear the current genes, parameters and results and start over">Reset all</button>
                     </div>
                     <!-- Load state stays on the homepage even though the sources
                          moved to the Reference Data modal, so it's still obvious
@@ -5579,10 +5588,10 @@
                     <div class="card-content">
                     <div class="form-group">
                         <label class="form-label">Analysis Mode:</label>
-                        <!-- Gene set analysis and Mutation analysis are picked with the
-                             two buttons in the Options card; only the active mode's
-                             sub-options are shown here. The radios stay in the DOM
-                             because everything downstream reads analysisMode. -->
+                        <!-- Gene set analysis is picked with its Options button;
+                             Mutation analysis via Options -> Other. Only the active
+                             mode's sub-options are shown here. The radios stay in the
+                             DOM because everything downstream reads analysisMode. -->
                         <div class="radio-group">
                             <div id="geneSetModeOptions">
                                 <div style="font-weight:600; font-size:12px; color:#374151; margin-bottom:3px;">Gene set analysis<span style="display:block; font-weight:400; color:#9ca3af; font-size:10px; text-wrap:balance;">correlate gene-effect profiles</span></div>
@@ -5933,15 +5942,10 @@
                     <li><button class="nav-link" data-tab="mutation" style="display: none;" id="mutationTab">Mutation analysis</button></li>
                     <li><button class="nav-link" data-tab="synonyms" style="display: none;" id="synonymsTab">Synonyms/Orthologs</button></li>
                     <li><button class="nav-link" data-tab="summary">Summary</button></li>
-                    <!-- Reset lives at the end of the tab row, away from the
-                         buttons you click to start work, since it clears the
-                         workspace rather than opening anything. Called "Reset
-                         all" because the Network tab below has its own Reset
-                         for the appearance controls, and the two are on screen
-                         together by default. -->
-                    <li style="margin-left:auto; align-self:center;">
-                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid rgba(17,24,39,0.55); background:var(--green-600); color:#fff; font-weight:700;" title="Clear the current genes, parameters and results and start over">Reset all</button>
-                    </li>
+                    <!-- Reset all moved to the Options row (2026-08-08, freed
+                         by Mutation analysis moving into the Other menu). It is
+                         still called "Reset all" because the Network tab below
+                         has its own Reset for the appearance controls. -->
                 </ul>
 
                 <!-- Network Tab -->
@@ -7346,7 +7350,7 @@
                         <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
                             <div style="font-weight: 700; color: #4c782e; font-size: 14px; margin-bottom: 6px;">🧬 Mutation analysis</div>
                             <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.55;">
-                                Pick an alteration, a hotspot mutation, a driver fusion, a functional loss or an amplification. Correlate splits the cell lines into carriers and wild-type, then scans the whole screen for the genes carriers depend on more, or express differently. What comes out is a ranked list of mutation-specific vulnerabilities, candidate targets that matter only in the altered background.
+                                Pick an alteration, a hotspot mutation, a driver fusion, a functional loss or an amplification. Correlate splits the cell lines into carriers and wild-type, then scans the whole screen for the genes carriers depend on more, or express differently. What comes out is a ranked list of mutation-specific vulnerabilities, candidate targets that matter only in the altered background. Found under <b>Options &rarr; Other</b>.
                             </p>
                         </div>
                         <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
@@ -8065,6 +8069,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_20"></script>
+    <script src="app.js?v=v86_21"></script>
 </body>
 </html>

@@ -21369,7 +21369,24 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             b.style.borderColor = on ? '' : 'var(--green-400)';
         };
         setActive('modeGeneSetBtn', !isMutation);
-        setActive('modeMutationBtn', isMutation);
+        // Mutation analysis lives inside the "Other" menu. While it is the
+        // active mode the menu button itself carries it (filled green and
+        // renamed), so the current mode always shows in the Options row and
+        // the way back is the same dropdown.
+        const otherModeBtn = document.getElementById('optionsOtherBtn');
+        if (otherModeBtn) {
+            setActive('optionsOtherBtn', isMutation);
+            otherModeBtn.innerHTML = isMutation ? 'Mutation<br>analysis &#9662;' : 'Other &#9662;';
+            otherModeBtn.title = isMutation
+                ? 'Mutation analysis is the active mode. Open for Gene set analysis tools, Gene Effect, Correlation and saved figures.'
+                : 'Mutation analysis, Gene Effect, Correlation and opening a saved figure';
+        }
+        // Inside the menu, mark the active mode's row.
+        const mutMenuItem = document.getElementById('modeMutationBtn');
+        if (mutMenuItem) {
+            mutMenuItem.style.fontWeight = isMutation ? '700' : '';
+            mutMenuItem.style.color = isMutation ? 'var(--green-700)' : '';
+        }
 
         // Mutation analysis does not read the gene box at all: it picks its own
         // genes by ranking the whole screen. Leaving box 2 on screen, greyed out
