@@ -8426,23 +8426,17 @@ class CorrelationExplorer {
     }
 
     tDistributionPValue(t, df) {
-        // Approximation of two-tailed p-value for t-distribution
-        // Using normal approximation for large df, or beta approximation for small df
+        // Two-tailed p for the t-distribution via the incomplete beta
+        // function: P(|T| > t) = I_x(df/2, 1/2) with x = df/(df + t²).
+        // This used to switch to a normal approximation for df > 100, which
+        // is catastrophically wrong in the far tail (at t = 22.5, df = 182 it
+        // returned 1e-112 where the true value is 2e-54); the beta form is
+        // accurate at every df, so it is used unconditionally.
         if (df <= 0 || isNaN(t) || isNaN(df)) return 1;
-
-        // For large df, approximate with normal distribution
-        if (df > 100) {
-            return 2 * this.normalUpperTail(t);
-        }
-
-        // Beta function approximation for t-distribution CDF
         const x = df / (df + t * t);
         const a = df / 2;
         const b = 0.5;
-
-        // Incomplete beta function approximation
-        const betaInc = this.incompleteBeta(x, a, b);
-        return betaInc;
+        return this.incompleteBeta(x, a, b);
     }
 
     incompleteBeta(x, a, b) {
@@ -8465,9 +8459,12 @@ class CorrelationExplorer {
     }
 
     betaCF(x, a, b) {
-        // Continued fraction for incomplete beta
-        const maxIter = 100;
-        const eps = 1e-10;
+        // Continued fraction for incomplete beta. The iteration cap must grow
+        // with a: at a = df/2 in the hundreds (large cohorts) the fraction
+        // needs several hundred terms, and stopping at 100 froze p-values at
+        // whatever the partial fraction happened to be.
+        const maxIter = 2000;
+        const eps = 3e-14;
 
         let qab = a + b;
         let qap = a + 1;
