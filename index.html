@@ -2177,6 +2177,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.25 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>Expand my set no longer freezes the page.</b> Two seconds-long stalls hit expanded networks: an untangling pass whose cost explodes with network size (it now runs only on networks small enough to benefit, under a hard time limit), and a slow initial-layout computation that big networks skip entirely, they start from random positions like Shuffle does.</li>
+                    <li><b>Big networks settle before they are shown, and stay in frame.</b> Networks past 150 genes get twice the hidden settling time, so the visible jumping after load is mostly gone, and the guard that re-frames the view when nodes drift off-screen now watches large networks for 12 seconds instead of 4.</li>
+                </ul>
                 <p><strong>v.86.24 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>The Spread meter always tells the truth.</b> Shuffle keeps all your settings (font, node, edge, Spread) but the meter used to jump back to 100 while the layout kept the old spacing; it now stays at the value the layout was settled with. The Reset button, which left Spread untouched, now returns it to 100 and actually widens the layout.</li>
@@ -5554,7 +5559,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.24</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.25</a>
         </span>
     </div>
 
@@ -8087,6 +8092,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_24"></script>
+    <script src="app.js?v=v86_25"></script>
 </body>
 </html>

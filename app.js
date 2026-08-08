@@ -10723,12 +10723,20 @@ class CorrelationExplorer {
 
         const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
 
-        // Adjust stabilization iterations based on network size
+        // Adjust stabilization iterations based on network size: big networks
+        // need more hidden iterations or they keep visibly rearranging after
+        // the loading overlay goes away.
         const nodeCount = nodes.length;
-        const stabilizationIterations = nodeCount > 50 ? 300 : 150;
+        const stabilizationIterations = nodeCount > 150 ? 600 : nodeCount > 50 ? 300 : 150;
 
         const options = {
             autoResize: false,  // Prevent auto-fit when container resizes
+            // vis's improvedLayout runs a synchronous Kamada-Kawai pass inside
+            // the constructor, before the loading overlay can even paint. On an
+            // expanded network past ~100 nodes that is a seconds-long freeze
+            // for an initial arrangement the stabilizer redoes anyway, so big
+            // networks start from random positions instead (same as Shuffle).
+            layout: { improvedLayout: nodeCount <= 100 },
             nodes: {
                 shape: 'dot',
                 scaling: {
@@ -11152,6 +11160,14 @@ class CorrelationExplorer {
         const edges = [];
         this.networkData.edges.forEach(e => edges.push(e));
 
+        // Untangling is a small-network nicety. The hill-climb below re-counts
+        // every edge pair for every candidate node swap, so its cost grows with
+        // nodes² × edges²: on an expanded network with hundreds of edges it
+        // locked the page for whole seconds, and a hairball that size has
+        // unavoidable crossings anyway, so it is skipped outright rather than
+        // merely time-boxed.
+        if (edges.length > 80 || Object.keys(positions).length > 60) return;
+
         // Line segment intersection test (excludes shared endpoints)
         const cross = (a, b, c, d) => {
             const det = (c.x - a.x) * (d.y - a.y) - (d.x - a.x) * (c.y - a.y);
@@ -11178,12 +11194,15 @@ class CorrelationExplorer {
         let crossings = countCrossings();
         if (crossings === 0) return;
 
-        // Try swapping pairs of nodes to reduce crossings
+        // Try swapping pairs of nodes to reduce crossings. Deadline as a second
+        // guard behind the size cap: whatever improvement was found by then is
+        // kept, the rest of the search is abandoned.
+        const deadline = performance.now() + 300;
         const nodeIds = Object.keys(positions);
         let improved = true;
-        while (improved && crossings > 0) {
+        while (improved && crossings > 0 && performance.now() < deadline) {
             improved = false;
-            for (let i = 0; i < nodeIds.length && !improved; i++) {
+            for (let i = 0; i < nodeIds.length && !improved && performance.now() < deadline; i++) {
                 for (let j = i + 1; j < nodeIds.length && !improved; j++) {
                     const a = nodeIds[i], b = nodeIds[j];
                     // Swap positions
@@ -13855,9 +13874,12 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
     // few seconds, if any node strays outside the visible field (the released
     // solver still micro-adjusts, and event timing proved unreliable), re-fit.
     // Cancelled the moment the user takes hold of the view.
-    _ensureNetworkInView(duration = 4000) {
+    _ensureNetworkInView(duration) {
         clearInterval(this._netViewGuardTimer);
         if (!this.network) return;
+        // A released big network drifts for far longer than a small one, and a
+        // guard that quits at 4s let it float out of frame afterwards.
+        if (duration == null) duration = (this.networkData?.nodes?.length || 0) > 100 ? 12000 : 4000;
         let cancelled = false;
         const cancel = () => { cancelled = true; clearInterval(this._netViewGuardTimer); };
         this.network.once('dragStart', cancel);
