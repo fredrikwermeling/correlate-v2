@@ -21494,6 +21494,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     oncEl.value = meta.oncotreeFilter;
                 }
             }
+            // Grid include/exclude picks were part of the saved cohort; the
+            // analysis checks _cellLinePassesOncoprintFilters, so without
+            // this the re-run used different WT/altered groups than the
+            // exported figure (stored-but-never-applied, like cnMode was).
+            this._activeOncoprintFilters = meta.oncoprintFilters?.length
+                ? meta.oncoprintFilters.map(f => ({ ...f }))
+                : null;
             // Run mutation analysis, then open gene inspect after results load
             this.runAnalysis();
             const waitForResults = () => {
@@ -21844,6 +21851,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         set('mutationHotspotSelect', c.mutationHotspotSelect);
         this.excludedTissues = new Set(c.excludedTissues || []);
         this._oncoprintFilters = { ...(c.oncoprintFilters || {}) };
+        // Writing the checkbox state alone leaves _activeOncoprintFilters
+        // null, so the grid and every downstream cohort ignored the saved
+        // include/exclude picks while the checkboxes looked applied.
+        this._oncoprintSyncFilters?.();
         this.showOncoprint(c.context || undefined);
         // showOncoprint clears the added genes, so put them back and redraw.
         if (c.extraGenes && c.extraGenes.length) {
