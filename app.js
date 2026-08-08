@@ -5182,14 +5182,20 @@ class CorrelationExplorer {
             });
         });
 
-        // Slider value displays
+        // Slider value displays. Changing a parameter after results exist
+        // also marks the Run button, so it is visible that the picture on
+        // screen no longer matches the settings.
         document.getElementById('correlationCutoff').addEventListener('input', (e) => {
             document.getElementById('cutoffValue').textContent = parseFloat(e.target.value).toFixed(2);
+            this._markMutationRunStale();
         });
 
         document.getElementById('minSlope').addEventListener('input', (e) => {
             document.getElementById('slopeValue').textContent = parseFloat(e.target.value).toFixed(2);
+            this._markMutationRunStale();
         });
+
+        document.getElementById('minCellLines')?.addEventListener('change', () => this._markMutationRunStale());
 
         // Gene textarea
         document.getElementById('geneTextarea').addEventListener('input', () => this.updateGeneCount());
@@ -7690,7 +7696,7 @@ class CorrelationExplorer {
         const finish = () => {
             results.sort((a, b) => b.nGenes - a.nGenes);
             let html = '<div style="margin-top:4px; font-size:10px;">';
-            html += '<select id="bestFilterSelect" class="form-control" style="font-size:10px; padding:2px 4px;" onchange="if(this.value!==\'_none\'){document.getElementById(\'lineageFilter\').value=this.value;app.updateSubLineageFilter();}">';
+            html += '<select id="bestFilterSelect" class="form-control" style="font-size:10px; padding:2px 4px;" onchange="if(this.value!==\'_none\'){document.getElementById(\'lineageFilter\').value=this.value;app.updateSubLineageFilter();app._refreshFilteredSelectors();app._markMutationRunStale();}">';
             const allEntry = results.find(r => r.filter === 'All tissues');
             const allGenes = allEntry ? allEntry.nGenes : 0;
             html += `<option value="_none">Best filters (All: ${allGenes} genes):</option>`;
@@ -10915,6 +10921,7 @@ class CorrelationExplorer {
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
             this._separateNetworkComponents();
+            this._arrangeUncorrelatedGrid();
             this.network.fit({ animation: false });
             // The settled, fitted layout is the reference Spread works from.
             // The solver ran with the spring and gravity of the slider's
@@ -13883,6 +13890,45 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         return true;
     }
 
+    // The genes "Show all input genes" adds have no edges, so the solver has
+    // nothing to hold them with: they ended up scattered wherever the layout
+    // left them and then drifted. Park them instead in a tidy grid below the
+    // network's lower right corner, sorted alphabetically and pinned in
+    // place. Dragging one still works: the drag handlers unpin a fixed node
+    // for the drag and re-pin it where it is dropped.
+    _arrangeUncorrelatedGrid() {
+        if (!this.network || !this.networkData?.nodes) return;
+        const loose = [];
+        let minX = Infinity, maxX = -Infinity, maxY = -Infinity;
+        const pos = this.network.getPositions();
+        for (const n of this.networkData.nodes.get()) {
+            if ((this.network.getConnectedEdges(n.id) || []).length === 0) {
+                loose.push(n.id);
+            } else {
+                const p = pos[n.id];
+                if (!p) continue;
+                minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+                maxY = Math.max(maxY, p.y);
+            }
+        }
+        if (!loose.length) return;
+        if (!Number.isFinite(maxX)) { minX = maxX = maxY = 0; }
+        loose.sort();
+        const step = this._netSpringLength || 150;
+        // Wider than tall, so the block reads as a footnote strip rather
+        // than a second column, and never wider than the network above it.
+        let cols = Math.max(2, Math.ceil(Math.sqrt(loose.length * 2)));
+        cols = Math.min(cols, Math.max(2, Math.floor((maxX - minX) / step) || loose.length));
+        const startY = maxY + step * 0.9;
+        const startX = maxX - (Math.min(cols, loose.length) - 1) * step;
+        this.networkData.nodes.update(loose.map((id, k) => ({
+            id,
+            x: startX + (k % cols) * step,
+            y: startY + Math.floor(k / cols) * step,
+            fixed: { x: true, y: true }
+        })));
+    }
+
     // Declarative view guard for the window right after Run / Shuffle: for a
     // few seconds, if any node strays outside the visible field (the released
     // solver still micro-adjusts, and event timing proved unreliable), re-fit.
@@ -13907,6 +13953,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             const c = document.getElementById('networkPlot');
             if (!c || !c.clientWidth) return;
             const pos = this.network.getPositions();
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
             for (const id of Object.keys(pos)) {
                 const d = this.network.canvasToDOM(pos[id]);
                 if (d.x < 30 || d.x > c.clientWidth - 30 || d.y < 30 || d.y > c.clientHeight - 45) {
@@ -13915,6 +13962,20 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                     // check still failing on a picture that looks fine.
                     this._zoomOutUntilNetworkFits();
                     return;
+                }
+                minX = Math.min(minX, d.x); maxX = Math.max(maxX, d.x);
+                minY = Math.min(minY, d.y); maxY = Math.max(maxY, d.y);
+            }
+            // Drift can also vacate one side without anything leaving the
+            // frame: satellites float back toward the cluster and the picture
+            // ends up sitting off-centre (usually to the left, since the
+            // satellites start on the right). Re-fit when the picture's
+            // centre has wandered from the panel's.
+            if (Number.isFinite(minX)) {
+                const offX = Math.abs((minX + maxX) / 2 - c.clientWidth / 2);
+                const offY = Math.abs((minY + maxY) / 2 - c.clientHeight / 2);
+                if (offX > c.clientWidth * 0.14 || offY > c.clientHeight * 0.14) {
+                    try { this.network.fit({ animation: false }); } catch (e) {}
                 }
             }
         }, 400);
@@ -13944,6 +14005,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         this.network.once('stabilizationIterationsDone', () => {
             this.resolveEdgeCrossings();
             this._separateNetworkComponents();
+            this._arrangeUncorrelatedGrid();
             this.network.fit({ animation: false });
             // The solver settled under the physics of the current Spread
             // setting, so the freshly fitted layout IS that setting's

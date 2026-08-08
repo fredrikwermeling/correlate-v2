@@ -2177,6 +2177,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.27 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>The network no longer settles off to the left.</b> The in-frame guard used to act only when a node left the panel; satellites drifting back toward the cluster could empty one side without tripping it, and the picture sat off-centre. The guard now also re-centres when the network's middle wanders from the panel's.</li>
+                    <li><b>The Run button announces stale results.</b> Changing the correlation cutoff, min slope or min cell lines after an analysis, or picking a tissue from the Best filters dropdown, turns the button into "Run &#9654; (filters changed)" so it is clear the picture no longer matches the settings. Tissue, subtype and disease pickers already did this.</li>
+                    <li><b>Show all input genes: the extra genes now line up.</b> The input genes without correlations used to scatter and drift, since no edge holds them. They now park in a tidy alphabetical grid below the network's lower right corner, pinned in place; drag one and it stays where you drop it.</li>
+                </ul>
                 <p><strong>v.86.26 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>Found and fixed the real Expand my set freeze.</b> After every run, the "Best filters" search silently re-ran the full 18,000-gene scan once per tissue, ~30 scans in one uninterruptible block. In Expand mode that froze the page for 30-60 seconds: the network's settle animation starved into jumps, and the guard that keeps the picture in frame expired before it could act, leaving the network off-centre. The search now ranks tissues using the genes the run actually produced (hundreds of times cheaper), works through tissues one at a time so the page keeps painting, and a new Run cancels a search still in progress instead of queuing behind it.</li>
@@ -5564,7 +5570,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.26</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.27</a>
         </span>
     </div>
 
@@ -8097,6 +8103,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_26"></script>
+    <script src="app.js?v=v86_27"></script>
 </body>
 </html>
