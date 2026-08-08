@@ -6545,41 +6545,111 @@ class CorrelationExplorer {
         const notFound = upperGenes.filter(g => !this.geneIndex.has(g));
 
         const display = document.getElementById('geneValidationDisplay');
+        // The standalone Find Synonyms button is retired: the panel below
+        // runs the same lookup automatically and shows the result inline.
         const synonymBtn = document.getElementById('findSynonyms');
+        if (synonymBtn) synonymBtn.style.display = 'none';
 
         if (notFound.length === 0) {
             display.innerHTML = `<div class="status-box status-success">&#10003; All ${found.length} genes found in reference data</div>`;
-            synonymBtn.style.display = 'none';
-            /* findBestFilterBtn removed, auto-runs after analysis */
-        } else {
-            // Tokens Excel turned into dates get their own notice: the fuzzy
-            // matcher has nothing useful to say about "1-Mar", and the cause
-            // is worth naming so the user can fix it at source.
-            const mangled = [];
-            for (const g of notFound) {
-                const hit = this._excelDateGeneCandidates(g);
-                if (hit) mangled.push({ token: g, ...hit });
+            this.genesNotFound = [];
+            return;
+        }
+        this.genesNotFound = notFound;
+        // A changed set of unknown genes gets a fresh shot at the online
+        // search; the one-try latch is per gene set, not forever.
+        const sig = notFound.map(g => g.toUpperCase()).sort().join('|');
+        if (sig !== this._synonymSig) { this._synonymSig = sig; this._synonymApiTried = false; }
+        const token = (this._validateToken = (this._validateToken || 0) + 1);
+        this._renderGeneValidation(found, notFound, token);
+    }
+
+    // One panel for every unrecognized gene, in place of the old two parallel
+    // mechanisms (a Find Synonyms button that silently rewrote the list, and a
+    // separate "did you mean" line). Known synonyms and mouse orthologs are
+    // looked up automatically and offered as suggestions with an explicit
+    // resolution: use them all, use one, or use none. Whatever has no synonym
+    // gets the fuzzy nearest-match alternatives, with an optional online
+    // search (MyGene.info) as the last resort.
+    async _renderGeneValidation(found, notFound, token) {
+        const display = document.getElementById('geneValidationDisplay');
+
+        // Tokens Excel turned into dates get their own notice: the fuzzy
+        // matcher has nothing useful to say about "1-Mar", and the cause
+        // is worth naming so the user can fix it at source.
+        const mangled = [];
+        for (const g of notFound) {
+            const hit = this._excelDateGeneCandidates(g);
+            if (hit) mangled.push({ token: g, ...hit });
+        }
+        let excelHtml = '';
+        if (mangled.length) {
+            const rows = mangled.map(mg => {
+                const links = mg.candidates.map(c =>
+                    `<a href="#" style="color:#0066cc;" data-bad="${this.esc(mg.token)}" data-good="${this.esc(c)}" onclick="app.replaceGeneInTextarea(this.dataset.bad, this.dataset.good); return false;">${this.esc(c)}</a>`
+                ).join(' or ');
+                return `<div style="margin-top:3px;"><b>${this.esc(mg.token)}</b> &rarr; ${links}`
+                    + `<span style="color:#9ca3af;"> (was ${mg.wasAlias.map(a => this.esc(a)).join(' / ')})</span>`
+                    + (mg.candidates.length > 1 ? `<span style="color:#b45309;"> : two genes shared that name, pick the one you meant</span>` : '')
+                    + `</div>`;
+            }).join('');
+            excelHtml = `<div class="status-box status-warning" style="margin-bottom:6px;">
+                <strong>&#9888; ${mangled.length} gene name${mangled.length === 1 ? '' : 's'} look${mangled.length === 1 ? 's' : ''} like a date.</strong>
+                Excel converts symbols such as SEPT9 and MARCH1 into dates when a file is opened without setting the column to text.
+                ${rows}
+            </div>`;
+        }
+
+        // Synonym table loads lazily, once; until it arrives show the counts
+        // so the panel never blanks while typing.
+        if (!this.synonymLookup) {
+            display.innerHTML = excelHtml + `<div class="status-box status-warning">
+                <strong>${found.length} found</strong>, <strong>${notFound.length} not found</strong>, checking synonyms&hellip;
+            </div>`;
+            if (!this._synonymLoadPromise) {
+                this._synonymLoadPromise = fetch('web_data/synonyms.json').then(r => r.json()).catch(() => ({}));
             }
-            let excelHtml = '';
-            if (mangled.length) {
-                const rows = mangled.map(mg => {
-                    const links = mg.candidates.map(c =>
-                        `<a href="#" style="color:#0066cc;" data-bad="${this.esc(mg.token)}" data-good="${this.esc(c)}" onclick="app.replaceGeneInTextarea(this.dataset.bad, this.dataset.good); return false;">${this.esc(c)}</a>`
-                    ).join(' or ');
-                    return `<div style="margin-top:3px;"><b>${this.esc(mg.token)}</b> &rarr; ${links}`
-                        + `<span style="color:#9ca3af;"> (was ${mg.wasAlias.map(a => this.esc(a)).join(' / ')})</span>`
-                        + (mg.candidates.length > 1 ? `<span style="color:#b45309;"> : two genes shared that name, pick the one you meant</span>` : '')
-                        + `</div>`;
-                }).join('');
-                excelHtml = `<div class="status-box status-warning" style="margin-bottom:6px;">
-                    <strong>&#9888; ${mangled.length} gene name${mangled.length === 1 ? '' : 's'} look${mangled.length === 1 ? 's' : ''} like a date.</strong>
-                    Excel converts symbols such as SEPT9 and MARCH1 into dates when a file is opened without setting the column to text.
-                    ${rows}
-                </div>`;
+            this.synonymLookup = await this._synonymLoadPromise;
+            if (token !== this._validateToken) return;
+        }
+
+        const dismissed = (this._synonymDismissed = this._synonymDismissed || new Set());
+        const synHits = [];
+        const remaining = [];
+        for (const g of notFound) {
+            const up = g.toUpperCase();
+            let rep = null, src = '';
+            const m = this.synonymLookup?.[up];
+            const api = this._synonymApiHits?.get(up);
+            if (m && this.geneIndex.has((m.d || '').toUpperCase())) {
+                rep = m.d.toUpperCase(); src = m.r === 'l' ? 'synonym' : 'synonym, verify';
+            } else {
+                const o = this.orthologs?.mouseToHuman?.[up];
+                if (o && this.geneIndex.has(o.toUpperCase())) { rep = o.toUpperCase(); src = 'mouse ortholog'; }
+                else if (api) { rep = api.replacement; src = api.source; }
             }
-            // Find fuzzy suggestions for not-found genes
-            const suggestions = this._findGeneSuggestions(notFound);
-            let notFoundHtml = notFound.slice(0, 10).map(g => {
+            if (rep && !dismissed.has(up)) synHits.push({ original: g, replacement: rep, source: src });
+            else remaining.push(g);
+        }
+
+        let synHtml = '';
+        if (synHits.length) {
+            const rows = synHits.map(h =>
+                `<div style="margin-top:3px;"><b>${this.esc(h.original)}</b> &rarr; `
+                + `<a href="#" style="color:#0066cc; font-weight:600;" data-bad="${this.esc(h.original)}" data-good="${this.esc(h.replacement)}" onclick="app.replaceGeneInTextarea(this.dataset.bad, this.dataset.good); return false;">${this.esc(h.replacement)}</a>`
+                + ` <span style="color:#9ca3af;">(${this.esc(h.source)})</span></div>`
+            ).join('');
+            synHtml = `<div style="margin-top:6px;"><strong>Known synonyms:</strong>${rows}
+                <div style="margin-top:6px;">
+                    <button type="button" class="btn btn-sm" id="synApplyAllBtn" style="background:#4c782e; color:white; font-size:11px; padding:3px 10px;">Use all synonyms</button>
+                    <button type="button" class="btn btn-outline btn-sm" id="synDismissBtn" style="font-size:11px; padding:3px 10px; margin-left:6px;">Don't use suggested names</button>
+                </div></div>`;
+        }
+
+        let remHtml = '';
+        if (remaining.length) {
+            const suggestions = this._findGeneSuggestions(remaining);
+            let list = remaining.slice(0, 10).map(g => {
                 const sugg = suggestions.get(g);
                 if (sugg && sugg.length > 0) {
                     const links = sugg.slice(0, 3).map(s =>
@@ -6589,15 +6659,96 @@ class CorrelationExplorer {
                 }
                 return this.esc(g);
             }).join(', ');
-            if (notFound.length > 10) notFoundHtml += ` (+${notFound.length - 10} more)`;
+            if (remaining.length > 10) list += ` (+${remaining.length - 10} more)`;
+            const canSearchOnline = !this._synonymApiTried && remaining.some(g => !this._synonymApiHits?.has(g.toUpperCase()));
+            remHtml = `<div style="margin-top:6px;">${synHits.length ? '<strong>No synonym found:</strong> ' : 'Not found: '}${list}</div>`
+                + (canSearchOnline
+                    ? `<div style="margin-top:6px;"><button type="button" class="btn btn-outline btn-sm" id="synOnlineBtn" style="font-size:11px; padding:3px 10px;">Search online (MyGene.info)</button></div>`
+                    : '');
+        }
 
-            display.innerHTML = excelHtml + `<div class="status-box status-warning">
-                <strong>${found.length} found</strong>, <strong>${notFound.length} not found</strong><br>
-                <span>Not found: ${notFoundHtml}</span>
-            </div>`;
-            synonymBtn.style.display = 'block';
-            this.genesNotFound = notFound;
-            /* findBestFilterBtn removed, auto-runs after analysis */
+        const hiddenBySkip = notFound.some(g => dismissed.has(g.toUpperCase()));
+        const showAgain = hiddenBySkip
+            ? ` <a href="#" id="synShowAgainLink" style="color:#9ca3af; font-size:10px;">(show synonym suggestions again)</a>` : '';
+
+        display.innerHTML = excelHtml + `<div class="status-box status-warning">
+            <strong>${found.length} found</strong>, <strong>${notFound.length} not found</strong>${showAgain}
+            ${synHtml}${remHtml}
+        </div>`;
+
+        document.getElementById('synApplyAllBtn')?.addEventListener('click', () => this._applySynonymList(synHits));
+        document.getElementById('synDismissBtn')?.addEventListener('click', () => {
+            synHits.forEach(h => dismissed.add(h.original.toUpperCase()));
+            this.updateGeneCount();
+        });
+        document.getElementById('synShowAgainLink')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            notFound.forEach(g => dismissed.delete(g.toUpperCase()));
+            this.updateGeneCount();
+        });
+        document.getElementById('synOnlineBtn')?.addEventListener('click', () => this._searchOnlineSynonyms(remaining));
+    }
+
+    // Apply a list of {original, replacement, source} to the gene textarea
+    // (and the stats textarea / loaded stats, so they keep matching).
+    _applySynonymList(replacements) {
+        if (!replacements?.length) return;
+        const byOriginal = new Set(replacements.map(r => r.original.toUpperCase()));
+        this.synonymsUsed = [
+            ...(this.synonymsUsed || []).filter(r => !byOriginal.has(r.original.toUpperCase())),
+            ...replacements
+        ];
+        this.genesNotFound = (this.genesNotFound || []).filter(g => !byOriginal.has(g.toUpperCase()));
+
+        const applyTo = (textareaId) => {
+            const ta = document.getElementById(textareaId);
+            if (!ta || !ta.value.trim()) return;
+            let text = ta.value;
+            replacements.forEach(r => {
+                text = text.replace(new RegExp(`\\b${r.original}\\b`, 'gi'), r.replacement);
+            });
+            ta.value = text;
+        };
+        applyTo('geneTextarea');
+        applyTo('manualStatsTextarea');
+
+        if (this.geneStats && this.geneStats.size > 0) {
+            replacements.forEach(r => {
+                const oldKey = r.original.toUpperCase();
+                const newKey = r.replacement.toUpperCase();
+                if (this.geneStats.has(oldKey)) {
+                    const stats = this.geneStats.get(oldKey);
+                    stats.gene = newKey;
+                    this.geneStats.delete(oldKey);
+                    this.geneStats.set(newKey, stats);
+                }
+            });
+        }
+        this.updateGeneCount();
+        this.showCopyNotification?.(`Replaced ${replacements.length} gene name${replacements.length === 1 ? '' : 's'}`);
+    }
+
+    // Last resort for genes with no local synonym: one MyGene.info query,
+    // whose hits then appear in the panel as ordinary suggestions.
+    async _searchOnlineSynonyms(genes) {
+        const btn = document.getElementById('synOnlineBtn');
+        if (btn) { btn.textContent = 'Searching…'; btn.disabled = true; }
+        let apiResults = [];
+        try { apiResults = await this.queryMyGeneAPI(genes); } catch (e) { /* offline is fine */ }
+        this._synonymApiTried = true;
+        this._synonymApiHits = this._synonymApiHits || new Map();
+        let hits = 0;
+        apiResults.forEach(r => {
+            if (r.replacement && this.geneIndex.has(r.replacement.toUpperCase())) {
+                this._synonymApiHits.set(r.original.toUpperCase(),
+                    { replacement: r.replacement.toUpperCase(), source: 'MyGene.info' });
+                hits++;
+            }
+        });
+        if (hits) {
+            this.updateGeneCount();
+        } else if (btn) {
+            btn.textContent = 'No online matches';
         }
     }
 
@@ -7642,9 +7793,19 @@ class CorrelationExplorer {
         if (!el) return;
         const val = parseFloat(String(el.value).replace(',', '.')) || 0;
         const min = el.min !== '' ? parseFloat(el.min) : -Infinity;
-        const max = el.max !== '' ? parseFloat(el.max) : Infinity;
+        let max = el.max !== '' ? parseFloat(el.max) : Infinity;
         let next = val + delta;
         if (Number.isFinite(min)) next = Math.max(min, next);
+        // A slider marked data-grow-max is not capped by its track: the +
+        // button keeps going past the drawn maximum (a range input clamps
+        // value to max, so the track is widened to hold the value; stepping
+        // back down restores the original drawn range).
+        if (el.type === 'range' && el.dataset.growMax === '1') {
+            if (!el.dataset.baseMax) el.dataset.baseMax = el.max;
+            const baseMax = parseFloat(el.dataset.baseMax);
+            if (next > max) { el.max = next; max = next; }
+            else if (next <= baseMax && max > baseMax) { el.max = el.dataset.baseMax; max = baseMax; }
+        }
         if (Number.isFinite(max)) next = Math.min(max, next);
         // Round away floating-point dust (e.g. 0.30000000004 from 0.1+0.2 step).
         const step = parseFloat(el.step) || 1;
@@ -21793,7 +21954,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // written here is what the network draws with.
                 const setSlider = (id, bubbleId, v) => {
                     if (v == null) return;
-                    const el = document.getElementById(id); if (el) el.value = v;
+                    const el = document.getElementById(id);
+                    if (el) {
+                        // A saved value past the track maximum (font size can
+                        // grow beyond the drawn 40) needs the track widened
+                        // first, or the range input silently clamps it.
+                        if (el.type === 'range' && parseFloat(el.max) < v) el.max = v;
+                        el.value = v;
+                    }
                     const bb = document.getElementById(bubbleId); if (bb) bb.textContent = String(v);
                 };
                 setSlider('netFontSize', 'fontSizeBubble', ns.fontSize);

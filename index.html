@@ -2177,6 +2177,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.30 (2026-08-08)</strong></p>
+                <ul>
+                    <li><b>One synonym flow instead of two.</b> The Find Synonyms button and the separate "did you mean" line are folded into a single automatic panel: unknown genes are checked against the synonym and mouse-ortholog tables as you type, matches appear as "Trp53 &rarr; TP53" suggestions with <b>Use all synonyms</b> and <b>Don't use suggested names</b> as the resolutions (each name is also clickable on its own), and whatever has no synonym falls through to the nearest-match alternatives, with an optional online search (MyGene.info) as the last resort.</li>
+                    <li><b>Network font size can go beyond the slider.</b> The slider still draws 10-40, but the + button keeps going past 40 when a poster needs bigger labels; stepping back down returns to the normal range. Reopened figures saved with a larger font get it back too.</li>
+                </ul>
                 <p><strong>v.86.29 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>Reopening an exported network now recreates its look, not just its graph.</b> The saved settings (font, node and edge size, Color by GE / stats, labels, node border) were written into the controls on open and then silently wiped by the "new run" reset before the network drew. The reset now steps aside during a restore. The export also carries more of the picture: Spread, the Aa text settings (font family, label/node color, legend and banner size/color, custom banner text, bold/italic), and highlighted nodes, all of which are reapplied on open. Older export files still open, they just fall back to defaults for the fields they predate.</li>
@@ -5578,7 +5583,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.29</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.30</a>
         </span>
     </div>
 
@@ -6004,7 +6009,7 @@
                                 <div class="slider-head"><label>Font</label><span class="slider-bubble" id="fontSizeBubble">20</span></div>
                                 <div class="slider-row">
                                     <button type="button" class="slider-step" onclick="app.adjustNumber('netFontSize', -1)">&minus;</button>
-                                    <input type="range" id="netFontSize" min="10" max="40" value="20" step="1">
+                                    <input type="range" id="netFontSize" min="10" max="40" value="20" step="1" data-grow-max="1">
                                     <button type="button" class="slider-step" onclick="app.adjustNumber('netFontSize', 1)">+</button>
                                 </div>
                                 <div class="slider-ticks"><span>10</span><span>16</span><span>22</span><span>28</span><span>34</span><span>40</span></div>
@@ -8111,6 +8116,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_29"></script>
+    <script src="app.js?v=v86_30"></script>
 </body>
 </html>
