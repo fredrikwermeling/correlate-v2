@@ -1754,6 +1754,7 @@
         }
         .clb-list-wrap {
             flex: 1;
+            min-width: 0;
             overflow-y: auto;
             padding: 10px 16px;
             max-height: calc(100vh - 220px);
@@ -2177,6 +2178,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.38 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>No Plotly toolbar over the scatter.</b> Arming a gate put Plotly's zoom/draw buttons in the plot's top corner; the chart now never shows that toolbar. Gates are drawn exactly as before, straight on the plot.</li>
+                    <li><b>The dead White bg / Transparent tick boxes are gone</b> from the scatter footer. They were wired to nothing; the background choice lives in the Export image dialog, where it now works.</li>
+                    <li><b>Cell Line Browser cannot outgrow the window.</b> The browser card could be pushed wider than the screen by its own toolbars (a flex quirk: a min-width of auto beats the max-width), cutting off the third list column. It now always fits, and the three columns share the visible width.</li>
+                </ul>
                 <p><strong>v.86.37 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>Fix: White / Transparent now reaches the chart panel.</b> Chart exports kept the light-gray plot area whichever background was picked, so the two options looked identical and Transparent did not appear to work. White now gives a solid white figure throughout; Transparent removes every background, plot panel included. Both options also explain themselves on hover.</li>
@@ -5628,7 +5635,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.37</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.38</a>
         </span>
     </div>
 
@@ -6707,10 +6714,8 @@
                 <button class="btn btn-outline btn-sm mobile-hide" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                                 <button class="btn btn-outline btn-sm mobile-hide" id="copyTissueChart" style="display:none;" onclick="app.copyPlotToClipboard('byTissueChart', 'Chart')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                 <button class="btn btn-outline btn-sm" id="downloadTissueCSV" style="display:none;" title="Download tissue table as CSV">.csv</button>
-                <span class="mobile-hide" style="font-size:10px; display:inline-flex; gap:8px; align-items:center; color:#666; margin-left:4px;">
-                    <label style="cursor:pointer;"><input type="checkbox" id="exportWhitePlotBg" checked> White bg</label>
-                    <label style="cursor:pointer;"><input type="checkbox" id="exportTransparentBg"> Transparent</label>
-                </span>
+                <!-- The old White bg / Transparent tick boxes were wired to nothing;
+                     the Export image dialog owns the background choice. -->
                 <!-- Open button hidden, available on main page -->
                 <label class="btn btn-outline btn-sm" style="display:none;">Open <input type="file" id="restoreFromSvgInput" accept=".json,.svg,.png" style="display:none;"></label>
                 <button class="btn btn-secondary btn-sm" id="closeInspectBtn">Close</button>
@@ -7701,7 +7706,8 @@
 
     <!-- Cell Line Browser Modal -->
     <div id="cellLineBrowserModal" style="display:none; position:fixed; inset:0; z-index:1350; background:rgba(0,0,0,0.5); justify-content:center; align-items:flex-start; padding:20px;">
-      <div id="clbModalCard" style="background:#fff; border-radius:8px; width:100%; max-width:min(98vw, 1600px); max-height:calc(100vh - 40px); margin-top:20px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+      <!-- min-width:0 everywhere: the card and the list are flex items, whose default min-width:auto can override the max-width and push the card past the window. -->
+      <div id="clbModalCard" style="background:#fff; border-radius:8px; width:100%; min-width:0; max-width:min(98vw, 1600px); max-height:calc(100vh - 40px); margin-top:20px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden;">
         <!-- Header -->
         <div class="modal-header">
           <h3>Cell Line Browser</h3>
@@ -8177,6 +8183,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_37"></script>
+    <script src="app.js?v=v86_38"></script>
 </body>
 </html>

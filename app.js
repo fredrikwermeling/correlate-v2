@@ -17348,6 +17348,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // removed before re-binding or every render stacks another one.
         Plotly.react('scatterPlot', traces, layout, {
             responsive: false,
+            // No modebar, ever: entering a gate draw mode otherwise makes
+            // Plotly surface its zoom/draw toolbar over the plot corner.
+            displayModeBar: false,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true, shapePosition: true }
         }).then(plotEl => {
             // Listen for legend and title drag events
@@ -17784,6 +17787,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         Plotly.react('scatterPlot', traces, layout, {
             responsive: false,
+            displayModeBar: false,
             edits: { annotationPosition: true, annotationTail: true, legendPosition: true, shapePosition: true }
         }).then(plotEl => {
             plotEl.removeAllListeners?.('plotly_relayout');
