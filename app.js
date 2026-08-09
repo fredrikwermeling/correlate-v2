@@ -6656,47 +6656,60 @@ class CorrelationExplorer {
             else remaining.push(g);
         }
 
+        // Shared building blocks, styled like the rest of the app: white card,
+        // gray frame, green links, and the standard circled ? that explains a
+        // section on hover.
+        const qi = (text) => ` <span style="color:#9ca3af; font-size:10px; font-weight:400; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="${this.esc(text)}">?</span>`;
+        const geneLink = (bad, good, bold) => `<a href="#" style="color:#4c782e; ${bold ? 'font-weight:600; ' : ''}text-decoration:underline; text-decoration-color:#c3dbb0; text-underline-offset:2px;" data-bad="${this.esc(bad)}" data-good="${this.esc(good)}" onclick="app.replaceGeneInTextarea(this.dataset.bad, this.dataset.good); return false;">${this.esc(good)}</a>`;
+        const gridStyle = 'display:grid; grid-template-columns:max-content max-content minmax(0,1fr); gap:2px 7px; align-items:baseline;';
+
         let synHtml = '';
         if (synHits.length) {
             const rows = synHits.map(h =>
-                `<div style="margin-top:3px;"><b>${this.esc(h.original)}</b> &rarr; `
-                + `<a href="#" style="color:#0066cc; font-weight:600;" data-bad="${this.esc(h.original)}" data-good="${this.esc(h.replacement)}" onclick="app.replaceGeneInTextarea(this.dataset.bad, this.dataset.good); return false;">${this.esc(h.replacement)}</a>`
-                + ` <span style="color:#9ca3af;">(${this.esc(h.source)})</span></div>`
+                `<div style="text-align:right;"><b style="color:#374151;">${this.esc(h.original)}</b></div>`
+                + `<div style="color:#9ca3af;">&rarr;</div>`
+                + `<div>${geneLink(h.original, h.replacement, true)} <span style="color:#9ca3af; font-size:10px;">${this.esc(h.source)}</span></div>`
             ).join('');
-            synHtml = `<div style="margin-top:6px;"><strong>Known synonyms:</strong>${rows}
-                <div style="margin-top:6px;">
-                    <button type="button" class="btn btn-sm" id="synApplyAllBtn" style="background:#4c782e; color:white; font-size:11px; padding:3px 10px;">Use all synonyms</button>
-                    <button type="button" class="btn btn-outline btn-sm" id="synDismissBtn" style="font-size:11px; padding:3px 10px; margin-left:6px;">Don't use suggested names</button>
+            synHtml = `<div style="background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:8px 10px; margin-top:6px;">
+                <div style="font-weight:600; color:#374151; margin-bottom:5px;">Suggested replacements${qi('These names are not in the data, but a known synonym or mouse ortholog is. Click a suggestion to replace that one name in your list, or Use all to replace every row. Keep my names leaves the list as typed; unmatched genes are then left out of the analysis.')}</div>
+                <div style="${gridStyle}">${rows}</div>
+                <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-sm" id="synApplyAllBtn" style="background:#4c782e; color:white; font-size:11px; padding:3px 10px;">Use all</button>
+                    <button type="button" class="btn btn-outline btn-sm" id="synDismissBtn" style="font-size:11px; padding:3px 10px;">Keep my names</button>
                 </div></div>`;
         }
 
         let remHtml = '';
         if (remaining.length) {
             const suggestions = this._findGeneSuggestions(remaining);
-            let list = remaining.slice(0, 10).map(g => {
+            const withSugg = [], noSugg = [];
+            remaining.slice(0, 10).forEach(g => {
                 const sugg = suggestions.get(g);
-                if (sugg && sugg.length > 0) {
-                    const links = sugg.slice(0, 3).map(s =>
-                        `<a href="#" style="color: #0066cc;" data-bad="${this.esc(g)}" data-good="${this.esc(s)}" onclick="app.replaceGeneInTextarea(this.dataset.bad, this.dataset.good); return false;">${this.esc(s)}</a>`
-                    ).join(', ');
-                    return `${this.esc(g)} → ${links}?`;
-                }
-                return this.esc(g);
-            }).join(', ');
-            if (remaining.length > 10) list += ` (+${remaining.length - 10} more)`;
+                if (sugg && sugg.length > 0) withSugg.push({ g, sugg: sugg.slice(0, 3) });
+                else noSugg.push(g);
+            });
+            const rows = withSugg.map(({ g, sugg }) =>
+                `<div style="text-align:right; color:#374151;">${this.esc(g)}</div>`
+                + `<div style="color:#9ca3af;">&rarr;</div>`
+                + `<div>${sugg.map(s => geneLink(g, s, false)).join(', ')}</div>`
+            ).join('');
+            let overflow = remaining.length > 10 ? `<div style="color:#9ca3af; margin-top:4px;">+${remaining.length - 10} more</div>` : '';
             const canSearchOnline = !this._synonymApiTried && remaining.some(g => !this._synonymApiHits?.has(g.toUpperCase()));
-            remHtml = `<div style="margin-top:6px;">${synHits.length ? '<strong>No synonym found:</strong> ' : 'Not found: '}${list}</div>`
-                + (canSearchOnline
-                    ? `<div style="margin-top:6px;"><button type="button" class="btn btn-outline btn-sm" id="synOnlineBtn" style="font-size:11px; padding:3px 10px;">Search online (MyGene.info)</button></div>`
-                    : '');
+            remHtml = `<div style="background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:8px 10px; margin-top:6px;">
+                <div style="font-weight:600; color:#374151; margin-bottom:5px;">No match found${qi('No synonym or ortholog is known for these names. The names beside a gene are the closest spellings in the data: click one to use it instead. Names left unresolved are left out of the analysis.')}</div>
+                ${rows ? `<div style="${gridStyle}">${rows}</div>` : ''}
+                ${noSugg.length ? `<div style="color:#6b7280; ${rows ? 'margin-top:5px;' : ''}">${rows ? 'Nothing close: ' : ''}${noSugg.map(g => this.esc(g)).join(', ')}</div>` : ''}
+                ${overflow}
+                ${canSearchOnline ? `<div style="margin-top:8px;"><button type="button" class="btn btn-outline btn-sm" id="synOnlineBtn" style="font-size:11px; padding:3px 10px;">Search online (MyGene.info)</button></div>` : ''}
+            </div>`;
         }
 
         const hiddenBySkip = notFound.some(g => dismissed.has(g.toUpperCase()));
         const showAgain = hiddenBySkip
-            ? ` <a href="#" id="synShowAgainLink" style="color:#9ca3af; font-size:10px;">(show synonym suggestions again)</a>` : '';
+            ? ` <a href="#" id="synShowAgainLink" style="color:#9ca3af; font-size:10px;">(show suggestions again)</a>` : '';
 
         display.innerHTML = excelHtml + `<div class="status-box status-warning">
-            <strong>${found.length} found</strong>, <strong>${notFound.length} not found</strong>${showAgain}
+            <strong>${found.length} found</strong>, <strong>${notFound.length} not found</strong>${qi('Genes not found in the DepMap reference data. Below, the app suggests what it can: known synonyms and mouse orthologs first, then the closest spellings.')}${showAgain}
             ${synHtml}${remHtml}
         </div>`;
 
@@ -11205,6 +11218,11 @@ class CorrelationExplorer {
                 this.networkData.nodes.update(this._dragUnpinned.map(id => ({ id, fixed: { x: true, y: true } })));
                 this._dragUnpinned = null;
             }
+            // A node dropped squarely onto a parked gene hides one of the
+            // two, and nothing ever separates them (parked genes are outside
+            // the physics). Slide the dropped node just clear. Drag-time
+            // only; the generated layout gains no new rule.
+            if (params.nodes?.length) this._nudgeOffParkedNodes(params.nodes);
             // Check if actually moved (more than 5 pixels)
             if (dragStartPos) {
                 const dx = params.pointer.canvas.x - dragStartPos.x;
@@ -12108,8 +12126,9 @@ class CorrelationExplorer {
         const showBelow = !!(toggle && toggle.checked) && below.length > 0;
 
         // Same marking as the Clusters tab: when a design run expands the set,
-        // * points out the genes that were in the user's own list.
-        const listMark = (g) => (this.results.mode === 'design' && this.results.geneList?.includes(g)) ? '*' : '';
+        // * points out the genes that came from the expansion rather than the
+        // user's own list (the added genes are the few worth flagging).
+        const listMark = (g) => (this.results.mode === 'design' && this.results.geneList && !this.results.geneList.includes(g)) ? '*' : '';
 
         const addRow = (c, muted) => {
             const tr = document.createElement('tr');
@@ -12230,7 +12249,7 @@ class CorrelationExplorer {
             <th data-sort="cluster">Cluster</th>
         `;
         if (hasCorrCol) {
-            headerCells += `<th data-sort="hasCorrelation">Corr</th>`;
+            headerCells += `<th data-sort="hasCorrelation">Correlation</th>`;
         }
         headerCells += `
             <th data-sort="meanEffect" title="Mean gene effect across all cell lines. Negative means knocking the gene out slows growth.">GE mean (all)</th>
@@ -12287,7 +12306,7 @@ class CorrelationExplorer {
                 const geneStat = this.geneStats?.get(c.gene);
 
                 let rowHtml = `
-                    <td class="gene-hover" data-gene="${c.gene}">${c.gene}${c.inGeneList && this.results.mode === 'design' ? '*' : ''}</td>
+                    <td class="gene-hover" data-gene="${c.gene}">${c.gene}${!c.inGeneList && this.results.mode === 'design' ? '*' : ''}</td>
                     <td>${c.cluster}</td>
                 `;
                 if (hasCorrCol) {
@@ -12356,7 +12375,7 @@ class CorrelationExplorer {
                     }
                     const tr = document.createElement('tr');
                     tr.style.opacity = '0.55';
-                    let rowHtml = `<td class="gene-hover" data-gene="${gene}">${gene}${this.results.mode === 'design' && this.results.geneList?.includes(gene) ? '*' : ''}</td><td>&ndash;</td>`;
+                    let rowHtml = `<td class="gene-hover" data-gene="${gene}">${gene}${this.results.mode === 'design' && this.results.geneList && !this.results.geneList.includes(gene) ? '*' : ''}</td><td>&ndash;</td>`;
                     rowHtml += `<td style="text-align: center; color: #b45309; font-weight: 600;">Below cutoff</td>`;
                     rowHtml += `<td>${meanTxt}</td><td>${sdTxt}</td>`;
                     if (isFiltered) rowHtml += `<td>&ndash;</td><td>&ndash;</td>`;
@@ -14259,6 +14278,36 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             fixed: { x: true, y: true },
             physics: false
         })));
+    }
+
+    // Slide freshly dropped nodes off any parked (physics-less) gene they
+    // landed on, pushing straight away from the collision. Runs only on
+    // dragEnd, so hand placement is respected everywhere else.
+    _nudgeOffParkedNodes(ids) {
+        if (!this.network || !this.networkData?.nodes) return;
+        const dropped = new Set(ids);
+        const parked = this.networkData.nodes.get()
+            .filter(n => n.physics === false && !dropped.has(n.id));
+        if (!parked.length) return;
+        const pos = this.network.getPositions();
+        for (const id of ids) {
+            const me = this.networkData.nodes.get(id);
+            const p = pos[id];
+            if (!me || !p) continue;
+            const r1 = me.size || 25;
+            for (const q of parked) {
+                const qp = pos[q.id];
+                if (!qp) continue;
+                const minD = r1 + (q.size || 25) + 10;
+                const dx = p.x - qp.x, dy = p.y - qp.y;
+                const d = Math.hypot(dx, dy);
+                if (d >= minD) continue;
+                const ux = d > 1 ? dx / d : 0, uy = d > 1 ? dy / d : -1;
+                p.x = qp.x + ux * minD;
+                p.y = qp.y + uy * minD;
+                this.network.moveNode(id, p.x, p.y);
+            }
+        }
     }
 
     // Switch the edgeless input genes between the parked grid and free
