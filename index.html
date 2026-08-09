@@ -2177,6 +2177,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.32 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>Show all input genes: choose Lined up or Floating.</b> A small sub-choice under the checkbox now switches the genes without correlations between the tidy parked row (Lined up) and drifting freely around the network (Floating), as they did before the row existed.</li>
+                    <li><b>The lined-up row sits much closer and tighter.</b> The parked genes still nudged the network away from themselves through the layout physics, opening a wide gap that shrank the whole picture. They are now fully out of the simulation, spaced by what a node and its label actually need, and centred right under the network.</li>
+                    <li><b>A quiet pointer on very large networks.</b> When a network has so many genes that labels shrink to specks, a small dismissible note suggests the Correlation and Clusters tabs for the overview, and exporting the image at a larger size for a full-page figure.</li>
+                </ul>
                 <p><strong>v.86.31 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>Reset all starts quiet.</b> On a fresh page it now looks like its Options neighbours (outline, nothing to shout about) and only turns solid green once there is actually something to reset: an analysis has produced results, or a filter has been changed.</li>
@@ -5587,7 +5593,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.31</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.32</a>
         </span>
     </div>
 
@@ -6057,6 +6063,13 @@
                             <label class="panel-heading">Labels and color</label>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
                                 <label><input type="checkbox" id="showUncorrelatedGenes"> Show all input genes in network</label>
+                            </div>
+                            <!-- Kept visible but disabled while the box above is unchecked, so ticking it never shoves the controls below. -->
+                            <div id="uncorrLayoutOptions" style="margin-left: 20px; margin-bottom: 4px;">
+                                <div class="radio-group-inline">
+                                    <label title="Genes without correlations park in a tidy row below the network"><input type="radio" name="uncorrLayout" value="grid" checked disabled> Lined up</label>
+                                    <label title="Genes without correlations drift freely around the network"><input type="radio" name="uncorrLayout" value="float" disabled> Floating</label>
+                                </div>
                             </div>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
                                 <label><input type="checkbox" id="showGeneEffect"> Show gene effect (GE) in label</label>
@@ -8123,6 +8136,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_31"></script>
+    <script src="app.js?v=v86_32"></script>
 </body>
 </html>

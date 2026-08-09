@@ -5658,7 +5658,9 @@ class CorrelationExplorer {
         document.getElementById('toggleRemoveMode').addEventListener('click', () => this.toggleRemoveMode());
         document.getElementById('toggleSelectMode').addEventListener('click', () => this.toggleSelectMode());
         document.getElementById('clearSelectedNodes').addEventListener('click', () => this.clearSelectedNodes());
-        document.getElementById('showUncorrelatedGenes').addEventListener('change', () => {
+        document.getElementById('showUncorrelatedGenes').addEventListener('change', (e) => {
+            document.querySelectorAll('input[name="uncorrLayout"]')
+                .forEach(r => { r.disabled = !e.target.checked; });
             if (this.results) {
                 this.displayNetwork();
                 // displayNetwork rebuilds every node with its default color, so
@@ -5670,6 +5672,9 @@ class CorrelationExplorer {
                     setTimeout(() => this.updateNetworkColors(), 100);
                 }
             }
+        });
+        document.querySelectorAll('input[name="uncorrLayout"]').forEach(radio => {
+            radio.addEventListener('change', () => this._applyUncorrelatedLayout());
         });
         document.querySelectorAll('input[name="colorStatType"]').forEach(radio => {
             radio.addEventListener('change', () => this.updateNetworkColors());
@@ -11121,6 +11126,7 @@ class CorrelationExplorer {
             this._separateNetworkComponents();
             this._arrangeUncorrelatedGrid();
             this.network.fit({ animation: false });
+            this._maybeShowDenseNetworkHint(nodeCount);
             // The settled, fitted layout is the reference Spread works from.
             // The solver ran with the spring and gravity of the slider's
             // current setting, so record the baseline at that value (as Lock
@@ -11609,6 +11615,23 @@ class CorrelationExplorer {
                 if (span) span.textContent = `${now} node${now === 1 ? '' : 's'} outside the view`;
             }, 500);
         }, 260);
+    }
+
+    // Past a certain size the network stops being readable at panel scale:
+    // everything fits, but the labels shrink to specks. Point at the better
+    // routes once, quietly, instead of leaving the user squinting.
+    _maybeShowDenseNetworkHint(nodeCount) {
+        const host = document.getElementById('networkPlot');
+        document.getElementById('netDenseHint')?.remove();
+        if (!host || nodeCount < 60 || this._denseHintDismissed) return;
+        const note = document.createElement('div');
+        note.id = 'netDenseHint';
+        note.style.cssText = 'position:absolute; left:8px; top:8px; z-index:20; max-width:380px; background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe; border-radius:6px; padding:6px 10px; font-size:11px; line-height:1.45; display:flex; gap:10px; align-items:flex-start;';
+        if (!host.style.position) host.style.position = 'relative';
+        note.innerHTML = '<span>A network this size is hard to read at panel scale. The Correlation and Clusters tabs give a clearer overview, and Export image at a larger size makes room for every label.</span>'
+            + '<button type="button" title="Dismiss" style="border:none; background:none; color:#1e3a8a; font-size:14px; line-height:1; cursor:pointer; padding:0;">&times;</button>';
+        note.querySelector('button').onclick = () => { this._denseHintDismissed = true; note.remove(); };
+        host.appendChild(note);
     }
 
     // Spring length from the current node size, font size and spread setting.
@@ -14096,12 +14119,21 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
     // for the drag and re-pin it where it is dropped.
     _arrangeUncorrelatedGrid() {
         if (!this.network || !this.networkData?.nodes) return;
+        // The sub-choice under "Show all input genes": Floating leaves these
+        // genes to the solver (unpinned, drifting as before the grid existed).
+        if (document.querySelector('input[name="uncorrLayout"]:checked')?.value === 'float') return;
         const loose = [];
         let minX = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let nodeR = 25, fs = 16, longestLine = 4, labelLines = 1;
         const pos = this.network.getPositions();
         for (const n of this.networkData.nodes.get()) {
             if ((this.network.getConnectedEdges(n.id) || []).length === 0) {
                 loose.push(n.id);
+                nodeR = n.size || nodeR;
+                fs = n.font?.size || fs;
+                const lines = String(n.label || n.id).split('\n');
+                labelLines = Math.max(labelLines, lines.length);
+                for (const line of lines) longestLine = Math.max(longestLine, line.length);
             } else {
                 const p = pos[n.id];
                 if (!p) continue;
@@ -14112,19 +14144,67 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         if (!loose.length) return;
         if (!Number.isFinite(maxX)) { minX = maxX = maxY = 0; }
         loose.sort();
-        const step = this._netSpringLength || 150;
-        // Wider than tall, so the block reads as a footnote strip rather
-        // than a second column, and never wider than the network above it.
-        let cols = Math.max(2, Math.ceil(Math.sqrt(loose.length * 2)));
-        cols = Math.min(cols, Math.max(2, Math.floor((maxX - minX) / step) || loose.length));
-        const startY = maxY + step * 0.9;
-        const startX = maxX - (Math.min(cols, loose.length) - 1) * step;
+        // Spacing from what actually needs the room (node diameter, label
+        // width and height), not the spring length: the spring-length grid
+        // sat far below the network and left the block airy, which zoomed
+        // the fitted picture out and shrank every node.
+        const labelH = fs * 1.2 * labelLines;
+        const stepX = Math.max(nodeR * 2 + 24, longestLine * fs * 0.62 + 14);
+        const stepY = nodeR * 2 + labelH + 22;
+        // Wider than tall, so the block reads as a footnote strip; roughly
+        // match the network's width and centre the block underneath it.
+        let cols = Math.max(Math.round((maxX - minX) / stepX) + 1,
+            Math.ceil(Math.sqrt(loose.length * 2)));
+        cols = Math.min(cols, loose.length);
+        const startY = maxY + nodeR * 2 + labelH + 28;
+        const startX = (minX + maxX) / 2 - ((cols - 1) * stepX) / 2;
+        // physics:false, not merely pinned: a fixed node still repels the
+        // rest, so the parked block used to shove the connected network away
+        // from itself, opening a wide gap the fit then had to zoom out over.
+        // Out of the simulation entirely, the grid neither moves nor pushes.
         this.networkData.nodes.update(loose.map((id, k) => ({
             id,
-            x: startX + (k % cols) * step,
-            y: startY + Math.floor(k / cols) * step,
-            fixed: { x: true, y: true }
+            x: startX + (k % cols) * stepX,
+            y: startY + Math.floor(k / cols) * stepY,
+            fixed: { x: true, y: true },
+            physics: false
         })));
+    }
+
+    // Switch the edgeless input genes between the parked grid and free
+    // floating, in place: no full redraw, the connected network stays put.
+    _applyUncorrelatedLayout() {
+        if (!this.network || !this.networkData?.nodes) return;
+        if (!document.getElementById('showUncorrelatedGenes')?.checked) return;
+        const mode = document.querySelector('input[name="uncorrLayout"]:checked')?.value || 'grid';
+        if (mode === 'float') {
+            const loose = [];
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            const pos = this.network.getPositions();
+            for (const n of this.networkData.nodes.get()) {
+                if ((this.network.getConnectedEdges(n.id) || []).length === 0) { loose.push(n.id); continue; }
+                const p = pos[n.id];
+                if (!p) continue;
+                minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+                minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+            }
+            if (!loose.length) return;
+            if (!Number.isFinite(maxX)) { minX = maxX = minY = maxY = 0; }
+            // Released straight from the parked row they barely move (the
+            // solver drifts slowly), which does not read as floating at all.
+            // Ring them around the network first, then let the solver drift.
+            const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+            const reach = (this._netSpringLength || 150) * 1.2;
+            const rx = (maxX - minX) / 2 + reach, ry = (maxY - minY) / 2 + reach;
+            this.networkData.nodes.update(loose.map((id, k) => {
+                const a = (2 * Math.PI * k) / loose.length + 0.4;
+                return { id, x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry, fixed: false, physics: true };
+            }));
+            this.network.fit({ animation: false });
+        } else {
+            this._arrangeUncorrelatedGrid();
+            this.network.fit({ animation: false });
+        }
     }
 
     // Declarative view guard for the window right after Run / Shuffle: for a
@@ -22029,6 +22109,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (tbg) tbg.checked = ns.transparentBg || false;
                 const showUncorr = document.getElementById('showUncorrelatedGenes');
                 if (showUncorr) showUncorr.checked = !!ns.showUncorrelatedGenes;
+                if (ns.uncorrLayout) {
+                    const r = document.querySelector(`input[name="uncorrLayout"][value="${ns.uncorrLayout}"]`);
+                    if (r) r.checked = true;
+                }
+                document.querySelectorAll('input[name="uncorrLayout"]')
+                    .forEach(r => { r.disabled = !showUncorr?.checked; });
                 const showGE = document.getElementById('showGeneEffect');
                 if (showGE) showGE.checked = !!ns.showGeneEffect;
                 const showSD = document.getElementById('showGeneEffectSD');
@@ -22499,6 +22585,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             colorStatType: document.querySelector('input[name="colorStatType"]:checked')?.value || 'signed_lfc',
             colorScale: document.querySelector('input[name="colorScale"]:checked')?.value || 'all',
             showUncorrelatedGenes: document.getElementById('showUncorrelatedGenes')?.checked || false,
+            uncorrLayout: document.querySelector('input[name="uncorrLayout"]:checked')?.value || 'grid',
             showGeneEffect: document.getElementById('showGeneEffect')?.checked || false,
             showGeneEffectSD: document.getElementById('showGeneEffectSD')?.checked || false,
             statsLabelDisplay: document.querySelector('input[name="statsLabelDisplay"]:checked')?.value || 'none',
