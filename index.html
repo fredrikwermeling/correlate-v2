@@ -2177,6 +2177,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.35 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>The left-leaning network is fixed at its root.</b> The layout's centre of gravity sits at a fixed point, but after the automatic arrangement (satellites moved aside, rows parked) the network's centre no longer did: the released picture slowly slid sideways toward it, then jumped to the middle at the next re-fit. The network is now centred on that point as the last assembly step of every Run and Shuffle, so there is nothing left to slide; no extra correction layers involved, and the earlier partial fix is folded into this one.</li>
+                    <li><b>Gates: rectangle or lasso.</b> Pressing Set Gate A/B now asks which shape to draw; the lasso is a free-hand loop for groups a box cannot isolate. Both can be dragged and reshaped afterwards, and Compare works the same.</li>
+                    <li><b>Gene statistics label controls match the rest.</b> The None/LFC/FDR row is now a <em>Show statistics in label</em> tick box that reveals the LFC/FDR choice, like the other label and color settings.</li>
+                    <li><b>Clusters shows only correlated genes by default.</b> The input genes without correlations moved behind the <em>below cutoff</em> tick, together with the near-miss flags; the Correlation column appears only then. Ticking <em>Show all input genes in network</em> now also ticks <em>below cutoff</em> in the Correlations and Clusters tabs, and unticking clears them.</li>
+                    <li><b>Fix: PDF export garbled small p-values.</b> The standard PDF fonts lack most superscript digits, so 10&#8315;&#178;&#178;&#178; came out as "10{" plus broken spacing that pushed the stats line off the page. Exponents the font cannot show now export as 10^-222.</li>
+                    <li><b>Fix: exported scatter figures forgot clicked labels.</b> Cell lines marked by clicking a dot (and where their labels were dragged) were missing from the export file, so reopening it lost them. They are saved and restored now.</li>
+                </ul>
                 <p><strong>v.86.34 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>The synonym panel is redone.</b> Suggestions now sit in two white cards, <em>Suggested replacements</em> and <em>No match found</em>, with the names lined up in columns, green links like the rest of the app, and a hover <b>?</b> on each heading explaining what the section does and what clicking a name changes. The buttons are now <em>Use all</em> and <em>Keep my names</em>.</li>
@@ -5610,7 +5619,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.34</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.35</a>
         </span>
     </div>
 
@@ -6106,10 +6115,14 @@
                             <!-- Gene Statistics options (shown when stats loaded) -->
                             <div id="statsControls" style="display: none; border-top: 1px solid #ddd; padding-top: 6px; margin-top: 4px;">
                                 <label style="font-weight: 600; font-size: 11px; margin-bottom: 4px; display: block;">Gene Statistics:</label>
-                                <div class="radio-group-inline" style="margin-bottom: 4px;">
-                                    <label><input type="radio" name="statsLabelDisplay" value="none" checked> None</label>
-                                    <label><input type="radio" name="statsLabelDisplay" value="lfc"> LFC</label>
-                                    <label><input type="radio" name="statsLabelDisplay" value="fdr"> FDR</label>
+                                <div class="checkbox-group" style="margin-bottom: 4px;">
+                                    <label><input type="checkbox" id="showStatsInLabel"> Show statistics in label</label>
+                                </div>
+                                <div id="statsLabelOptions" style="display: none; margin-left: 20px; margin-bottom: 4px;">
+                                    <div class="radio-group-inline">
+                                        <label><input type="radio" name="statsLabelDisplay" value="lfc" checked> LFC</label>
+                                        <label><input type="radio" name="statsLabelDisplay" value="fdr"> FDR</label>
+                                    </div>
                                 </div>
                                 <div class="checkbox-group" style="margin-bottom: 4px;">
                                     <label><input type="checkbox" id="colorByStats"> Color by stats</label>
@@ -6249,11 +6262,11 @@
                     <div id="clustersFilterInfo" style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; display: none;">
                         <strong>Filters:</strong> <span id="clustersFilterText"></span>
                     </div>
-                    <p class="help-text" style="margin-bottom: 15px;">The <b>GE</b> columns are gene effect: how much the cell lines depend on that gene, averaged across all cell lines, or across the filtered ones where a filter is set. <b>*</b> marks genes added by expanding a set, not from your own list. All input genes are listed; <b>Correlation</b> says whether any correlation was found.</p>
+                    <p class="help-text" style="margin-bottom: 15px;">The <b>GE</b> columns are gene effect: how much the cell lines depend on that gene, averaged across all cell lines, or across the filtered ones where a filter is set. <b>*</b> marks genes added by expanding a set, not from your own list. Ticking <b>below cutoff</b> also lists the input genes without correlations; the <b>Correlation</b> column then says what was found.</p>
                     <div class="table-controls">
                         <input type="text" class="table-search" id="clustersSearch" placeholder="Search...">
                         <button class="btn btn-outline btn-sm" id="filterClustersToggle" title="Toggle column filters">Filters</button>
-                        <label id="showBelowCutoffClustersWrap" style="display:none; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Also show which genes only correlated below the cutoff: their Corr cell then says Below cutoff, and any such gene not already listed is added grayed at the bottom. Context only: these correlations are not in the network and give no cluster."><input type="checkbox" id="showBelowCutoffClusters"> below cutoff</label>
+                        <label id="showBelowCutoffClustersWrap" style="display:none; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Also list the input genes without correlations, grayed. Genes whose best pair just missed the cutoff say Below cutoff in the Correlation column; any such gene not otherwise listed is added at the bottom. Context only: these are not in the network and have no cluster."><input type="checkbox" id="showBelowCutoffClusters"> below cutoff</label>
                         <button class="btn btn-outline btn-sm" id="copyClustersGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadClusters" title="Download the cluster table as a CSV file">Download CSV</button>
                         <button class="btn btn-secondary btn-sm enrichrBtn" data-source="clusters" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
@@ -8154,6 +8167,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_34"></script>
+    <script src="app.js?v=v86_35"></script>
 </body>
 </html>

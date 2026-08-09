@@ -495,7 +495,16 @@ class CorrelationExplorer {
         if (kind === 'gene_effect') {
             popout = { kind, gene: this.currentGeneEffect?.gene || this._geGene, view: this.currentGEView || 'tissue', dataType: this._geDataType || 'ge', controls: this._captureControls(this._GE_NEWTAB_CONTROLS()), geChartWidthRatio: this.geChartWidthRatio || 1.0, textSettings };
         } else if (kind === 'scatter') {
-            popout = { kind, gene1: this.currentInspect && this.currentInspect.gene1, gene2: this.currentInspect && this.currentInspect.gene2, controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS()), scatterGridFilters: this._scatterGridActive?.map(f => ({ ...f })) || null, textSettings };
+            popout = {
+                kind, gene1: this.currentInspect && this.currentInspect.gene1, gene2: this.currentInspect && this.currentInspect.gene2,
+                controls: this._captureControls(this._SCATTER_NEWTAB_CONTROLS()),
+                scatterGridFilters: this._scatterGridActive?.map(f => ({ ...f })) || null,
+                // Cell lines marked by clicking a dot live outside the form
+                // controls; without them a restored figure lost its labels.
+                clickedCells: this.clickedCells?.size ? [...this.clickedCells] : null,
+                labelPositions: this._userLabelPositions?.size ? Object.fromEntries(this._userLabelPositions) : null,
+                textSettings
+            };
         } else if (kind === 'correlation_analysis') {
             popout = { kind, gene1: this._caGene1, gene2: this._caGene2, view: this._caView || 'tissue', controls: this._captureControls(this._CA_NEWTAB_CONTROLS()), textSettings };
         } else {
@@ -588,7 +597,14 @@ class CorrelationExplorer {
             this._scatterGridMap = {};
             (popout.scatterGridFilters || []).forEach(f => { this._scatterGridMap[f.gene] = f.state; });
             this.openInspectByGenes(popout.gene1, popout.gene2);
-            this._restorePopoutControls(popout.controls, 'scatterCancerFilter', () => { this._savedScatterTextSettings = ts; this.updateInspectPlot(); });
+            this._restorePopoutControls(popout.controls, 'scatterCancerFilter', () => {
+                this._savedScatterTextSettings = ts;
+                // After openInspect has cleared them, put back the clicked
+                // cell-line labels and where their labels were dragged.
+                (popout.clickedCells || []).forEach(n => this.clickedCells.add(n));
+                if (popout.labelPositions) this._userLabelPositions = new Map(Object.entries(popout.labelPositions));
+                this.updateInspectPlot();
+            });
         }
     }
 
@@ -5661,7 +5677,16 @@ class CorrelationExplorer {
         document.getElementById('showUncorrelatedGenes').addEventListener('change', (e) => {
             const uncorrOpts = document.getElementById('uncorrLayoutOptions');
             if (uncorrOpts) uncorrOpts.style.display = e.target.checked ? 'block' : 'none';
+            // Showing every input gene in the network and showing the
+            // below-cutoff context in the tables are the same request, so the
+            // tick boxes follow along (they can still be changed separately).
+            ['showBelowCutoff', 'showBelowCutoffClusters'].forEach(id => {
+                const cb = document.getElementById(id);
+                if (cb) cb.checked = e.target.checked;
+            });
             if (this.results) {
+                this.displayCorrelationsTable();
+                this.displayClustersTable();
                 this.displayNetwork();
                 // displayNetwork rebuilds every node with its default color, so
                 // any active coloring has to be re-applied. This used to test
@@ -5682,7 +5707,13 @@ class CorrelationExplorer {
         document.querySelectorAll('input[name="colorScale"]').forEach(radio => {
             radio.addEventListener('change', () => this.updateNetworkColors());
         });
-        // Stats label display (None/LFC/FDR)
+        // Stats in label: a checkbox reveals the LFC/FDR choice, matching how
+        // the other label/color settings expose their sub-options.
+        document.getElementById('showStatsInLabel')?.addEventListener('change', (e) => {
+            const opts = document.getElementById('statsLabelOptions');
+            if (opts) opts.style.display = e.target.checked ? 'block' : 'none';
+            this.updateNetworkLabelsWithStats();
+        });
         document.querySelectorAll('input[name="statsLabelDisplay"]').forEach(radio => {
             radio.addEventListener('change', () => this.updateNetworkLabelsWithStats());
         });
@@ -11147,6 +11178,7 @@ class CorrelationExplorer {
             this.resolveEdgeCrossings();
             this._separateNetworkComponents();
             this._arrangeUncorrelatedGrid();
+            this._recentreNetworkOnOrigin();
             this.network.fit({ animation: false });
             this._maybeShowDenseNetworkHint(nodeCount);
             // The settled, fitted layout is the reference Spread works from.
@@ -11522,15 +11554,15 @@ class CorrelationExplorer {
         this.updateNetworkLabelsWithStats?.();
 
         // GE / stats label + color options off
-        ['showGeneEffect', 'showGeneEffectSD', 'colorByGeneEffect', 'colorByStats'].forEach(id => {
+        ['showGeneEffect', 'showGeneEffectSD', 'colorByGeneEffect', 'colorByStats', 'showStatsInLabel'].forEach(id => {
             const el = document.getElementById(id); if (el) el.checked = false;
         });
-        ['showGESDGroup', 'colorGEOptions', 'colorStatsOptions'].forEach(id => {
+        ['showGESDGroup', 'colorGEOptions', 'colorStatsOptions', 'statsLabelOptions'].forEach(id => {
             const el = document.getElementById(id); if (el) el.style.display = 'none';
         });
         const radio = (name, val) => { const el = document.querySelector(`input[name="${name}"][value="${val}"]`); if (el) el.checked = true; };
         radio('colorGEType', 'signed'); radio('colorStatType', 'signed_lfc');
-        radio('colorScale', 'all'); radio('statsLabelDisplay', 'none');
+        radio('colorScale', 'all'); radio('statsLabelDisplay', 'lfc');
 
         // Re-render with the restored settings
         this.toggleNetworkBorder?.(true);
@@ -12239,9 +12271,12 @@ class CorrelationExplorer {
         this.results.clusters.forEach(c => { if (c.hasCorrelation !== false) belowGenes.delete(c.gene); });
         const clWrap = document.getElementById('showBelowCutoffClustersWrap');
         const clToggle = document.getElementById('showBelowCutoffClusters');
-        if (clWrap) clWrap.style.display = belowGenes.size ? 'inline-flex' : 'none';
-        const showBelowCl = !!(clToggle && clToggle.checked) && belowGenes.size > 0;
-        const hasCorrCol = hasUncorrelated || showBelowCl;
+        if (clWrap) clWrap.style.display = (belowGenes.size || hasUncorrelated) ? 'inline-flex' : 'none';
+        const showBelowCl = !!(clToggle && clToggle.checked) && (belowGenes.size > 0 || hasUncorrelated);
+        // Unticked, the table holds only the correlated genes; the tick brings
+        // in the input genes without correlations, so the Correlation column
+        // is only needed then.
+        const hasCorrCol = showBelowCl;
 
         // Build header based on what data we have
         let headerCells = `
@@ -12299,6 +12334,7 @@ class CorrelationExplorer {
                 return aCluster - bCluster || a.gene.localeCompare(b.gene);
             })
             .forEach(c => {
+                if (c.hasCorrelation === false && !showBelowCl) return;
                 const tr = document.createElement('tr');
                 if (c.hasCorrelation === false) {
                     tr.style.opacity = '0.7';
@@ -13675,7 +13711,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
     updateNetworkLabelsWithStats() {
         if (!this.network || !this.networkData) return;
 
-        const statsDisplay = document.querySelector('input[name="statsLabelDisplay"]:checked')?.value || 'none';
+        const statsDisplay = this._statsLabelMode();
         const showGE = document.getElementById('showGeneEffect').checked;
         const showSD = document.getElementById('showGeneEffectSD').checked;
         const updates = [];
@@ -13725,6 +13761,13 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         });
 
         this.networkData.nodes.update(updates);
+    }
+
+    // The saved/consumed value stays 'none' | 'lfc' | 'fdr'; the UI is a
+    // checkbox (off = none) plus an LFC/FDR choice shown while it is on.
+    _statsLabelMode() {
+        if (!document.getElementById('showStatsInLabel')?.checked) return 'none';
+        return document.querySelector('input[name="statsLabelDisplay"]:checked')?.value || 'lfc';
     }
 
     updateNetworkColors() {
@@ -14216,14 +14259,12 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         // genes to the solver (unpinned, drifting as before the grid existed).
         if (document.querySelector('input[name="uncorrLayout"]:checked')?.value === 'float') return;
         const loose = [];
-        const looseSet = new Set();
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         let nodeR = 25, fs = 16, longestLine = 4, labelLines = 1;
         const pos = this.network.getPositions();
         for (const n of this.networkData.nodes.get()) {
             if ((this.network.getConnectedEdges(n.id) || []).length === 0) {
                 loose.push(n.id);
-                looseSet.add(n.id);
                 nodeR = n.size || nodeR;
                 fs = n.font?.size || fs;
                 const lines = String(n.label || n.id).split('\n');
@@ -14239,20 +14280,6 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         if (!loose.length) return;
         if (!Number.isFinite(maxX)) { minX = maxX = minY = maxY = 0; }
         loose.sort();
-        // Recentre the connected network on the origin before parking the
-        // rows: the solver's central gravity pulls toward (0,0), and a big
-        // settle can leave the network far from it, after which it slowly
-        // drifted back THROUGH the parked rows. Centred, it stays where the
-        // gravity wants it.
-        const shiftX = (minX + maxX) / 2, shiftY = (minY + maxY) / 2;
-        if (shiftX || shiftY) {
-            for (const id of Object.keys(pos)) {
-                if (looseSet.has(id)) continue;
-                const p = pos[id];
-                this.network.moveNode(id, p.x - shiftX, p.y - shiftY);
-            }
-            minX -= shiftX; maxX -= shiftX; maxY -= shiftY;
-        }
         // Spacing from what actually needs the room (node diameter, label
         // width and height), not the spring length: the spring-length grid
         // sat far below the network and left the block airy, which zoomed
@@ -14278,6 +14305,34 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             fixed: { x: true, y: true },
             physics: false
         })));
+    }
+
+    // The solver's central gravity pulls every free node toward (0,0), but
+    // the post-settle hand arrangement (satellites moved aside, rows parked)
+    // leaves the free nodes' bounding box off that point. The released
+    // network then slid slowly toward the origin: the picture came up tilted
+    // to one side and jumped to the middle at the next fit. Centring the
+    // free nodes on the origin as the LAST assembly step removes the slide
+    // at its source; everything (parked rows included) shifts by the same
+    // amount, so the arrangement itself is untouched.
+    _recentreNetworkOnOrigin() {
+        if (!this.network || !this.networkData?.nodes) return;
+        const pos = this.network.getPositions();
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const n of this.networkData.nodes.get()) {
+            if (n.physics === false) continue;
+            const p = pos[n.id];
+            if (!p) continue;
+            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+        }
+        if (!Number.isFinite(maxX)) return;
+        const dx = (minX + maxX) / 2, dy = (minY + maxY) / 2;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+        for (const id of Object.keys(pos)) {
+            const p = pos[id];
+            this.network.moveNode(id, p.x - dx, p.y - dy);
+        }
     }
 
     // Slide freshly dropped nodes off any parked (physics-less) gene they
@@ -14342,6 +14397,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             this.network.fit({ animation: false });
         } else {
             this._arrangeUncorrelatedGrid();
+            this._recentreNetworkOnOrigin();
             this.network.fit({ animation: false });
         }
         // The switch moved nodes around, so the layout the Spread slider
@@ -14428,6 +14484,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             this.resolveEdgeCrossings();
             this._separateNetworkComponents();
             this._arrangeUncorrelatedGrid();
+            this._recentreNetworkOnOrigin();
             this.network.fit({ animation: false });
             // The solver settled under the physics of the current Spread
             // setting, so the freshly fitted layout IS that setting's
@@ -14791,12 +14848,16 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         document.getElementById('showGESDGroup').style.display = 'none';
         document.getElementById('colorGEOptions').style.display = 'none';
         document.getElementById('colorStatsOptions').style.display = 'none';
+        const statsLabelOpts = document.getElementById('statsLabelOptions');
+        if (statsLabelOpts) statsLabelOpts.style.display = 'none';
+        const statsLabelCb = document.getElementById('showStatsInLabel');
+        if (statsLabelCb) statsLabelCb.checked = false;
 
         // Reset radio buttons
         document.querySelector('input[name="colorGEType"][value="signed"]').checked = true;
         document.querySelector('input[name="colorStatType"][value="signed_lfc"]').checked = true;
         document.querySelector('input[name="colorScale"][value="all"]').checked = true;
-        document.querySelector('input[name="statsLabelDisplay"][value="none"]').checked = true;
+        document.querySelector('input[name="statsLabelDisplay"][value="lfc"]').checked = true;
 
         // Reset layout state
         this.currentLayout = 0;
@@ -19295,17 +19356,52 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     // ── Gating Feature ─────────────────────────────────────────────
 
+    // Pressing a gate button first asks which shape to draw: the rectangle
+    // as before, or a free-hand lasso for groups a box cannot isolate.
     startGateSelection(gate) {
+        const btn = document.getElementById(gate === 'A' ? 'setGateABtn' : 'setGateBBtn');
+        document.getElementById('gateShapeMenu')?.remove();
+        const menu = document.createElement('div');
+        menu.id = 'gateShapeMenu';
+        menu.style.cssText = 'position:absolute; z-index:10002; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); padding:4px; display:flex; flex-direction:column; gap:2px;';
+        const opt = (label, mode) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = label;
+            b.style.cssText = 'border:none; background:none; text-align:left; padding:4px 12px; cursor:pointer; border-radius:4px; font-size:11px; color:#374151; white-space:nowrap;';
+            b.onmouseenter = () => { b.style.background = '#f3f4f6'; };
+            b.onmouseleave = () => { b.style.background = 'none'; };
+            b.onclick = () => { menu.remove(); this._armGateDraw(gate, mode); };
+            return b;
+        };
+        menu.appendChild(opt('▭ Rectangle', 'rect'));
+        menu.appendChild(opt('✎ Lasso', 'lasso'));
+        const r = btn.getBoundingClientRect();
+        menu.style.left = (r.left + window.scrollX) + 'px';
+        menu.style.top = (r.bottom + window.scrollY + 4) + 'px';
+        document.body.appendChild(menu);
+        setTimeout(() => {
+            const dismiss = (ev) => {
+                if (menu.contains(ev.target)) return;
+                menu.remove();
+                document.removeEventListener('click', dismiss);
+            };
+            document.addEventListener('click', dismiss);
+        }, 0);
+    }
+
+    _armGateDraw(gate, mode) {
         this._gateSelecting = gate;
         const plotEl = document.getElementById('scatterPlot');
 
         const status = document.getElementById('gateStatus');
-        status.textContent = `Draw Gate ${gate} rectangle on plot`;
+        status.textContent = `Draw Gate ${gate} ${mode === 'lasso' ? 'lasso' : 'rectangle'} on plot`;
         status.style.color = gate === 'A' ? '#2563eb' : '#dc2626';
 
-        // Switch to drawrect mode with gate-specific styling
+        // drawclosedpath is Plotly's free-hand closed shape; both it and
+        // drawrect land in the same shapes relayout the gate handler reads.
         Plotly.relayout(plotEl, {
-            dragmode: 'drawrect',
+            dragmode: mode === 'lasso' ? 'drawclosedpath' : 'drawrect',
             newshape: {
                 line: { color: gate === 'A' ? '#2563eb' : '#dc2626', width: 2 },
                 fillcolor: gate === 'A' ? 'rgba(37,99,235,0.1)' : 'rgba(220,38,38,0.1)',
@@ -19329,8 +19425,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (this._gateSelecting && currentShapes.length > 0) {
             const newShape = currentShapes[currentShapes.length - 1];
             const gate = this._gateSelecting;
-            const { x0, x1, y0, y1 } = newShape;
-            const cells = this._computeGateCells(x0, x1, y0, y1);
+            // A lasso arrives as an SVG path in data coordinates; a rectangle
+            // as x0/x1/y0/y1. Keep whichever geometry the shape has.
+            const geom = newShape.path
+                ? { path: newShape.path }
+                : { x0: newShape.x0, x1: newShape.x1, y0: newShape.y0, y1: newShape.y1 };
+            const cells = this._computeGateShapeCells(geom);
 
             if (gate === 'A') {
                 // If there was already a Gate A shape, remove it
@@ -19342,7 +19442,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     }
                 }
                 this._gateAShapeIndex = currentShapes.length - 1;
-                this._gateAShape = { x0, x1, y0, y1 };
+                this._gateAShape = geom;
                 this._gateA = cells;
 
                 // Style the shape for Gate A
@@ -19370,7 +19470,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     }
                 }
                 this._gateBShapeIndex = currentShapes.length - 1;
-                this._gateBShape = { x0, x1, y0, y1 };
+                this._gateBShape = geom;
                 this._gateB = cells;
 
                 // Style the shape for Gate B
@@ -19403,7 +19503,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let gateBUpdated = false;
 
         for (const key of keys) {
-            const match = key.match(/^shapes\[(\d+)\]\.(x0|x1|y0|y1)$/);
+            const match = key.match(/^shapes\[(\d+)\]\.(x0|x1|y0|y1|path)$/);
             if (match) {
                 const shapeIdx = parseInt(match[1]);
                 const coord = match[2];
@@ -19418,13 +19518,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         if (gateAUpdated && this._gateAShape) {
-            const { x0, x1, y0, y1 } = this._gateAShape;
-            this._gateA = this._computeGateCells(x0, x1, y0, y1);
+            this._gateA = this._computeGateShapeCells(this._gateAShape);
             document.getElementById('setGateABtn').textContent = `Gate A (n=${this._gateA.length})`;
         }
         if (gateBUpdated && this._gateBShape) {
-            const { x0, x1, y0, y1 } = this._gateBShape;
-            this._gateB = this._computeGateCells(x0, x1, y0, y1);
+            this._gateB = this._computeGateShapeCells(this._gateBShape);
             document.getElementById('setGateBBtn').textContent = `Gate B (n=${this._gateB.length})`;
         }
 
@@ -19448,6 +19546,50 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return matchData.filter(d => d.x >= xMin && d.x <= xMax && d.y >= yMin && d.y <= yMax);
     }
 
+    // One entry point for both gate geometries: rectangle bounds or a lasso's
+    // closed path (membership by point-in-polygon over its vertices).
+    _computeGateShapeCells(shape) {
+        if (shape?.path) {
+            const pts = this._parseShapePath(shape.path);
+            if (pts.length < 3) return [];
+            const matchData = this._currentFilteredData || this.currentInspect?.data || [];
+            return matchData.filter(d => this._pointInPolygon(d.x, d.y, pts));
+        }
+        return this._computeGateCells(shape.x0, shape.x1, shape.y0, shape.y1);
+    }
+
+    // Plotly stores a drawn closed path as "M x,y L x,y ... Z" in data
+    // coordinates; the vertices are all the polygon needs.
+    _parseShapePath(path) {
+        const pts = [];
+        for (const m of String(path).matchAll(/[ML]\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)/g)) {
+            const x = parseFloat(m[1]), y = parseFloat(m[2]);
+            if (!isNaN(x) && !isNaN(y)) pts.push([x, y]);
+        }
+        return pts;
+    }
+
+    _pointInPolygon(x, y, pts) {
+        let inside = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+            const xi = pts[i][0], yi = pts[i][1], xj = pts[j][0], yj = pts[j][1];
+            if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+        }
+        return inside;
+    }
+
+    // Where the A/B letter sits: over the shape's top centre, for either
+    // geometry.
+    _gateLabelPos(shape) {
+        if (shape?.path) {
+            const pts = this._parseShapePath(shape.path);
+            if (!pts.length) return null;
+            const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+            return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: Math.max(...ys) };
+        }
+        return { x: (shape.x0 + shape.x1) / 2, y: Math.max(shape.y0, shape.y1) };
+    }
+
     clearGates() {
         this._gateA = null;
         this._gateB = null;
@@ -19463,7 +19605,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (el('setGateBBtn')) { el('setGateBBtn').textContent = 'Set Gate B'; el('setGateBBtn').style.opacity = '1'; el('setGateBBtn').disabled = true; }
         if (el('compareGatesBtn')) el('compareGatesBtn').style.display = 'none';
         if (el('clearGatesBtn')) el('clearGatesBtn').style.display = 'none';
-        if (el('gateStatus')) { el('gateStatus').textContent = 'Draw rectangles on plot to define gates'; el('gateStatus').style.color = '#6b7280'; }
+        if (el('gateStatus')) { el('gateStatus').textContent = 'Draw a rectangle or lasso on the plot to define gates'; el('gateStatus').style.color = '#6b7280'; }
         if (el('gateComparePanel')) el('gateComparePanel').style.display = 'none';
 
         // Remove gate overlay traces
@@ -19532,10 +19674,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             .filter(a => a._gateLabel !== true);
 
         const gateAnnotations = [];
-        if (this._gateAShape) {
+        const gateAPos = this._gateAShape ? this._gateLabelPos(this._gateAShape) : null;
+        if (gateAPos) {
             gateAnnotations.push({
-                x: (this._gateAShape.x0 + this._gateAShape.x1) / 2,
-                y: Math.max(this._gateAShape.y0, this._gateAShape.y1),
+                x: gateAPos.x, y: gateAPos.y,
                 text: '<b>A</b>',
                 showarrow: false,
                 font: { size: 16, color: '#2563eb' },
@@ -19544,10 +19686,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 _gateLabel: true
             });
         }
-        if (this._gateBShape) {
+        const gateBPos = this._gateBShape ? this._gateLabelPos(this._gateBShape) : null;
+        if (gateBPos) {
             gateAnnotations.push({
-                x: (this._gateBShape.x0 + this._gateBShape.x1) / 2,
-                y: Math.max(this._gateBShape.y0, this._gateBShape.y1),
+                x: gateBPos.x, y: gateBPos.y,
                 text: '<b>B</b>',
                 showarrow: false,
                 font: { size: 16, color: '#dc2626' },
@@ -22253,6 +22395,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (tbg) tbg.checked = ns.transparentBg || false;
                 const showUncorr = document.getElementById('showUncorrelatedGenes');
                 if (showUncorr) showUncorr.checked = !!ns.showUncorrelatedGenes;
+                ['showBelowCutoff', 'showBelowCutoffClusters'].forEach(id => {
+                    const cb = document.getElementById(id);
+                    if (cb) cb.checked = !!ns.showUncorrelatedGenes;
+                });
                 if (ns.uncorrLayout) {
                     const r = document.querySelector(`input[name="uncorrLayout"][value="${ns.uncorrLayout}"]`);
                     if (r) r.checked = true;
@@ -22264,8 +22410,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const showSD = document.getElementById('showGeneEffectSD');
                 if (showSD) showSD.checked = !!ns.showGeneEffectSD;
                 if (ns.statsLabelDisplay) {
-                    const r = document.querySelector(`input[name="statsLabelDisplay"][value="${ns.statsLabelDisplay}"]`);
-                    if (r) r.checked = true;
+                    const statsOn = ns.statsLabelDisplay !== 'none';
+                    const statsCb = document.getElementById('showStatsInLabel');
+                    if (statsCb) statsCb.checked = statsOn;
+                    const statsOpts = document.getElementById('statsLabelOptions');
+                    if (statsOpts) statsOpts.style.display = statsOn ? 'block' : 'none';
+                    if (statsOn) {
+                        const r = document.querySelector(`input[name="statsLabelDisplay"][value="${ns.statsLabelDisplay}"]`);
+                        if (r) r.checked = true;
+                    }
                 }
                 const nb = document.getElementById('networkNodeBorder');
                 if (nb) nb.checked = ns.nodeBorder !== false;
@@ -22732,7 +22885,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             uncorrLayout: document.querySelector('input[name="uncorrLayout"]:checked')?.value || 'grid',
             showGeneEffect: document.getElementById('showGeneEffect')?.checked || false,
             showGeneEffectSD: document.getElementById('showGeneEffectSD')?.checked || false,
-            statsLabelDisplay: document.querySelector('input[name="statsLabelDisplay"]:checked')?.value || 'none',
+            statsLabelDisplay: this._statsLabelMode(),
             nodeBorder: document.getElementById('networkNodeBorder')?.checked !== false,
             lineageFilter: document.getElementById('lineageFilter')?.value || '',
             subLineageFilter: document.getElementById('subLineageFilter')?.value || '',
@@ -26889,6 +27042,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // which the PDF base font renders as a stray glyph (showed up as "). Use a
         // plain hyphen-minus, which the standard PDF fonts have.
         svgStr = String(svgStr).replace(/−/g, '-');
+        // Same font problem for the p-value exponents: of the Unicode
+        // superscripts only ¹ ² ³ exist in the standard PDF fonts, so
+        // "10⁻²²²" came out as "10{²²²" with broken letter spacing that ran
+        // the whole stats line off the page. Any superscript run using a
+        // glyph the font lacks becomes caret notation (10^-222); a lone ²/³
+        // is left alone.
+        const SUP_MAP = { '⁻': '-', '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9' };
+        svgStr = svgStr.replace(/[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, run =>
+            /[⁻⁰⁴⁵⁶⁷⁸⁹]/.test(run) ? '^' + [...run].map(c => SUP_MAP[c]).join('') : run);
         const ptW = (widthCm || 10) / 2.54 * 72;
         const ptH = (heightCm || 10) / 2.54 * 72;
         const pdf = new JS({
