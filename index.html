@@ -1560,6 +1560,8 @@
             justify-content: space-between;
             align-items: center;
             background: var(--green-50);
+            /* Never let a squeezed dialog crush its title bar or footer. */
+            flex-shrink: 0;
         }
 
         .modal-header h3 {
@@ -1596,6 +1598,7 @@
             justify-content: flex-end;
             gap: 10px;
             background: var(--gray-100);
+            flex-shrink: 0;
         }
 
         /* Cell Line Browser */
@@ -2178,6 +2181,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.39 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>White background is back, and it works.</b> A tick box in the scatter footer switches the plot panel between the default light gray and plain white, live on screen. The old pair of boxes it replaces was never wired to anything. The choice travels with exports and New tab.</li>
+                    <li><b>A dragged popout comes back centered.</b> Moving a popout by its title bar pinned it to that spot for the rest of the session; reopened on a smaller window it could sit with its footer beyond the screen edge and no way to scroll to it. Reopening any dialog now clears the old position. The title bar and footer also can no longer be squeezed out of a cramped dialog.</li>
+                </ul>
                 <p><strong>v.86.38 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>No Plotly toolbar over the scatter.</b> Arming a gate put Plotly's zoom/draw buttons in the plot's top corner; the chart now never shows that toolbar. Gates are drawn exactly as before, straight on the plot.</li>
@@ -5635,7 +5643,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.38</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.39</a>
         </span>
     </div>
 
@@ -6714,8 +6722,7 @@
                 <button class="btn btn-outline btn-sm mobile-hide" id="downloadTissuePNG" style="display:none;" title="Export the tissue chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                                 <button class="btn btn-outline btn-sm mobile-hide" id="copyTissueChart" style="display:none;" onclick="app.copyPlotToClipboard('byTissueChart', 'Chart')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                 <button class="btn btn-outline btn-sm" id="downloadTissueCSV" style="display:none;" title="Download tissue table as CSV">.csv</button>
-                <!-- The old White bg / Transparent tick boxes were wired to nothing;
-                     the Export image dialog owns the background choice. -->
+                <label class="mobile-hide" style="font-size:10px; color:#666; cursor:pointer; display:inline-flex; align-items:center; gap:3px; margin-left:4px;" title="Switch the plot panel between the default light gray and plain white. Exports choose their background in the Export image dialog."><input type="checkbox" id="scatterWhiteBg"> White background</label>
                 <!-- Open button hidden, available on main page -->
                 <label class="btn btn-outline btn-sm" style="display:none;">Open <input type="file" id="restoreFromSvgInput" accept=".json,.svg,.png" style="display:none;"></label>
                 <button class="btn btn-secondary btn-sm" id="closeInspectBtn">Close</button>
@@ -8183,6 +8190,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_38"></script>
+    <script src="app.js?v=v86_39"></script>
 </body>
 </html>

@@ -389,7 +389,7 @@ class CorrelationExplorer {
     // Filter/setting controls captured for "Open in new tab" so the new tab
     // reproduces the same view (not just the gene/pair).
     _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geOncotreeFilter', 'geHotspotFilter', 'geHotspotLevel', 'geFusionFilter', 'geFusionLevel', 'geCnFilter', 'geCnLevel', 'geMinGroupSize', 'geCellLineSearch']; }
-    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'scatterOncotreeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterCnLevel', 'scatterFontSize', 'hotspotGene', 'hotspotMode', 'translocationGene', 'translocationMode', 'colorByCategory', 'colorByPicked', 'scatterCellSearch', 'customCellLineFilter']; }
+    _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'scatterOncotreeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterCnLevel', 'scatterFontSize', 'hotspotGene', 'hotspotMode', 'translocationGene', 'translocationMode', 'colorByCategory', 'colorByPicked', 'scatterCellSearch', 'customCellLineFilter', 'scatterWhiteBg']; }
     _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caSubtypeFilter', 'caOncotreeFilter', 'caHotspotFilter', 'caHotspotLevel', 'caFusionFilter', 'caFusionLevel', 'caCnFilter', 'caCnLevel', 'caCellLineSearch']; }
 
     // Snapshot the underlying analysis/network so a new tab can rebuild the
@@ -5872,6 +5872,7 @@ class CorrelationExplorer {
             this.openInspect({ gene1: this.currentInspect?.gene1, gene2: this.currentInspect?.gene2, correlation: null });
         });
         document.getElementById('scatterCellSearch').addEventListener('input', () => this.updateInspectPlot());
+        document.getElementById('scatterWhiteBg')?.addEventListener('change', () => this.updateInspectPlot());
         document.getElementById('colorByCategory').addEventListener('change', () => {
             // Picks belong to the mode they were made in: tissue names and
             // subtype names are different lists.
@@ -17273,7 +17274,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 };
             })(),
             annotations: annotations,
-            plot_bgcolor: '#fafafa'
+            plot_bgcolor: document.getElementById('scatterWhiteBg')?.checked ? '#ffffff' : '#fafafa'
         };
 
         // Apply saved text settings (from gene update)
@@ -17749,7 +17750,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 entrywidth: 120,
                 entrywidthmode: 'pixels'
             },
-            plot_bgcolor: '#fafafa'
+            plot_bgcolor: document.getElementById('scatterWhiteBg')?.checked ? '#ffffff' : '#fafafa'
         };
 
         // Apply user-dragged legend position if available
@@ -46030,7 +46031,19 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
     }, { passive: false, capture: true });
 
-    const observer = new MutationObserver(applyLock);
+    // A dragged card keeps its position:fixed inline styles after closing;
+    // reopened on a smaller window it can sit with its footer past the screen
+    // edge and nothing to scroll. Clear the leftovers whenever a dialog
+    // opens, so every dialog comes back centered and fully reachable.
+    const resetDragLeftovers = () => {
+        modals.filter(isOpen).forEach(m => {
+            const card = m.querySelector(':scope > .modal');
+            if (card && card.style.position === 'fixed') {
+                ['position', 'left', 'top', 'right', 'bottom', 'width', 'margin', 'maxWidth'].forEach(p => { card.style[p] = ''; });
+            }
+        });
+    };
+    const observer = new MutationObserver(() => { applyLock(); resetDragLeftovers(); });
     modals.forEach(el => observer.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }));
     applyLock();
 
