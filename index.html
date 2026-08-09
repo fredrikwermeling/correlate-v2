@@ -2181,6 +2181,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.41 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>Grid filters stay where they were made.</b> Gene picks from the Cell Line Browser's filter grids now affect only the browser list: they no longer filter any analysis, mark Run as changed, or appear in the parameters box. Picks made while Mutation analysis is the active mode belong to it alone, and picks made in Gene set mode belong to the network run alone, so switching modes no longer silently carries one cohort's filters into the other.</li>
+                </ul>
                 <p><strong>v.86.40 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>Popouts stay usable when part of the browser window is off screen.</b> A page cannot tell that the window's lower edge sits behind another app or past the screen border, so a popout's footer could end up unreachable there. Two ways out now: keep scrolling past the end and the whole popout slides up, bringing the footer into view (scrolling back first slides it home); or drag it by the title bar, which may now go above the window top.</li>
@@ -5647,7 +5651,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.40</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.41</a>
         </span>
     </div>
 
@@ -8194,6 +8198,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_40"></script>
+    <script src="app.js?v=v86_41"></script>
 </body>
 </html>

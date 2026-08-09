@@ -1442,6 +1442,7 @@ class CorrelationExplorer {
         this.mutationResults = null;
         this.networkData = null;
         this._activeOncoprintFilters = null;
+        this._gridFilterOrigin = null;
         this._oncoprintFilters = {};
         this._oncoprintFilterKinds = {};
         if (this.network) { try { this.network.destroy(); } catch (e) { /* already gone */ } this.network = null; }
@@ -3275,6 +3276,7 @@ class CorrelationExplorer {
         this._activeOncoprintFilters = filters.length > 0
             ? filters.map(([gene, state]) => ({ gene, state, kind: this._oncoprintFilterKinds?.[gene] || filterKind }))
             : null;
+        this._recordGridFilterOrigin();
 
         // Show which grid picks are in force. The controls STAY interactive:
         // graying them out here read as the hotspot filter being broken, and
@@ -3284,7 +3286,9 @@ class CorrelationExplorer {
         if (controls && label) {
             controls.style.opacity = '';
             controls.style.pointerEvents = '';
-            if (filters.length > 0) {
+            // Browser-scoped picks are not part of the analysis cohort, so
+            // they have no business in the parameters box.
+            if (filters.length > 0 && this._gridFilterOrigin !== 'clb') {
                 const parts = filters.map(([gene, state]) => `${gene} ${state === 'mut' ? 'Mut' : 'WT'}`);
                 label.innerHTML = `Grid filter: ${parts.join(', ')} <span style="font-size:9px;color:#9ca3af;">(click to clear)</span>`;
                 label.style.display = '';
@@ -3318,7 +3322,7 @@ class CorrelationExplorer {
         const counts = {};
         let total = 0;
         for (const cl of cellLines) {
-            if (!this._cellLinePassesOncoprintFilters(cl)) continue;
+            if (this._gridAppliesToAnalysis() && !this._cellLinePassesOncoprintFilters(cl)) continue;
             if (!this._paramOncotreePasses(cl)) continue;
             if (this.excludedTissues && this.excludedTissues.size > 0) {
                 const lin = this.cellLineMetadata.lineage[cl];
@@ -3392,6 +3396,7 @@ class CorrelationExplorer {
         }
 
         this._activeOncoprintFilters = activeList;
+        this._recordGridFilterOrigin();
 
         // Redraw the browser list straight away. Without this the list still
         // showed every cell line while the filter was already in force, so
@@ -3417,8 +3422,12 @@ class CorrelationExplorer {
 
         // In mutation mode the table is NOT re-run automatically: the silent
         // auto-run made pressing Run afterwards look dead. The Run button is
-        // marked instead, and the user runs when ready.
-        if (this._markMutationRunStale()) {
+        // marked instead, and the user runs when ready. Picks made in the
+        // Cell Line Browser never touch an analysis, so they neither mark
+        // Run nor claim that new filters were applied to it.
+        if (this._gridFilterOrigin === 'clb') {
+            this.showStatus('info', 'Filter applied to the Cell Line Browser list. Analyses are not affected.');
+        } else if (this._markMutationRunStale()) {
             this.showStatus('info', 'Grid filter applied. Press Run to update the results.');
         }
         document.getElementById('oncoprintPopup')?.remove();
@@ -3462,6 +3471,24 @@ class CorrelationExplorer {
             runBtn.style.background = '#b45309';
         }
         return true;
+    }
+
+    // Grid picks are scoped to where they were made: picks from the Cell
+    // Line Browser stay in the browser, and picks made while one analysis
+    // mode is active do not silently filter the other mode's cohort. The
+    // browser list and the popouts still reflect the picks either way.
+    _gridAppliesToAnalysis() {
+        if (!this._activeOncoprintFilters?.length) return false;
+        const origin = this._gridFilterOrigin || 'geneset';
+        if (origin === 'clb') return false;
+        const mode = document.querySelector('input[name="analysisMode"]:checked')?.value === 'mutation' ? 'mutation' : 'geneset';
+        return origin === mode;
+    }
+
+    _recordGridFilterOrigin() {
+        if (!this._activeOncoprintFilters?.length) return;
+        this._gridFilterOrigin = this._oncoprintContext === 'clb' ? 'clb'
+            : (document.querySelector('input[name="analysisMode"]:checked')?.value === 'mutation' ? 'mutation' : 'geneset');
     }
 
     // Check if a cell line passes all active oncoprint filters
@@ -7801,7 +7828,7 @@ class CorrelationExplorer {
 
             // Check oncoprint multi-gene filters
             if (!this._passesOncotree(cellLine, 'paramOncotreeFilter')) return;
-        if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
+        if (this._gridAppliesToAnalysis() && !this._cellLinePassesOncoprintFilters(cellLine)) return;
 
             // A subset handed over from the browser's inspect. Every other
             // filter still applies on top, so a lineage picked afterwards
@@ -8483,7 +8510,7 @@ class CorrelationExplorer {
             }
 
             // Check oncoprint multi-gene filters
-            if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
+            if (this._gridAppliesToAnalysis() && !this._cellLinePassesOncoprintFilters(cellLine)) return;
 
             const mutLevel = mutationData.mutations[cellLine] || 0;
             if (mutLevel === 0) {
@@ -8664,7 +8691,7 @@ class CorrelationExplorer {
             }
 
             // Check oncoprint multi-gene filters
-            if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
+            if (this._gridAppliesToAnalysis() && !this._cellLinePassesOncoprintFilters(cellLine)) return;
 
             // A fusion call needs RNA-seq. A line that was never sequenced is
             // not fusion-negative, it is unknown, unless a published call says
@@ -9636,7 +9663,7 @@ class CorrelationExplorer {
             if (this._customCellLineFilterGE && !this._customCellLineFilterGE.has(cellLine)) return;
 
             // Check oncoprint multi-gene filters
-            if (!this._cellLinePassesOncoprintFilters(cellLine)) return;
+            if (this._gridAppliesToAnalysis() && !this._cellLinePassesOncoprintFilters(cellLine)) return;
 
             const ge = useExpr
                 ? (exprGeneIdx === undefined ? NaN : this.expressionData[exprGeneIdx * this.expressionMetadata.nCellLines + (exprCellIdx.get(cellLine) ?? -1)])
@@ -27387,7 +27414,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) return;
                 if (!this._mrOncotreePasses(cl)) return;
                 if (mr.excludedTissues?.size > 0 && mr.excludedTissues.has(this.cellLineMetadata?.lineage?.[cl])) return;
-                if (this._activeOncoprintFilters?.length > 0 && !this._cellLinePassesOncoprintFilters(cl)) return;
+                if (this._gridAppliesToAnalysis() && !this._cellLinePassesOncoprintFilters(cl)) return;
                 if (this._customCellLineFilter && !this._customCellLineFilter.has(cl)) return;
                 cls.add(cl);
             });
