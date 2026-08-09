@@ -2181,6 +2181,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.2 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>The network can run on mRNA expression.</b> A new <em>Correlate using</em> choice in Set Parameters switches the whole gene-set analysis between gene effect (CRISPR, the default) and expression (log&#8322; TPM+1), on the same cell lines, so the two networks are directly comparable. Everything follows the choice: the network, Correlations, Clusters (columns relabel to Expr mean / SD), the below-cutoff rows, node tooltips, and double-clicking a node or edge opens the matching expression view. The choice is saved with exports and restored with them; changing it marks Run as changed like any other parameter.</li>
+                </ul>
                 <p><strong>v.87.1 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>Groundwork for the simpler builds.</b> The PCA/UMAP wiring now checks that its section exists before attaching, so the V1 build (which removes the section) no longer loses every Cell Line Browser control registered after it. No change to how V2 behaves.</li>
@@ -5660,7 +5664,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.1</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.2</a>
         </span>
     </div>
 
@@ -5762,6 +5766,14 @@
                     </div>
 
                     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 12px 0;">
+
+                    <div class="form-group" id="basisParams">
+                        <label class="form-label" title="Which measurement the correlations are computed on. Gene effect (CRISPR knockout fitness, Chronos) asks which genes the same cells depend on; mRNA expression (log2 TPM+1) asks which genes are switched on together. Same cell lines either way, so the two networks are directly comparable.">Correlate using:</label>
+                        <div class="radio-group-inline">
+                            <label><input type="radio" name="analysisBasis" value="ge" checked> Gene effect</label>
+                            <label><input type="radio" name="analysisBasis" value="expr"> mRNA expression</label>
+                        </div>
+                    </div>
 
                     <div class="form-group" id="correlationParams">
                         <label class="form-label">Correlation Cutoff: <span class="slider-value" id="cutoffValue">0.50</span></label>
@@ -8207,6 +8219,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_1"></script>
+    <script src="app.js?v=v87_2"></script>
 </body>
 </html>
