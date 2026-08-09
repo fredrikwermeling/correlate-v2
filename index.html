@@ -2177,6 +2177,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.37 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>Fix: White / Transparent now reaches the chart panel.</b> Chart exports kept the light-gray plot area whichever background was picked, so the two options looked identical and Transparent did not appear to work. White now gives a solid white figure throughout; Transparent removes every background, plot panel included. Both options also explain themselves on hover.</li>
+                    <li><b>Cell Line Browser: Export image.</b> A new button in its header captures the whole browser as a picture (PNG / TIFF / PDF / PowerPoint), with the usual size and resolution choices.</li>
+                </ul>
                 <p><strong>v.86.36 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>Export image works before any analysis.</b> With no network drawn the button used to do nothing; it now opens the export dialog with one choice, <em>The whole page</em>, so a clean shot of the app itself can go straight into a presentation. Format, size and resolution are chosen as usual.</li>
@@ -5623,7 +5628,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.36</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.37</a>
         </span>
     </div>
 
@@ -7404,8 +7409,8 @@
                 </div>
                 <div style="margin-bottom:10px;">
                     <label style="display:block; font-weight:600; margin-bottom:4px;">Background</label>
-                    <label style="margin-right:14px;"><input type="radio" name="exportOptBg" value="white" checked> White (solid)</label>
-                    <label><input type="radio" name="exportOptBg" value="transparent"> Transparent</label>
+                    <label style="margin-right:14px;" title="Solid white everywhere, including the chart panel."><input type="radio" name="exportOptBg" value="white" checked> White (solid)</label>
+                    <label title="No background at all: the chart panel becomes see-through, for placing the figure on a colored slide."><input type="radio" name="exportOptBg" value="transparent"> Transparent</label>
                 </div>
                 <div id="exportOptLegendFrameRow" style="margin-bottom:10px; display:none;">
                     <label style="cursor:pointer;"><input type="checkbox" id="exportOptLegendFrame"> Draw a thin frame around the legend</label>
@@ -7696,12 +7701,13 @@
 
     <!-- Cell Line Browser Modal -->
     <div id="cellLineBrowserModal" style="display:none; position:fixed; inset:0; z-index:1350; background:rgba(0,0,0,0.5); justify-content:center; align-items:flex-start; padding:20px;">
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:min(98vw, 1600px); max-height:calc(100vh - 40px); margin-top:20px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+      <div id="clbModalCard" style="background:#fff; border-radius:8px; width:100%; max-width:min(98vw, 1600px); max-height:calc(100vh - 40px); margin-top:20px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
         <!-- Header -->
         <div class="modal-header">
           <h3>Cell Line Browser</h3>
           <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
             <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols, warnings and where each piece of data comes from">?</button>
+            <button id="clbExportImageBtn" class="btn btn-outline btn-sm mobile-hide" title="Capture the Cell Line Browser as an image (PNG / TIFF / PDF / PowerPoint)">Export image...</button>
             <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Clear every filter, sort and selection">Reset</button>
             <button id="clbCloseBtn" class="modal-close" title="Close the Cell Line Browser">&times;</button>
           </div>
@@ -8171,6 +8177,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_36"></script>
+    <script src="app.js?v=v86_37"></script>
 </body>
 </html>

@@ -26630,6 +26630,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ? atob(svgDataUrl.split('base64,')[1])
             : decodeURIComponent(svgDataUrl.split(',').slice(1).join(','));
 
+        // The dialog's background choice has to reach the chart panel too. On
+        // screen the plot area is light gray, and the exported file kept that
+        // gray whichever option was picked, so White and Transparent looked
+        // identical and neither appeared to work. Only the bglayer rect is the
+        // panel; the other rect.bg elements are Plotly's invisible click
+        // targets (fill-opacity 0) and must stay untouched. The gray sits in
+        // an inline style, so the fill has to be set there.
+        {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgStr, 'image/svg+xml');
+            doc.querySelectorAll('.bglayer > rect.bg').forEach(r => {
+                r.setAttribute('style', background === 'transparent'
+                    ? 'fill: none; stroke-width: 0;'
+                    : 'fill: #ffffff; fill-opacity: 1; stroke-width: 0;');
+            });
+            if (background === 'transparent') {
+                // Plotly also bakes the paper in as a full-size classless
+                // white rect; with it left in, "transparent" stayed a solid
+                // white file no matter what else was cleared.
+                const rw = doc.documentElement.getAttribute('width');
+                const rh = doc.documentElement.getAttribute('height');
+                doc.querySelectorAll('rect:not([class])').forEach(r => {
+                    if (r.getAttribute('width') === rw && r.getAttribute('height') === rh
+                        && /fill:\s*rgb\(255,\s*255,\s*255\)/.test(r.getAttribute('style') || '')) {
+                        r.setAttribute('style', 'fill: none;');
+                    }
+                });
+            }
+            svgStr = new XMLSerializer().serializeToString(doc.documentElement);
+        }
+
         if (typeof postProcess === 'function') {
             const parser = new DOMParser();
             const doc = parser.parseFromString(svgStr, 'image/svg+xml');
@@ -34859,6 +34890,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         // CLB help modal
+        document.getElementById('clbExportImageBtn')?.addEventListener('click', async () => {
+            const card = document.getElementById('clbModalCard');
+            if (!card) return;
+            // Default the capture to the visible area: full content means
+            // every one of ~1200 list rows, which takes a very long time to
+            // draw and produces an absurdly tall image. Full stays available.
+            const visScope = document.querySelector('input[name="exportOptScope"][value="visible"]');
+            if (visScope) visScope.checked = true;
+            const dlg = await this._showExportDialog({
+                format: 'png', plotW: card.offsetWidth || 1200, plotH: card.offsetHeight || 800,
+                canScreenshot: true, screenshotLabel: 'The Cell Line Browser',
+                screenshotOnly: true, restorable: false
+            });
+            if (!dlg) return;
+            await this.screenshotPopoutWith(card, 'cell_line_browser', dlg);
+        });
         document.getElementById('clbInfoBtn')?.addEventListener('click', () => {
             document.getElementById('clbInfoModal').style.display = 'flex';
         });
