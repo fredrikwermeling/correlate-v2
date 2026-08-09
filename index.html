@@ -2181,6 +2181,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.40 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>Popouts stay usable when part of the browser window is off screen.</b> A page cannot tell that the window's lower edge sits behind another app or past the screen border, so a popout's footer could end up unreachable there. Two ways out now: keep scrolling past the end and the whole popout slides up, bringing the footer into view (scrolling back first slides it home); or drag it by the title bar, which may now go above the window top.</li>
+                </ul>
                 <p><strong>v.86.39 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>White background is back, and it works.</b> A tick box in the scatter footer switches the plot panel between the default light gray and plain white, live on screen. The old pair of boxes it replaces was never wired to anything. The choice travels with exports and New tab.</li>
@@ -5643,7 +5647,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.39</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.40</a>
         </span>
     </div>
 
@@ -8190,6 +8194,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_39"></script>
+    <script src="app.js?v=v86_40"></script>
 </body>
 </html>

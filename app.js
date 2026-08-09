@@ -34446,13 +34446,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // resnap to the viewport the moment they go position:fixed.
             el.style.width = rect.width + 'px';
             el.style.maxWidth = 'none';
+            // The rect above already includes any overscroll slide, so fold
+            // the slide into left/top and drop the transform.
+            if (el.dataset?.slideY) { delete el.dataset.slideY; el.style.transform = ''; }
             const dx = e.clientX - rect.left, dy = e.clientY - rect.top;
             const onMove = (e2) => {
                 const w = el.offsetWidth, h = el.offsetHeight;
                 const maxLeft = Math.max(0, window.innerWidth - w);
-                const maxTop = Math.max(0, window.innerHeight - h);
+                // A popout may be pulled above the window top: when part of
+                // the window sits behind another app or past the screen edge,
+                // dragging up is the way to reach the card's lower half. At
+                // least 60px stays on screen to grab it by.
+                const minTop = -(h - 60);
+                const maxTop = window.innerHeight - 60;
                 el.style.left = Math.min(maxLeft, Math.max(0, e2.clientX - dx)) + 'px';
-                el.style.top = Math.min(maxTop, Math.max(0, e2.clientY - dy)) + 'px';
+                el.style.top = Math.min(maxTop, Math.max(minTop, e2.clientY - dy)) + 'px';
             };
             const onUp = () => {
                 document.removeEventListener('mousemove', onMove);
@@ -45972,6 +45980,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return best;
     };
 
+    // Last resort when nothing inside the dialog can take the wheel: slide
+    // the card itself. The page cannot see how much of the browser window is
+    // actually on screen (part of it can sit behind another app or past the
+    // screen edge), so a popout's lower half must stay reachable by plain
+    // scrolling: overscrolling down slides the card up, revealing whatever
+    // was cut off, and scrolling back up slides it home again first.
+    const slideCard = (overlay, dy) => {
+        const card = overlay.querySelector(':scope > .modal') || overlay.firstElementChild;
+        if (!card) return false;
+        const cur = parseFloat(card.dataset.slideY || '0') || 0;
+        const next = Math.min(0, Math.max(-(card.offsetHeight - 80), cur - dy));
+        if (next === cur) return false;
+        card.dataset.slideY = String(next);
+        card.style.transform = next ? `translateY(${next}px)` : '';
+        return true;
+    };
+
     // The dialog the pointer is actually in, else the topmost open one. Taking
     // the last entry of the list instead meant that with the wiki open over the
     // Cell Line Browser the browser won, and every wheel over a chart in the
@@ -46015,6 +46040,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.scrollBy(0, e.deltaY);
                 e.preventDefault();
                 e.stopPropagation();
+            } else if (inOverlay && slideCard(overlay, e.deltaY)) {
+                e.preventDefault();
+                e.stopPropagation();
             }
             // Never fall through silently: if nothing could take the wheel the
             // event is simply left alone rather than swallowed here.
@@ -46026,7 +46054,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (canScroll(n, e.deltaY)) return;   // something under the pointer handles it
         }
         const scroller = dialogScroller(overlay);
-        if (!scroller || !canScroll(scroller, e.deltaY)) return;
+        if (!scroller || !canScroll(scroller, e.deltaY)) {
+            if (slideCard(overlay, e.deltaY)) e.preventDefault();
+            return;
+        }
         scroller.scrollTop += e.deltaY;
         e.preventDefault();
     }, { passive: false, capture: true });
@@ -46040,6 +46071,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = m.querySelector(':scope > .modal');
             if (card && card.style.position === 'fixed') {
                 ['position', 'left', 'top', 'right', 'bottom', 'width', 'margin', 'maxWidth'].forEach(p => { card.style[p] = ''; });
+            }
+            if (card && card.dataset.slideY) {
+                delete card.dataset.slideY;
+                card.style.transform = '';
             }
         });
     };
