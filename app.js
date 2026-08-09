@@ -12868,12 +12868,26 @@ Results:
     }
 
     async downloadNetworkPNG() {
-        if (!this.network) return;
-        const geo = this._networkExportGeometry();
-        if (!geo) {
-            console.error('Network canvas not found');
+        // Before any analysis there is no network to export, but the button
+        // still works: it offers the whole-page capture, which is how the app
+        // itself gets onto a presentation slide.
+        if (!this.network || !this._networkExportGeometry()) {
+            const dlg = await this._showExportDialog({
+                format: 'png',
+                plotW: document.documentElement.scrollWidth || window.innerWidth,
+                plotH: document.documentElement.scrollHeight || window.innerHeight,
+                canScreenshot: true, screenshotLabel: 'The whole page',
+                screenshotOnly: true, restorable: false
+            });
+            if (!dlg) return;
+            const sx = window.scrollX, sy = window.scrollY;
+            window.scrollTo(0, 0);
+            await new Promise(r => setTimeout(r, 60));
+            try { await this.screenshotPopoutWith(document.body, 'correlate_screenshot', dlg); }
+            finally { window.scrollTo(sx, sy); }
             return;
         }
+        const geo = this._networkExportGeometry();
 
         // The same dialog also offers capturing the whole page, which is where
         // the old standalone Screenshot button used to live.
@@ -26477,8 +26491,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const whatOpt = whatEl?.querySelector('option[value="popout"]');
             if (whatOpt && context.screenshotLabel) whatOpt.textContent = context.screenshotLabel;
             else if (whatOpt) whatOpt.textContent = 'The whole panel, chart plus the settings around it';
+            // screenshotOnly: there is no chart to offer (e.g. Export image
+            // before any analysis), so the page capture is the one choice.
+            const chartOpt = whatEl?.querySelector('option[value="chart"]');
+            if (chartOpt) chartOpt.hidden = !!context.screenshotOnly;
             if (whatEl) {
-                whatEl.value = 'chart';
+                whatEl.value = context.screenshotOnly ? 'popout' : 'chart';
                 whatEl.onchange = syncWhatUI;
             }
             if (fmtEl) {

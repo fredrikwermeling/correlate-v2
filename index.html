@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.36 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>Export image works before any analysis.</b> With no network drawn the button used to do nothing; it now opens the export dialog with one choice, <em>The whole page</em>, so a clean shot of the app itself can go straight into a presentation. Format, size and resolution are chosen as usual.</li>
+                </ul>
                 <p><strong>v.86.35 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>The left-leaning network is fixed at its root.</b> The layout's centre of gravity sits at a fixed point, but after the automatic arrangement (satellites moved aside, rows parked) the network's centre no longer did: the released picture slowly slid sideways toward it, then jumped to the middle at the next re-fit. The network is now centred on that point as the last assembly step of every Run and Shuffle, so there is nothing left to slide; no extra correction layers involved, and the earlier partial fix is folded into this one.</li>
@@ -5619,7 +5623,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.35</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.36</a>
         </span>
     </div>
 
@@ -6175,7 +6179,7 @@
                             </div>
                             <label class="panel-heading">Export</label>
                             <div class="button-group-horizontal">
-                                <button class="btn btn-secondary mobile-hide" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
+                                <button class="btn btn-secondary mobile-hide" id="downloadNetworkPNG" title="Export the network, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup. Before an analysis it captures the whole page instead, handy for presenting the app.">Export image...</button>
                                 <button class="btn btn-secondary mobile-hide" onclick="app.copyNetworkToClipboard()" title="Copy the network as an image to the clipboard, legend included, ready to paste into an email or slide">Copy network</button>
                                 <button class="btn btn-secondary" id="downloadNetworkSVG" style="display:none;">SVG</button>
                                 <button class="btn btn-secondary" id="networkAnalyzeWithAI" title="Package this network as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
@@ -8167,6 +8171,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_35"></script>
+    <script src="app.js?v=v86_36"></script>
 </body>
 </html>
