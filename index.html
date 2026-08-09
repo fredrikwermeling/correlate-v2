@@ -2177,6 +2177,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.33 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>Clusters: below cutoff tick box</b>, same as the Correlations tab. Ticking it flips the Corr cell to <em>Below cutoff</em> for genes whose only correlations just missed the cutoff, and lists any such gene not already in the table, grayed at the bottom.</li>
+                    <li><b>Correlations: * marks genes from your own list</b> when expanding a set, matching the Clusters tab.</li>
+                    <li><b>Consistent cursor over gene names.</b> The Correlations and Clusters tables showed a question-mark cursor on hover; they now use the standard cursor like the rest of the app. The info popout on hover is unchanged.</li>
+                    <li><b>Lined up / Floating only shows when relevant:</b> the sub-choice now appears once <em>Show all input genes</em> is ticked, like the other sub-options.</li>
+                    <li><b>Fix: parked genes turned green.</b> Switching a node coloring off repainted every node input-green, including the genes without correlations; they now go back to gray.</li>
+                    <li><b>Fix: the network could drift into the parked row.</b> After a large run the network settles away from the layout's centre of gravity and then slides slowly back, straight through the lined-up genes. The network is now re-centred when the row is parked, and with a long gene list the parked genes no longer take part in the settling at all. The gap between network and row is also a little wider, keeping labels clear of the parked nodes.</li>
+                </ul>
                 <p><strong>v.86.32 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>Show all input genes: choose Lined up or Floating.</b> A small sub-choice under the checkbox now switches the genes without correlations between the tidy parked row (Lined up) and drifting freely around the network (Floating), as they did before the row existed.</li>
@@ -5593,7 +5602,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.32</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.33</a>
         </span>
     </div>
 
@@ -6064,11 +6073,10 @@
                             <div class="checkbox-group" style="margin-bottom: 4px;">
                                 <label><input type="checkbox" id="showUncorrelatedGenes"> Show all input genes in network</label>
                             </div>
-                            <!-- Kept visible but disabled while the box above is unchecked, so ticking it never shoves the controls below. -->
-                            <div id="uncorrLayoutOptions" style="margin-left: 20px; margin-bottom: 4px;">
+                            <div id="uncorrLayoutOptions" style="display: none; margin-left: 20px; margin-bottom: 4px;">
                                 <div class="radio-group-inline">
-                                    <label title="Genes without correlations park in a tidy row below the network"><input type="radio" name="uncorrLayout" value="grid" checked disabled> Lined up</label>
-                                    <label title="Genes without correlations drift freely around the network"><input type="radio" name="uncorrLayout" value="float" disabled> Floating</label>
+                                    <label title="Genes without correlations park in a tidy row below the network"><input type="radio" name="uncorrLayout" value="grid" checked> Lined up</label>
+                                    <label title="Genes without correlations drift freely around the network"><input type="radio" name="uncorrLayout" value="float"> Floating</label>
                                 </div>
                             </div>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
@@ -6196,7 +6204,7 @@
                 <!-- Correlations Tab -->
                 <div class="tab-content" id="tab-correlations">
                     <div class="tip-box">
-                        <strong>Tip:</strong> Click <strong>Correlation</strong> to open the plot for a pair (By Tissue and By hotspot mutation are reachable from there). Ctrl/Cmd+click a column header to copy that column. Use <strong>Filters</strong> to set numeric cutoffs on columns.
+                        <strong>Tip:</strong> Click <strong>Correlation</strong> to open the plot for a pair (By Tissue and By hotspot mutation are reachable from there). Ctrl/Cmd+click a column header to copy that column. Use <strong>Filters</strong> to set numeric cutoffs on columns. <strong>*</strong> marks genes from your own list when expanding a set.
                     </div>
                     <div class="table-controls">
                         <input type="text" class="table-search" id="correlationsSearch" placeholder="Search...">
@@ -6236,6 +6244,7 @@
                     <div class="table-controls">
                         <input type="text" class="table-search" id="clustersSearch" placeholder="Search...">
                         <button class="btn btn-outline btn-sm" id="filterClustersToggle" title="Toggle column filters">Filters</button>
+                        <label id="showBelowCutoffClustersWrap" style="display:none; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Also show which genes only correlated below the cutoff: their Corr cell then says Below cutoff, and any such gene not already listed is added grayed at the bottom. Context only: these correlations are not in the network and give no cluster."><input type="checkbox" id="showBelowCutoffClusters"> below cutoff</label>
                         <button class="btn btn-outline btn-sm" id="copyClustersGenes" title="Copy gene names to clipboard">Copy Genes</button>
                         <button class="btn btn-outline btn-sm" id="downloadClusters" title="Download the cluster table as a CSV file">Download CSV</button>
                         <button class="btn btn-secondary btn-sm enrichrBtn" data-source="clusters" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
@@ -8136,6 +8145,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_32"></script>
+    <script src="app.js?v=v86_33"></script>
 </body>
 </html>

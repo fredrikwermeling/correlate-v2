@@ -5659,8 +5659,8 @@ class CorrelationExplorer {
         document.getElementById('toggleSelectMode').addEventListener('click', () => this.toggleSelectMode());
         document.getElementById('clearSelectedNodes').addEventListener('click', () => this.clearSelectedNodes());
         document.getElementById('showUncorrelatedGenes').addEventListener('change', (e) => {
-            document.querySelectorAll('input[name="uncorrLayout"]')
-                .forEach(r => { r.disabled = !e.target.checked; });
+            const uncorrOpts = document.getElementById('uncorrLayoutOptions');
+            if (uncorrOpts) uncorrOpts.style.display = e.target.checked ? 'block' : 'none';
             if (this.results) {
                 this.displayNetwork();
                 // displayNetwork rebuilds every node with its default color, so
@@ -5989,6 +5989,9 @@ class CorrelationExplorer {
         // Copy genes buttons
         document.getElementById('showBelowCutoff')?.addEventListener('change', () => {
             if (this.results) this.displayCorrelationsTable();
+        });
+        document.getElementById('showBelowCutoffClusters')?.addEventListener('change', () => {
+            if (this.results) this.displayClustersTable();
         });
         document.getElementById('copyCorrelationGenes')?.addEventListener('click', () => this.copyGeneColumn('correlationsTable'));
         document.getElementById('copyClustersGenes')?.addEventListener('click', () => this.copyGeneColumn('clustersTable'));
@@ -10893,6 +10896,10 @@ class CorrelationExplorer {
 
         // Add uncorrelated input genes as isolated nodes if checkbox is checked
         const showUncorrelated = document.getElementById('showUncorrelatedGenes')?.checked;
+        // In Lined up mode these genes never join the simulation: with many of
+        // them the solver used to settle the connected network far off-origin,
+        // and it then slowly drifted back through the parked rows.
+        const uncorrParked = document.querySelector('input[name="uncorrLayout"]:checked')?.value !== 'float';
         if (showUncorrelated && this.results.geneList) {
             this.results.geneList.forEach(gene => {
                 if (!geneSet.has(gene) && this.geneIndex.has(gene)) {
@@ -10932,7 +10939,9 @@ class CorrelationExplorer {
                         borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
                         borderWidthSelected: 3,
                         isSynonym: isSynonym,
-                        originalName: originalName || null
+                        originalName: originalName || null,
+                        uncorrelated: true,
+                        physics: !uncorrParked
                     });
                     geneSet.add(gene);
                 }
@@ -12098,13 +12107,17 @@ class CorrelationExplorer {
         if (wrap) wrap.style.display = below.length ? 'inline-flex' : 'none';
         const showBelow = !!(toggle && toggle.checked) && below.length > 0;
 
+        // Same marking as the Clusters tab: when a design run expands the set,
+        // * points out the genes that were in the user's own list.
+        const listMark = (g) => (this.results.mode === 'design' && this.results.geneList?.includes(g)) ? '*' : '';
+
         const addRow = (c, muted) => {
             const tr = document.createElement('tr');
             const corrClass = c.correlation > 0 ? 'corr-positive' : 'corr-negative';
             if (muted) tr.style.opacity = '0.55';
             tr.innerHTML = `
-                <td class="gene-hover" data-gene="${c.gene1}" style="cursor: help;">${c.gene1}</td>
-                <td class="gene-hover" data-gene="${c.gene2}" style="cursor: help;">${c.gene2}</td>
+                <td class="gene-hover" data-gene="${c.gene1}">${c.gene1}${listMark(c.gene1)}</td>
+                <td class="gene-hover" data-gene="${c.gene2}">${c.gene2}${listMark(c.gene2)}</td>
                 <td class="${muted ? '' : corrClass}" ${muted ? 'style="color:#6b7280;"' : ''}>${c.correlation.toFixed(3)}</td>
                 <td>${c.slope.toFixed(3)}</td>
                 <td>${c.n}</td>
@@ -12198,12 +12211,25 @@ class CorrelationExplorer {
         // Check if there are any uncorrelated genes
         const hasUncorrelated = this.results.clusters.some(c => c.hasCorrelation === false);
 
+        // Below-cutoff context, mirroring the Correlations tab tickbox: point
+        // out the genes whose only correlations fell short of the cutoff.
+        // Their Corr cell flips to "Below cutoff", and any such gene missing
+        // from the table entirely is appended grayed at the bottom.
+        const belowGenes = new Set();
+        (this.results.belowCutoff || []).forEach(p => { belowGenes.add(p.gene1); belowGenes.add(p.gene2); });
+        this.results.clusters.forEach(c => { if (c.hasCorrelation !== false) belowGenes.delete(c.gene); });
+        const clWrap = document.getElementById('showBelowCutoffClustersWrap');
+        const clToggle = document.getElementById('showBelowCutoffClusters');
+        if (clWrap) clWrap.style.display = belowGenes.size ? 'inline-flex' : 'none';
+        const showBelowCl = !!(clToggle && clToggle.checked) && belowGenes.size > 0;
+        const hasCorrCol = hasUncorrelated || showBelowCl;
+
         // Build header based on what data we have
         let headerCells = `
             <th data-sort="gene">Gene</th>
             <th data-sort="cluster">Cluster</th>
         `;
-        if (hasUncorrelated) {
+        if (hasCorrCol) {
             headerCells += `<th data-sort="hasCorrelation">Corr</th>`;
         }
         headerCells += `
@@ -12261,11 +12287,16 @@ class CorrelationExplorer {
                 const geneStat = this.geneStats?.get(c.gene);
 
                 let rowHtml = `
-                    <td class="gene-hover" data-gene="${c.gene}" style="cursor: help;">${c.gene}${c.inGeneList && this.results.mode === 'design' ? '*' : ''}</td>
+                    <td class="gene-hover" data-gene="${c.gene}">${c.gene}${c.inGeneList && this.results.mode === 'design' ? '*' : ''}</td>
                     <td>${c.cluster}</td>
                 `;
-                if (hasUncorrelated) {
-                    rowHtml += `<td style="text-align: center; color: ${c.hasCorrelation === false ? '#dc2626' : '#5d9239'}; font-weight: 600;">${c.hasCorrelation === false ? 'No' : 'Yes'}</td>`;
+                if (hasCorrCol) {
+                    let corrTxt = c.hasCorrelation === false ? 'No' : 'Yes';
+                    let corrColor = c.hasCorrelation === false ? '#dc2626' : '#5d9239';
+                    if (showBelowCl && c.hasCorrelation === false && belowGenes.has(c.gene)) {
+                        corrTxt = 'Below cutoff'; corrColor = '#b45309';
+                    }
+                    rowHtml += `<td style="text-align: center; color: ${corrColor}; font-weight: 600;">${corrTxt}</td>`;
                 }
                 rowHtml += `
                     <td>${c.meanEffect}</td>
@@ -12300,6 +12331,46 @@ class CorrelationExplorer {
                 tr.innerHTML = rowHtml;
                 tbody.appendChild(tr);
             });
+
+        if (showBelowCl) {
+            const listed = new Set(this.results.clusters.map(c => c.gene));
+            const missing = [...belowGenes].filter(g => !listed.has(g)).sort();
+            if (missing.length) {
+                const cutoff = this.results.cutoff;
+                const colCount = thead.querySelectorAll('th').length;
+                const sep = document.createElement('tr');
+                sep.innerHTML = `<td colspan="${colCount}" style="background:#f9fafb; border-top:2px solid #9ca3af; border-bottom:1px solid #e5e7eb; padding:6px 8px; font-size:11px; color:#6b7280;">`
+                    + `Only correlated below the ${typeof cutoff === 'number' ? cutoff.toFixed(2) : cutoff} cutoff, shown for context only. `
+                    + `These genes are not in the network and have no cluster.</td>`;
+                tbody.appendChild(sep);
+                missing.forEach(gene => {
+                    let meanTxt = '-', sdTxt = '-';
+                    if (this.geneIndex?.has(gene)) {
+                        const valid = Array.from(this.getGeneData(this.geneIndex.get(gene))).filter(v => !isNaN(v));
+                        if (valid.length) {
+                            const mean = valid.reduce((a, b) => a + b, 0) / valid.length;
+                            const sd = Math.sqrt(valid.reduce((a, b) => a + (b - mean) ** 2, 0) / valid.length);
+                            meanTxt = Math.round(mean * 100) / 100;
+                            sdTxt = Math.round(sd * 100) / 100;
+                        }
+                    }
+                    const tr = document.createElement('tr');
+                    tr.style.opacity = '0.55';
+                    let rowHtml = `<td class="gene-hover" data-gene="${gene}">${gene}${this.results.mode === 'design' && this.results.geneList?.includes(gene) ? '*' : ''}</td><td>&ndash;</td>`;
+                    rowHtml += `<td style="text-align: center; color: #b45309; font-weight: 600;">Below cutoff</td>`;
+                    rowHtml += `<td>${meanTxt}</td><td>${sdTxt}</td>`;
+                    if (isFiltered) rowHtml += `<td>&ndash;</td><td>&ndash;</td>`;
+                    if (hasStats) {
+                        const gs = this.geneStats?.get(gene);
+                        rowHtml += `<td>${gs?.lfc != null && !isNaN(gs.lfc) ? gs.lfc.toFixed(2) : '-'}</td>`
+                            + `<td>${gs?.fdr != null && !isNaN(gs.fdr) ? gs.fdr.toExponential(2) : '-'}</td>`;
+                    }
+                    rowHtml += `<td style="text-align: center; white-space: nowrap;"><button class="btn btn-sm gene-effect-btn" style="padding: 2px 6px; font-size: 10px; background: #9ca3af; color: white;" data-gene="${gene}">Gene Effect</button></td>`;
+                    tr.innerHTML = rowHtml;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
 
         // Add event listeners to buttons
         tbody.querySelectorAll('.gene-effect-btn').forEach(btn => {
@@ -13732,14 +13803,17 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         }
 
         if (!colorByStats || !this.geneStats || this.geneStats.size === 0) {
-            // Reset to default colors
+            // Reset to default colors. The genes without correlations keep
+            // their gray: painting every node input-green here turned them
+            // green whenever a coloring was switched off.
             this.networkData.nodes.forEach(node => {
                 const isInput = this.results?.geneList?.includes(node.id);
                 updates.push({
                     id: node.id,
                     color: {
-                        background: this.results?.mode === 'design' ?
-                            (isInput ? '#6ba544' : '#b2dd95') : '#6ba544',
+                        background: node.uncorrelated ? '#d1d5db'
+                            : this.results?.mode === 'design' ?
+                                (isInput ? '#6ba544' : '#b2dd95') : '#6ba544',
                         border: '#000000'
                     }
                 });
@@ -14123,12 +14197,14 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         // genes to the solver (unpinned, drifting as before the grid existed).
         if (document.querySelector('input[name="uncorrLayout"]:checked')?.value === 'float') return;
         const loose = [];
-        let minX = Infinity, maxX = -Infinity, maxY = -Infinity;
+        const looseSet = new Set();
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         let nodeR = 25, fs = 16, longestLine = 4, labelLines = 1;
         const pos = this.network.getPositions();
         for (const n of this.networkData.nodes.get()) {
             if ((this.network.getConnectedEdges(n.id) || []).length === 0) {
                 loose.push(n.id);
+                looseSet.add(n.id);
                 nodeR = n.size || nodeR;
                 fs = n.font?.size || fs;
                 const lines = String(n.label || n.id).split('\n');
@@ -14138,12 +14214,26 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
                 const p = pos[n.id];
                 if (!p) continue;
                 minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-                maxY = Math.max(maxY, p.y);
+                minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
             }
         }
         if (!loose.length) return;
-        if (!Number.isFinite(maxX)) { minX = maxX = maxY = 0; }
+        if (!Number.isFinite(maxX)) { minX = maxX = minY = maxY = 0; }
         loose.sort();
+        // Recentre the connected network on the origin before parking the
+        // rows: the solver's central gravity pulls toward (0,0), and a big
+        // settle can leave the network far from it, after which it slowly
+        // drifted back THROUGH the parked rows. Centred, it stays where the
+        // gravity wants it.
+        const shiftX = (minX + maxX) / 2, shiftY = (minY + maxY) / 2;
+        if (shiftX || shiftY) {
+            for (const id of Object.keys(pos)) {
+                if (looseSet.has(id)) continue;
+                const p = pos[id];
+                this.network.moveNode(id, p.x - shiftX, p.y - shiftY);
+            }
+            minX -= shiftX; maxX -= shiftX; maxY -= shiftY;
+        }
         // Spacing from what actually needs the room (node diameter, label
         // width and height), not the spring length: the spring-length grid
         // sat far below the network and left the block airy, which zoomed
@@ -14156,7 +14246,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         let cols = Math.max(Math.round((maxX - minX) / stepX) + 1,
             Math.ceil(Math.sqrt(loose.length * 2)));
         cols = Math.min(cols, loose.length);
-        const startY = maxY + nodeR * 2 + labelH + 28;
+        const startY = maxY + nodeR * 2 + labelH + 40;
         const startX = (minX + maxX) / 2 - ((cols - 1) * stepX) / 2;
         // physics:false, not merely pinned: a fixed node still repels the
         // rest, so the parked block used to shove the connected network away
@@ -14205,6 +14295,11 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
             this._arrangeUncorrelatedGrid();
             this.network.fit({ animation: false });
         }
+        // The switch moved nodes around, so the layout the Spread slider
+        // scales from has to be re-recorded (as Run, Shuffle and Lock do).
+        this._netBasePositions = this.network.getPositions();
+        this._netBaseSpread = parseInt(document.getElementById('netSpread')?.value, 10) || 100;
+        this._netSpreadAnchor = null;
     }
 
     // Declarative view guard for the window right after Run / Shuffle: for a
@@ -22113,8 +22208,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     const r = document.querySelector(`input[name="uncorrLayout"][value="${ns.uncorrLayout}"]`);
                     if (r) r.checked = true;
                 }
-                document.querySelectorAll('input[name="uncorrLayout"]')
-                    .forEach(r => { r.disabled = !showUncorr?.checked; });
+                const uncorrOpts = document.getElementById('uncorrLayoutOptions');
+                if (uncorrOpts) uncorrOpts.style.display = showUncorr?.checked ? 'block' : 'none';
                 const showGE = document.getElementById('showGeneEffect');
                 if (showGE) showGE.checked = !!ns.showGeneEffect;
                 const showSD = document.getElementById('showGeneEffectSD');
