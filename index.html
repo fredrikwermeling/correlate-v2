@@ -2181,6 +2181,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.1 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>Groundwork for the simpler builds.</b> The PCA/UMAP wiring now checks that its section exists before attaching, so the V1 build (which removes the section) no longer loses every Cell Line Browser control registered after it. No change to how V2 behaves.</li>
+                </ul>
                 <p><strong>v.87.0 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>Data files now update reliably.</b> The big binary matrices (gene effect, expression, copy number) and a few side files were fetched without the version token, so a returning browser could pair fresh indices with a stale cached matrix and silently misread values after an update. Every data file now carries the same cache token as the app itself.</li>
@@ -5656,7 +5660,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.0</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.1</a>
         </span>
     </div>
 
@@ -8203,6 +8207,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_0"></script>
+    <script src="app.js?v=v87_1"></script>
 </body>
 </html>

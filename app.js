@@ -35189,6 +35189,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }, true);
 
         // UMAP events
+        // The whole UMAP section is a V2-only block; the simpler build
+        // removes it from the page, and wiring against missing elements
+        // would throw here and kill every listener registered after it.
+        if (document.getElementById('clbUmapSection')) {
         document.getElementById('clbUmapRunBtn').addEventListener('click', () => this.runCLBUmap());
         document.getElementById('clbUmapResetBtn').addEventListener('click', () => this._fullResetUmap());
         document.getElementById('clbUmapSelectBtn').addEventListener('click', () => this.clbUmapSelectMode());
@@ -35339,6 +35343,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             });
         });
+        }
     }
 
     openCellLineBrowser() {
@@ -35370,8 +35375,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.updateClbFilterCounts(this.metadata.cellLines);
         this.populateUmapFilters();
         this.populateClbOncotreeFilter();
-        document.getElementById('clbUmapPlot').innerHTML = '';
-        document.getElementById('clbUmapSelectionControls').style.display = 'none';
+        const umapPlot = document.getElementById('clbUmapPlot');
+        if (umapPlot) umapPlot.innerHTML = '';
+        const umapSel = document.getElementById('clbUmapSelectionControls');
+        if (umapSel) umapSel.style.display = 'none';
         this._clbUmapData = null;
         this._clbUmapSelectedPoints = new Set();
         document.getElementById('cellLineBrowserModal').style.display = 'flex';
@@ -42403,7 +42410,9 @@ ${clone.innerHTML}
     // ===== UMAP Dimensionality Reduction =====
 
     populateUmapFilters() {
+        // No-op in builds without the UMAP section (V1).
         const tissueSelect = document.getElementById('clbUmapTissueFilter');
+        if (!tissueSelect) return;
         const prevValue = tissueSelect.value;
         const visibleN = this._clbVisibleCellLines?.length || 0;
         tissueSelect.innerHTML = '';
