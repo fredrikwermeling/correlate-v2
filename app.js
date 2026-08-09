@@ -3408,11 +3408,27 @@ class CorrelationExplorer {
         document.getElementById('oncoprintPopup')?.remove();
     }
 
+    // Reset all starts as a quiet outline button like its Options neighbours;
+    // it only lights up green once there is something it would actually reset:
+    // generated results, or a filter changed away from its default.
+    _armResetAll() {
+        if (this._resetAllArmed) return;
+        this._resetAllArmed = true;
+        const b = document.getElementById('resetAppBtn');
+        if (!b) return;
+        b.classList.remove('btn-outline');
+        b.classList.add('btn-secondary');
+        b.style.cssText = 'border:1px solid rgba(17,24,39,0.55); background:var(--green-600); color:#fff; font-weight:700;';
+    }
+
     // Mark the current mode's Run button when a cohort-affecting filter
     // changes after results exist, so the staleness of what is on screen is
     // visible. Covers mutation analysis AND gene set analysis.
     // Returns true when a marker was applied.
     _markMutationRunStale() {
+        // Every cohort-affecting filter change routes through here, which
+        // makes it the one hook needed for "a filter has been applied".
+        this._armResetAll();
         const mode = document.querySelector('input[name="analysisMode"]:checked')?.value;
         if (mode === 'mutation') {
             if (!this.mutationResults) return false;
@@ -8890,6 +8906,7 @@ class CorrelationExplorer {
     }
 
     displayMutationResults(resetSortIndicator = false) {
+        this._armResetAll();
         if (!this.mutationResults) return;
 
         const mr = this.mutationResults;
@@ -10690,6 +10707,7 @@ class CorrelationExplorer {
     }
 
     displayResults() {
+        this._armResetAll();
         // Reset network settings to defaults, except when recreating a saved
         // figure (the restore already set the controls to the saved values).
         if (!this._pendingNetworkSettings) this.resetNetworkSettings();

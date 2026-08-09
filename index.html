@@ -2177,6 +2177,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.86.31 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>Reset all starts quiet.</b> On a fresh page it now looks like its Options neighbours (outline, nothing to shout about) and only turns solid green once there is actually something to reset: an analysis has produced results, or a filter has been changed.</li>
+                </ul>
                 <p><strong>v.86.30 (2026-08-08)</strong></p>
                 <ul>
                     <li><b>One synonym flow instead of two.</b> The Find Synonyms button and the separate "did you mean" line are folded into a single automatic panel: unknown genes are checked against the synonym and mouse-ortholog tables as you type, matches appear as "Trp53 &rarr; TP53" suggestions with <b>Use all synonyms</b> and <b>Don't use suggested names</b> as the resolutions (each name is also clickable on its own), and whatever has no synonym falls through to the nearest-match alternatives, with an optional online search (MyGene.info) as the last resort.</li>
@@ -5583,7 +5587,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.30</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.31</a>
         </span>
     </div>
 
@@ -5616,7 +5620,10 @@
                                 <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure...</label>
                             </div>
                         </div>
-                        <button class="btn btn-secondary btn-sm" id="resetAppBtn" style="border:1px solid rgba(17,24,39,0.55); background:var(--green-600); color:#fff; font-weight:700;" title="Clear the current genes, parameters and results and start over">Reset all</button>
+                        <!-- Starts in the same quiet outline as its neighbours;
+                             _armResetAll() turns it solid green once there is
+                             actually something to reset (results or filters). -->
+                        <button class="btn btn-outline btn-sm" id="resetAppBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Clear the current genes, parameters and results and start over">Reset all</button>
                     </div>
                     <!-- Load state stays on the homepage even though the sources
                          moved to the Reference Data modal, so it's still obvious
@@ -8116,6 +8123,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_30"></script>
+    <script src="app.js?v=v86_31"></script>
 </body>
 </html>
