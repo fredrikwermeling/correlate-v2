@@ -17,7 +17,7 @@ import json
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODEL_CSV = os.path.join(HERE, "Model_25Q3.csv")
+MODEL_CSV = os.path.join(HERE, "..", "Model26Q1.csv")
 METADATA_JSON = os.path.join(HERE, "..", "web_data", "cellLineMetadata.json")
 
 # DepMap column → JSON key (camelCase)

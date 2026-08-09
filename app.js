@@ -55,7 +55,7 @@
 
 // Single source of truth for DepMap release.
 // Also appears literally in index.html footer/changelog, update together.
-const DEPMAP_VERSION = '25Q3';
+const DEPMAP_VERSION = '26Q1';
 
 // Build a CSV filename with DepMap release + today's date suffix.
 // csvName('correlations') -> 'correlations_DepMap25Q3_2026-04-18.csv'
@@ -899,7 +899,7 @@ class CorrelationExplorer {
     }
 
     async loadGeneEffects() {
-        const response = await fetch('web_data/geneEffects.bin.gz');
+        const response = await fetch(this._dataUrl('web_data/geneEffects.bin.gz'));
         const compressedData = await response.arrayBuffer();
 
         this.updateLoadingText('Decompressing gene effect data...');
@@ -6690,7 +6690,7 @@ class CorrelationExplorer {
                 <strong>${found.length} found</strong>, <strong>${notFound.length} not found</strong>, checking synonyms&hellip;
             </div>`;
             if (!this._synonymLoadPromise) {
-                this._synonymLoadPromise = fetch('web_data/synonyms.json').then(r => r.json()).catch(() => ({}));
+                this._synonymLoadPromise = fetch(this._dataUrl('web_data/synonyms.json')).then(r => r.json()).catch(() => ({}));
             }
             this.synonymLookup = await this._synonymLoadPromise;
             if (token !== this._validateToken) return;
@@ -7155,7 +7155,7 @@ class CorrelationExplorer {
             btn.textContent = 'Loading synonyms...';
             btn.disabled = true;
             try {
-                const synonymsRes = await fetch('web_data/synonyms.json');
+                const synonymsRes = await fetch(this._dataUrl('web_data/synonyms.json'));
                 this.synonymLookup = await synonymsRes.json();
             } catch (e) {
                 console.error('Failed to load synonyms:', e);
@@ -7295,7 +7295,7 @@ class CorrelationExplorer {
         // Load synonyms if not yet loaded
         if (!this.synonymLookup) {
             try {
-                const synonymsRes = await fetch('web_data/synonyms.json');
+                const synonymsRes = await fetch(this._dataUrl('web_data/synonyms.json'));
                 this.synonymLookup = await synonymsRes.json();
             } catch (e) {
                 console.warn('Failed to load synonyms:', e);
@@ -8261,7 +8261,7 @@ class CorrelationExplorer {
         // Load synonyms if not loaded
         if (!this.synonymLookup) {
             try {
-                const synonymsRes = await fetch('web_data/synonyms.json');
+                const synonymsRes = await fetch(this._dataUrl('web_data/synonyms.json'));
                 this.synonymLookup = await synonymsRes.json();
             } catch (e) {
                 console.error('Failed to load synonyms:', e);
@@ -13803,6 +13803,14 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         });
 
         this.networkData.nodes.update(updates);
+    }
+
+    // Data files carry the same cache-bust token as app.js: without it a
+    // release update could pair fresh JSON indices with a stale cached
+    // binary (or vice versa), silently misindexing every value.
+    _dataUrl(path) {
+        const v = (document.querySelector('script[src*="app.js"]')?.src.split('?v=')[1]) || '';
+        return v ? `${path}?v=${v}` : path;
     }
 
     // The saved/consumed value stays 'none' | 'lfc' | 'fdr'; the UI is a
@@ -22106,7 +22114,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // against the build scripts in scripts/ and the web_data files, not against
     // the older inline tooltips (one of which listed the wrong gene panel).
     _MUT_SUBTYPE_INFO() {
-        const cnCoverage = '<b>Coverage:</b> copy number comes from whole-genome sequencing, which covers 830 of the 1,186 cell lines. The other 356 are left out of the comparison entirely rather than counted as unaltered, so the group sizes you see add up to 830.';
+        const cnCoverage = '<b>Coverage:</b> copy number comes from whole-genome sequencing, which covers 830 of the 1,208 cell lines. The other 378 are left out of the comparison entirely rather than counted as unaltered, so the group sizes you see add up to 830.';
         return {
             hotspot: `<b>Hotspot mutation</b><br>
                 Cell lines carrying a recurrent hotspot mutation in the gene you pick.<br><br>
@@ -27894,7 +27902,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         context.nCellLines = n;
         context.app = 'Correlate V2';
-        context.dataSource = 'DepMap 25Q3';
+        context.dataSource = 'DepMap 26Q1';
         context.date = new Date().toISOString().slice(0, 10);
 
         // Every source includes matrices now (with the same tier filter +
@@ -27910,7 +27918,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Load common essentials (#6)
         if (!this._commonEssentials) {
-            try { const r = await fetch('web_data/common_essentials.json'); this._commonEssentials = new Set(await r.json()); } catch(e) { this._commonEssentials = new Set(); }
+            try { const r = await fetch(this._dataUrl('web_data/common_essentials.json')); this._commonEssentials = new Set(await r.json()); } catch(e) { this._commonEssentials = new Set(); }
         }
 
         // Build cell line metadata + mutations
@@ -30242,9 +30250,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (this.cnLoading) return this.cnLoading;
         this.cnLoading = (async () => {
             const t0 = performance.now();
-            const metaRes = await fetch('web_data/cn_metadata.json');
+            const metaRes = await fetch(this._dataUrl('web_data/cn_metadata.json'));
             const meta = await metaRes.json();
-            const binRes = await fetch('web_data/cn.bin.gz');
+            const binRes = await fetch(this._dataUrl('web_data/cn.bin.gz'));
             const buf = await binRes.arrayBuffer();
             const decompressed = pako.inflate(new Uint8Array(buf));
             const int16Data = new Int16Array(decompressed.buffer);
@@ -30281,7 +30289,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (this._geneLocLoading) return this._geneLocLoading;
         this._geneLocLoading = (async () => {
             try {
-                const res = await fetch('web_data/gene_locations.json');
+                const res = await fetch(this._dataUrl('web_data/gene_locations.json'));
                 const d = await res.json();
                 const map = {};
                 for (const [g, loc] of Object.entries(d.genes || {})) map[g.toUpperCase()] = loc;
@@ -30429,7 +30437,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         try {
             // Load metadata first
-            const metaRes = await fetch('web_data/expression_metadata.json');
+            const metaRes = await fetch(this._dataUrl('web_data/expression_metadata.json'));
             this.expressionMetadata = await metaRes.json();
 
             // Build gene index
@@ -30440,7 +30448,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
             // Load binary expression data
             loadingTextEl.textContent = 'Loading expression data (51 MB)...';
-            const response = await fetch('web_data/expression.bin.gz');
+            const response = await fetch(this._dataUrl('web_data/expression.bin.gz'));
             const compressedData = await response.arrayBuffer();
 
             loadingTextEl.textContent = 'Decompressing expression data...';
@@ -33012,7 +33020,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (this.expressionLoaded && this.expressionData && this.expressionGeneIndex) {
             // CRITICAL: the expression matrix has its own cell-line
             // ordering and may have a different cohort size than the GE
-            // matrix (e.g. 1699 vs 1186 in 25Q3). Indexing expressionData
+            // matrix (e.g. 1719 vs 1208 in 26Q1). Indexing expressionData
             // with this.nCellLines or with positions from
             // this.metadata.cellLines is wrong on both counts and produces
             // garbage reads, often straddling into adjacent genes' rows.
@@ -34192,7 +34200,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             '- A gene can be measured in only part of the panel; charts say so when coverage is below 95%.',
             '',
             '## Data sources',
-            '- DepMap 25Q3 for every measurement (gene effect, expression, mutations, fusions, copy number, Model metadata).',
+            '- DepMap 26Q1 for every measurement (gene effect, expression, mutations, fusions, copy number, Model metadata).',
             '- PRISM Repurposing Secondary for drug response, a different release from the rest.',
             '- CORUM and Reactome for complexes and pathways.',
             '- COSMIC, OncoKB, WHO and NCCN for the curated fusion and subtype panels.',
@@ -37485,7 +37493,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     // ===== Cell Line Wiki =====
     //
     // Composes a deep-dive view for a single cell line. All data comes from
-    // DepMap 25Q3 (Model, CRISPRGeneEffect, Expression, Mutations, Fusions) and
+    // DepMap 26Q1 (Model, CRISPRGeneEffect, Expression, Mutations, Fusions) and
     // derivations computed in-app. Every section carries a source line.
 
     // Cancer pathway knowledge base. Each pathway lists marker genes and
@@ -38271,7 +38279,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // to an empty set on failure (filter becomes a no-op).
         if (!this._commonEssentials) {
             try {
-                const r = await fetch('web_data/common_essentials.json');
+                const r = await fetch(this._dataUrl('web_data/common_essentials.json'));
                 this._commonEssentials = new Set(await r.json());
             } catch (e) {
                 this._commonEssentials = new Set();
@@ -39539,7 +39547,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 // branch) but no gene-effect values survived the per-gene
                 // variance filter, almost always because this line is in
                 // the metadata index but its CRISPR row is all-NaN in the
-                // 25Q3 release. Surface that explicitly instead of leaving
+                // current release. Surface that explicitly instead of leaving
                 // a silent void between the intro paragraph and the Source.
                 geSigHtml = `${introPara}<div style="padding:10px 12px; background:#fef2f2; border-left:3px solid #991b1b; font-size:11px;"><b style="color:#991b1b;">No usable CRISPR gene-effect data for this cell line.</b> The cell line is indexed in the cohort but its CRISPR row contains no measurable values (NaN-only across the matrix), so the z-scored dependency view cannot be built. This happens for a handful of lines per DepMap release, usually those screened too recently to be in this quarter&rsquo;s CRISPRGeneEffect file, or dropped during QC. Other Wiki sections (Mutations, CN, Fusions, Expression, Drug response) still show available data for this line.</div>`;
             } else {
@@ -39988,13 +39996,13 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // ── Identity ──────────────────────────────────────────────────
             section('Cancer classification',
                 classificationHtml,
-                'DepMap 25Q3 Model table (Oncotree lineage / subtype / code, patient-tumor features).'),
+                'DepMap 26Q1 Model table (Oncotree lineage / subtype / code, patient-tumor features).'),
             receptorHtml ? section('Receptor status <span style="font-size:11px; color:#6b7280;">, expression surrogate for ER / PR / HER2</span>',
                 receptorHtml,
-                'DepMap 25Q3 OmicsExpressionTPMLogp1 (log₂-TPM+1) for ESR1 / PGR / ERBB2, plus DepMap focal copy number for ERBB2. Published TNBC calls from Lehmann JCI 2011 / PLOS ONE 2016. Measured rule: focal ERBB2 amplification for HER2+, otherwise ESR1 ≥ 3.0 or PGR ≥ 1.0 for HR+, otherwise triple-negative. Clinically, ER and PR are scored by immunohistochemistry on protein and HER2 by immunohistochemistry, with in-situ hybridization (FISH) counting ERBB2 gene copies where staining is equivocal; transcript and copy number are approximations of that.') : '',
+                'DepMap 26Q1 OmicsExpressionTPMLogp1 (log₂-TPM+1) for ESR1 / PGR / ERBB2, plus DepMap focal copy number for ERBB2. Published TNBC calls from Lehmann JCI 2011 / PLOS ONE 2016. Measured rule: focal ERBB2 amplification for HER2+, otherwise ESR1 ≥ 3.0 or PGR ≥ 1.0 for HR+, otherwise triple-negative. Clinically, ER and PR are scored by immunohistochemistry on protein and HER2 by immunohistochemistry, with in-situ hybridization (FISH) counting ERBB2 gene copies where staining is equivocal; transcript and copy number are approximations of that.') : '',
             section('Patient & sample origin',
                 originHtml,
-                'DepMap 25Q3 Model table, donor demographics and tissue collection metadata.'),
+                'DepMap 26Q1 Model table, donor demographics and tissue collection metadata.'),
             section('Sex (annotation vs expression)',
                 sexHtml,
                 'Annotation: DepMap Model. Expression: Correlate V2 classifier on Y-markers (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y) and XIST, thresholds 1.0 log-TPM+1. XIST is used when the classifier is built, but it is a non-coding RNA and so is not in the protein-coding expression table this page reads from.'),
@@ -40002,23 +40010,23 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // ── Genome state ──────────────────────────────────────────────
             section('Genome signatures',
                 genomeSigHtml,
-                'DepMap 25Q3 OmicsGlobalSignatures, PureCN ploidy / WGD / CIN / LoH, MSIsensor2, Ben-David 2021 aneuploidy.'),
+                'DepMap 26Q1 OmicsGlobalSignatures, PureCN ploidy / WGD / CIN / LoH, MSIsensor2, Ben-David 2021 aneuploidy.'),
 
             // ── Driver landscape ──────────────────────────────────────────
             section(`Key genetic alterations <span style="font-size:11px; color:#6b7280;">, what likely drives this cell line${subKey ? ' (' + subKey + ')' : ''}</span>`,
                 keyAlterationsHtml,
-                'Alterations from DepMap 25Q3 OmicsInferredMolecularSubtypes (hotspot variants + integrated functional loss: copy number &lt; 0.3, likely-LoF mutation with AF &gt; 0.5, or expression &lt; 0.1 log-TPM), curated validated fusions (this app), and the curated focal copy-number panel. "Typical / atypical" is judged against a curated driver knowledge base (WHO 2022, COSMIC Cancer Gene Census, OncoKB, NCCN; ~30 Oncotree subtypes). Pathway status combines mutation calls with CRISPRGeneEffect (Chronos).'),
+                'Alterations from DepMap 26Q1 OmicsInferredMolecularSubtypes (hotspot variants + integrated functional loss: copy number &lt; 0.3, likely-LoF mutation with AF &gt; 0.5, or expression &lt; 0.1 log-TPM), curated validated fusions (this app), and the curated focal copy-number panel. "Typical / atypical" is judged against a curated driver knowledge base (WHO 2022, COSMIC Cancer Gene Census, OncoKB, NCCN; ~30 Oncotree subtypes). Pathway status combines mutation calls with CRISPRGeneEffect (Chronos).'),
             section('Fusion landscape',
                 fusionHtml,
-                'Clinically relevant fusions: curated 51-driver list validated per cell line on lineage match + partner expression z-score + partner CRISPR dependency z-score (this app). Raw partner list: DepMap 25Q3 OmicsFusionFiltered, fusion callers on hypermutated / highly rearranged cancers produce many technical and passenger calls (counts &gt;30 are flagged).'),
+                'Clinically relevant fusions: curated 51-driver list validated per cell line on lineage match + partner expression z-score + partner CRISPR dependency z-score (this app). Raw partner list: DepMap 26Q1 OmicsFusionFiltered, fusion callers on hypermutated / highly rearranged cancers produce many technical and passenger calls (counts &gt;30 are flagged).'),
 
             // ── Functional behavior ──────────────────────────────────────
             section('CRISPR dependencies <span style="font-size:11px; color:#6b7280;">, which genes this cell line needs, and which ones hold it back</span>',
                 geSigHtml,
-                'DepMap 25Q3 CRISPRGeneEffect (Chronos). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s GE − cohort mean) / cohort SD. Pan-essentials filtered against the DepMap common-essentials list. Druggable dependencies cross-referenced against a curated ~60-gene panel with approved or clinical-stage inhibitors.'),
+                'DepMap 26Q1 CRISPRGeneEffect (Chronos). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s GE − cohort mean) / cohort SD. Pan-essentials filtered against the DepMap common-essentials list. Druggable dependencies cross-referenced against a curated ~60-gene panel with approved or clinical-stage inhibitors.'),
             section('Expression profile <span style="font-size:11px; color:#6b7280;">, what is uniquely highly expressed in this cell line</span>',
                 exprSigHtml,
-                'DepMap 25Q3 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s expression − cohort mean) / cohort SD. Gene programs: ~9 curated panels (MYC targets, E2F / S-phase, G2/M, IFN response, EMT, TGF-β, hypoxia, NRF2, stem), scored as the mean mRNA z of the panel; listed when |mean z| &gt; 0.75. Lineage-marker panels: ~15 markers per Oncotree lineage. Druggable targets: ~60-gene panel with approved or clinical-stage inhibitors. Potential FACS markers: curated ~100-gene panel of well-known cell-surface antigens (CD molecules, RTKs, immune checkpoints, ADC / bispecific targets, adhesion molecules); TPM &gt; 4 cutoff for inclusion.'),
+                'DepMap 26Q1 OmicsExpressionTPMLogp1HumanProteinCodingGenes (log₂-TPM+1). Per-gene mean and SD computed across the full cohort; z-score = (this line\'s expression − cohort mean) / cohort SD. Gene programs: ~9 curated panels (MYC targets, E2F / S-phase, G2/M, IFN response, EMT, TGF-β, hypoxia, NRF2, stem), scored as the mean mRNA z of the panel; listed when |mean z| &gt; 0.75. Lineage-marker panels: ~15 markers per Oncotree lineage. Druggable targets: ~60-gene panel with approved or clinical-stage inhibitors. Potential FACS markers: curated ~100-gene panel of well-known cell-surface antigens (CD molecules, RTKs, immune checkpoints, ADC / bispecific targets, adhesion molecules); TPM &gt; 4 cutoff for inclusion.'),
             section('Drug response <span style="font-size:11px; color:#6b7280;">, PRISM Repurposing</span>',
                 drugHtml,
                 (this.drugResponse?.dataSource || 'DepMap PRISM Repurposing Secondary.') + ' Note this screen is from a different DepMap release than the rest of this page. Curated panel of ' + (this.drugResponse?.panelSize || '~100') + ' compounds. Z-scores computed per compound across the full PRISM panel. <b>Caveat:</b> in vitro viability ≠ clinical response, validate any clinically weighty hit with orthogonal 2D/3D assays.'),
@@ -40483,7 +40491,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             holder.innerHTML = `<h1 style="color:#4c782e;margin:0 0 4px;font-size:22px;">${title}</h1>
                 <div style="font-size:11px;color:#6b7280;margin-bottom:16px;">${subtitle}</div>
                 ${clone.innerHTML}
-                <div style="margin-top:20px;font-size:10px;color:#9ca3af;">Generated ${date} by Correlate V2, data from DepMap 25Q3 and Cellosaurus.</div>`;
+                <div style="margin-top:20px;font-size:10px;color:#9ca3af;">Generated ${date} by Correlate V2, data from DepMap 26Q1 and Cellosaurus.</div>`;
             document.body.appendChild(holder);
 
             const JS = window.jspdf?.jsPDF || window.jsPDF;

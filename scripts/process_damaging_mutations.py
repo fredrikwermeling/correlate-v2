@@ -56,12 +56,19 @@ def main():
         reader = csv.reader(f)
         header = next(reader)
 
-    # Parse gene names from header (format: "GENE (EntrezID)")
+    # 26Q1 switched these matrices to one row per PROFILE with metadata
+    # columns (SequencingID, ModelID, IsDefaultEntryForModel, ...); older
+    # releases had ModelID as the unnamed first column. Handle both.
+    model_col = header.index("ModelID") if "ModelID" in header else 0
+    default_col = header.index("IsDefaultEntryForModel") if "IsDefaultEntryForModel" in header else None
+
+    # Parse gene names from header (format: "GENE (EntrezID)"); metadata
+    # columns don't match the pattern and are skipped.
     gene_cols = []  # (col_index, gene_name)
-    for i, col in enumerate(header[1:], 1):
+    for i, col in enumerate(header):
         match = re.match(r'^(.+?)\s*\(\d+\)$', col.strip())
-        gene_name = match.group(1).strip() if match else col.strip()
-        gene_cols.append((i, gene_name))
+        if match:
+            gene_cols.append((i, match.group(1).strip()))
 
     print(f"CSV has {len(gene_cols)} genes")
 
@@ -75,14 +82,22 @@ def main():
         reader = csv.reader(f)
         next(reader)  # skip header
         for row in reader:
+            if default_col is not None and row[default_col].strip() != 'Yes':
+                continue
             n_total += 1
-            model_id = row[0].strip()
+            model_id = row[model_col].strip()
             if model_id not in valid_cell_lines:
                 continue
             n_valid += 1
             for col_idx, gene_name in gene_cols:
-                if col_idx < len(row) and row[col_idx].strip() == '1.0':
-                    gene_mutations[gene_name][model_id] = 1
+                if col_idx < len(row):
+                    v = row[col_idx].strip()
+                    if v and v not in ('0', '0.0'):
+                        try:
+                            if float(v) > 0:
+                                gene_mutations[gene_name][model_id] = 1
+                        except ValueError:
+                            pass
 
     print(f"Cell lines: {n_total} total, {n_valid} in metadata")
 

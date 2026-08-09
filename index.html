@@ -2181,6 +2181,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.0 (2026-08-09)</strong></p>
+                <ul>
+                    <li><b>Data files now update reliably.</b> The big binary matrices (gene effect, expression, copy number) and a few side files were fetched without the version token, so a returning browser could pair fresh indices with a stale cached matrix and silently misread values after an update. Every data file now carries the same cache token as the app itself.</li>
+                    <li><b>Data updated to DepMap 26Q1.</b> Gene effect and expression, hotspot and damaging mutations, fusions (raw, validated and clinical tiers), functional loss, inferred subtypes, genome signatures, growth rate and the Model metadata all move from 25Q3 to the 26Q1 release. The CRISPR cohort grows from 1,186 to 1,208 cell lines (22 added, none removed, many of them pediatric bone and soft-tissue models) and from 18,435 to 18,531 genes; expression covers 1,719 lines. The copy-number layers deliberately stay on their previous releases (the merged gene-level CN matrix is 24Q4, the clinical WGS calls 25Q3), as DepMap has not updated the merged file and the WGS-only 26Q1 file would halve CN coverage. Saved figures re-run against the new data, so values can shift slightly; that is the point of the update. Sex-by-expression and STR annotations are carried over for existing lines (the 22 new lines show the annotated sex from the Model table).</li>
+                </ul>
                 <p><strong>v.86.41 (2026-08-09)</strong></p>
                 <ul>
                     <li><b>Grid filters stay where they were made.</b> Gene picks from the Cell Line Browser's filter grids now affect only the browser list: they no longer filter any analysis, mark Run as changed, or appear in the parameters box. Picks made while Mutation analysis is the active mode belong to it alone, and picks made in Gene set mode belong to the network run alone, so switching modes no longer silently carries one cohort's filters into the other.</li>
@@ -5603,10 +5608,10 @@
             <div class="modal-body">
                 <div class="reference-status status-box status-warning">Loading data...</div>
                 <div style="font-size:12px; color:#4b5563; line-height:1.5;">
-                    <p style="margin: 12px 0 0 0; font-weight:600; color:#374151;">Cell-line data: <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 25Q3</a></p>
+                    <p style="margin: 12px 0 0 0; font-weight:600; color:#374151;">Cell-line data: <a href="https://depmap.org/portal/data_page/?tab=currentRelease" target="_blank" style="color: #0066cc;">DepMap 26Q1</a></p>
                     <ul style="margin: 4px 0 0 0; padding-left: 18px;">
                         <li>CRISPRGeneEffect.csv <span style="color:#999;">(gene effects)</span></li>
-                        <li>OmicsExpressionProteinCodingGenesTPMLogp1.csv <span style="color:#999;">(expression)</span></li>
+                        <li>OmicsExpressionTPMLogp1HumanProteinCodingGenes.csv <span style="color:#999;">(expression)</span></li>
                         <li>OmicsSomaticMutationsMatrixHotspot.csv / Damaging.csv <span style="color:#999;">(mutations)</span></li>
                         <li>OmicsFusionFiltered{Supplementary}.csv <span style="color:#999;">(fusions, Arriba)</span></li>
                         <li>OmicsInferredMolecularSubtypes.csv <span style="color:#999;">(specific variants, integrated LoF, MSI)</span></li>
@@ -5651,7 +5656,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.86.41</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.0</a>
         </span>
     </div>
 
@@ -6740,9 +6745,9 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <p>Correlate V2 | Part of the <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a> tool family | Data from <a href="https://depmap.org/portal/" target="_blank">DepMap 25Q3</a> | <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a></p>
+        <p>Correlate V2 | Part of the <a href="https://greenlisted.cmm.se" target="_blank">Green Listed</a> tool family | Data from <a href="https://depmap.org/portal/" target="_blank">DepMap 26Q1</a> | <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a></p>
         <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--gray-200); font-size: 0.8em; line-height: 1.6; color: var(--gray-500);">
-            <p style="margin: 0 0 4px 0;">Data source: <a href="https://depmap.org" target="_blank">DepMap</a> (Broad Institute). DepMap, Broad (2025). DepMap 25Q3 Public. Figshare+. Dataset.</p>
+            <p style="margin: 0 0 4px 0;">Data source: <a href="https://depmap.org" target="_blank">DepMap</a> (Broad Institute). DepMap, Broad (2026). DepMap 26Q1 Public. Figshare+. Dataset.</p>
             <p style="margin: 0 0 4px 0;">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. This data is provided for research purposes only and should not be used for clinical decision-making.</p>
             <p style="margin: 0 0 4px 0;">Disclaimer: This tool is provided as-is without warranty. Not intended for diagnostic or clinical use. Results should be independently validated.</p>
             <p style="margin: 0;">&copy; 2025 <a href="https://wermelinglab.com" target="_blank">Wermeling Lab</a>. All rights reserved.</p>
@@ -7527,7 +7532,7 @@
                             <img src="scatter_example.svg" alt="TSC1 vs TSC2 scatter plot showing strong positive correlation (r=0.90)" style="max-width: 100%; height: auto; border-radius: 6px;">
                             <div style="margin-top: auto; padding-top: 8px; border-top: 1px solid #f0f0f0;">
                                 <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">
-                                    <strong>Fig 1:</strong> TSC1 vs TSC2 gene effect across 1,186 cell lines (r = 0.90). Knockout of either gene produces nearly identical fitness effects, yet the impact is highly context-dependent: some cell lines thrive while others are depleted.
+                                    <strong>Fig 1:</strong> TSC1 vs TSC2 gene effect across 1,208 cell lines (r = 0.90). Knockout of either gene produces nearly identical fitness effects, yet the impact is highly context-dependent: some cell lines thrive while others are depleted.
                                 </p>
                             </div>
                         </div>
@@ -7654,7 +7659,7 @@
             <li><b>Quick filters</b>: curated cell-line collections to include or exclude, among them the two provenance sets below.</li>
           </ul>
 
-          <p style="margin-top:14px;"><strong>&#9888; Warning marks</strong>: a triangle beside a cell line's name means <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a> records a problem with it. 56 of the 1,186 lines are flagged. Hover the mark for the full explanation, or open the line to see it with a link to the source.</p>
+          <p style="margin-top:14px;"><strong>&#9888; Warning marks</strong>: a triangle beside a cell line's name means <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a> records a problem with it. 56 of the 1,208 lines are flagged. Hover the mark for the full explanation, or open the line to see it with a link to the source.</p>
           <ul style="margin:4px 0 10px 20px;">
             <li><b>Identity disputed</b> (36 lines): the line is contaminated, misidentified, or a derivative of another line, so a result attributed to it may belong to something else. MKN28 is a MKN74 derivative; KP-1N is a PANC-1 derivative.</li>
             <li><b>Cancer type disputed</b> (4 lines): the line is itself, but its recorded disease or tissue is genuinely unresolved, so any tissue-grouped analysis may place it incorrectly.</li>
@@ -7714,7 +7719,7 @@
             <li><b>Drug response (PRISM AUC)</b>: type a compound; the picker lists PRISM Repurposing compounds ranked by how many of the visible lines they kill. Ordered by area under the curve, most sensitive first, so a lower AUC means more killing.</li>
           </ul>
           <p style="color:#6b7280;"><b>Gene-sort input:</b> comma, semicolon, newline or whitespace can separate multiple symbols.</p>
-          <p style="color:#6b7280; margin-bottom:0;"><b>Data sources:</b> DepMap 25Q3 for every measurement. Cell-line identity warnings and the published fusion calls come from <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a>; the curated fusion and subtype panels draw on COSMIC, OncoKB, WHO and NCCN. All filters and sorts use the data currently loaded in the browser; changing tissue / subtype filters narrows the visible set that subsequent sorts operate on.</p>
+          <p style="color:#6b7280; margin-bottom:0;"><b>Data sources:</b> DepMap 26Q1 for every measurement. Cell-line identity warnings and the published fusion calls come from <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;">Cellosaurus</a>; the curated fusion and subtype panels draw on COSMIC, OncoKB, WHO and NCCN. All filters and sorts use the data currently loaded in the browser; changing tissue / subtype filters narrows the visible set that subsequent sorts operate on.</p>
         </div>
       </div>
     </div>
@@ -8198,6 +8203,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v86_41"></script>
+    <script src="app.js?v=v87_0"></script>
 </body>
 </html>
