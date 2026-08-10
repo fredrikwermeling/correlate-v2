@@ -2182,6 +2182,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.8 (2026-08-10)</strong></p>
+                <ul>
+                    <li><b>Both sex readings now cover every cell line.</b> Sex has two independent axes: the annotation from DepMap's Model table, and the call computed from Y-chromosome markers and XIST. The annotation moved to 26Q1 with the rest of the data, but the expression-based call had only been carried over for the lines that existed before, leaving the 22 new ones blank. It is now recomputed across all 1,208 (302 female, 400 male, 506 unknown, where unknown covers Y-loss males and XIST-silenced females as before). None of the existing calls changed.</li>
+                </ul>
                 <p><strong>v.87.7 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>A gate can now be used as a filter, the way a FACS gate is.</b> Draw one or two gates and <em>Apply gate as filter</em> appears next to Compare; with both drawn it asks which one. The cell lines inside that gate become the cohort, every other filter still applies on top, and the plot the gate was drawn on is kept underneath so the figure still shows where the population came from. Exporting the image brings that gating plot with it, stacked under the chart with a one-line caption.</li>
@@ -5698,7 +5702,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.7</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.8</a>
         </span>
     </div>
 
@@ -8275,6 +8279,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_7"></script>
+    <script src="app.js?v=v87_8"></script>
 </body>
 </html>

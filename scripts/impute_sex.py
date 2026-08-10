@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
 Impute sex from Y-chromosome markers + XIST expression.
+NOTE: XIST is a lncRNA, so it is absent from the protein-coding
+expression file the app ships. This reads DepMap's AllGenes
+expression export; keep it in step with the release when possible
+(shared values move by <0.001 log-TPM between releases, so an
+older AllGenes file still classifies correctly).
 
 Merges DepMap Sex annotation with expression-based inference into
 web_data/cellLineMetadata.json.
@@ -37,7 +42,7 @@ import numpy as np
 
 EXPRESSION_CSV = "/Users/fredrikwermeling/Documents/coexpress/OmicsExpressionTPMLogp1HumanAllGenes.csv"
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODEL_CSV = os.path.join(HERE, "Model_25Q3.csv")
+MODEL_CSV = os.path.join(HERE, "..", "Model26Q1.csv")
 METADATA_JSON = os.path.join(HERE, "..", "web_data", "cellLineMetadata.json")
 
 Y_MARKERS = ["RPS4Y1", "DDX3Y", "EIF1AY", "KDM5D", "UTY", "USP9Y"]
