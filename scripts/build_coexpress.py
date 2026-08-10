@@ -76,6 +76,11 @@ HTML_FIXES = [
     ("""<option value="ge">GE</option>
                                 <option value="expr">Expression</option>""",
      """<option value="ge">Expression</option>"""),
+    # Cohort-specific counts: CoExpress runs on the larger expression cohort,
+    # so the virus-transformation tallies written for the CRISPR panel are wrong here.
+    ('53 lines in this panel are confirmed transformed by EBV, HPV16/18, HBV, KSHV or HTLV-1',
+     '76 lines in this panel are confirmed transformed by EBV, HPV16/18, HBV, KSHV, HTLV-1 or adenovirus 5'),
+    ('53 of the 1,208 lines carry one', '76 of the 1,719 lines carry one'),
     ('title="Switch between expression (CRISPR knockout) and expression (log2-TPM+1) as the y-axis data"',
      'title="Expression (log2-TPM+1) as the y-axis data"'),
     # the mutation-analysis Measure toggle would offer expression twice
