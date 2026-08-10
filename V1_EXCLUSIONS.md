@@ -7,6 +7,10 @@ known set rather than a hunt.
 Every block below is marked in the source with a comment containing
 `V2 ONLY`, so `grep -n "V2 ONLY" index.html app.js` finds them all.
 
+`V1_EXCLUSIONS.md` lists what comes out. **`scripts/build_v1.py` performs the
+removal** — run it instead of editing V1 by hand, then copy `web_data/` only
+when the DepMap release changes.
+
 ## Dimensionality reduction (PCA / UMAP)
 
 - `index.html`: the whole `#clbUmapSection` block, marked
@@ -35,6 +39,16 @@ dragmode branches that exist to draw a gate.
 
 Note `clearGEGates()` is called from `_resetGEFilters()`, so either keep a
 no-op stub or drop that call too.
+
+## Expression basis (gene effect vs mRNA)
+
+The `#basisParams` block in `index.html`, marked
+`===== V2 ONLY: expression basis for the gene-set analysis =====`: the
+"Correlate on: Gene effect / mRNA expression" choice.
+
+`app.js` needs no edit. `_analysisBasis()` reads the radios with
+`?.value || 'ge'`, and every other reference is null-guarded, so with the
+markup gone the analysis simply always runs on gene effect.
 
 ## Not yet decided
 
