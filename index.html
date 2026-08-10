@@ -2204,6 +2204,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.5 (2026-08-10)</strong></p>
+                <ul>
+                    <li><b>Gate comparison reaches the disease level.</b> Comparing two gates showed where their cell lines come from by tissue and by subtype; it now adds the exact Oncotree disease as a third table, which is often where the real difference shows (CNS/Brain as a tissue becomes Glioblastoma IDH-Wildtype as a disease). The three tables are built by one shared routine instead of a copy each.</li>
+                    <li><b>Color by disease in the scatter.</b> The Color by picker offers tissue, subtype and now disease, with the same pick-your-groups list and per-group correlation in the legend.</li>
+                    <li><b>mRNA runs start at a 0.60 cutoff.</b> Expression correlates sit higher than gene effect across the board, so 0.50 returned a great deal more on that basis. Switching to mRNA expression moves the cutoff to 0.60 (and back to 0.50 for gene effect), leaving any value you set yourself untouched.</li>
+                    <li><b>Fix: the compound list was cut off at the screen edge.</b> The drug, gene and copy-number pickers in the Cell Line Browser hung from the left of an input near the right edge, so the explanation ran off the window. They now align to the input's right edge and stay inside the window.</li>
+                </ul>
                 <p><strong>v.87.4 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>Fix: the network was drawn far too small.</b> After the automatic arrangement the view zoomed out much further than the picture needed, leaving a small cluster in a mostly empty panel. The layout engine sizes the view from each label's last drawn position, and moving nodes into place does not refresh that: the labels were still recorded at their old coordinates, so the content looked hundreds of pixels wider than it was. The view now refreshes before it fits, which on a typical network is about a quarter larger than before.</li>
@@ -5696,7 +5703,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.4</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.5</a>
         </span>
     </div>
 
@@ -6692,6 +6699,7 @@
                                          makes a long subtype list workable, which is what previously
                                          made coloring by subtype unusable. -->
                                     <option value="subtype" id="colorBySubtypeOption">By subtype</option>
+                                    <option value="disease">By disease</option>
                                 </select>
                                 <!-- Color only the chosen tissues / subtypes; everything else grays out. -->
                                 <button type="button" id="colorByGroupBtn" class="btn btn-sm btn-outline" style="display:none; font-size:9px; padding:1px 4px; margin-top:2px; width:100%;" onclick="app.showColorByGroupPicker()">Pick groups...</button>
@@ -8261,6 +8269,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_4"></script>
+    <script src="app.js?v=v87_5"></script>
 </body>
 </html>
