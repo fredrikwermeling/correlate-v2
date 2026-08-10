@@ -830,28 +830,6 @@
             background: var(--green-50);
         }
 
-        /* The gene-effect / expression basis choice: same boxed treatment as
-           the gene-set alternatives above, so it reads as a real choice
-           rather than a footnote under them. */
-        #basisModeOptions > label {
-            align-items: flex-start;
-            padding: 6px 8px;
-            margin-right: 2px;
-            border: 1px solid var(--gray-200);
-            border-radius: 5px;
-            font-weight: 600;
-            font-size: 12px;
-            color: #374151;
-        }
-
-        #basisModeOptions > label:hover {
-            background: var(--green-50);
-        }
-
-        #basisModeOptions > label:has(input:checked) {
-            border-color: var(--green-500);
-            background: var(--green-50);
-        }
 
         /* Section headings that give box 1 its structure ("Lineage filter",
            "Genetic alterations"). */
@@ -2204,6 +2182,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.6 (2026-08-10)</strong></p>
+                <ul>
+                    <li><b>Export or copy the cell-line list as it stands.</b> Two buttons in the Cell Line Browser take the visible list in its current sort order, with tissue, subtype, disease, sex and whichever value the list is sorted by (expression, drug-response AUC, copy number, mutation counts): one saves a CSV, the other copies tab-separated text straight into Excel.</li>
+                    <li><b>Best filters can rank by correlation strength.</b> The list still ranks tissues by how many genes stay connected; a second choice ranks by the average |r| of the pairs that survive there, which is the way to see where the relationships are tightest rather than most numerous. Lineages resting on fewer than three pairs are held below the others, since an average over one pair is not evidence.</li>
+                    <li><b>Changing genes or the measure in the scatter keeps your filters.</b> Editing the Genes (X/Y) box, switching GE / Expr / CN, or pressing the swap-axes button reset the tissue filter, colouring and axis measures; they now stay as you set them. Arriving at a different pair from the network still starts fresh.</li>
+                    <li><b>Color by disease shows its group picker</b>, as tissue and subtype already did.</li>
+                    <li><b>Fix: patient sex was missing since the 26Q1 update.</b> The field was dropped when the cell-line metadata was rebuilt, so the sex filter and symbols had nothing to read. Restored for all 1,208 lines.</li>
+                    <li>The mRNA cutoff default is back to 0.50, matching gene effect, and the gene effect / mRNA choice is a quieter inline pair again.</li>
+                </ul>
                 <p><strong>v.87.5 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>Gate comparison reaches the disease level.</b> Comparing two gates showed where their cell lines come from by tissue and by subtype; it now adds the exact Oncotree disease as a third table, which is often where the real difference shows (CNS/Brain as a tissue becomes Glioblastoma IDH-Wildtype as a disease). The three tables are built by one shared routine instead of a copy each.</li>
@@ -5703,7 +5690,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.5</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.6</a>
         </span>
     </div>
 
@@ -5811,16 +5798,10 @@
                          effect when the radios are absent, so removing this is
                          enough for the simpler build. -->
                     <div class="form-group" id="basisParams">
-                        <label class="form-label">Correlate on:</label>
-                        <div class="radio-group" id="basisModeOptions">
-                            <label title="Correlate the CRISPR knockout fitness profiles (Chronos gene effect): which genes the same cell lines depend on. The classic Correlate question.">
-                                <input type="radio" name="analysisBasis" value="ge" checked>
-                                <span>Gene effect<span style="display:block; font-weight:400; color:#9ca3af; font-size:10px;">CRISPR knockout, which genes are needed together</span></span>
-                            </label>
-                            <label title="Correlate mRNA levels (log2 TPM+1) instead: which genes are switched on together across the same cell lines. Same cohort as gene effect, so the two networks are directly comparable.">
-                                <input type="radio" name="analysisBasis" value="expr">
-                                <span>mRNA expression<span style="display:block; font-weight:400; color:#9ca3af; font-size:10px;">which genes are expressed together</span></span>
-                            </label>
+                        <label class="form-label" style="font-weight:400; color:#6b7280;">Correlate on:</label>
+                        <div class="radio-group-inline" id="basisModeOptions" style="font-size:11px;">
+                            <label title="Correlate the CRISPR knockout fitness profiles (Chronos gene effect): which genes the same cell lines depend on. The classic Correlate question."><input type="radio" name="analysisBasis" value="ge" checked> Gene effect</label>
+                            <label title="Correlate mRNA levels (log2 TPM+1) instead: which genes are switched on together across the same cell lines. Same cohort as gene effect, so the two networks are directly comparable."><input type="radio" name="analysisBasis" value="expr"> mRNA</label>
                         </div>
                     </div>
 
@@ -7911,6 +7892,8 @@
               <span class="clb-group-label" style="color:var(--earth-700);">Export CSV</span>
               <button id="clbExportMinimal" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="One or a few selected cell lines: Gene Effect + Expression for every gene (CSV). Includes DepMap version and citation.">Cell line:<br><span>GE + expression</span></button>
               <button id="clbExportComprehensive" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="Selected cell line(s): full profile for every gene, GE + Expression + Hotspot + Damaging + Fusion + focal CN amplifications / deletions (CSV).">Cell line:<br><span>full profile</span></button>
+              <button id="clbExportListBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="The list exactly as it is on screen: every visible cell line in its current sort order, with tissue, subtype, disease and whichever value the list is sorted by (expression, drug response, copy number, mutation counts).">List on screen:<br><span>CSV</span></button>
+              <button id="clbCopyListBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="Copy the same on-screen list to the clipboard as tab-separated text, ready to paste straight into Excel.">List on screen:<br><span>copy</span></button>
               <button id="clbExportGenesBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="One or a few genes: full profile (GE, Expression, Hotspot, Damaging, Fusion, focal CN) across the selected / visible cell lines (CSV).">Genes:<br><span>full profile</span></button>
             </div>
           </div>
@@ -8269,6 +8252,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_5"></script>
+    <script src="app.js?v=v87_6"></script>
 </body>
 </html>

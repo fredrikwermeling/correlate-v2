@@ -22,6 +22,7 @@ METADATA_JSON = os.path.join(HERE, "..", "web_data", "cellLineMetadata.json")
 
 # DepMap column → JSON key (camelCase)
 FIELD_MAP = {
+    "Sex": "sex",
     "Age": "age",
     "AgeCategory": "ageCategory",
     "PatientRace": "patientRace",
