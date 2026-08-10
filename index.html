@@ -2201,6 +2201,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.17 (2026-08-10)</strong></p>
+                <ul>
+                    <li><b>Fix: p-values in exported CSVs were text, not numbers.</b> They were written the way they are displayed ("3.8 × 10⁻⁵⁷", with superscript digits), which a spreadsheet imports as words: the column could not be sorted or calculated with. Files now carry plain values (3.800e-57); the app still shows the readable form on screen.</li>
+                    <li><b>Fix: bold and italic gene names exported as raw markup.</b> The network's SVG export wrote the styling tags into the label text instead of applying them, so a bold or italic network came out with the tags printed beside every gene. Both SVG exporters now set real font weight and style.</li>
+                    <li><b>Fix: the caption under a gated export crowded the bottom edge.</b> It sat under the left panel only, which made that half look taller, and the whitespace trim then cropped it flush to the edge. It is now centred under both panels, and a composed figure is no longer trimmed.</li>
+                </ul>
                 <p><strong>v.87.16 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>Find correlates has a minimum cell-line count.</b> The 26Q1 release added genes screened in only a handful of lines, which flooded the list with correlations computed on almost no data. The panel now asks for at least 10 cell lines with both genes measured, adjustable beside the two |r| cutoffs (0 shows everything).</li>
@@ -5759,7 +5765,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.16</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.17</a>
         </span>
     </div>
 
@@ -8336,6 +8342,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_16"></script>
+    <script src="app.js?v=v87_17"></script>
 </body>
 </html>
