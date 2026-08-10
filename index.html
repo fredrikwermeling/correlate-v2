@@ -2204,6 +2204,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.4 (2026-08-10)</strong></p>
+                <ul>
+                    <li><b>Fix: the network was drawn far too small.</b> After the automatic arrangement the view zoomed out much further than the picture needed, leaving a small cluster in a mostly empty panel. The layout engine sizes the view from each label's last drawn position, and moving nodes into place does not refresh that: the labels were still recorded at their old coordinates, so the content looked hundreds of pixels wider than it was. The view now refreshes before it fits, which on a typical network is about a quarter larger than before.</li>
+                    <li><b>The cancer type is underlined</b> in the cell-line hover card, so it stands out from the rest of the sentence.</li>
+                </ul>
                 <p><strong>v.87.3 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>The gene effect / mRNA choice is easier to find.</b> It was plain text with small radio buttons, easy to miss under the analysis-mode block; the two options now sit in the same boxed, highlight-the-active-one style as the choice above them, headed <em>Correlate on</em>, each with a one-line description of the question it answers.</li>
@@ -5691,7 +5696,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.3</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.4</a>
         </span>
     </div>
 
@@ -8256,6 +8261,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_3"></script>
+    <script src="app.js?v=v87_4"></script>
 </body>
 </html>
