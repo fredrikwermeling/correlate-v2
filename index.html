@@ -2201,6 +2201,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.15 (2026-08-10)</strong></p>
+                <ul>
+                    <li><b>The gated export's two plot areas now line up exactly.</b> Borrowing the chart's margins was not enough: each panel was still free to grow its own margins to fit its tick labels, and since the two carry different ranges they ended at different heights. That is now switched off for the gating plot, so both panels share one plot area, one type size and one baseline.</li>
+                </ul>
                 <p><strong>v.87.14 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>The two panels of a gated export now match exactly.</b> The gating plot was a picture taken from the screen while the chart beside it was redrawn at export size, so it came out a different size, with different lettering and the on-screen gray panel against the chart's white. The gating plot is now redrawn for the export at the chart's own width, height, margins and background, so plot areas, type and panel colour are identical and the two line up.</li>
@@ -5750,7 +5754,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.14</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.15</a>
         </span>
     </div>
 
@@ -8327,6 +8331,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_14"></script>
+    <script src="app.js?v=v87_15"></script>
 </body>
 </html>
