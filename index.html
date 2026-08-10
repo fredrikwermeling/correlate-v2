@@ -2201,6 +2201,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.14 (2026-08-10)</strong></p>
+                <ul>
+                    <li><b>The two panels of a gated export now match exactly.</b> The gating plot was a picture taken from the screen while the chart beside it was redrawn at export size, so it came out a different size, with different lettering and the on-screen gray panel against the chart's white. The gating plot is now redrawn for the export at the chart's own width, height, margins and background, so plot areas, type and panel colour are identical and the two line up.</li>
+                    <li><b>Export for AI says what it leaves out.</b> The file now carries a <em>notIncluded</em> section naming the data the app holds but the export does not (drug response, growth rate, the genome-wide copy-number matrix, genes below the tier's variance filter, cell lines outside the cohort, raw fusion calls, identity warnings) and how to fetch each, plus what the app has no data for at all. The instructions tell the assistant to name such a gap and ask for it rather than treat the absence as a result.</li>
+                </ul>
                 <p><strong>v.87.13 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>The gate is named above the plot</b>, in the same line that lists the tissue and alteration filters, so a gated plot says so where you read the rest of its cohort.</li>
@@ -5745,7 +5750,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.13</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.14</a>
         </span>
     </div>
 
@@ -8322,6 +8327,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_13"></script>
+    <script src="app.js?v=v87_14"></script>
 </body>
 </html>
