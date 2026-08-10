@@ -6772,7 +6772,7 @@ class CorrelationExplorer {
                 + `<div>${geneLink(h.original, h.replacement, true)} <span style="color:#9ca3af; font-size:10px;">${this.esc(h.source)}</span></div>`
             ).join('');
             synHtml = `<div style="background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:8px 10px; margin-top:6px;">
-                <div style="font-weight:600; color:#374151; margin-bottom:5px;">Suggested replacements${qi('These names are not in the data, but a known synonym or mouse ortholog is. Click a suggestion to replace that one name in your list, or Use all to replace every row. Keep my names leaves the list as typed; unmatched genes are then left out of the analysis.')}</div>
+                <div style="font-weight:600; font-size:12px; color:#374151; margin-bottom:5px;">Suggested replacements${qi('These names are not in the data, but a known synonym or mouse ortholog is. Click a suggestion to replace that one name in your list, or Use all to replace every row. Keep my names leaves the list as typed; unmatched genes are then left out of the analysis.')}</div>
                 <div style="${gridStyle}">${rows}</div>
                 <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
                     <button type="button" class="btn btn-sm" id="synApplyAllBtn" style="background:#4c782e; color:white; font-size:11px; padding:3px 10px;">Use all</button>
@@ -6797,7 +6797,7 @@ class CorrelationExplorer {
             let overflow = remaining.length > 10 ? `<div style="color:#9ca3af; margin-top:4px;">+${remaining.length - 10} more</div>` : '';
             const canSearchOnline = !this._synonymApiTried && remaining.some(g => !this._synonymApiHits?.has(g.toUpperCase()));
             remHtml = `<div style="background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:8px 10px; margin-top:6px;">
-                <div style="font-weight:600; color:#374151; margin-bottom:5px;">No match found${qi('No synonym or ortholog is known for these names. The names beside a gene are the closest spellings in the data: click one to use it instead. Names left unresolved are left out of the analysis.')}</div>
+                <div style="font-weight:600; font-size:12px; color:#374151; margin-bottom:5px;">No match found${qi('No synonym or ortholog is known for these names. The names beside a gene are the closest spellings in the data: click one to use it instead. Names left unresolved are left out of the analysis.')}</div>
                 ${rows ? `<div style="${gridStyle}">${rows}</div>` : ''}
                 ${noSugg.length ? `<div style="color:#6b7280; ${rows ? 'margin-top:5px;' : ''}">${rows ? 'Nothing close: ' : ''}${noSugg.map(g => this.esc(g)).join(', ')}</div>` : ''}
                 ${overflow}
