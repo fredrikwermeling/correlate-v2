@@ -845,6 +845,18 @@
         /* The filter inputs in box 1 were set at the same weight and size as the
            headings, so the eye landed on "Search hotspot gene..." rather than on
            the sections themselves. Shrink the controls so the headings lead. */
+        #globalCohortBar {
+            display: flex; align-items: baseline; gap: 8px;
+            margin-top: 8px; padding: 4px 8px; min-height: 22px;
+            border-left: 3px solid var(--gray-200); background: #fafafa;
+            border-radius: 3px; font-size: 11px; color: #6b7280; line-height: 1.35;
+        }
+        #globalCohortBar.is-filtered { border-left-color: var(--green-500, #5d9239); background: #f3f8ef; color: #374151; }
+        #globalCohortText { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+        #globalCohortReset {
+            flex: 0 0 auto; background: none; border: none; padding: 0;
+            color: var(--green-700, #3f6b25); font-size: 11px; text-decoration: underline; cursor: pointer;
+        }
         #lineageFilterGroup .form-control,
         #subLineageFilterGroup .form-control,
         #paramHotspotFilterGroup .form-control,
@@ -2201,6 +2213,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.19 (2026-08-10)</strong></p>
+                <ul>
+                    <li><b>The cohort you are working on is now stated in one fixed place.</b> Filters set in one part of the app stay in force in the others, which is intended but was invisible: a cohort narrowed in the browser quietly narrowed the next analysis, results looked wrong, and reloading the page appeared to be the cure. A line under the Options buttons now always names the current cohort, and offers a reset when one is applied.</li>
+                    <li><b>Fix: Reset in the Gene Effect popout broke the mutation analysis behind it.</b> It cleared that analysis's results as well as its own, after which every Inspect button in the results table did nothing at all, with no message. Reset now leaves the analysis alone, and Inspect says what it needs if the results really are gone.</li>
+                    <li><b>Fix: popouts could be scrolled off into empty space.</b> Scrolling past the end of a dialog slid the whole card away, leaving a large blank patch. The card now moves only as far as something is genuinely out of reach, whether that is below the window edge or below the screen edge.</li>
+                    <li><b>Fix: overlapping column titles in the mutation analysis image export.</b> The vector table used a fixed column width, so any header longer than about ten characters ran into its neighbour. Columns are now measured from their contents, and a long title wraps onto a second line.</li>
+                    <li><b>Exports for AI answer subgroup questions properly.</b> A question naming a disease now resolves to actual cell lines at export time, because the disease field is coarser than most questions: chronic lymphocytic leukemia is not a value it takes, and its lines sit inside a bucket that also holds several other diseases. Groups are now also broken out at the finer Oncotree level, small groups are flagged rather than dropped, and each group carries the focal gene's rank against every other gene for the same contrast, which settles a question that a group mean cannot.</li>
+                    <li>Alongside that: a calibration for how large a group difference has to be at each group size, the two standard controls for a weak dependency per cell line (the line's own mean gene effect, and the focal gene against that line's own distribution), proliferation rate per cell line, and a plain statement that the genome-wide correlation scans are cohort-wide, so absence from them is not evidence of absence in a subgroup.</li>
+                </ul>
                 <p><strong>v.87.18 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>Cell lines now show which virus transformed them.</b> Cellosaurus records the transforming agent for 53 lines in the panel, most often EBV, HPV16/18 or HBV. A small virus appears beside the name in the browser list, the summary at the top of the card says so, and the wiki gives the full record with a note on what it means.</li>
@@ -5773,7 +5794,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.18</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.19</a>
         </span>
     </div>
 
@@ -5810,6 +5831,16 @@
                              _armResetAll() turns it solid green once there is
                              actually something to reset (results or filters). -->
                         <button class="btn btn-outline btn-sm" id="resetAppBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Clear the current genes, parameters and results and start over">Reset all</button>
+                    </div>
+                    <!-- Filters set in one part of the app stay in force in the
+                         others, which is correct but invisible: a cohort narrowed
+                         in the browser silently narrowed the next analysis too,
+                         and the app read as "stuck" until it was reloaded. This
+                         line always says what the current cohort is. Always
+                         rendered, so nothing shifts when filters appear. -->
+                    <div id="globalCohortBar" title="The cell lines every part of the app is currently working on. Filters stay in force when you move between features, so this line always says what is applied.">
+                        <span id="globalCohortText">Cohort: all cell lines</span>
+                        <button type="button" id="globalCohortReset" style="display:none;">reset</button>
                     </div>
                     <!-- Load state stays on the homepage even though the sources
                          moved to the Reference Data modal, so it's still obvious
@@ -8352,6 +8383,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_18"></script>
+    <script src="app.js?v=v87_19"></script>
 </body>
 </html>
