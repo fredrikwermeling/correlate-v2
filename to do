@@ -1,3 +1,10 @@
+in cell line correlate, allow for hover over a gene giving information about it. also allow for two more "compare with" versions. One that allows for clicking in a tree to select one or more linages/subtypes or diseases. antoehr button shuld be for comparing to a custom list of cell ines pasted into a box.
+
+
+
+
+old
+
 should we update files to the latests depmapfiles?
 
 -are you in the setting where you can work in chrome? if not stop and tell me what to cahnge to activate this.
@@ -15,10 +22,6 @@ should we update files to the latests depmapfiles?
 - everywhere ther are filters (network, corrleat, gene effect etc) there should be a lineage, subtype and disease 
 -the spread function works strange. if i move around a node in the lock fucntion and then lower the spread number, the nodes moves back to the first position (before i moved them around).
 -
-
-
-
-
 
 
 ---
