@@ -2201,6 +2201,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.13 (2026-08-10)</strong></p>
+                <ul>
+                    <li><b>The gate is named above the plot</b>, in the same line that lists the tissue and alteration filters, so a gated plot says so where you read the rest of its cohort.</li>
+                    <li><b>Exports read in the order of the analysis:</b> the gating plot first, then the plot of the population it selected, both the same size. PowerPoint places the two independent pictures the same way round.</li>
+                </ul>
                 <p><strong>v.87.12 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>A gated figure exports as two panels side by side, at the same size.</b> The gating plot used to be stacked underneath, which made a tall narrow figure; it now sits to the right of the chart, both panels exactly the same size, with the caption under the gate. The gating plot is also captured at the same dimensions the export renders at, so the two always match.</li>
@@ -5740,7 +5745,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.12</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.13</a>
         </span>
     </div>
 
@@ -8317,6 +8322,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_12"></script>
+    <script src="app.js?v=v87_13"></script>
 </body>
 </html>
