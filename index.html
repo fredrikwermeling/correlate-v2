@@ -2182,6 +2182,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.10 (2026-08-10)</strong></p>
+                <ul>
+                    <li><b>A gate used as a filter now behaves like every other filter.</b> It appears in Active filters as "Gate A (363)", stacks with the tissue and alteration filters, and is removed by clicking the chip. Changing the genes or axes no longer drops it: erasing the drawn shapes and removing the filter made from them are separate things now, so the main plot stays fully editable underneath the gate.</li>
+                    <li><b>The gating plot is the same size as the plot above it</b> and stays put while you change genes or filters, since those describe the plot above, not the gate that produced the cohort.</li>
+                </ul>
                 <p><strong>v.87.9 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>Fix: a best-filter pick now shows in Lineage and disease.</b> Choosing a tissue from the best-filter list applied it to the analysis but left the Lineage box reading "All lineages", so there was no sign of it and nothing to reset. The pick now goes through the Lineage control itself: the box shows the tissue, the subtype list and counts follow, and clearing it there clears the filter.</li>
@@ -5707,7 +5712,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.9</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.10</a>
         </span>
     </div>
 
@@ -8284,6 +8289,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_9"></script>
+    <script src="app.js?v=v87_10"></script>
 </body>
 </html>

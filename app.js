@@ -19915,10 +19915,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (el('setGateBBtn')) { el('setGateBBtn').textContent = 'Set Gate B'; el('setGateBBtn').style.opacity = '1'; el('setGateBBtn').disabled = true; }
         if (el('compareGatesBtn')) el('compareGatesBtn').style.display = 'none';
         if (el('clearGatesBtn')) el('clearGatesBtn').style.display = 'none';
+        // The drawn shapes and a filter made from one are separate things:
+        // erasing the shapes (which every re-render does) must not drop the
+        // filter, or changing a gene would silently un-gate the plot. The
+        // filter goes via clearGateFilter, or with the rest of the settings
+        // when a genuinely different pair is opened.
         if (el('gateAsFilterBtn')) el('gateAsFilterBtn').style.display = 'none';
-        // Clearing the drawn shapes does not undo a filter already applied
-        // from one, unless the caller wants everything gone.
-        if (!opts.keepFilter && this._gateFilter) this.clearGateFilter();
         if (el('gateStatus')) { el('gateStatus').textContent = 'Draw a rectangle or lasso on the plot to define gates'; el('gateStatus').style.color = '#6b7280'; }
         if (el('gateComparePanel')) el('gateComparePanel').style.display = 'none';
 
@@ -20121,6 +20123,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (cnt) cnt.textContent = `${ids.size} from gate ${which}`;
         this.clearGates({ keepFilter: true });
         this._syncGateFilterUI();
+        this._renderFilterChips?.('scatter');
         this.updateInspectPlot();
         this.showCopyNotification?.(`Filtered to the ${ids.size} cell lines inside gate ${which}`);
     }
@@ -20132,6 +20135,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cnt = document.getElementById('customCLFilterCount');
         if (cnt) cnt.textContent = '';
         this._syncGateFilterUI();
+        this._renderFilterChips?.('scatter');
         this.updateInspectPlot();
     }
 
@@ -20148,7 +20152,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const t = document.getElementById('gateFilterTitle');
         if (t) t.textContent = `Gating plot: gate ${f.gate}, ${f.n} cell lines`;
         const im = document.getElementById('gateFilterImage');
-        if (im) { if (f.image) { im.src = f.image; im.style.display = ''; } else im.style.display = 'none'; }
+        if (im) {
+            if (f.image) {
+                im.src = f.image;
+                im.style.display = '';
+                // Same size as the plot above it, so the two read as a pair
+                // rather than a figure and a poster.
+                const w = document.getElementById('scatterPlot')?.offsetWidth;
+                im.style.width = w ? `${w}px` : '';
+                im.style.maxWidth = '100%';
+            } else im.style.display = 'none';
+        }
         const cap = document.getElementById('gateFilterCaption');
         if (cap) cap.textContent = `Gate ${f.gate} drawn on ${f.genes}; the ${f.n} cell lines inside it are the cohort of the plot above.`;
     }
@@ -36744,6 +36758,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         }
 
+        // A gate used as a filter reads like any other filter on the scatter.
+        if (ctxName === 'scatter' && this._gateFilter) {
+            parts.push(`<span class="clb-chip" data-chip="gatefilter" title="Only the cell lines inside gate ${this._gateFilter.gate}. Click to remove."`
+                + ` style="background:#f5f3ff;color:#5b21b6;padding:1px 6px;border-radius:10px;cursor:pointer;">`
+                + `Gate ${this._gateFilter.gate} (${this._gateFilter.n}) &#9662;</span>`);
+        }
+
         host.innerHTML = parts.join(' ');
         host.style.display = parts.length ? 'flex' : 'none';
         // The scatter's chip box is always on screen (no layout jumps); a
@@ -36773,6 +36794,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             el.value = v;
             el.dispatchEvent(new Event('change', { bubbles: true }));
         };
+
+        if (kind === 'gatefilter') {
+            return this._simpleChipMenu(anchorEl, [{
+                label: 'Remove this filter', danger: true,
+                act: () => this.clearGateFilter(),
+            }], after);
+        }
 
         if (kind === 'tissue') {
             return this._simpleChipMenu(anchorEl, [{
