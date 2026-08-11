@@ -2201,6 +2201,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.38 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Filters are listed in one place again.</b> Picks made from an alteration grid were still being written into the parameters box, twice over, as a line of green text and as a row of chips, while everything else had moved to Active filters beside Run. All of them now appear in that one box, each removable, and the two older lists are gone.</li>
+                </ul>
                 <p><strong>v.87.37 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>Clicking a bar in the UpSet plot no longer rearranges it.</b> Applying a combination redrew the whole chart, and the redraw chooses which genes to show from the filters in force, so the plot restructured under the click. The chosen bar simply turns green now and every other bar stays where it was.</li>
@@ -5876,7 +5880,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.37</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.38</a>
         </span>
     </div>
 
@@ -6157,7 +6161,7 @@
                             </select>
                             <button type="button" class="btn btn-outline btn-sm clb-icon-btn" id="paramGridHotspotBtn" title="Mutation grid for the cell lines currently selected, click a gene to require it mutated or wild-type">&#9638;</button>
                         </div>
-                        <div id="oncoprintFilterLabel" style="display:none; font-size:11px; color:#5d9239; margin-top:4px; cursor:pointer;" title="Click to clear oncoprint filters"></div>
+                        <!-- Grid picks are listed with every other filter beside Run. -->
                     </div>
 
                     <div class="form-group" id="paramCnFilterGroup" style="display: none;">
@@ -6188,7 +6192,10 @@
                             </select>
                             <button type="button" class="btn btn-outline btn-sm clb-icon-btn" id="paramGridFusionBtn" title="Fusion grid for the cell lines currently selected, click a gene to require it fused or not fused">&#9638;</button>
                         </div>
-                        <div id="paramActiveFilters" class="clb-active-filters" style="display:none;"></div>
+                        <!-- Retired: the one place filters are listed is the Active
+                             filters box at the end of the gene set, beside Run.
+                             Two lists of the same filters in two boxes was the
+                             confusion this replaced. -->
                         <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 4px 6px; margin-top: 4px; font-size: 9px; color: #92400e;">
                             Selecting for genetic alterations can introduce unintended bias in analysis.
                             <span onclick="const d=this.nextElementSibling; d.style.display = d.style.display==='none'?'block':'none';" style="display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; background:#f59e0b; color:#fff; font-weight:700; font-size:9px; cursor:pointer; vertical-align:middle;" title="More about this bias">?</span>
@@ -8495,6 +8502,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_37"></script>
+    <script src="app.js?v=v87_38"></script>
 </body>
 </html>
