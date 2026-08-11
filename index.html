@@ -2208,6 +2208,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.28 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Fix: the scatter legend could still be cut off at the edge on a narrow plot.</b> Its width was estimated before the entries existed, and the entries were then sized back from that estimate, so on a small plot with long disease names the text ran past the box. The width is now worked out from the columns that will actually be drawn, including the "not selected" entry, and the text shrinks and the names narrow until everything fits.</li>
+                </ul>
                 <p><strong>v.87.27 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>A gene opened from the comparison table can now be charted as the comparison itself.</b> The choice above the chart, which offered all lineages or this lineage broken up two ways, gains a fourth: your selection against whatever you chose to compare it with, whether that was all other cell lines, the same lineage, tissues and diseases you ticked, or a list you pasted. The chart then holds those two groups and nothing else, which is the question the table was asking in the first place.</li>
@@ -5837,7 +5841,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.27</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.28</a>
         </span>
     </div>
 
@@ -8431,6 +8435,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_27"></script>
+    <script src="app.js?v=v87_28"></script>
 </body>
 </html>
