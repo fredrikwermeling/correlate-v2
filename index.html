@@ -2208,6 +2208,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.25 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Tissue, subtype and disease are one filter chip, not three.</b> They are a single nested choice, so listing them separately suggested a middle level could be removed on its own. The chip names the most specific level and spells out the full path on hover.</li>
+                    <li><b>Fix: removing a filter could leave part of it behind.</b> Clearing a disease picked through the Tissues button left a green note beside the lineage box still naming it, so the filter looked applied when it was not. Clearing now goes through the same path the app uses everywhere else and takes the note with it.</li>
+                    <li><b>Remove all</b> beside the Active filters heading clears every one of them at once.</li>
+                    <li>The dividing rule moved below the filters, where it separates them from what follows instead of doubling up with the rule above.</li>
+                </ul>
                 <p><strong>v.87.24 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>Gene set analysis and mutation analysis keep their own filters.</b> The two share one box of cohort settings, so a tissue, an alteration or a gate set for one quietly narrowed the other as well. Each now remembers its own: switching modes puts the current settings aside and brings back whatever that mode had, or a clean slate the first time. Gates in particular no longer follow you from one analysis into the other.</li>
@@ -5820,7 +5827,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.24</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.25</a>
         </span>
     </div>
 
@@ -6225,12 +6232,11 @@
                     </button>
                     <div id="geneCountDisplay" style="margin-top: 8px;"></div>
                     <div id="geneValidationDisplay" style="margin-top: 8px;"></div>
-                    <!-- The cell-line subset a gate (or a pasted list) leaves in
-                         force used to sit in the Parameters card, where it was
-                         easy to miss. It belongs at the end of the gene set,
-                         next to Run, with a rule above it so it reads as its own
-                         thing rather than more gene input. -->
-                    <div class="form-group" id="analysisSubsetGroup" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--gray-200);"></div>
+                    <!-- Active cohort filters, at the end of the gene set next to
+                         Run. The rule sits BELOW it: what comes after is a
+                         different concern (ranking), and a rule above as well
+                         doubled up with the one the block above already draws. -->
+                    <div class="form-group" id="analysisSubsetGroup" style="display: none; margin-top: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--gray-200);"></div>
                     <div id="analysisStatus"></div>
                     </div> <!-- end card-content -->
                 </div>
@@ -8415,6 +8421,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_24"></script>
+    <script src="app.js?v=v87_25"></script>
 </body>
 </html>
