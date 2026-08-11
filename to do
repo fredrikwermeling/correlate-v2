@@ -3,6 +3,9 @@ the export for AI text needs to be written in a better way so the user understan
 depmap has a list of artefact genes, right? perhaps this should be included in the app, as a warning for the user.
 the gene effect popout. i cant cahnge to expression when i come from double clicking the nodes of the netwrok. 
 i find it anoying with genes for which there are very few celllines including it. should there be a filter everywhere that filters genes with eg fewer than 100 cell lines in the full dataset? it seems ike these genes with few cell ines are over rpresented in all statstics. As menioned im not conviced of the 26Q1 addition does help the user. 
+Do you know have growthRate data from all cell lines? should this be included as a X or y paramter in scatter? In the past i asked you to calculate growth rate based on gene expression. i figured this could be  arelavant paramteerfor comparion of cell dependincies, but it never gave any. perhaps growth reate could also be selected in steead of mutations in the mutaitonal analyis popout?
+
+
 
 old
 
