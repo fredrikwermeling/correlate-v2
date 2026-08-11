@@ -1089,15 +1089,22 @@
         #geneValidationDisplay .status-box * {
             font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         }
+        /* Layout only. The amber below belongs to the warning case; applying
+           it to every box in here meant the success line ("All N genes found")
+           came out cream and amber while every other success message in the
+           app is green. */
         #geneValidationDisplay .status-box {
             font-size: 12px;
             line-height: 1.5;
-            color: #374151;
-            background: #fffdf7;
-            border-left-color: #f0b429;
             padding: 10px 12px;
         }
-        #geneValidationDisplay .status-box strong { font-weight: 600; color: #92400e; }
+        #geneValidationDisplay .status-box.status-warning {
+            color: var(--gray-700, #374151);
+            background: #fffdf7;
+            border-left-color: #f0b429;
+        }
+        #geneValidationDisplay .status-box.status-warning strong { font-weight: 600; color: #92400e; }
+        #geneValidationDisplay .status-box.status-success strong { font-weight: 600; color: var(--green-800); }
         #geneValidationDisplay .btn { font-size: 11px; }
 
         .status-warning {
@@ -2213,6 +2220,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.21 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Two more ways to choose what a cell line selection is compared with.</b> Alongside "all other cell lines" and "same lineage", you can now tick tissues, subtypes and diseases in a tree, at any level and as many as you like, or paste your own list of cell lines. The count of what you are comparing against is shown as you go, and names that are not in the panel are named rather than silently dropped.</li>
+                    <li><b>Hovering a gene in that table now says what the gene is</b>, together with the numbers from the row you are pointing at, so you no longer have to open the gene to find out whether it is worth opening.</li>
+                    <li><b>Fix: network labels were smaller than they should have been.</b> Gene names are drawn in italics, and italic text was being rendered at a fixed size that ignored the size slider entirely. The slider now governs plain, bold and italic labels alike.</li>
+                    <li><b>Fix: clearing a filter in the scatter no longer undoes itself.</b> A filter carried in from the network came back every time the axes were changed and Update was pressed. A filter you clear now stays cleared for as long as you are in that plot, while arriving fresh from the network still brings its filters with it.</li>
+                    <li><b>The cell line subset in force now sits at the end of the gene set</b>, next to Run and under a dividing rule, instead of further up where it was easy to miss.</li>
+                    <li>The "all genes found" line uses the app's green, having been styled with the amber reserved for warnings.</li>
+                </ul>
                 <p><strong>v.87.20 (2026-08-10)</strong></p>
                 <ul>
                     <li><b>The outside libraries the app loads are now pinned by content.</b> Each one carries a checksum, so a browser refuses to run it if what arrives is not byte-for-byte the reviewed file. One library was worse than unpinned: it asked for "latest", meaning the app would silently pick up any new release, breaking or otherwise. It now names an exact version.</li>
@@ -5799,7 +5815,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.20</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.21</a>
         </span>
     </div>
 
@@ -6032,7 +6048,6 @@
                     <!-- A cell-line subset handed over by the browser's inspect.
                          Hidden until one is active; removable from here so it
                          cannot stay applied without the user knowing. -->
-                    <div class="form-group" id="analysisSubsetGroup" style="display: none;"></div>
 
                     <div class="form-group" id="lineageFilterGroup" style="display: none;">
                         <!-- Section heading, peer to "Genetic alterations" below. The
@@ -6215,6 +6230,12 @@
                     </button>
                     <div id="geneCountDisplay" style="margin-top: 8px;"></div>
                     <div id="geneValidationDisplay" style="margin-top: 8px;"></div>
+                    <!-- The cell-line subset a gate (or a pasted list) leaves in
+                         force used to sit in the Parameters card, where it was
+                         easy to miss. It belongs at the end of the gene set,
+                         next to Run, with a rule above it so it reads as its own
+                         thing rather than more gene input. -->
+                    <div class="form-group" id="analysisSubsetGroup" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--gray-200);"></div>
                     <div id="analysisStatus"></div>
                     </div> <!-- end card-content -->
                 </div>
@@ -8388,6 +8409,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_20"></script>
+    <script src="app.js?v=v87_21"></script>
 </body>
 </html>
