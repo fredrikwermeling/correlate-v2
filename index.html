@@ -2208,6 +2208,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.24 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Gene set analysis and mutation analysis keep their own filters.</b> The two share one box of cohort settings, so a tissue, an alteration or a gate set for one quietly narrowed the other as well. Each now remembers its own: switching modes puts the current settings aside and brings back whatever that mode had, or a clean slate the first time. Gates in particular no longer follow you from one analysis into the other.</li>
+                </ul>
                 <p><strong>v.87.23 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>The network font slider now means what it says.</b> Labels are drawn in the network's own coordinates, so zooming out to fit the whole picture shrank the text with it: at a typical fit a "20" label reached the screen at about 16. Labels are now scaled back up by the same amount, so 20 on the slider is 20 on screen whatever the network's size.</li>
@@ -5816,7 +5820,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.23</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.24</a>
         </span>
     </div>
 
@@ -8411,6 +8415,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_23"></script>
+    <script src="app.js?v=v87_24"></script>
 </body>
 </html>
