@@ -2201,6 +2201,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.39 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Fix: an UpSet plot opened from the scatter filtered the wrong thing.</b> The scatter deliberately keeps its own set of grid picks, so that choices made there do not reach into the analysis cohort, and clicking a bar was writing to the shared set instead: the scatter did not change, and the gene set analysis quietly did. Clicking a bar now applies to whichever grid the plot was opened from, and the plot in front of you updates.</li>
+                </ul>
                 <p><strong>v.87.38 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>Filters are listed in one place again.</b> Picks made from an alteration grid were still being written into the parameters box, twice over, as a line of green text and as a row of chips, while everything else had moved to Active filters beside Run. All of them now appear in that one box, each removable, and the two older lists are gone.</li>
@@ -5880,7 +5884,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.38</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.39</a>
         </span>
     </div>
 
@@ -8502,6 +8506,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_38"></script>
+    <script src="app.js?v=v87_39"></script>
 </body>
 </html>
