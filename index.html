@@ -2208,6 +2208,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.26 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Fix: the disease level of the comparison picker could not be opened.</b> The rows were built with a separator character that browsers strip out of the markup, so clicking a subtype did nothing. Diseases now open and can be ticked like the levels above them.</li>
+                    <li><b>Fix: opening the picker left the tick on the wrong choice.</b> "All other cell lines" stayed marked as selected until something had been ticked, so the picker looked inactive while it was open. The mark now follows what was chosen; the comparison itself still falls back to all other cell lines until a pick is made.</li>
+                </ul>
                 <p><strong>v.87.25 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>Tissue, subtype and disease are one filter chip, not three.</b> They are a single nested choice, so listing them separately suggested a middle level could be removed on its own. The chip names the most specific level and spells out the full path on hover.</li>
@@ -5827,7 +5832,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.25</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.26</a>
         </span>
     </div>
 
@@ -8421,6 +8426,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_25"></script>
+    <script src="app.js?v=v87_26"></script>
 </body>
 </html>
