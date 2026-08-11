@@ -2208,6 +2208,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.27 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>A gene opened from the comparison table can now be charted as the comparison itself.</b> The choice above the chart, which offered all lineages or this lineage broken up two ways, gains a fourth: your selection against whatever you chose to compare it with, whether that was all other cell lines, the same lineage, tissues and diseases you ticked, or a list you pasted. The chart then holds those two groups and nothing else, which is the question the table was asking in the first place.</li>
+                    <li>In that view the selected lines are one of the two groups, so they are no longer separately marked as highlighted on top of it.</li>
+                </ul>
                 <p><strong>v.87.26 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>Fix: the disease level of the comparison picker could not be opened.</b> The rows were built with a separator character that browsers strip out of the markup, so clicking a subtype did nothing. Diseases now open and can be ticked like the levels above them.</li>
@@ -5832,7 +5837,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.26</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.27</a>
         </span>
     </div>
 
@@ -8426,6 +8431,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_26"></script>
+    <script src="app.js?v=v87_27"></script>
 </body>
 </html>
