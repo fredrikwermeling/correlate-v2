@@ -2220,6 +2220,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.22 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>You choose what the legend states for each coloured group.</b> When colouring by tissue, subtype or disease, a new selector under the colour picker offers the correlation, the average of each axis, the median of each axis, or the count on its own. Correlation answers whether the relationship holds inside a group; the average or median answers where the group sits, which is the more useful reading when groups separate by level rather than by trend. The median is there because one extreme cell line moves a small group's average a long way.</li>
+                </ul>
                 <p><strong>v.87.21 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>Two more ways to choose what a cell line selection is compared with.</b> Alongside "all other cell lines" and "same lineage", you can now tick tissues, subtypes and diseases in a tree, at any level and as many as you like, or paste your own list of cell lines. The count of what you are comparing against is shown as you go, and names that are not in the panel are named rather than silently dropped.</li>
@@ -5815,7 +5819,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.21</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.22</a>
         </span>
     </div>
 
@@ -6825,6 +6829,17 @@
                                 <!-- Color only the chosen tissues / subtypes; everything else grays out. -->
                                 <button type="button" id="colorByGroupBtn" class="btn btn-sm btn-outline" style="display:none; font-size:9px; padding:1px 4px; margin-top:2px; width:100%;" onclick="app.showColorByGroupPicker()">Pick groups...</button>
                                 <input type="hidden" id="colorByPicked" value="">
+                                <!-- What each group's legend entry states beside its
+                                     count. Correlation is only meaningful for some
+                                     questions; where the groups differ in level
+                                     rather than in trend, the average or the median
+                                     of each axis says more. -->
+                                <select id="colorByLegendStat" class="form-control" style="display:none; font-size:9px; padding:1px 3px; margin-top:2px;" title="What to show beside each group name in the legend">
+                                    <option value="r">Legend: r</option>
+                                    <option value="mean">Legend: x/y average</option>
+                                    <option value="median">Legend: x/y median</option>
+                                    <option value="none">Legend: count only</option>
+                                </select>
                                 <!-- Chosen groups, each removable without reopening the picker. -->
                                 <div id="colorByChips" style="display:none; margin-top:3px; flex-wrap:wrap; gap:3px;"></div>
                                 <div id="colorByLegend" style="display:none; margin-top:2px; max-height:20vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:3px; padding:2px;"></div>
@@ -8409,6 +8424,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_21"></script>
+    <script src="app.js?v=v87_22"></script>
 </body>
 </html>
