@@ -1762,21 +1762,14 @@
         /* When there are chips, set the row apart from the controls above it so
            it does not read as another line of label text. */
         .clb-active-filters:not(:empty) {
-            margin-top: 6px;
-            padding: 5px 7px;
-            background: #f8faf7;
-            border: 1px solid #e5e7eb;
+            margin-top: 0;
+            padding: 0;
+            background: transparent;
+            border: 0;
             border-radius: 6px;
         }
-        .clb-active-filters:not(:empty)::before {
-            content: 'Active:';
-            font-size: 9px;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            color: #6b7280;
-            margin-right: 1px;
-        }
+        /* The box above carries the heading now, so the row does not repeat it. */
+        .clb-active-filters:not(:empty)::before { content: none; }
         .clb-content {
             display: flex;
             min-height: 300px;
@@ -2208,6 +2201,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.36 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Choosing a gate shape is now asked plainly.</b> Rectangle or lasso used to be two lines of small text under the button, easy to miss and easy to dismiss by accident. It is a proper dialog in the middle of the screen, each option saying what it does, in the colour of the gate being drawn.</li>
+                    <li><b>The Cell Line Browser keeps an Active filters box on screen</b>, with its own Reset beside it, the way the scatter does. It reads "none" when nothing is applied, so the row never appears and shifts everything below it.</li>
+                </ul>
                 <p><strong>v.87.35 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>Find correlates asks for a share of the cohort, not a fixed count.</b> With 315 cell lines showing, the top correlates of ATM were genes measured in about 20 of them, roughly 6 % of the data, because a correlation on a handful of points is large by accident. A gene must now be measured in 75 % of the cell lines in view, adjustable, and 0 shows everything. On the full panel the top of that same list becomes TP53, TP53BP1, CHEK2, MDM2 and CDKN1A, which is the pathway ATM actually sits in.</li>
@@ -5874,7 +5872,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.35</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.36</a>
         </span>
     </div>
 
@@ -8092,7 +8090,20 @@
               <button id="clbCollectionsInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="What each quick filter includes, and the rule used to decide membership">?</button>
 
 
-              <div id="clbActiveFilters" class="clb-active-filters"></div>
+              <!-- Always present, like the scatter's: the row stays put whether
+                   or not anything is filtered, so nothing jumps as chips come
+                   and go, and Reset is where the filters are rather than at the
+                   far end of the toolbar. -->
+              <div id="clbActiveFiltersBox" style="width:100%; margin-top:6px; padding:5px 7px; background:#f8faf7; border:1px solid #e5e7eb; border-radius:5px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                  <span style="font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.03em;">Active filters</span>
+                  <button id="clbResetActiveFilters" class="btn btn-outline btn-sm" style="font-size:10px; padding:1px 8px;" title="Clear every filter: tissue, subtype, disease, sex, alterations, grid picks, quick filters and pasted lists">Reset</button>
+                </div>
+                <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center; min-height:16px; margin-top:3px;">
+                  <div id="clbActiveFilters" class="clb-active-filters"></div>
+                  <span id="clbNoFiltersNote" style="font-size:9px; color:#9ca3af;">none</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -8480,6 +8491,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_35"></script>
+    <script src="app.js?v=v87_36"></script>
 </body>
 </html>
