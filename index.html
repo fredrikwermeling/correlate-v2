@@ -845,18 +845,6 @@
         /* The filter inputs in box 1 were set at the same weight and size as the
            headings, so the eye landed on "Search hotspot gene..." rather than on
            the sections themselves. Shrink the controls so the headings lead. */
-        #globalCohortBar {
-            display: flex; align-items: baseline; gap: 8px;
-            margin-top: 8px; padding: 4px 8px; min-height: 22px;
-            border-left: 3px solid var(--gray-200); background: #fafafa;
-            border-radius: 3px; font-size: 11px; color: #6b7280; line-height: 1.35;
-        }
-        #globalCohortBar.is-filtered { border-left-color: var(--green-500, #5d9239); background: #f3f8ef; color: #374151; }
-        #globalCohortText { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-        #globalCohortReset {
-            flex: 0 0 auto; background: none; border: none; padding: 0;
-            color: var(--green-700, #3f6b25); font-size: 11px; text-decoration: underline; cursor: pointer;
-        }
         #lineageFilterGroup .form-control,
         #subLineageFilterGroup .form-control,
         #paramHotspotFilterGroup .form-control,
@@ -2220,6 +2208,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.23 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>The network font slider now means what it says.</b> Labels are drawn in the network's own coordinates, so zooming out to fit the whole picture shrank the text with it: at a typical fit a "20" label reached the screen at about 16. Labels are now scaled back up by the same amount, so 20 on the slider is 20 on screen whatever the network's size.</li>
+                    <li><b>The scatter legend is laid out in columns</b>, with a quiet header saying what those columns are. Names, counts and values now line up down the list instead of landing wherever the name happened to end. Group size is shown as "n=" and is what the legend states by default; correlation, average and median are the alternatives.</li>
+                    <li><b>Active filters are listed at the end of the gene set, each removable.</b> They narrow the gene set and mutation analyses and carry into a scatter or gene effect opened from the network; the Cell Line Browser has its own filters. The earlier line in the Options box has been removed: it was in the wrong place, and it claimed to describe the whole app, which was not true.</li>
+                    <li><b>Fix: a filter could look as though it had done nothing.</b> The line describing the cohort was reporting the size of the previous run, so picking a tissue left the count unchanged until the next Run.</li>
+                    <li><b>The comparison picker in the cell line browser now matches the rest of the app</b>, using the same table, checkboxes and expanding rows as the tissue breakdown elsewhere. Opening Inspect starts from the default view again rather than remembering the last comparison chosen, and the pasted list takes any number of names.</li>
+                    <li>HeLa is no longer named as an example anywhere. It was removed from the app some time ago and should not be suggested.</li>
+                </ul>
                 <p><strong>v.87.22 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>You choose what the legend states for each coloured group.</b> When colouring by tissue, subtype or disease, a new selector under the colour picker offers the correlation, the average of each axis, the median of each axis, or the count on its own. Correlation answers whether the relationship holds inside a group; the average or median answers where the group sits, which is the more useful reading when groups separate by level rather than by trend. The median is there because one extreme cell line moves a small group's average a long way.</li>
@@ -5819,7 +5816,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.22</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.23</a>
         </span>
     </div>
 
@@ -5856,16 +5853,6 @@
                              _armResetAll() turns it solid green once there is
                              actually something to reset (results or filters). -->
                         <button class="btn btn-outline btn-sm" id="resetAppBtn" style="color:var(--green-700); border-color:var(--green-400);" title="Clear the current genes, parameters and results and start over">Reset all</button>
-                    </div>
-                    <!-- Filters set in one part of the app stay in force in the
-                         others, which is correct but invisible: a cohort narrowed
-                         in the browser silently narrowed the next analysis too,
-                         and the app read as "stuck" until it was reloaded. This
-                         line always says what the current cohort is. Always
-                         rendered, so nothing shifts when filters appear. -->
-                    <div id="globalCohortBar" title="The cell lines every part of the app is currently working on. Filters stay in force when you move between features, so this line always says what is applied.">
-                        <span id="globalCohortText">Cohort: all cell lines</span>
-                        <button type="button" id="globalCohortReset" style="display:none;">reset</button>
                     </div>
                     <!-- Load state stays on the homepage even though the sources
                          moved to the Reference Data modal, so it's still obvious
@@ -6834,11 +6821,11 @@
                                      questions; where the groups differ in level
                                      rather than in trend, the average or the median
                                      of each axis says more. -->
-                                <select id="colorByLegendStat" class="form-control" style="display:none; font-size:9px; padding:1px 3px; margin-top:2px;" title="What to show beside each group name in the legend">
-                                    <option value="r">Legend: r</option>
-                                    <option value="mean">Legend: x/y average</option>
-                                    <option value="median">Legend: x/y median</option>
-                                    <option value="none">Legend: count only</option>
+                                <select id="colorByLegendStat" class="form-control" style="display:none; font-size:9px; padding:1px 3px; margin-top:2px;" title="What each group states in the legend beside its size">
+                                    <option value="none" selected>Legend: n only</option>
+                                    <option value="r">Legend: n + r</option>
+                                    <option value="mean">Legend: n + x/y average</option>
+                                    <option value="median">Legend: n + x/y median</option>
                                 </select>
                                 <!-- Chosen groups, each removable without reopening the picker. -->
                                 <div id="colorByChips" style="display:none; margin-top:3px; flex-wrap:wrap; gap:3px;"></div>
@@ -8424,6 +8411,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_22"></script>
+    <script src="app.js?v=v87_23"></script>
 </body>
 </html>
