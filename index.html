@@ -2208,6 +2208,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.35 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Find correlates asks for a share of the cohort, not a fixed count.</b> With 315 cell lines showing, the top correlates of ATM were genes measured in about 20 of them, roughly 6 % of the data, because a correlation on a handful of points is large by accident. A gene must now be measured in 75 % of the cell lines in view, adjustable, and 0 shows everything. On the full panel the top of that same list becomes TP53, TP53BP1, CHEK2, MDM2 and CDKN1A, which is the pathway ATM actually sits in.</li>
+                    <li><b>Small bars in the UpSet plot can be clicked.</b> A combination with two cell lines drew a sliver next to one with hundreds and there was nothing to hit; every column now has the same click target whatever its count, and the plot says so.</li>
+                    <li><b>A combination picked in the UpSet plot shows up in the grid behind it</b>, so it can be adjusted there before it reaches the list.</li>
+                    <li><b>Mutation filter chips in the Cell Line Browser offer the copy count.</b> The menu on a pick made from the alteration grid still had only altered and wild-type; it now offers either copy, one copy, both copies or wild-type.</li>
+                    <li><b>The gate comparison goes into PowerPoint as two pictures</b>, so the two plots can be moved and resized independently on the slide instead of arriving as one flattened image.</li>
+                </ul>
                 <p><strong>v.87.33 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>Clicking a bar in the UpSet plot filters on that combination.</b> A bar is already a filter, exactly the genes with a filled dot altered and the rest not, so clicking one applies it to the grid behind the plot, where it sits with the other picks and can be changed or removed once the plot is closed. Clicking the same bar again takes it off.</li>
@@ -5866,7 +5874,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.33</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.35</a>
         </span>
     </div>
 
@@ -8472,6 +8480,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_33"></script>
+    <script src="app.js?v=v87_35"></script>
 </body>
 </html>
