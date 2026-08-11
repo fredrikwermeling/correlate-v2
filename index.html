@@ -2201,6 +2201,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.37 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Clicking a bar in the UpSet plot no longer rearranges it.</b> Applying a combination redrew the whole chart, and the redraw chooses which genes to show from the filters in force, so the plot restructured under the click. The chosen bar simply turns green now and every other bar stays where it was.</li>
+                </ul>
                 <p><strong>v.87.36 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>Choosing a gate shape is now asked plainly.</b> Rectangle or lasso used to be two lines of small text under the button, easy to miss and easy to dismiss by accident. It is a proper dialog in the middle of the screen, each option saying what it does, in the colour of the gate being drawn.</li>
@@ -5872,7 +5876,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.36</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.37</a>
         </span>
     </div>
 
@@ -8491,6 +8495,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_36"></script>
+    <script src="app.js?v=v87_37"></script>
 </body>
 </html>
