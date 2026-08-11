@@ -2208,6 +2208,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.33 (2026-08-11)</strong></p>
+                <ul>
+                    <li><b>Clicking a bar in the UpSet plot filters on that combination.</b> A bar is already a filter, exactly the genes with a filled dot altered and the rest not, so clicking one applies it to the grid behind the plot, where it sits with the other picks and can be changed or removed once the plot is closed. Clicking the same bar again takes it off.</li>
+                    <li><b>Grid picks can name the copy count.</b> A pick made from the alteration grid offered only altered or wild-type; it now offers either copy, one copy, both copies or wild-type, matching the filter boxes. The chip says which.</li>
+                    <li><b>Every dialog can be dragged by its title bar.</b> The larger ones were left out before on the grounds that there is nowhere to move them to, which is backwards: on a small screen that is exactly when it matters.</li>
+                    <li><b>Fix: the gate comparison export crowded its heading against the plot.</b> The top margin is inherited from the chart on screen, where the heading block is shorter relative to the plot; at export size its last line landed on the plot edge. The margin now grows to fit the block, and the second panel follows it so the two plots stay level.</li>
+                </ul>
                 <p><strong>v.87.31 (2026-08-11)</strong></p>
                 <ul>
                     <li><b>Fix: the new cell-line count warned on every row.</b> A small selection tripped a "fewer lines than expected" mark on all of them, which said nothing. The mark now appears only where a row really does rest on fewer lines than the groups you picked, and the mRNA column is measured against the mRNA cohort rather than the smaller CRISPR one.</li>
@@ -5859,7 +5866,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.31</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.33</a>
         </span>
     </div>
 
@@ -8465,6 +8472,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_31"></script>
+    <script src="app.js?v=v87_33"></script>
 </body>
 </html>
