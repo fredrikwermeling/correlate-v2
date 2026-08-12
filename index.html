@@ -2205,6 +2205,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.67 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Every export for AI now carries everything needed to ask for more data.</b> The file describes each key of the request language, what each optional layer would add, the tissue names that actually resolve, where to find disease and subtype names, and which layers this file already has, so an assistant writes a working request instead of describing what it would like. Verified by feeding the file's own example, and a request built only from what it declares legal, back through the parser that has to accept them.</li>
+                    <li>The layer vocabulary now has one definition that both the parser and the exported documentation read, so the two cannot drift apart as the request language grows.</li>
+                </ul>
                 <p><strong>v.87.66 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Fix: a custom export could fail silently.</b> Asking for "what the current view shows" with nothing open produced no file and no message, because the explanation was written into the standard export dialog, which is not on screen at that point. The custom dialog now says what went wrong in its own words, stays open so the settings can be corrected, and the cell-line option carries its own count so an empty view is visible before pressing Export.</li>
@@ -6010,7 +6015,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.66</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.67</a>
         </span>
     </div>
 
@@ -8709,6 +8714,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_66"></script>
+    <script src="app.js?v=v87_67"></script>
 </body>
 </html>
