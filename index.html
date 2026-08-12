@@ -2201,6 +2201,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.48 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Fix: Export for AI failed from the cell line inspect.</b> That view had no description of itself to put in the file, and the export stopped with an error instead of producing anything. It now describes what it is, carries the top differences between the selected lines and what they were compared with, and states how many of each group actually have a screen. Any view without a description of its own gets a plain one rather than failing.</li>
+                    <li>Settings files: opening one for an expression correlate that is missing its partner gene now says what it holds instead of appearing to do nothing.</li>
+                </ul>
                 <p><strong>v.87.46 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Fix: the settings file saved next to an UpSet plot did not reopen it.</b> Two things were wrong. The grid it is built on draws its cell lines from the Cell Line Browser, which the restore never opened, so the grid came back with nothing behind it; and the genes named in the file were looked for only among the grid's current most-altered genes, which are different ones once the saved picks narrow the cohort. The browser is now opened first, and a gene named in the file is rebuilt from the data if it is not in that list.</li>
@@ -5911,7 +5916,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.46</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.48</a>
         </span>
     </div>
 
@@ -8534,6 +8539,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_46"></script>
+    <script src="app.js?v=v87_48"></script>
 </body>
 </html>
