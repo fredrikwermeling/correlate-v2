@@ -2201,6 +2201,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.58 (2026-08-12)</strong></p>
+                <ul>
+                    <li>Custom export for AI: cell lines can now be chosen as a group (<code>tissue:Skin</code>, <code>disease:Melanoma</code>) rather than only by name, in the dialog and in a pasted request. Asking for skin lines needed all 75 typed out before.</li>
+                    <li>Drug sensitivity can be narrowed to the compounds, targets or mechanisms you care about instead of always carrying the whole 89-compound panel.</li>
+                    <li>Wording fixes an assistant reading the file got caught by: what "settled" means on an identity record, that the treated lines were never put through the drug screen, that a narrow gene matrix is narrow by request rather than truncated, and that the three grouping levels are separate passes rather than a nesting.</li>
+                </ul>
                 <p><strong>v.87.57 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>New: Custom export for AI</b> (Options &rsaquo; Other). Choose the cell lines, the genes, how many genes and how big the correlation scans are, and add layers the standard export leaves out: drug sensitivity, copy number for every gene, virus status, disputed identities, and treated/parental line pairs.</li>
@@ -5959,7 +5965,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.57</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.58</a>
         </span>
     </div>
 
@@ -8576,7 +8582,7 @@
             <label><input type="radio" name="caiCohort" value="all"> Every cell line</label>
             <label><input type="radio" name="caiCohort" value="list"> Only these:</label>
           </div>
-          <textarea id="caiCohortList" rows="2" placeholder="Names or IDs, separated by commas or line breaks" style="width:100%; margin-top:4px; border:1px solid #d1d5db; border-radius:4px; padding:4px 6px; font-size:11px; box-sizing:border-box;"></textarea>
+          <textarea id="caiCohortList" rows="2" placeholder="Names or IDs, or a group: tissue:Skin, disease:Melanoma" style="width:100%; margin-top:4px; border:1px solid #d1d5db; border-radius:4px; padding:4px 6px; font-size:11px; box-sizing:border-box;"></textarea>
 
           <div style="font-weight:600; margin:12px 0 4px;">Genes</div>
           <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
@@ -8596,6 +8602,7 @@
           <div style="font-weight:600; margin:12px 0 4px;">Also include <span style="font-weight:400; color:#6b7280;">(the standard export leaves these out)</span></div>
           <div style="display:flex; flex-direction:column; gap:3px;">
             <label><input type="checkbox" id="caiDrug"> Drug sensitivity, PRISM Repurposing AUC per line</label>
+            <div style="margin:1px 0 2px 20px;"><input type="text" id="caiDrugs" placeholder="Only these compounds, targets or mechanisms (e.g. BRAF, MEK). Leave empty for all 89." style="width:100%; border:1px solid #d1d5db; border-radius:4px; padding:2px 6px; font-size:11px; box-sizing:border-box;"></div>
             <label><input type="checkbox" id="caiCn"> Copy number for every gene, not only the focal one</label>
             <label><input type="checkbox" id="caiVirus"> Confirmed virus transformation</label>
             <label><input type="checkbox" id="caiIdentity"> Disputed identity and misclassification records</label>
@@ -8653,6 +8660,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_57"></script>
+    <script src="app.js?v=v87_58"></script>
 </body>
 </html>
