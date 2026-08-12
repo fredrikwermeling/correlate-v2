@@ -2201,6 +2201,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.45 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Fix: arrow keys moved the network instead of the text cursor.</b> Typing in a box such as the cell line search and pressing left or right slid the network about behind the dialog while the caret stayed put. The network listens for those keys on the whole window, which is what lets it pan without clicking the canvas first, and the guard meant to hold them back was attached where it could never get in front. The keys now reach the text field alone whenever the caret is in one, and the network still pans as before otherwise.</li>
+                </ul>
                 <p><strong>v.87.44 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Fix: opening a gene from the browser's inspect wiped the browser's filters.</b> Clicking a gene there opens the Gene Effect view, whose reset was clearing the set of alteration picks it shares with the Cell Line Browser, so they were gone on the way back. That reset now leaves picks made in the browser alone, which is why it only happened after clicking a gene.</li>
@@ -5902,7 +5906,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.44</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.45</a>
         </span>
     </div>
 
@@ -8525,6 +8529,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_44"></script>
+    <script src="app.js?v=v87_45"></script>
 </body>
 </html>
