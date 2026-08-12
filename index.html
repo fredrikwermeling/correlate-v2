@@ -2066,7 +2066,11 @@
         #geneEffectModal.ge-condensed #geInlineCompareTable,
         #geneEffectModal.ge-condensed #geGateCompareSection { display: none !important; }
         #geneEffectModal.ge-condensed #geChartContainer { flex: 1 1 100% !important; }
-        #geneEffectModal:not(.ge-condensed) #geExpandFullBtn { display: none; }
+        /* The button is a toggle wherever a compact view makes sense, which is
+           when this popout was opened over another modal (the browser, the
+           wiki). On a top-level popout there is nothing to be compact for, so
+           it stays hidden once expanded. */
+        #geneEffectModal:not(.ge-condensed):not([data-can-condense="1"]) #geExpandFullBtn { display: none; }
         /* ---- Phone / narrow-screen scaling (<=640px) ----
            Optimised for the popouts where the analysis happens (Cell Line
            Browser, Gene Effect, Correlation Analysis, scatter Inspect): give
@@ -2201,6 +2205,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.65 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Find a gene in the cell line inspect.</b> A box beside the test selector shows the genes you name in both tables. It ignores the cutoffs while you search, since a lookup that came back empty because the gene sits under a threshold would be no use, and it says so.</li>
+                    <li><b>Full view is a toggle now.</b> It expanded the popout and then hid itself, so the chart-only view could not be got back without closing and reopening. It now reads "Chart only" once expanded, wherever a compact view makes sense.</li>
+                </ul>
                 <p><strong>v.87.64 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>The per-gene profile CSV no longer carries columns that are empty for every row.</b> Asking for a gene that is not on the curated copy-number panel produced a CancerCN column blank on all 11 lines, which reads as missing data rather than as a column that does not apply. Anything dropped is named in the header instead.</li>
@@ -5996,7 +6005,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.64</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.65</a>
         </span>
     </div>
 
@@ -7430,7 +7439,7 @@
                     <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;"><span style="font-size: 12px; color: #6b7280;">Export Chart:</span>
                     <button class="btn btn-outline btn-sm mobile-hide" id="downloadGeneEffectPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                     <button class="btn btn-outline btn-sm mobile-hide" onclick="app.copyPlotToClipboard('geneEffectPlot', 'Chart')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
-                    <button class="btn btn-sm btn-outline" id="geExpandFullBtn" title="Show the full analysis (filters + statistics table)" style="font-size:11px;">⤢ Full view</button>
+                    <button class="btn btn-sm btn-outline" id="geExpandFullBtn" title="Show the full analysis (filters + statistics table)" style="font-size:11px;">&#10530; Full view</button>
                     </span>
                     <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap; margin-left: 10px;"><span style="font-size: 12px; color: #6b7280;">Export CSV:</span>
                     <button class="btn btn-outline btn-sm" id="downloadGETableCSV" title="Download the table above as a CSV file">By Group</button>
@@ -8695,6 +8704,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_64"></script>
+    <script src="app.js?v=v87_65"></script>
 </body>
 </html>
