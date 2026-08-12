@@ -2201,6 +2201,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.64 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>The per-gene profile CSV no longer carries columns that are empty for every row.</b> Asking for a gene that is not on the curated copy-number panel produced a CancerCN column blank on all 11 lines, which reads as missing data rather than as a column that does not apply. Anything dropped is named in the header instead.</li>
+                    <li>The provenance lines above the table are all marked as comments now. Only the first one was, so the rest opened in a spreadsheet as if they were data, two columns wide, above a table that is twelve.</li>
+                </ul>
                 <p><strong>v.87.63 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Fix: the chart disagreed with the table it was opened from.</b> Clicking a gene in the cell line inspect opens the two groups being compared, but a genetic-alteration filter left over from the Cell Line Browser was still being applied on top of them. It left the selected lines untouched (they all carry the alteration, that is what selected them) and quietly cut the group they were compared against, so the same gene showed one average in the table and another in the plot. The two groups are now the whole cohort of that chart, with nothing applied on top, and the subtitle no longer names filters it is not using.</li>
@@ -5991,7 +5996,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.63</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.64</a>
         </span>
     </div>
 
@@ -8690,6 +8695,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_63"></script>
+    <script src="app.js?v=v87_64"></script>
 </body>
 </html>
