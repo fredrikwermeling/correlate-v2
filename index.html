@@ -2201,6 +2201,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.50 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Export for AI, rebuilt around what an assistant reading it actually got stuck on.</b> Five files from five different views were handed to assistants with no knowledge of the app, and their complaints drove the changes: each file now opens with a list of the sections it does and does not contain, and only documents what is in it, instead of describing a dozen sections belonging to other views.</li>
+                    <li>Every precomputed correlation now carries its own p-value, so "is this real" can be answered without recomputing. The three similarly named correlation lists say in one place how they differ and what a positive value means in each.</li>
+                    <li>Scatter exports carry the correlation for the axes actually plotted, plus the same two genes on the other pairings, so a flat plot is no longer read as "no relationship" when the two genes track each other strongly a different way.</li>
+                    <li>Copy number now gets the same driver-by-driver test that mutations already had, so an amplified driver can be ruled out as the explanation without a hand scan.</li>
+                    <li>Correlation exports include the strongest pairs just below the cutoff, flag any gene the file cannot verify, and always carry the genes you typed in. The screen-quality check per cell line is now in every export, not only single-gene ones, and the variance check says it passed rather than leaving it to be guessed from silence.</li>
+                </ul>
                 <p><strong>v.87.48 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Fix: Export for AI failed from the cell line inspect.</b> That view had no description of itself to put in the file, and the export stopped with an error instead of producing anything. It now describes what it is, carries the top differences between the selected lines and what they were compared with, and states how many of each group actually have a screen. Any view without a description of its own gets a plain one rather than failing.</li>
@@ -5916,7 +5924,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.48</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.50</a>
         </span>
     </div>
 
@@ -8539,6 +8547,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_48"></script>
+    <script src="app.js?v=v87_50"></script>
 </body>
 </html>
