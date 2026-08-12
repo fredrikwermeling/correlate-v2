@@ -2201,6 +2201,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.54 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Choose the test in the cell line inspect.</b> Welch's t compares the means and is punished by ordinary spread, which bites hardest on small groups. A rank test, which asks only whether one group sits above the other, is now offered beside it. On eight melanoma lines against the rest, SOX10 goes from a p that does not survive correction to one that does.</li>
+                    <li><b>The strongest result your group sizes allow is now stated.</b> A rank test on three lines against three can never produce a p below 0.1, so a stricter cutoff empties the table for a reason that has nothing to do with the biology. The header says what that floor is, next to the group sizes actually behind the comparison.</li>
+                    <li>Clicking a gene in the cell line inspect now opens on the comparison the table was built from, rather than the by-tissue chart, which answers a different question. The two groups keep the table's order instead of being sorted by their means, so they no longer swap places when the direction of the difference flips.</li>
+                </ul>
                 <p><strong>v.87.53 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Fix: a cleared filter still reading as applied.</b> Searchable dropdowns kept showing the old choice after Reset had genuinely cleared them, most visibly the disease filter in the Cell Line Browser. The box now follows the filter itself rather than only user clicks, everywhere such a dropdown is used.</li>
@@ -5934,7 +5940,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.53</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.54</a>
         </span>
     </div>
 
@@ -8557,6 +8563,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_53"></script>
+    <script src="app.js?v=v87_54"></script>
 </body>
 </html>
