@@ -2201,6 +2201,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.43 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>The Export for AI dialog can be dragged by its title bar</b>, like every other dialog. It opens over whichever view raised it, so being able to slide it aside and read what is underneath matters here as much as anywhere.</li>
+                </ul>
                 <p><strong>v.87.42 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Clicking a bar in the UpSet plot now selects in the grid rather than filtering straight away.</b> It was applying immediately, which narrowed the cohort under the grid, so the grid redrew with far fewer genes and the choice was gone before it could be looked at. The combination is now ticked into the grid exactly as if its squares had been clicked, and Apply there is what carries it to the list.</li>
@@ -5893,7 +5897,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.42</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.43</a>
         </span>
     </div>
 
@@ -8515,6 +8519,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_42"></script>
+    <script src="app.js?v=v87_43"></script>
 </body>
 </html>
