@@ -2201,6 +2201,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.60 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Fix: A549_CRAF_KD was described as a drug-treated line.</b> It is a RAF1 (CRAF) knockdown, not a drug exposure. Drugs and genes had been kept in one list when reading the names, so a gene in a name came out phrased as something the cells were grown in. The two are now separate kinds, and the card, the wiki, the quick filters and the exported file each say which one they are looking at.</li>
+                </ul>
                 <p><strong>v.87.59 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Fix: the drug-treated quick filters were built but never showed up.</b> A separate list decides which of the curated filters reach the panel, and the two new ones were not on it. "Drug-selected line with its parent" and "Drug-selected derivative only" now appear under Matched pairs.</li>
@@ -5971,7 +5975,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.59</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.60</a>
         </span>
     </div>
 
@@ -8612,7 +8616,7 @@
             <label><input type="checkbox" id="caiCn"> Copy number for every gene, not only the focal one</label>
             <label><input type="checkbox" id="caiVirus"> Confirmed virus transformation</label>
             <label><input type="checkbox" id="caiIdentity"> Disputed identity and misclassification records</label>
-            <label><input type="checkbox" id="caiPairs"> Treated / parental line pairs</label>
+            <label><input type="checkbox" id="caiPairs"> Derived / parental line pairs (drug-resistant or knockdown)</label>
           </div>
 
           <div style="font-weight:600; margin:12px 0 4px;">Question</div>
@@ -8666,6 +8670,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_59"></script>
+    <script src="app.js?v=v87_60"></script>
 </body>
 </html>
