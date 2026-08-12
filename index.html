@@ -2201,6 +2201,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.46 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Fix: the settings file saved next to an UpSet plot did not reopen it.</b> Two things were wrong. The grid it is built on draws its cell lines from the Cell Line Browser, which the restore never opened, so the grid came back with nothing behind it; and the genes named in the file were looked for only among the grid's current most-altered genes, which are different ones once the saved picks narrow the cohort. The browser is now opened first, and a gene named in the file is rebuilt from the data if it is not in that list.</li>
+                    <li>Opening a settings file for a picture the app cannot rebuild, such as a screenshot of a whole panel, now says so by name instead of listing it as unknown.</li>
+                </ul>
                 <p><strong>v.87.45 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Fix: arrow keys moved the network instead of the text cursor.</b> Typing in a box such as the cell line search and pressing left or right slid the network about behind the dialog while the caret stayed put. The network listens for those keys on the whole window, which is what lets it pan without clicking the canvas first, and the guard meant to hold them back was attached where it could never get in front. The keys now reach the text field alone whenever the caret is in one, and the network still pans as before otherwise.</li>
@@ -5906,7 +5911,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.45</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.46</a>
         </span>
     </div>
 
@@ -8529,6 +8534,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_45"></script>
+    <script src="app.js?v=v87_46"></script>
 </body>
 </html>
