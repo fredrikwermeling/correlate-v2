@@ -2201,6 +2201,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.53 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Fix: a cleared filter still reading as applied.</b> Searchable dropdowns kept showing the old choice after Reset had genuinely cleared them, most visibly the disease filter in the Cell Line Browser. The box now follows the filter itself rather than only user clicks, everywhere such a dropdown is used.</li>
+                    <li><b>Fix: highlighting cell lines in the scatter matched far too much.</b> Typing a short name pulled in every line that merely contained those letters, so CI brought NCIH1650 and 94 others with it. Punctuation and spacing are still ignored, so MEC-1 finds MEC1, but a short name now has to be the name or start it. Commas and semicolons separate names as well as line breaks.</li>
+                </ul>
                 <p><strong>v.87.52 (2026-08-12)</strong></p>
                 <ul>
                     <li>Export for AI: the analysis steps and method notes in each file are now filtered to what that file actually contains, so a view with no single gene at its centre no longer opens with four steps naming things that are not there.</li>
@@ -5929,7 +5934,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.52</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.53</a>
         </span>
     </div>
 
@@ -8552,6 +8557,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_52"></script>
+    <script src="app.js?v=v87_53"></script>
 </body>
 </html>
