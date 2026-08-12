@@ -2201,6 +2201,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.59 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Fix: the drug-treated quick filters were built but never showed up.</b> A separate list decides which of the curated filters reach the panel, and the two new ones were not on it. "Drug-selected line with its parent" and "Drug-selected derivative only" now appear under Matched pairs.</li>
+                    <li>Rewrote the matched-pair note on the card and in the wiki. It said the same thing three ways and repeated the cell line name back at you; it now reads "Grown from A375 under dabrafenib until it survived the drug."</li>
+                    <li><b>Hover boxes wait longer before appearing.</b> The delay had been set separately in six places and drifted from 150 ms to 450 ms, so the network fired almost on contact. All of them now wait the same, longer moment, so sweeping the pointer across a dense chart no longer throws popups.</li>
+                </ul>
                 <p><strong>v.87.58 (2026-08-12)</strong></p>
                 <ul>
                     <li>Custom export for AI: cell lines can now be chosen as a group (<code>tissue:Skin</code>, <code>disease:Melanoma</code>) rather than only by name, in the dialog and in a pasted request. Asking for skin lines needed all 75 typed out before.</li>
@@ -5965,7 +5971,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.58</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.59</a>
         </span>
     </div>
 
@@ -8660,6 +8666,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_58"></script>
+    <script src="app.js?v=v87_59"></script>
 </body>
 </html>
