@@ -2201,6 +2201,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.55 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Cell line names placed on the gene effect chart can be dragged apart.</b> Two names on nearby dots simply overlapped and there was no way to separate them, which the scatter has always allowed.</li>
+                    <li><b>Axis labels can now actually be typed in.</b> An axis with no label starts with its switch off, so typing one wrote the text into a hidden label and nothing appeared. Typing a label now turns it on, and switching it back on restores what you typed rather than what was there before.</li>
+                    <li><b>The per-cell-line CSV follows the chart.</b> It exported every cell line with a fixed tissue column whatever the view was set to, so changing the grouping to disease, or to the two sides of a comparison, changed the picture and not the file. It now exports what is drawn, with a column naming the group each line is in.</li>
+                    <li><b>New in the cell line inspect: a per-cell-line CSV.</b> One row per gene per cell line, for the genes the tables are showing, so an outlier carrying a group mean is visible instead of hidden behind it.</li>
+                </ul>
                 <p><strong>v.87.54 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Choose the test in the cell line inspect.</b> Welch's t compares the means and is punished by ordinary spread, which bites hardest on small groups. A rank test, which asks only whether one group sits above the other, is now offered beside it. On eight melanoma lines against the rest, SOX10 goes from a p that does not survive correction to one that does.</li>
@@ -5940,7 +5947,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.54</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.55</a>
         </span>
     </div>
 
@@ -7660,6 +7667,7 @@
                 <div style="display:flex; gap:6px; align-items:center; flex-wrap:nowrap; flex:0 0 auto;">
                     <span style="font-size:10px; color:#9ca3af;">Export:</span>
                     <button id="selectionInspectCSV" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; display:none;" title="Download both tables as a CSV: every gene with its mean in the selection, its mean in the other cell lines, and the difference">.csv</button>
+                    <button id="selectionInspectCSVCells" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; display:none;" title="Download the value for each individual cell line, one row per gene per cell line, for the genes the tables are currently showing">.csv per cell line</button>
                     <button id="selectionInspectAI" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; display:none;" title="Package this comparison for a language model, with the selected cell lines and the data behind them">Export for AI</button>
                     <button id="selectionInspectSave" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px; display:none;" title="Save these results to a JSON file you can re-open later without re-running the analysis">Save</button>
                     <button id="selectionInspectClose" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;">&times;</button>
@@ -8563,6 +8571,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_54"></script>
+    <script src="app.js?v=v87_55"></script>
 </body>
 </html>
