@@ -2201,6 +2201,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.44 (2026-08-12)</strong></p>
+                <ul>
+                    <li><b>Fix: opening a gene from the browser's inspect wiped the browser's filters.</b> Clicking a gene there opens the Gene Effect view, whose reset was clearing the set of alteration picks it shares with the Cell Line Browser, so they were gone on the way back. That reset now leaves picks made in the browser alone, which is why it only happened after clicking a gene.</li>
+                    <li><b>Export for AI in the Cell Line Browser</b>, beside Export image. It sends whichever cell lines are listed, or just the ticked ones if any are ticked, with the filters that produced them stated in the file.</li>
+                </ul>
                 <p><strong>v.87.43 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>The Export for AI dialog can be dragged by its title bar</b>, like every other dialog. It opens over whichever view raised it, so being able to slide it aside and read what is underneath matters here as much as anywhere.</li>
@@ -5897,7 +5902,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.43</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.44</a>
         </span>
     </div>
 
@@ -8035,6 +8040,7 @@
           <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
             <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols, warnings and where each piece of data comes from">?</button>
             <button id="clbExportImageBtn" class="btn btn-outline btn-sm mobile-hide" title="Capture the Cell Line Browser as an image (PNG / TIFF / PDF / PowerPoint)">Export image...</button>
+            <button id="clbExportAIBtn" class="btn btn-outline btn-sm mobile-hide" title="Send the cell lines currently listed, with their alterations and gene-effect data, to an AI assistant for analysis">Export for AI</button>
             <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Clear every filter, sort and selection">Reset</button>
             <button id="clbCloseBtn" class="modal-close" title="Close the Cell Line Browser">&times;</button>
           </div>
@@ -8519,6 +8525,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_43"></script>
+    <script src="app.js?v=v87_44"></script>
 </body>
 </html>
