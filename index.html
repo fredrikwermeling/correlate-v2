@@ -2336,6 +2336,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.94 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Phone: the alteration grid can be pressed.</b> Its cells were between 3 and 8 pixels wide and 14 tall, which is a reasonable mouse target and an impossible finger one. On a phone they are 15 by 30. The grid already scrolls sideways, so the only cost is more scrolling.</li>
+                </ul>
                 <p><strong>v.87.93 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: the "Other" button on the start page.</b> The four Options buttons were forced into four equal columns, about 85px each on a small phone, so "Other &#9662;" overflowed its own button and sat off-centre. They now sit two per row.</li>
@@ -6299,7 +6303,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.93</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.94</a>
         </span>
     </div>
 
@@ -9035,6 +9039,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_93"></script>
+    <script src="app.js?v=v87_94"></script>
 </body>
 </html>
