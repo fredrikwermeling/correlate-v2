@@ -2224,6 +2224,22 @@
             #optionsOtherBtn, .sidebar .card-content > .btn { white-space: normal !important; }
             /* Lasso needs a drag on a plot that does not accept drags here. */
             #scatterLassoHighlightBtn { display: none !important; }
+            /* A popout is fullscreen on a phone, but the overlay behind it was
+               still half-transparent, so the network showed through along the
+               bottom and read as part of the popout. Make the backdrop solid. */
+            .modal-overlay, #cellLineBrowserModal, #clbWikiModal,
+            #selectionInspectModal { background: #fff !important; }
+            /* The rest of the mutation-analysis toolbar: the remaining export
+               buttons, the copy-genes button and the row of Compare buttons.
+               Nothing here leads anywhere on a phone. */
+            #downloadMutationResults, #copyMutationGenes, #exportMutTablePNG,
+            #copyCorrelationGenes, #copyClustersGenes, #downloadCorrelations,
+            #downloadClusters, #downloadSummary, #downloadAllData,
+            #clbExportMinimal, #clbExportComprehensive, #clbExportListBtn,
+            #clbCopyListBtn, #clbExportGenesBtn, #clbCopyNamesBtn,
+            #clbExportImageBtn, #clbWikiDownloadBtn, #clbWikiExportGenesBtn,
+            #selectionInspectCSV, #selectionInspectCSVCells,
+            #selectionInspectImg, #selectionInspectCopyImg { display: none !important; }
             /* The five threshold controls. A phone runs the defaults, which is
                what almost every desktop session leaves them at anyway:
                correlation cutoff 0.50, min slope 0.10, min cell lines 25,
@@ -2297,6 +2313,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.91 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: the network showed through behind a popout on a phone.</b> Popouts are fullscreen there, but the backdrop behind them was still half-transparent, so the network appeared along the bottom of the screen and read as part of the popout. The backdrop is solid now.</li>
+                    <li><b>Phone: the remaining export and copy buttons are gone</b>, in the mutation analysis, the results tabs, the Cell Line Browser, the wiki and the selection inspect. A file downloaded on a phone has nowhere useful to go.</li>
+                </ul>
                 <p><strong>v.87.90 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: the link row ran off the right of a phone screen.</b> The row was set never to wrap and the version badge was positioned to hang past its right edge, so everything after "Green Listed" was off-screen. It wraps and centres now, and the badge sits in the row.</li>
@@ -6246,7 +6267,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.90</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.91</a>
         </span>
     </div>
 
@@ -8982,6 +9003,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_90"></script>
+    <script src="app.js?v=v87_91"></script>
 </body>
 </html>
