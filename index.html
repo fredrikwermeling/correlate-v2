@@ -2205,6 +2205,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.81 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: Growth Rate as a plot axis drew nothing.</b> It was offered in both axis pickers, passed the check that its data had loaded, and then produced an empty plot reading "n=0", because the code behind the axis was retired at some point and the option was left in the menu. The option is gone. The data itself is untouched and still describes each cell line in the export and the wiki.</li>
+                    <li><b>Growth rate is no longer called a gene effect.</b> A plot against it was titled "Growth Rate (gene effect)", which is wrong: it is a proliferation rate, not a knockout effect. Gene-set scores were mislabelled the same way.</li>
+                </ul>
                 <p><strong>v.87.80 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: the mRNA column's counts did not match the heading.</b> The panel said 50 selected cell lines and the gene effect column agreed, while the mRNA column quietly rested on 49, because expression covers a different set of cell lines and one of the selected lines has none. The mRNA column now says how many lines it actually rests on whenever that differs, the same way the gene effect side has since it was reported claiming "48 vs 12" for a comparison it ran on 27 vs 3.</li>
@@ -6105,7 +6110,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.80</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.81</a>
         </span>
     </div>
 
@@ -6973,7 +6978,7 @@
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
                                     <option value="cn">CN</option>
-                                    <option value="growth" title="CRISPR-inferred proliferation rate. Needs no gene: it is a property of the cell line.">Growth</option>
+                                    
                                 </select>
                                 <button class="btn btn-outline btn-sm" id="inspectSwapAxes" style="font-size: 11px; padding: 2px 6px; min-width: 26px;" title="Swap X and Y axes (gene names + data types)">&#8644;</button>
                                 <input type="text" id="inspectGeneY" class="form-control" style="flex: 1 1 70px; min-width: 60px; font-size: 12px; padding: 3px 8px;" placeholder="Y gene">
@@ -6981,7 +6986,7 @@
                                     <option value="ge">GE</option>
                                     <option value="expr">Expr</option>
                                     <option value="cn">CN</option>
-                                                                    <option value="growth" title="CRISPR-inferred proliferation rate. Needs no gene: it is a property of the cell line.">Growth</option>
+                                                                    
                                 </select>
                                 <button class="btn btn-primary btn-sm" id="updateInspectGenes" style="font-size: 11px; padding: 3px 12px; min-width: 92px; font-weight: 600;">Update</button>
                                 <button class="btn btn-outline btn-sm" id="inspectFindCorrelatesBtn" style="font-size: 11px; padding: 3px 12px; min-width: 92px; color:#5d9239; border-color:#6ba544;" title="Find top GE and Expression correlates of the X-axis gene across the currently-filtered cell lines. Click a result to put it on the Y axis.">Find correlates</button>
@@ -8841,6 +8846,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_80"></script>
+    <script src="app.js?v=v87_81"></script>
 </body>
 </html>
