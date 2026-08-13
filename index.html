@@ -2461,6 +2461,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.05 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: the alteration grid could be opened and not shut on a phone.</b> Its title was set never to wrap, which made the header wider than the popup and pushed the close button off the right edge with nothing to scroll it back. The header wraps now and the close is thumb-sized.</li>
+                    <li>The row of buttons under that grid wraps rather than running off the edge, and its export and copy buttons are hidden on a phone like the rest.</li>
+                    <li><b>Selection in the Cell Line Browser opens on a tap</b>, like the other sections. It is a row of things to do with a selection, and the selection is made in the list below it.</li>
+                    <li>The "Export CSV" heading in that row no longer appears on a phone with nothing under it: the buttons were already hidden, the heading was not.</li>
+                </ul>
                 <p><strong>v.88.04 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Phone: the alteration grid was zoomed in too far.</b> It was given a fixed cell size to make it pressable, which put only a handful of cell lines on screen and left the rest behind a long sideways scroll. It now uses the same sizing as the desktop, scaled up about a quarter, so a cell is still a reasonable target and a large panel still reads as a panel.</li>
@@ -6484,7 +6491,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.04</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.05</a>
         </span>
     </div>
 
@@ -8791,7 +8798,7 @@
 
               <span class="clb-sep"></span>
 
-              <span class="clb-group-label" style="color:var(--earth-700);">Export CSV</span>
+              <span class="clb-group-label mobile-hide" style="color:var(--earth-700);">Export CSV</span>
               <button id="clbExportMinimal" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="One or a few selected cell lines: Gene Effect + Expression for every gene (CSV). Includes DepMap version and citation.">Cell line:<br><span>GE + expression</span></button>
               <button id="clbExportComprehensive" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="Selected cell line(s): full profile for every gene, GE + Expression + Hotspot + Damaging + Fusion + focal CN amplifications / deletions (CSV).">Cell line:<br><span>full profile</span></button>
               <button id="clbExportListBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="The list exactly as it is on screen: every visible cell line in its current sort order, with tissue, subtype, disease and whichever value the list is sorted by (expression, drug response, copy number, mutation counts).">List on screen:<br><span>CSV</span></button>
@@ -9224,6 +9231,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_04"></script>
+    <script src="app.js?v=v88_05"></script>
 </body>
 </html>
