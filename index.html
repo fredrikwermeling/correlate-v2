@@ -2205,6 +2205,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.68 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>The tissue / disease picker can be closed</b>, with an &times; or by pressing the button that opened it. It had no way out, so once open it stayed open.</li>
+                    <li><b>The counts in that picker now say what will actually be compared against.</b> Picking Melanoma to compare 45 BRAF-mutant melanoma lines against leaves 22, not the 67 the list showed, because a cell line cannot be on both sides. Groups you selected from now read "22 of 67", with the rest explained on hover.</li>
+                    <li><b>When no genes pass the cutoffs, the reason now appears in the table itself</b>, under the headings, where the rows would have been. As grey text above the table it read as a caption and went unread, so an empty table looked like an answer rather than a cutoff to loosen.</li>
+                </ul>
                 <p><strong>v.87.67 (2026-08-12)</strong></p>
                 <ul>
                     <li><b>Every export for AI now carries everything needed to ask for more data.</b> The file describes each key of the request language, what each optional layer would add, the tissue names that actually resolve, where to find disease and subtype names, and which layers this file already has, so an assistant writes a working request instead of describing what it would like. Verified by feeding the file's own example, and a request built only from what it declares legal, back through the parser that has to accept them.</li>
@@ -6015,7 +6021,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.67</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.68</a>
         </span>
     </div>
 
@@ -8714,6 +8720,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_67"></script>
+    <script src="app.js?v=v87_68"></script>
 </body>
 </html>
