@@ -2205,6 +2205,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.76 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: a saved figure came back in the wrong colour.</b> The settings file records the dot colour, and reopening it set the picker correctly, but the plot itself stayed the default blue: the colour is the one setting applied straight to the chart rather than read while drawing, and a restore sets the control without triggering that. The reopened figure now matches the file it came from. Checked across all five formats, and against the gene-effect and network files, which restore correctly.</li>
+                    <li><b>Images now export at Medium by default</b> rather than Small. A 5 cm figure is a thumbnail; the first export nearly always had to be redone larger. Whatever size you last chose still wins.</li>
+                    <li><b>The volcano plots are square</b>, and export through the usual dialog, so format, print size, resolution and background are all available rather than a flat screenshot.</li>
+                    <li><b>Fix: comparing a whole lineage against itself produced a blank panel.</b> Selecting every skin line and comparing against "same lineage only" leaves nothing on the other side, so every gene failed its minimum and the tables came out empty under a title claiming "(0 screened)", which was not true of the selection. It now says there is no comparison group, why, and what to change.</li>
+                    <li><b>Sending a selection now opens the view it was sent to.</b> Highlighting cell lines on a chart you cannot see was a setting with nothing to show for it. Mutation analysis and gene set analysis are separate rows, each opening its own mode with the cohort already applied.</li>
+                    <li>The row that sends cell lines to the two-gene plot calls it <b>Correlation</b>, which is what the rest of the app calls it.</li>
+                    <li>Six dead button handlers removed, left over from features whose buttons were taken out.</li>
+                </ul>
                 <p><strong>v.87.75 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Inspect selection looks like the rest of the app.</b> It was the only analysis view with its own title bar, its own heading size and its actions crowded into the header, which is most of why it read as a different program. It now uses the same furniture as every other panel: a column of control cards down the left, the results on the right, and the exports in a footer bar. The comparison buttons, the test and the gene search moved into the sidebar, and the paragraph of method that filled the title bar is behind a "How to read this" link.</li>
@@ -6077,7 +6087,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.75</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.76</a>
         </span>
     </div>
 
@@ -8796,6 +8806,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_75"></script>
+    <script src="app.js?v=v87_76"></script>
 </body>
 </html>
