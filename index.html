@@ -2210,6 +2210,14 @@
                - Select / Remove mode: precise node picking with a fingertip.
                - Compare all ...: wide tables that cannot be read at this width.
                These stay on desktop; nothing is removed from the app. */
+            /* The five threshold controls. A phone runs the defaults, which is
+               what almost every desktop session leaves them at anyway:
+               correlation cutoff 0.50, min slope 0.10, min cell lines 25,
+               gene needs data in 100, p < 0.001. The inputs stay in the page
+               so the analysis still reads those values; they are simply not
+               shown or adjustable, which takes about half the sidebar back. */
+            #correlationParams, #slopeParams, #minCellLinesPvalRow,
+            #pValueThresholdGroup,
             #networkAnalyzeWithAI, #clbExportAIBtn, #clbWikiAnalyzeWithAI,
             #selectionInspectAI, #aiExportBtn,
             #toggleSelectMode, #toggleRemoveMode,
@@ -2275,6 +2283,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.89 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Phone: the five threshold controls are gone and the defaults run.</b> Correlation cutoff, minimum slope, minimum cell lines, the gene-coverage floor and the p-value threshold took about half the sidebar and are the settings a phone session is least likely to want to change. They run at 0.50, 0.10, 25, 100 and p &lt; 0.001, which is where a desktop session usually leaves them. Still fully adjustable on desktop.</li>
+                </ul>
                 <p><strong>v.87.88 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: the Cell Line Browser still would not scroll on a phone.</b> The previous attempt freed the list but left the card split into a fixed toolbar and a scrolling remainder, and on a phone the stacked filter toolbar takes most of the height, so the part that scrolls was a sliver. The whole card now scrolls as one page, toolbar included.</li>
@@ -6214,7 +6226,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.88</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.89</a>
         </span>
     </div>
 
