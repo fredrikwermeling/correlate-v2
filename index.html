@@ -2205,6 +2205,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.70 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>The rows in the comparison picker now add up.</b> Melanoma held 67 while the two disease rows under it held 8 and 4, because 55 melanoma lines carry no finer label and so appeared in no row at all. Those lines now have a row of their own, so 4 + 3 + 10 makes the 17 above them and 8 + 4 + 55 makes the 67.</li>
+                    <li>The note above the tree says how many of the cell lines are your selection and that each count reads "how many are left to compare against, of how many the group holds".</li>
+                </ul>
                 <p><strong>v.87.69 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: title and subtitle sizes were applied to each other.</b> On a chart whose heading is one block, the title carries no size of its own and takes the annotation's, but the code assumed the first size it found belonged to the title, which was the subtitle's. Setting the title to 19 put 19 on the subtitle and shrank the title to 9. Both now go where they are meant to.</li>
@@ -6029,7 +6034,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.69</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.70</a>
         </span>
     </div>
 
@@ -8728,6 +8733,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_69"></script>
+    <script src="app.js?v=v87_70"></script>
 </body>
 </html>
