@@ -2205,6 +2205,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.82 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: the disease menu's counts did not match the list.</b> With the browser narrowed to 13 EBV-transformed B-cell lines, the disease menu still offered "Plasma Cell Myeloma (n=19)" and its numbers added up to four times the list below it. The counts were computed before the quick filters were applied. They now count what is actually on screen, so they sum to the list.</li>
+                </ul>
                 <p><strong>v.87.81 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: Growth Rate as a plot axis drew nothing.</b> It was offered in both axis pickers, passed the check that its data had loaded, and then produced an empty plot reading "n=0", because the code behind the axis was retired at some point and the option was left in the menu. The option is gone. The data itself is untouched and still describes each cell line in the export and the wiki.</li>
@@ -6110,7 +6114,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.81</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.82</a>
         </span>
     </div>
 
@@ -8846,6 +8850,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_81"></script>
+    <script src="app.js?v=v87_82"></script>
 </body>
 </html>
