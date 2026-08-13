@@ -2366,6 +2366,13 @@
                 padding: 0 !important; border: none !important; background: none !important;
                 margin: 0 0 2px !important; min-height: 0 !important; box-shadow: none !important;
             }
+            /* Gene effect: only the by-tissue view is offered on a phone. The
+               hotspot scan and the stratify-by-mutation view are each a second
+               chart to read against the first, which is not what a small screen
+               is for, and with only one view left there is nothing to label.
+               The buttons stay in the page so the view logic still finds them. */
+            #geViewLabel, #geViewTissue, #geViewHotspot, #geViewMutation,
+            .ge-view-sep { display: none !important; }
             /* The box drops its padding when collapsed, so the heading has to
                carry the inset itself or it sits flush against the edge of the
                screen while everything around it starts 12px in. The heading is
@@ -2490,6 +2497,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.09 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Phone: an edge opens its correlation on a single tap, and the tap does not have to land on the line.</b> An edge is a few pixels wide, which a mouse can be placed on and a finger cannot, so a tap that misses now looks around itself for one. The double tap it was bound to also competes with the browser's own double-tap-to-zoom.</li>
+                    <li><b>Phone: gene effect offers the by-tissue view only.</b> The hotspot scan and the stratify-by-mutation view are each a second chart to read against the first, and with one view left there is nothing to label.</li>
+                </ul>
                 <p><strong>v.88.08 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: a gene card could be left stranded over the view it opened.</b> Tapping a gene name in the wiki both opens the gene and, a moment later, shows the card describing it, which landed on top of the chart that had just opened. On a phone that card could not be closed at all, and its links could not be tapped, though it invited both. It is dismissed when a view opens, and where it does appear it now behaves as it says it does.</li>
@@ -6534,7 +6546,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.08</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.09</a>
         </span>
     </div>
 
@@ -7735,12 +7747,12 @@
                         </span>
                         <button class="btn btn-success btn-sm" id="geneEffectSearchBtn" style="padding: 6px 16px;">Analyze</button>
                         <span id="geneEffectCurrentGene" style="font-weight: 600; color: #5d9239;"></span>
-                        <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
-                        <label style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">View:</label>
+                        <span class="ge-view-sep" style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
+                        <label id="geViewLabel" style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">View:</label>
                         <button class="btn btn-sm" id="geViewTissue" style="background: #6ba544; color: white;" title="Box plot of gene effect grouped by tissue / lineage">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="geViewHotspot" title="Scan how each hotspot mutation shifts this gene's effect, comparing the cell lines carrying it against those without it">By hotspot mutation</button>
                         <button class="btn btn-sm btn-secondary" id="geViewMutation" title="Stratify this gene's effect by another gene's status: pick a hotspot mutation, a fusion or a focal amplification in the selector above the plot.">Mutation Inspect</button>
-                        <span style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
+                        <span class="ge-view-sep" style="border-left: 1px solid #d1d5db; height: 20px; margin: 0 4px;"></span>
                         <button class="btn btn-sm btn-outline" id="geRestartBtn" title="Reset the Gene Effect analysis: clear the gene, filters and view and start over">&#8634; Reset</button>
                     </div>
                     <!-- Row 2: Lineage and disease (same group title as the main
@@ -9274,6 +9286,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_08"></script>
+    <script src="app.js?v=v88_09"></script>
 </body>
 </html>
