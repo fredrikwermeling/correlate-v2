@@ -2210,6 +2210,20 @@
                - Select / Remove mode: precise node picking with a fingertip.
                - Compare all ...: wide tables that cannot be read at this width.
                These stay on desktop; nothing is removed from the app. */
+            /* The link row ran off the right edge: .nav-side is nowrap and the
+               version badge is absolutely positioned at left:100%, i.e.
+               deliberately hanging past the row, which on a phone means past
+               the screen. Let it wrap and put the badge back in the flow. */
+            .nav-links { display: flex !important; flex-wrap: wrap !important;
+                justify-content: center !important; gap: 4px 14px !important; max-width: 100% !important; }
+            .nav-side { white-space: normal !important; display: contents !important; }
+            #versionBadge { position: static !important; transform: none !important; margin-left: 0 !important; }
+            .logo-header img { max-width: 100% !important; height: auto !important; }
+            /* The Options row's four buttons were sized for a desktop row, so
+               "Other" overflowed its own button and sat off-centre. */
+            #optionsOtherBtn, .sidebar .card-content > .btn { white-space: normal !important; }
+            /* Lasso needs a drag on a plot that does not accept drags here. */
+            #scatterLassoHighlightBtn { display: none !important; }
             /* The five threshold controls. A phone runs the defaults, which is
                what almost every desktop session leaves them at anyway:
                correlation cutoff 0.50, min slope 0.10, min cell lines 25,
@@ -2283,6 +2297,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.90 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: the link row ran off the right of a phone screen.</b> The row was set never to wrap and the version badge was positioned to hang past its right edge, so everything after "Green Listed" was off-screen. It wraps and centres now, and the badge sits in the row.</li>
+                    <li><b>Phone: the network control panels open on a tap.</b> Appearance, Labels and color, and View controls start closed and open when you press the heading, instead of filling the screen above the network. Export is hidden entirely, since a downloaded file has nowhere to go on a phone.</li>
+                    <li><b>Phone: lasso highlight is hidden</b>, since it needs a drag on a plot that does not take drags there.</li>
+                </ul>
                 <p><strong>v.87.89 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Phone: the five threshold controls are gone and the defaults run.</b> Correlation cutoff, minimum slope, minimum cell lines, the gene-coverage floor and the p-value threshold took about half the sidebar and are the settings a phone session is least likely to want to change. They run at 0.50, 0.10, 25, 100 and p &lt; 0.001, which is where a desktop session usually leaves them. Still fully adjustable on desktop.</li>
@@ -6226,7 +6246,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.89</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.90</a>
         </span>
     </div>
 
@@ -8962,6 +8982,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_88"></script>
+    <script src="app.js?v=v87_90"></script>
 </body>
 </html>
