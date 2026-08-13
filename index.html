@@ -2410,6 +2410,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.99 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Phone: network nodes and edges are drawn bigger</b>, so a node or edge can be tapped to open the next level. A node at 25px and an edge at 3px are a fine mouse target and a poor finger one, and the network library offers no way to widen the hit area without widening the drawing.</li>
+                    <li><b>Fix: a finger on the correlation plot moved the plot instead of the page.</b> Letting the touch through in the stylesheet was not enough, because the chart library still claimed the gesture for its own panning. With zoom already locked on a phone there is nothing a drag should do, so it no longer takes one. Tapping a point still works.</li>
+                    <li><b>Fix: the popout from a node sat partly off the screen.</b> It was kept inside the right and bottom edges but not the left, so on a narrow screen it was pushed off the left instead. It is kept inside all four now, and no wider than the screen. It also no longer suggests holding Shift or pressing Escape, neither of which a phone has.</li>
+                </ul>
                 <p><strong>v.87.98 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Phone: the "With Stats" gene input drops its manual-entry / upload-file choice.</b> Nobody uploads a file from a phone, so the choice was not a choice; it opens on manual entry, which is where it already started.</li>
@@ -6400,7 +6406,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.98</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.99</a>
         </span>
     </div>
 
@@ -9136,6 +9142,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_97"></script>
+    <script src="app.js?v=v87_99"></script>
 </body>
 </html>
