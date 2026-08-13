@@ -4,26 +4,26 @@ Screenshots for all of this are in ~/Downloads, IMG_3149-3157 (small phone).
 Earlier set IMG_3138-3145. Read them with the Read tool, they are the only
 real verification available, see the testing note at the bottom.
 
-== OPEN, all reported from the phone screenshots ==
+== PHONE PASS: all reported items now shipped (v.87.96) ==
 
-1. Cell Line Browser: the text boxes do not show their text properly.
-   Visible in the new screenshots. Likely the v.87.86 phone control sizing
-   (min-height 40px / padding 8px 10px on #cellLineBrowserModal inputs)
-   fighting the toolbar's own inline heights.
+Nothing from the screenshots is outstanding. Shipped v.87.85-v.87.96:
+row labels, tap-to-identify, one scroller in the browser, bigger controls and
+44px close buttons, oncoprint cells 15x30, nav row wraps, Options two-per-row,
+solid popout backdrops, every export hidden, five thresholds hidden running
+defaults, collapsible panels that hold their state, browser boxes sizing to
+the row, cell-line detail above the list, Gene pairs / Clusters scrolling
+sideways, and one height for the correlation popout's boxes.
 
-2. Cell line detail: pressing a cell line puts the wiki at the very end of the
-   page. It should be reachable straight away on a phone.
+NOT VERIFIED ON A DEVICE. Everything CSS-side is verified as parsed, correctly
+scoped to =<640px, and not affecting desktop, but the window in this
+environment will not drop below the breakpoint. Ask for a fresh set of phone
+screenshots and re-check against them before calling any of it done.
 
-3. Results tabs "Gene pairs" and "Clusters": content cropped on the right.
-
-4. Correlation popout: the Hotspot Filter box is far too tall, and Fusion
-   Overlay is a much bigger box than Hotspot Overlay. They should match.
-
-5. DONE v.87.95, collapsibles hold their state. Two faults: the state
-   lived only in the DOM so any rebuild lost it (now held on the app, keyed
-   by heading text, re-applied on every wire), and a second wiring pass
-   nested a second wrapper inside the first so the toggle moved an element
-   the panel no longer used (wrapper is marked and reused now).
+Known not addressed, and believed not to be the app: the clock and battery
+showing over the top of the page is Safari drawing a translucent status bar
+over scrolled content. env(safe-area-inset-*) reads 0 without
+viewport-fit=cover, and setting that pushes content further under the notch.
+If it matters for a demo, give the top element a solid background.
 
 == HOW THE PHONE BUILD WORKS (so this is not re-derived) ==
 
