@@ -2222,6 +2222,10 @@
             /* The Options row's four buttons were sized for a desktop row, so
                "Other" overflowed its own button and sat off-centre. */
             #optionsOtherBtn, .sidebar .card-content > .btn { white-space: normal !important; }
+            /* Four equal columns is ~85px each here, too narrow for "Other ▾",
+               which overflowed its own button and sat off-centre. Two per row. */
+            #optionsRow { flex-wrap: wrap !important; }
+            #optionsRow > * { flex: 1 1 calc(50% - 6px) !important; min-width: calc(50% - 6px) !important; }
             /* Lasso needs a drag on a plot that does not accept drags here. */
             #scatterLassoHighlightBtn { display: none !important; }
             /* Closing a popout is the most-used control on a phone and was the
@@ -2332,6 +2336,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.93 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: the "Other" button on the start page.</b> The four Options buttons were forced into four equal columns, about 85px each on a small phone, so "Other &#9662;" overflowed its own button and sat off-centre. They now sit two per row.</li>
+                    <li><b>An opened panel looks exactly as it did before.</b> Collapsing a panel wrapped its controls in a container, and that container, not the controls, was picking up the box's own layout rules, so an opened panel came back looking different. The wrapper is now transparent to layout.</li>
+                </ul>
                 <p><strong>v.87.92 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Phone: the × that closes a popout is now big enough to press.</b> It is the most-used control on a phone and was the smallest on the screen, a bare glyph with no padding around it. Every close button is now a 44px target with a larger glyph.</li>
@@ -6290,7 +6299,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.92</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.93</a>
         </span>
     </div>
 
@@ -9026,6 +9035,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_91"></script>
+    <script src="app.js?v=v87_93"></script>
 </body>
 </html>
