@@ -2205,6 +2205,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.73 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: the UpSet bars did not line up with the dots below them.</b> The invisible click target is a second bar on the same axis, and bars on one axis are drawn side by side by default, so each got half the slot and the visible bar sat off-centre. Both now share the slot, which also puts each count back over its own bar.</li>
+                    <li><b>Fix: a gene selected in the grid but not applied came back as an applied filter.</b> Exporting with KRAS merely selected, so its bar is green and the KRAS-negative bars still stand, and reopening the settings file gave a cohort filtered to KRAS with those bars gone. The file now records whether the picks were applied.</li>
+                    <li>The UpSet header names what the cohort was filtered by. Raised from the Cell Line Browser it read only the parameter panel's filters, so a plot built over the lung lines said nothing about lung.</li>
+                    <li>Exporting an UpSet starts at Medium rather than the 5 cm default, which was too small to read.</li>
+                </ul>
                 <p><strong>v.87.72 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: the settings file saved beside an UpSet or grid image did not carry the Cell Line Browser's own filters.</b> It saved the parameter panel's filters, which are different controls, so a plot built over 50 skin BRAF-mutant lines reopened over all 1,208 and looked nothing like the image it came from. The browser's tissue, subtype, disease, sex, alteration, quick-filter, pasted-list and tick state now travel with the file and are restored before the grid is rebuilt.</li>
@@ -6044,7 +6051,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.72</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.73</a>
         </span>
     </div>
 
@@ -8743,6 +8750,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_72"></script>
+    <script src="app.js?v=v87_73"></script>
 </body>
 </html>
