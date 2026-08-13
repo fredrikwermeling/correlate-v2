@@ -19,7 +19,15 @@ real verification available, see the testing note at the bottom.
 4. Correlation popout: the Hotspot Filter box is far too tall, and Fusion
    Overlay is a much bigger box than Hotspot Overlay. They should match.
 
-5. Correlation popout collapsibles DO NOT HOLD THEIR STATE. _setupPhoneCollapsibles
+5. COLLAPSIBLES DO NOT HOLD THEIR STATE, network panels AND correlation popout.
+   Wire a panel closed and it reads back open. The MutationObserver re-arms
+   panels after a re-render but cannot restore a state it does not track, and
+   the DOM is being treated as the source of truth. Likely fix: keep the
+   open/closed state on the app keyed by heading title, and re-apply it every
+   time a heading is re-wired. As of v.87.93 the wrapper is display:contents
+   when open, so an opened panel is laid out correctly; only persistence is
+   left. Original note follows.
+   (was: Correlation popout collapsibles DO NOT HOLD THEIR STATE.) _setupPhoneCollapsibles
    wires the .control-box-compact boxes and calls set(false), and
    aria-expanded correctly reads "false", but the body's display comes back as
    "" so the box is still open. Something re-renders those boxes after the
