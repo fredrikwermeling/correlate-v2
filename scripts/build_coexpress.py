@@ -36,6 +36,23 @@ REPLACEMENTS = [
     ('src="web_data/correlate_logo.png" alt="Correlate - a Gene Effect Analysis Tool"',
      'src="web_data/coexpress_logo.png" alt="CoExpress - an Expression Analysis Tool"'),
     ('<p>Correlate | Part of the', '<p>CoExpress | Part of the'),
+    # ---- AI-export sign conventions -------------------------------------
+    # These sentences explain what the SIGN of a number means, and the generic
+    # sweep turns them into falsehoods: "gene effect is NEGATIVE for a
+    # dependency" becomes "expression is NEGATIVE for a dependency", which is
+    # untrue of log₂(TPM+1) and would have an assistant reading every polarity
+    # in the file backwards. They must be rewritten for expression, not swept.
+    ('Polarity, and note the sign convention because it is easy to get backwards: gene effect is NEGATIVE for a dependency, so two genes both needed by the same lines move down together and their r is POSITIVE. Positive r therefore means partner and focal gene are co-essential, required by the same lines, which is the same-complex / same-pathway pattern: BRAF against MAP2K1, MAP2K2 and MAPK1 sits near r = +0.6 to +0.8. Negative r means the opposite, lines that depend on the partner do NOT depend on the focal gene, which is the buffering pattern seen between paralogues, where one covers for the other and only the line that has lost one needs the other. Neither sign is a mechanism on its own: check the pair against the geneEffect matrix, which carries every gene named here.',
+     'Polarity: this is mRNA abundance on a log₂(TPM+1) scale, which is never negative, and HIGHER means more transcript. Positive r therefore means the two genes are CO-EXPRESSED, switched on and off together across the panel, which is the shared-transcriptional-programme pattern and is typical of genes in one complex, one pathway or one lineage programme. Negative r means they are reciprocal, high in different cell lines, which is typical of two competing differentiation states. Note what this is NOT: it says nothing about whether either gene is REQUIRED, because no knockout was performed anywhere in this dataset. Co-expression is not co-essentiality, and a strong correlation here is evidence of shared regulation, not of shared function. Check the pair against the expression matrix, which carries every gene named here.'),
+    ('so a NEGATIVE delta_ge means the gene is more essential in the altered lines',
+     'so a NEGATIVE delta_ge means the gene is expressed LOWER in the altered lines and a positive one means higher'),
+    ('so a NEGATIVE delta means the gene is more essential in the MSI-high lines',
+     'so a NEGATIVE delta means the gene is expressed LOWER in the MSI-high lines and a positive one means higher'),
+    ("'CRISPR gene effect (Chronos): which genes the same cell lines depend on. NOT expression'",
+     "'mRNA expression (log2 TPM+1): which genes are switched on together across the panel'"),
+    ("POSITIVE r = the two are co-essential, needed by the same lines, the same-complex / same-pathway pattern, because gene effect is negative for a dependency and partners move down together; NEGATIVE r = the buffering pattern between paralogues, where the lines needing one do not need the other",
+     "POSITIVE r = the two are CO-EXPRESSED, switched on and off together across the panel, which is the shared-programme pattern typical of one complex, one pathway or one lineage; NEGATIVE r = reciprocal, high in different lines, typical of competing differentiation states. This says nothing about either gene being REQUIRED: nothing was knocked out anywhere in this dataset"),
+    ("'mRNA expression' : 'CRISPR gene effect'", "'mRNA expression' : 'mRNA expression'"),
     # semantics that contain the generic phrases
     ('how much the cell lines depend on that gene',
      'how strongly the cell lines express the gene (log₂ TPM+1)'),
