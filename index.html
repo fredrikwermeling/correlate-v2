@@ -2205,6 +2205,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.72 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: the settings file saved beside an UpSet or grid image did not carry the Cell Line Browser's own filters.</b> It saved the parameter panel's filters, which are different controls, so a plot built over 50 skin BRAF-mutant lines reopened over all 1,208 and looked nothing like the image it came from. The browser's tissue, subtype, disease, sex, alteration, quick-filter, pasted-list and tick state now travel with the file and are restored before the grid is rebuilt.</li>
+                    <li><b>Fix: an UpSet saved without picking genes by hand reopened as a grid with no UpSet at all</b>, because only an explicit pick was recorded. The genes actually plotted are saved now, however they were chosen. Counts, percentages and the top-N cut travel too.</li>
+                </ul>
                 <p><strong>v.87.71 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>UpSet: the count and the percentage now sit one above the other.</b> Side by side, "32 &middot; 42.7%" is about fifty pixels over a bar with under thirty to itself, so labels ran into their neighbours and each one looked shifted off its own bar. Stacked, each label sits over the bar it belongs to.</li>
@@ -6039,7 +6044,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.71</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.72</a>
         </span>
     </div>
 
@@ -8738,6 +8743,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_71"></script>
+    <script src="app.js?v=v87_72"></script>
 </body>
 </html>
