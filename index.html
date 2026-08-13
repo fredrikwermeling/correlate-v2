@@ -2247,6 +2247,11 @@
             /* The gene box is the one thing you type into on a phone, and with
                the sections around it collapsed there is room to give it back. */
             #geneTextarea { min-height: 240px !important; font-size: 15px !important; }
+            /* "With Stats" offers manual entry or a file upload. Nobody uploads
+               a file from a phone, so the choice is not a choice: hide the
+               sub-tabs and leave manual entry, which is what the panel opens on. */
+            .stats-sub-tab { display: none !important; }
+            #stats-file { display: none !important; }
             /* A finger landing on a chart could not scroll the page. Plotly's
                drag layer swallows the touch to pan the plot, and on a phone the
                chart is most of the screen, so there was often nowhere else to
@@ -2405,6 +2410,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.98 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Phone: the "With Stats" gene input drops its manual-entry / upload-file choice.</b> Nobody uploads a file from a phone, so the choice was not a choice; it opens on manual entry, which is where it already started.</li>
+                </ul>
                 <p><strong>v.87.97 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: "Lineage and disease" left Subtype and Disease behind.</b> The heading sits inside its own group while those two selectors are siblings of that group, so collapsing the heading hid only the lineage selector. All three go together now.</li>
@@ -6391,7 +6400,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.97</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.98</a>
         </span>
     </div>
 
