@@ -2205,6 +2205,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.71 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>UpSet: the count and the percentage now sit one above the other.</b> Side by side, "32 &middot; 42.7%" is about fifty pixels over a bar with under thirty to itself, so labels ran into their neighbours and each one looked shifted off its own bar. Stacked, each label sits over the bar it belongs to.</li>
+                    <li><b>Removed the option to print the combination name inside the bar.</b> On a bar a few pixels wide it was unreadable, and on a short one it did not fit at all. The name is still on hover and in the matrix of dots underneath.</li>
+                </ul>
                 <p><strong>v.87.70 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>The rows in the comparison picker now add up.</b> Melanoma held 67 while the two disease rows under it held 8 and 4, because 55 melanoma lines carry no finer label and so appeared in no row at all. Those lines now have a row of their own, so 4 + 3 + 10 makes the 17 above them and 8 + 4 + 55 makes the 67.</li>
@@ -6034,7 +6039,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.70</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.71</a>
         </span>
     </div>
 
@@ -8733,6 +8738,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_70"></script>
+    <script src="app.js?v=v87_71"></script>
 </body>
 </html>
