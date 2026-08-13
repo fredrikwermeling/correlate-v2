@@ -2228,6 +2228,21 @@
             #optionsRow > * { flex: 1 1 calc(50% - 6px) !important; min-width: calc(50% - 6px) !important; }
             /* Lasso needs a drag on a plot that does not accept drags here. */
             #scatterLassoHighlightBtn { display: none !important; }
+            /* A collapsed panel should be a line of text, not an empty card.
+               With its border, padding and background still drawn it took the
+               room of the controls it was hiding, and three of them stacked
+               read as three empty boxes. */
+            .phone-collapsed {
+                padding: 0 !important; border: none !important; background: none !important;
+                margin: 0 0 2px !important; min-height: 0 !important; box-shadow: none !important;
+            }
+            .phone-collapsed > .panel-heading,
+            .phone-collapsed > .control-label,
+            .phone-collapsed > .param-section-heading {
+                min-height: 32px !important; margin: 0 !important; padding: 0 2px !important;
+            }
+            /* Headings are the tap target, so they read as one. */
+            [data-phone-collapse] { font-weight: 600 !important; color: var(--green-700) !important; }
             /* Closing a popout is the most-used control on a phone and was the
                smallest: a bare glyph with no padding. Give every × a real
                touch target, and a little more glyph to aim at. */
@@ -2336,6 +2351,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.95 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: a collapsed panel would not stay collapsed.</b> The open/closed state lived only in the page, so every rebuild of a panel lost it, and a second rebuild nested one wrapper inside another so the toggle moved an element the panel no longer used. The state is now remembered per panel and re-applied whenever the panel is rebuilt, and a panel is only ever wrapped once.</li>
+                    <li><b>Phone: a collapsed panel is a line of text, not an empty box.</b> It kept its border, padding and background while collapsed, so three of them stacked looked like three empty cards taking the room of the controls they were hiding.</li>
+                    <li><b>Phone: Lineage and disease, and Genetic alterations, start collapsed too</b>, so the Run button is reachable without scrolling past two blocks of selectors.</li>
+                </ul>
                 <p><strong>v.87.94 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Phone: the alteration grid can be pressed.</b> Its cells were between 3 and 8 pixels wide and 14 tall, which is a reasonable mouse target and an impossible finger one. On a phone they are 15 by 30. The grid already scrolls sideways, so the only cost is more scrolling.</li>
@@ -6303,7 +6324,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.94</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.95</a>
         </span>
     </div>
 
@@ -9039,6 +9060,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_94"></script>
+    <script src="app.js?v=v87_95"></script>
 </body>
 </html>
