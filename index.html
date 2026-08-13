@@ -2228,6 +2228,44 @@
             #optionsRow > * { flex: 1 1 calc(50% - 6px) !important; min-width: calc(50% - 6px) !important; }
             /* Lasso needs a drag on a plot that does not accept drags here. */
             #scatterLassoHighlightBtn { display: none !important; }
+            /* 1. Browser text boxes were cutting their own text off. They carry
+               fixed pixel widths written for a desktop row (#clbSearch is
+               190px), and the phone rules then added 15px text and 10px of
+               side padding inside that same fixed width, so the value no
+               longer fitted. Let them size to the row instead. */
+            #cellLineBrowserModal input[type="text"],
+            #cellLineBrowserModal select,
+            #cellLineBrowserModal textarea {
+                box-sizing: border-box !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                padding: 8px 8px !important;
+                text-overflow: ellipsis !important;
+            }
+            #clbSearch { width: 100% !important; }
+            /* 2. The cell-line detail stacked under the whole list, so tapping
+               a line meant scrolling past every other one to reach its wiki.
+               Put it above the list. */
+            .clb-detail { order: -1 !important; }
+            /* 3. Gene pairs and Clusters were cropped at the right edge: the
+               tables are wider than a phone and nothing was allowed to scroll. */
+            .table-container, .data-table-wrapper {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+                max-width: 100% !important;
+            }
+            .table-container .data-table, .data-table-wrapper .data-table { min-width: max-content !important; }
+            /* 4. The correlation popout's boxes were different heights because
+               each sized itself around its own contents. One height for all of
+               them, and their dropdowns bounded so a long list cannot stretch
+               the box that holds it. */
+            .inspect-controls .control-box-compact { min-height: 0 !important; align-self: start !important; }
+            .inspect-controls .control-box-compact select,
+            .inspect-controls .control-box-compact input[type="text"] {
+                box-sizing: border-box !important; width: 100% !important; min-width: 0 !important;
+            }
+            .inspect-controls [id$="Dropdown"] { max-height: 45vh !important; overflow-y: auto !important; }
             /* A collapsed panel should be a line of text, not an empty card.
                With its border, padding and background still drawn it took the
                room of the controls it was hiding, and three of them stacked
@@ -2351,6 +2389,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.96 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: the browser's boxes cut off their own text on a phone.</b> They carry fixed pixel widths written for a desktop row, and the phone rules then put bigger text and more padding inside that same fixed width, so the value no longer fitted. They size to the row now.</li>
+                    <li><b>Pressing a cell line shows it straight away.</b> The detail stacked under the whole list, so reaching a cell line's wiki meant scrolling past every other cell line. It sits above the list on a phone.</li>
+                    <li><b>Fix: Gene pairs and Clusters were cropped at the right edge.</b> Both tables are wider than a phone and nothing was allowed to scroll; they scroll sideways now.</li>
+                    <li><b>The correlation popout's boxes are the same height.</b> Each sized itself around its own contents, so the Hotspot filter towered over its neighbours and Fusion overlay was much taller than Hotspot overlay. Their dropdowns are also bounded, so a long list no longer stretches the box holding it.</li>
+                </ul>
                 <p><strong>v.87.95 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: a collapsed panel would not stay collapsed.</b> The open/closed state lived only in the page, so every rebuild of a panel lost it, and a second rebuild nested one wrapper inside another so the toggle moved an element the panel no longer used. The state is now remembered per panel and re-applied whenever the panel is rebuilt, and a panel is only ever wrapped once.</li>
@@ -6324,7 +6369,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.95</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.96</a>
         </span>
     </div>
 
