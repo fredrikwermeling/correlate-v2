@@ -2497,6 +2497,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.11 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Phone: the correlation plot is sized as one piece.</b> Only its y axis had been scaled down, so the heading, the statistics line and the whole x axis stayed at their desktop sizes beside a shrunken y axis. Everything scales together now.</li>
+                    <li><b>Fix: the plot heading ran off the right edge.</b> Whether it fitted was measured against the width control rather than the width the plot actually has on a phone, and a pair on one measure had no line break available to take.</li>
+                    <li><b>Phone: the plot no longer fills the window exactly</b>, which made the gene boxes, filters and Update below it look absent rather than further down. The top of the controls now shows under the chart.</li>
+                    <li><b>The Cell Line Browser suggests names as you type.</b> Typing the first letters of a cell line is how it is usually opened, and a name spelled the other way came back empty with no hint that the line is there.</li>
+                </ul>
                 <p><strong>v.88.10 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: Analyze put the gene effect chart back after you asked for expression.</b> Switching the measure to Expression redrew the gene correctly, and then pressing Analyze, or Enter in the gene box, quietly returned to gene effect. Both now run the gene in whichever measure is selected. Everywhere, not only on a phone.</li>
@@ -6550,7 +6557,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.10</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.11</a>
         </span>
     </div>
 
@@ -8742,7 +8749,7 @@
           <div class="clb-row">
             <span class="clb-row-label">Cohort</span>
             <div class="clb-row-items">
-              <input type="text" id="clbSearch" placeholder="Search cell lines..." style="width:190px;">
+              <input type="text" id="clbSearch" list="clbSearchOptions" autocomplete="off" placeholder="Search cell lines..." style="width:190px;"><datalist id="clbSearchOptions"></datalist>
               <select id="clbTissueFilter" style="width:200px;"><option value="">All tissues</option></select>
               <select id="clbSubtypeFilter" disabled title="Choose a tissue first to narrow by subtype" style="width:200px;"><option value="">All subtypes</option></select>
               <select id="clbOncotreeFilter" style="width:210px;" title="Exact disease entity from Oncotree. Finer than the tissue and subtype fields, and reaches entities they cannot, for example chronic lymphocytic leukemia, which the disease field files under mature B-cell neoplasms."><option value="">All diseases</option></select>
@@ -9290,6 +9297,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_10"></script>
+    <script src="app.js?v=v88_11"></script>
 </body>
 </html>
