@@ -2244,6 +2244,27 @@
                 text-overflow: ellipsis !important;
             }
             #clbSearch { width: 100% !important; }
+            /* "Rank by" and the best-lineage picker render into #analysisStatus
+               under the Run button after a run. It is a way of hunting for the
+               lineage with the strongest correlations, which is not what a
+               phone is for, and it read as a stray filter appearing under Run. */
+            #analysisStatus { display: none !important; }
+            /* The correlation view opened on a screenful of controls with the
+               plot somewhere below them, which is backwards: the plot is the
+               reason you opened it. Plot first, controls under it. */
+            .inspect-layout { display: flex !important; flex-direction: column !important; }
+            .inspect-plot { order: -1 !important; width: 100% !important; }
+            /* One control per row. The grid was still placing collapsed
+               headings two-across, so they read as a scattered list rather
+               than a stack of things to open. */
+            .inspect-controls { display: block !important; }
+            .inspect-controls > * { width: 100% !important; margin-bottom: 4px !important; }
+            /* The gene row had every field on its own line, taking half the
+               screen before the plot even started: gene and its measure sit
+               together, and the two pairs stack. */
+            #inspectGeneX, #inspectGeneY { flex: 1 1 110px !important; min-width: 0 !important; }
+            #xAxisDataType, #yAxisDataType { flex: 0 0 84px !important; width: 84px !important; }
+            #inspectSwapAxes { flex: 0 0 44px !important; }
             /* The gene box is the one thing you type into on a phone, and with
                the sections around it collapsed there is room to give it back. */
             #geneTextarea { min-height: 240px !important; font-size: 15px !important; }
@@ -2410,6 +2431,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.0 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Phone: the correlation view opens on the plot.</b> It opened on a screenful of controls with the plot somewhere below them, which is backwards, and the collapsed filter headings were still being laid out two across so they read as a scattered list rather than a stack of things to open. Plot first, one control per row, and the gene and its measure sit together instead of each taking a line of its own.</li>
+                    <li><b>Fix: "Rank by" no longer appears under the Run button on a phone.</b> It is a way of hunting for the lineage with the strongest correlations, and it read as a stray filter turning up after a run.</li>
+                </ul>
                 <p><strong>v.87.99 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Phone: network nodes and edges are drawn bigger</b>, so a node or edge can be tapped to open the next level. A node at 25px and an edge at 3px are a fine mouse target and a poor finger one, and the network library offers no way to widen the hit area without widening the drawing.</li>
@@ -6406,7 +6432,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.99</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.0</a>
         </span>
     </div>
 
