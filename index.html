@@ -2205,6 +2205,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.78 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>An expression axis says what its numbers are.</b> The Gene Effect view's axis read only "DUSP4 Expression", leaving the scale to be guessed, while the Correlation plot beside it has always said log2 TPM+1. Both now agree, along with the by-tissue detail plots; one chart also said "log TPM+1" where every other said "log2".</li>
+                    <li><b>Each axis of the Correlation plot can be opened on its own.</b> Two buttons under the gene boxes, naming the gene and the measure they will open, so a point on the plot can be followed into the Gene Effect view without retyping the gene. Hidden for growth rate and gene-set scores, which are not a single gene.</li>
+                    <li><b>The gene names in the plot heading describe themselves on hover</b>, the same as gene names everywhere else in the app.</li>
+                </ul>
                 <p><strong>v.87.77 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Three things called almost the same thing now have their own names.</b> A gene pair plotted across every cell line was <em>Correlation</em>, the same pair split by tissue or mutation was <em>Correlation Analysis</em>, and the table of every pair in your set was <em>Correlations</em>. The plot keeps the name <b>Correlation</b>; the split-by-group view is now <b>Correlation by group</b>; the results tab is now <b>Gene pairs</b>.</li>
@@ -6091,7 +6097,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.77</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.78</a>
         </span>
     </div>
 
@@ -6971,6 +6977,19 @@
                                 </select>
                                 <button class="btn btn-primary btn-sm" id="updateInspectGenes" style="font-size: 11px; padding: 3px 12px; min-width: 92px; font-weight: 600;">Update</button>
                                 <button class="btn btn-outline btn-sm" id="inspectFindCorrelatesBtn" style="font-size: 11px; padding: 3px 12px; min-width: 92px; color:#5d9239; border-color:#6ba544;" title="Find top GE and Expression correlates of the X-axis gene across the currently-filtered cell lines. Click a result to put it on the Y axis.">Find correlates</button>
+                            </div>
+                            <!-- Each axis on its own, in the Gene Effect view.
+                                 A point on this plot is one gene against
+                                 another; seeing either one spread across
+                                 tissues or split by mutation is the obvious
+                                 next question and previously meant retyping
+                                 the gene somewhere else. Labels carry the gene
+                                 and its measure, so the button says what it
+                                 will open. -->
+                            <div id="inspectAxisOpenRow" style="display:flex; gap:4px; align-items:center; margin-top:3px; flex-wrap:wrap;">
+                                <span style="font-size:9px; color:#9ca3af;">Open in Gene Effect:</span>
+                                <button class="btn btn-outline btn-sm" id="inspectOpenGEX" style="font-size:10px; padding:2px 8px;" title="Open the X-axis gene on its own in the Gene Effect view">X</button>
+                                <button class="btn btn-outline btn-sm" id="inspectOpenGEY" style="font-size:10px; padding:2px 8px;" title="Open the Y-axis gene on its own in the Gene Effect view">Y</button>
                             </div>
                         </div>
 
@@ -8814,6 +8833,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_77"></script>
+    <script src="app.js?v=v87_78"></script>
 </body>
 </html>
