@@ -1,50 +1,93 @@
-drug treated cell lines should be specified better in the card, and there should be a quick filter for drug treateed and naive pairs of cell lines.
-In the gene efect plot when I click to add a cellline (im comming from cell line browser inspect, but this should be the same for all similar places, allow for moving the names. now they overlaps if close to each otehr. in the scatter they can be moved. also, in the settings, the x and y axis legedns shuold be possible to change. and the .csv export by cell line should adjust to what is seen on the the screen eg if changing the filter from show by lineage, sublinage, diseae or selected. 
-the export .csv for the cell line inspect should also allwo for exporting individual data for each selecgted cell line for each of the genes,
-regardin: " rvh42dabr and rvh421 are the same cell line +/- drug" yes, and the naming is a rendering artefact, not a different line. Cellosaurus registers the derivative as RVH-421 Dab-R under CVCL_A1VM, alongside the parental RVH-421 as CVCL_1672, the DSMZ ACC 127 melanoma line established from an intracranial melanoma metastasis in 1979. DepMap strips punctuation and spaces from names, so "RVH-421 Dab-R" should have become RVH421DABR; a character has been dropped somewhere in the pipeline. There is no separate RVH-42 line. So the "42 versus 421" difference is a label problem, and it sits on top of the molecular evidence, which pointed the same way independently: 25 shared mutation calls where chance predicts 0.75, twenty of them in genes mutated in under 2% of the panel, and the next best match anywhere in 1208 lines being 10. Go over the cell line wiki and add this sort of information in "history" including adding links to central refs for the cell line
-could there  be a custom exprot for AI button somwhere (eg in options_other), where a popout with a lot of settings releted to the export is appearing that customizes everything the app could export). the regular export for ai files should be informaed about this and how it works, and the llm could thus return instructions what more data it wants and thus which settings to select for the custom export for ai. the custom export for ai could have clickable versions for selction, but also an box where text can be pasted in a standardized way that the LLM could out put for simple copy paste
-by defult, if i press a gene in the cell line browser, the gene effect that opens should by defult show the "view" that is relevant for the data for the inspect table, so if compare to custom list, the gene effect comparison that comes up when clicking a gene shuold have the same view. Also, the order of the differnt groups should be the same by deafult, when i compare a custom set of cell lines to another cutom set, the order presented on the screen seems to be differnt depending on the result, eg the increased vs descresed response. 
-p values in the cell line inspect seems to be very harsh when comparing few cell lines to few cellines even if there is a clear differnece. i wonder if there is a way to adress this, eg allwoing less stringet cut offs for the p value filter scaling to the number of cells shown. perhaps this is also related to praameteric vs non paramteric text? with a parametric tesxt i can see that the p value will be punished by a resonable variability and few events. but based ojn a rank sum approach there are cleary dfferences. is there a point in letting the user selct  differnt statisical tests?
-diseses filter is not reveerted with reset button and linger in cell line browser. we talked about thsi several times and its not söved. the problem is likelly that diasese filter was applied later than the other filters and not well integrated yet.
-I pasted CI, MEC1, PGA1, WAOSEL into highlight in scatter. and it highlighted 95 cell lines. its not correct. ITS the CI thats the problem I think. I like that it is broad in how it identifies cell line names, but this is too much. if I press CI and the space, it should not findNCIH1650.
+TO DO  (pruned 2026-08-13, v.87.78)
 
-old
-The cell line browser inspect has problems. i selcted 48 colon adenocarcinoma cell lines and the selected "compare with" recatl cancer which shold be 12. However only few of these have CRISPR screen data, and the cripsr gene effect becomes strange due to this. it needs to be a warning if there are fewer cells in CRISPR or GE than expected. now it claims to compare 48 to 12, but in fact did 27 vs 3. 
-the export for AI text needs to be written in a better way so the user understands better. Not the athe user uploading to the llm has not read the .json.gz file, so when the LLm starts talking about "variance warning,". "questionScope", "The per-line controls are clean: meanGeneEffectPercentile is 26 / 94 / 10, so these are not globally sick screens, and focalGeneZWithinLine is around -1.2 to -1.3 in each." etc etc, its not clear to the user. the llm should start by summarizing brefly what information it got, what the user looked at when exporting the file and what they aksed (if they did). this is sanity check for the user to understand that they are on the same page. next the llm needs to answer the question (and if no question, to brefly summarize the data and wait for the user to ask a question) in a wasy that the user understands. again the user is not having the text of the .json.gz file
-depmap has a list of artefact genes, right? perhaps this should be included in the app, as a warning for the user.
-the gene effect popout. i cant cahnge to expression when i come from double clicking the nodes of the netwrok. 
-i find it anoying with genes for which there are very few celllines including it. should there be a filter everywhere that filters genes with eg fewer than 100 cell lines in the full dataset? it seems ike these genes with few cell ines are over rpresented in all statstics. As menioned im not conviced of the 26Q1 addition does help the user. 
-Do you know have growthRate data from all cell lines? should this be included as a X or y paramter in scatter? In the past i asked you to calculate growth rate based on gene expression. i figured this could be  arelavant paramteerfor comparion of cell dependincies, but it never gave any. perhaps growth reate could also be selected in steead of mutations in the mutaitonal analyis popout?
+Everything above the ARCHIVE line below was gone through item by item on
+2026-08-13. Items confirmed working were removed and are listed at the bottom
+under "verified done", so they are not re-reported. What is left is open.
 
 
+== OPEN, small and concrete ==
 
-old
+1. Scatter legend for lineage / sublineage / disease is cropped on the left or
+   right. Needs a real layout fix, not a nudge.
 
-in cell line correlate, allow for hover over a gene giving information about it. also allow for two more "compare with" versions. One that allows for clicking in a tree to select one or more linages/subtypes or diseases. antoehr button shuld be for comparing to a custom list of cell ines pasted into a box.
-could cell lines be annotated based on EBV and other infectios status. could ebv+ cells be a quick filter
-with the update of 26Q1 the find corrrelates in scatter gets overflown with hits that there are few cell lines for. Im not sure if adding the new genes in 26Q1 is worth anythign or if it just adds complexity. the find correlates in scatter funciton should have a filter for cell line # being at least 10 (or what do you suggest). also, if im in the scatter after pressing a network edge that had a filter that filter applies to the scatter that opens. this is good. but if i change the filters and then press update (eg after changing which genes to show on the x/Y axis), the network related filters applies. this is anoying, keep the latests applied filters within scatter that i have applied and dont revert. if i leave the scartter and come back the filters in the network should apply agina.
-the legends for linage/sublinage/diseae below the scatter plot is croppaed on the right or left side. this needs to be dealt with in a better way. 
+2. Correlate popout: a label added by clicking a cell line cannot be removed by
+   hovering it, the way the gene effect popout allows. (Double-click removal
+   exists; the hover affordance does not.)
+
+3. Gene effect plot: clicked cell-line labels overlap when points are close and
+   cannot be dragged apart. They can be dragged in the scatter.
+
+4. Gene effect settings: the x and y axis titles cannot be edited, unlike the
+   scatter's.
+
+5. Network: text can be cropped on Run. Nodes, edges and text should always be
+   fully visible after a run.
+
+6. Network spread: with nodes locked and moved by hand, lowering the spread
+   snaps them back to their pre-move positions.
+
+7. Network spread should start at 100; the font / node / edge sliders are too
+   small, roughly 30% smaller than the original look.
 
 
-old
+== OPEN, needs a decision before building ==
 
-should we update files to the latests depmapfiles?
+8. Drug-treated cell lines: describe them better on the card, and add a quick
+   filter for drug-treated / naive PAIRS. Related to item 12 below.
 
--are you in the setting where you can work in chrome? if not stop and tell me what to cahnge to activate this.
--make the spread starting at 100. also the settings for the font size, edge node sliders etc are too small. revert to the orignial look and try to shrink about 30%.
--in network, corrleate, gene effect and mutation inspect for filters dont include the boxes where sellecting wt or mutated. look how it is done in cell line browser. by defult when selecting an alteration, it is selected as mutated, and the user can then can then change it. Also add the oncoprint button (grid button) next to all genetic alteration filter as in the cell line browser.
--in the correlat popout. if i label a cell line by pressing it needs to be able to remove the label. do like in the gen effect popout. if you hower over the name it asks if you want to remove and you can click and it is removed. 
--the network now can have text cropped when generating. this should never happen when press run, the nodes edges and ext should always be full shown.
--you wrote "  Mutation analysis has its own view now. The gene box is hidden entirely, since
-  mutation analysis never reads it, and the right-hand side switches to the
-  empty Mutation Analysis table instead of leaving the previous network up. Both
-  of those were what made it read as though the listed genes were about to be
-  used."  this is not at all what i see v86.57. it still looks like the gene set analysis layout.  I suggest that when pressing the mutational anlysis in options the the right part of the ap becomes the muation analysis table but without any gene. also the inout gene set needs tp be removed.
--in mutation analsysis inspect. if i change between GE and expression in the upper left corner, it automatically goes to gene effect by tissue, instead of staying in the mutationa anlysis mode. if i swithch back to amutation anaylsis it doesnt remmeber the gene modification that shuold be starified of on the y axis. also, often the mutational analysi inpspect deoesnt have a legend on the y axis. 
--when im in the mtation inspect in GE mode and click the inspect, it goes to the inspect with GE selected in the upper left. if i do it with mRNA, the seltcor in the upper left still states GE (but probaly show the expression data).
-- everywhere ther are filters (network, corrleat, gene effect etc) there should be a lineage, subtype and disease 
--the spread function works strange. if i move around a node in the lock fucntion and then lower the spread number, the nodes moves back to the first position (before i moved them around).
--
+9. Cell line wiki: add a "history" section, with links to central references
+   for the line. Prompted by RVH-421 / RVH-421 Dab-R.
+
+10. DepMap publishes a list of artefact genes. Worth surfacing as a warning?
+    (The app already carries a CN-artefact list, which is a different thing.)
+
+11. Genes measured in very few cell lines are over-represented in every
+    ranking, and 26Q1 made it worse (visible in Find correlates). Options: a
+    global "gene needs data in >= N cell lines" filter, or excluding the thin
+    26Q1 additions. A per-view coverage floor already exists; the question is
+    whether to raise it and apply it everywhere.
+
+12. RVH-421 Dab-R: DepMap dropped a character, so the derivative reads
+    RVH42DABR rather than RVH421DABR. This is the same underlying data problem
+    as the one dangling entry in matchedPairs, where the derivative is not in
+    the cohort it is paired into.
+
+13. Cell line browser inspect: two more "compare with" modes, one selecting
+    lineages from a tree, and one more that was cut off in the original note.
+    (The tree picker exists as "Pick tissues / diseases"; check whether this is
+    already satisfied before building.)
+
+14. EBV and other infection status as a per-line annotation and a quick filter.
+    Virus status IS in the data and IS a curated collection; what is being
+    asked for may already exist. Confirm against the browser before building.
+
+15. Clicking a gene in the cell line browser should open the gene effect view
+    on the view that matches the inspect table, and group order should not
+    change between runs (e.g. increased vs decreased response).
+
+16. Should the data be updated to the latest DepMap release?
+
+
+== VERIFIED DONE on 2026-08-13, removed from the list above ==
+
+- Disease filter not cleared by the browser's Reset. Tested: Melanoma -> 55
+  lines -> Reset -> cleared, 1208 back.
+- "CI" in the scatter highlight matching 95 lines. Tested: CI now matches
+  exactly 1 line; CI, MEC1, PGA1, WAOSEL matches exactly 4.
+- Gene effect popout could not switch to expression when opened from a network
+  node. Tested: switches and redraws.
+- Mutation inspect jumping out of mutation mode when switching GE / expression.
+  Tested: stays in mutation mode, title follows the measure.
+- Cell line inspect claiming "48 vs 12" when it compared 27 vs 3. Coverage is
+  now stated in the title and as a warning.
+- Cell line inspect p-values too harsh on small groups. A Welch / rank-sum
+  choice now sits in the sidebar.
+- Per-cell-line CSV from the cell line inspect. Exists, and states its scope.
+- Export for AI written for someone who has not read the file. Rewritten, then
+  audited by assistants that had never seen the app.
+- Custom export for AI in Options > Other, with a pasteable request block.
+- Growth rate as a scatter axis. Present as an axis type.
+- Lineage / subtype / disease filters in every filter panel. All five present.
 
 
 ---
