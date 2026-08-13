@@ -1,3 +1,21 @@
+== PHONE, still open (2026-08-13, app at v.87.98) ==
+
+A. "Rank by most genes / strongest r" in the network, reported as still visible
+   in the gene-set-with-stats input. NOT DONE: could not find the control in
+   index.html, searched rank / sort / "most genes" / "strongest r". Get the
+   exact place it appears (a screenshot of that panel would settle it) before
+   hiding anything.
+
+B. Network nodes and edges are hard to hit with a finger. vis-network has no
+   hit-tolerance option, so the fix is drawing nodes and edges bigger on a
+   phone (netNodeSize / edge width defaults scaled when innerWidth <= 640),
+   not a one-line setting. Started and backed out rather than ship a comment
+   describing something the code did not do.
+
+C. Everything else from the phone pass shipped, v.87.85 - v.87.98. NONE of it
+   has been seen on a device: verified only as parsed, scoped to <=640px, and
+   not affecting desktop. Ask for fresh screenshots before trusting any of it.
+
 PHONE / CELL PHONE PASS  (open, 2026-08-13, app at v.87.91)
 
 Screenshots for all of this are in ~/Downloads, IMG_3149-3157 (small phone).
