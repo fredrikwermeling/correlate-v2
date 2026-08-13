@@ -2244,6 +2244,22 @@
                 text-overflow: ellipsis !important;
             }
             #clbSearch { width: 100% !important; }
+            /* The gene box is the one thing you type into on a phone, and with
+               the sections around it collapsed there is room to give it back. */
+            #geneTextarea { min-height: 240px !important; font-size: 15px !important; }
+            /* A finger landing on a chart could not scroll the page. Plotly's
+               drag layer swallows the touch to pan the plot, and on a phone the
+               chart is most of the screen, so there was often nowhere else to
+               put your finger. Zoom and drag are already disabled here, so the
+               drag layer has nothing to do with a vertical swipe: let it
+               through. A tap still reaches the points. */
+            .js-plotly-plot .nsewdrag,
+            .js-plotly-plot .drag,
+            .js-plotly-plot .draglayer,
+            #geneEffectPlot, #scatterPlot, #geneEffectHotspotPlot,
+            #exprCorrelateScatterPlot, [id$="Volcano"] {
+                touch-action: pan-y !important;
+            }
             /* 2. The cell-line detail stacked under the whole list, so tapping
                a line meant scrolling past every other one to reach its wiki.
                Put it above the list. */
@@ -2389,6 +2405,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.97 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: "Lineage and disease" left Subtype and Disease behind.</b> The heading sits inside its own group while those two selectors are siblings of that group, so collapsing the heading hid only the lineage selector. All three go together now.</li>
+                    <li><b>Phone: a finger on a chart scrolls the page.</b> The chart swallowed the touch to pan itself, and since a chart is most of a phone screen there was often nowhere else to put your finger. Zoom and drag are already off there, so a vertical swipe now passes through. Tapping a point still works.</li>
+                    <li><b>Phone: the gene box is bigger</b>, and "Export" no longer appears under View controls.</li>
+                </ul>
                 <p><strong>v.87.96 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: the browser's boxes cut off their own text on a phone.</b> They carry fixed pixel widths written for a desktop row, and the phone rules then put bigger text and more padding inside that same fixed width, so the value no longer fitted. They size to the row now.</li>
@@ -6369,7 +6391,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.96</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.97</a>
         </span>
     </div>
 
@@ -9105,6 +9127,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_95"></script>
+    <script src="app.js?v=v87_97"></script>
 </body>
 </html>
