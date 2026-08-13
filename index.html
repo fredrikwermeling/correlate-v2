@@ -2461,6 +2461,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.04 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Phone: the alteration grid was zoomed in too far.</b> It was given a fixed cell size to make it pressable, which put only a handful of cell lines on screen and left the rest behind a long sideways scroll. It now uses the same sizing as the desktop, scaled up about a quarter, so a cell is still a reasonable target and a large panel still reads as a panel.</li>
+                </ul>
                 <p><strong>v.88.03 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Phone: pressing Run or Update brings the result into view.</b> The chart it makes usually sits below the controls that made it, so on a small screen it appeared off the bottom of the page and the press read as though nothing had happened. Only a press does this; a chart redrawn for any other reason leaves the page where it is.</li>
@@ -6480,7 +6484,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.03</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.04</a>
         </span>
     </div>
 
@@ -9220,6 +9224,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_03"></script>
+    <script src="app.js?v=v88_04"></script>
 </body>
 </html>
