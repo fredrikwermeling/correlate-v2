@@ -2205,6 +2205,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.69 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: title and subtitle sizes were applied to each other.</b> On a chart whose heading is one block, the title carries no size of its own and takes the annotation's, but the code assumed the first size it found belonged to the title, which was the subtitle's. Setting the title to 19 put 19 on the subtitle and shrank the title to 9. Both now go where they are meant to.</li>
+                    <li><b>Cell line names clicked onto a chart can be resized</b>, under a new "Cell line names" control that appears once there are any. They were the only text on the plot with no setting.</li>
+                    <li>Cell line dots start at 7 rather than 5, which is easier to hit and easier to see in an exported figure.</li>
+                    <li><b>The box colour schemes explain themselves.</b> Each says what it does on hover, and a line above them says they all read the same thing, the group's mean, and differ only in how they show it. "Essential" is red where the group needs the gene, green where losing it helps.</li>
+                    <li>Closing a plot now closes its settings box. The box sits outside the window it belongs to, so it can be dragged clear, which is why it used to be left hovering over an empty page pointed at a chart that had gone. This applies wherever such a box is used.</li>
+                </ul>
                 <p><strong>v.87.68 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>The tissue / disease picker can be closed</b>, with an &times; or by pressing the button that opened it. It had no way out, so once open it stayed open.</li>
@@ -6021,7 +6029,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.68</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.69</a>
         </span>
     </div>
 
@@ -8720,6 +8728,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_68"></script>
+    <script src="app.js?v=v87_69"></script>
 </body>
 </html>
