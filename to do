@@ -1,3 +1,61 @@
+PHONE / CELL PHONE PASS  (open, 2026-08-13, app at v.87.91)
+
+Screenshots for all of this are in ~/Downloads, IMG_3149-3157 (small phone).
+Earlier set IMG_3138-3145. Read them with the Read tool, they are the only
+real verification available, see the testing note at the bottom.
+
+== OPEN, all reported from the phone screenshots ==
+
+1. Cell Line Browser: the text boxes do not show their text properly.
+   Visible in the new screenshots. Likely the v.87.86 phone control sizing
+   (min-height 40px / padding 8px 10px on #cellLineBrowserModal inputs)
+   fighting the toolbar's own inline heights.
+
+2. Cell line detail: pressing a cell line puts the wiki at the very end of the
+   page. It should be reachable straight away on a phone.
+
+3. Results tabs "Gene pairs" and "Clusters": content cropped on the right.
+
+4. Correlation popout: the Hotspot Filter box is far too tall, and Fusion
+   Overlay is a much bigger box than Hotspot Overlay. They should match.
+
+5. Correlation popout collapsibles DO NOT HOLD THEIR STATE. _setupPhoneCollapsibles
+   wires the .control-box-compact boxes and calls set(false), and
+   aria-expanded correctly reads "false", but the body's display comes back as
+   "" so the box is still open. Something re-renders those boxes after the
+   wiring. The network half of the same feature works. Chase the re-render, or
+   switch from an inline style to a class the re-render cannot clear.
+
+== HOW THE PHONE BUILD WORKS (so this is not re-derived) ==
+
+- One media query, index.html, "@media (max-width: 640px)" starting ~line 2081.
+  Everything CSS-side lives there. `.mobile-hide { display:none }` is the
+  general opt-out; ids are listed explicitly for the rest.
+- Controls are enlarged there (>=40px, 15px text). Before v.87.86 they were
+  being SHRUNK below desktop size.
+- Collapsibles: app.js `_setupPhoneCollapsibles(root)` + `_armPhoneCollapsibles()`,
+  armed once at startup and re-run by a MutationObserver, because these panels
+  are rebuilt by several paths and a single per-render hook missed them.
+  Hooks on `.panel-heading` (network) and `.inspect-controls .control-box-compact`
+  (correlation popout).
+- The five threshold controls are hidden and their DEFAULTS run: cutoff 0.50,
+  slope 0.10, min cell lines 25, coverage 100, p < 0.001. The inputs stay in
+  the DOM carrying those values, which is why the analyses still read them.
+
+== TESTING NOTE, READ BEFORE STARTING ==
+
+The browser in this environment will NOT resize below the breakpoint;
+resize_window reports success and innerWidth stays 1420. So:
+- To exercise the JS phone branch:
+  Object.defineProperty(window,'innerWidth',{configurable:true,get:()=>390})
+  before the app boots, or set it then re-arm. This does NOT activate the CSS
+  media query, so CSS changes cannot be seen, only verified as parsed and
+  correctly scoped.
+- Real verification is the screenshots. Ask for a fresh set after shipping.
+- Bump ?v= in index.html whenever app.js changes or the phone will run a
+  cached script (this bit me once already this session).
+
+
 TO DO  (pruned 2026-08-13, v.87.78)
 
 Everything above the ARCHIVE line below was gone through item by item on
