@@ -2497,6 +2497,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.10 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: Analyze put the gene effect chart back after you asked for expression.</b> Switching the measure to Expression redrew the gene correctly, and then pressing Analyze, or Enter in the gene box, quietly returned to gene effect. Both now run the gene in whichever measure is selected. Everywhere, not only on a phone.</li>
+                </ul>
                 <p><strong>v.88.09 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Phone: an edge opens its correlation on a single tap, and the tap does not have to land on the line.</b> An edge is a few pixels wide, which a mouse can be placed on and a finger cannot, so a tap that misses now looks around itself for one. The double tap it was bound to also competes with the browser's own double-tap-to-zoom.</li>
@@ -6546,7 +6550,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.09</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.10</a>
         </span>
     </div>
 
@@ -9286,6 +9290,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_09"></script>
+    <script src="app.js?v=v88_10"></script>
 </body>
 </html>
