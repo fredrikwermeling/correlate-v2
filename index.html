@@ -2205,6 +2205,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.84 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: a gene effect chart narrowed by a pasted cell-line list did not say so.</b> Every other filter leaves a mark on a control, but a custom list leaves none: the lineage box still read "All lineages" over a chart down to two cell lines, which reads as the app having inherited a filter from somewhere else. The list is now named above the chart, first, since it is usually the strongest filter in the popout.</li>
+                    <li><b>Fix: the same line credited the chart with filters it had ignored.</b> Genes picked from an alteration grid in the Cell Line Browser are deliberately not applied to this chart, but were listed above it as though they were.</li>
+                </ul>
                 <p><strong>v.87.83 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Find correlates and Open in Gene Effect share a row.</b> Both take the plot apart into a single gene, so they belong together rather than on separate lines.</li>
@@ -6119,7 +6124,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.83</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.84</a>
         </span>
     </div>
 
@@ -8855,6 +8860,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_83"></script>
+    <script src="app.js?v=v87_84"></script>
 </body>
 </html>
