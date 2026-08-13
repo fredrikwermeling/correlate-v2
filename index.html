@@ -2205,6 +2205,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.83 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Find correlates and Open in Gene Effect share a row.</b> Both take the plot apart into a single gene, so they belong together rather than on separate lines.</li>
+                    <li><b>Hovering a gene beside Open in Gene Effect describes it</b>, the same as hovering a gene in the network or a results table.</li>
+                </ul>
                 <p><strong>v.87.82 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: the disease menu's counts did not match the list.</b> With the browser narrowed to 13 EBV-transformed B-cell lines, the disease menu still offered "Plasma Cell Myeloma (n=19)" and its numbers added up to four times the list below it. The counts were computed before the quick filters were applied. They now count what is actually on screen, so they sum to the list.</li>
@@ -6114,7 +6119,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.82</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.83</a>
         </span>
     </div>
 
@@ -6994,19 +6999,19 @@
                                 </select>
                                 <button class="btn btn-primary btn-sm" id="updateInspectGenes" style="font-size: 11px; padding: 3px 12px; min-width: 92px; font-weight: 600;">Update</button>
                                 <button class="btn btn-outline btn-sm" id="inspectFindCorrelatesBtn" style="font-size: 11px; padding: 3px 12px; min-width: 92px; color:#5d9239; border-color:#6ba544;" title="Find top GE and Expression correlates of the X-axis gene across the currently-filtered cell lines. Click a result to put it on the Y axis.">Find correlates</button>
-                            </div>
-                            <!-- Each axis on its own, in the Gene Effect view.
-                                 A point on this plot is one gene against
-                                 another; seeing either one spread across
-                                 tissues or split by mutation is the obvious
-                                 next question and previously meant retyping
-                                 the gene somewhere else. Labels carry the gene
-                                 and its measure, so the button says what it
-                                 will open. -->
-                            <div id="inspectAxisOpenRow" style="display:flex; gap:4px; align-items:center; margin-top:3px; flex-wrap:wrap;">
-                                <span style="font-size:9px; color:#9ca3af;">Open in Gene Effect:</span>
-                                <button class="btn btn-outline btn-sm" id="inspectOpenGEX" style="font-size:10px; padding:2px 8px;" title="Open the X-axis gene on its own in the Gene Effect view">X</button>
-                                <button class="btn btn-outline btn-sm" id="inspectOpenGEY" style="font-size:10px; padding:2px 8px;" title="Open the Y-axis gene on its own in the Gene Effect view">Y</button>
+                                <!-- Each axis on its own, in the Gene Effect
+                                     view. Sits on the same row as Find
+                                     correlates: both take the plot apart into
+                                     one gene, so they belong together rather
+                                     than on a line of their own. Labels carry
+                                     the gene and its measure, and hovering one
+                                     describes the gene, as gene names do
+                                     everywhere else. -->
+                                <span id="inspectAxisOpenRow" style="display:inline-flex; gap:4px; align-items:center; flex-wrap:wrap;">
+                                    <span style="font-size:9px; color:#9ca3af;">Open in Gene Effect:</span>
+                                    <button class="btn btn-outline btn-sm" id="inspectOpenGEX" style="font-size:10px; padding:2px 8px;">X</button>
+                                    <button class="btn btn-outline btn-sm" id="inspectOpenGEY" style="font-size:10px; padding:2px 8px;">Y</button>
+                                </span>
                             </div>
                         </div>
 
@@ -8850,6 +8855,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_82"></script>
+    <script src="app.js?v=v87_83"></script>
 </body>
 </html>
