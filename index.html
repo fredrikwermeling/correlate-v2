@@ -2205,6 +2205,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.79 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: the two cell line inspect CSVs would not open properly.</b> A line describing the file was added above the column names in v.87.76; that made the description the header row as far as Excel and any scripting language are concerned, so the real column names were read as data and the numbers stopped lining up. The column names are back on the first line, where every other CSV in the app has them. What the file covers is still said when you export it, and is in the filename.</li>
+                </ul>
                 <p><strong>v.87.78 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>An expression axis says what its numbers are.</b> The Gene Effect view's axis read only "DUSP4 Expression", leaving the scale to be guessed, while the Correlation plot beside it has always said log2 TPM+1. Both now agree, along with the by-tissue detail plots; one chart also said "log TPM+1" where every other said "log2".</li>
@@ -6097,7 +6101,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.78</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.79</a>
         </span>
     </div>
 
@@ -8833,6 +8837,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_78"></script>
+    <script src="app.js?v=v87_79"></script>
 </body>
 </html>
