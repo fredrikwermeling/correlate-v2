@@ -2205,6 +2205,22 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.74 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Export for AI, audited again by handing files to assistants who had never seen the app.</b> Twelve exports from nine views went out with a researcher's question attached, and the changes below are what those readers got stuck on or got wrong.</li>
+                    <li><b>Fix: the co-essentiality note described the sign backwards.</b> It said a positive correlation between two genes meant one buffering the other, and a negative one meant a shared pathway. Gene effect is negative for a dependency, so two genes needed by the same cell lines move down together and correlate positively: BRAF against MEK1, MEK2 and ERK2 all sit near +0.6 to +0.8. An assistant following the old wording would have reported the mechanism inside out.</li>
+                    <li><b>Fix: a custom export could carry the previous view's results.</b> Asking for lung cell lines while a melanoma comparison was open produced a file of lung lines whose top differences were BRAF, DUSP4 and SOX10, none of them in the file, under a description of fifty cell lines that were not there. Results computed over a different cohort are now dropped, and the file says what went and why. Narrowing the genes while keeping the cohort still keeps the analysis, which is the case the dialog exists for.</li>
+                    <li><b>Every precomputed list now says whether it is complete or cut, and by what rule.</b> Readers could not tell a genome-wide table from a top-200 one and hedged answers that needed no hedging, or read a gene's absence as a result when it had merely fallen outside a cut.</li>
+                    <li><b>A gene set now carries every pairing among its genes.</b> Asking whether DUSP4 sits with the MAPK genes or the lineage genes, a reader was handed three of that gene's nine pairings, the six missing ones being the weak lineage ones that would have settled it. All nine are now there, each with its p, marked for whether the network drew it.</li>
+                    <li><b>A network says what it correlated and over which cell lines, in words.</b> Typing in melanoma genes does not restrict the cohort to melanoma, and a reader assumed it had. The cluster count was also the number of genes rather than the number of clusters, so ten genes in one cluster reported ten clusters; and the leftover pile of genes that clustered with nothing was annotated with pathway names as though it were a module.</li>
+                    <li><b>A gated comparison says that the lines between the gates are not in the file at all</b>, that the gates were dragged by hand rather than computed, and, when both gates span the same range on one axis, that the split is really on the other axis alone.</li>
+                    <li><b>A mutation analysis names the evidence that split the lines.</b> A functional-loss analysis is an integrated copy-number, mutation and expression call, so MTAP put 243 lines in the altered group with no damaging point mutation anywhere in the release; the file said only that the damaging sub-type was on.</li>
+                    <li><b>The file answers "do you have MSI status" directly</b>, along with the other per-line attributes, instead of leaving a reader to search the prose and hit the genes MSI1 and MSI2 first. Where a single gene is in focus, the MSI comparison is now precomputed alongside the driver-gene ones.</li>
+                    <li><b>The self-check no longer reads as a guarantee it never made.</b> It compares gene names only, yet three readers tried to reconcile the counts in the caption beside it against the file and could not, because the caption describes the view and the file describes the export.</li>
+                    <li>Scales for the numbers that had none: ploidy, instability, loss of heterozygosity, the MSI score, aneuploidy and proliferation rate. The donor's age and sex and the line's Cellosaurus ID are now carried, because the written cell-line summary already stated them and nothing in the file could confirm it.</li>
+                    <li>The eight tumour suppressors behind the functional-loss calls are named rather than counted, and absence of a call is stated to mean "not called" rather than "called negative".</li>
+                    <li><b>The request block tolerates how an assistant actually writes.</b> Bullets, numbered lines, bold keys and code fences were rejected outright, losing every instruction in the block; a bare group name, and the obvious alternative key names, now resolve. Asking for something impossible says what the legal values are, and asking for a comparison group explains that an export carries one cohort.</li>
+                </ul>
                 <p><strong>v.87.73 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: the UpSet bars did not line up with the dots below them.</b> The invisible click target is a second bar on the same axis, and bars on one axis are drawn side by side by default, so each got half the slot and the visible bar sat off-centre. Both now share the slot, which also puts each count back over its own bar.</li>
@@ -6051,7 +6067,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.73</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.74</a>
         </span>
     </div>
 
@@ -8750,6 +8766,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_73"></script>
+    <script src="app.js?v=v87_74"></script>
 </body>
 </html>
