@@ -2205,6 +2205,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.80 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Fix: the mRNA column's counts did not match the heading.</b> The panel said 50 selected cell lines and the gene effect column agreed, while the mRNA column quietly rested on 49, because expression covers a different set of cell lines and one of the selected lines has none. The mRNA column now says how many lines it actually rests on whenever that differs, the same way the gene effect side has since it was reported claiming "48 vs 12" for a comparison it ran on 27 vs 3.</li>
+                </ul>
                 <p><strong>v.87.79 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: the two cell line inspect CSVs would not open properly.</b> A line describing the file was added above the column names in v.87.76; that made the description the header row as far as Excel and any scripting language are concerned, so the real column names were read as data and the numbers stopped lining up. The column names are back on the first line, where every other CSV in the app has them. What the file covers is still said when you export it, and is in the filename.</li>
@@ -6101,7 +6105,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.79</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.80</a>
         </span>
     </div>
 
@@ -8837,6 +8841,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_79"></script>
+    <script src="app.js?v=v87_80"></script>
 </body>
 </html>
