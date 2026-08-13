@@ -2205,6 +2205,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.87.85 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Phone: the cancer-type names no longer squeeze the gene effect plot.</b> A row label like "Peripheral Nervous System (n=47)" is 32 characters and took close to half a phone screen, leaving the boxes too narrow to compare, which is the only thing that chart is for. Names are cut much shorter on a phone; the full name is still on the point.</li>
+                    <li><b>Phone: tapping a cell line says which one it is.</b> These plots relied on hover to name a dot, which a phone does not have, so the only way to find out was a tap that threw you into the Cell Line Browser. A tap now names the dot, and tapping a named dot opens it. The on-screen hint no longer tells phone users to Shift-click, which they cannot do.</li>
+                </ul>
                 <p><strong>v.87.84 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: a gene effect chart narrowed by a pasted cell-line list did not say so.</b> Every other filter leaves a mark on a control, but a custom list leaves none: the lineage box still read "All lineages" over a chart down to two cell lines, which reads as the app having inherited a filter from somewhere else. The list is now named above the chart, first, since it is usually the strongest filter in the popout.</li>
@@ -6124,7 +6129,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.84</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.87.85</a>
         </span>
     </div>
 
@@ -8860,6 +8865,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v87_84"></script>
+    <script src="app.js?v=v87_85"></script>
 </body>
 </html>
