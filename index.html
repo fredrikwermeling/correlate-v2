@@ -2338,6 +2338,26 @@
                 font-size: 13px !important;
                 padding: 6px 16px !important;
             }
+            /* Inspect selection was still two columns on a phone: a 236px
+               sidebar of control cards beside the results, which put the
+               volcano and its table off the right edge and left the whole panel
+               needing a sideways scroll it did not offer. One column, results
+               first, the same order the gene effect and the scatter inspect
+               use, so the answer is what the panel opens on. */
+            #selectionInspectModal .modal-body > div {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+            #selectionInspectSidebar {
+                flex: 1 1 auto !important;
+                width: 100% !important;
+                order: 1 !important;
+            }
+            #selectionInspectBody { width: 100% !important; order: 0 !important; }
+            /* The two measures sit side by side inside the results. On one
+               column each gets the full width. */
+            #selectionInspectBody > div { flex-direction: column !important; }
+            #selectionInspectBody [id$="Volcano"] { max-width: 100% !important; }
             /* A collapsed panel should be a line of text, not an empty card.
                With its border, padding and background still drawn it took the
                room of the controls it was hiding, and three of them stacked
@@ -2461,6 +2481,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.06 (2026-08-13)</strong></p>
+                <ul>
+                    <li><b>Phone: inspect selection is one column.</b> It kept a fixed sidebar of control cards beside the results, which pushed the volcano and its table off the right edge of a phone. Everything is stacked now, results first and the controls under them, so the panel opens on the answer.</li>
+                    <li>The choice of statistical test is not offered on a phone; it runs Welch's t, as it does unless changed. The methods sentence in the header goes with it, leaving the title and "How to read this".</li>
+                </ul>
                 <p><strong>v.88.05 (2026-08-13)</strong></p>
                 <ul>
                     <li><b>Fix: the alteration grid could be opened and not shut on a phone.</b> Its title was set never to wrap, which made the header wider than the popup and pushed the close button off the right edge with nothing to scroll it back. The header wraps now and the close is thumb-sized.</li>
@@ -6491,7 +6516,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.05</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.06</a>
         </span>
     </div>
 
@@ -9231,6 +9256,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_05"></script>
+    <script src="app.js?v=v88_06"></script>
 </body>
 </html>
