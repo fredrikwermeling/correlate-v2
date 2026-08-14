@@ -2574,6 +2574,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.19 (2026-08-14)</strong></p>
+                <ul>
+                    <li><b>Fix: building a network from an inspect gene list did nothing.</b> The run is restricted to the selected cell lines, and "Min Cell Lines" is a floor on how many a gene needs data in. Left at its default of 25 it rejected any selection smaller than that, so the panel closed, the genes landed in the box and the analysis stopped on the home screen with a message about too few cell lines. The floor now comes down to the size of the selection.</li>
+                </ul>
                 <p><strong>v.88.18 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>The inspect header says what each side of the comparison is.</b> Under the title, a line gives the size of the selection, where it came from and the browser filters it was drawn from, then the size of the comparison group and the rule that produced it.</li>
@@ -6677,7 +6681,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.18</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.19</a>
         </span>
     </div>
 
@@ -9440,6 +9444,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_18"></script>
+    <script src="app.js?v=v88_19"></script>
 </body>
 </html>
