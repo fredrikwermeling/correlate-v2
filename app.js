@@ -39616,6 +39616,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbSendToBtn')?.addEventListener('click', (e) => this.openSendSelectionPopout(e.currentTarget));
         document.getElementById('selectionInspectCSV')?.addEventListener('click', () => this.downloadSelectionInspectCSV());
         document.getElementById('selectionInspectCSVCells')?.addEventListener('click', () => this.downloadSelectionInspectPerCellCSV());
+        document.getElementById('selectionInspectCopyData')?.addEventListener('click', () => this.copySelectionInspectData());
+        document.getElementById('selectionInspectSettings')?.addEventListener('click', (e) => this._geVolcanoExportMenu(e.currentTarget, 'settings'));
         const closeSelInspect = () => { document.getElementById('selectionInspectModal').style.display = 'none'; };
         document.getElementById('selectionInspectClose')?.addEventListener('click', closeSelInspect);
         document.getElementById('selectionInspectClose2')?.addEventListener('click', closeSelInspect);
@@ -45364,17 +45366,24 @@ ${clone.innerHTML}
         // One measure: a volcano over its table. The volcano is what the rest
         // of the app would have shown here from the start, and it makes the
         // shape of the comparison visible in a way a ranked table cannot.
+        // The two measures are one grid, each column spanning the same five
+        // subgrid rows (title, note, volcano, hint, table). The expression
+        // note runs longer than the CRISPR one, and in the old flex layout
+        // that pushed its volcano lower, so the two charts sat at different
+        // heights and could not be read across. Sharing rows keeps the charts
+        // level whatever the notes do. On a browser without subgrid the
+        // columns still sit side by side, just without the row alignment.
         const col = (side, title, note) => `
-            <div style="flex:1 1 0; min-width:280px;">
+            <div style="display:grid; grid-template-rows:subgrid; grid-row:span 5; min-width:0;">
                 <div style="font-weight:700; color:#4c782e; font-size:13px;">${title}</div>
                 <div style="font-size:10px; color:#9ca3af; margin:2px 0 5px;">${note}</div>
                 <div id="ge${side}Volcano" style="width:100%; max-width:330px; aspect-ratio:1/1; border:1px solid #e5e7eb; border-radius:4px; margin:0 auto 6px;"></div>
                 <div id="ge${side}Hint" style="font-size:10px; color:#9ca3af; margin-bottom:5px;"></div>
-                <div id="ge${side}Body" style="max-height:40vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;"></div>
+                <div id="ge${side}Body" style="max-height:40vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px; align-self:start; width:100%;"></div>
             </div>`;
 
         document.getElementById('selectionInspectBody').innerHTML = `
-            <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); column-gap:16px;">
                 ${col('Left', 'CRISPR gene effect',
                       'Difference in knockout effect. Negative means the selected lines depend on the gene more than the rest.')}
                 ${col('Right', 'mRNA expression', exprNote)}
@@ -45969,10 +45978,11 @@ ${clone.innerHTML}
                     </div>
                 </div>`;
             document.getElementById('selectionInspectModal').style.display = 'flex';
-            ['selectionInspectCSV', 'selectionInspectCSVCells', 'selectionInspectAI'].forEach(id => {
+            ['selectionInspectCSV', 'selectionInspectCSVCells', 'selectionInspectCopyData', 'selectionInspectAI'].forEach(id => {
                 const b = document.getElementById(id); if (b) b.style.display = 'none';
             });
             this._geInspectResults = null;
+            this._geVolcanoHeader = null;
             return;
         }
         // Keep the two sides so a gene opened from this table can be charted as
@@ -46078,7 +46088,7 @@ ${clone.innerHTML}
             othMeasured: _medOf(geRows, 'nOther')
         };
         this._geInspectResults = { rows: geRows, exprRows, selected, geCoverage, exprCoverage };
-        ['selectionInspectCSV', 'selectionInspectCSVCells', 'selectionInspectAI'].forEach(id => {
+        ['selectionInspectCSV', 'selectionInspectCSVCells', 'selectionInspectCopyData', 'selectionInspectAI'].forEach(id => {
             const b = document.getElementById(id);
             if (b) b.style.display = '';
         });
@@ -46130,6 +46140,16 @@ ${clone.innerHTML}
             e.preventDefault();
             this._showGEInspectHelp();
         });
+        // The heading an exported volcano carries. Outside the modal the chart
+        // has to say on its own what was compared, so it takes the modal's own
+        // title line and the same comparator sentence the subtitle uses,
+        // quoted from the same helpers rather than reworded here, so the file
+        // and the screen cannot drift apart. Editable per chart in Settings.
+        this._geVolcanoHeader = {
+            title: document.getElementById('selectionInspectTitle').textContent,
+            sub: `Compared with ${this._geInspectComparatorWords(scope, lineageText, _g, grpCount)}`
+                + (() => { const f = this._clbActiveFilterText(); return f ? `; selection from a list narrowed by ${f}` : ''; })()
+        };
 
         // Expression covers a different, larger set of cell lines than the
         // CRISPR screen, so the two columns routinely rest on different counts:
@@ -46238,10 +46258,11 @@ ${clone.innerHTML}
     // different in what direction or from what.
     // Every gene with its two means and the difference, so the comparison can be
     // taken into a spreadsheet.
-    downloadSelectionInspectCSV() {
+    // The gene-per-row table behind the volcanoes and both gene tables, built
+    // once so the CSV download and the clipboard copy cannot drift apart.
+    _selectionInspectTable(sep) {
         const r = this._geInspectResults;
-        if (!r?.rows?.length) return;
-        const nSel = (r.selected || []).length;
+        if (!r?.rows?.length) return null;
         // One row per gene carrying both measures, so the file matches what the
         // two columns show rather than needing two exports.
         const byGene = new Map();
@@ -46260,18 +46281,36 @@ ${clone.innerHTML}
         // took THAT as the header: the real column names became data and the
         // numbers stopped parsing. Scope belongs in the filename and the
         // on-screen message, not in the file's first row.
-        const head = 'Gene,GE_mean_selection,GE_mean_others,GE_delta,GE_p,GE_q,GE_n_selection,GE_n_others,'
-                   + 'Expr_mean_selection,Expr_mean_others,Expr_delta,Expr_p,Expr_q,Expr_n_selection,Expr_n_others\n';
+        const head = ['Gene', 'GE_mean_selection', 'GE_mean_others', 'GE_delta', 'GE_p', 'GE_q', 'GE_n_selection', 'GE_n_others',
+                      'Expr_mean_selection', 'Expr_mean_others', 'Expr_delta', 'Expr_p', 'Expr_q', 'Expr_n_selection', 'Expr_n_others'].join(sep) + '\n';
         const body = [...byGene.entries()]
             .sort((a, b) => Math.abs(b[1].ge?.delta ?? b[1].expr?.delta ?? 0)
                           - Math.abs(a[1].ge?.delta ?? a[1].expr?.delta ?? 0))
             .map(([gene, v]) => [gene,
                 num(v.ge?.meanSel), num(v.ge?.meanOther), num(v.ge?.delta), sci(v.ge?.p), sci(v.ge?.q), v.ge?.nSel ?? '', v.ge?.nOther ?? '',
                 num(v.expr?.meanSel), num(v.expr?.meanOther), num(v.expr?.delta), sci(v.expr?.p), sci(v.expr?.q), v.expr?.nSel ?? '', v.expr?.nOther ?? ''
-            ].join(','))
+            ].join(sep))
             .join('\n');
-        this.downloadFile(head + body, csvName(`selection_vs_rest_${nSel}CLs`), 'text/csv');
-        this.showCopyNotification?.(`Exported ${byGene.size.toLocaleString()} genes`);
+        return { text: head + body, count: byGene.size };
+    }
+
+    downloadSelectionInspectCSV() {
+        const t = this._selectionInspectTable(',');
+        if (!t) return;
+        const nSel = (this._geInspectResults.selected || []).length;
+        this.downloadFile(t.text, csvName(`selection_vs_rest_${nSel}CLs`), 'text/csv');
+        this.showCopyNotification?.(`Exported ${t.count.toLocaleString()} genes`);
+    }
+
+    // The same table onto the clipboard, tab separated, so the numbers land
+    // in Excel or GraphPad as columns without a file in between.
+    copySelectionInspectData() {
+        const t = this._selectionInspectTable('\t');
+        if (!t) { this.showCopyNotification?.('Nothing to copy yet.'); return; }
+        navigator.clipboard.writeText(t.text).then(
+            () => this.showCopyNotification?.(`Copied ${t.count.toLocaleString()} genes, paste into Excel or GraphPad`),
+            () => this.showCopyNotification?.('Could not reach the clipboard.')
+        );
     }
 
     // The same comparison one row per cell line rather than one row per gene.
@@ -46493,13 +46532,71 @@ ${clone.innerHTML}
             { x: hi.x, y: hi.y, text: hi.t, type: 'scattergl', mode: 'markers', name: 'shown in table',
               hoverinfo: 'text', marker: { size: 6, color: hi.x.map(v => v < 0 ? '#dc2626' : '#2563eb'), opacity: 0.85 } }
         ];
+        // The heading, so an exported chart says on its own what was compared.
+        // The words come from _geVolcanoHeader, which quotes the modal's own
+        // title and comparator sentence; here they are only wrapped to this
+        // chart's width. Title and subtitle are the same _tsRole annotations
+        // the gene-effect charts use, which is what lets the shared Settings
+        // panel edit them. A cutoff change redraws the chart, and that redraw
+        // must not put the automatic words back over an edit made in Settings:
+        // el._geAutoHdr holds the automatic text, and whenever the text on the
+        // chart is not that text, the user's version is carried over.
+        const W = el.clientWidth || 300, H = el.clientHeight || 300;
+        const hdr = this._geVolcanoHeader;
+        const headerAnns = [];
+        let topMargin = 10;
+        if (hdr) {
+            const ctx = (this._geMeasureCtx ||= document.createElement('canvas').getContext('2d'));
+            const wrapTo = (text, px) => {
+                ctx.font = `${px}px Arial, Helvetica, sans-serif`;
+                const meas = (t) => ctx.measureText(t).width * 1.15;
+                const maxW = Math.max(180, W - 16);
+                return meas(text) <= maxW ? [text] : this._wrapTextGreedy(text, px, maxW, meas);
+            };
+            const curT = (el.layout?.annotations || []).find(a => a._tsRole === 'title');
+            const curS = (el.layout?.annotations || []).find(a => a._tsRole === 'subtitle');
+            const auto = el._geAutoHdr || {};
+            let titleText, subText, titleSize = 11, subSize = 8;
+            if (curT && auto.title !== undefined && curT.text !== auto.title) {
+                titleText = curT.text; titleSize = curT.font?.size || titleSize;
+            } else {
+                titleText = `<b>${wrapTo(hdr.title, titleSize).join('</b><br><b>')}</b>`;
+                el._geAutoHdr = { ...el._geAutoHdr, title: titleText };
+            }
+            if (curS && auto.sub !== undefined && curS.text !== auto.sub) {
+                subText = curS.text; subSize = curS.font?.size || subSize;
+            } else {
+                subText = wrapTo(hdr.sub, subSize).join('<br>');
+                el._geAutoHdr = { ...el._geAutoHdr, sub: subText };
+            }
+            const tLines = (titleText.match(/<br/g) || []).length + 1;
+            const sLines = subText ? (subText.match(/<br/g) || []).length + 1 : 0;
+            const subBlock = sLines * subSize * 1.35;
+            const titleBlock = tLines * titleSize * 1.3;
+            topMargin = Math.round(6 + subBlock + (sLines ? 5 : 0) + titleBlock + 6);
+            // Paper y-units run over the plot area, so pixel offsets above it
+            // are converted against the height that remains under the margins.
+            const plotPx = Math.max(80, H - topMargin - 38);
+            headerAnns.push({
+                text: titleText, xref: 'paper', yref: 'paper',
+                x: 0.5, y: 1 + (6 + subBlock + (sLines ? 5 : 0)) / plotPx,
+                xanchor: 'center', yanchor: 'bottom', showarrow: false,
+                font: { size: titleSize }, _tsRole: 'title'
+            });
+            if (subText) headerAnns.push({
+                text: subText, xref: 'paper', yref: 'paper',
+                x: 0.5, y: 1 + 6 / plotPx,
+                xanchor: 'center', yanchor: 'bottom', showarrow: false,
+                font: { size: subSize, color: '#6b7280' }, _tsRole: 'subtitle'
+            });
+        }
         const layout = {
-            margin: { l: 44, r: 10, t: 10, b: 38 },
+            margin: { l: 44, r: 10, t: topMargin, b: 38 },
             // Square, so the two measures are directly comparable by eye and
             // an exported figure is the shape people actually want a volcano
             // in. The container carries the 1:1 aspect ratio; height follows it.
-            height: el.clientHeight || 300,
-            width: el.clientWidth || 300,
+            height: H,
+            width: W,
             showlegend: false,
             hovermode: 'closest',
             xaxis: { title: { text: xTitle, font: { size: 9 } }, tickfont: { size: 9 }, zeroline: true, zerolinecolor: '#9ca3af' },
@@ -46508,13 +46605,17 @@ ${clone.innerHTML}
             // the labels above and below their dot was not enough: the hits
             // worth labelling are the ones that cluster, so two of them at
             // almost the same height still overprinted.
+            // The gene labels come first so their indices line up with `lab`
+            // in _spreadVolcanoLabels; the heading annotations sit after them.
+            // _dotLabel is what gives them a size control in Settings.
             annotations: lab.map((r) => ({
                 x: r.delta, y: yOf(r), text: r.gene, font: { size: 8, color: '#374151' },
                 showarrow: true, arrowhead: 0, arrowwidth: 0.7, arrowcolor: '#b8bec9',
                 standoff: 3,
                 ax: r.delta < 0 ? -14 : 14, ay: -10,
-                xanchor: r.delta < 0 ? 'right' : 'left', yanchor: 'middle'
-            })),
+                xanchor: r.delta < 0 ? 'right' : 'left', yanchor: 'middle',
+                _dotLabel: true
+            })).concat(headerAnns),
             paper_bgcolor: '#fff', plot_bgcolor: '#fff'
         };
         Plotly.react(el, traces, layout, { displayModeBar: false, responsive: true })
@@ -46526,6 +46627,20 @@ ${clone.innerHTML}
                 const gene = t.split('<br>')[0];
                 if (gene) this._openGeneFromInspect?.(gene, side === 'Right');
             });
+        }
+        // The layout gives the plot a fixed pixel size, so a window resize
+        // that changes the grid column's width leaves the chart at its old
+        // size, overflowing the box or rattling inside it. Follow the box.
+        if (!el._sizeWatch && typeof ResizeObserver !== 'undefined') {
+            const ro = new ResizeObserver(() => {
+                if (!el.data || !document.body.contains(el)) return;
+                const w = el.clientWidth, h = el.clientHeight;
+                if (!w || !h) return;
+                if (Math.abs((el.layout?.width || 0) - w) < 2 && Math.abs((el.layout?.height || 0) - h) < 2) return;
+                Plotly.relayout(el, { width: w, height: h }).catch(() => {});
+            });
+            ro.observe(el);
+            el._sizeWatch = ro;
         }
     }
 
@@ -46764,11 +46879,14 @@ ${clone.innerHTML}
     }
 
     // Which volcano to export. Two charts and one footer button, so ask,
-    // the same way the app asks elsewhere rather than guessing.
+    // the same way the app asks elsewhere rather than guessing. The same
+    // chooser serves Settings, which opens the shared text panel on the
+    // picked chart.
     _geVolcanoExportMenu(anchorEl, mode) {
         const act = (side, label) => async () => {
             const el = document.getElementById(`ge${side}Volcano`);
             if (!el || !el.data) { this.showCopyNotification?.('That plot is not drawn yet.'); return; }
+            if (mode === 'settings') return this.openTextSettings(`ge${side}Volcano`);
             if (mode === 'copy') return this.copyPlotToClipboard(el, label);
             // The shared chart-export dialog, so a volcano gets the same
             // format, print size, resolution and background choices as every
@@ -50538,7 +50656,10 @@ ${clone.innerHTML}
         // that could be edited on a three-panel figure was the overall title.
         const panelAnns = anns.filter(a => /^panel\d+$/.test(a._tsRole || ''))
             .sort((x, y) => x._tsRole.localeCompare(y._tsRole));
-        const ann0 = titleAnn || anns[0];
+        // An annotation marked as the subtitle must never be mistaken for the
+        // title, which is what happened on a chart whose annotations begin
+        // with the subtitle because it has no labelled points ahead of it.
+        const ann0 = titleAnn || anns.find(a => a._tsRole !== 'subtitle');
         const usesAnnotationTitle = !!titleAnn || (ann0 && !ann0._gateAnnotation && ann0.xref === 'paper');
         // For annotation-based titles, the real title size is in the inline span, not annotation font.size
         let titleSize;
