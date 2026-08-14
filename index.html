@@ -1505,6 +1505,14 @@
             .sidebar { width: 100%; min-width: 0; }
             .main-panel { width: 100%; }
             .logo-header img { max-width: min(440px, 92vw); }
+            /* Room to paste a real gene list, in both input modes: the input
+               card has half the page here, so the box can afford the height. */
+            #geneTextarea, #manualStatsTextarea { min-height: 320px !important; }
+            /* The collapsed sidebar sections read as a tappable line, same as
+               the phone's. */
+            .phone-collapsed > .param-section-heading {
+                min-height: 36px; margin: 0; text-align: left;
+            }
         }
 
         /* ---- Touch screens above phone size (an iPad, either way up).
@@ -2612,6 +2620,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.26 (2026-08-14)</strong></p>
+                <ul>
+                    <li><b>iPad: the gene set analysis sidebar opens on a tap.</b> "Lineage and disease" and "Genetic alterations" start as single lines that open when tapped, the same as on a phone, so the Run button sits right under the parameters. The gene paste box is taller in both input modes, standard and With Stats.</li>
+                </ul>
                 <p><strong>v.88.25 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>New tab keeps every layer of the view.</b> A gene opened from the browser's inspect and sent to a new tab used to arrive as the bare gene-effect chart; the comparison it was opened with (the selected lines vs the compared group), the red-marked selection, the measure, the scope and any pasted cell-line list now all travel along. The scatter's New tab likewise carries a gate-applied cohort, which lives outside the text box the other filters are read from.</li>
@@ -6745,7 +6757,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.25</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.26</a>
         </span>
     </div>
 
@@ -9510,6 +9522,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_25"></script>
+    <script src="app.js?v=v88_26"></script>
 </body>
 </html>
