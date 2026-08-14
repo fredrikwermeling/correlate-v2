@@ -40,7 +40,6 @@ def count_one(rec, by_chrom):
     counts_all = defaultdict(int); counts_uq = defaultdict(int)
     total = 0
     cur_chrom, iv, ptr, active, n_iv = None, [], 0, [], 0
-    r_len = 300      # generous read-length pad for the fast reject
     try:
         for r in bam.fetch(until_eof=True):            # sequential stream
             if r.is_unmapped or r.is_secondary or r.is_supplementary or r.is_duplicate:
@@ -53,12 +52,16 @@ def count_one(rec, by_chrom):
                 if not iv: continue
             if not iv: continue
             s = r.reference_start
-            # Fast reject: reads are coordinate-ordered, so if this read starts
-            # before the next unentered interval and nothing is currently open,
-            # it cannot overlap anything. One comparison for the common case.
-            if not active and ptr < n_iv and s < iv[ptr][0] - r_len:
-                continue
+            # reference_end, not start+read_length: RNA-seq reads are SPLICED
+            # and one read can span thousands of bases across an intron. An
+            # earlier version assumed a 300 bp span and silently dropped
+            # spliced reads, which is why genic loci undercounted.
             e = r.reference_end or (s + 1)
+            # Fast reject: reads are coordinate-ordered, so with nothing open
+            # and this read ending before the next interval starts, it cannot
+            # overlap anything.
+            if not active and ptr < n_iv and e < iv[ptr][0]:
+                continue
             while ptr < n_iv and iv[ptr][0] <= e:
                 active.append(iv[ptr]); ptr += 1
             if active:
