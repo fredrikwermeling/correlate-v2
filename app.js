@@ -39616,7 +39616,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('clbSendToBtn')?.addEventListener('click', (e) => this.openSendSelectionPopout(e.currentTarget));
         document.getElementById('selectionInspectCSV')?.addEventListener('click', () => this.downloadSelectionInspectCSV());
         document.getElementById('selectionInspectCSVCells')?.addEventListener('click', () => this.downloadSelectionInspectPerCellCSV());
-        document.getElementById('selectionInspectCopyData')?.addEventListener('click', () => this.copySelectionInspectData());
+        document.getElementById('selectionInspectCopyData')?.addEventListener('click', (e) => this._geVolcanoExportMenu(e.currentTarget, 'copydata'));
         document.getElementById('selectionInspectSettings')?.addEventListener('click', (e) => this._geVolcanoExportMenu(e.currentTarget, 'settings'));
         const closeSelInspect = () => { document.getElementById('selectionInspectModal').style.display = 'none'; };
         document.getElementById('selectionInspectClose')?.addEventListener('click', closeSelInspect);
@@ -46302,13 +46302,31 @@ ${clone.innerHTML}
         this.showCopyNotification?.(`Exported ${t.count.toLocaleString()} genes`);
     }
 
-    // The same table onto the clipboard, tab separated, so the numbers land
-    // in Excel or GraphPad as columns without a file in between.
-    copySelectionInspectData() {
-        const t = this._selectionInspectTable('\t');
-        if (!t) { this.showCopyNotification?.('Nothing to copy yet.'); return; }
-        navigator.clipboard.writeText(t.text).then(
-            () => this.showCopyNotification?.(`Copied ${t.count.toLocaleString()} genes, paste into Excel or GraphPad`),
+    // One measure onto the clipboard: every gene its volcano draws, with the
+    // difference and the FDR, under a first line saying what was compared.
+    // This is for redrawing the plot in whatever software the user works in,
+    // so it carries exactly what the chart shows and nothing else, and the
+    // explanation rides along in the text rather than in a filename.
+    copySelectionInspectData(side) {
+        const r = this._geInspectResults;
+        const rows = side === 'right' ? (r?.exprRows || []) : (r?.rows || []);
+        if (!rows.length) { this.showCopyNotification?.('Nothing to copy yet.'); return; }
+        const measure = side === 'right' ? 'mRNA expression' : 'CRISPR gene effect';
+        const deltaCol = side === 'right'
+            ? 'Delta log2(TPM+1) (selection - comparison)'
+            : 'Delta gene effect (selection - comparison)';
+        const hdr = this._geVolcanoHeader;
+        const anyQ = rows.some(x => x.q != null);
+        const about = (hdr ? `${hdr.title}. ${hdr.sub}. ` : '')
+            + `${measure}: each gene's mean in the selection minus its mean in the comparison group`
+            + (anyQ ? ', FDR from Benjamini-Hochberg.' : '. Too few cell lines to test, so there is no FDR.');
+        const sci = (v) => (v === undefined || v === null || isNaN(v)) ? '' : v.toExponential(3);
+        const out = [about, ['Gene', deltaCol, 'FDR (q)'].join('\t')];
+        for (const x of [...rows].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))) {
+            out.push([x.gene, x.delta.toFixed(4), sci(x.q)].join('\t'));
+        }
+        navigator.clipboard.writeText(out.join('\n')).then(
+            () => this.showCopyNotification?.(`Copied ${rows.length.toLocaleString()} genes, ${measure}`),
             () => this.showCopyNotification?.('Could not reach the clipboard.')
         );
     }
@@ -46887,6 +46905,7 @@ ${clone.innerHTML}
             const el = document.getElementById(`ge${side}Volcano`);
             if (!el || !el.data) { this.showCopyNotification?.('That plot is not drawn yet.'); return; }
             if (mode === 'settings') return this.openTextSettings(`ge${side}Volcano`);
+            if (mode === 'copydata') return this.copySelectionInspectData(side === 'Left' ? 'left' : 'right');
             if (mode === 'copy') return this.copyPlotToClipboard(el, label);
             // The shared chart-export dialog, so a volcano gets the same
             // format, print size, resolution and background choices as every

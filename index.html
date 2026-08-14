@@ -2578,6 +2578,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.22 (2026-08-14)</strong></p>
+                <ul>
+                    <li><b>Copy data in the selection inspect now mirrors one volcano at a time.</b> It asks which measure, like the image export, and copies every gene that plot draws with its difference and FDR, under a first line saying what was compared, so the chart can be redrawn in whatever software the numbers are pasted into.</li>
+                </ul>
                 <p><strong>v.88.21 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>The Cell Line Browser has a banner.</b> The title of the browser is now an illustrated banner, a row of cell types in the app's green, in place of the plain text heading.</li>
@@ -6693,7 +6697,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.21</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.22</a>
         </span>
     </div>
 
@@ -8480,7 +8484,7 @@
                 <span class="mobile-hide" style="font-size:10px; color:#9ca3af; margin-left:4px;">Export:</span>
                 <button id="selectionInspectImg" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Export a volcano plot, choose which measure and the format in the popup">Export image...</button>
                 <button id="selectionInspectCopyImg" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Copy a volcano plot to the clipboard, ready to paste into an email or slide">Copy</button>
-                <button id="selectionInspectCopyData" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; display:none;" title="Copy the table behind this comparison: every gene tested with its two means, the difference, p, q and n for both measures, tab separated so it pastes straight into Excel or GraphPad">Copy data</button>
+                <button id="selectionInspectCopyData" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; display:none;" title="Copy the data behind a volcano plot, choose which measure in the popup: every gene drawn, with its difference and FDR, under a line saying what was compared. Tab separated, for redrawing the plot in other software">Copy data</button>
                 <button id="selectionInspectCSV" class="btn btn-outline btn-sm" style="font-size:11px; display:none;" title="One row per gene, for EVERY gene tested, not only the ones on screen: its mean in the selection, its mean in the comparison group, the difference, p and q, for both measures.">.csv, all genes</button>
                 <button id="selectionInspectCSVCells" class="btn btn-outline btn-sm" style="font-size:11px; display:none;" title="One row per cell line and a column per gene, so each line's own values are visible rather than the group means. Covers only the genes the tables are currently showing, strongest difference first, up to 300 of them.">.csv, shown genes per cell line</button>
                 <button id="selectionInspectAI" class="btn btn-outline btn-sm" style="font-size:11px; display:none;" title="Package this comparison for a language model: the selected cell lines, the differences for every gene, and the settings that produced them. Not the same file as the browser's own Export for AI, which sends the cell line list without a comparison.">Export for AI</button>
@@ -9458,6 +9462,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_21"></script>
+    <script src="app.js?v=v88_22"></script>
 </body>
 </html>
