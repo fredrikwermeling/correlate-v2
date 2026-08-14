@@ -1210,7 +1210,13 @@
         /* New horizontal grid layout for network controls */
         .network-controls-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            /* Sized to the box the toolbar actually sits in, not the window:
+               a fixed three-column split overflowed whenever the results
+               panel was narrower than the toolbar's content (an iPad held
+               upright clipped the view controls and export column clean off
+               the right edge). auto-fit drops to two columns, then one, as
+               the panel narrows. */
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
             gap: 10px;
             padding: 8px 10px;
             background: #f9fafb;
@@ -1476,22 +1482,50 @@
         .button-group-horizontal {
             display: flex;
             gap: 8px;
+            /* Never wider than the column: three labeled buttons on one row
+               are what used to force the toolbar past its box. */
+            flex-wrap: wrap;
         }
 
         .button-group-horizontal .btn {
             flex: 1;
         }
 
-        @media (max-width: 800px) {
-            .network-controls-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
+        /* The old fixed 2-column / 1-column window-width fallbacks are gone:
+           auto-fit above follows the panel's own width at every size. */
+
+        /* ---- Tablet (641-900px): an iPad held upright. The 415px sidebar
+           beside the results left the network a strip too narrow to use,
+           with the toolbar's right columns clipped off the page. Stack
+           instead: Options, then parameters and gene input side by side,
+           then Results with the full width. A tablet on its side is wide
+           enough for the desktop layout and keeps it. */
+        @media (min-width: 641px) and (max-width: 900px) {
+            .container { flex-direction: column; max-width: 100%; }
+            .sidebar { width: 100%; min-width: 0; }
+            .main-panel { width: 100%; }
+            .logo-header img { max-width: min(440px, 92vw); }
         }
 
-        @media (max-width: 500px) {
-            .network-controls-grid {
-                grid-template-columns: 1fr;
+        /* ---- Touch screens above phone size (an iPad, either way up).
+           The layout is the desktop's, but the pointer is a finger, so
+           nothing interactive may be much smaller than a fingertip. Scoped
+           by pointer, never by width: a desktop with a mouse never matches,
+           and the phone block below carries its own, stronger sizing. */
+        @media (pointer: coarse) and (min-width: 641px) {
+            .modal-body .form-control, .modal-body select, .modal-body input,
+            .sidebar .form-control, .sidebar select, .sidebar input[type="text"],
+            .sidebar input[type="number"], #cellLineBrowserModal select,
+            #cellLineBrowserModal input[type="text"] {
+                min-height: 36px !important;
+                font-size: 14px !important;
             }
+            .modal-body .btn, .sidebar .btn, #cellLineBrowserModal .btn,
+            .network-controls-grid .btn {
+                min-height: 38px !important;
+            }
+            input[type="checkbox"], input[type="radio"] { width: 18px !important; height: 18px !important; }
+            .modal-close { min-width: 40px !important; min-height: 40px !important; }
         }
 
         .network-legend {
@@ -2578,6 +2612,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.24 (2026-08-14)</strong></p>
+                <ul>
+                    <li><b>Filter boxes in the popouts scale to each other.</b> In the gene-effect popout the subtype and disease counts were quoted from the whole panel while the tissue counts came from the lines actually measured for the gene on screen, so Lung could read n=123 in one box and n=126 in the next. All three now count over the same cohort, and applying a hotspot, fusion or copy-number filter rescales every other box, in the gene-effect, correlation and scatter popouts alike. The Cell Line Browser already worked this way.</li>
+                    <li><b>Gene suggestions list the whole family.</b> Typing "usp" and analyzing used to suggest USP1, USP10 and USP11, three arbitrary names; it now lists every gene starting with what was typed, in order, USP18 included, scrolling when the family is long.</li>
+                    <li><b>iPad layout.</b> On a tablet held upright the start page stacks: parameters and gene input side by side, then Results with the full width, so the network settings are no longer clipped off the right edge. The network toolbar now follows the width of the panel it sits in at every size, and on any touch screen the controls keep a fingertip's size.</li>
+                </ul>
                 <p><strong>v.88.23 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>Network highlights default to black, not purple.</b> The ring on highlighted genes, the caption bar over the network and the Enrichr marking note now start black; the colour is still yours to change in the network settings. Gate colours are unchanged.</li>
@@ -6701,7 +6741,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.23</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.24</a>
         </span>
     </div>
 
@@ -9466,6 +9506,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_23"></script>
+    <script src="app.js?v=v88_24"></script>
 </body>
 </html>
