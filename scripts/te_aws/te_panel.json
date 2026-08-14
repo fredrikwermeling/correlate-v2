@@ -1,0 +1,7802 @@
+[
+{
+"chrom": "1",
+"start": 35031675,
+"end": 35037706,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_35031675",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 67544543,
+"end": 67550598,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_67544543",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 81404888,
+"end": 81410942,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_81404888",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 84518059,
+"end": 84524089,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_84518059",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 105312869,
+"end": 105318900,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_105312869",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 105386455,
+"end": 105392486,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_105386455",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 119394974,
+"end": 119401003,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_1_119394974",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 166212290,
+"end": 166218321,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_166212290",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 187566803,
+"end": 187572831,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_1_187566803",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 193686967,
+"end": 193693022,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_193686967",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 210087138,
+"end": 210093168,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_210087138",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 218182569,
+"end": 218188594,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_218182569",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 237182767,
+"end": 237188794,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_237182767",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 247850475,
+"end": 247856506,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_1_247850475",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 5287317,
+"end": 5293348,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_10_5287317",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 6411597,
+"end": 6417629,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_10_6411597",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 33799773,
+"end": 33805804,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_10_33799773",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 87115262,
+"end": 87121294,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_10_87115262",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 107137104,
+"end": 107143135,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_10_107137104",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 110069888,
+"end": 110075897,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_10_110069888",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 111572183,
+"end": 111578215,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_10_111572183",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 24349497,
+"end": 24355547,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_11_24349497",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 48869246,
+"end": 48875276,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_11_48869246",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 87051073,
+"end": 87057103,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_11_87051073",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 90699439,
+"end": 90705470,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_11_90699439",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 95169380,
+"end": 95175410,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_11_95169380",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 109048221,
+"end": 109054253,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_11_109048221",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 125406505,
+"end": 125412536,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_11_125406505",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 51956415,
+"end": 51962441,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_12_51956415",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 55182357,
+"end": 55188411,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_12_55182357",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 55490040,
+"end": 55496067,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_12_55490040",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 73677434,
+"end": 73683448,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_12_73677434",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 75268648,
+"end": 75274681,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_12_75268648",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 101539821,
+"end": 101545842,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_12_101539821",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 126783556,
+"end": 126789584,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_12_126783556",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 77186958,
+"end": 77192986,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_13_77186958",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 98319662,
+"end": 98325694,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_13_98319662",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 109162820,
+"end": 109168843,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_13_109162820",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 19060295,
+"end": 19066341,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_14_19060295",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 45174283,
+"end": 45180307,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_14_45174283",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 45946340,
+"end": 45952372,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_14_45946340",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 48656285,
+"end": 48662316,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_14_48656285",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 52261319,
+"end": 52267350,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_14_52261319",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 63002569,
+"end": 63008600,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_14_63002569",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 63583424,
+"end": 63589453,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_14_63583424",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 71014007,
+"end": 71020039,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_14_71014007",
+"role": "element"
+},
+{
+"chrom": "15",
+"start": 51709413,
+"end": 51715443,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_15_51709413",
+"role": "element"
+},
+{
+"chrom": "15",
+"start": 55218234,
+"end": 55224297,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_15_55218234",
+"role": "element"
+},
+{
+"chrom": "15",
+"start": 88053122,
+"end": 88059151,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_15_88053122",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 9678347,
+"end": 9684379,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_16_9678347",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 16934393,
+"end": 16940413,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_16_16934393",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 33755044,
+"end": 33761079,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_16_33755044",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 34842846,
+"end": 34848872,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_16_34842846",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 65723914,
+"end": 65729923,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_16_65723914",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 68617379,
+"end": 68623408,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_16_68617379",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 68455097,
+"end": 68461128,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_17_68455097",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 68540952,
+"end": 68546936,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_17_68540952",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 535701,
+"end": 541726,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_18_535701",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 13975859,
+"end": 13981890,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_18_13975859",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 35399701,
+"end": 35405732,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_18_35399701",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 39354979,
+"end": 39361010,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_18_39354979",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 45186744,
+"end": 45192773,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_18_45186744",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 47870329,
+"end": 47876357,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_18_47870329",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 68413785,
+"end": 68419817,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_18_68413785",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 70633761,
+"end": 70639791,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_18_70633761",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 73558806,
+"end": 73564838,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_18_73558806",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 4781319,
+"end": 4787350,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_2_4781319",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 11136231,
+"end": 11142262,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_2_11136231",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 36339649,
+"end": 36345680,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_2_36339649",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 103182814,
+"end": 103188844,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_2_103182814",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 126935625,
+"end": 126941641,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_2_126935625",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 144618525,
+"end": 144624556,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_2_144618525",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 153864280,
+"end": 153870310,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_2_153864280",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 173179998,
+"end": 173186025,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_2_173179998",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 176346693,
+"end": 176352722,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_2_176346693",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 194077146,
+"end": 194083174,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_2_194077146",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 7096828,
+"end": 7102846,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_20_7096828",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 11613427,
+"end": 11619452,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_20_11613427",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 12781665,
+"end": 12787692,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_20_12781665",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 23406745,
+"end": 23412777,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_20_23406745",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 54434622,
+"end": 54440577,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_20_54434622",
+"role": "element"
+},
+{
+"chrom": "22",
+"start": 34945675,
+"end": 34951700,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_22_34945675",
+"role": "element"
+},
+{
+"chrom": "22",
+"start": 49381573,
+"end": 49387604,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_22_49381573",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 4004760,
+"end": 4010794,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_3_4004760",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 26439508,
+"end": 26445536,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_3_26439508",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 46824595,
+"end": 46830628,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_3_46824595",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 77812828,
+"end": 77818814,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_3_77812828",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 90218717,
+"end": 90224748,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_3_90218717",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 90383231,
+"end": 90389253,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_3_90383231",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 103275381,
+"end": 103281413,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_3_103275381",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 108918719,
+"end": 108924750,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_3_108918719",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 120291868,
+"end": 120298033,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_3_120291868",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 132664850,
+"end": 132670878,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_3_132664850",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 157737465,
+"end": 157743493,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_3_157737465",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 19079521,
+"end": 19085552,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_4_19079521",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 23616394,
+"end": 23622409,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_4_23616394",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 48053971,
+"end": 48059991,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_4_48053971",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 53404637,
+"end": 53410664,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_4_53404637",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 58428482,
+"end": 58434513,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_4_58428482",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 59944565,
+"end": 59950595,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_4_59944565",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 63592666,
+"end": 63598687,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_4_63592666",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 75642765,
+"end": 75648797,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_4_75642765",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 80625706,
+"end": 80631735,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_4_80625706",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 92899362,
+"end": 92905564,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_4_92899362",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 107492214,
+"end": 107498227,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_4_107492214",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 112815957,
+"end": 112821987,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_4_112815957",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 136296015,
+"end": 136302446,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_4_136296015",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 137214649,
+"end": 137220701,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_4_137214649",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 145757878,
+"end": 145764140,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_4_145757878",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 167491128,
+"end": 167497159,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_4_167491128",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 190058239,
+"end": 190064258,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_4_190058239",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 13416609,
+"end": 13422637,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_5_13416609",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 57680001,
+"end": 57686033,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_5_57680001",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 85806507,
+"end": 85812536,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_5_85806507",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 101467060,
+"end": 101473089,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_5_101467060",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 103854288,
+"end": 103860317,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_5_103854288",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 104848937,
+"end": 104854975,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_5_104848937",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 118935026,
+"end": 118941159,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_5_118935026",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 119020480,
+"end": 119026509,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_5_119020480",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 152450542,
+"end": 152456568,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_5_152450542",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 155488941,
+"end": 155494976,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_5_155488941",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 166393786,
+"end": 166399820,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_5_166393786",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 172829799,
+"end": 172835831,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_5_172829799",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 2418008,
+"end": 2424037,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_6_2418008",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 85318154,
+"end": 85324181,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_6_85318154",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 86708764,
+"end": 86714791,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_6_86708764",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 94575470,
+"end": 94581501,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_6_94575470",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 94907713,
+"end": 94913778,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_6_94907713",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 113024947,
+"end": 113030980,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_6_113024947",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 117423294,
+"end": 117429326,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_6_117423294",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 133341855,
+"end": 133347885,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_6_133341855",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 156355269,
+"end": 156361299,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_6_156355269",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 156646114,
+"end": 156652144,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_6_156646114",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 25081479,
+"end": 25087510,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_7_25081479",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 49719864,
+"end": 49725896,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_7_49719864",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 62609209,
+"end": 62615237,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_7_62609209",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 93416959,
+"end": 93422991,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_7_93416959",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 96475962,
+"end": 96481992,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_7_96475962",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 97242968,
+"end": 97249000,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_7_97242968",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 113416177,
+"end": 113422207,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_7_113416177",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 140761814,
+"end": 140767842,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_7_140761814",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 8328369,
+"end": 8334397,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_8_8328369",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 26971135,
+"end": 26977162,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_8_26971135",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 76533559,
+"end": 76539590,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_8_76533559",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 89697934,
+"end": 89703966,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_8_89697934",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 92534319,
+"end": 92540349,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_8_92534319",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 105752079,
+"end": 105758101,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_8_105752079",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 126595130,
+"end": 126601133,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_8_126595130",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 135082986,
+"end": 135089016,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_8_135082986",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 136888105,
+"end": 136894133,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_8_136888105",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 137450317,
+"end": 137456348,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_8_137450317",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 2515633,
+"end": 2521963,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_9_2515633",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 46439643,
+"end": 46445703,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_9_46439643",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 92911886,
+"end": 92917936,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_9_92911886",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 96875817,
+"end": 96881847,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_9_96875817",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 98459867,
+"end": 98465900,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_9_98459867",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 11725368,
+"end": 11731399,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_11725368",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 26332534,
+"end": 26338563,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_X_26332534",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 56722317,
+"end": 56728349,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_56722317",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 63233135,
+"end": 63239166,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_X_63233135",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 72325981,
+"end": 72332009,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_72325981",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 72600828,
+"end": 72606850,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_72600828",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 75453753,
+"end": 75459553,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_75453753",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 75543184,
+"end": 75549215,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_X_75543184",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 81096652,
+"end": 81102683,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_81096652",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 82314613,
+"end": 82320645,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_X_82314613",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 82797404,
+"end": 82803428,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_82797404",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 87076407,
+"end": 87082419,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_87076407",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 95312810,
+"end": 95318841,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_X_95312810",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 105712515,
+"end": 105718549,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_105712515",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 129651351,
+"end": 129657381,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_129651351",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 141565635,
+"end": 141571654,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_141565635",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 146735252,
+"end": 146741285,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_146735252",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 148259696,
+"end": 148265715,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_X_148259696",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 3311591,
+"end": 3317606,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_Y_3311591",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 4816954,
+"end": 4822979,
+"name": "L1HS",
+"family": "L1",
+"strand": "-",
+"id": "L1_Y_4816954",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 9778739,
+"end": 9784760,
+"name": "L1HS",
+"family": "L1",
+"strand": "+",
+"id": "L1_Y_9778739",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 155599134,
+"end": 155604668,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_155599134",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 3469679,
+"end": 3477182,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_11_3469679",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 101566761,
+"end": 101574291,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_101566761",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 118594395,
+"end": 118599915,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_11_118594395",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 34774654,
+"end": 34780279,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_34774654",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 58722209,
+"end": 58729730,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_58722209",
+"role": "element"
+},
+{
+"chrom": "22",
+"start": 18927154,
+"end": 18932687,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_22_18927154",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 75600533,
+"end": 75608119,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_75600533",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 101411705,
+"end": 101417184,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_101411705",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 112745794,
+"end": 112751322,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_112745794",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 125610105,
+"end": 125617635,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_125610105",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 185283013,
+"end": 185288547,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_185283013",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 3980094,
+"end": 3987636,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_3980094",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 9124535,
+"end": 9132070,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_9124535",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 9660597,
+"end": 9668148,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_9660597",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 30487719,
+"end": 30495254,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_30487719",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 46002817,
+"end": 46008123,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_46002817",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 42862411,
+"end": 42868111,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_42862411",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 4623024,
+"end": 4630560,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_4623024",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 4631528,
+"end": 4639063,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_4631528",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 12074993,
+"end": 12082470,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_8_12074993",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 153837670,
+"end": 153843030,
+"name": "HERVK-int",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_X_153837670",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 1345186,
+"end": 1346153,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_1345186",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 1515722,
+"end": 1516631,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_1515722",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 25914340,
+"end": 25915308,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_25914340",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 29685844,
+"end": 29686802,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_29685844",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 33529116,
+"end": 33530085,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_33529116",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 36954584,
+"end": 36955535,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_36954584",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 41037697,
+"end": 41038666,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_41037697",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 45993774,
+"end": 45994740,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_45993774",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 46785967,
+"end": 46786935,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_46785967",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 47254240,
+"end": 47255201,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_47254240",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 52471916,
+"end": 52472883,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_52471916",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 65605478,
+"end": 65606445,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_65605478",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 66890497,
+"end": 66891457,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_66890497",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 70926107,
+"end": 70927082,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_70926107",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 73594980,
+"end": 73595948,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_73594980",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 80168025,
+"end": 80168979,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_80168025",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 100301389,
+"end": 100302324,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_100301389",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 104677360,
+"end": 104678334,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_104677360",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 109060066,
+"end": 109061034,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_109060066",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 111902345,
+"end": 111903307,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_111902345",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 114600769,
+"end": 114601742,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_114600769",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 150607399,
+"end": 150608361,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_150607399",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 152427584,
+"end": 152428557,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_152427584",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 155569327,
+"end": 155570296,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_155569327",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 155596456,
+"end": 155597424,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_155596456",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 155604668,
+"end": 155605636,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_155604668",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 156151251,
+"end": 156152212,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_156151251",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 159737585,
+"end": 159738553,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_159737585",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 160621928,
+"end": 160622885,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_160621928",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 160882931,
+"end": 160883908,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_160882931",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 188720366,
+"end": 188721337,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_188720366",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 196077861,
+"end": 196078835,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_196077861",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 209314535,
+"end": 209315518,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_209314535",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 224527532,
+"end": 224528500,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_1_224527532",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 228056040,
+"end": 228057009,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_1_228056040",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 26665813,
+"end": 26666773,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_10_26665813",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 27182398,
+"end": 27183366,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_10_27182398",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 37782252,
+"end": 37783221,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_10_37782252",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 42526055,
+"end": 42527021,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_10_42526055",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 43832650,
+"end": 43833618,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_10_43832650",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 67168987,
+"end": 67169954,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_10_67168987",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 92061409,
+"end": 92062364,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_10_92061409",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 132426220,
+"end": 132427183,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_10_132426220",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 9340322,
+"end": 9341251,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_11_9340322",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 24467639,
+"end": 24468598,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_24467639",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 37880487,
+"end": 37881451,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_37880487",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 55198470,
+"end": 55199435,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_55198470",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 55825136,
+"end": 55826098,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_55825136",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 61422484,
+"end": 61423448,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_11_61422484",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 62094071,
+"end": 62095038,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_62094071",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 63295442,
+"end": 63296410,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_11_63295442",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 63297785,
+"end": 63298753,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_11_63297785",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 67525359,
+"end": 67526320,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_67525359",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 67635434,
+"end": 67636394,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_11_67635434",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 71875417,
+"end": 71876385,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_71875417",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 96457132,
+"end": 96458100,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_96457132",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 101565793,
+"end": 101566761,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_101565793",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 101574291,
+"end": 101575259,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_101574291",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 105135577,
+"end": 105136481,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_11_105135577",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 118591723,
+"end": 118592690,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_11_118591723",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 118599915,
+"end": 118600883,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_11_118599915",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 5646182,
+"end": 5647122,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_12_5646182",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 8788256,
+"end": 8789205,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_12_8788256",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 30084986,
+"end": 30085954,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_30084986",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 32252444,
+"end": 32253412,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_12_32252444",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 38131889,
+"end": 38132857,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_38131889",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 56794144,
+"end": 56795109,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_56794144",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 58721241,
+"end": 58722209,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_58721241",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 58729730,
+"end": 58730698,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_58729730",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 58936944,
+"end": 58937905,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_58936944",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 59501994,
+"end": 59502965,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_12_59501994",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 73402502,
+"end": 73403475,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_73402502",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 85862717,
+"end": 85863681,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_85862717",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 105872336,
+"end": 105873305,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_105872336",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 108220230,
+"end": 108221198,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_12_108220230",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 19294134,
+"end": 19295057,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_13_19294134",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 20174357,
+"end": 20175325,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_13_20174357",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 23387788,
+"end": 23388759,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_13_23387788",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 50173157,
+"end": 50174126,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_13_50173157",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 54840941,
+"end": 54841901,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_13_54840941",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 70189009,
+"end": 70189974,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_13_70189009",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 20552745,
+"end": 20553715,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_14_20552745",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 20737081,
+"end": 20738049,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_14_20737081",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 23193893,
+"end": 23194861,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_14_23193893",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 38587303,
+"end": 38588272,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_14_38587303",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 78101622,
+"end": 78102588,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_14_78101622",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 78127740,
+"end": 78128708,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_14_78127740",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 78261016,
+"end": 78261977,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_14_78261016",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 100778127,
+"end": 100779095,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_14_100778127",
+"role": "element"
+},
+{
+"chrom": "15",
+"start": 65518879,
+"end": 65519847,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_15_65518879",
+"role": "element"
+},
+{
+"chrom": "15",
+"start": 96327963,
+"end": 96328911,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_15_96327963",
+"role": "element"
+},
+{
+"chrom": "15",
+"start": 102400179,
+"end": 102401147,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_15_102400179",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 5804388,
+"end": 5805356,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_16_5804388",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 8228762,
+"end": 8229730,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_16_8228762",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 21233107,
+"end": 21234069,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_16_21233107",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 23610804,
+"end": 23611764,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_16_23610804",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 34233184,
+"end": 34234142,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_16_34233184",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 35189925,
+"end": 35190893,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_16_35189925",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 74833301,
+"end": 74834258,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_16_74833301",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 4977974,
+"end": 4978941,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_17_4977974",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 16738193,
+"end": 16739171,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_17_16738193",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 17514241,
+"end": 17515198,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_17_17514241",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 18340197,
+"end": 18341172,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_17_18340197",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 19408270,
+"end": 19409235,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_17_19408270",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 20409862,
+"end": 20410837,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_17_20409862",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 29027058,
+"end": 29028026,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_17_29027058",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 34467437,
+"end": 34468409,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_17_34467437",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 41432321,
+"end": 41433281,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_17_41432321",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 52278934,
+"end": 52279902,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_17_52278934",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 62926139,
+"end": 62927101,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_17_62926139",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 65322961,
+"end": 65323887,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_17_65322961",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 66600132,
+"end": 66601092,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_17_66600132",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 2000814,
+"end": 2001782,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_18_2000814",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 4917277,
+"end": 4918246,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_18_4917277",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 23781798,
+"end": 23782766,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_18_23781798",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 29390463,
+"end": 29391445,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_18_29390463",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 38763831,
+"end": 38764801,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_18_38763831",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 64744019,
+"end": 64744989,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_18_64744019",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 65772478,
+"end": 65773445,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_18_65772478",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 386679,
+"end": 387637,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_386679",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 12342649,
+"end": 12343605,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_19_12342649",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 20267146,
+"end": 20268109,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_19_20267146",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 20649136,
+"end": 20650105,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_20649136",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 21750743,
+"end": 21751713,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_21750743",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 22763593,
+"end": 22764561,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_22763593",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 23260545,
+"end": 23261567,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_23260545",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 23906459,
+"end": 23907426,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_19_23906459",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 28128497,
+"end": 28129492,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_19_28128497",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 28621536,
+"end": 28622505,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_28621536",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 37497060,
+"end": 37498022,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_37497060",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 38356816,
+"end": 38357784,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_38356816",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 40465137,
+"end": 40466069,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_19_40465137",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 45097417,
+"end": 45098385,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_45097417",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 52411444,
+"end": 52412410,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_19_52411444",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 52924208,
+"end": 52925171,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_19_52924208",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 53061949,
+"end": 53062914,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_53061949",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 53200992,
+"end": 53201959,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_19_53200992",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 54341879,
+"end": 54342846,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_19_54341879",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 55461651,
+"end": 55462617,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_19_55461651",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 57070700,
+"end": 57071654,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_19_57070700",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 26972732,
+"end": 26973739,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_26972732",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 38504925,
+"end": 38505902,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_38504925",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 55506406,
+"end": 55507370,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_55506406",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 95410407,
+"end": 95411375,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_2_95410407",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 101301327,
+"end": 101302299,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_101301327",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 110813646,
+"end": 110814605,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_110813646",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 111072014,
+"end": 111072973,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_2_111072014",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 113691830,
+"end": 113692798,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_113691830",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 130719537,
+"end": 130720498,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_2_130719537",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 193406667,
+"end": 193407653,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_2_193406667",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 194007141,
+"end": 194008113,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_194007141",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 195369065,
+"end": 195370020,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_2_195369065",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 207901556,
+"end": 207902517,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_207901556",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 224055238,
+"end": 224056161,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_224055238",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 229228357,
+"end": 229229325,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_2_229228357",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 231708353,
+"end": 231709311,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_2_231708353",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 232441494,
+"end": 232442454,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_232441494",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 233287702,
+"end": 233288675,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_2_233287702",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 235076708,
+"end": 235077677,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_2_235076708",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 7936846,
+"end": 7937809,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_20_7936846",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 23674996,
+"end": 23675964,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_20_23674996",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 23736916,
+"end": 23737884,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_20_23736916",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 23841231,
+"end": 23842195,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_20_23841231",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 25214473,
+"end": 25215438,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_20_25214473",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 25221881,
+"end": 25222851,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_20_25221881",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 40599535,
+"end": 40600503,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_20_40599535",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 58616233,
+"end": 58617195,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_20_58616233",
+"role": "element"
+},
+{
+"chrom": "21",
+"start": 15192200,
+"end": 15193169,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_21_15192200",
+"role": "element"
+},
+{
+"chrom": "21",
+"start": 19066536,
+"end": 19067501,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_21_19066536",
+"role": "element"
+},
+{
+"chrom": "21",
+"start": 44567239,
+"end": 44568199,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_21_44567239",
+"role": "element"
+},
+{
+"chrom": "21",
+"start": 45702742,
+"end": 45703660,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_21_45702742",
+"role": "element"
+},
+{
+"chrom": "22",
+"start": 18926186,
+"end": 18927154,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_22_18926186",
+"role": "element"
+},
+{
+"chrom": "22",
+"start": 18934397,
+"end": 18935361,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_22_18934397",
+"role": "element"
+},
+{
+"chrom": "22",
+"start": 24249270,
+"end": 24250236,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_22_24249270",
+"role": "element"
+},
+{
+"chrom": "22",
+"start": 24606859,
+"end": 24607817,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_22_24606859",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 5123311,
+"end": 5124245,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_5123311",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 9889345,
+"end": 9890328,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_9889345",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 9895318,
+"end": 9896236,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_9895318",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 12715613,
+"end": 12716581,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_12715613",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 14132684,
+"end": 14133652,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_14132684",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 14314344,
+"end": 14315311,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_14314344",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 39459789,
+"end": 39460763,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_39459789",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 43299796,
+"end": 43300758,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_43299796",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 50557322,
+"end": 50558279,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_50557322",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 54011540,
+"end": 54012508,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_54011540",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 75442343,
+"end": 75443303,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_75442343",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 75694478,
+"end": 75695442,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_75694478",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 101410736,
+"end": 101411705,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_101410736",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 101418890,
+"end": 101419859,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_101418890",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 101422676,
+"end": 101423645,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_101422676",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 112743123,
+"end": 112744083,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_112743123",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 112751322,
+"end": 112752282,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_112751322",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 127130495,
+"end": 127131465,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_127130495",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 129776131,
+"end": 129777108,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_129776131",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 145427035,
+"end": 145428001,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_145427035",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 175623337,
+"end": 175624305,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_175623337",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 185280335,
+"end": 185281303,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_185280335",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 185288547,
+"end": 185289515,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_185288547",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 186604662,
+"end": 186605623,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_186604662",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 186611008,
+"end": 186611975,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_3_186611008",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 195654395,
+"end": 195655363,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_3_195654395",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 201588,
+"end": 202555,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_201588",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 3927369,
+"end": 3928336,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_3927369",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 9733397,
+"end": 9734315,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_9733397",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 10129000,
+"end": 10129928,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_10129000",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 22599385,
+"end": 22600359,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_22599385",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 48287372,
+"end": 48288348,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_48287372",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 63806595,
+"end": 63807563,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_63806595",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 67224474,
+"end": 67225441,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_67224474",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 69147196,
+"end": 69148144,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_69147196",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 69559184,
+"end": 69560137,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_69559184",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 118104275,
+"end": 118105236,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_118104275",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 120263688,
+"end": 120264654,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_120263688",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 120317520,
+"end": 120318487,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_120317520",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 157225913,
+"end": 157226870,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_157225913",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 160897639,
+"end": 160898603,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_160897639",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 161579937,
+"end": 161580905,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_161579937",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 165826665,
+"end": 165827635,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_165826665",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 165911534,
+"end": 165912502,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_165911534",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 165916839,
+"end": 165917807,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_165916839",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 165923104,
+"end": 165924068,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_165923104",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 175301212,
+"end": 175302136,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_175301212",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 175304179,
+"end": 175305153,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_175304179",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 175321910,
+"end": 175322883,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_175321910",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 180474324,
+"end": 180475293,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_4_180474324",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 186971210,
+"end": 186972161,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_4_186971210",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 4925040,
+"end": 4926009,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_5_4925040",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 8937853,
+"end": 8938820,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_5_8937853",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 18578562,
+"end": 18579531,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_5_18578562",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 30486759,
+"end": 30487719,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_30486759",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 30495254,
+"end": 30496205,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_30495254",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 44730588,
+"end": 44731556,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_44730588",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 46000158,
+"end": 46001106,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_46000158",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 46009041,
+"end": 46010002,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_46009041",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 54866907,
+"end": 54867867,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_5_54866907",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 100318752,
+"end": 100319724,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_100318752",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 105594869,
+"end": 105595832,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_105594869",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 116156834,
+"end": 116157794,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_5_116156834",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 149833323,
+"end": 149834280,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_149833323",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 178940963,
+"end": 178941931,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_5_178940963",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 2908896,
+"end": 2909864,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_6_2908896",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 26756250,
+"end": 26757210,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_26756250",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 27742238,
+"end": 27743207,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_27742238",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 28659787,
+"end": 28660735,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_6_28659787",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 32745844,
+"end": 32746812,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_32745844",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 33777736,
+"end": 33778696,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_33777736",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 34687236,
+"end": 34688205,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_34687236",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 44295784,
+"end": 44296746,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_44295784",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 52787477,
+"end": 52788438,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_6_52787477",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 79568504,
+"end": 79569472,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_6_79568504",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 89091306,
+"end": 89092274,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_6_89091306",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 90600539,
+"end": 90601484,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_6_90600539",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 93883083,
+"end": 93884048,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_6_93883083",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 111576299,
+"end": 111577258,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_111576299",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 121252583,
+"end": 121253559,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_6_121252583",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 126096992,
+"end": 126097961,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_126096992",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 134980247,
+"end": 134981215,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_134980247",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 158173245,
+"end": 158174213,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_158173245",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 169746379,
+"end": 169747341,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_6_169746379",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 2429041,
+"end": 2430007,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_2429041",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 4622056,
+"end": 4623024,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_4622056",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 4630560,
+"end": 4631528,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_4630560",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 4639063,
+"end": 4640031,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_4639063",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 6941627,
+"end": 6942594,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_7_6941627",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 7041407,
+"end": 7042331,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_7041407",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 23079474,
+"end": 23080442,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_7_23079474",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 54742893,
+"end": 54743824,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_54742893",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 64703396,
+"end": 64704356,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_64703396",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 66083944,
+"end": 66084913,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_66083944",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 100793134,
+"end": 100794102,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_100793134",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 112981572,
+"end": 112982532,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_112981572",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 118740300,
+"end": 118741264,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_7_118740300",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 123420690,
+"end": 123421658,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_7_123420690",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 125808213,
+"end": 125809181,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_7_125808213",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 42650836,
+"end": 42651806,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_8_42650836",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 43594681,
+"end": 43595649,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_8_43594681",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 48087655,
+"end": 48088615,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_8_48087655",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 54944240,
+"end": 54945208,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_8_54944240",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 58112161,
+"end": 58113123,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_8_58112161",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 59584297,
+"end": 59585263,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_8_59584297",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 79351001,
+"end": 79351968,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_8_79351001",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 91696259,
+"end": 91697227,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_8_91696259",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 140472148,
+"end": 140473116,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_8_140472148",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 143910258,
+"end": 143911220,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_8_143910258",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 144369459,
+"end": 144370421,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_8_144369459",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 144931880,
+"end": 144932834,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_8_144931880",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 146021278,
+"end": 146022246,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_8_146021278",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 11894519,
+"end": 11895489,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_11894519",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 26715147,
+"end": 26716176,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_26715147",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 31632876,
+"end": 31633844,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_31632876",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 33514865,
+"end": 33515834,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_33514865",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 42483751,
+"end": 42484726,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_9_42483751",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 43017185,
+"end": 43018160,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_43017185",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 44005137,
+"end": 44006112,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_44005137",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 66352575,
+"end": 66353550,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_66352575",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 68277342,
+"end": 68278302,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_68277342",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 69491188,
+"end": 69492162,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_9_69491188",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 72378052,
+"end": 72379020,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_72378052",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 75702122,
+"end": 75703090,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_75702122",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 111356892,
+"end": 111357852,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_9_111356892",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 113588530,
+"end": 113589498,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_9_113588530",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 114637582,
+"end": 114638549,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_9_114637582",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 124191383,
+"end": 124192351,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_9_124191383",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 134232105,
+"end": 134233063,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_9_134232105",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 136957557,
+"end": 136958526,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_9_136957557",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 18864610,
+"end": 18865533,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_X_18864610",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 23677999,
+"end": 23678949,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_X_23677999",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 71953008,
+"end": 71953980,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_X_71953008",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 89468329,
+"end": 89469281,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_X_89468329",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 90205613,
+"end": 90206582,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_X_90205613",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 124913492,
+"end": 124914460,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_X_124913492",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 134540023,
+"end": 134540991,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_X_134540023",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 137377939,
+"end": 137378908,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_X_137377939",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 137415645,
+"end": 137416613,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_X_137415645",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 138424073,
+"end": 138425047,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_X_138424073",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 144802358,
+"end": 144803318,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_X_144802358",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 3650473,
+"end": 3651427,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_Y_3650473",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 6616929,
+"end": 6617896,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_Y_6616929",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 7047905,
+"end": 7048864,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_Y_7047905",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 9962010,
+"end": 9962911,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_Y_9962010",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 14574675,
+"end": 14575643,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_Y_14574675",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 15215736,
+"end": 15216703,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_Y_15215736",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 17885046,
+"end": 17886013,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_Y_17885046",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 21861366,
+"end": 21862333,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_Y_21861366",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 23137968,
+"end": 23138926,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_Y_23137968",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 25039185,
+"end": 25040153,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_Y_25039185",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 26672934,
+"end": 26673902,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "-",
+"id": "HERVK_Y_26672934",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 27288494,
+"end": 27289462,
+"name": "LTR5_Hs",
+"family": "HERVK",
+"strand": "+",
+"id": "HERVK_Y_27288494",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 21713569,
+"end": 21714798,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_1_21713569",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 27390782,
+"end": 27392050,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_1_27390782",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 28180515,
+"end": 28181614,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_1_28180515",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 33439071,
+"end": 33440219,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_1_33439071",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 40464693,
+"end": 40466308,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_1_40464693",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 86680823,
+"end": 86682018,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_1_86680823",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 109030971,
+"end": 109032551,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_1_109030971",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 109217720,
+"end": 109219319,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_1_109217720",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 113440246,
+"end": 113441932,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_1_113440246",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 150753325,
+"end": 150755021,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_1_150753325",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 151572085,
+"end": 151574213,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_1_151572085",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 236549251,
+"end": 236551319,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_1_236549251",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 2848157,
+"end": 2849225,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_10_2848157",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 17670346,
+"end": 17672000,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_10_17670346",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 32259311,
+"end": 32260559,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_10_32259311",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 64706812,
+"end": 64708849,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_10_64706812",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 71751829,
+"end": 71753613,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_10_71751829",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 94136182,
+"end": 94137209,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_10_94136182",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 94433484,
+"end": 94434494,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_10_94433484",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 94434560,
+"end": 94435736,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_10_94434560",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 121480897,
+"end": 121482606,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_10_121480897",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 5955218,
+"end": 5956465,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_11_5955218",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 20569322,
+"end": 20571176,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_11_20569322",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 44684519,
+"end": 44686193,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_11_44684519",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 60218196,
+"end": 60219888,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_11_60218196",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 60581971,
+"end": 60583847,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_11_60581971",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 63939337,
+"end": 63940955,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_11_63939337",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 66354486,
+"end": 66355535,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_11_66354486",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 72212553,
+"end": 72214615,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_11_72212553",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 93680247,
+"end": 93681391,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_11_93680247",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 95053389,
+"end": 95055219,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_11_95053389",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 118200999,
+"end": 118202126,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_11_118200999",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 119377722,
+"end": 119379614,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_11_119377722",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 125732141,
+"end": 125733280,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_11_125732141",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 130953559,
+"end": 130955037,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_11_130953559",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 62420,
+"end": 64439,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_12_62420",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 38208505,
+"end": 38209751,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_12_38208505",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 45979324,
+"end": 45980616,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_12_45979324",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 56468875,
+"end": 56470558,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_12_56468875",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 70596314,
+"end": 70597562,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_12_70596314",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 120355603,
+"end": 120357518,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_12_120355603",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 21759853,
+"end": 21761595,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_13_21759853",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 50166271,
+"end": 50168379,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_13_50166271",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 36445365,
+"end": 36446441,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_14_36445365",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 65360860,
+"end": 65362108,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_14_65360860",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 93377079,
+"end": 93379075,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_14_93377079",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 105544937,
+"end": 105546382,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_14_105544937",
+"role": "element"
+},
+{
+"chrom": "15",
+"start": 47425004,
+"end": 47426420,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_15_47425004",
+"role": "element"
+},
+{
+"chrom": "15",
+"start": 89096597,
+"end": 89097688,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_15_89096597",
+"role": "element"
+},
+{
+"chrom": "15",
+"start": 89483975,
+"end": 89485975,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_15_89483975",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 5251747,
+"end": 5253733,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_16_5251747",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 48984995,
+"end": 48986665,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_16_48984995",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 70237803,
+"end": 70238843,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_16_70237803",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 1591891,
+"end": 1593961,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_17_1591891",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 19530432,
+"end": 19532185,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_17_19530432",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 20888522,
+"end": 20889531,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_17_20888522",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 25360185,
+"end": 25361870,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_17_25360185",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 25538459,
+"end": 25540353,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_17_25538459",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 26550130,
+"end": 26551300,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_17_26550130",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 26782422,
+"end": 26783495,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_17_26782422",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 58629247,
+"end": 58630253,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_17_58629247",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 75771717,
+"end": 75773742,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_17_75771717",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 14856295,
+"end": 14857645,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_18_14856295",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 14857918,
+"end": 14859265,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_18_14857918",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 14859538,
+"end": 14860586,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_18_14859538",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 22047544,
+"end": 22048793,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_19_22047544",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 22288927,
+"end": 22290677,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_19_22288927",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 23110398,
+"end": 23111408,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_19_23110398",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 30389240,
+"end": 30390240,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_19_30389240",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 30391382,
+"end": 30392602,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_19_30391382",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 34569389,
+"end": 34570396,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_19_34569389",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 40614108,
+"end": 40615602,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_19_40614108",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 40623099,
+"end": 40625294,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_19_40623099",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 41470755,
+"end": 41471818,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_19_41470755",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 126167,
+"end": 127645,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_2_126167",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 3637709,
+"end": 3638958,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_3637709",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 11042072,
+"end": 11044034,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_11042072",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 27779578,
+"end": 27780909,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_27779578",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 56000065,
+"end": 56001865,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_56000065",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 63948843,
+"end": 63950437,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_2_63948843",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 64739048,
+"end": 64740332,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_64739048",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 97126522,
+"end": 97127833,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_2_97126522",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 97127850,
+"end": 97128859,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_2_97127850",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 105826121,
+"end": 105828425,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_105826121",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 122649618,
+"end": 122651368,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_2_122649618",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 127876472,
+"end": 127878068,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_127876472",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 157149408,
+"end": 157150846,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_2_157149408",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 157225082,
+"end": 157226638,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_2_157225082",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 170642538,
+"end": 170643860,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_170642538",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 187018052,
+"end": 187019725,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_187018052",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 196431881,
+"end": 196433915,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_2_196431881",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 201547371,
+"end": 201548520,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_201547371",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 207264729,
+"end": 207266429,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_207264729",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 217089962,
+"end": 217091287,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_2_217089962",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 219710661,
+"end": 219712071,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_2_219710661",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 235470777,
+"end": 235472251,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_2_235470777",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 2804608,
+"end": 2806404,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_20_2804608",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 4012513,
+"end": 4014746,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_20_4012513",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 5007569,
+"end": 5009319,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_20_5007569",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 30763174,
+"end": 30764214,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_20_30763174",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 52866296,
+"end": 52867342,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_20_52866296",
+"role": "element"
+},
+{
+"chrom": "21",
+"start": 18663825,
+"end": 18665426,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_21_18663825",
+"role": "element"
+},
+{
+"chrom": "22",
+"start": 39202283,
+"end": 39203556,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_22_39202283",
+"role": "element"
+},
+{
+"chrom": "22",
+"start": 41140157,
+"end": 41141526,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_22_41140157",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 57733496,
+"end": 57734504,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_3_57733496",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 58535796,
+"end": 58536837,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_3_58535796",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 61419454,
+"end": 61421381,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_3_61419454",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 78631631,
+"end": 78633448,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_3_78631631",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 105829375,
+"end": 105831474,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_3_105829375",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 121882577,
+"end": 121883775,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_3_121882577",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 179008081,
+"end": 179009531,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_3_179008081",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 186581370,
+"end": 186583393,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_3_186581370",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 84105757,
+"end": 84107209,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_4_84105757",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 109329936,
+"end": 109331742,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_4_109329936",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 152311342,
+"end": 152312938,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_4_152311342",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 184655910,
+"end": 184657040,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_4_184655910",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 184657969,
+"end": 184658971,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_4_184657969",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 16276283,
+"end": 16278012,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_5_16276283",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 34306397,
+"end": 34307793,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_5_34306397",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 141454225,
+"end": 141455226,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_5_141454225",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 141455391,
+"end": 141456917,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_5_141455391",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 168069655,
+"end": 168071472,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_5_168069655",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 27451874,
+"end": 27453315,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_6_27451874",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 29686631,
+"end": 29688054,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_6_29686631",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 31212093,
+"end": 31213099,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_6_31212093",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 31821054,
+"end": 31823156,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_6_31821054",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 32563114,
+"end": 32564606,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_6_32563114",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 77453343,
+"end": 77455230,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_6_77453343",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 123168925,
+"end": 123170095,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_6_123168925",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 123170113,
+"end": 123171453,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_6_123170113",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 125708833,
+"end": 125709988,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_6_125708833",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 158659453,
+"end": 158660972,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_6_158659453",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 158661568,
+"end": 158662628,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_6_158661568",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 2573125,
+"end": 2574918,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_7_2573125",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 55287770,
+"end": 55288867,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_7_55287770",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 64723806,
+"end": 64725166,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_7_64723806",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 72697294,
+"end": 72699357,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_7_72697294",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 77137858,
+"end": 77138865,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_7_77137858",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 152281731,
+"end": 152282931,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_7_152281731",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 98840,
+"end": 100583,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_8_98840",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 30103440,
+"end": 30105448,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_8_30103440",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 55038014,
+"end": 55039021,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_8_55038014",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 62665427,
+"end": 62666670,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_8_62665427",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 129837225,
+"end": 129838847,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_8_129837225",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 15405800,
+"end": 15407745,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_9_15405800",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 33423060,
+"end": 33424426,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_9_33423060",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 38242599,
+"end": 38243608,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_9_38242599",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 38323998,
+"end": 38325983,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_9_38323998",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 91240387,
+"end": 91241961,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_9_91240387",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 110019449,
+"end": 110020767,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_9_110019449",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 136979898,
+"end": 136981373,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_9_136979898",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 136981401,
+"end": 136982568,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_9_136981401",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 136982860,
+"end": 136984158,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_9_136982860",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 30620980,
+"end": 30622016,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_X_30620980",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 42332658,
+"end": 42334279,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_X_42332658",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 46134172,
+"end": 46136097,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_X_46134172",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 52855231,
+"end": 52856824,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_X_52855231",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 62408621,
+"end": 62410215,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_X_62408621",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 64676339,
+"end": 64677962,
+"name": "SVA_E",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_X_64676339",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 75436948,
+"end": 75438555,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_X_75436948",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 75438555,
+"end": 75439598,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_X_75438555",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 114581076,
+"end": 114582088,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "-",
+"id": "SVA_X_114581076",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 148501633,
+"end": 148503323,
+"name": "SVA_F",
+"family": "SVA",
+"strand": "+",
+"id": "SVA_X_148501633",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 171277085,
+"end": 171285156,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_4_171277085",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 71848261,
+"end": 71856067,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_6_71848261",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 91760054,
+"end": 91766290,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_11_91760054",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 106022039,
+"end": 106028228,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_12_106022039",
+"role": "element"
+},
+{
+"chrom": "Y",
+"start": 16063707,
+"end": 16069885,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_Y_16063707",
+"role": "element"
+},
+{
+"chrom": "17",
+"start": 3229848,
+"end": 3236020,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_17_3229848",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 17050037,
+"end": 17056202,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_11_17050037",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 6850522,
+"end": 6856682,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_6850522",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 93194740,
+"end": 93200899,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_93194740",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 75798221,
+"end": 75804374,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_X_75798221",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 142876162,
+"end": 142882314,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_1_142876162",
+"role": "element"
+},
+{
+"chrom": "21",
+"start": 10172554,
+"end": 10178706,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_21_10172554",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 36265636,
+"end": 36271786,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_8_36265636",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 143125606,
+"end": 143131754,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_143125606",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 140732406,
+"end": 140738552,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_7_140732406",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 52636025,
+"end": 52642170,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_6_52636025",
+"role": "element"
+},
+{
+"chrom": "6",
+"start": 95533881,
+"end": 95540025,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_6_95533881",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 115690442,
+"end": 115696580,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_1_115690442",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 51763543,
+"end": 51769680,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_X_51763543",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 25833076,
+"end": 25839210,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_1_25833076",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 7403727,
+"end": 7409859,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_12_7403727",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 47841886,
+"end": 47848017,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_16_47841886",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 87408990,
+"end": 87415107,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_11_87408990",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 66279859,
+"end": 66285976,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_X_66279859",
+"role": "element"
+},
+{
+"chrom": "19",
+"start": 29247788,
+"end": 29253876,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_19_29247788",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 62113119,
+"end": 62119199,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_5_62113119",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 37504333,
+"end": 37510398,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_18_37504333",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 128178314,
+"end": 128184378,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_128178314",
+"role": "element"
+},
+{
+"chrom": "10",
+"start": 109873701,
+"end": 109879764,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_10_109873701",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 100322589,
+"end": 100328650,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_11_100322589",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 82619484,
+"end": 82625543,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_13_82619484",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 139128408,
+"end": 139134467,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_8_139128408",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 27690517,
+"end": 27696576,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_9_27690517",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 39574954,
+"end": 39581012,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_13_39574954",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 53955774,
+"end": 53961832,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_3_53955774",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 55877792,
+"end": 55883849,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_12_55877792",
+"role": "element"
+},
+{
+"chrom": "4",
+"start": 65724832,
+"end": 65730889,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_4_65724832",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 72309657,
+"end": 72315713,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_14_72309657",
+"role": "element"
+},
+{
+"chrom": "16",
+"start": 59593167,
+"end": 59599223,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_16_59593167",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 130712654,
+"end": 130718709,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_X_130712654",
+"role": "element"
+},
+{
+"chrom": "3",
+"start": 75141111,
+"end": 75147165,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_3_75141111",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 209993253,
+"end": 209999306,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_2_209993253",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 83816096,
+"end": 83822148,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_83816096",
+"role": "element"
+},
+{
+"chrom": "7",
+"start": 84959003,
+"end": 84965055,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_7_84959003",
+"role": "element"
+},
+{
+"chrom": "8",
+"start": 2263735,
+"end": 2269787,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_8_2263735",
+"role": "element"
+},
+{
+"chrom": "X",
+"start": 36483248,
+"end": 36489300,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_X_36483248",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 40817262,
+"end": 40823313,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_14_40817262",
+"role": "element"
+},
+{
+"chrom": "18",
+"start": 1516190,
+"end": 1522241,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_18_1516190",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 134668051,
+"end": 134674102,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_2_134668051",
+"role": "element"
+},
+{
+"chrom": "21",
+"start": 18699801,
+"end": 18705852,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_21_18699801",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 164428440,
+"end": 164434490,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_1_164428440",
+"role": "element"
+},
+{
+"chrom": "13",
+"start": 108573004,
+"end": 108579054,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_13_108573004",
+"role": "element"
+},
+{
+"chrom": "14",
+"start": 86351939,
+"end": 86357989,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_14_86351939",
+"role": "element"
+},
+{
+"chrom": "12",
+"start": 58503040,
+"end": 58509089,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_12_58503040",
+"role": "element"
+},
+{
+"chrom": "5",
+"start": 84953411,
+"end": 84959459,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_5_84953411",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 163609725,
+"end": 163615771,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_1_163609725",
+"role": "element"
+},
+{
+"chrom": "2",
+"start": 193133130,
+"end": 193139176,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_2_193133130",
+"role": "element"
+},
+{
+"chrom": "20",
+"start": 110605,
+"end": 116651,
+"name": "L1PA2",
+"family": "L1",
+"strand": "+",
+"id": "L1_20_110605",
+"role": "element"
+},
+{
+"chrom": "9",
+"start": 122383582,
+"end": 122389628,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_9_122383582",
+"role": "element"
+},
+{
+"chrom": "11",
+"start": 96138784,
+"end": 96144829,
+"name": "L1PA2",
+"family": "L1",
+"strand": "-",
+"id": "L1_11_96138784",
+"role": "element"
+},
+{
+"chrom": "1",
+"start": 71979381,
+"end": 71985425,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_1_71979381",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 86214202,
+"end": 86220231,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_1_86214202",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 86392750,
+"end": 86398783,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_1_86392750",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 87144763,
+"end": 87150794,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_1_87144763",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 114039842,
+"end": 114045879,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_1_114039842",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 121274032,
+"end": 121280059,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_1_121274032",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 174559490,
+"end": 174565517,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_1_174559490",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 180835947,
+"end": 180841979,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_1_180835947",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 184814750,
+"end": 184820775,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_1_184814750",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 187312896,
+"end": 187318926,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_1_187312896",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 197676844,
+"end": 197682876,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_1_197676844",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 237238564,
+"end": 237244593,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_1_237238564",
+"role": "control_passenger"
+},
+{
+"chrom": "1",
+"start": 239786798,
+"end": 239792823,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_1_239786798",
+"role": "control_passenger"
+},
+{
+"chrom": "10",
+"start": 19377514,
+"end": 19383547,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_10_19377514",
+"role": "control_passenger"
+},
+{
+"chrom": "10",
+"start": 100542698,
+"end": 100548728,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_10_100542698",
+"role": "control_passenger"
+},
+{
+"chrom": "10",
+"start": 107535278,
+"end": 107541309,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_10_107535278",
+"role": "control_passenger"
+},
+{
+"chrom": "11",
+"start": 31337201,
+"end": 31343227,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_11_31337201",
+"role": "control_passenger"
+},
+{
+"chrom": "11",
+"start": 36573156,
+"end": 36579186,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_11_36573156",
+"role": "control_passenger"
+},
+{
+"chrom": "11",
+"start": 78388817,
+"end": 78394847,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_11_78388817",
+"role": "control_passenger"
+},
+{
+"chrom": "11",
+"start": 81866907,
+"end": 81872933,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_11_81866907",
+"role": "control_passenger"
+},
+{
+"chrom": "11",
+"start": 85035802,
+"end": 85041865,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_11_85035802",
+"role": "control_passenger"
+},
+{
+"chrom": "11",
+"start": 90133235,
+"end": 90139266,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_11_90133235",
+"role": "control_passenger"
+},
+{
+"chrom": "11",
+"start": 93154152,
+"end": 93160197,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_11_93154152",
+"role": "control_passenger"
+},
+{
+"chrom": "12",
+"start": 3608361,
+"end": 3614394,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "-",
+"id": "CTRLgenic_12_3608361",
+"role": "control_passenger"
+},
+{
+"chrom": "12",
+"start": 39193448,
+"end": 39199475,
+"name": "L1HS_genic",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLgenic_12_39193448",
+"role": "control_passenger"
+},
+{
+"chrom": "7",
+"start": 5566779,
+"end": 5570232,
+"name": "ACTB",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLhk_ACTB",
+"role": "control_housekeeping"
+},
+{
+"chrom": "12",
+"start": 6643585,
+"end": 6647537,
+"name": "GAPDH",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLhk_GAPDH",
+"role": "control_housekeeping"
+},
+{
+"chrom": "19",
+"start": 49990204,
+"end": 49994928,
+"name": "RPL13A",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLhk_RPL13A",
+"role": "control_housekeeping"
+},
+{
+"chrom": "6",
+"start": 170863421,
+"end": 170881958,
+"name": "TBP",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLhk_TBP",
+"role": "control_housekeeping"
+},
+{
+"chrom": "15",
+"start": 45003675,
+"end": 45011075,
+"name": "B2M",
+"family": "CONTROL",
+"strand": "+",
+"id": "CTRLhk_B2M",
+"role": "control_housekeeping"
+}
+]

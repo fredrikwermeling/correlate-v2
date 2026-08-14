@@ -1,0 +1,37 @@
+[
+{
+"model_id": "ACH-000461",
+"name": "SNU-1196",
+"lineage": "Biliary Tract",
+"bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/SNU-1196.bam",
+"size_gb": 17.7
+},
+{
+"model_id": "ACH-000823",
+"name": "KYSE-140",
+"lineage": "Esophagus/Stomach",
+"bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/KYSE-140.bam",
+"size_gb": 11.3
+},
+{
+"model_id": "ACH-000946",
+"name": "HEC-265",
+"lineage": "Uterus",
+"bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/HEC-265.bam",
+"size_gb": 14.9
+},
+{
+"model_id": "ACH-000871",
+"name": "NCI-H510",
+"lineage": "Lung",
+"bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G25210.NCI-H510.1.bam",
+"size_gb": 14.7
+},
+{
+"model_id": "ACH-000874",
+"name": "RS4;11",
+"lineage": "Lymphoid",
+"bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-9HxGa2.bam",
+"size_gb": 8.4
+}
+]
