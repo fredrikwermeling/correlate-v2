@@ -4,7 +4,10 @@
 #                                        bash setup_and_run.sh full
 set -euo pipefail
 MODE="${1:-verify}"
-WORKERS="${WORKERS:-12}"
+# One process per core: the counting loop is Python, so processes (not
+# threads) are what actually use the cores, and more than one per core just
+# adds contention.
+WORKERS="${WORKERS:-$(nproc)}"
 
 if ! python3 -c "import pysam" 2>/dev/null; then
   echo "== installing dependencies =="
