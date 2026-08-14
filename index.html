@@ -2527,6 +2527,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.15 (2026-08-14)</strong></p>
+                <ul>
+                    <li><b>Fix: the counts beside each gene in the alteration filters ignored the disease you had chosen.</b> With Colon Adenocarcinoma selected, 48 cell lines, the hotspot list offered KRAS n=34 and TP53 n=43. Those are the figures for the whole of Bowel, 63 lines. The grid, which filters properly, said 24 and 30, and it was right. The cohort those lists are counted over was built from tissue, subtype, sex and every alteration filter, but not from the disease level. The fusion and copy-number lists were counted the same way and were wrong in the same way.</li>
+                </ul>
                 <p><strong>v.88.14 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>An Enrichr result highlights its genes in the network.</b> Click a row and the genes behind it light up, with a line above the table naming the term, how many of the genes sent it covers and its adjusted p.</li>
@@ -6606,7 +6610,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.14</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.15</a>
         </span>
     </div>
 
@@ -9363,6 +9367,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_14"></script>
+    <script src="app.js?v=v88_15"></script>
 </body>
 </html>
