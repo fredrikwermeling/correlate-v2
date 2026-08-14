@@ -2625,6 +2625,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.30 (2026-08-14)</strong></p>
+                <ul>
+                    <li><b>The edge tap-for-r now works on the phone too, without overlapping boxes.</b> The first tap on an edge shows the pair and its r; the second opens the correlation, on phones as on tablets. Showing the button now clears vis-network's own edge tooltip and any pinned gene card, which used to sit across it.</li>
+                    <li><b>Fix: the gene info card could not be closed on an iPad.</b> The card was pinned (interactive, with a close button and tap-anywhere-to-close) only on phones; a tablet got the hover version, which has no close and nothing to un-hover with a finger, so it sat over the chart for good. Any touch screen now gets the pinned card, and opening a popout from the network always clears it.</li>
+                </ul>
                 <p><strong>v.88.29 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>iPad: tapping a network edge shows its r, and a second tap opens the correlation.</b> An edge is a hard double-tap target on glass, and there is no hover to say what it holds. The first tap now answers with the pair and its r as a small button by your finger; tapping that opens the correlation popout, scrolled so the scatter plot is what you land on. Opening an edge by double-tap scrolls to the plot the same way. Desktop with a mouse is unchanged.</li>
@@ -6774,7 +6779,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.29</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.30</a>
         </span>
     </div>
 
@@ -9539,6 +9544,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_29"></script>
+    <script src="app.js?v=v88_30"></script>
 </body>
 </html>
