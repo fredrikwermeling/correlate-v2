@@ -2527,6 +2527,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.16 (2026-08-14)</strong></p>
+                <ul>
+                    <li><b>The network says why its genes are marked.</b> Highlighting from an Enrichr result writes the term above the picture, with how many genes it covers and its adjusted p, so an exported figure carries what the marks mean.</li>
+                    <li><b>That line is yours to edit</b>, in the settings popout beside the filter banner: its wording, size and colour.</li>
+                    <li><b>Four ways to mark a highlight:</b> a dashed ring, a solid ring, a filled node, or fading everything else, in a colour of your choosing. One setting, used by both the Enrichr highlight and the Highlight button, since they are the same mark meaning the same thing.</li>
+                    <li>An Enrichr result now says the network is behind the window, and offers to close it and show you.</li>
+                </ul>
                 <p><strong>v.88.15 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>Fix: the counts beside each gene in the alteration filters ignored the disease you had chosen.</b> With Colon Adenocarcinoma selected, 48 cell lines, the hotspot list offered KRAS n=34 and TP53 n=43. Those are the figures for the whole of Bowel, 63 lines. The grid, which filters properly, said 24 and 30, and it was right. The cohort those lists are counted over was built from tissue, subtype, sex and every alteration filter, but not from the disease level. The fusion and copy-number lists were counted the same way and were wrong in the same way.</li>
@@ -6610,7 +6617,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.15</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.16</a>
         </span>
     </div>
 
@@ -7226,6 +7233,11 @@
 
                     <div id="networkWrap" style="display:flex; flex-direction:column; height:440px; border:1px solid var(--gray-200); border-radius:6px; background:white;">
                         <div id="networkHeader" style="display:none; padding:8px 14px; border-bottom:1px solid var(--gray-200); background:#f9fafb; font-size:11px; color:#374151;"></div>
+                        <!-- Why the highlighted genes are highlighted. Written
+                             by an Enrichr result, editable in the settings
+                             popout like the filter banner above it, and part of
+                             the picture so an export carries it. -->
+                        <div id="networkHighlightNote" style="display:none; padding:6px 14px; border-bottom:1px solid var(--gray-200); background:#faf7ff; border-left:3px solid #7c3aed; font-size:11px; color:#4b5563;"></div>
                         <div class="network-container" id="networkPlot" style="flex:1; min-height:0; border:none; border-radius:0;">
                             <div style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; height: 100%; padding-top: 10%; color: var(--gray-500); text-align: center; line-height: 1.8;">
                                 <div>New to Correlate?</div>
@@ -9367,6 +9379,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_15"></script>
+    <script src="app.js?v=v88_16"></script>
 </body>
 </html>
