@@ -10,8 +10,14 @@ if ! python3 -c "import pysam" 2>/dev/null; then
   echo "== installing dependencies =="
   sudo apt-get update -qq
   sudo apt-get install -y -qq python3-pip tmux >/dev/null
-  pip3 install --quiet pysam
+  # Ubuntu 24.04 marks the system Python "externally managed" (PEP 668) and
+  # refuses a plain pip install, so fall back through the options that work:
+  # the distro package first, then pip with the override.
+  pip3 install --quiet pysam 2>/dev/null \
+    || sudo apt-get install -y -qq python3-pysam >/dev/null 2>&1 \
+    || pip3 install --quiet --break-system-packages pysam
 fi
+python3 -c "import pysam" 2>/dev/null || { echo "ERROR: pysam did not install"; exit 1; }
 
 case "$MODE" in
   verify) LINES=lines_verify.json; OUT=counts_verify.json ;;
