@@ -12277,7 +12277,7 @@ class CorrelationExplorer {
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0];
 
-                // Highlight Mode: toggle the purple ring on the clicked gene
+                // Highlight Mode: toggle the highlight ring on the clicked gene
                 if (this.highlightMode) {
                     this._toggleNodeHighlight(nodeId);
                     return;
@@ -12857,7 +12857,7 @@ class CorrelationExplorer {
                     <option value="dim" ${this._netHighlightStyle === 'dim' ? 'selected' : ''}>Fade the rest</option>
                 </select>
             </div>
-            ${colorRow('Mark Color', 'net_ts_hlColor', this._netHighlightColor || '#7c3aed')}
+            ${colorRow('Mark Color', 'net_ts_hlColor', this._netHighlightColor || '#000000')}
             ${sizeRow('Note Size', 'net_ts_hlNoteSize', this._netHighlightNoteSize || 11, 6, 30)}
             ${colorRow('Note Color', 'net_ts_hlNoteColor', this._netHighlightNoteColor || '#4b5563')}
             <div style="margin-bottom:5px;">
@@ -15095,7 +15095,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
     _netHighlightStyleDef() {
         return {
             style: this._netHighlightStyle || 'dashed',
-            color: this._netHighlightColor || '#7c3aed'
+            color: this._netHighlightColor || '#000000'
         };
     }
 
@@ -15177,7 +15177,7 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         el.style.display = txt ? 'block' : 'none';
         if (this._netHighlightNoteSize) el.style.fontSize = this._netHighlightNoteSize + 'px';
         if (this._netHighlightNoteColor) el.style.color = this._netHighlightNoteColor;
-        el.style.borderLeftColor = this._netHighlightColor || '#7c3aed';
+        el.style.borderLeftColor = this._netHighlightColor || '#000000';
     }
 
     // The highlighted genes are listed under View controls like Select Mode's
@@ -15861,7 +15861,8 @@ ${filterText ? `<text x="${width / 2}" y="${headerH / 2}" dominant-baseline="mid
         });
     }
 
-    // Highlight mode: click nodes to give them the purple export-ready ring.
+    // Highlight mode: click nodes to give them the export-ready ring, black
+    // by default, recolorable in the network settings.
     toggleNetworkHighlightMode() {
         // Leave the other click modes first, they own the same click.
         if (this.selectMode) this.toggleSelectMode();
@@ -35819,8 +35820,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // it the network lights up with no statement of what the highlight is,
         // which is the part worth reading off a result.
         if (this._enrichrFromNetwork) {
-            html = '<div id="enrichrHlNote" style="margin:0 0 8px; padding:6px 10px; border-left:3px solid #7c3aed;'
-                 + ' background:#faf7ff; border-radius:4px; font-size:11px; color:#4b5563;">'
+            html = '<div id="enrichrHlNote" style="margin:0 0 8px; padding:6px 10px; border-left:3px solid #111827;'
+                 + ' background:#f9fafb; border-radius:4px; font-size:11px; color:#4b5563;">'
                  + 'Click a row to mark its genes in the network behind this window.</div>' + html;
         }
         contentEl.innerHTML = html;
@@ -35840,7 +35841,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         + `(${tr.dataset.enrichrN} of ${this._enrichrData?.genes?.length || '?'} genes, `
                         + `adjusted p = ${this.formatPValue(_q)})`);
                     contentEl.querySelectorAll('tr[data-enrichr-hl]').forEach(o => {
-                        o.style.background = o === tr ? '#f5f3ff' : '';
+                        o.style.background = o === tr ? '#f3f4f6' : '';
                     });
                     const note = document.getElementById('enrichrHlNote');
                     if (note) {
@@ -35852,7 +35853,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                             + `<div style="flex:1 1 240px; min-width:0;"><b>${this.esc(tr.dataset.enrichrTerm)}</b>`
                             + `<br><span style="color:#6b7280;">${tr.dataset.enrichrN} of the ${this._enrichrData?.genes?.length || '?'} genes sent`
                             + `, adjusted p = ${this.formatPValue(q)}. Marked in the network behind this window.</span></div>`
-                            + `<button id="enrichrShowNetworkBtn" class="btn btn-sm" style="flex:0 0 auto; background:#7c3aed; color:#fff; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-size:11px;">Close and show me</button>`
+                            + `<button id="enrichrShowNetworkBtn" class="btn btn-sm" style="flex:0 0 auto; background:#111827; color:#fff; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-size:11px;">Close and show me</button>`
                             + `</div>`;
                         document.getElementById('enrichrShowNetworkBtn')?.addEventListener('click', () => {
                             document.getElementById('enrichrCloseBtn')?.click();

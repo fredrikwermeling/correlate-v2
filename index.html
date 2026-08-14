@@ -2578,6 +2578,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.23 (2026-08-14)</strong></p>
+                <ul>
+                    <li><b>Network highlights default to black, not purple.</b> The ring on highlighted genes, the caption bar over the network and the Enrichr marking note now start black; the colour is still yours to change in the network settings. Gate colours are unchanged.</li>
+                </ul>
                 <p><strong>v.88.22 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>Copy data in the selection inspect now mirrors one volcano at a time.</b> It asks which measure, like the image export, and copies every gene that plot draws with its difference and FDR, under a first line saying what was compared, so the chart can be redrawn in whatever software the numbers are pasted into.</li>
@@ -6697,7 +6701,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.22</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.23</a>
         </span>
     </div>
 
@@ -7317,7 +7321,7 @@
                              by an Enrichr result, editable in the settings
                              popout like the filter banner above it, and part of
                              the picture so an export carries it. -->
-                        <div id="networkHighlightNote" style="display:none; padding:6px 14px; border-bottom:1px solid var(--gray-200); background:#faf7ff; border-left:3px solid #7c3aed; font-size:11px; color:#4b5563;"></div>
+                        <div id="networkHighlightNote" style="display:none; padding:6px 14px; border-bottom:1px solid var(--gray-200); background:#f9fafb; border-left:3px solid #111827; font-size:11px; color:#4b5563;"></div>
                         <div class="network-container" id="networkPlot" style="flex:1; min-height:0; border:none; border-radius:0;">
                             <div style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; height: 100%; padding-top: 10%; color: var(--gray-500); text-align: center; line-height: 1.8;">
                                 <div>New to Correlate?</div>
@@ -9462,6 +9466,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_22"></script>
+    <script src="app.js?v=v88_23"></script>
 </body>
 </html>
