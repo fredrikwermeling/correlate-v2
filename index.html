@@ -2192,6 +2192,8 @@
             /* Cell Line Browser: fullscreen, single-column list, detail stacks under.
                (It uses a custom overlay, not .modal, so it needs its own rules.) */
             #cellLineBrowserModal { padding: 0 !important; align-items: stretch !important; }
+            /* The banner takes the title's place; at header height for a phone. */
+            #cellLineBrowserModal .modal-header img { height: 28px !important; }
             #cellLineBrowserModal > div { max-width: 100% !important; height: 100% !important; max-height: 100% !important; margin-top: 0 !important; border-radius: 0 !important; }
             .clb-list { columns: 1 !important; }
             .clb-content { flex-direction: column !important; }
@@ -2576,6 +2578,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.21 (2026-08-14)</strong></p>
+                <ul>
+                    <li><b>The Cell Line Browser has a banner.</b> The title of the browser is now an illustrated banner, a row of cell types in the app's green, in place of the plain text heading.</li>
+                </ul>
                 <p><strong>v.88.20 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>The inspect volcanoes sit level and gained the standard chart tools.</b> The CRISPR and mRNA columns now share one grid, so the two charts sit at the same height and size whatever their notes do. A Settings button in the footer opens the same text panel the other charts have, for either volcano. Copy data puts the whole gene table on the clipboard, tab separated for Excel or GraphPad. And each volcano now carries a heading naming the two groups compared, so an exported image says what it shows; the heading is editable in Settings.</li>
@@ -6687,7 +6693,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.20</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.21</a>
         </span>
     </div>
 
@@ -8888,7 +8894,7 @@
       <div id="clbModalCard" style="background:#fff; border-radius:8px; width:100%; min-width:0; max-width:min(98vw, 1600px); max-height:calc(100vh - 40px); margin-top:20px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden;">
         <!-- Header -->
         <div class="modal-header">
-          <h3>Cell Line Browser</h3>
+          <img src="web_data/clb_banner.png" alt="Cell Line Browser" style="height:44px; width:auto; min-width:0; flex:0 1 auto; object-fit:contain; object-position:left center;">
           <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
             <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols, warnings and where each piece of data comes from">?</button>
             <button id="clbExportImageBtn" class="btn btn-outline btn-sm mobile-hide" title="Capture the Cell Line Browser as an image (PNG / TIFF / PDF / PowerPoint)">Export image...</button>
@@ -9452,6 +9458,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_20"></script>
+    <script src="app.js?v=v88_21"></script>
 </body>
 </html>
