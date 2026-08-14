@@ -2612,6 +2612,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.25 (2026-08-14)</strong></p>
+                <ul>
+                    <li><b>New tab keeps every layer of the view.</b> A gene opened from the browser's inspect and sent to a new tab used to arrive as the bare gene-effect chart; the comparison it was opened with (the selected lines vs the compared group), the red-marked selection, the measure, the scope and any pasted cell-line list now all travel along. The scatter's New tab likewise carries a gate-applied cohort, which lives outside the text box the other filters are read from.</li>
+                </ul>
                 <p><strong>v.88.24 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>Filter boxes in the popouts scale to each other.</b> In the gene-effect popout the subtype and disease counts were quoted from the whole panel while the tissue counts came from the lines actually measured for the gene on screen, so Lung could read n=123 in one box and n=126 in the next. All three now count over the same cohort, and applying a hotspot, fusion or copy-number filter rescales every other box, in the gene-effect, correlation and scatter popouts alike. The Cell Line Browser already worked this way.</li>
@@ -6741,7 +6745,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.24</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.25</a>
         </span>
     </div>
 
@@ -9506,6 +9510,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_24"></script>
+    <script src="app.js?v=v88_25"></script>
 </body>
 </html>
