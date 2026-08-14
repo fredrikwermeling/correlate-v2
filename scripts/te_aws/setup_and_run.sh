@@ -22,10 +22,25 @@ if ! python3 -c "import pysam" 2>/dev/null; then
 fi
 python3 -c "import pysam" 2>/dev/null || { echo "ERROR: pysam did not install"; exit 1; }
 
+# auto: verify first, and go on to the full run ONLY if it passed. Lets the
+# whole thing be started in one go without watching the gate.
+if [ "$MODE" = "auto" ]; then
+  echo "== auto: verify, then full only if verify passes =="
+  bash "$0" verify 2>&1 | tee verify.log
+  if grep -q "VERIFIED" verify.log; then
+    echo; echo "== verify passed, starting the full run =="
+    exec bash "$0" full
+  else
+    echo; echo "== VERIFY DID NOT PASS - full run NOT started =="
+    echo "== read verify.log before running anything else =="
+    exit 1
+  fi
+fi
+
 case "$MODE" in
   verify) LINES=lines_verify.json; OUT=counts_verify.json ;;
   full)   LINES=lines_all.json;    OUT=counts_all.json ;;
-  *) echo "usage: bash setup_and_run.sh [verify|full]"; exit 1 ;;
+  *) echo "usage: bash setup_and_run.sh [verify|full|auto]"; exit 1 ;;
 esac
 
 echo "== running $MODE ($(python3 -c "import json;print(len(json.load(open('$LINES'))))") lines, $WORKERS workers) =="
