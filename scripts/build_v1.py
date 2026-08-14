@@ -30,7 +30,11 @@ REMOVE_DIVS = [
 ]
 
 ASSETS = ["network_example.svg", "scatter_example.svg", "tsc_pathway.svg",
-          "favicon-32x32.png", "favicon.ico"]
+          "favicon-32x32.png", "favicon.ico",
+          # UI images live in web_data but are build assets, not release data,
+          # so they ride along with every rebuild rather than waiting for a
+          # DepMap release copy.
+          "web_data/clb_banner.png"]
 
 
 def cut_div(lines, div_id):

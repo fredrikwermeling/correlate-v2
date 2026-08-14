@@ -25,7 +25,9 @@ V1 = "/Users/fredrikwermeling/Documents/correlate app feb 2026 (färdig)/correla
 CO = "/Users/fredrikwermeling/Documents/coexpress-app"
 
 ASSETS = ["network_example.svg", "scatter_example.svg", "tsc_pathway.svg",
-          "favicon-32x32.png", "favicon.ico"]
+          "favicon-32x32.png", "favicon.ico",
+          # UI images live in web_data but are build assets, not release data.
+          "web_data/clb_banner.png"]
 
 # Order matters: the specific phrases must be replaced before the generic
 # "gene effect" sweep, which would otherwise consume them. The spaced forms
