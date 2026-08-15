@@ -68,8 +68,17 @@ Two independent checks were performed before the full run.
 
 **Method agreement.** DepMap publishes BAM indices for 58 of the 1,032 RNA
 files. For those, counts were obtained a second way, by indexed random access to
-each locus rather than by streaming the whole file. Per-locus counts from the two
-access paths were compared across 5 cell lines **[pending: agreement result]**.
+each locus rather than by streaming the whole file, on separate hardware. Across
+5 cell lines and 1,643 loci with non-zero counts, 1,620 (98.6%) agreed exactly
+and the remaining 23 fell within tolerance (<= 2 reads or <= 5%); none
+disagreed beyond it.
+
+Total library size is not comparable between the two paths and was excluded from
+the comparison: the indexed route reads its total from the BAM index, which
+counts every mapped record including secondary and supplementary alignments,
+whereas the streaming pass counts primary non-duplicate reads. RNA-seq
+multi-mapping makes this a 31-50% difference by construction. The streaming
+definition is used as the CPM denominator throughout.
 
 **Specificity.** In a 49-cell-line pilot, summed intergenic element signal
 correlated only weakly with the genic-L1 passenger control (Pearson r = +0.27)
