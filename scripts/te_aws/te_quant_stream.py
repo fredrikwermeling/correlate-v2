@@ -86,10 +86,16 @@ def main():
     outp = sys.argv[3]
     workers = int(sys.argv[4]) if len(sys.argv) > 4 else 8
     # resume: skip lines already done, so a dropped connection costs one file
-    done = {}
+    # Resume: keep completed lines, but a line that ERRORED is not done. A
+    # transient read failure mid-stream would otherwise be frozen in as a
+    # permanent gap, since rerunning skipped it as already-present.
+    done, failed = {}, 0
     try:
-        for r in json.load(open(outp)): done[r['model_id']] = r
+        for r in json.load(open(outp)):
+            if r.get('error'): failed += 1; continue
+            done[r['model_id']] = r
     except Exception: pass
+    if failed: print(f"retrying {failed} line(s) that errored previously", flush=True)
     todo = [l for l in lines if l['model_id'] not in done]
     print(f"panel={len(panel)} loci | todo={len(todo)} (done={len(done)}) | workers={workers}", flush=True)
     res = list(done.values())
