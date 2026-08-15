@@ -28,16 +28,20 @@ for f in counts_all.json counts_verify.json; do
   [ "$f" = counts_verify.json ] && TOT=5
   echo "RESULTS : $f  -> $N of $TOT cell lines done"
   if [ "$f" = counts_all.json ] && [ "$N" != '?' ] && [ "$N" -gt 0 ] 2>/dev/null; then
-    python3 - "$N" "$TOT" <<'PY'
+    W=$(nproc 2>/dev/null || echo 8)
+    python3 - "$N" "$TOT" "$W" <<'PY'
 import json, sys
-n, tot = int(sys.argv[1]), int(sys.argv[2])
+n, tot, w = int(sys.argv[1]), int(sys.argv[2]), max(1, int(sys.argv[3]))
 d = json.load(open('counts_all.json'))
 secs = [r.get('seconds', 0) for r in d if r.get('seconds')]
 if secs:
     per = sum(secs)/len(secs)
-    # 12 workers in parallel
-    left = (tot - n) * per / 12 / 3600
-    print(f"          mean {per:.0f}s per cell line -> about {left:.1f} h remaining")
+    # Per cell line PER WORKER. Wall clock is that divided by however many
+    # run at once, which is one per core. This divisor was hardcoded to 12
+    # from an earlier run and quietly under-reported the time left by a third.
+    left = (tot - n) * per / w / 3600
+    print(f"          mean {per:.0f}s per cell line per worker, {w} workers")
+    print(f"          -> about {left:.1f} h remaining ({per/w:.0f}s per line of wall clock)")
 errs = [r for r in d if r.get('error')]
 print(f"          errors: {len(errs)}" + (f"  e.g. {errs[0]['error'][:60]}" if errs else ""))
 PY
