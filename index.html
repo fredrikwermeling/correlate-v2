@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.40 (2026-08-15)</strong></p>
+                <ul>
+                    <li><b>Heatmap filters now rescope each other.</b> Picking a lineage immediately narrows the subtype and disease lists (and the map), instead of waiting for Redraw, and the genetic alteration filters narrow the counts those lists show. The colour rows under the grid now carry a title saying what they show, on screen and in exports. And the page scrolls normally with the pointer over the heatmap or any other drawn image; only the network keeps the wheel for zooming.</li>
+                </ul>
                 <p><strong>v.88.39 (2026-08-15)</strong></p>
                 <ul>
                     <li><b>Retroelement signal.</b> Cell lines now carry a measured retroelement score: RNA-seq reads over 750 full-length LINE-1, HERV-K and SVA elements outside genes, computed from the public CCLE sequencing files for 669 lines. Sort the browser by it, filter with the new retroelement-high quick filter, and read it on each line's card and wiki, where high lines are highlighted. Lines with more element transcription depend measurably more on ADAR1, beyond what the interferon score predicts.</li>
@@ -6824,7 +6828,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.39</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.40</a>
         </span>
     </div>
 
@@ -9765,6 +9769,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_39"></script>
+    <script src="app.js?v=v88_40"></script>
 </body>
 </html>

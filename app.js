@@ -52606,6 +52606,12 @@ ${clone.innerHTML}
         document.getElementById('hmShowMedian')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmClusterGenes')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmDrillBackBtn')?.addEventListener('click', () => this._hmDrillBackToAll());
+        // Cohort and lineage define the cell-line set the other selects are
+        // scoped from, so they redraw immediately (same as subtype/disease)
+        // rather than waiting for Redraw, and the rest of the lists rescope
+        // right away.
+        document.getElementById('hmCohort')?.addEventListener('change', () => this._hmRedraw());
+        document.getElementById('hmLineage')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmSubtype')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmDisease')?.addEventListener('change', () => this._hmRedraw());
 
@@ -52846,10 +52852,22 @@ ${clone.innerHTML}
             return;
         }
 
-        // The lineage gate narrows whatever cohort was resolved above; its
-        // own options are rebuilt from that cohort every redraw, so the list
-        // always matches what's actually on offer rather than every lineage
-        // in the panel.
+        // Hotspot / fusion / CN filters, same predicates and level meanings
+        // every other panel uses, applied here (before lineage/subtype/
+        // disease) so those selects and the counts they show rescope to the
+        // alteration-filtered cohort right away instead of the whole panel.
+        const filterNote = this._hmActiveFilterNote();
+        cohort = this._hmApplyAlterationFilters(cohort);
+        if (!cohort.length) {
+            if (hint) hint.textContent = `${filterNote}No cell lines match these alteration filters. Loosen a filter or remove it.`;
+            this._hmClearCanvases();
+            return;
+        }
+
+        // The lineage gate narrows whatever cohort was resolved above
+        // (cohort mode, then alteration filters); its own options are
+        // rebuilt from that cohort every redraw, so the list always matches
+        // what's actually on offer rather than every lineage in the panel.
         const lineageLabel = this._hmPopulateLineageSelect(cohort);
         if (lineageLabel) {
             cohort = cohort.filter(cl => (this.getCellLineLineage(cl) || 'Not recorded') === lineageLabel);
@@ -52869,16 +52887,6 @@ ${clone.innerHTML}
         if (diseaseLabel) cohort = cohort.filter(cl => (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') === diseaseLabel);
         if (!cohort.length) {
             if (hint) hint.textContent = 'No cell lines left after the subtype/disease narrowing. Try a broader pick.';
-            this._hmClearCanvases();
-            return;
-        }
-
-        // Hotspot / fusion / CN filters, same predicates and level meanings
-        // every other panel uses, applied on top of the cohort + lineage gate.
-        const filterNote = this._hmActiveFilterNote();
-        cohort = this._hmApplyAlterationFilters(cohort);
-        if (!cohort.length) {
-            if (hint) hint.textContent = `${filterNote}No cell lines match these alteration filters. Loosen a filter or remove it.`;
             this._hmClearCanvases();
             return;
         }
@@ -53646,6 +53654,31 @@ ${clone.innerHTML}
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#374151';
             d.orderedGenes.forEach((g, rowIdx) => ctx.fillText(g, labelW - 6, rowIdx * cellH + cellH / 2));
+
+            // Titles for the strip rows below the gene grid: nothing on
+            // screen or in an export otherwise says what the colour bands
+            // mean, so each gets its own right-aligned label in the same
+            // gutter the gene names use, trimmed with an ellipsis rather
+            // than running under the grid.
+            const fitStripTitle = (text) => {
+                const maxW = labelW - 10;
+                if (ctx.measureText(text).width <= maxW) return text;
+                let trimmed = text;
+                while (trimmed.length > 1 && ctx.measureText(trimmed + '…').width > maxW) trimmed = trimmed.slice(0, -1);
+                return trimmed + '…';
+            };
+            ctx.font = '9px Arial';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#6b7280';
+            if (d.groups) {
+                const groupTitle = this._hmGroupByLabel(d.groupByMode, d.altInfo);
+                const capped = groupTitle.charAt(0).toUpperCase() + groupTitle.slice(1);
+                ctx.fillText(fitStripTitle(capped), labelW - 6, geneAreaH + GROUP_STRIP_H / 2);
+            }
+            if (d.ann2) {
+                ctx.fillText(fitStripTitle(d.ann2.attrLabel), labelW - 6, geneAreaH + groupExtra + ANN2_STRIP_H / 2);
+            }
         };
         const paintGrid = (ctx, opts = {}) => {
             if (!opts.plain) {
@@ -54600,7 +54633,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // filling a panel made the panel look unscrollable. Charts sit inside
         // things that should scroll, so hand the wheel to them instead. Captured
         // and stopped before Plotly sees it, otherwise it would zoom as well.
-        if (e.target.closest?.('.js-plotly-plot')) {
+        // A canvas (the heatmap grid, a drawn chart) or an <img> never zooms
+        // on wheel itself, but a Mac trackpad can still latch onto one and
+        // kill scrolling over it, so it joins the same reroute; the network
+        // is excluded since it genuinely uses the wheel to zoom, and a mostly
+        // sideways gesture is left alone so panning a horizontal scroller
+        // like the heatmap's own grid still works.
+        const overCanvasOrImg = /^(CANVAS|IMG)$/.test(e.target.tagName || '')
+            && !e.target.closest('.vis-network')
+            && Math.abs(e.deltaY) >= Math.abs(e.deltaX);
+        if (e.target.closest?.('.js-plotly-plot') || overCanvasOrImg) {
             // Walk out from the chart first: the nearest scrollable ancestor is
             // what the user means, and it is not always the dialog's main
             // scroller (a chart can sit inside its own scrolling panel).
