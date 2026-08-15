@@ -1,0 +1,51 @@
+cell lines with retroelement data: 669
+IFN score computed for 1719 lines from 34 ISGs
+
+=== 1. CONTROLS (should stay low) ===
+  element signal vs genic-L1 passenger    r = +0.15  (n=669)
+  element signal vs housekeeping          r = -0.13  (n=669)
+
+=== 2. VIRAL MIMICRY: retroelements vs interferon ===
+  cell lines with both: 669
+  all elements           Pearson r = +0.120 (p = 0.0018)   Spearman rho = +0.210
+  LINE-1                 Pearson r = +0.055 (p = 0.15)   Spearman rho = +0.004
+  HERV-K                 Pearson r = +0.096 (p = 0.012)   Spearman rho = +0.205
+  SVA                    Pearson r = +0.088 (p = 0.022)   Spearman rho = +0.152
+  elements switched on   Pearson r = +0.135 (p = 0.00045)   Spearman rho = +0.144
+
+=== 3. DEPENDENCY: do de-repressed lines lean on the brakes? ===
+  gene             r          p     n   negative r = more dependent when elements are high
+  ADAR        -0.182    2.6e-06   669 *
+  SETDB1      -0.107     0.0057   669
+  JAK1        -0.060       0.12   669
+  TASOR       -0.048       0.22   669
+  IFIH1       -0.043       0.27   669
+  MPHOSPH8    -0.018       0.66   669
+  TRIM28      -0.014       0.73   669
+  MORC2       -0.011       0.79   669
+  MAVS        -0.004       0.92   669
+  TBK1        -0.001       0.98   669
+  STAT1       +0.001       0.97   669
+  SAMHD1      +0.022       0.58   669
+  RIGI        +0.023       0.56   669
+  TREX1       +0.036       0.36   669
+  CGAS        +0.041        0.3   669
+  STING1      +0.060       0.12   669
+  EIF2AK2     +0.063        0.1   669
+  RNASEH2B    +0.073      0.057   669
+  RNASEH2A    +0.079      0.041   669
+  RNASEH2C    +0.094      0.014   669
+
+  * survives Bonferroni across 20 genes
+
+=== top 10 lines by retroelement signal ===
+  OVMANA             Ovary/Fallopian Tube   total   856.5 CPM  active  58  IFN +0.45
+  UACC-257           Skin                   total   365.7 CPM  active  34  IFN -0.43
+  TE-10              Esophagus/Stomach      total   254.2 CPM  active  93  IFN -0.46
+  HCC-827-GR5        Lung                   total   253.7 CPM  active  57  IFN +0.17
+  DBTRG-05MG         CNS/Brain              total   205.3 CPM  active  16  IFN +0.10
+  NCI-H1793          Lung                   total   189.2 CPM  active  36  IFN -0.14
+  SH-4               Skin                   total   173.6 CPM  active  24  IFN -0.21
+  COLO 792           Skin                   total   168.1 CPM  active  23  IFN -0.52
+  HSC-4              Head and Neck          total   155.2 CPM  active  47  IFN +1.50
+  OVISE              Ovary/Fallopian Tube   total   148.4 CPM  active  34  IFN +0.27

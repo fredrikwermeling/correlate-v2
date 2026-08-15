@@ -108,3 +108,40 @@ Panel definition, quantification and validation code:
 `scripts/te_aws/` in the Correlate repository. The panel is distributed as
 `te_panel.json`; the quantifier (`te_quant_stream.py`) takes that file and a
 list of alignment URLs and is deterministic given both.
+
+## Result (full run, 2026-08-15)
+
+669 cell lines, 780 loci, one streaming pass each. Zero errors after one
+retry of a transient read failure.
+
+**Controls held.** Intergenic element signal correlated r = +0.15 with the
+genic-L1 passenger control and r = -0.13 with housekeeping expression, so the
+measurement is not a proxy for transcription in general.
+
+**Retroelements and interferon: a weak association.** Summed element signal
+against the 34-gene type I interferon score gave r = +0.120 (p = 0.0018), and
+the count of active elements r = +0.135 (p = 0.00045). HERV-K (r = +0.096) and
+SVA (r = +0.088) reached nominal significance; **LINE-1 alone did not**
+(r = +0.055, p = 0.15). A LINE-1 association seen in the 49-line pilot
+(r = +0.36, p = 0.008) did not replicate and should be treated as a
+small-sample artefact.
+
+**Retroelements predict ADAR1 dependency, beyond the interferon signature.**
+Across 669 lines, element signal against CRISPR ADAR gene effect gave
+r = -0.182 (p = 2.6e-06), the only gene of 20 tested to survive Bonferroni
+correction; negative r means lines with more element transcription depend more
+on ADAR. The interferon score is the stronger and already-known predictor
+(r = -0.334). Controlling for it, the element association persists
+(partial r = -0.151, p = 9.2e-05), so retroelement transcription carries
+information about ADAR1 dependency that the ISG signature does not.
+
+**Lineage heterogeneity.** The association is concentrated rather than uniform:
+Ovary/Fallopian Tube r = -0.412 (n=40), Esophagus/Stomach r = -0.384 (n=48),
+Bowel r = -0.262 (n=40), Lymphoid r = -0.110 (n=57), Lung r = -0.032 (n=105),
+CNS/Brain r = +0.012 (n=52). Several individual lineages reproduce the pooled
+effect, which argues against it being purely lineage composition, but it is not
+a general property of all tissues.
+
+**Effect sizes are modest.** r = -0.18 accounts for roughly 3% of the variance
+in ADAR dependency. The finding is a real association in a large panel, not a
+predictor that would classify a single cell line.
