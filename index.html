@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.31 (2026-08-15)</strong></p>
+                <ul>
+                    <li><b>Fix: an exported network kept the highlight rings but lost the sentence explaining them.</b> Marking genes from Enrichr writes a caption above the network saying which term they came from and its adjusted p-value, and that caption was on screen only, so a saved or copied figure showed rings whose meaning was gone. The caption now travels with the picture, in both the image and the vector export, wrapping to the figure width.</li>
+                </ul>
                 <p><strong>v.88.30 (2026-08-14)</strong></p>
                 <ul>
                     <li><b>The edge tap-for-r now works on the phone too, without overlapping boxes.</b> The first tap on an edge shows the pair and its r; the second opens the correlation, on phones as on tablets. Showing the button now clears vis-network's own edge tooltip and any pinned gene card, which used to sit across it.</li>
@@ -6779,7 +6783,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.30</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.31</a>
         </span>
     </div>
 
@@ -9544,6 +9548,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_30"></script>
+    <script src="app.js?v=v88_31"></script>
 </body>
 </html>
