@@ -267,6 +267,7 @@ class CorrelationExplorer {
         this.cnLoaded = false;
         this.cnLoading = null;            // Promise while in-flight
         this.growthRateData = null;
+        this.retroData = null;
         this._commonEssentials = null;
         this._geneSetScores = null; // cached {modelId: score} for current gene set
         this._geneSetLabel = null;  // current gene set name
@@ -950,7 +951,7 @@ class CorrelationExplorer {
         const _dv = (document.querySelector('script[src*="app.js"]')?.src.split('?v=')[1]) || '';
         const dfetch = (path) => fetch(_dv ? `${path}?v=${_dv}` : path);
 
-        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes, clinicalCnRes, validatedFusionsRes, functionalLossRes, curatedFusionsRes, problematicRes, virusRes, cnArtefactRes, derivativeRes] = await Promise.all([
+        const [metadataRes, cellLineRes, mutationsRes, orthologsRes, translocationsRes, damagingMutRes, growthRateRes, retroRes, drugRes, clinicalFusionsRes, inferredSubtypesRes, globalSigRes, corumRes, reactomeRes, hlaCnRes, lehmannRes, clinicalCnRes, validatedFusionsRes, functionalLossRes, curatedFusionsRes, problematicRes, virusRes, cnArtefactRes, derivativeRes] = await Promise.all([
             dfetch('web_data/metadata.json'),
             dfetch('web_data/cellLineMetadata.json'),
             dfetch('web_data/mutations.json'),
@@ -961,6 +962,7 @@ class CorrelationExplorer {
             // proliferation is the standard alternative explanation for a
             // dependency, so it belongs on an axis rather than nowhere.
             dfetch('web_data/growth_rate.json').catch(() => null),
+            dfetch('web_data/retroelements.json').catch(() => null),
             dfetch('web_data/drug_response.json').catch(() => null),
             dfetch('web_data/clinical_fusions.json').catch(() => null),
             dfetch('web_data/inferred_subtypes.json').catch(() => null),
@@ -996,6 +998,9 @@ class CorrelationExplorer {
         }
         if (growthRateRes && growthRateRes.ok) {
             this.growthRateData = await growthRateRes.json();
+        }
+        if (retroRes && retroRes.ok) {
+            this.retroData = await retroRes.json();
         }
         if (drugRes && drugRes.ok) {
             this.drugResponse = await drugRes.json();
@@ -31041,6 +31046,31 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             };
             context.plotDescribesWhat = `Not a chart: a structured profile of the single cell line ${name}, covering its alterations, signatures and other computed properties, the same fields the wiki page's text is generated from.`;
             description = `Everything the app holds on the single cell line ${name}.`;
+            // Retroelement signal, only 669 of 1,208 lines have a public
+            // alignment to measure it from; the absence must be stated
+            // explicitly rather than left for the reader to infer.
+            const re = cl ? this.retroScore?.(cl) : null;
+            const retroelements = re ? {
+                measured: true,
+                totalCpm: re.t,
+                line1Cpm: re.l1,
+                hervkCpm: re.hk,
+                svaCpm: re.sva,
+                activeElements: re.a,
+                panelPercentile: (() => {
+                    const vals = Object.values(this.retroData?.lines || {}).map(v => v.t);
+                    if (!vals.length) return null;
+                    const nBelow = vals.filter(v => v <= re.t).length;
+                    return Math.round((nBelow / vals.length) * 100);
+                })(),
+                retroelementHigh: (() => {
+                    const cut = this._retroHighCutoff();
+                    return cut != null && re.t >= cut;
+                })()
+            } : {
+                measured: false,
+                note: 'No public hg19 RNA-seq alignment exists for this line, so no retroelement signal could be computed. Unmeasured, not zero; 669 of 1,208 lines are covered.'
+            };
             extras = {
                 cellLine: { id: cl, name },
                 // The wiki's prose is generated from these same fields; it is a
@@ -31049,7 +31079,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 generatedSummary: cl && typeof this._cellLineExecutiveSummary === 'function'
                     ? String(this._cellLineExecutiveSummary(cl) || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
                     : null,
-                summaryCaveat: 'generatedSummary is written by the app from the structured fields in this file. Treat it as a starting point, not a source: check any claim in it against the underlying values, and say so if they disagree. Where a statement cannot be checked from this file, say that rather than assuming it holds.'
+                summaryCaveat: 'generatedSummary is written by the app from the structured fields in this file. Treat it as a starting point, not a source: check any claim in it against the underlying values, and say so if they disagree. Where a statement cannot be checked from this file, say that rather than assuming it holds.',
+                retroelements,
+                retroelements_readMe: 'Retroelement signal measures RNA-seq reads over 750 full-length intergenic LINE-1, HERV-K and SVA elements (unique reads only, counts per million), from public CCLE hg19 alignments. The top decile of the 669 measured lines counts as retroelement-high (retroelementHigh: true). Lines with a higher signal depend measurably more on ADAR1 dependency (r = -0.18, p = 2.6e-06, n=669), and this persists after controlling for the interferon score (partial r = -0.15). This measures element transcription, not retrotransposition: new genomic insertions cannot be seen in RNA.'
             };
         } else if (source === 'exprCorrelates') {
             const ctx = this._exprCorrelateContext || {};
@@ -36633,6 +36665,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 category: 'Immunology',
                 description: '<b>Inclusion:</b> cell lines whose mean z-score across the same 34 interferon-stimulated genes is at most \u22120.5. <b>Why:</b> the comparison group for the interferon-high set, and candidates for lines that have silenced interferon signalling. <b>Caveat:</b> a low score can mean the pathway is intact but unstimulated, or that it is broken. The two are not separated here; check JAK1, STAT1 and IFNAR1 for damaging mutations if that distinction matters.'
             },
+            retro_high: {
+                label: 'Retroelement-high (LINE-1 / HERV-K / SVA)',
+                category: 'Immunology',
+                description: '<b>Inclusion:</b> the top tenth of measured cell lines by summed retroelement transcription, about 80 CPM and above. <b>Why:</b> de-repressed retroelements produce immunostimulatory nucleic acid, the trigger for viral mimicry, and lines with a higher signal depend measurably more on ADAR1 (r = \u22120.18 across 669 lines, still there after controlling for the interferon score). <b>Method:</b> RNA-seq reads over 750 full-length LINE-1, HERV-K and SVA elements outside genes, unique reads only, expressed as counts per million; measured directly from the public CCLE alignments. <b>Caveat:</b> this is element transcription, not retrotransposition: new genomic insertions cannot be seen in RNA. 669 of 1,208 lines have a public alignment to measure; the rest can never appear in this set.'
+            },
             class_i_reduced: {
                 label: 'Class-I antigen presentation reduced/lost',
                 category: 'Immunology',
@@ -37704,6 +37741,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return r ? r.score[cellLineId] : undefined;
     }
 
+    // Retroelement score: summed CPM over 750 full-length intergenic
+    // LINE-1 / HERV-K / SVA elements, measured from the public CCLE
+    // alignments (scripts/te_aws). 669 of 1,208 lines have data.
+    retroScore(cellLineId) {
+        return this.retroData?.lines?.[cellLineId] || null;
+    }
+    // Top-decile cutoff of total CPM among measured lines; computed once.
+    _retroHighCutoff() {
+        if (this._retroP90 !== undefined) return this._retroP90;
+        const vals = Object.values(this.retroData?.lines || {}).map(v => v.t).sort((a, b) => a - b);
+        this._retroP90 = vals.length ? vals[Math.floor(vals.length * 0.9)] : null;
+        return this._retroP90;
+    }
+
     // Compute which cell lines belong to each curated collection. Called
     // once after the heavy data is loaded (by _precomputeCellLineCounts's
     // caller). Expression-based collections are skipped when expression
@@ -37764,6 +37815,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     if (v >= 0.5) mem.ifn_high.add(cl);
                     else if (v <= -0.5) mem.ifn_low.add(cl);
                 }
+            }
+        }
+
+        // Retroelement-high: top decile of measured lines by summed
+        // element transcription. Unmeasured lines simply never qualify.
+        mem.retro_high = new Set();
+        {
+            const cut = this._retroHighCutoff();
+            if (cut != null) for (const cl of clLines) {
+                const v = this.retroData.lines[cl];
+                if (v && v.t >= cut) mem.retro_high.add(cl);
             }
         }
 
@@ -41106,6 +41168,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
                 return (va - vb) * dir;
             };
+        } else if (mode === 'retro') {
+            // Retroelement signal. Lines without public RNA-seq have no
+            // score and go to the end, same as the other measured sorts.
+            countMap = new Map();
+            for (const [cl, v] of Object.entries(this.retroData?.lines || {})) countMap.set(cl, v.t);
+            geGenesLabel = '750 elements';
+            secondaryCmp = (a, b) => {
+                const va = countMap.get(a);
+                const vb = countMap.get(b);
+                if (va == null && vb == null) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                if (va == null) return 1;
+                if (vb == null) return -1;
+                if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                return (va - vb) * dir;
+            };
         } else if (mode === 'tissue') {
             secondaryCmp = (a, b) => {
                 const ta = this.getCellLineLineage(a) || '';
@@ -41162,6 +41239,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                       : mode === 'cn' ? `Copy number of <b>${geGenesLabel || '(no gene picked)'}</b>, DepMap relative scale (1.0 = diploid). Tier shown next to each line: <b>deep del</b> &lt; 0.3, <b>het loss</b> 0.3&ndash;0.7, <b>WT</b> 0.7&ndash;1.3, <b>low gain</b> 1.3&ndash;2.0, <b>gain</b> 2.0&ndash;3.0, <b>amp</b> 3.0&ndash;5.0, <b>strong amp</b> &ge; 5.0. Hybrid source: WGS-derived calls (latest, cleanest) by default; lines tagged <code>wes</code> are filled from DepMap's 24Q4 OmicsCNGene fallback for lines never WGS'd (Jurkat, K562, etc.), slightly noisier for focal events. ${cnScope}; lines without CN data show &ldquo;&mdash;&rdquo;.`
                       : mode === 'drug' ? `Drug-response AUC for <b>${geGenesLabel || '(no compound matched)'}</b>, 0 = all cells killed, 1 = no killing; ascending = most sensitive first`
                       : mode === 'ifn' ? `Interferon score: the average of ${geGenesLabel || '34 ISGs'}, each expressed as how far the line sits from the panel average for that gene (a z-score). 0 is typical, +1 means the line runs a standard deviation high on these genes, &minus;1 a standard deviation low. Lines with no expression data, or measured on under 60% of the genes, are unscored and sit at the end.`
+                      : mode === 'retro' ? 'Retroelement signal: summed RNA-seq reads (counts per million) over 750 full-length LINE-1, HERV-K and SVA elements outside genes, unique reads only. The panel median is about 40 CPM and the top tenth, about 80 CPM and up, counts as retroelement-high. 669 of 1,208 lines have a public alignment to measure; unscored lines sit at the end.'
                       : mode;
             caption = `<div style="${captionStyle}">
                 Values shown: <b>${lbl}</b> per cell line.
@@ -41184,6 +41262,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     : mode === 'cn' ? `Copy number${geGenesLabel ? ` for ${geGenesLabel}` : ''}`
                     : mode === 'drug' ? `Drug response AUC${geGenesLabel ? ` for ${geGenesLabel}` : ''}`
                     : mode === 'ifn' ? 'Interferon score (mean ISG z-score)'
+                    : mode === 'retro' ? 'Retroelement signal (CPM)'
                     : String(mode))
                 : '';
 
@@ -41257,6 +41336,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         else if (raw < 5.0)  { tier = 'amp';        fg = '#1e3a8a'; bg = '#bfdbfe'; }
                         else                 { tier = 'strong amp'; fg = '#1e3a8a'; bg = '#93c5fd'; }
                         sortValStr = `<span style="font-size:10px; color:${fg}; background:${bg}; padding:1px 6px; border-radius:8px; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="CN ${v} (DepMap relative, 1.0 = diploid)">${tier} <span style="opacity:0.55; font-size:9px;">${v}</span></span>`;
+                    } else if (mode === 'retro') {
+                        sortValStr = `<span style="font-size:10px; color:${color}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="Retroelement signal (CPM)">${Number(raw).toFixed(1)} CPM</span>`;
                     } else {
                         sortValStr = `<span style="font-size:10px; color:${color}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode}"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
                     }
@@ -42526,6 +42607,28 @@ Caveat: a cell line has no immune infiltrate, so this is the cell's own signalli
                 top += `<div class="clb-stat-row"><span class="clb-stat-label">Interferon score${ifnHelpSpan}</span>`
                      + `<span class="clb-stat-value">${ifn >= 0 ? '+' : ''}${ifn.toFixed(2)}`
                      + `<span style="color:#9ca3af; font-weight:400;"> (${band})</span></span></div>`;
+            }
+        }
+
+        // Retroelement signal, only for the 669 lines with public RNA-seq.
+        {
+            const re = this.retroScore?.(cellLineId);
+            if (re) {
+                const cut = this._retroHighCutoff();
+                const helpRetro = `Retroelement signal.
+
+The summed RNA output, in counts per million, of 750 full-length LINE-1, HERV-K and SVA elements that sit outside genes, so the reads come from the elements' own promoters rather than a host gene. Unique reads only.
+
+The panel median is about 40 CPM. The top tenth of measured lines, about 80 CPM and above, is called retroelement-high here.
+
+Why it matters: transcribed retroelements produce double-stranded RNA the cell must mask, and lines with a higher signal depend measurably more on ADAR1, beyond what the interferon score already predicts.
+
+Caveat: this measures element transcription, not new genomic insertions. 669 of 1,208 lines have public RNA-seq to score; the rest carry no value.`;
+                const band = (cut != null && re.t >= cut) ? 'retroelement-high' : 'typical';
+                const retroHelpSpan = ` <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 4px;" title="${helpRetro.replace(/"/g, '&quot;')}">?</span>`;
+                top += `<div class="clb-stat-row"><span class="clb-stat-label">Retroelement signal${retroHelpSpan}</span>`
+                     + `<span class="clb-stat-value">${re.t.toFixed(1)} CPM`
+                     + `<span style="color:#9ca3af; font-weight:400;"> (${re.a} active, ${band})</span></span></div>`;
             }
         }
 
@@ -44716,6 +44819,33 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             genomeSigHtml = '<em style="color:#6b7280;">No genome signatures available for this cell line.</em><div id="clbWikiCnRegions" style="margin-top:16px;"></div>';
         }
 
+        // --- Retroelement signal ---
+        // Summed CPM over 750 full-length intergenic LINE-1 / HERV-K / SVA
+        // elements, measured from the public CCLE RNA-seq alignments.
+        // Phrasing reused from the CLB card help text; see retroScore() /
+        // _retroHighCutoff() above.
+        let retroWikiHtml;
+        {
+            const re = this.retroScore?.(cellLineId);
+            if (re) {
+                const cut = this._retroHighCutoff();
+                const allVals = Object.values(this.retroData?.lines || {}).map(v => v.t);
+                const nBelow = allVals.filter(v => v <= re.t).length;
+                const pctRank = allVals.length ? Math.round((nBelow / allVals.length) * 100) : null;
+                const isHigh = cut != null && re.t >= cut;
+                retroWikiHtml = `
+                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">RNA output of 750 full-length <b>LINE-1</b>, <b>HERV-K</b> and <b>SVA</b> elements that sit outside genes, so the signal comes from the elements' own promoters rather than a host gene. Unique reads only, expressed as counts per million; measured directly from the public CCLE hg19 alignments. Lines with a higher signal depend measurably more on ADAR1 (r = &minus;0.18 across 669 lines, p = 2.6e-06, still there after controlling for the interferon score, partial r = &minus;0.15), consistent with de-repressed retroelements as a trigger for viral mimicry.</p>
+                ${row('Total signal', `${re.t.toFixed(1)} CPM <span style="font-size:10px; color:#6b7280;">(panel percentile ${pctRank}${pctRank !== null ? 'th' : ''}, panel median is about 40 CPM)</span>`)}
+                ${row('LINE-1 (L1)', `${re.l1.toFixed(1)} CPM`)}
+                ${row('HERV-K', `${re.hk.toFixed(1)} CPM`)}
+                ${row('SVA', `${re.sva.toFixed(1)} CPM`)}
+                ${row('Active elements', `${re.a} / 750`)}
+                ${isHigh ? `<div style="margin-top:8px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>Retroelement-high:</b> top tenth of the measured panel.</div>` : ''}`;
+            } else {
+                retroWikiHtml = `<p style="margin:0; font-size:11px; color:#6b7280;">Not measured: this line has no public hg19 RNA-seq alignment in the CCLE collection, so no retroelement signal can be computed. 669 of 1,208 lines are covered.</p>`;
+            }
+        }
+
         // --- Key genetic alterations (consolidated) ---
         // Fuses the old Expected-drivers + Driver-mutations + Functional-loss
         // trio (which overlapped heavily) into one focused view: the alterations
@@ -45440,6 +45570,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             section('Genome signatures',
                 genomeSigHtml,
                 'DepMap 26Q1 OmicsGlobalSignatures, PureCN ploidy / WGD / CIN / LoH, MSIsensor2, Ben-David 2021 aneuploidy.'),
+            section('Retroelement signal <span style="font-size:11px; color:#6b7280;">, LINE-1 / HERV-K / SVA transcription and ADAR1 dependency</span>',
+                retroWikiHtml,
+                'scripts/te_aws pipeline on public CCLE hg19 RNA-seq alignments; 750 full-length intergenic LINE-1 / HERV-K / SVA loci, unique (MAPQ&ge;20) reads, counts per million.'),
 
             // ── Driver landscape ──────────────────────────────────────────
             section(`Key genetic alterations <span style="font-size:11px; color:#6b7280;">, what likely drives this cell line${subKey ? ' (' + subKey + ')' : ''}</span>`,
