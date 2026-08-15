@@ -2625,6 +2625,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.36 (2026-08-15)</strong></p>
+                <ul>
+                    <li><b>Fix: switching the statistical test in the selection inspect froze the tab.</b> The rank test had to build and sort a list of values for each of 18,531 genes, which locked the browser for minutes. The choice is gone and everything uses Welch's t, which is what it defaulted to. Where the groups are small the panel now says so, rather than offering a test that could not finish.</li>
+                    <li><b>Searching a gene adds it to the volcano instead of emptying it.</b> The table still narrows to what you searched for, but the plot keeps the genes it was showing and marks the searched ones in amber, larger and always labelled, so you can see where a gene sits relative to everything else.</li>
+                    <li><b>Export for AI describes the view it was taken from, everywhere.</b> Every export now carries a sentence describing what the picture actually shows, and the state that changes it travels with the file: the scatter's colouring, its clicked labels and an applied gate, the network's highlighted gene set, the browser's filters, and which statistical test was used. Charts save a matching .png beside the data.</li>
+                </ul>
                 <p><strong>v.88.35 (2026-08-15)</strong></p>
                 <ul>
                     <li><b>Fix: Export for AI described the wrong view when two groups were being compared.</b> A chart comparing chosen cell lines against a lineage was exported as "gene effect across all cell lines", so a reader answered about the gene in general instead of about the contrast on screen. The file now names both groups with their sizes, means and the difference between them, and states what the plot looks like.</li>
@@ -6800,7 +6806,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.35</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.36</a>
         </span>
     </div>
 
@@ -9657,6 +9663,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_35"></script>
+    <script src="app.js?v=v88_36"></script>
 </body>
 </html>
