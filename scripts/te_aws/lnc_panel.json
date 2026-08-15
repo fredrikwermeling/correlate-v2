@@ -1,0 +1,3738 @@
+[
+{
+"chrom": "8",
+"start": 128219626,
+"end": 128221962,
+"name": "CCAT1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_CCAT1_e01",
+"role": "lncrna_exon",
+"gene": "CCAT1",
+"overlaps_coding": null
+},
+{
+"chrom": "8",
+"start": 128231054,
+"end": 128231513,
+"name": "CCAT1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_CCAT1_e02",
+"role": "lncrna_exon",
+"gene": "CCAT1",
+"overlaps_coding": null
+},
+{
+"chrom": "8",
+"start": 128412643,
+"end": 128414395,
+"name": "CCAT2",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CCAT2_e01",
+"role": "lncrna_exon",
+"gene": "CCAT2",
+"overlaps_coding": null
+},
+{
+"chrom": "9",
+"start": 21994789,
+"end": 21995160,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e01",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22029431,
+"end": 22029593,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e02",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22032672,
+"end": 22032985,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e03",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22046315,
+"end": 22046448,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e04",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22046749,
+"end": 22046899,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e05",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22049104,
+"end": 22049227,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e06",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22056250,
+"end": 22056386,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e07",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22058357,
+"end": 22059053,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e08",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22061951,
+"end": 22062025,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e09",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22063942,
+"end": 22064017,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e10",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22065660,
+"end": 22065756,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e11",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22066233,
+"end": 22066352,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e12",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22077677,
+"end": 22077889,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e13",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22092306,
+"end": 22092468,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e14",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22096370,
+"end": 22096513,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e15",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22097256,
+"end": 22097363,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e16",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22112318,
+"end": 22112394,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e17",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22113664,
+"end": 22113798,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e18",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22118642,
+"end": 22118766,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e19",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22120198,
+"end": 22120409,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e20",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "9",
+"start": 22120502,
+"end": 22121093,
+"name": "CDKN2B-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CDKN2B-AS1_e21",
+"role": "lncrna_exon",
+"gene": "CDKN2B-AS1",
+"overlaps_coding": [
+"CDKN2A"
+]
+},
+{
+"chrom": "16",
+"start": 54952776,
+"end": 54953121,
+"name": "CRNDE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_CRNDE_e01",
+"role": "lncrna_exon",
+"gene": "CRNDE",
+"overlaps_coding": [
+"CRNDE"
+]
+},
+{
+"chrom": "16",
+"start": 54954209,
+"end": 54954322,
+"name": "CRNDE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_CRNDE_e02",
+"role": "lncrna_exon",
+"gene": "CRNDE",
+"overlaps_coding": [
+"CRNDE"
+]
+},
+{
+"chrom": "16",
+"start": 54957496,
+"end": 54957562,
+"name": "CRNDE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_CRNDE_e03",
+"role": "lncrna_exon",
+"gene": "CRNDE",
+"overlaps_coding": [
+"CRNDE"
+]
+},
+{
+"chrom": "16",
+"start": 54958512,
+"end": 54958599,
+"name": "CRNDE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_CRNDE_e04",
+"role": "lncrna_exon",
+"gene": "CRNDE",
+"overlaps_coding": [
+"CRNDE"
+]
+},
+{
+"chrom": "16",
+"start": 54959012,
+"end": 54959125,
+"name": "CRNDE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_CRNDE_e05",
+"role": "lncrna_exon",
+"gene": "CRNDE",
+"overlaps_coding": [
+"CRNDE"
+]
+},
+{
+"chrom": "16",
+"start": 54962405,
+"end": 54963101,
+"name": "CRNDE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_CRNDE_e06",
+"role": "lncrna_exon",
+"gene": "CRNDE",
+"overlaps_coding": [
+"CRNDE"
+]
+},
+{
+"chrom": "2",
+"start": 87754945,
+"end": 87755164,
+"name": "CYTOR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CYTOR_e01",
+"role": "lncrna_exon",
+"gene": "CYTOR",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 87769468,
+"end": 87769561,
+"name": "CYTOR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CYTOR_e02",
+"role": "lncrna_exon",
+"gene": "CYTOR",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 87769668,
+"end": 87769823,
+"name": "CYTOR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CYTOR_e03",
+"role": "lncrna_exon",
+"gene": "CYTOR",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 87772258,
+"end": 87772404,
+"name": "CYTOR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CYTOR_e04",
+"role": "lncrna_exon",
+"gene": "CYTOR",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 87777640,
+"end": 87777749,
+"name": "CYTOR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CYTOR_e05",
+"role": "lncrna_exon",
+"gene": "CYTOR",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 87779741,
+"end": 87779942,
+"name": "CYTOR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CYTOR_e06",
+"role": "lncrna_exon",
+"gene": "CYTOR",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 87820725,
+"end": 87821037,
+"name": "CYTOR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_CYTOR_e07",
+"role": "lncrna_exon",
+"gene": "CYTOR",
+"overlaps_coding": null
+},
+{
+"chrom": "4",
+"start": 53578560,
+"end": 53578694,
+"name": "DANCR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DANCR_e01",
+"role": "lncrna_exon",
+"gene": "DANCR",
+"overlaps_coding": null
+},
+{
+"chrom": "4",
+"start": 53578990,
+"end": 53579126,
+"name": "DANCR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DANCR_e02",
+"role": "lncrna_exon",
+"gene": "DANCR",
+"overlaps_coding": null
+},
+{
+"chrom": "4",
+"start": 53579660,
+"end": 53580305,
+"name": "DANCR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DANCR_e03",
+"role": "lncrna_exon",
+"gene": "DANCR",
+"overlaps_coding": null
+},
+{
+"chrom": "4",
+"start": 53580365,
+"end": 53580405,
+"name": "DANCR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DANCR_e04",
+"role": "lncrna_exon",
+"gene": "DANCR",
+"overlaps_coding": null
+},
+{
+"chrom": "4",
+"start": 53586034,
+"end": 53586864,
+"name": "DANCR",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DANCR_e05",
+"role": "lncrna_exon",
+"gene": "DANCR",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 50656304,
+"end": 50656693,
+"name": "DLEU1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DLEU1_e01",
+"role": "lncrna_exon",
+"gene": "DLEU1",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 50657277,
+"end": 50657330,
+"name": "DLEU1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DLEU1_e02",
+"role": "lncrna_exon",
+"gene": "DLEU1",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 50678839,
+"end": 50681354,
+"name": "DLEU1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DLEU1_e03",
+"role": "lncrna_exon",
+"gene": "DLEU1",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 50964333,
+"end": 50964427,
+"name": "DLEU1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DLEU1_e04",
+"role": "lncrna_exon",
+"gene": "DLEU1",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 51007548,
+"end": 51007686,
+"name": "DLEU1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DLEU1_e05",
+"role": "lncrna_exon",
+"gene": "DLEU1",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 51066786,
+"end": 51066897,
+"name": "DLEU1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DLEU1_e06",
+"role": "lncrna_exon",
+"gene": "DLEU1",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 51102001,
+"end": 51102200,
+"name": "DLEU1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DLEU1_e07",
+"role": "lncrna_exon",
+"gene": "DLEU1",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 51102315,
+"end": 51102779,
+"name": "DLEU1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_DLEU1_e08",
+"role": "lncrna_exon",
+"gene": "DLEU1",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 50556684,
+"end": 50557890,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e01",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50562721,
+"end": 50562757,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e02",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50567928,
+"end": 50568097,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e03",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50571209,
+"end": 50571555,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e04",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50600830,
+"end": 50601542,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e05",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50603413,
+"end": 50603628,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e06",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50617571,
+"end": 50618904,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e07",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50619253,
+"end": 50619368,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e08",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50623324,
+"end": 50623798,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e09",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50642232,
+"end": 50642299,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e10",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50644717,
+"end": 50644777,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e11",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50645651,
+"end": 50645765,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e12",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50649694,
+"end": 50649789,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e13",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50655958,
+"end": 50656177,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e14",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "13",
+"start": 50699437,
+"end": 50699677,
+"name": "DLEU2",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_DLEU2_e15",
+"role": "lncrna_exon",
+"gene": "DLEU2",
+"overlaps_coding": [
+"TRIM13"
+]
+},
+{
+"chrom": "2",
+"start": 47419543,
+"end": 47419956,
+"name": "EPCAM-DT",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_EPCAM-DT_e01",
+"role": "lncrna_exon",
+"gene": "EPCAM-DT",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 47426575,
+"end": 47426682,
+"name": "EPCAM-DT",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_EPCAM-DT_e02",
+"role": "lncrna_exon",
+"gene": "EPCAM-DT",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 47441087,
+"end": 47442398,
+"name": "EPCAM-DT",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_EPCAM-DT_e03",
+"role": "lncrna_exon",
+"gene": "EPCAM-DT",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 47447947,
+"end": 47448462,
+"name": "EPCAM-DT",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_EPCAM-DT_e04",
+"role": "lncrna_exon",
+"gene": "EPCAM-DT",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 47559411,
+"end": 47559547,
+"name": "EPCAM-DT",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_EPCAM-DT_e05",
+"role": "lncrna_exon",
+"gene": "EPCAM-DT",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 47560072,
+"end": 47560165,
+"name": "EPCAM-DT",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_EPCAM-DT_e06",
+"role": "lncrna_exon",
+"gene": "EPCAM-DT",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 47572039,
+"end": 47572213,
+"name": "EPCAM-DT",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_EPCAM-DT_e07",
+"role": "lncrna_exon",
+"gene": "EPCAM-DT",
+"overlaps_coding": null
+},
+{
+"chrom": "16",
+"start": 86508130,
+"end": 86510805,
+"name": "FENDRR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FENDRR_e01",
+"role": "lncrna_exon",
+"gene": "FENDRR",
+"overlaps_coding": null
+},
+{
+"chrom": "16",
+"start": 86511491,
+"end": 86511657,
+"name": "FENDRR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FENDRR_e02",
+"role": "lncrna_exon",
+"gene": "FENDRR",
+"overlaps_coding": null
+},
+{
+"chrom": "16",
+"start": 86512310,
+"end": 86512362,
+"name": "FENDRR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FENDRR_e03",
+"role": "lncrna_exon",
+"gene": "FENDRR",
+"overlaps_coding": null
+},
+{
+"chrom": "16",
+"start": 86521271,
+"end": 86523338,
+"name": "FENDRR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FENDRR_e04",
+"role": "lncrna_exon",
+"gene": "FENDRR",
+"overlaps_coding": null
+},
+{
+"chrom": "16",
+"start": 86523869,
+"end": 86524119,
+"name": "FENDRR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FENDRR_e05",
+"role": "lncrna_exon",
+"gene": "FENDRR",
+"overlaps_coding": null
+},
+{
+"chrom": "16",
+"start": 86524458,
+"end": 86524610,
+"name": "FENDRR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FENDRR_e06",
+"role": "lncrna_exon",
+"gene": "FENDRR",
+"overlaps_coding": null
+},
+{
+"chrom": "16",
+"start": 86542260,
+"end": 86542466,
+"name": "FENDRR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FENDRR_e07",
+"role": "lncrna_exon",
+"gene": "FENDRR",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130825555,
+"end": 130826664,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e01",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130836677,
+"end": 130837546,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e02",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130843525,
+"end": 130843584,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e03",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130845678,
+"end": 130845748,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e04",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130883333,
+"end": 130883486,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e05",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130889625,
+"end": 130889774,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e06",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130890638,
+"end": 130890737,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e07",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130902576,
+"end": 130902724,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e08",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130917914,
+"end": 130918067,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e09",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130928324,
+"end": 130928494,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e10",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130929836,
+"end": 130930359,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e11",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130938999,
+"end": 130939065,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e12",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130959249,
+"end": 130959393,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e13",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 130964319,
+"end": 130964671,
+"name": "FIRRE",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_FIRRE_e14",
+"role": "lncrna_exon",
+"gene": "FIRRE",
+"overlaps_coding": null
+},
+{
+"chrom": "1",
+"start": 173833036,
+"end": 173833236,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e01",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173833394,
+"end": 173833442,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e02",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173833621,
+"end": 173833644,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e03",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173833812,
+"end": 173833842,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e04",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173834366,
+"end": 173834420,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e05",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173834608,
+"end": 173834685,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e06",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173834994,
+"end": 173835032,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e07",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173835286,
+"end": 173835344,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e08",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173835665,
+"end": 173835719,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e09",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173835898,
+"end": 173835934,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e10",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173836128,
+"end": 173836181,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e11",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173837097,
+"end": 173837147,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e12",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "1",
+"start": 173837891,
+"end": 173838020,
+"name": "GAS5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_GAS5_e13",
+"role": "lncrna_exon",
+"gene": "GAS5",
+"overlaps_coding": [
+"ZBTB37"
+]
+},
+{
+"chrom": "11",
+"start": 2016405,
+"end": 2017024,
+"name": "H19",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_H19_e01",
+"role": "lncrna_exon",
+"gene": "H19",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 2017105,
+"end": 2017228,
+"name": "H19",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_H19_e02",
+"role": "lncrna_exon",
+"gene": "H19",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 2017308,
+"end": 2017421,
+"name": "H19",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_H19_e03",
+"role": "lncrna_exon",
+"gene": "H19",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 2017516,
+"end": 2017651,
+"name": "H19",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_H19_e04",
+"role": "lncrna_exon",
+"gene": "H19",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 2017747,
+"end": 2019105,
+"name": "H19",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_H19_e05",
+"role": "lncrna_exon",
+"gene": "H19",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 2022447,
+"end": 2022696,
+"name": "H19",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_H19_e06",
+"role": "lncrna_exon",
+"gene": "H19",
+"overlaps_coding": null
+},
+{
+"chrom": "12",
+"start": 54356091,
+"end": 54357908,
+"name": "HOTAIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_HOTAIR_e01",
+"role": "lncrna_exon",
+"gene": "HOTAIR",
+"overlaps_coding": [
+"HOXC11"
+]
+},
+{
+"chrom": "12",
+"start": 54358014,
+"end": 54358067,
+"name": "HOTAIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_HOTAIR_e02",
+"role": "lncrna_exon",
+"gene": "HOTAIR",
+"overlaps_coding": [
+"HOXC11"
+]
+},
+{
+"chrom": "12",
+"start": 54359747,
+"end": 54359871,
+"name": "HOTAIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_HOTAIR_e03",
+"role": "lncrna_exon",
+"gene": "HOTAIR",
+"overlaps_coding": [
+"HOXC11"
+]
+},
+{
+"chrom": "12",
+"start": 54360059,
+"end": 54360161,
+"name": "HOTAIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_HOTAIR_e04",
+"role": "lncrna_exon",
+"gene": "HOTAIR",
+"overlaps_coding": [
+"HOXC11"
+]
+},
+{
+"chrom": "12",
+"start": 54361052,
+"end": 54361178,
+"name": "HOTAIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_HOTAIR_e05",
+"role": "lncrna_exon",
+"gene": "HOTAIR",
+"overlaps_coding": [
+"HOXC11"
+]
+},
+{
+"chrom": "12",
+"start": 54362400,
+"end": 54362698,
+"name": "HOTAIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_HOTAIR_e06",
+"role": "lncrna_exon",
+"gene": "HOTAIR",
+"overlaps_coding": [
+"HOXC11"
+]
+},
+{
+"chrom": "12",
+"start": 54368681,
+"end": 54368740,
+"name": "HOTAIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_HOTAIR_e07",
+"role": "lncrna_exon",
+"gene": "HOTAIR",
+"overlaps_coding": [
+"HOXC11"
+]
+},
+{
+"chrom": "7",
+"start": 27240039,
+"end": 27240140,
+"name": "HOTTIP",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_HOTTIP_e01",
+"role": "lncrna_exon",
+"gene": "HOTTIP",
+"overlaps_coding": null
+},
+{
+"chrom": "7",
+"start": 27240241,
+"end": 27242257,
+"name": "HOTTIP",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_HOTTIP_e02",
+"role": "lncrna_exon",
+"gene": "HOTTIP",
+"overlaps_coding": null
+},
+{
+"chrom": "7",
+"start": 27244330,
+"end": 27246878,
+"name": "HOTTIP",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_HOTTIP_e03",
+"role": "lncrna_exon",
+"gene": "HOTTIP",
+"overlaps_coding": null
+},
+{
+"chrom": "7",
+"start": 27161537,
+"end": 27161645,
+"name": "HOXA-AS2",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_HOXA-AS2_e01",
+"role": "lncrna_exon",
+"gene": "HOXA-AS2",
+"overlaps_coding": [
+"HOXA3",
+"HOXA4"
+]
+},
+{
+"chrom": "7",
+"start": 27162085,
+"end": 27162285,
+"name": "HOXA-AS2",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_HOXA-AS2_e02",
+"role": "lncrna_exon",
+"gene": "HOXA-AS2",
+"overlaps_coding": [
+"HOXA3",
+"HOXA4"
+]
+},
+{
+"chrom": "7",
+"start": 27163078,
+"end": 27163257,
+"name": "HOXA-AS2",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_HOXA-AS2_e03",
+"role": "lncrna_exon",
+"gene": "HOXA-AS2",
+"overlaps_coding": [
+"HOXA3",
+"HOXA4"
+]
+},
+{
+"chrom": "7",
+"start": 27167818,
+"end": 27168379,
+"name": "HOXA-AS2",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_HOXA-AS2_e04",
+"role": "lncrna_exon",
+"gene": "HOXA-AS2",
+"overlaps_coding": [
+"HOXA3",
+"HOXA4"
+]
+},
+{
+"chrom": "6",
+"start": 8652441,
+"end": 8652623,
+"name": "HULC",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_HULC_e01",
+"role": "lncrna_exon",
+"gene": "HULC",
+"overlaps_coding": null
+},
+{
+"chrom": "6",
+"start": 8653777,
+"end": 8654081,
+"name": "HULC",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_HULC_e02",
+"role": "lncrna_exon",
+"gene": "HULC",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 2629557,
+"end": 2721228,
+"name": "KCNQ1OT1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_KCNQ1OT1_e01",
+"role": "lncrna_exon",
+"gene": "KCNQ1OT1",
+"overlaps_coding": [
+"KCNQ1"
+]
+},
+{
+"chrom": "6",
+"start": 166337535,
+"end": 166338147,
+"name": "LINC00473",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_LINC00473_e01",
+"role": "lncrna_exon",
+"gene": "LINC00473",
+"overlaps_coding": null
+},
+{
+"chrom": "6",
+"start": 166352946,
+"end": 166354254,
+"name": "LINC00473",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_LINC00473_e02",
+"role": "lncrna_exon",
+"gene": "LINC00473",
+"overlaps_coding": null
+},
+{
+"chrom": "6",
+"start": 166401016,
+"end": 166401527,
+"name": "LINC00473",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_LINC00473_e03",
+"role": "lncrna_exon",
+"gene": "LINC00473",
+"overlaps_coding": null
+},
+{
+"chrom": "1",
+"start": 159931013,
+"end": 159931195,
+"name": "LINC01133",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_LINC01133_e01",
+"role": "lncrna_exon",
+"gene": "LINC01133",
+"overlaps_coding": null
+},
+{
+"chrom": "1",
+"start": 159946433,
+"end": 159946902,
+"name": "LINC01133",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_LINC01133_e02",
+"role": "lncrna_exon",
+"gene": "LINC01133",
+"overlaps_coding": null
+},
+{
+"chrom": "1",
+"start": 159948389,
+"end": 159948876,
+"name": "LINC01133",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_LINC01133_e03",
+"role": "lncrna_exon",
+"gene": "LINC01133",
+"overlaps_coding": null
+},
+{
+"chrom": "5",
+"start": 90598802,
+"end": 90598978,
+"name": "LUCAT1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_LUCAT1_e01",
+"role": "lncrna_exon",
+"gene": "LUCAT1",
+"overlaps_coding": null
+},
+{
+"chrom": "5",
+"start": 90599689,
+"end": 90599788,
+"name": "LUCAT1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_LUCAT1_e02",
+"role": "lncrna_exon",
+"gene": "LUCAT1",
+"overlaps_coding": null
+},
+{
+"chrom": "5",
+"start": 90606730,
+"end": 90606849,
+"name": "LUCAT1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_LUCAT1_e03",
+"role": "lncrna_exon",
+"gene": "LUCAT1",
+"overlaps_coding": null
+},
+{
+"chrom": "5",
+"start": 90608894,
+"end": 90609046,
+"name": "LUCAT1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_LUCAT1_e04",
+"role": "lncrna_exon",
+"gene": "LUCAT1",
+"overlaps_coding": null
+},
+{
+"chrom": "5",
+"start": 90609454,
+"end": 90609594,
+"name": "LUCAT1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_LUCAT1_e05",
+"role": "lncrna_exon",
+"gene": "LUCAT1",
+"overlaps_coding": null
+},
+{
+"chrom": "5",
+"start": 90609896,
+"end": 90610219,
+"name": "LUCAT1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_LUCAT1_e06",
+"role": "lncrna_exon",
+"gene": "LUCAT1",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 65265208,
+"end": 65273983,
+"name": "MALAT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MALAT1_e01",
+"role": "lncrna_exon",
+"gene": "MALAT1",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101292444,
+"end": 101292554,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e01",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101295044,
+"end": 101295153,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e02",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101295370,
+"end": 101296124,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e03",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101297352,
+"end": 101297431,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e04",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101297757,
+"end": 101297871,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e05",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101298848,
+"end": 101298978,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e06",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101300968,
+"end": 101301088,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e07",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101302072,
+"end": 101302216,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e08",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101302378,
+"end": 101302412,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e09",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101302503,
+"end": 101302637,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e10",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101311794,
+"end": 101311870,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e11",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101312212,
+"end": 101320642,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e12",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101327027,
+"end": 101327360,
+"name": "MEG3",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG3_e13",
+"role": "lncrna_exon",
+"gene": "MEG3",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 101355985,
+"end": 101356093,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e01",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101361035,
+"end": 101361107,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e02",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101361208,
+"end": 101361376,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e03",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101363929,
+"end": 101364069,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e04",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101365293,
+"end": 101365422,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e05",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101372434,
+"end": 101372500,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e06",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101373272,
+"end": 101373469,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e07",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101376569,
+"end": 101376641,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e08",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101379768,
+"end": 101379858,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e09",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101402108,
+"end": 101402218,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e10",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101403739,
+"end": 101403825,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e11",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101405216,
+"end": 101405293,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e12",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101406701,
+"end": 101406787,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e13",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101409098,
+"end": 101409175,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e14",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101411145,
+"end": 101411262,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e15",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101413370,
+"end": 101413453,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e16",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101415314,
+"end": 101415376,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e17",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101415851,
+"end": 101415933,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e18",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101416738,
+"end": 101416809,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e19",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101417768,
+"end": 101417831,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e20",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101420300,
+"end": 101420383,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e21",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101421258,
+"end": 101421343,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e22",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101422221,
+"end": 101422286,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e23",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101424598,
+"end": 101424680,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e24",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101426397,
+"end": 101426556,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e25",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101427363,
+"end": 101427469,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e26",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101430301,
+"end": 101430337,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e27",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101430689,
+"end": 101430776,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e28",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101432981,
+"end": 101433072,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e29",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101433975,
+"end": 101434123,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e30",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101434984,
+"end": 101435061,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e31",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101435795,
+"end": 101435882,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e32",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101438598,
+"end": 101438683,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e33",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101440462,
+"end": 101440540,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e34",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101441747,
+"end": 101441833,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e35",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101443941,
+"end": 101444059,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e36",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101446913,
+"end": 101447000,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e37",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101448840,
+"end": 101448922,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e38",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101449797,
+"end": 101449879,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e39",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101450684,
+"end": 101450771,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e40",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101451991,
+"end": 101452077,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e41",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101452955,
+"end": 101453043,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e42",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101453880,
+"end": 101453967,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e43",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101455045,
+"end": 101455127,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e44",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101456030,
+"end": 101456117,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e45",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101457827,
+"end": 101457902,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e46",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101460171,
+"end": 101460244,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e47",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101463222,
+"end": 101463253,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e48",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101463823,
+"end": 101463883,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e49",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101464361,
+"end": 101464448,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e50",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "14",
+"start": 101465401,
+"end": 101465450,
+"name": "MEG8",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MEG8_e51",
+"role": "lncrna_exon",
+"gene": "MEG8",
+"overlaps_coding": [
+"RTL1"
+]
+},
+{
+"chrom": "22",
+"start": 27053445,
+"end": 27053618,
+"name": "MIAT",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MIAT_e01",
+"role": "lncrna_exon",
+"gene": "MIAT",
+"overlaps_coding": null
+},
+{
+"chrom": "22",
+"start": 27059279,
+"end": 27059362,
+"name": "MIAT",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MIAT_e02",
+"role": "lncrna_exon",
+"gene": "MIAT",
+"overlaps_coding": null
+},
+{
+"chrom": "22",
+"start": 27061420,
+"end": 27062900,
+"name": "MIAT",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MIAT_e03",
+"role": "lncrna_exon",
+"gene": "MIAT",
+"overlaps_coding": null
+},
+{
+"chrom": "22",
+"start": 27063147,
+"end": 27063273,
+"name": "MIAT",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MIAT_e04",
+"role": "lncrna_exon",
+"gene": "MIAT",
+"overlaps_coding": null
+},
+{
+"chrom": "22",
+"start": 27064120,
+"end": 27072440,
+"name": "MIAT",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MIAT_e05",
+"role": "lncrna_exon",
+"gene": "MIAT",
+"overlaps_coding": null
+},
+{
+"chrom": "21",
+"start": 26934456,
+"end": 26934569,
+"name": "MIR155HG",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MIR155HG_e01",
+"role": "lncrna_exon",
+"gene": "MIR155HG",
+"overlaps_coding": null
+},
+{
+"chrom": "21",
+"start": 26942148,
+"end": 26942233,
+"name": "MIR155HG",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MIR155HG_e02",
+"role": "lncrna_exon",
+"gene": "MIR155HG",
+"overlaps_coding": null
+},
+{
+"chrom": "21",
+"start": 26946204,
+"end": 26947480,
+"name": "MIR155HG",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MIR155HG_e03",
+"role": "lncrna_exon",
+"gene": "MIR155HG",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 92000073,
+"end": 92000213,
+"name": "MIR17HG",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MIR17HG_e01",
+"role": "lncrna_exon",
+"gene": "MIR17HG",
+"overlaps_coding": null
+},
+{
+"chrom": "13",
+"start": 92001951,
+"end": 92006829,
+"name": "MIR17HG",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_MIR17HG_e02",
+"role": "lncrna_exon",
+"gene": "MIR17HG",
+"overlaps_coding": null
+},
+{
+"chrom": "9",
+"start": 21454266,
+"end": 21455943,
+"name": "MIR31HG",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_MIR31HG_e01",
+"role": "lncrna_exon",
+"gene": "MIR31HG",
+"overlaps_coding": null
+},
+{
+"chrom": "9",
+"start": 21476897,
+"end": 21477034,
+"name": "MIR31HG",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_MIR31HG_e02",
+"role": "lncrna_exon",
+"gene": "MIR31HG",
+"overlaps_coding": null
+},
+{
+"chrom": "9",
+"start": 21477167,
+"end": 21477291,
+"name": "MIR31HG",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_MIR31HG_e03",
+"role": "lncrna_exon",
+"gene": "MIR31HG",
+"overlaps_coding": null
+},
+{
+"chrom": "9",
+"start": 21559487,
+"end": 21559797,
+"name": "MIR31HG",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_MIR31HG_e04",
+"role": "lncrna_exon",
+"gene": "MIR31HG",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 65190268,
+"end": 65213009,
+"name": "NEAT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_NEAT1_e01",
+"role": "lncrna_exon",
+"gene": "NEAT1",
+"overlaps_coding": null
+},
+{
+"chrom": "20",
+"start": 34633539,
+"end": 34638882,
+"name": "NORAD",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_NORAD_e01",
+"role": "lncrna_exon",
+"gene": "NORAD",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 6968684,
+"end": 6969086,
+"name": "NRIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_NRIR_e01",
+"role": "lncrna_exon",
+"gene": "NRIR",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 6970098,
+"end": 6970237,
+"name": "NRIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_NRIR_e02",
+"role": "lncrna_exon",
+"gene": "NRIR",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 6973444,
+"end": 6973561,
+"name": "NRIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_NRIR_e03",
+"role": "lncrna_exon",
+"gene": "NRIR",
+"overlaps_coding": null
+},
+{
+"chrom": "2",
+"start": 6980421,
+"end": 6980595,
+"name": "NRIR",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_NRIR_e04",
+"role": "lncrna_exon",
+"gene": "NRIR",
+"overlaps_coding": null
+},
+{
+"chrom": "15",
+"start": 41576187,
+"end": 41576308,
+"name": "OIP5-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_OIP5-AS1_e01",
+"role": "lncrna_exon",
+"gene": "OIP5-AS1",
+"overlaps_coding": [
+"OIP5"
+]
+},
+{
+"chrom": "15",
+"start": 41577422,
+"end": 41577561,
+"name": "OIP5-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_OIP5-AS1_e02",
+"role": "lncrna_exon",
+"gene": "OIP5-AS1",
+"overlaps_coding": [
+"OIP5"
+]
+},
+{
+"chrom": "15",
+"start": 41578208,
+"end": 41578298,
+"name": "OIP5-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_OIP5-AS1_e03",
+"role": "lncrna_exon",
+"gene": "OIP5-AS1",
+"overlaps_coding": [
+"OIP5"
+]
+},
+{
+"chrom": "15",
+"start": 41589944,
+"end": 41590127,
+"name": "OIP5-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_OIP5-AS1_e04",
+"role": "lncrna_exon",
+"gene": "OIP5-AS1",
+"overlaps_coding": [
+"OIP5"
+]
+},
+{
+"chrom": "15",
+"start": 41590238,
+"end": 41598731,
+"name": "OIP5-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_OIP5-AS1_e05",
+"role": "lncrna_exon",
+"gene": "OIP5-AS1",
+"overlaps_coding": [
+"OIP5"
+]
+},
+{
+"chrom": "15",
+"start": 41600764,
+"end": 41600822,
+"name": "OIP5-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_OIP5-AS1_e06",
+"role": "lncrna_exon",
+"gene": "OIP5-AS1",
+"overlaps_coding": [
+"OIP5"
+]
+},
+{
+"chrom": "15",
+"start": 41600917,
+"end": 41601039,
+"name": "OIP5-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_OIP5-AS1_e07",
+"role": "lncrna_exon",
+"gene": "OIP5-AS1",
+"overlaps_coding": [
+"OIP5"
+]
+},
+{
+"chrom": "15",
+"start": 41604095,
+"end": 41605536,
+"name": "OIP5-AS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_OIP5-AS1_e08",
+"role": "lncrna_exon",
+"gene": "OIP5-AS1",
+"overlaps_coding": [
+"OIP5"
+]
+},
+{
+"chrom": "8",
+"start": 128806778,
+"end": 128806980,
+"name": "PVT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_PVT1_e01",
+"role": "lncrna_exon",
+"gene": "PVT1",
+"overlaps_coding": null
+},
+{
+"chrom": "8",
+"start": 128902834,
+"end": 128903244,
+"name": "PVT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_PVT1_e02",
+"role": "lncrna_exon",
+"gene": "PVT1",
+"overlaps_coding": null
+},
+{
+"chrom": "8",
+"start": 128951753,
+"end": 128951922,
+"name": "PVT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_PVT1_e03",
+"role": "lncrna_exon",
+"gene": "PVT1",
+"overlaps_coding": null
+},
+{
+"chrom": "8",
+"start": 128996149,
+"end": 128996450,
+"name": "PVT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_PVT1_e04",
+"role": "lncrna_exon",
+"gene": "PVT1",
+"overlaps_coding": null
+},
+{
+"chrom": "8",
+"start": 129001407,
+"end": 129001537,
+"name": "PVT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_PVT1_e05",
+"role": "lncrna_exon",
+"gene": "PVT1",
+"overlaps_coding": null
+},
+{
+"chrom": "8",
+"start": 129082405,
+"end": 129082518,
+"name": "PVT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_PVT1_e06",
+"role": "lncrna_exon",
+"gene": "PVT1",
+"overlaps_coding": null
+},
+{
+"chrom": "8",
+"start": 129108763,
+"end": 129108900,
+"name": "PVT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_PVT1_e07",
+"role": "lncrna_exon",
+"gene": "PVT1",
+"overlaps_coding": null
+},
+{
+"chrom": "8",
+"start": 129111615,
+"end": 129111819,
+"name": "PVT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_PVT1_e08",
+"role": "lncrna_exon",
+"gene": "PVT1",
+"overlaps_coding": null
+},
+{
+"chrom": "8",
+"start": 129113225,
+"end": 129113499,
+"name": "PVT1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_PVT1_e09",
+"role": "lncrna_exon",
+"gene": "PVT1",
+"overlaps_coding": null
+},
+{
+"chrom": "9",
+"start": 35657747,
+"end": 35658015,
+"name": "RMRP",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_RMRP_e01",
+"role": "lncrna_exon",
+"gene": "RMRP",
+"overlaps_coding": null
+},
+{
+"chrom": "14",
+"start": 20811229,
+"end": 20811570,
+"name": "RPPH1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_RPPH1_e01",
+"role": "lncrna_exon",
+"gene": "RPPH1",
+"overlaps_coding": null
+},
+{
+"chrom": "3",
+"start": 70048894,
+"end": 70049018,
+"name": "SAMMSON",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_SAMMSON_e01",
+"role": "lncrna_exon",
+"gene": "SAMMSON",
+"overlaps_coding": null
+},
+{
+"chrom": "3",
+"start": 70061507,
+"end": 70061749,
+"name": "SAMMSON",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_SAMMSON_e02",
+"role": "lncrna_exon",
+"gene": "SAMMSON",
+"overlaps_coding": null
+},
+{
+"chrom": "3",
+"start": 70062670,
+"end": 70062823,
+"name": "SAMMSON",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_SAMMSON_e03",
+"role": "lncrna_exon",
+"gene": "SAMMSON",
+"overlaps_coding": null
+},
+{
+"chrom": "3",
+"start": 70062944,
+"end": 70064451,
+"name": "SAMMSON",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_SAMMSON_e04",
+"role": "lncrna_exon",
+"gene": "SAMMSON",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 62619449,
+"end": 62620153,
+"name": "SNHG1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG1_e01",
+"role": "lncrna_exon",
+"gene": "SNHG1",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 62620282,
+"end": 62620311,
+"name": "SNHG1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG1_e02",
+"role": "lncrna_exon",
+"gene": "SNHG1",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 62620546,
+"end": 62620587,
+"name": "SNHG1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG1_e03",
+"role": "lncrna_exon",
+"gene": "SNHG1",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 62621023,
+"end": 62621062,
+"name": "SNHG1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG1_e04",
+"role": "lncrna_exon",
+"gene": "SNHG1",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 62621272,
+"end": 62621305,
+"name": "SNHG1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG1_e05",
+"role": "lncrna_exon",
+"gene": "SNHG1",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 62621489,
+"end": 62621536,
+"name": "SNHG1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG1_e06",
+"role": "lncrna_exon",
+"gene": "SNHG1",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 62621990,
+"end": 62622023,
+"name": "SNHG1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG1_e07",
+"role": "lncrna_exon",
+"gene": "SNHG1",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 62622359,
+"end": 62622410,
+"name": "SNHG1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG1_e08",
+"role": "lncrna_exon",
+"gene": "SNHG1",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 62622604,
+"end": 62622688,
+"name": "SNHG1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG1_e09",
+"role": "lncrna_exon",
+"gene": "SNHG1",
+"overlaps_coding": null
+},
+{
+"chrom": "11",
+"start": 62622895,
+"end": 62623357,
+"name": "SNHG1",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG1_e10",
+"role": "lncrna_exon",
+"gene": "SNHG1",
+"overlaps_coding": null
+},
+{
+"chrom": "17",
+"start": 74553845,
+"end": 74553939,
+"name": "SNHG16",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_SNHG16_e01",
+"role": "lncrna_exon",
+"gene": "SNHG16",
+"overlaps_coding": null
+},
+{
+"chrom": "17",
+"start": 74555026,
+"end": 74555125,
+"name": "SNHG16",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_SNHG16_e02",
+"role": "lncrna_exon",
+"gene": "SNHG16",
+"overlaps_coding": null
+},
+{
+"chrom": "17",
+"start": 74557369,
+"end": 74557484,
+"name": "SNHG16",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_SNHG16_e03",
+"role": "lncrna_exon",
+"gene": "SNHG16",
+"overlaps_coding": null
+},
+{
+"chrom": "17",
+"start": 74559200,
+"end": 74561430,
+"name": "SNHG16",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_SNHG16_e04",
+"role": "lncrna_exon",
+"gene": "SNHG16",
+"overlaps_coding": null
+},
+{
+"chrom": "6",
+"start": 86386724,
+"end": 86386909,
+"name": "SNHG5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG5_e01",
+"role": "lncrna_exon",
+"gene": "SNHG5",
+"overlaps_coding": null
+},
+{
+"chrom": "6",
+"start": 86387141,
+"end": 86387210,
+"name": "SNHG5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG5_e02",
+"role": "lncrna_exon",
+"gene": "SNHG5",
+"overlaps_coding": null
+},
+{
+"chrom": "6",
+"start": 86387512,
+"end": 86387593,
+"name": "SNHG5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG5_e03",
+"role": "lncrna_exon",
+"gene": "SNHG5",
+"overlaps_coding": null
+},
+{
+"chrom": "6",
+"start": 86387671,
+"end": 86387750,
+"name": "SNHG5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG5_e04",
+"role": "lncrna_exon",
+"gene": "SNHG5",
+"overlaps_coding": null
+},
+{
+"chrom": "6",
+"start": 86387853,
+"end": 86387906,
+"name": "SNHG5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG5_e05",
+"role": "lncrna_exon",
+"gene": "SNHG5",
+"overlaps_coding": null
+},
+{
+"chrom": "6",
+"start": 86388411,
+"end": 86388451,
+"name": "SNHG5",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_SNHG5_e06",
+"role": "lncrna_exon",
+"gene": "SNHG5",
+"overlaps_coding": null
+},
+{
+"chrom": "3",
+"start": 169482397,
+"end": 169482848,
+"name": "TERC",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_TERC_e01",
+"role": "lncrna_exon",
+"gene": "TERC",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 73012039,
+"end": 73049066,
+"name": "TSIX",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_TSIX_e01",
+"role": "lncrna_exon",
+"gene": "TSIX",
+"overlaps_coding": null
+},
+{
+"chrom": "22",
+"start": 31365196,
+"end": 31367765,
+"name": "TUG1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_TUG1_e01",
+"role": "lncrna_exon",
+"gene": "TUG1",
+"overlaps_coding": null
+},
+{
+"chrom": "22",
+"start": 31368033,
+"end": 31368158,
+"name": "TUG1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_TUG1_e02",
+"role": "lncrna_exon",
+"gene": "TUG1",
+"overlaps_coding": null
+},
+{
+"chrom": "22",
+"start": 31368840,
+"end": 31369587,
+"name": "TUG1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_TUG1_e03",
+"role": "lncrna_exon",
+"gene": "TUG1",
+"overlaps_coding": null
+},
+{
+"chrom": "22",
+"start": 31371155,
+"end": 31375380,
+"name": "TUG1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_TUG1_e04",
+"role": "lncrna_exon",
+"gene": "TUG1",
+"overlaps_coding": null
+},
+{
+"chrom": "19",
+"start": 15939756,
+"end": 15940148,
+"name": "UCA1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_UCA1_e01",
+"role": "lncrna_exon",
+"gene": "UCA1",
+"overlaps_coding": null
+},
+{
+"chrom": "19",
+"start": 15942064,
+"end": 15942166,
+"name": "UCA1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_UCA1_e02",
+"role": "lncrna_exon",
+"gene": "UCA1",
+"overlaps_coding": null
+},
+{
+"chrom": "19",
+"start": 15945311,
+"end": 15947131,
+"name": "UCA1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_UCA1_e03",
+"role": "lncrna_exon",
+"gene": "UCA1",
+"overlaps_coding": null
+},
+{
+"chrom": "5",
+"start": 140090860,
+"end": 140090958,
+"name": "VTRNA1-1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_VTRNA1-1_e01",
+"role": "lncrna_exon",
+"gene": "VTRNA1-1",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 73040485,
+"end": 73047819,
+"name": "XIST",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_XIST_e01",
+"role": "lncrna_exon",
+"gene": "XIST",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 73048902,
+"end": 73049066,
+"name": "XIST",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_XIST_e02",
+"role": "lncrna_exon",
+"gene": "XIST",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 73050900,
+"end": 73051109,
+"name": "XIST",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_XIST_e03",
+"role": "lncrna_exon",
+"gene": "XIST",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 73053072,
+"end": 73053209,
+"name": "XIST",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_XIST_e04",
+"role": "lncrna_exon",
+"gene": "XIST",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 73057274,
+"end": 73057338,
+"name": "XIST",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_XIST_e05",
+"role": "lncrna_exon",
+"gene": "XIST",
+"overlaps_coding": null
+},
+{
+"chrom": "X",
+"start": 73061216,
+"end": 73072588,
+"name": "XIST",
+"family": "lncRNA",
+"strand": "-",
+"id": "LNC_XIST_e06",
+"role": "lncrna_exon",
+"gene": "XIST",
+"overlaps_coding": null
+},
+{
+"chrom": "20",
+"start": 47894714,
+"end": 47895275,
+"name": "ZFAS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_ZFAS1_e01",
+"role": "lncrna_exon",
+"gene": "ZFAS1",
+"overlaps_coding": null
+},
+{
+"chrom": "20",
+"start": 47895640,
+"end": 47895745,
+"name": "ZFAS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_ZFAS1_e02",
+"role": "lncrna_exon",
+"gene": "ZFAS1",
+"overlaps_coding": null
+},
+{
+"chrom": "20",
+"start": 47897021,
+"end": 47897107,
+"name": "ZFAS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_ZFAS1_e03",
+"role": "lncrna_exon",
+"gene": "ZFAS1",
+"overlaps_coding": null
+},
+{
+"chrom": "20",
+"start": 47897439,
+"end": 47897501,
+"name": "ZFAS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_ZFAS1_e04",
+"role": "lncrna_exon",
+"gene": "ZFAS1",
+"overlaps_coding": null
+},
+{
+"chrom": "20",
+"start": 47905581,
+"end": 47905795,
+"name": "ZFAS1",
+"family": "lncRNA",
+"strand": "+",
+"id": "LNC_ZFAS1_e05",
+"role": "lncrna_exon",
+"gene": "ZFAS1",
+"overlaps_coding": null
+}
+]
