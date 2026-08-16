@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.52 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Fix: the grid no longer slips 60px below its gene labels.</b> Leaving a state that had drawn the cell-line dendrogram (for example turning off grouping on a cohort too large to cluster) left an invisible box where the tree had been, shifting every row below its label. The box is now fully removed with the tree.</li>
+                </ul>
                 <p><strong>v.88.51 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Clustering, tidied.</b> Cluster genes and Cluster cell lines now sit together in the top row. A Tree detail setting (Settings) draws the cell-line dendrograms at full, medium or coarse resolution, collapsing the finest branches when they are just visual noise. And within every cluster the columns now run high score to low instead of arbitrary order, so a clustered heatmap reads left to right like the score sort does.</li>
@@ -6872,7 +6876,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.51</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.52</a>
         </span>
     </div>
 
@@ -9828,6 +9832,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_51"></script>
+    <script src="app.js?v=v88_52"></script>
 </body>
 </html>

@@ -55086,7 +55086,13 @@ ${clone.innerHTML}
                 dtc.clearRect(0, 0, gridW, TOP_DENDRO_H);
                 paintDendroTop(dtc);
             } else {
+                // Zeroing the attributes alone is not enough: sizeCanvas also
+                // sets CSS width/height, and the leftover style kept a ghost
+                // 60px box above the grid after leaving a tree-drawing state,
+                // shifting every row 60px below its gene label.
                 dendroTopCanvas.width = 0; dendroTopCanvas.height = 0;
+                dendroTopCanvas.style.width = '0';
+                dendroTopCanvas.style.height = '0';
             }
         }
         labelCanvas.style.marginTop = hasTopDendro ? TOP_DENDRO_H + 'px' : '0';
@@ -55419,7 +55425,9 @@ ${clone.innerHTML}
     _hmClearCanvases() {
         ['hmLabelCanvas', 'hmGridCanvas', 'hmLegendCanvas', 'hmGroupLegendCanvas', 'hmAnn2LegendCanvas', 'hmDendroTopCanvas'].forEach(id => {
             const cv = document.getElementById(id);
-            if (cv) { cv.width = 0; cv.height = 0; }
+            // Attributes AND CSS size: sizeCanvas sets both, and a leftover
+            // style keeps a ghost box in the layout (the 60px grid shift).
+            if (cv) { cv.width = 0; cv.height = 0; cv.style.width = ''; cv.style.height = ''; }
         });
         const groupLegendCanvas = document.getElementById('hmGroupLegendCanvas');
         if (groupLegendCanvas) groupLegendCanvas.style.marginTop = '0';
