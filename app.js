@@ -127,6 +127,34 @@ function exportStamp() {
     return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
 }
 
+// Heatmap group-strip labels: standard short names for the longest disease/
+// lineage keys, so a staggered label row can name a group instead of
+// dropping it to a truncated ellipsis. Exact match on the group's key only.
+// Module scope (a class body can't hold a bare top-level const) but the only
+// consumer is _hmBuildGroupLabelPlan, deep inside CorrelationExplorer below.
+const HM_GROUP_LABEL_ABBREV = {
+    'Diffuse Large B-Cell Lymphoma, NOS': 'DLBCL',
+    'Chronic Lymphocytic Leukemia/Small Lymphocytic Lymphoma': 'CLL/SLL',
+    'Plasma Cell Myeloma': 'Myeloma',
+    'Burkitt Lymphoma': 'Burkitt',
+    'Mantle Cell Lymphoma': 'MCL',
+    'Acute Myeloid Leukemia': 'AML',
+    'B-Lymphoblastic Leukemia/Lymphoma': 'B-ALL',
+    'T-Lymphoblastic Leukemia/Lymphoma': 'T-ALL',
+    'Non-Small Cell Lung Cancer': 'NSCLC',
+    'Small Cell Lung Cancer': 'SCLC',
+    'Head and Neck Squamous Cell Carcinoma': 'HNSCC',
+    'Pancreatic Adenocarcinoma': 'PDAC',
+    'Colorectal Adenocarcinoma': 'CRC',
+    'Esophagogastric Adenocarcinoma': 'EGC',
+    'Glioblastoma Multiforme': 'GBM',
+    'Renal Cell Carcinoma': 'RCC',
+    'Hepatocellular Carcinoma': 'HCC',
+    'Ovarian Epithelial Tumor': 'Ovarian',
+    'Invasive Breast Carcinoma': 'Breast IDC',
+    'Melanoma': 'Melanoma',
+};
+
 class CorrelationExplorer {
     // 40 visually-distinct categorical colors. DepMap has ~40+ disease
     // subtypes, so a 20-color palette left most of them gray; the most
@@ -52722,7 +52750,14 @@ ${clone.innerHTML}
         document.getElementById('heatmapModal')?.addEventListener('click', (e) => {
             if (e.target.id === 'heatmapModal') close();
         });
-        document.getElementById('hmPreset')?.addEventListener('change', () => this._hmSyncPresetUI());
+        document.getElementById('hmPreset')?.addEventListener('change', () => { this._hmSyncPresetUI(); this._hmRedraw(); });
+        document.getElementById('hmDataType')?.addEventListener('change', () => this._hmRedraw());
+        document.getElementById('hmScale')?.addEventListener('change', () => this._hmRedraw());
+        document.getElementById('hmSort')?.addEventListener('change', () => this._hmRedraw());
+        // Fires on blur/focus-loss, not on every keystroke, so a half-typed
+        // gene list doesn't repaint mid-edit; Redraw stays useful for that.
+        document.getElementById('hmGenes')?.addEventListener('change', () => this._hmRedraw());
+        document.getElementById('hmHideNoData')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmRedrawBtn')?.addEventListener('click', () => this._hmRedraw());
         document.getElementById('hmExportImageBtn')?.addEventListener('click', () => this._hmExportImage());
         document.getElementById('hmCopyBtn')?.addEventListener('click', () => this._hmCopy());
@@ -53320,10 +53355,10 @@ ${clone.innerHTML}
 
     _hmBuildAndPaint({ genes, missingGenes, cohort, cohortNote, dataType, scaleMode, sortMode, groupByMode = 'none', altInfo = null, groupOrderMode = 'size', showMedian = false, clusterGenes = true, lineageLabel = '', subtypeLabel = '', diseaseLabel = '', minGroupSize = 1, annotation2Mode = 'none', ann2Gene = null }) {
         const geIndexByCL = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
-        const cohortIndex = new Map(cohort.map((cl, i) => [cl, i]));
+        let cohortIndex = new Map(cohort.map((cl, i) => [cl, i]));
 
         // Raw values, one Float64Array per gene, aligned to `cohort`.
-        const rawRows = genes.map(gene => {
+        let rawRows = genes.map(gene => {
             const row = new Float64Array(cohort.length);
             if (dataType === 'ge') {
                 const geData = this.getGeneData(this.geneIndex.get(gene));
@@ -53337,6 +53372,32 @@ ${clone.innerHTML}
             }
             return row;
         });
+
+        // "Hide lines without data": a cell line whose value is missing for
+        // every shown gene is an all-gray column that adds nothing but
+        // width. Dropped here, right after the matrix is built and before
+        // scaling, grouping or sorting run off it, so group counts and the
+        // cluster/sort math never see the columns that were hidden, and the
+        // "N lines without data" summary always matches what's on screen
+        // either way (shown or hidden, never silently absent).
+        const hideNoDataChecked = !!document.getElementById('hmHideNoData')?.checked;
+        let noDataCount = 0;
+        {
+            const keepIdx = [];
+            cohort.forEach((cl, ci) => {
+                if (rawRows.some(row => !Number.isNaN(row[ci]))) keepIdx.push(ci);
+                else noDataCount++;
+            });
+            if (noDataCount > 0 && hideNoDataChecked) {
+                cohort = keepIdx.map(ci => cohort[ci]);
+                rawRows = rawRows.map(row => {
+                    const kept = new Float64Array(keepIdx.length);
+                    keepIdx.forEach((ci, ni) => { kept[ni] = row[ci]; });
+                    return kept;
+                });
+                cohortIndex = new Map(cohort.map((cl, i) => [cl, i]));
+            }
+        }
 
         const scaledRows = scaleMode === 'z' ? rawRows.map(r => this._hmZRow(r)) : rawRows;
         const geneIndexInResult = new Map(genes.map((g, i) => [g, i]));
@@ -53525,7 +53586,7 @@ ${clone.innerHTML}
             genes, orderedGenes, geneTree, cohort, orderedCLs, geneIndexInResult, cohortIndex,
             rawRows, scaledRows, dataType, scaleMode, domain, missingGenes,
             groups, groupByMode, altInfo, groupOrderMode, showMedian, hiddenCount,
-            lineageLabel, subtypeLabel, diseaseLabel, ann2
+            lineageLabel, subtypeLabel, diseaseLabel, ann2, noDataCount, hideNoDataChecked
         };
         this._hmPaintAndWire(cohortNote + clusterNote);
     }
@@ -53732,6 +53793,56 @@ ${clone.innerHTML}
         return `rgb(${lerp(255, 6, t)},${lerp(255, 78, t)},${lerp(255, 44, t)})`;
     }
 
+    // Decides, before the grid is laid out, which visible groups get a text
+    // label under the strip and which of up to 3 stagger rows each sits on.
+    // A group with fewer than 3 cell lines never gets text (its colour band
+    // and legend entry still identify it). Among the rest, labels are placed
+    // round-robin across the 3 rows in left-to-right group order, but the
+    // row counter only advances for a group that actually got a label: a
+    // group that is skipped (nothing fit) does not consume a row slot, so
+    // the next group still gets a fair shot at whichever row comes next.
+    // Collision is checked only against the previous label already placed in
+    // the SAME row (a per-row "last right edge" x), and overhang into a
+    // neighbouring band is fine, unlike the old single-row layout which had
+    // to fit inside its own band.
+    _hmBuildGroupLabelPlan(groups, cellW, groupLabelText) {
+        if (!groups) return { rows: 0, items: [] };
+        const eligible = groups.filter(g => !g.hidden && g.count >= 3);
+        if (!eligible.length) return { rows: 0, items: [] };
+        const probe = document.createElement('canvas').getContext('2d');
+        probe.font = '9px Arial';
+        const ROWS = 3, GAP = 4, MIN_CHARS = 6;
+        const lastRightX = new Array(ROWS).fill(-Infinity);
+        const items = [];
+        let labelledCount = 0, maxRow = -1;
+        for (const g of eligible) {
+            const row = labelledCount % ROWS;
+            const bandCx = (g.startCol + g.endCol) / 2 * cellW;
+            // Tried in order until one fits without overlapping the previous
+            // label in this row: the full label, the bare key, then either
+            // the curated abbreviation or (for a key not in that map) a
+            // shrinking ellipsis-truncation down to a 6-character floor.
+            const candidates = [groupLabelText(g), g.key];
+            const abbrev = HM_GROUP_LABEL_ABBREV[g.key];
+            if (abbrev) {
+                candidates.push(abbrev);
+            } else {
+                for (let len = g.key.length - 1; len >= MIN_CHARS; len--) candidates.push(g.key.slice(0, len) + '…');
+            }
+            let chosen = null;
+            for (const text of candidates) {
+                const w = probe.measureText(text).width;
+                if (bandCx - w / 2 >= lastRightX[row] + GAP) { chosen = { text, w }; break; }
+            }
+            if (!chosen) continue;
+            lastRightX[row] = bandCx + chosen.w / 2;
+            items.push({ x: bandCx, text: chosen.text, row });
+            if (row > maxRow) maxRow = row;
+            labelledCount++;
+        }
+        return { rows: maxRow + 1, items };
+    }
+
     // Sizes and paints the label, grid and legend canvases at device
     // resolution, wires the scroll hint and the hover tooltip, and writes the
     // hint line. `paintLabels`/`paintGrid`/`paintLegend` work in logical
@@ -53768,8 +53879,24 @@ ${clone.innerHTML}
         // the grid canvas directly beneath the last gene row: that
         // guarantees column alignment for free, rather than trying to keep a
         // second canvas in sync with the first as it scrolls.
-        const GROUP_STRIP_H = 14, GROUP_TICK_H = 4, GROUP_LABEL_H = 12;
-        const groupExtra = d.groups ? (GROUP_STRIP_H + GROUP_TICK_H + GROUP_LABEL_H) : 0;
+        const GROUP_STRIP_H = 14, GROUP_TICK_H = 4, GROUP_LABEL_ROW_H = 11;
+
+        // Group label text shared by the under-band label and the legend,
+        // so "n=42" (never a bare "42") and the optional median read the
+        // same everywhere they appear. Computed before the label plan below,
+        // which needs it to measure candidate label text.
+        const groupLabelText = (g) => `${g.key} (n=${g.count}${d.showMedian && !Number.isNaN(g.median) ? `, median ${g.median.toFixed(2)}` : ''})`;
+
+        // Which visible groups get a text label under the strip, and which
+        // of up to 3 stagger rows each sits on, decided here (the layout
+        // step) rather than in paintGrid: the row count this returns changes
+        // gridH and every y-offset below the gene rows (the ann2 strip, the
+        // strip-title draws, the tooltip hit-test, the export composer), so
+        // it has to be settled before gridH is fixed a few lines down.
+        // paintGrid only executes this stored plan, it never recomputes it.
+        const groupLabelPlan = this._hmBuildGroupLabelPlan(d.groups, cellW, groupLabelText);
+        d.groupLabelPlan = groupLabelPlan;
+        const groupExtra = d.groups ? (GROUP_STRIP_H + GROUP_TICK_H + groupLabelPlan.rows * GROUP_LABEL_ROW_H) : 0;
         // The second annotation row sits directly under the group section as
         // a whole (colour band, ticks and labels together), same 14px
         // height, with no ticks/labels of its own: its legend, prefixed with
@@ -53779,11 +53906,6 @@ ${clone.innerHTML}
         const ann2Extra = d.ann2 ? ANN2_STRIP_H : 0;
         const gridH = geneAreaH + groupExtra + ann2Extra;
         const legendW = 260, legendH = 46;
-
-        // Group label text shared by the under-band label and the legend,
-        // so "n=42" (never a bare "42") and the optional median read the
-        // same everywhere they appear.
-        const groupLabelText = (g) => `${g.key} (n=${g.count}${d.showMedian && !Number.isNaN(g.median) ? `, median ${g.median.toFixed(2)}` : ''})`;
 
         // `plain` skips the light-grey background fill: fine on screen (it
         // reads as the panel's own background there), but on an exported
@@ -53871,21 +53993,29 @@ ${clone.innerHTML}
                 ctx.moveTo(xEnd, stripY);
                 ctx.lineTo(xEnd, stripY + GROUP_STRIP_H + GROUP_TICK_H);
                 ctx.stroke();
-                // Labels only where the band is wide enough to hold them, so a
-                // cohort with many small groups skips crowded labels rather than
-                // overlapping them.
-                ctx.font = '9px Arial';
-                ctx.fillStyle = '#374151';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-                const labelY = stripY + GROUP_STRIP_H + GROUP_TICK_H + 1;
-                visibleGroups.forEach(g => {
-                    const bandW = (g.endCol - g.startCol) * cellW;
-                    const text = groupLabelText(g);
-                    const tw = ctx.measureText(text).width;
-                    if (tw + 4 <= bandW) ctx.fillText(text, g.startCol * cellW + bandW / 2, labelY);
-                    else if (ctx.measureText(g.key).width + 4 <= bandW) ctx.fillText(g.key, g.startCol * cellW + bandW / 2, labelY);
-                });
+                // Labels: which groups got text and which of up to 3 stagger
+                // rows each sits on was decided in the layout step (so the
+                // reserved height was known before gridH was fixed); this
+                // just executes that stored plan; small groups (n<3) were
+                // never in it, and their colour band + legend entry are
+                // already drawn above regardless.
+                const plan = d.groupLabelPlan;
+                if (plan && plan.items.length) {
+                    const tickTop = stripY + GROUP_STRIP_H + GROUP_TICK_H;
+                    ctx.strokeStyle = '#9ca3af';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    plan.items.forEach(it => {
+                        ctx.moveTo(it.x, tickTop);
+                        ctx.lineTo(it.x, tickTop + 1 + it.row * GROUP_LABEL_ROW_H);
+                    });
+                    ctx.stroke();
+                    ctx.font = '9px Arial';
+                    ctx.fillStyle = '#374151';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    plan.items.forEach(it => ctx.fillText(it.text, it.x, tickTop + 1 + it.row * GROUP_LABEL_ROW_H));
+                }
             }
             // The second row: directly beneath the whole group section above
             // (or beneath the gene rows, when there's no primary grouping),
@@ -54093,6 +54223,13 @@ ${clone.innerHTML}
                 : d.dataType === 'expr' ? 'White is low, dark green is high.' : 'Blue is enriched, red is depleted.';
             const groupWord = this._hmGroupByLabel(d.groupByMode, d.altInfo);
             let base = `${nGenes} genes x ${nCL} cell lines`;
+            // The choice (hidden or shown) is always stated, never left to be
+            // inferred from a count that quietly changed.
+            if (d.noDataCount > 0) {
+                base += d.hideNoDataChecked
+                    ? `, ${d.noDataCount} line${d.noDataCount === 1 ? '' : 's'} without data hidden`
+                    : `, ${d.noDataCount} line${d.noDataCount === 1 ? '' : 's'} without data shown`;
+            }
             if (d.lineageLabel) base += `, ${d.lineageLabel} only`;
             if (d.subtypeLabel) base += `, ${d.subtypeLabel} only`;
             if (d.diseaseLabel) base += `, ${d.diseaseLabel} only`;
