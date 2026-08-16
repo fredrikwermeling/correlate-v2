@@ -33335,6 +33335,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     showGeneTooltip(event, gene, whyContext, prefixHtml) {
+        if (window.__hoverQuiet?.()) return;
         // If a pinned tooltip for the same gene is already showing, leave it.
         const existing = document.getElementById('geneTooltip');
         if (existing && existing.dataset.pinned === '1' && existing.dataset.gene === gene) return;
@@ -33857,6 +33858,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // each hover; removed by hideCellLineTooltip on unhover.
     showCellLineTooltip(event, cellLineId, hint) {
         if (!cellLineId || !this.cellLineMetadata) return;
+        if (window.__hoverQuiet?.()) return;
         this.hideCellLineTooltip();
         const maxW = 340;
         const t = document.createElement('div');
@@ -36054,6 +36056,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     showColumnTooltip(event, colIdx) {
+        if (window.__hoverQuiet?.()) return;
         this.hideColumnTooltip();
         if (!this._compareModalCols || !this._compareModalCols[colIdx]) return;
         const col = this._compareModalCols[colIdx];
@@ -36670,6 +36673,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 category: 'Immunology',
                 description: '<b>Inclusion:</b> the top tenth of measured cell lines by summed retroelement transcription, about 80 CPM and above. <b>Why:</b> de-repressed retroelements produce immunostimulatory nucleic acid, the trigger for viral mimicry, and lines with a higher signal depend measurably more on ADAR1 (r = \u22120.18 across 669 lines, still there after controlling for the interferon score). <b>Method:</b> RNA-seq reads over 750 full-length LINE-1, HERV-K and SVA elements outside genes, unique reads only, expressed as counts per million; measured directly from the public CCLE alignments. <b>Caveat:</b> this is element transcription, not retrotransposition: new genomic insertions cannot be seen in RNA. 669 of 1,208 lines have a public alignment to measure; the rest can never appear in this set.'
             },
+            retro_l1_high: {
+                label: 'LINE-1-high (retroelement family)',
+                category: 'Immunology',
+                description: '<b>Inclusion:</b> the top tenth of measured lines by LINE-1 transcription (237 full-length intergenic L1HS / L1PA2 copies), about 13 CPM and above. <b>Why:</b> LINE-1 is the only autonomously mobile human retroelement, and its RNA and cDNA are the classic triggers of the cytosolic sensing that underlies viral mimicry. <b>Method:</b> unique RNA-seq reads over the elements, counts per million, measured from the public CCLE alignments. <b>Caveat:</b> transcription, not retrotransposition; 669 of 1,208 lines are measured, the rest can never appear here.'
+            },
+            retro_hervk_high: {
+                label: 'HERV-K-high (retroelement family)',
+                category: 'Immunology',
+                description: '<b>Inclusion:</b> the top tenth of measured lines by HERV-K transcription (350 full-length proviruses and solo LTRs), about 58 CPM and above. <b>Why:</b> HERV-K is the youngest human endogenous retrovirus family; its de-repression is described in melanoma, germ-cell tumours and several other cancers, and its products can be immunogenic. <b>Method:</b> unique RNA-seq reads over the elements, counts per million, from the public CCLE alignments. <b>Caveat:</b> transcription only; 669 of 1,208 lines measured.'
+            },
+            retro_sva_high: {
+                label: 'SVA-high (retroelement family)',
+                category: 'Immunology',
+                description: '<b>Inclusion:</b> the top tenth of measured lines by SVA transcription (163 full-length SVA_E / SVA_F copies), about 14 CPM and above. <b>Why:</b> SVA elements are hominid-specific composites mobilised by the LINE-1 machinery; their transcription tracks the same de-repression the other families report and is the least studied of the three. <b>Method:</b> unique RNA-seq reads over the elements, counts per million, from the public CCLE alignments. <b>Caveat:</b> transcription only; 669 of 1,208 lines measured.'
+            },
             class_i_reduced: {
                 label: 'Class-I antigen presentation reduced/lost',
                 category: 'Immunology',
@@ -37218,8 +37236,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'wgd_positive', 'high_aneuploidy',
             // Expression phenotype
             'ne', 'emt',
-            // Immunology
+            // Immunology. NOTE: this whitelist is the gate to the quick-filter
+            // UI and its info modal; a new catalog entry that is not added
+            // here is silently invisible (ifn_high / ifn_low shipped in
+            // v.88.32 and never appeared until v.88.42 for exactly that
+            // reason). New quick filters must be added in FOUR places:
+            // catalog, membership, SOURCE map, and this set.
             'pdl1_high', 'likely_immunogenic',
+            'ifn_high', 'ifn_low',
+            'retro_high', 'retro_l1_high', 'retro_hervk_high', 'retro_sva_high',
             // Key focal copy-number events
             // cdkn2a_del / rb1_del / pten_del removed: the curated deletion panel
             // deliberately excludes CDKN2A, RB1 and PTEN (functional loss already
@@ -37747,12 +37772,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     retroScore(cellLineId) {
         return this.retroData?.lines?.[cellLineId] || null;
     }
-    // Top-decile cutoff of total CPM among measured lines; computed once.
-    _retroHighCutoff() {
-        if (this._retroP90 !== undefined) return this._retroP90;
-        const vals = Object.values(this.retroData?.lines || {}).map(v => v.t).sort((a, b) => a - b);
-        this._retroP90 = vals.length ? vals[Math.floor(vals.length * 0.9)] : null;
-        return this._retroP90;
+    // Top-decile cutoff among measured lines for one retro measure
+    // (t / l1 / hk / sva); computed once per key.
+    _retroHighCutoff(key = 't') {
+        this._retroP90 = this._retroP90 || {};
+        if (this._retroP90[key] !== undefined) return this._retroP90[key];
+        const vals = Object.values(this.retroData?.lines || {}).map(v => v[key]).sort((a, b) => a - b);
+        this._retroP90[key] = vals.length ? vals[Math.floor(vals.length * 0.9)] : null;
+        return this._retroP90[key];
     }
 
     // Compute which cell lines belong to each curated collection. Called
@@ -37820,12 +37847,32 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Retroelement-high: top decile of measured lines by summed
         // element transcription. Unmeasured lines simply never qualify.
+        // Same logic per family (LINE-1 / HERV-K / SVA), each against its
+        // own top-decile cutoff.
         mem.retro_high = new Set();
+        mem.retro_l1_high = new Set();
+        mem.retro_hervk_high = new Set();
+        mem.retro_sva_high = new Set();
         {
-            const cut = this._retroHighCutoff();
+            const cut = this._retroHighCutoff('t');
             if (cut != null) for (const cl of clLines) {
                 const v = this.retroData.lines[cl];
                 if (v && v.t >= cut) mem.retro_high.add(cl);
+            }
+            const cutL1 = this._retroHighCutoff('l1');
+            if (cutL1 != null) for (const cl of clLines) {
+                const v = this.retroData.lines[cl];
+                if (v && v.l1 >= cutL1) mem.retro_l1_high.add(cl);
+            }
+            const cutHk = this._retroHighCutoff('hk');
+            if (cutHk != null) for (const cl of clLines) {
+                const v = this.retroData.lines[cl];
+                if (v && v.hk >= cutHk) mem.retro_hervk_high.add(cl);
+            }
+            const cutSva = this._retroHighCutoff('sva');
+            if (cutSva != null) for (const cl of clLines) {
+                const v = this.retroData.lines[cl];
+                if (v && v.sva >= cutSva) mem.retro_sva_high.add(cl);
             }
         }
 
@@ -38498,7 +38545,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'Disease-defining fusions': 'Cell lines where one of the curated pathognomonic driver fusions is called, Philadelphia-positive leukemias (BCR-ABL1+), Ewing sarcoma (EWSR1-FLI1+), ALK-rearranged NSCLC, APL, synovial sarcoma, alveolar RMS, prostate, ALCL.',
             'DNA repair / damage response': 'One consolidated category for DNA-repair-deficiency contexts (MMR, HR, polymerase proofreading, ATM) and the related mutation-burden state (hypermutated). All overlap clinically, MMR-deficient lines are usually hypermutated, POLE-deficient lines are ultramutated, HR-deficient lines often have elevated LoH.',
             'TNBC molecular subtypes (Lehmann)': 'Lehmann 2011 / 2016 four-class refined TNBC molecular subtypes (BL1, BL2, M, LAR) for the ~22 TNBC overlap cell lines.',
-            'Patient age at diagnosis': 'Clinical-oncology age buckets computed from the numeric patient-age field. Pediatric (≤ 14), AYA (15–39), Adult (40–64), Elderly (≥ 65), Infant (≤ 1) as subsets. Useful because driver biology differs sharply with age, fusions and chromatin mutations dominate pediatric cancers, SNV-driven solid tumors dominate adult.'
+            'Patient age at diagnosis': 'Clinical-oncology age buckets computed from the numeric patient-age field. Pediatric (≤ 14), AYA (15–39), Adult (40–64), Elderly (≥ 65), Infant (≤ 1) as subsets. Useful because driver biology differs sharply with age, fusions and chromatin mutations dominate pediatric cancers, SNV-driven solid tumors dominate adult.',
+            'Immunology': 'The four retroelement filters (total, LINE-1, HERV-K, SVA) come from a direct measurement: RNA-seq reads over 750 full-length retroelements outside genes, made on the 669 lines with a public CCLE alignment. High means the top tenth of the measured lines for that measure. A line missing from all four is usually unmeasured rather than quiet.'
         };
         const CATEGORY_ORDER = [
             'Disease-defining fusions',
@@ -38575,6 +38623,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Immunology
             ifn_high: 'ISG expression score',
             ifn_low: 'ISG expression score',
+            retro_high: 'RNA-seq of retroelements',
+            retro_l1_high: 'RNA-seq of retroelements',
+            retro_hervk_high: 'RNA-seq of retroelements',
+            retro_sva_high: 'RNA-seq of retroelements',
             class_i_reduced: 'integrated immunophenotype',
             pdl1_high: 'expression',
             likely_immunogenic: 'mutation count + immunophenotype',
@@ -54506,6 +54558,16 @@ const MODAL_IDS = [
 const HELP_DELAY_MS = 550;
 const HELP_SELECTOR = 'button[title], label[title], a[title], [data-help]';
 
+// Scroll-vs-hover gate. Scrolling the cell line browser (or any long list)
+// swept hover popouts (this help engine, the cell-line summary card) into
+// view under a stationary pointer, which is annoying while trying to read
+// down a list. One shared "quiet" window, set by a single capture-phase
+// scroll listener below (inner scrollers don't bubble their scroll events,
+// so capture is required to see them at all), tells every hover-popout
+// system to stay out of the way for a beat after each scroll tick.
+let scrollQuietUntil = 0;
+window.__hoverQuiet = () => Date.now() < scrollQuietUntil;
+
 document.addEventListener('DOMContentLoaded', () => {
     let timer = null;
     let current = null;
@@ -54544,6 +54606,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.addEventListener('mouseover', (e) => {
+        if (window.__hoverQuiet?.()) return;
         const el = e.target.closest?.(HELP_SELECTOR);
         if (!el || el === current) return;
         if (el.closest('.js-plotly-plot, .help-popout')) return;
@@ -54569,7 +54632,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // A click means the user has decided; the explanation is just in the way.
     document.addEventListener('mousedown', hide, true);
     window.addEventListener('blur', hide);
-    document.addEventListener('scroll', hide, true);
+    // Capture phase: scroll events on inner scrollers (the cell line list,
+    // a modal body) do not bubble to document. Passive since this never
+    // calls preventDefault. Sets the shared quiet gate and clears whatever
+    // is showing right now, on top of arming/showing nothing new while quiet.
+    document.addEventListener('scroll', () => {
+        scrollQuietUntil = Date.now() + 250;
+        hide();
+        window.app?.hideCellLineTooltip?.();
+    }, { capture: true, passive: true });
 });
 
 // Whether Shift is being held right now. The gene tooltip needs this because
