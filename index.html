@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.54 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>The heatmap says when it is working.</b> A draw that takes longer than about two seconds, typically the first open on a large cohort, now shows the same working spinner the analysis run uses, instead of looking frozen. Quick draws finish before the spinner would appear, so nothing flickers.</li>
+                </ul>
                 <p><strong>v.88.53 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Cluster the whole panel.</b> Cell-line clustering now handles every line at once (the limit rises from 400 to 1,300) thanks to a faster exact algorithm producing the same trees. And turning clustering on adds a lineage colour row automatically when none is set, so whether the cell lines cluster by lineage or by something else is visible at a glance in the colours under the grid.</li>
@@ -6880,7 +6884,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.53</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.54</a>
         </span>
     </div>
 
@@ -9836,6 +9840,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_53"></script>
+    <script src="app.js?v=v88_54"></script>
 </body>
 </html>

@@ -53259,7 +53259,27 @@ ${clone.innerHTML}
     // Reads the controls, resolves genes and cohort, and (re)builds the
     // matrix. Only runs on open or Redraw, so a half-typed custom gene list
     // doesn't repaint on every keystroke.
+    // The first draw of a big cohort blocks the thread for a moment and
+    // looked like a hang on open. Same treatment the network build uses:
+    // put up the standard delayed spinner, yield a beat so the just-opened
+    // modal (and the spinner) can paint, then do the work. Fast draws
+    // finish before the spinner's 2s reveal, so nothing flickers. The
+    // sequence counter lets a newer control change supersede a pending
+    // redraw instead of the two interleaving.
     async _hmRedraw() {
+        this._showAnalysisSpinner('Drawing the heatmap...');
+        this._hmRedrawSeq = (this._hmRedrawSeq || 0) + 1;
+        const seq = this._hmRedrawSeq;
+        await new Promise(r => setTimeout(r, 30));
+        if (seq !== this._hmRedrawSeq) return;   // superseded; the newer call owns the spinner
+        try {
+            await this._hmRedrawCore();
+        } finally {
+            if (seq === this._hmRedrawSeq) this._hideAnalysisSpinner();
+        }
+    }
+
+    async _hmRedrawCore() {
         this._hmSyncDrillBackButton();
         this._hmSyncPresetUI();
         const hint = document.getElementById('hmHint');
