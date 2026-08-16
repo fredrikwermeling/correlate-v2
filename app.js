@@ -31262,7 +31262,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     ];
                 }
                 description = `Gene set heatmap: ${setLabel} (${d.genes.length} genes) across ${d.orderedCLs.length} cell lines (${cohortWord}${d.lineageLabel ? `, ${d.lineageLabel} only` : ''}), ${sortSummary}, ${measure}, ${scaling}${groupedAtAll ? `, grouped by ${groupWord}` : ''}.`;
-                const colourWord = (d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'blue is low, red is high' : d.dataType === 'expr' ? 'white is low, dark green is high' : 'blue is enriched, red is depleted';
+                const colourWord = d.dataType === 'expr'
+                    ? ((d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'blue is low, red is high' : 'white is low, dark green is high')
+                    : 'red is negative (dependency), blue is high (dispensable)';
                 context.plotDescribesWhat = `A heatmap: each row is one of the ${d.genes.length} genes in the "${setLabel}" set, each column is one cell line (${d.orderedCLs.length} shown, ${sortSummary}). Colour is ${measure}, ${scaling}: ${colourWord}.`
                     + (d.groups ? ` A coloured band beneath the grid marks the ${visibleGroups.length} group${visibleGroups.length === 1 ? '' : 's'} the columns are split into by ${groupWord}${hiddenGroupKeys.length ? `; ${hiddenGroupKeys.length} more group${hiddenGroupKeys.length === 1 ? '' : 's'} (${hiddenGroupKeys.join(', ')}) were hidden by the user and are not in this file` : ''}.` : '')
                     + (d.annRows.length ? ` ${d.annRows.length} more coloured band${d.annRows.length === 1 ? '' : 's'} beneath that mark each column's ${d.annRows.map(r => r.attrLabel).join(', ')} respectively.` : '')
@@ -51716,13 +51718,20 @@ ${clone.innerHTML}
         const axLabels = this._clbUmapData.axisLabels || ['UMAP 1', 'UMAP 2'];
         const methodLabel = this._clbUmapData.method === 'pca' ? 'PCA' : 'UMAP';
         const typeLabel = colorType === 'ge' ? 'Gene Effect' : 'Expression';
+        // Gene effect: DepMap convention puts the dependency direction
+        // (negative, at vMin) on red and the dispensable direction
+        // (positive, at vMax) on blue, so the scale is reversed relative to
+        // expression, where high (at vMax) stays red.
+        const geColorscale = colorType === 'ge'
+            ? [[0, '#b2182b'], [0.5, '#f7f7f7'], [1, '#2166ac']]
+            : [[0, '#2166ac'], [0.5, '#f7f7f7'], [1, '#b2182b']];
 
         const trace = {
             x, y, text: hoverTexts, customdata: cellLines.map(cl => cl),
             mode: 'markers', type: 'scattergl',
             marker: {
                 size: parseInt(document.getElementById('clbUmapMarkerSize')?.value) || 6,
-                color: colors, colorscale: [[0, '#2166ac'], [0.5, '#f7f7f7'], [1, '#b2182b']],
+                color: colors, colorscale: geColorscale,
                 cmin: vMin, cmax: vMax, opacity: 0.85,
                 // Horizontal title (side: 'top') so long gene / type labels
                 // don't get cropped by the right margin. Pin x explicitly so
@@ -54822,15 +54831,18 @@ ${clone.innerHTML}
 
     _hmColorFor(v, scaleMode, dataType, domain) {
         if (v == null || Number.isNaN(v)) return '#f3f4f6';
-        if (scaleMode === 'z' || scaleMode === 'zall') return this._hmDivergingColor(Math.max(-1, Math.min(1, v / 2.5)));
         if (dataType === 'expr') {
+            if (scaleMode === 'z' || scaleMode === 'zall') return this._hmDivergingColor(Math.max(-1, Math.min(1, v / 2.5)));
             const span = (domain.hi - domain.lo) || 1;
             return this._hmSequentialGreen(Math.max(0, Math.min(1, (v - domain.lo) / span)));
         }
-        // Raw gene effect: negative (depleted) reads as red, the same
-        // convention the app's other gene-effect views use.
-        const m = domain.hi || 1;
-        return this._hmDivergingColor(Math.max(-1, Math.min(1, -v / m)));
+        // Gene effect (raw and both z modes): the DepMap convention puts the
+        // dependency direction (negative) on red and the dispensable
+        // direction (positive) on blue, so the normalized position is
+        // negated here rather than duplicating the diverging ramp with a
+        // mirrored copy.
+        const pos = (scaleMode === 'z' || scaleMode === 'zall') ? v / 2.5 : v / (domain.hi || 1);
+        return this._hmDivergingColor(Math.max(-1, Math.min(1, -pos)));
     }
 
     // t in [-1,1]: -1 blue (#2166ac), 0 white, 1 red (#b2182b). ColorBrewer RdBu.
@@ -55438,9 +55450,9 @@ ${clone.innerHTML}
                 : d.scaleMode === 'zall' ? `z-scored per gene vs all ${d.zAllN.toLocaleString()} lines with data`
                 : 'raw values';
             const dataWord = d.dataType === 'expr' ? 'mRNA expression' : 'CRISPR gene effect';
-            const colourWord = (d.scaleMode === 'z' || d.scaleMode === 'zall')
-                ? 'Blue is low, red is high.'
-                : d.dataType === 'expr' ? 'White is low, dark green is high.' : 'Blue is enriched, red is depleted.';
+            const colourWord = d.dataType === 'expr'
+                ? ((d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'Blue is low, red is high.' : 'White is low, dark green is high.')
+                : 'Red is negative (dependency), blue is high (dispensable).';
             // Cluster groups keep groupByMode 'none' (clustering only runs
             // when Group by is none), so the plain groupByMode label would
             // read "grouped by none" while a cluster strip and legend are
@@ -55781,13 +55793,16 @@ ${clone.innerHTML}
         const scaleWord = d.scaleMode === 'z' ? 'Z-scored per gene, vs shown lines.'
             : d.scaleMode === 'zall' ? `Z-scored per gene, vs all ${d.zAllN.toLocaleString()} lines with data.`
             : 'Raw values.';
+        const colourWord = d.dataType === 'expr'
+            ? ((d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'Blue is low, red is high.' : 'White is low, dark green is high.')
+            : 'Red is negative (dependency), blue is high (dispensable).';
         const groupWord = d.groups
             ? `Grouped by ${d.clustersActive ? `cell-line clusters (k=${d.clusterK})` : this._hmGroupByLabel(d.groupByMode, d.altInfo)}.`
             : '';
         const ann2Word = d.annRows.length ? `Annotation rows: ${d.annRows.map(r => r.attrLabel).join(', ')}.` : '';
         const sortWord = `Cell lines ${this._hmSortSummary(d)}.`;
         const dateStr = new Date().toISOString().slice(0, 10);
-        const line2 = [this._hmCohortPhrase(d.orderedCLs.length), sortWord, groupWord, ann2Word, scaleWord, `DepMap ${DEPMAP_VERSION}, ${dateStr}.`]
+        const line2 = [this._hmCohortPhrase(d.orderedCLs.length), sortWord, groupWord, ann2Word, scaleWord, colourWord, `DepMap ${DEPMAP_VERSION}, ${dateStr}.`]
             .filter(Boolean).join(' ');
         return { line1, line2 };
     }
@@ -55914,6 +55929,9 @@ ${clone.innerHTML}
         const scaleWord = d.scaleMode === 'z' ? 'z-scored per gene vs shown lines'
             : d.scaleMode === 'zall' ? `z-scored per gene vs all ${d.zAllN.toLocaleString()} lines with data`
             : 'raw values';
+        const colourWord = d.dataType === 'expr'
+            ? ((d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'blue is low, red is high' : 'white is low, dark green is high')
+            : 'red is negative (dependency), blue is high (dispensable)';
         const cohortMode = document.getElementById('hmCohort')?.value || 'visible';
         const cohortWord = { visible: 'cell lines the browser is filtered to', selected: 'ticked cell lines', all: 'all cell lines' }[cohortMode] || cohortMode;
         const lineageWord = d.lineageLabel ? `${d.lineageLabel} only` : 'all lineages';
@@ -55930,7 +55948,7 @@ ${clone.innerHTML}
         // plain sentence above the header once made a spreadsheet read the
         // real column names as a row of data, because a header row only
         // works as a header if row 1 IS the header row.
-        const corner = `Gene [${measureWord}, ${scaleWord}, ${cohortWord}${filterWord}, ${lineageWord}${narrowWord ? `, ${narrowWord}` : ''}, ${sortWord}, ${groupWord}${ann2Word}, DepMap ${DEPMAP_VERSION}, ${dateStr}]`;
+        const corner = `Gene [${measureWord}, ${scaleWord}, ${colourWord}, ${cohortWord}${filterWord}, ${lineageWord}${narrowWord ? `, ${narrowWord}` : ''}, ${sortWord}, ${groupWord}${ann2Word}, DepMap ${DEPMAP_VERSION}, ${dateStr}]`;
         const header = csvField(corner) + ',' + d.orderedCLs.map(cl => this.getCellLineName(cl)).join(',');
         const rows = d.orderedGenes.map(g => {
             const row = d.scaledRows[d.geneIndexInResult.get(g)];

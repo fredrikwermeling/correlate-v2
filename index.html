@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.60 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Gene-effect heatmaps colour dependency red.</b> On gene-effect views red now marks negative values, the dependencies, and blue the dispensable genes, matching the DepMap convention and putting the heat on the biology; expression keeps red = high. The legend, captions and AI export state the mapping for each data type.</li>
+                </ul>
                 <p><strong>v.88.59 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>The alteration-grouping gene box got real.</b> Picking the gene for Group by: Genetic alteration now works like the other filter boxes: a searchable list showing each gene's mutation count in the currently filtered cell lines, most mutated first, including the genes scored by damaging mutations.</li>
@@ -6904,7 +6908,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.59</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.60</a>
         </span>
     </div>
 
@@ -9877,6 +9881,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_59"></script>
+    <script src="app.js?v=v88_60"></script>
 </body>
 </html>
