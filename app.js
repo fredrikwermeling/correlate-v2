@@ -52765,6 +52765,19 @@ ${clone.innerHTML}
         document.getElementById('hmExportImageBtn')?.addEventListener('click', () => this._hmExportImage());
         document.getElementById('hmCopyBtn')?.addEventListener('click', () => this._hmCopy());
         document.getElementById('hmCsvBtn')?.addEventListener('click', () => this._hmExportCsv());
+        // The shown genes, one per line, in drawn (clustered) order, so a
+        // set assembled here can be pasted straight into any gene box.
+        document.getElementById('hmCopyGenesBtn')?.addEventListener('click', async () => {
+            const genes = this._hmData?.orderedGenes || [];
+            const btn = document.getElementById('hmCopyGenesBtn');
+            if (!genes.length || !btn) return;
+            try {
+                await navigator.clipboard.writeText(genes.join('\n'));
+                const t = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = t; }, 1200);
+            } catch (e) {}
+        });
         document.getElementById('hmExportAIBtn')?.addEventListener('click', () => this._aiShowDialog?.('heatmap'));
 
         // Genetic-alteration filters: same searchable hotspot/fusion/CN
@@ -53898,14 +53911,20 @@ ${clone.innerHTML}
         const ROWS = 3, GAP = 4, MIN_CHARS = 6;
         const lastRightX = new Array(ROWS).fill(-Infinity);
         const items = [];
-        let labelledCount = 0, maxRow = -1;
+        // Labels are clamped inside the canvas: an edge group's centred text
+        // otherwise runs off the left or right and gets clipped mid-word.
+        const gridW = Math.max(...groups.filter(g => !g.hidden).map(g => g.endCol)) * cellW;
+        let maxRow = -1;
         for (const g of eligible) {
-            const row = labelledCount % ROWS;
             const bandCx = (g.startCol + g.endCol) / 2 * cellW;
-            // Tried in order until one fits without overlapping the previous
-            // label in this row: the full label, the bare key, then either
-            // the curated abbreviation or (for a key not in that map) a
-            // shrinking ellipsis-truncation down to a 6-character floor.
+            // Tried in order until one fits: the full label, the bare key,
+            // then either the curated abbreviation or (for a key not in that
+            // map) a shrinking ellipsis-truncation down to a 6-character
+            // floor. Rows are greedy: everything prefers row 0 and only
+            // drops to a lower stagger row on collision, so an uncrowded
+            // strip gets one flat line of labels with no connector lines,
+            // and the connectors appear only where labels actually had to
+            // move out of the way. Fuller text beats a shallower row.
             const candidates = [groupLabelText(g), g.key];
             const abbrev = HM_GROUP_LABEL_ABBREV[g.key];
             if (abbrev) {
@@ -53916,13 +53935,17 @@ ${clone.innerHTML}
             let chosen = null;
             for (const text of candidates) {
                 const w = probe.measureText(text).width;
-                if (bandCx - w / 2 >= lastRightX[row] + GAP) { chosen = { text, w }; break; }
+                if (w + 4 > gridW) continue;
+                const cx = Math.min(Math.max(bandCx, w / 2 + 2), gridW - w / 2 - 2);
+                for (let row = 0; row < ROWS; row++) {
+                    if (cx - w / 2 >= lastRightX[row] + GAP) { chosen = { text, w, cx, row }; break; }
+                }
+                if (chosen) break;
             }
             if (!chosen) continue;
-            lastRightX[row] = bandCx + chosen.w / 2;
-            items.push({ x: bandCx, text: chosen.text, row });
-            if (row > maxRow) maxRow = row;
-            labelledCount++;
+            lastRightX[chosen.row] = chosen.cx + chosen.w / 2;
+            items.push({ x: chosen.cx, text: chosen.text, row: chosen.row });
+            if (chosen.row > maxRow) maxRow = chosen.row;
         }
         return { rows: maxRow + 1, items };
     }
@@ -54102,10 +54125,14 @@ ${clone.innerHTML}
                 const plan = d.groupLabelPlan;
                 if (plan && plan.items.length) {
                     const tickTop = stripY + GROUP_STRIP_H + GROUP_TICK_H;
+                    // Connector lines only for labels pushed off the first
+                    // row: a label sitting right under the strip needs no
+                    // line pointing at it.
                     ctx.strokeStyle = '#9ca3af';
                     ctx.lineWidth = 1;
                     ctx.beginPath();
                     plan.items.forEach(it => {
+                        if (it.row === 0) return;
                         ctx.moveTo(it.x, tickTop);
                         ctx.lineTo(it.x, tickTop + 1 + it.row * GROUP_LABEL_ROW_H);
                     });
@@ -54274,6 +54301,7 @@ ${clone.innerHTML}
         // dropped) when grouping is off, so switching grouping off leaves no
         // gap where the legend used to be.
         if (groupLegendCanvas) {
+            const legendHint = document.getElementById('hmGroupLegendHint');
             if (groupLegendLayout) {
                 sizeCanvas(groupLegendCanvas, groupLegendLayout.width, groupLegendLayout.height);
                 groupLegendCanvas.style.marginTop = '8px';
@@ -54283,11 +54311,13 @@ ${clone.innerHTML}
                 glc.setTransform(dpr, 0, 0, dpr, 0, 0);
                 glc.clearRect(0, 0, groupLegendLayout.width, groupLegendLayout.height);
                 paintGroupLegend(glc);
+                if (legendHint) legendHint.style.display = '';
             } else {
                 groupLegendCanvas.width = 0; groupLegendCanvas.height = 0;
                 groupLegendCanvas.style.marginTop = '0';
                 groupLegendCanvas.style.cursor = 'default';
                 groupLegendCanvas.title = '';
+                if (legendHint) legendHint.style.display = 'none';
             }
         }
         if (groupLegendCanvas && !groupLegendCanvas._hmWired) {
@@ -54533,6 +54563,8 @@ ${clone.innerHTML}
         });
         const groupLegendCanvas = document.getElementById('hmGroupLegendCanvas');
         if (groupLegendCanvas) groupLegendCanvas.style.marginTop = '0';
+        const legendHint = document.getElementById('hmGroupLegendHint');
+        if (legendHint) legendHint.style.display = 'none';
         const ann2LegendCanvas = document.getElementById('hmAnn2LegendCanvas');
         if (ann2LegendCanvas) ann2LegendCanvas.style.marginTop = '0';
         this._hmData = null;

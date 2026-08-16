@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.45 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Heatmap polish.</b> The toolbar boxes align into columns across the rows, and the genetic alteration filters sit together on their own line. Group labels under the colour strip stay inside the picture instead of getting cut mid-word, prefer one flat line of text, and only stagger with connector lines where it is genuinely crowded. The group legend says what clicking does: click hides or shows a group, double-click keeps only it. And a Copy genes button copies the shown genes in drawn order.</li>
+                </ul>
                 <p><strong>v.88.44 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Z-score basis, and mutation-dose grouping.</b> The heatmap's z-score can now be computed against all cell lines instead of only the shown ones: a melanoma-only view of a MAPK signature looks flat scored within melanoma, and strong scored against the whole panel, and both readings are now available under Scaling. Grouping by a genetic alteration splits into wild-type, one copy and both copies, in that order, matching the second-row colours, so mutation dose reads directly off the blocks.</li>
@@ -6844,7 +6848,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.44</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.45</a>
         </span>
     </div>
 
@@ -8656,12 +8660,12 @@
                     <div class="clb-row">
                         <span class="clb-row-label">Gene set</span>
                         <div class="clb-row-items">
-                            <select id="hmPreset" style="width:210px;"></select>
-                            <select id="hmDataType" style="width:160px;" title="mRNA expression (log2 TPM+1) or CRISPR gene effect (Chronos)">
+                            <select id="hmPreset" style="width:230px;"></select>
+                            <select id="hmDataType" style="width:180px;" title="mRNA expression (log2 TPM+1) or CRISPR gene effect (Chronos)">
                                 <option value="expr" selected>mRNA expression</option>
                                 <option value="ge">CRISPR gene effect</option>
                             </select>
-                            <select id="hmScale" style="width:150px;" title="Z-score compares each gene to its own spread; choose whether that spread is measured across only the cell lines shown or across the whole panel. Raw values keep their original units">
+                            <select id="hmScale" style="width:200px;" title="Z-score compares each gene to its own spread; choose whether that spread is measured across only the cell lines shown or across the whole panel. Raw values keep their original units">
                                 <option value="z" selected>Z-score, vs shown lines</option>
                                 <option value="zall">Z-score, vs all lines</option>
                                 <option value="raw">Raw values</option>
@@ -8688,7 +8692,9 @@
                             <select id="hmDisease" style="width:210px;" title="Narrows further to one Oncotree disease, within whatever lineage is chosen">
                                 <option value="">All diseases</option>
                             </select>
-                            <span class="clb-sep"></span>
+                            <!-- Line break: the three genetic-alteration filters read as one
+                                 unit on their own line, instead of hotspot straggling above. -->
+                            <span style="flex-basis:100%; height:0;"></span>
                             <div id="hmHotspotFilterWrap" class="filter-input-wrap" style="position:relative; width:130px;">
                                 <input type="text" id="hmHotspotFilter" class="form-control" placeholder="Hotspot gene..." autocomplete="off" style="width:124px; font-size:11px; padding:3px 6px;" title="Only show cell lines mutated (or wild-type) in this gene">
                                 <div id="hmHotspotDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
@@ -8774,12 +8780,14 @@
                 <div id="hmScrollHint" style="font-size:9px; color:#9ca3af; margin-top:3px;"></div>
                 <div style="margin-top:10px;"><canvas id="hmLegendCanvas"></canvas></div>
                 <canvas id="hmGroupLegendCanvas" style="display:block;"></canvas>
+                <div id="hmGroupLegendHint" style="display:none; font-size:10px; color:#9ca3af; margin-top:2px;">Click a group to hide or show it. Double-click to keep only that group.</div>
                 <canvas id="hmAnn2LegendCanvas" style="display:block;"></canvas>
             </div>
             <div class="modal-footer" style="justify-content:flex-start; flex-wrap:wrap; gap:6px;">
                 <button id="hmExportImageBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Choose format, print size and resolution">Export image...</button>
                 <button id="hmCopyBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Copy the heatmap as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                 <button id="hmCsvBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="The gene x cell line matrix as data, values as currently shown (z-scored or raw)">.csv</button>
+                <button id="hmCopyGenesBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Copy the genes shown, one per line, in the order they are drawn">Copy genes</button>
                 <button id="hmExportAIBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Package this heatmap for a language model: the gene set, the matrix, the cohort and the grouping, plus a picture of what's on screen">Export for AI</button>
                 <span style="flex:1 1 auto;"></span>
                 <button id="heatmapClose2" class="btn btn-secondary btn-sm">Close</button>
@@ -9770,6 +9778,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_44"></script>
+    <script src="app.js?v=v88_45"></script>
 </body>
 </html>
